@@ -1,5 +1,7 @@
 # Architecture
 
+> **Superseded in part.** Hosting, scheduled jobs, webhooks, file storage, signatures and identity checks follow `docs/decisions/0001-zero-fixed-fee-stack.md`. Where this file says Vercel, Vercel Cron, Supabase Storage or an e-signature service, the decision record wins.
+
 CarmaCars is the rental platform of 18122211 Canada Inc. (Ontario). This document describes the foundation in this repository and the shape of the application that will be built on it. The business rules themselves are in `docs/source/`; where they live in the database is in `docs/data-model.md`.
 
 ## 1. System overview

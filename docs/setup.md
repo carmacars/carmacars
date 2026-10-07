@@ -1,5 +1,7 @@
 # Setup
 
+> **Superseded in part.** Hosting, scheduled jobs, webhooks, file storage, signatures and identity checks follow `docs/decisions/0001-zero-fixed-fee-stack.md`. Where this file says Vercel, Vercel Cron, Supabase Storage or an e-signature service, the decision record wins.
+
 How to stand the platform up: the database, the hosting, the payment account, and how they connect. Do it once for **staging** and once for **production**; they share nothing.
 
 ## 1. What you need first

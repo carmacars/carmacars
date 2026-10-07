@@ -1,6 +1,6 @@
 # CarmaCars platform
 
-The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking site, renter portal, owner portal, admin portal, VA portal and field staff portal in one Next.js app, on Supabase (Postgres, sign-in, files) and Vercel, with Stripe, an e-signature service and a GPS tracker with remote killswitch.
+The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking site, renter portal, owner portal, admin portal, VA portal and field staff portal in one Next.js app, on Supabase (Postgres, sign-in) and Cloudflare (hosting, files), with Stripe, built-in signing and a GPS tracker with remote killswitch.
 
 **This commit is the foundation only:** the database, its rules, its permissions and its tests. The Next.js app is not scaffolded yet.
 
@@ -14,7 +14,7 @@ The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking
 | `docs/architecture.md` | System overview, environments, app areas, integrations, scheduled jobs, file storage, what is out of scope |
 | `docs/data-model.md` | Tables by group, status flows, where each billing rule lives, assumptions |
 | `docs/permissions.md` | The role matrix and how it is enforced |
-| `docs/setup.md` | Creating and connecting Supabase, Vercel and Stripe; environment variables; running the tests |
+| `docs/setup.md` | Creating and connecting Supabase and Stripe (hosting: see `docs/decisions/0001-zero-fixed-fee-stack.md`); environment variables; running the tests |
 | `docs/source/` | The agreements, billing specifications and procedures the model was built from |
 | `.env.example` | Every environment variable, without values |
 
