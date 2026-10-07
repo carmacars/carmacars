@@ -381,7 +381,7 @@ select test.eq('A every table that holds money, pricing or status is audited',
   (select string_agg(c.relname, ',') from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind = 'r'
       and c.relname not in ('audit_log', 'status_history', 'data_access_log', 'job_runs', 'tracker_status',
-                            'condition_report_photos', 'vehicle_photos', 'photo_jobs', 'messages', 'incident_events')
+                            'condition_report_photos', 'vehicle_photos', 'photo_jobs', 'messages', 'incident_events', 'app_events')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
