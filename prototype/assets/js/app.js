@@ -33,6 +33,7 @@
     var h = location.hash.replace(/^#\/?/, '');
     var anchor = ''; var t = h.indexOf('~'); if (t > -1) { anchor = h.slice(t + 1); h = h.slice(0, t); }
     var q = ''; var i = h.indexOf('?'); if (i > -1) { q = h.slice(i + 1); h = h.slice(0, i); }
+    h = h.replace(/\/+$/, ''); if (h && !/\.html$/.test(h)) h += '.html'; // '#/fleet' works as well as '#/fleet.html'
     return { page: h || 'index.html', query: q, anchor: anchor };
   };
   CC.params = function () { return new URLSearchParams(CC.route().query); };

@@ -19,13 +19,14 @@ export const COVERAGE_OPTIONS = [
 ];
 export const HOW_STEPS = [
   ['Send a request', 'Choose the car, your dates and whether you want it delivered. No card and no payment at this point.', 'You'],
-  ['We confirm, or adjust', 'A person checks the car’s calendar and your details, then sends the full price with fees and HST. If something has to change, such as the pickup time or the car, we say what and why. We hold the car for two hours while you decide.', 'CarmaCars'],
-  ['You approve, sign and pay', 'Sign the rental agreement online and pay through our checkout with a credit card in your name. The booking is confirmed once the payment goes through.', 'You'],
+  ['We confirm, or adjust', 'A person checks the car’s calendar and your details, then sends the full price with fees and HST. If something has to change, such as the pickup time or the car, we say what and why. That price is an offer, open for 24 hours. It does not hold the car.', 'CarmaCars'],
+  ['You approve, sign and pay', 'Sign the rental agreement online and pay through our checkout with a credit card in your name. The car is booked once the payment goes through, and not before. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.', 'You'],
   ['We check your licence and coverage', 'Send a photo of your licence, front and back, a selfie holding it, and proof of your coverage option. We need these at least 24 hours before pickup.', 'You, then CarmaCars'],
   ['Pick up, or we deliver', 'Bring your original licence and the card you paid with. The deposit is taken before the keys change hands, and we photograph the car together.', 'Both']
 ];
 export const HOME_FAQ = [
   ['Do I pay anything when I send a request?', 'No. A request needs no card and takes no payment. You pay only after we confirm the car and price and you approve it.'],
+  ['Does a request reserve the car?', 'No. The price we send is an offer that stays open for 24 hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.'],
   ['How old do I have to be?', '18 or older, with an Ontario G2 or G licence. Drivers aged 18 to 20 can book the cars marked for them and pay a young driver fee of $35 a day, up to $350. Drivers aged 21 to 25 pay $20 a day, up to $200.'],
   ['What coverage do I need?', 'Third-party liability coverage is included in the rate. For damage to the car you need one of three options before pickup: OPCF 27 on your own auto policy, rental coverage on your credit card, or coverage bought through us. <a class="link" href="requirements.html#coverage">Compare the three options</a>.'],
   ['When is the deposit taken, and when do I get it back?', 'At pickup, before we hand over the keys. For rentals of 7 days or less it is a hold on your card. For longer rentals it is charged and refunded. We release the balance within 7 business days after you return the car.'],
@@ -60,7 +61,7 @@ export function home() {
   <div class="wrap hero__inner">
     <div class="hero__copy">
       <h1 class="d-hero">Toronto car rental, <br class="br-xl">confirmed by a person.</h1>
-      <p class="lead">Pick a car and your dates. We check it, confirm the price and hold it for you. You pay only after you approve.</p>
+      <p class="lead">Pick a car and your dates. We check it and send you a confirmed price. You pay only after you approve.</p>
     </div>
     <form class="search" data-search aria-label="Find a car">
       <div class="field search__dates">${dateRange({ id: 'hs' })}<p class="error" role="alert"></p></div>
@@ -297,7 +298,7 @@ export function carPage(c) {
       <div class="car-top__cta">
         <p class="car-top__price"><span class="small muted">From</span> <b class="num">${money(c.rates.daily)}</b> <span class="small muted">a day</span></p>
         <a class="btn btn--primary btn--lg" href="#dates" data-anchor-native>Check dates and price</a>
-        <p class="small muted">Request to book. No payment until we confirm and you approve.</p>
+        <p class="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>
       </div>
       <span data-bar-sentinel></span>
     </div>
@@ -337,7 +338,7 @@ export function carPage(c) {
           <h3 class="d4">Your estimate</h3>
           <div class="estimate" data-estimate aria-live="polite"></div>
           <a class="btn btn--primary btn--lg btn--block" href="request.html?car=${c.slug}" data-book><span data-book-label>Request to book</span></a>
-          <p class="small muted booking__assure"><b>No payment now.</b> We confirm the car and the final price first. You pay only after you approve and sign.</p>
+          <p class="small muted booking__assure"><b>No payment now.</b> We confirm the car and send the final price as an offer, open for 24 hours. The car is booked only when you approve, sign and pay. If someone else pays for it first, we offer another car or other dates.</p>
         </div>
       </div>
     </section>

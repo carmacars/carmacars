@@ -14,13 +14,13 @@ export function how() {
   const trail = [['Home', 'index.html'], ['How it works']];
   const detail = [
     ['What you tell us', ['The car, pickup and return dates and times', 'Collecting it yourself, or delivery to an address', 'The driver’s name, age and contact details', 'Licence class and which coverage option you plan to use']],
-    ['What we check and send back', ['That the car is free and the trip is 30 days or less', 'The rental charge, delivery and pickup fees, any young driver or additional driver fee, extras and 13% HST', 'The deposit amount, shown separately because it is taken at pickup', 'Anything we need to adjust, and why']],
-    ['What you do to confirm', ['Sign the rental agreement online and tick the four consents', 'Pay the total through our checkout with a credit card in your own name', 'Choose non-refundable if you want 10% off the rental charge']],
+    ['What we check and send back', ['That the car is free and the trip is 30 days or less', 'The rental charge, delivery and pickup fees, any young driver or additional driver fee, extras and 13% HST', 'The deposit amount, shown separately because it is taken at pickup', 'Anything we need to adjust, and why', 'The price is an offer, open for 24 hours. It does not hold the car']],
+    ['What you do to confirm', ['Sign the rental agreement online and tick the four consents', 'Pay the total through our checkout with a credit card in your own name', 'Choose non-refundable if you want 10% off the rental charge', 'The car is booked at this moment. If someone else pays for the same car and dates first, we tell you and offer another car or other dates']],
     ['What we need before pickup', ['A photo of each driver’s licence, front and back', 'A selfie of each driver holding their licence', 'Proof of your coverage option, or payment for coverage bought through us', 'All of it at least 24 hours before pickup']],
     ['What happens at handover', ['We hand the car only to the renter, in person', 'We check your original licence and the physical card you paid with', 'We take the deposit: a card hold for 7 days or less, a refundable charge for longer', 'We complete the condition report and photo set together, and you both sign it']]
   ];
   const main = `
-${head(trail, 'Request, confirm, drive.', 'Booking a car here takes five steps. The first one costs nothing and the second one is on us.')}
+${head(trail, 'Request, confirm, drive.', 'Booking a car here takes five steps. The first costs nothing. The car is yours once you have approved, signed and paid.')}
 <section class="section">
   <div class="wrap">
     <ol class="how-full">
@@ -236,7 +236,9 @@ export function faqPage() {
     ['Booking', 'booking', [
       ['How does request to book work?', 'You send a request with the car and dates. A person checks it and sends back the full price. If you approve, you sign the rental agreement online and pay. That is when the booking is confirmed. <a class="link" href="how-it-works.html">See every step</a>.'],
       ['Do I pay anything when I send a request?', 'No. No card, no payment, no hold. You pay only after we confirm the car and the price and you approve.'],
-      ['How fast will I hear back?', 'Our target is 15 minutes during opening hours. Requests sent outside opening hours are answered when we reopen.'],
+      ['How fast will I hear back?', 'We reply as fast as we can during opening hours. Requests sent outside opening hours are answered when we reopen.'],
+      ['Does a request, or your offer, hold the car for me?', 'No. The price we send is an offer that stays open for 24 hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.'],
+      ['How long is the price good for?', 'The offer we send stays open for 24 hours. After that, ask again and we will check the car and price once more.'],
       ['Is the price on the car’s page the final price?', 'It is an estimate built from that car’s real rates and the standard fees. The confirmed price we send you is the one that counts. You see the total with HST, the deposit and the agreement before you pay.'],
       ['How are multi-day prices worked out?', 'A day is 24 hours from your pickup time, and a part day counts as a day. For 1 to 6 days, each day costs the daily rate, or the weekend rate if it starts on a Friday or Saturday, and the total never exceeds the weekly rate. For 7 to 29 days, each day costs one-seventh of the weekly rate, never more than the monthly rate. 30 days is the monthly rate.'],
       ['What is the longest I can rent for?', '30 days in one booking. To keep the car longer, you make a new booking and sign a new agreement before the current one ends.'],

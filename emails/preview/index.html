@@ -3,8 +3,8 @@
 <title>CarmaCars email gallery</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f3f3f3;color:#111}
-header{background:#0a0a0a;color:#fff;border-top:4px solid #D90429;padding:28px 32px}
-header .wm{font-size:26px;font-weight:700;letter-spacing:-.8px}header p{margin:8px 0 0;color:#c8c8c8;font-size:15px}
+header{background:#000;color:#fff;border-top:4px solid #D0111B;padding:28px 32px}
+header .wm{font:italic 700 32px 'Heros Condensed','HelveticaNeue-CondensedBold','Helvetica Neue Condensed','Arial Narrow','Roboto Condensed','Liberation Sans Narrow',Arial,sans-serif;letter-spacing:-.01em}header .wm b{color:#D0111B;font-weight:700}header p{margin:8px 0 0;color:#c8c8c8;font-size:15px}
 nav{background:#fff;border-bottom:1px solid #e4e4e4;padding:12px 32px;position:sticky;top:0;z-index:2;font-size:14px}
 nav a{color:#111;margin-right:18px;text-decoration:none;font-weight:700;white-space:nowrap;display:inline-block;padding:4px 0}nav a span{color:#8a8a8a;font-weight:400}
 main{padding:8px 32px 60px;max-width:1500px;margin:0 auto}
@@ -14,23 +14,29 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .c .th{display:block;height:230px;overflow:hidden;background:#ededed;border-bottom:1px solid #e4e4e4}
 .c .th img{width:100%;display:block}
 .c .b{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#D90429}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#D0111B}
 .sub{font-weight:700;font-size:15px;line-height:21px}
 .tr{font-size:13px;line-height:19px;color:#5c5c5c;flex:1}
 .tags span{display:inline-block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;border:1px solid #0a0a0a;padding:2px 6px;margin:0 4px 4px 0;border-radius:2px}
-.tags .m{background:#D90429;border-color:#D90429;color:#fff}.tags .d{background:#0a0a0a;color:#fff}
+.tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">CarmaCars</div><p>116 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>47</span></a><a href="#owner">Owner <span>24</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>11</span></a><a href="#staff_va_finance">Staff: VA finance <span>8</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>121 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>49</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>11</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
 <main>
-<h2 id="renter">Renter (47)</h2>
+<h2 id="renter">Renter (49)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A password reset is requested for any account (the sign-in service recovery event). One template for every account type.</div>
 <div class="ln"><a href="../dist/account_password_reset.html">HTML</a><a href="../dist/account_password_reset.txt">Text</a><a href="../shots/account_password_reset.desktop.png">Desktop</a><a href="../shots/account_password_reset.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/account_security_notice.html"><img loading="lazy" src="../shots/account_security_notice.desktop.png" alt="Screenshot of account_security_notice"></a><div class="b">
+<div class="code">account_security_notice</div><div class="sub">Security notice: New sign-in on your CarmaCars account</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A security event on any account: a sign-in from a device or browser not seen before on that account, a password change, or a change of the account email address. One template for every account type. For an email change it is sent to both the old and the new address. Never batched.</div>
+<div class="ln"><a href="../dist/account_security_notice.html">HTML</a><a href="../dist/account_security_notice.txt">Text</a><a href="../shots/account_security_notice.desktop.png">Desktop</a><a href="../shots/account_security_notice.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/account_sign_in_link.html"><img loading="lazy" src="../shots/account_sign_in_link.desktop.png" alt="Screenshot of account_sign_in_link"></a><div class="b">
 <div class="code">account_sign_in_link</div><div class="sub">Your CarmaCars sign-in link</div>
@@ -53,7 +59,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_agreement_ready.html"><img loading="lazy" src="../shots/renter_agreement_ready.desktop.png" alt="Screenshot of renter_agreement_ready"></a><div class="b">
 <div class="code">renter_agreement_ready</div><div class="sub">Sign your rental agreement for booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A signature request is opened for a signer who is not in the middle of checkout: each additional driver on the booking, or the renter when the agreement is reissued (accepted change, extension or renewal) or left unsigned for 1 hour after approving the offer.</div>
+<div class="tr">A signature request is opened for a signer who is not in the middle of checkout: each additional driver on the booking, or the renter when the agreement is reissued (accepted change, extension or renewal) or left unsigned for 1 hour while the booking is pending_payment (offer approved, signing and payment in progress).</div>
 <div class="ln"><a href="../dist/renter_agreement_ready.html">HTML</a><a href="../dist/renter_agreement_ready.txt">Text</a><a href="../shots/renter_agreement_ready.desktop.png">Desktop</a><a href="../shots/renter_agreement_ready.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_agreement_signed.html"><img loading="lazy" src="../shots/renter_agreement_signed.desktop.png" alt="Screenshot of renter_agreement_signed"></a><div class="b">
@@ -83,7 +89,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_booking_confirmed.html"><img loading="lazy" src="../shots/renter_booking_confirmed.desktop.png" alt="Screenshot of renter_booking_confirmed"></a><div class="b">
 <div class="code">renter_booking_confirmed</div><div class="sub">Confirmed: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status changes to confirmed (the offer was approved, the agreement signed and the booking total paid).</div>
+<div class="tr">Booking status changes from pending_payment to confirmed (the offer was approved, the agreement signed, the booking total paid and the car still free for the dates).</div>
 <div class="ln"><a href="../dist/renter_booking_confirmed.html">HTML</a><a href="../dist/renter_booking_confirmed.txt">Text</a><a href="../shots/renter_booking_confirmed.desktop.png">Desktop</a><a href="../shots/renter_booking_confirmed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_booking_reminder.html"><img loading="lazy" src="../shots/renter_booking_reminder.desktop.png" alt="Screenshot of renter_booking_reminder"></a><div class="b">
@@ -113,7 +119,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_change_request_received.html"><img loading="lazy" src="../shots/renter_change_request_received.desktop.png" alt="Screenshot of renter_change_request_received"></a><div class="b">
 <div class="code">renter_change_request_received</div><div class="sub">We have your change request for booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A booking change request row is created by the renter on a booking with status offered or confirmed.</div>
+<div class="tr">The renter asks for a change: on an open offer the current booking_offers row becomes change_requested (booking status offered); on a booking with status confirmed a change request is logged.</div>
 <div class="ln"><a href="../dist/renter_change_request_received.html">HTML</a><a href="../dist/renter_change_request_received.txt">Text</a><a href="../shots/renter_change_request_received.desktop.png">Desktop</a><a href="../shots/renter_change_request_received.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_comeback_1m.html"><img loading="lazy" src="../shots/renter_comeback_1m.desktop.png" alt="Screenshot of renter_comeback_1m"></a><div class="b">
@@ -133,6 +139,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-in. (Message template T8.)</div>
 <div class="ln"><a href="../dist/renter_damage_found.html">HTML</a><a href="../dist/renter_damage_found.txt">Text</a><a href="../shots/renter_damage_found.desktop.png">Desktop</a><a href="../shots/renter_damage_found.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_deposit_declined.html"><img loading="lazy" src="../shots/renter_deposit_declined.desktop.png" alt="Screenshot of renter_deposit_declined"></a><div class="b">
+<div class="code">renter_deposit_declined</div><div class="sub">Your deposit of $500.00 was declined</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The security deposit attempt at pickup fails: a payment of kind hold (rental of 7 days or less) or charge (longer rental) for the booking deposit is declined while the booking is confirmed and the pickup job is in progress. Sent on each failed attempt. The car is not released.</div>
+<div class="ln"><a href="../dist/renter_deposit_declined.html">HTML</a><a href="../dist/renter_deposit_declined.txt">Text</a><a href="../shots/renter_deposit_declined.desktop.png">Desktop</a><a href="../shots/renter_deposit_declined.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_deposit_released.html"><img loading="lazy" src="../shots/renter_deposit_released.desktop.png" alt="Screenshot of renter_deposit_released"></a><div class="b">
 <div class="code">renter_deposit_released</div><div class="sub">The rest of your deposit has been released, booking CC-10482</div>
@@ -209,31 +221,31 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_offer_expired.html"><img loading="lazy" src="../shots/renter_offer_expired.desktop.png" alt="Screenshot of renter_offer_expired"></a><div class="b">
 <div class="code">renter_offer_expired</div><div class="sub">Your offer for the 2024 Honda Civic Sport has expired</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status changes from offered to expired (offer_expires_at passed without approval and payment).</div>
+<div class="tr">The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking returns to requested, not to expired, and customer service gets an offer_expired task.</div>
 <div class="ln"><a href="../dist/renter_offer_expired.html">HTML</a><a href="../dist/renter_offer_expired.txt">Text</a><a href="../shots/renter_offer_expired.desktop.png">Desktop</a><a href="../shots/renter_offer_expired.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_offer_ready.html"><img loading="lazy" src="../shots/renter_offer_ready.desktop.png" alt="Screenshot of renter_offer_ready"></a><div class="b">
 <div class="code">renter_offer_ready</div><div class="sub">Your offer is ready: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status changes to offered (staff reviewed the request and sent the offer). Also sent again when staff replace an open offer with a revised one.</div>
+<div class="tr">A booking_offers row is created with status sent by app.send_offer(), which moves the booking from requested to offered. Fires for every offer version: is_revised is true when the version is greater than 1 or an earlier offer was superseded, so this email also serves as the revised offer (there is no separate renter_offer_revised). has_adjustments is true when the offer differs from what the renter asked for; adjustments lists each difference.</div>
 <div class="ln"><a href="../dist/renter_offer_ready.html">HTML</a><a href="../dist/renter_offer_ready.txt">Text</a><a href="../shots/renter_offer_ready.desktop.png">Desktop</a><a href="../shots/renter_offer_ready.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_offer_reminder.html"><img loading="lazy" src="../shots/renter_offer_reminder.desktop.png" alt="Screenshot of renter_offer_reminder"></a><div class="b">
 <div class="code">renter_offer_reminder</div><div class="sub">Your offer for the 2024 Honda Civic Sport expires Wed, Oct 21 at 2:15 pm</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Scheduled check: booking status is still offered and offer_expires_at is 6 hours away (for an offer window shorter than 12 hours, at the halfway point). Sent once per offer.</div>
+<div class="tr">Scheduled check: booking status is offered, its current booking_offers row is still sent, and offer_expires_at is 6 hours away (for an offer window shorter than 12 hours, at the halfway point). Sent once per offer.</div>
 <div class="ln"><a href="../dist/renter_offer_reminder.html">HTML</a><a href="../dist/renter_offer_reminder.txt">Text</a><a href="../shots/renter_offer_reminder.desktop.png">Desktop</a><a href="../shots/renter_offer_reminder.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_offer_withdrawn.html"><img loading="lazy" src="../shots/renter_offer_withdrawn.desktop.png" alt="Screenshot of renter_offer_withdrawn"></a><div class="b">
 <div class="code">renter_offer_withdrawn</div><div class="sub">We have withdrawn your offer for the 2024 Honda Civic Sport</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">An open offer is withdrawn before the renter approves it: staff withdraw it (booking event offer_withdrawn), or the booking is pushed back from offered to requested because the car was confirmed for someone else on overlapping dates (booking event pushed_back). Not sent when staff replace the offer with a revised one in the same action; renter_offer_ready covers that.</div>
+<div class="tr">A booking_offers row becomes withdrawn: staff take the offer back (booking event offer_withdrawn), or the system pushes the booking back from offered or pending_payment to requested because another booking was confirmed for the same car on overlapping dates (booking event pushed_back). Not sent when staff replace the offer with a revised one in the same action; renter_offer_ready covers that.</div>
 <div class="ln"><a href="../dist/renter_offer_withdrawn.html">HTML</a><a href="../dist/renter_offer_withdrawn.txt">Text</a><a href="../shots/renter_offer_withdrawn.desktop.png">Desktop</a><a href="../shots/renter_offer_withdrawn.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_payment_failed.html"><img loading="lazy" src="../shots/renter_payment_failed.desktop.png" alt="Screenshot of renter_payment_failed"></a><div class="b">
 <div class="code">renter_payment_failed</div><div class="sub">Payment of $35.37 did not go through, booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an offer fails, no fee, booking stays offered; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)</div>
+<div class="tr">A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an approved offer fails, no fee, the booking stays pending_payment and does not block the car; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)</div>
 <div class="ln"><a href="../dist/renter_payment_failed.html">HTML</a><a href="../dist/renter_payment_failed.txt">Text</a><a href="../shots/renter_payment_failed.desktop.png">Desktop</a><a href="../shots/renter_payment_failed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_payment_receipt.html"><img loading="lazy" src="../shots/renter_payment_receipt.desktop.png" alt="Screenshot of renter_payment_receipt"></a><div class="b">
@@ -263,19 +275,19 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_request_declined.html"><img loading="lazy" src="../shots/renter_request_declined.desktop.png" alt="Screenshot of renter_request_declined"></a><div class="b">
 <div class="code">renter_request_declined</div><div class="sub">We cannot fill your request for Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status changes to declined from requested or needs_info. Staff choose a reason; it fills decline_reason.</div>
+<div class="tr">Booking status changes from requested to declined. Staff choose a reason; it fills decline_reason.</div>
 <div class="ln"><a href="../dist/renter_request_declined.html">HTML</a><a href="../dist/renter_request_declined.txt">Text</a><a href="../shots/renter_request_declined.desktop.png">Desktop</a><a href="../shots/renter_request_declined.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_request_needs_info.html"><img loading="lazy" src="../shots/renter_request_needs_info.desktop.png" alt="Screenshot of renter_request_needs_info"></a><div class="b">
 <div class="code">renter_request_needs_info</div><div class="sub">One question before we can send your offer</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status changes from requested to needs_info. Staff must enter the question; it fills info_request.</div>
+<div class="tr">Staff send a &quot;more information needed&quot; message on a booking with status requested. This is an event, not a status: the booking stays requested. Staff must enter the question (info_request) and a reply-by time (reply_by).</div>
 <div class="ln"><a href="../dist/renter_request_needs_info.html">HTML</a><a href="../dist/renter_request_needs_info.txt">Text</a><a href="../shots/renter_request_needs_info.desktop.png">Desktop</a><a href="../shots/renter_request_needs_info.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_request_received.html"><img loading="lazy" src="../shots/renter_request_received.desktop.png" alt="Screenshot of renter_request_received"></a><div class="b">
 <div class="code">renter_request_received</div><div class="sub">We have your request for the 2024 Honda Civic Sport</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A booking row is created with status requested (the renter submitted the request form).</div>
+<div class="tr">A booking row is created with status requested (booking event requested; the renter submitted the request form).</div>
 <div class="ln"><a href="../dist/renter_request_received.html">HTML</a><a href="../dist/renter_request_received.txt">Text</a><a href="../shots/renter_request_received.desktop.png">Desktop</a><a href="../shots/renter_request_received.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_return_complete.html"><img loading="lazy" src="../shots/renter_return_complete.desktop.png" alt="Screenshot of renter_return_complete"></a><div class="b">
@@ -309,7 +321,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (24)</h2>
+<h2 id="owner">Owner (26)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Confirm your email to open your CarmaCars owner account</div>
@@ -341,6 +353,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">An owner vehicle application is submitted (vehicle onboarding row created with status intake), for a first vehicle or an added vehicle.</div>
 <div class="ln"><a href="../dist/owner_application_received.html">HTML</a><a href="../dist/owner_application_received.txt">Text</a><a href="../shots/owner_application_received.desktop.png">Desktop</a><a href="../shots/owner_application_received.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_bank_details_changed.html"><img loading="lazy" src="../shots/owner_bank_details_changed.desktop.png" alt="Screenshot of owner_bank_details_changed"></a><div class="b">
+<div class="code">owner_bank_details_changed</div><div class="sub">Your CarmaCars payment details were changed</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner's payout account, pre-authorized debit authorization or card on file is added, changed or removed, by the owner or by staff. Sent to the owner's email address on file before the change, and never batched. Security notice.</div>
+<div class="ln"><a href="../dist/owner_bank_details_changed.html">HTML</a><a href="../dist/owner_bank_details_changed.txt">Text</a><a href="../shots/owner_bank_details_changed.desktop.png">Desktop</a><a href="../shots/owner_bank_details_changed.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_booking_confirmed.html"><img loading="lazy" src="../shots/owner_booking_confirmed.desktop.png" alt="Screenshot of owner_booking_confirmed"></a><div class="b">
 <div class="code">owner_booking_confirmed</div><div class="sub">Confirmed: your own booking of the 2023 Toyota RAV4 XLE, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
@@ -364,6 +382,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Vehicle status changes to exit_notice (the owner's written notice naming the vehicle is logged, or an admin decides to remove it) and the Exit Date is set. This email confirms the Exit Date in writing.</div>
 <div class="ln"><a href="../dist/owner_exit_notice_received.html">HTML</a><a href="../dist/owner_exit_notice_received.txt">Text</a><a href="../shots/owner_exit_notice_received.desktop.png">Desktop</a><a href="../shots/owner_exit_notice_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_fee_change_notice.html"><img loading="lazy" src="../shots/owner_fee_change_notice.desktop.png" alt="Screenshot of owner_fee_change_notice"></a><div class="b">
+<div class="code">owner_fee_change_notice</div><div class="sub">Notice of a change to your terms for the 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An admin schedules a change to a vehicle's Insurance Fee or Tracker Fee (a fee history row with a future effective date), or proposes a new Revenue Share (a new Vehicle Schedule opened for signature). One email per vehicle. A fee change must be sent at least 30 days before its effective date. is_share_change is true when the Revenue Share changes, which needs the owner's signature.</div>
+<div class="ln"><a href="../dist/owner_fee_change_notice.html">HTML</a><a href="../dist/owner_fee_change_notice.txt">Text</a><a href="../shots/owner_fee_change_notice.desktop.png">Desktop</a><a href="../shots/owner_fee_change_notice.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_fee_invoice.html"><img loading="lazy" src="../shots/owner_fee_invoice.desktop.png" alt="Screenshot of owner_fee_invoice"></a><div class="b">
 <div class="code">owner_fee_invoice</div><div class="sub">Invoice INV-2026-11-0042: November fees for your 2023 Toyota RAV4 XLE, $536.75</div>
@@ -546,7 +570,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_weekly_summary.html">HTML</a><a href="../dist/staff_weekly_summary.txt">Text</a><a href="../shots/staff_weekly_summary.desktop.png">Desktop</a><a href="../shots/staff_weekly_summary.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_finance">Staff: VA finance (8)</h2>
+<h2 id="staff_va_finance">Staff: VA finance (9)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_cancellation_received.html"><img loading="lazy" src="../shots/staff_cancellation_received.desktop.png" alt="Screenshot of staff_cancellation_received"></a><div class="b">
 <div class="code">staff_cancellation_received</div><div class="sub">Cancelled: CC-10482, refund $351.71 to process</div>
@@ -565,6 +589,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Scheduled digest for Finance. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: returns waiting for a statement, deposits near 7 business days since check-in, hold-backs near 30 days, card retries due today, declined payments, tolls and tickets to match and charge, refunds to process, owner invoices failed. Each line links to the item. One email replaces the separate notices.</div>
 <div class="ln"><a href="../dist/staff_digest_morning_va_finance.html">HTML</a><a href="../dist/staff_digest_morning_va_finance.txt">Text</a><a href="../shots/staff_digest_morning_va_finance.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_finance.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_insurer_invoice_due.html"><img loading="lazy" src="../shots/staff_insurer_invoice_due.desktop.png" alt="Screenshot of staff_insurer_invoice_due"></a><div class="b">
+<div class="code">staff_insurer_invoice_due</div><div class="sub">Insurer invoice INS-0017 unpaid for 30 days: $1,582.00</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Daily check at 06:00: an insurer_invoices row with status sent or part_paid has a balance and sent_at is 30 days ago. Queued once for the finance morning digest, then listed again every 7 days while the balance remains. At 60 days it is also queued for the admin digest.</div>
+<div class="ln"><a href="../dist/staff_insurer_invoice_due.html">HTML</a><a href="../dist/staff_insurer_invoice_due.txt">Text</a><a href="../shots/staff_insurer_invoice_due.desktop.png">Desktop</a><a href="../shots/staff_insurer_invoice_due.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_owner_invoice_failed.html"><img loading="lazy" src="../shots/staff_owner_invoice_failed.desktop.png" alt="Screenshot of staff_owner_invoice_failed"></a><div class="b">
 <div class="code">staff_owner_invoice_failed</div><div class="sub">Owner debit first failure: Daniel Rossi, 2022 Hyundai Elantra Preferred, $536.75</div>
@@ -647,7 +677,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/staff_booking_request_new.html"><img loading="lazy" src="../shots/staff_booking_request_new.desktop.png" alt="Screenshot of staff_booking_request_new"></a><div class="b">
 <div class="code">staff_booking_request_new</div><div class="sub">New request CC-10482: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A booking row is created with status requested. Sent to every active customer service VA. Immediate, never batched.</div>
+<div class="tr">A booking row is created with status requested (booking event requested). Sent to every active customer service VA. Immediate, never batched.</div>
 <div class="ln"><a href="../dist/staff_booking_request_new.html">HTML</a><a href="../dist/staff_booking_request_new.txt">Text</a><a href="../shots/staff_booking_request_new.desktop.png">Desktop</a><a href="../shots/staff_booking_request_new.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_change_request_received.html"><img loading="lazy" src="../shots/staff_change_request_received.desktop.png" alt="Screenshot of staff_change_request_received"></a><div class="b">
@@ -683,13 +713,13 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/staff_offer_approved_paid.html"><img loading="lazy" src="../shots/staff_offer_approved_paid.desktop.png" alt="Screenshot of staff_offer_approved_paid"></a><div class="b">
 <div class="code">staff_offer_approved_paid</div><div class="sub">Confirmed and paid: CC-10482, 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
-<div class="tr">Booking status changes to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.</div>
+<div class="tr">Booking status changes from pending_payment to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.</div>
 <div class="ln"><a href="../dist/staff_offer_approved_paid.html">HTML</a><a href="../dist/staff_offer_approved_paid.txt">Text</a><a href="../shots/staff_offer_approved_paid.desktop.png">Desktop</a><a href="../shots/staff_offer_approved_paid.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_request_waiting.html"><img loading="lazy" src="../shots/staff_request_waiting.desktop.png" alt="Screenshot of staff_request_waiting"></a><div class="b">
 <div class="code">staff_request_waiting</div><div class="sub">Waiting 2 hours 5 minutes: request CC-10482 has no offer</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours with no offer, information request or decline. Sent once per request, to customer service and both admins. Immediate.</div>
+<div class="tr">Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service and both admins. Immediate.</div>
 <div class="ln"><a href="../dist/staff_request_waiting.html">HTML</a><a href="../dist/staff_request_waiting.txt">Text</a><a href="../shots/staff_request_waiting.desktop.png">Desktop</a><a href="../shots/staff_request_waiting.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_review_received.html"><img loading="lazy" src="../shots/staff_review_received.desktop.png" alt="Screenshot of staff_review_received"></a><div class="b">

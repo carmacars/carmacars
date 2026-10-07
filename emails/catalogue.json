@@ -1,5 +1,6 @@
 {
   "generated_by": "emails/build.mjs. Do not edit by hand; edit emails/src/emails/<code>.mjs and rebuild.",
+  "event_key": "The event key of every email is its code. The database emits it with app.emit_event(code, entity, entity_id, payload, dedupe_key); the payload carries the values named in variables.",
   "reply_to": "info@carmacars.ca",
   "global_variables": [
     {
@@ -15,7 +16,7 @@
       "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
     }
   ],
-  "count": 116,
+  "count": 121,
   "emails": [
     {
       "code": "account_password_reset",
@@ -67,6 +68,83 @@
       ],
       "template_html": "templates/account_password_reset.html",
       "template_text": "templates/account_password_reset.txt"
+    },
+    {
+      "code": "account_security_notice",
+      "audience": "renter",
+      "also_sent_to": [
+        "owner",
+        "investor",
+        "staff_admin",
+        "staff_va_finance",
+        "staff_va_fleet",
+        "staff_va_cs",
+        "staff_va_sales",
+        "staff_field"
+      ],
+      "category": "transactional",
+      "trigger": "A security event on any account: a sign-in from a device or browser not seen before on that account, a password change, or a change of the account email address. One template for every account type. For an email change it is sent to both the old and the new address. Never batched.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@mail.carmacars.ca>",
+      "reply_to": "info@carmacars.ca",
+      "subject": "Security notice: {{security_event}} on your CarmaCars account",
+      "preheader": "{{security_event_at}}. If this was you, there is nothing to do.",
+      "sample_subject": "Security notice: New sign-in on your CarmaCars account",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "60 minutes",
+          "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "reset_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/reset-password?token=sample",
+          "note": "One-time link from the sign-in service."
+        },
+        {
+          "name": "security_device",
+          "type": "string",
+          "sample": "Chrome on Windows"
+        },
+        {
+          "name": "security_event",
+          "type": "string",
+          "sample": "New sign-in"
+        },
+        {
+          "name": "security_event_at",
+          "type": "string",
+          "sample": "Tue, Oct 20, 2026 at 8:41 pm"
+        },
+        {
+          "name": "security_place",
+          "type": "string",
+          "sample": "Mississauga, Ontario"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-555-0100",
+          "note": "CarmaCars phone line, formatted for display. Set once in program settings."
+        }
+      ],
+      "template_html": "templates/account_security_notice.html",
+      "template_text": "templates/account_security_notice.txt"
     },
     {
       "code": "account_sign_in_link",
@@ -228,7 +306,7 @@
       "code": "renter_agreement_ready",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A signature request is opened for a signer who is not in the middle of checkout: each additional driver on the booking, or the renter when the agreement is reissued (accepted change, extension or renewal) or left unsigned for 1 hour after approving the offer.",
+      "trigger": "A signature request is opened for a signer who is not in the middle of checkout: each additional driver on the booking, or the renter when the agreement is reissued (accepted change, extension or renewal) or left unsigned for 1 hour while the booking is pending_payment (offer approved, signing and payment in progress).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -579,7 +657,7 @@
       "code": "renter_booking_confirmed",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status changes to confirmed (the offer was approved, the agreement signed and the booking total paid).",
+      "trigger": "Booking status changes from pending_payment to confirmed (the offer was approved, the agreement signed, the booking total paid and the car still free for the dates).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -1037,7 +1115,7 @@
       "code": "renter_change_request_received",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A booking change request row is created by the renter on a booking with status offered or confirmed.",
+      "trigger": "The renter asks for a change: on an open offer the current booking_offers row becomes change_requested (booking status offered); on a booking with status confirmed a change request is logged.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -1295,6 +1373,75 @@
       ],
       "template_html": "templates/renter_damage_found.html",
       "template_text": "templates/renter_damage_found.txt"
+    },
+    {
+      "code": "renter_deposit_declined",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "The security deposit attempt at pickup fails: a payment of kind hold (rental of 7 days or less) or charge (longer rental) for the booking deposit is declined while the booking is confirmed and the pickup job is in progress. Sent on each failed attempt. The car is not released.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@mail.carmacars.ca>",
+      "reply_to": "info@carmacars.ca",
+      "subject": "Your deposit of {{deposit_amount}} was declined",
+      "preheader": "We cannot hand over the {{vehicle_name}} until the deposit goes through.",
+      "sample_subject": "Your deposit of $500.00 was declined",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "card_brand",
+          "type": "string",
+          "sample": "Visa"
+        },
+        {
+          "name": "card_last4",
+          "type": "string",
+          "sample": "4242",
+          "note": "Last four digits of the Card on File."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
+        },
+        {
+          "name": "deposit_amount",
+          "type": "string",
+          "sample": "$500.00",
+          "note": "Security deposit for this booking, taken at pickup."
+        },
+        {
+          "name": "deposit_method_text",
+          "type": "string",
+          "sample": "hold of $500.00"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-555-0100",
+          "note": "CarmaCars phone line, formatted for display. Set once in program settings."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_deposit_declined.html",
+      "template_text": "templates/renter_deposit_declined.txt"
     },
     {
       "code": "renter_deposit_released",
@@ -2258,13 +2405,13 @@
       "code": "renter_offer_expired",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status changes from offered to expired (offer_expires_at passed without approval and payment).",
+      "trigger": "The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking returns to requested, not to expired, and customer service gets an offer_expired task.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
       "reply_to": "info@carmacars.ca",
       "subject": "Your offer for the {{vehicle_name}} has expired",
-      "preheader": "Nothing was charged. You can send a new request any time.",
+      "preheader": "Nothing was charged. Tell us if you still want the car and we will send a fresh offer.",
       "sample_subject": "Your offer for the 2024 Honda Civic Sport has expired",
       "variables": [
         {
@@ -2324,7 +2471,7 @@
       "code": "renter_offer_ready",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status changes to offered (staff reviewed the request and sent the offer). Also sent again when staff replace an open offer with a revised one.",
+      "trigger": "A booking_offers row is created with status sent by app.send_offer(), which moves the booking from requested to offered. Fires for every offer version: is_revised is true when the version is greater than 1 or an earlier offer was superseded, so this email also serves as the revised offer (there is no separate renter_offer_revised). has_adjustments is true when the offer differs from what the renter asked for; adjustments lists each difference.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -2382,6 +2529,11 @@
           "name": "has_adjustments",
           "type": "boolean",
           "sample": true
+        },
+        {
+          "name": "is_revised",
+          "type": "boolean",
+          "sample": false
         },
         {
           "name": "km_allowance",
@@ -2490,13 +2642,13 @@
       "code": "renter_offer_reminder",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Scheduled check: booking status is still offered and offer_expires_at is 6 hours away (for an offer window shorter than 12 hours, at the halfway point). Sent once per offer.",
+      "trigger": "Scheduled check: booking status is offered, its current booking_offers row is still sent, and offer_expires_at is 6 hours away (for an offer window shorter than 12 hours, at the halfway point). Sent once per offer.",
       "timing": "6 hours before the offer expires",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
       "reply_to": "info@carmacars.ca",
       "subject": "Your offer for the {{vehicle_name}} expires {{offer_expires_at}}",
-      "preheader": "Approve, sign and pay {{total_amount}} to keep the car.",
+      "preheader": "Approve, sign and pay {{total_amount}} to book the car.",
       "sample_subject": "Your offer for the 2024 Honda Civic Sport expires Wed, Oct 21 at 2:15 pm",
       "variables": [
         {
@@ -2579,15 +2731,20 @@
       "code": "renter_offer_withdrawn",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "An open offer is withdrawn before the renter approves it: staff withdraw it (booking event offer_withdrawn), or the booking is pushed back from offered to requested because the car was confirmed for someone else on overlapping dates (booking event pushed_back). Not sent when staff replace the offer with a revised one in the same action; renter_offer_ready covers that.",
+      "trigger": "A booking_offers row becomes withdrawn: staff take the offer back (booking event offer_withdrawn), or the system pushes the booking back from offered or pending_payment to requested because another booking was confirmed for the same car on overlapping dates (booking event pushed_back). Not sent when staff replace the offer with a revised one in the same action; renter_offer_ready covers that.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
       "reply_to": "info@carmacars.ca",
       "subject": "We have withdrawn your offer for the {{vehicle_name}}",
-      "preheader": "Nothing was charged. We are checking what else we can offer for your dates.",
+      "preheader": "Nothing was booked. We are checking what else we can offer for your dates.",
       "sample_subject": "We have withdrawn your offer for the 2024 Honda Civic Sport",
       "variables": [
+        {
+          "name": "amount_paid",
+          "type": "string",
+          "sample": "$0.00"
+        },
         {
           "name": "booking_number",
           "type": "string",
@@ -2605,6 +2762,11 @@
           "type": "string",
           "sample": "Maya",
           "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_amount_paid",
+          "type": "boolean",
+          "sample": false
         },
         {
           "name": "pickup_date",
@@ -2651,7 +2813,7 @@
       "code": "renter_payment_failed",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an offer fails, no fee, booking stays offered; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)",
+      "trigger": "A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an approved offer fails, no fee, the booking stays pending_payment and does not block the car; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)",
       "timing": "Immediate",
       "digest": false,
       "source": "T10",
@@ -3143,7 +3305,7 @@
       "code": "renter_request_declined",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status changes to declined from requested or needs_info. Staff choose a reason; it fills decline_reason.",
+      "trigger": "Booking status changes from requested to declined. Staff choose a reason; it fills decline_reason.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -3215,13 +3377,13 @@
       "code": "renter_request_needs_info",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status changes from requested to needs_info. Staff must enter the question; it fills info_request.",
+      "trigger": "Staff send a \"more information needed\" message on a booking with status requested. This is an event, not a status: the booking stays requested. Staff must enter the question (info_request) and a reply-by time (reply_by).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
       "reply_to": "info@carmacars.ca",
       "subject": "One question before we can send your offer",
-      "preheader": "Reply by {{reply_by}} so we can hold the {{vehicle_name}} for you.",
+      "preheader": "Reply by {{reply_by}} so we can send your offer for the {{vehicle_name}}.",
       "sample_subject": "One question before we can send your offer",
       "variables": [
         {
@@ -3292,7 +3454,7 @@
       "code": "renter_request_received",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A booking row is created with status requested (the renter submitted the request form).",
+      "trigger": "A booking row is created with status requested (booking event requested; the renter submitted the request form).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -4085,6 +4247,61 @@
       "template_text": "templates/owner_application_received.txt"
     },
     {
+      "code": "owner_bank_details_changed",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An owner's payout account, pre-authorized debit authorization or card on file is added, changed or removed, by the owner or by staff. Sent to the owner's email address on file before the change, and never batched. Security notice.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@mail.carmacars.ca>",
+      "reply_to": "info@carmacars.ca",
+      "subject": "Your CarmaCars payment details were changed",
+      "preheader": "{{change_summary}}. If this was not you, call us now.",
+      "sample_subject": "Your CarmaCars payment details were changed",
+      "variables": [
+        {
+          "name": "change_summary",
+          "type": "string",
+          "sample": "Payout account changed"
+        },
+        {
+          "name": "changed_at",
+          "type": "string",
+          "sample": "Tue, Nov 3, 2026 at 2:14 pm"
+        },
+        {
+          "name": "changed_by",
+          "type": "string",
+          "sample": "You, signed in from Toronto, Ontario"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
+        },
+        {
+          "name": "details_on_file",
+          "type": "string",
+          "sample": "Account ending 6621"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-555-0100",
+          "note": "CarmaCars phone line, formatted for display. Set once in program settings."
+        }
+      ],
+      "template_html": "templates/owner_bank_details_changed.html",
+      "template_text": "templates/owner_bank_details_changed.txt"
+    },
+    {
       "code": "owner_booking_confirmed",
       "audience": "owner",
       "category": "transactional",
@@ -4361,6 +4578,94 @@
       ],
       "template_html": "templates/owner_exit_notice_received.html",
       "template_text": "templates/owner_exit_notice_received.txt"
+    },
+    {
+      "code": "owner_fee_change_notice",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An admin schedules a change to a vehicle's Insurance Fee or Tracker Fee (a fee history row with a future effective date), or proposes a new Revenue Share (a new Vehicle Schedule opened for signature). One email per vehicle. A fee change must be sent at least 30 days before its effective date. is_share_change is true when the Revenue Share changes, which needs the owner's signature.",
+      "timing": "Immediate, at least 30 days before the effective date",
+      "digest": false,
+      "from": "CarmaCars <owners@mail.carmacars.ca>",
+      "reply_to": "info@carmacars.ca",
+      "subject": "Notice of a change to your terms for the {{vehicle_name}}, from {{effective_date}}",
+      "preheader": "{{fee_change_summary}}",
+      "sample_subject": "Notice of a change to your terms for the 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
+        },
+        {
+          "name": "effective_date",
+          "type": "string",
+          "sample": "Fri, Jan 15, 2027"
+        },
+        {
+          "name": "fee_change_reason",
+          "type": "string",
+          "sample": "The premium for the fleet policy went up at renewal."
+        },
+        {
+          "name": "fee_change_summary",
+          "type": "string",
+          "sample": "Insurance fee changes from $450.00 to $475.00 a month."
+        },
+        {
+          "name": "fee_changes",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Insurance fee, monthly, before HST",
+              "before": "$450.00",
+              "after": "$475.00"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "is_share_change",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "notice_days",
+          "type": "string",
+          "sample": "45"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-555-0100",
+          "note": "CarmaCars phone line, formatted for display. Set once in program settings."
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_fee_change_notice.html",
+      "template_text": "templates/owner_fee_change_notice.txt"
     },
     {
       "code": "owner_fee_invoice",
@@ -7025,6 +7330,94 @@
       "template_text": "templates/staff_digest_morning_va_finance.txt"
     },
     {
+      "code": "staff_insurer_invoice_due",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Daily check at 06:00: an insurer_invoices row with status sent or part_paid has a balance and sent_at is 30 days ago. Queued once for the finance morning digest, then listed again every 7 days while the balance remains. At 60 days it is also queued for the admin digest.",
+      "timing": "Morning digest, 30 days after the invoice was sent, then weekly",
+      "digest": true,
+      "digest_slot": "morning",
+      "from": "CarmaCars <billing@mail.carmacars.ca>",
+      "reply_to": "info@carmacars.ca",
+      "subject": "Insurer invoice {{invoice_number}} unpaid for {{days_outstanding}} days: {{balance_due}}",
+      "preheader": "{{insurer_name}}, claim {{claim_number}}, booking {{booking_number}}. Chase the adjuster.",
+      "sample_subject": "Insurer invoice INS-0017 unpaid for 30 days: $1,582.00",
+      "variables": [
+        {
+          "name": "adjuster_contact",
+          "type": "string",
+          "sample": "J. Tremblay, adjuster email and phone on the booking"
+        },
+        {
+          "name": "amount_paid",
+          "type": "string",
+          "sample": "$0.00"
+        },
+        {
+          "name": "balance_due",
+          "type": "string",
+          "sample": "$1,582.00"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-88213-A"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings."
+        },
+        {
+          "name": "days_outstanding",
+          "type": "string",
+          "sample": "30"
+        },
+        {
+          "name": "insurer_name",
+          "type": "string",
+          "sample": "Northern Mutual Insurance (sample)"
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INS-0017"
+        },
+        {
+          "name": "invoice_sent_at",
+          "type": "string",
+          "sample": "Mon, Oct 5, 2026"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$1,582.00"
+        },
+        {
+          "name": "last_contact",
+          "type": "string",
+          "sample": "None logged"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        }
+      ],
+      "template_html": "templates/staff_insurer_invoice_due.html",
+      "template_text": "templates/staff_insurer_invoice_due.txt"
+    },
+    {
       "code": "staff_owner_invoice_failed",
       "audience": "staff_va_finance",
       "also_sent_to": [
@@ -8014,7 +8407,7 @@
       "code": "staff_booking_request_new",
       "audience": "staff_va_cs",
       "category": "transactional",
-      "trigger": "A booking row is created with status requested. Sent to every active customer service VA. Immediate, never batched.",
+      "trigger": "A booking row is created with status requested (booking event requested). Sent to every active customer service VA. Immediate, never batched.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",
@@ -8555,7 +8948,7 @@
         "staff_va_fleet"
       ],
       "category": "transactional",
-      "trigger": "Booking status changes to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.",
+      "trigger": "Booking status changes from pending_payment to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.",
       "timing": "Next digest. Immediate if pickup is within 24 hours",
       "digest": true,
       "digest_slot": "next",
@@ -8644,7 +9037,7 @@
         "staff_admin"
       ],
       "category": "transactional",
-      "trigger": "Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours with no offer, information request or decline. Sent once per request, to customer service and both admins. Immediate.",
+      "trigger": "Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service and both admins. Immediate.",
       "timing": "2 hours after an unanswered request",
       "digest": false,
       "from": "CarmaCars <bookings@mail.carmacars.ca>",

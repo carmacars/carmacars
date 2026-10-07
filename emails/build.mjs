@@ -119,6 +119,7 @@ if (errors.length) {
 catalogue.sort((a, b) => AUDIENCES.indexOf(a.audience) - AUDIENCES.indexOf(b.audience) || 0);
 writeFileSync(join(ROOT, 'catalogue.json'), JSON.stringify({
   generated_by: 'emails/build.mjs. Do not edit by hand; edit emails/src/emails/<code>.mjs and rebuild.',
+  event_key: 'The event key of every email is its code. The database emits it with app.emit_event(code, entity, entity_id, payload, dedupe_key); the payload carries the values named in variables.',
   reply_to: BRAND.replyTo,
   global_variables: Object.keys(GLOBALS).map((k) => ({ name: k, type: 'string', sample: GLOBALS[k], note: GLOBAL_NOTES[k] })),
   count: catalogue.length,
@@ -133,8 +134,8 @@ const gallery = `<!DOCTYPE html>
 <title>CarmaCars email gallery</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f3f3f3;color:#111}
-header{background:#0a0a0a;color:#fff;border-top:4px solid #D90429;padding:28px 32px}
-header .wm{font-size:26px;font-weight:700;letter-spacing:-.8px}header p{margin:8px 0 0;color:#c8c8c8;font-size:15px}
+header{background:#000;color:#fff;border-top:4px solid #D0111B;padding:28px 32px}
+header .wm{font:italic 700 32px 'Heros Condensed','HelveticaNeue-CondensedBold','Helvetica Neue Condensed','Arial Narrow','Roboto Condensed','Liberation Sans Narrow',Arial,sans-serif;letter-spacing:-.01em}header .wm b{color:#D0111B;font-weight:700}header p{margin:8px 0 0;color:#c8c8c8;font-size:15px}
 nav{background:#fff;border-bottom:1px solid #e4e4e4;padding:12px 32px;position:sticky;top:0;z-index:2;font-size:14px}
 nav a{color:#111;margin-right:18px;text-decoration:none;font-weight:700;white-space:nowrap;display:inline-block;padding:4px 0}nav a span{color:#8a8a8a;font-weight:400}
 main{padding:8px 32px 60px;max-width:1500px;margin:0 auto}
@@ -144,14 +145,14 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .c .th{display:block;height:230px;overflow:hidden;background:#ededed;border-bottom:1px solid #e4e4e4}
 .c .th img{width:100%;display:block}
 .c .b{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#D90429}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#D0111B}
 .sub{font-weight:700;font-size:15px;line-height:21px}
 .tr{font-size:13px;line-height:19px;color:#5c5c5c;flex:1}
 .tags span{display:inline-block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;border:1px solid #0a0a0a;padding:2px 6px;margin:0 4px 4px 0;border-radius:2px}
-.tags .m{background:#D90429;border-color:#D90429;color:#fff}.tags .d{background:#0a0a0a;color:#fff}
+.tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">CarmaCars</div><p>${catalogue.length} automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<header><div class="wm">Carma<b>Cars</b></div><p>${catalogue.length} automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
 <nav>${groups.map((g) => `<a href="#${g.a}">${AUDIENCE_LABEL[g.a]} <span>${g.items.length}</span></a>`).join('')}</nav>
 <main>
 ${groups.map((g) => `<h2 id="${g.a}">${AUDIENCE_LABEL[g.a]} (${g.items.length})</h2>

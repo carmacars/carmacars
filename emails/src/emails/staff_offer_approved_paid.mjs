@@ -9,7 +9,7 @@ export default {
   from: FROM.bookings,
   digest: true,
   digestSlot: 'next',
-  trigger: 'Booking status changes to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.',
+  trigger: 'Booking status changes from pending_payment to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.',
   timing: 'Next digest. Immediate if pickup is within 24 hours',
   subject: 'Confirmed and paid: {{booking_number}}, {{vehicle_name}}, {{pickup_date}}',
   preheader: '{{renter_name}} paid {{amount_paid}}. Start verification and plan the handover.',

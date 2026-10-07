@@ -5,7 +5,7 @@ CarmaCars  |  Request {{booking_number}}
 [Offer expiring]
 Your offer ends in {{time_left}}
 
-We are still holding the {{vehicle_name}} for you, {{first_name}}. The hold ends {{offer_expires_at}}.
+Your offer for the {{vehicle_name}} is open until {{offer_expires_at}}, {{first_name}}. The car is not booked until you approve, sign and pay.
 
 Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}
@@ -16,7 +16,9 @@ HST included. The {{deposit_amount}} security deposit is separate and taken at p
 Approve and pay:
 https://carmacars.ca/account/bookings/{{booking_number}}/offer
 
-If the dates no longer work, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change). If you have changed your mind, do nothing and the offer will lapse. No charge either way.
+If the dates no longer work, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change). If you have changed your mind, do nothing and the offer will expire. No charge either way.
+
+An offer does not hold the car. If another renter pays for the same car and dates first, we withdraw the offer and tell you.
 
 ----------------------------------------
 

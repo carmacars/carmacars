@@ -12,7 +12,7 @@ Still to pay: {{amount}}
 For the {{vehicle_name}}, {{pickup_date}} to {{return_date}}.
 
 IMPORTANT: Your booking is not confirmed yet
-The car is held for you until {{pay_by}}. Pay before then to confirm. There is no fee for the failed attempt.
+The car is booked only once the payment goes through, and it is not held in the meantime. If another renter pays for the same car and dates first, we have to withdraw the offer. There is no fee for the failed attempt.
 
 Try again or use another card:
 https://carmacars.ca/account/bookings/{{booking_number}}/pay

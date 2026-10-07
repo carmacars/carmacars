@@ -18,7 +18,7 @@ export default {
     small('The link works once and expires in {{link_expiry}}. If it has expired, sign in and we will send a new one.'),
     steps(
       ['Request a car', 'Pick your dates and send a request. No card is needed to ask.'],
-      ['Get our offer', 'We check the car and reply with a firm price.'],
+      ['Get our offer', 'We check the car and reply with a firm price. An offer does not hold the car.'],
       ['Approve, sign and pay', 'Your booking is confirmed once the agreement is signed and paid.'],
     ),
     small('If you did not open this account, ignore this email and nothing happens.'),

@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'A booking row is created with status requested. Sent to every active customer service VA. Immediate, never batched.',
+  trigger: 'A booking row is created with status requested (booking event requested). Sent to every active customer service VA. Immediate, never batched.',
   timing: 'Immediate',
   subject: 'New request {{booking_number}}: {{vehicle_name}}, {{pickup_date}}',
   preheader: '{{renter_name}}, {{billable_days}} days, estimate {{estimate_amount}}. Review and send the offer.',

@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'A booking change request row is created by the renter on a booking with status offered or confirmed.',
+  trigger: 'The renter asks for a change: on an open offer the current booking_offers row becomes change_requested (booking status offered); on a booking with status confirmed a change request is logged.',
   timing: 'Immediate',
   subject: 'We have your change request for booking {{booking_number}}',
   preheader: 'Your current booking stays as it is until we reply.',

@@ -5,10 +5,14 @@ CarmaCars  |  Request {{booking_number}}
 [Offer withdrawn]
 We have had to withdraw this offer
 
-Sorry, {{first_name}}. The offer we sent for the {{vehicle_name}} is no longer open. Nothing was booked or charged.
+Sorry, {{first_name}}. The offer we sent for the {{vehicle_name}} is no longer open. Nothing was booked.
 
 Reason
 {{withdraw_reason}}
+
+{{#if has_amount_paid}}
+You had already paid {{amount_paid}}. We are refunding it in full to the card you used. Refunds arrive within 10 business days.
+{{/if}}
 
 Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}

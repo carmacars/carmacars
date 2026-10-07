@@ -14,7 +14,7 @@ const BOOKINGS = [
   { no: 'B-1043', renter: 'Sample Renter 03', car: 'CC 06', carName: 'Toyota Corolla', from: 'Oct 20, 12:00', to: 'Oct 30, 12:00', days: 10, total: '$565.00', status: 'Confirmed', badge: '', cov: 'Option 3', dep: '$500 charged', note: 'Signed and paid. Licence check due Oct 19.' },
   { no: 'R-2218', renter: 'Sample Renter 04', car: 'CC 05', carName: 'Mercedes-Benz GLE350', from: 'Oct 29, 10:00', to: 'Oct 31, 10:00', days: 2, total: '$863.32', status: 'Request', badge: 'badge--hatch', cov: 'Option 1', dep: '$2,500 at pickup', note: 'Delivery requested. Address to confirm.' },
   { no: 'B-1044', renter: 'Sample Renter 05', car: 'CC 11', carName: 'Chrysler Pacifica', from: 'Oct 17, 08:00', to: 'Oct 24, 08:00', days: 7, total: '$949.20', status: 'Confirmed', badge: '', cov: 'Option 2', dep: '$1,000 hold', note: 'Delivery and pickup. Baby seat x2.' },
-  { no: 'Q-0311', renter: 'Sample Renter 06', car: 'CC 04', carName: 'Mercedes-Benz GLC300', from: 'Nov 02, 10:00', to: 'Nov 05, 10:00', days: 3, total: '$457.65', status: 'Quote sent', badge: 'badge--outline', cov: 'Not chosen', dep: '$1,000 at pickup', note: 'Quote sent 14:05. Hold expires 16:05.' },
+  { no: 'Q-0311', renter: 'Sample Renter 06', car: 'CC 04', carName: 'Mercedes-Benz GLC300', from: 'Nov 02, 10:00', to: 'Nov 05, 10:00', days: 3, total: '$457.65', status: 'Offer sent', badge: 'badge--outline', cov: 'Not chosen', dep: '$1,000 at pickup', note: 'Offer sent 14:05, open for 24 hours. Does not block the calendar.' },
   { no: 'B-1039', renter: 'Sample Renter 07', car: 'CC 09', carName: 'Toyota RAV4', from: 'Oct 16, 10:00', to: 'Oct 19, 10:00', days: 3, total: '$338.44', status: 'Confirmed', badge: '', cov: 'Option 1', dep: '$1,000 hold', note: 'Pickup tomorrow. Reminder sent.' },
   { no: 'B-1031', renter: 'Sample Renter 08', car: 'CC 08', carName: 'Honda Civic', from: 'Oct 09, 10:00', to: 'Oct 14, 10:00', days: 5, total: '$404.54', status: 'Returned', badge: 'badge--grey', cov: 'Option 2', dep: '$500 released', note: 'Statement sent. 18 km over allowance billed.' }
 ];
@@ -33,7 +33,7 @@ function masterCalendar() {
     c.pending.forEach((r) => { bars += bar(r, 'is-pend', 'Request', row); });
   });
   // quotes that do not block the calendar (outlined)
-  bars += bar(['2026-11-02', '2026-11-05'], 'is-open', 'Quote', 5) + bar(['2026-10-26', '2026-10-28'], 'is-open', 'Quote', 9) + bar(['2026-11-04', '2026-11-08'], 'is-open', 'Owner asks', 13) + bar(['2026-10-27', '2026-10-29'], 'is-svc', 'Service', 11);
+  bars += bar(['2026-11-02', '2026-11-05'], 'is-open', 'Offer', 5) + bar(['2026-10-26', '2026-10-28'], 'is-open', 'Offer', 9) + bar(['2026-11-04', '2026-11-08'], 'is-open', 'Owner asks', 13) + bar(['2026-10-27', '2026-10-29'], 'is-svc', 'Service', 11);
   return `<div class="mc-wrap" tabindex="0" role="region" aria-label="Fleet master calendar, scrolls sideways">
     <div class="mc" style="--n:${N}" role="img" aria-label="Calendar grid: 12 vehicles down the side, 28 days across, bookings drawn as bars">
       <div class="mc__corner">Vehicle</div>
@@ -42,7 +42,7 @@ function masterCalendar() {
       ${bars}
     </div>
   </div>
-  <ul class="mc-legend"><li><i class="mc__bar is-rent"></i>On rent</li><li><i class="mc__bar is-conf"></i>Confirmed</li><li><i class="mc__bar is-pend"></i>Pending request (holds the dates)</li><li><i class="mc__bar is-open"></i>Does not block: quote or owner ask</li><li><i class="mc__bar is-svc"></i>Service or cleaning</li></ul>`;
+  <ul class="mc-legend"><li><i class="mc__bar is-rent"></i>On rent</li><li><i class="mc__bar is-conf"></i>Confirmed</li><li><i class="mc__bar is-pend"></i>Pending request (holds the dates)</li><li><i class="mc__bar is-open"></i>Does not block: offer sent or owner ask</li><li><i class="mc__bar is-svc"></i>Service or cleaning</li></ul>`;
 }
 
 export function styleguide() {
@@ -87,7 +87,7 @@ export function styleguide() {
     'One red button per view: the thing we most want pressed. Labels say what happens and keep that name through the flow.')}
   ${sec('labels', 'Plates and badges', `
     <div class="row">${plate('CC 03')}${plate('CC 03', 'plate--dark')}${plate('R-221704', 'plate--lg')}</div>
-    <div class="row"><span class="badge badge--red">On rent</span><span class="badge">Confirmed</span><span class="badge badge--hatch">Request</span><span class="badge badge--outline">Quote sent</span><span class="badge badge--grey">Returned</span></div>`,
+    <div class="row"><span class="badge badge--red">On rent</span><span class="badge">Confirmed</span><span class="badge badge--hatch">Request</span><span class="badge badge--outline">Offer sent</span><span class="badge badge--grey">Returned</span></div>`,
     'The plate is the one decorative device, and it always carries a real identifier: a fleet number or a request number. Badges are rectangular and state status only.')}
   ${sec('forms', 'Form controls', `
     <div class="field-row"><div class="field"><label class="label" for="sg-a">Text input</label><input class="input" id="sg-a" placeholder="Placeholder"><p class="hint">Hint text sits under the field.</p></div>
@@ -143,7 +143,7 @@ export function styleguide() {
         <h3 class="d3" data-f="renter">${BOOKINGS[1].renter}</h3>
         <table class="spec"><tbody><tr><th scope="row">Car</th><td data-f="carName">${BOOKINGS[1].carName}</td></tr><tr><th scope="row">Pickup</th><td class="num" data-f="from">${BOOKINGS[1].from}</td></tr><tr><th scope="row">Return</th><td class="num" data-f="to">${BOOKINGS[1].to}</td></tr><tr><th scope="row">Total</th><td class="num" data-f="total">${BOOKINGS[1].total}</td></tr><tr><th scope="row">Deposit</th><td data-f="dep">${BOOKINGS[1].dep}</td></tr><tr><th scope="row">Coverage</th><td data-f="cov">${BOOKINGS[1].cov}</td></tr></tbody></table>
         <p class="alert"><span class="alert__title">Latest</span><span data-f="note">${BOOKINGS[1].note}</span></p>
-        <div class="row"><button class="btn btn--primary btn--sm" type="button" data-toast="Quote sent to the renter.">Confirm and send price</button><button class="btn btn--ghost btn--sm" type="button" data-toast="Adjust form is not part of this sample.">Adjust</button><button class="btn btn--quiet btn--sm" type="button" data-modal-open="sg-modal">Decline</button></div>
+        <div class="row"><button class="btn btn--primary btn--sm" type="button" data-toast="Offer sent to the renter. Open for 24 hours.">Confirm and send price</button><button class="btn btn--ghost btn--sm" type="button" data-toast="Adjust form is not part of this sample.">Adjust</button><button class="btn btn--quiet btn--sm" type="button" data-modal-open="sg-modal">Decline</button></div>
       </aside>
     </div>
 

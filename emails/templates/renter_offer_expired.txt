@@ -5,15 +5,17 @@ CarmaCars  |  Request {{booking_number}}
 [Offer expired]
 This offer has ended
 
-We did not receive your approval by {{offer_expires_at}}, so the {{vehicle_name}} is back on the calendar. Nothing was charged.
+We did not receive your approval by {{offer_expires_at}}, so the offer for the {{vehicle_name}} has closed. Nothing was booked or charged.
 
 Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}
 
-If you still need a car for these dates, send a new request and we will check what is available. The price may differ from the offer that lapsed.
+Your request is still on file. If you still need the car, tell us and we will check it again and send a fresh offer. The car, times or price may differ from the offer that expired.
 
-Send a new request:
-https://carmacars.ca/cars
+Ask for a new offer:
+https://carmacars.ca/account/bookings/{{booking_number}}/request
+
+If you no longer need a car, there is nothing to do. We will close the request.
 
 ----------------------------------------
 

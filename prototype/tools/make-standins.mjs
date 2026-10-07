@@ -127,8 +127,8 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const FONT = `font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700"`;
 
 // Studio frame: black backdrop, overhead spot, floor line, ghosted name, slate.
-function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = true, spotX = 0.5 }) {
-  const fy = h * floor;
+function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = true, spotX = 0.5, slateTop = false }) {
+  const fy = h * floor; const sy = slateTop ? Math.max(30, h * 0.04) : h - Math.max(18, h * 0.03); const sf = Math.max(16, w * (slateTop ? 0.0085 : 0.0125));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     <radialGradient id="spot" cx="${spotX}" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
@@ -142,7 +142,7 @@ function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = tr
   <rect y="${fy - 1}" width="${w}" height="2" fill="#fff" opacity=".1"/>
   ${ghost && name ? `<text x="${w / 2}" y="${fy - h * 0.2}" text-anchor="middle" ${FONT} font-size="${h * 0.3}" textLength="${w * 0.9}" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">${esc(name.toUpperCase())}</text>` : ''}
   ${content(w, h, fy)}
-  ${slate ? `<g ${FONT} font-size="${Math.max(16, w * 0.0125)}" fill="#fff" fill-opacity=".55"><text x="${w * 0.975}" y="${h - Math.max(18, h * 0.03)}" text-anchor="end" letter-spacing="1">${esc(slate)}</text><rect x="${w * 0.975 + 6}" y="${h - Math.max(18, h * 0.03) - Math.max(11, w * 0.009)}" width="${Math.max(8, w * 0.007)}" height="${Math.max(11, w * 0.009)}" fill="#D0111B" fill-opacity="1"/></g>` : ''}
+  ${slate ? `<g ${FONT} font-size="${sf}" fill="#fff" fill-opacity=".55"><text x="${w * 0.975}" y="${sy}" text-anchor="end" letter-spacing="1">${esc(slate)}</text><rect x="${w * 0.975 + 6}" y="${sy - Math.max(11, w * 0.009)}" width="${Math.max(8, w * 0.007)}" height="${Math.max(11, w * 0.009)}" fill="#D0111B" fill-opacity="1"/></g>` : ''}
 </svg>`;
 }
 
@@ -186,12 +186,12 @@ function carShot(c, shot, w, h) {
 }
 
 // ---- lifestyle scenes -------------------------------------------------------
-const skyline = (w, fy, seed = 3) => {
+const skyline = (w, fy, seed = 3, towerAt = 0.68) => {
   let x = 0; let out = ''; let i = seed;
   while (x < w) { i = (i * 9301 + 49297) % 233280; const bw = 40 + (i % 90); const bh = 60 + (i % 260); out += `<rect x="${x}" y="${fy - bh}" width="${bw - 4}" height="${bh}" fill="#0d0d0d"/>`;
     for (let yy = fy - bh + 14; yy < fy - 12; yy += 22) for (let xx = x + 8; xx < x + bw - 14; xx += 16) { i = (i * 9301 + 49297) % 233280; if (i % 5 === 0) out += `<rect x="${xx}" y="${yy}" width="6" height="9" fill="#fff" opacity=".35"/>`; }
     x += bw; }
-  const tx = w * 0.68; // a tall broadcast tower, generic
+  const tx = w * towerAt; // a tall broadcast tower, generic
   out += `<path d="M ${tx - 5},${fy} L ${tx - 3},${fy - 470} L ${tx + 3},${fy - 470} L ${tx + 5},${fy} Z" fill="#0d0d0d"/><ellipse cx="${tx}" cy="${fy - 330}" rx="22" ry="12" fill="#0d0d0d"/><rect x="${tx - 1}" y="${fy - 560}" width="2" height="92" fill="#0d0d0d"/><circle cx="${tx}" cy="${fy - 560}" r="3" fill="#E0121C"/>`;
   return out;
 };
@@ -200,11 +200,11 @@ const road = (w, h, fy) => `<path d="M ${w * 0.5 - 40},${fy} L ${w * 0.5 + 40},$
 const SCENES = {
   hero(w, h, tall) {
     const c = CARS.find((x) => x.slug === 'mercedes-benz-c300');
-    return studio(w, h, { floor: tall ? 0.84 : 0.74, spotX: tall ? 0.5 : 0.7, slate: 'STAND-IN  HOME HERO  CAR ON LOCATION, LOW ANGLE', ghost: false, content: (W, H, fy) => {
+    return studio(w, h, { floor: tall ? 0.84 : 0.74, spotX: tall ? 0.5 : 0.7, slate: 'STAND-IN  HOME HERO  CAR ON LOCATION, LOW ANGLE', slateTop: !tall, ghost: false, content: (W, H, fy) => {
       const o = { w: W, lw: 1000, scale: tall ? 0.94 : 0.56, cx: W * (tall ? 0.56 : 0.72), fy };
       const inner = carSide(c.shape, c.paint);
       const streaks = [0.2, 0.31, 0.39, 0.5].map((p, i) => `<rect x="${tall ? -W * 0.1 : W * (0.74 - i * 0.03)}" y="${fy * (tall ? p + 0.3 : p + 0.28)}" width="${W * (0.5 + i * 0.12)}" height="${i === 1 ? 5 : 2}" fill="${i === 1 && !tall ? '#D0111B' : '#fff'}" opacity="${i === 1 && !tall ? 0.9 : 0.14}"/>`).join('');
-      return skyline(W, fy, 11).replace(/#0d0d0d/g, '#111') + streaks + reflect(inner, o) + place(inner, o);
+      return skyline(W, fy, 11, 0.95).replace(/#0d0d0d/g, '#111') + streaks + reflect(inner, o) + place(inner, o);
     } });
   },
   delivery(w, h, tall) {

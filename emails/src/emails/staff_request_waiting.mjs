@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours with no offer, information request or decline. Sent once per request, to customer service and both admins. Immediate.',
+  trigger: 'Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service and both admins. Immediate.',
   timing: '2 hours after an unanswered request',
   subject: 'Waiting {{waiting_time}}: request {{booking_number}} has no offer',
   preheader: '{{renter_name}}, {{vehicle_name}}, pickup {{pickup_date}}. Answer it now.',

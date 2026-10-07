@@ -1,0 +1,31 @@
+CarmaCars  |  Security notice
+
+========================================
+
+[Security notice]
+{{security_event}}
+
+This happened on your CarmaCars account, {{first_name}}. If it was you, there is nothing to do.
+
+What: {{security_event}}
+When: {{security_event_at}}
+Device: {{security_device}}
+Approximate place: {{security_place}}
+
+IMPORTANT: If this was not you
+Set a new password now. Then reply to this email or call {{support_phone}} so we can check your account.
+
+Set a new password:
+{{reset_url}}
+
+The link works once and expires in {{link_expiry}}. We will never ask you for your password or for this link.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

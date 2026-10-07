@@ -1,6 +1,10 @@
 // Shared layout: turns an email definition into an HTML template and a plain-text template.
 // Table-based, inline-styled, single column, 600px. Merge tags are left in place for the engine.
-import { BRAND, C, FONT } from './brand.mjs';
+import { BRAND, C, FONT, FONT_WORDMARK } from './brand.mjs';
+
+// The wordmark: the exact string CarmaCars, "Carma" in the surface text colour and "Cars" in red, bold italic condensed.
+const wordmark = (size, carma, cls = '') =>
+  `<span${cls ? ` class="${cls}"` : ''} style="font-family:${FONT_WORDMARK};font-size:${size}px;line-height:${size + 4}px;font-weight:700;font-style:italic;letter-spacing:-0.01em;color:${carma};">Carma<span style="color:${C.red};">Cars</span></span>`;
 import { url, PATHS } from './links.mjs';
 import { escapeHtml } from './engine.mjs';
 
@@ -45,7 +49,7 @@ const H = {
   vehicle: (b) => section(
     `{{#if vehicle_image_url}}<img src="{{vehicle_image_url}}" width="528" alt="{{vehicle_name}}" style="display:block;width:100%;max-width:528px;height:auto;border:0;outline:none;border-radius:4px;background-color:${C.slot};color:#FFFFFF;font-family:${FONT};font-size:16px;">{{else}}` +
     `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" valign="middle" height="190" bgcolor="${C.slot}" style="height:190px;background-color:${C.slot};border-radius:4px;padding:0 20px;">` +
-    `<div style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:#8E8E93;font-weight:700;">Your vehicle</div>` +
+    `<div style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:${C.labelOnBlack};font-weight:700;">Your vehicle</div>` +
     `<div style="font-family:${FONT};font-size:22px;line-height:30px;font-weight:700;letter-spacing:-0.3px;color:#FFFFFF;padding-top:4px;">{{vehicle_name}}</div>` +
     `</td></tr></table>{{/if}}` +
     (b.caption ? `<div class="tx-mid" style="font-family:${FONT};font-size:13px;line-height:20px;color:${C.mid};padding-top:10px;">${inlineHtml(b.caption, C.mid)}</div>` : ''), 28),
@@ -115,8 +119,8 @@ const H = {
     `</td><td class="rule" width="24" align="right" valign="middle" style="width:24px;border-bottom:1px solid ${C.rule};font-family:${FONT};font-size:18px;line-height:22px;color:${C.red};"><a href="${href(b.href)}" style="color:${C.red};text-decoration:none;">&rsaquo;</a></td></tr>{{/each}}\n</table>`, 28),
 
   button: (b) => section(
-    `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="btn"><tr><td align="center" bgcolor="${C.red}" style="background-color:${C.red};border-radius:4px;">` +
-    `<a href="${href(b.href)}" target="_blank" style="display:inline-block;padding:17px 34px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:4px;border:1px solid ${C.red};mso-padding-alt:0;">${esc(b.label)}</a>` +
+    `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="btn"><tr><td align="center" bgcolor="${C.red}" style="background-color:${C.red};border-radius:6px;">` +
+    `<a href="${href(b.href)}" target="_blank" style="display:inline-block;padding:17px 34px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:6px;border:1px solid ${C.redDark};mso-padding-alt:0;">${esc(b.label)}</a>` +
     `</td></tr></table>`, 24),
 
   link: (b) => section(
@@ -242,19 +246,19 @@ a{text-decoration:underline;}
 }
 @media (prefers-color-scheme:dark){
   .page{background-color:#000000 !important;}
-  .card{background-color:#151516 !important;}
+  .card{background-color:#111111 !important;}
   .tx{color:#F3F3F3 !important;}
-  .tx-mid{color:#B4B4B4 !important;}
+  .tx-mid{color:#A3A3A3 !important;}
   .tx-soft{color:#909090 !important;}
-  .rule{border-color:#2E2E30 !important;}
+  .rule{border-color:#2B2B2B !important;}
   .rule-strong{border-color:#F3F3F3 !important;}
-  .wash{background-color:#222224 !important;}
+  .wash{background-color:#1A1A1A !important;}
   .bar{background-color:#F3F3F3 !important;}
-  .num{background-color:#F3F3F3 !important;color:#0A0A0A !important;}
-  .foot{background-color:#0A0A0A !important;}
+  .num{background-color:#F3F3F3 !important;color:#000000 !important;}
+  .foot{background-color:#000000 !important;}
 }
 [data-ogsc] .tx{color:#F3F3F3 !important;}
-[data-ogsc] .tx-mid{color:#B4B4B4 !important;}
+[data-ogsc] .tx-mid{color:#A3A3A3 !important;}
 [data-ogsc] .tx-soft{color:#909090 !important;}
 </style>
 </head>
@@ -267,8 +271,8 @@ a{text-decoration:underline;}
 <tr><td bgcolor="${C.red}" height="4" style="height:4px;background-color:${C.red};font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td class="px" bgcolor="${C.black}" style="background-color:${C.black};padding:26px ${PAD}px 0 ${PAD}px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
-<td align="left" valign="middle"><a href="${url('home')}" style="font-family:${FONT};font-size:25px;line-height:30px;font-weight:700;letter-spacing:-0.8px;color:#FFFFFF;text-decoration:none;">CarmaCars</a></td>
-<td class="ref" align="right" valign="middle" style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;color:#8E8E93;">${esc(email.ref || '')}</td>
+<td align="left" valign="middle"><a href="${url('home')}" style="text-decoration:none;color:#FFFFFF;">${wordmark(30, '#FFFFFF')}</a></td>
+<td class="ref" align="right" valign="middle" style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;color:${C.labelOnBlack};">${esc(email.ref || '')}</td>
 </tr></table>
 </td></tr>
 <tr><td class="px" bgcolor="${C.black}" style="background-color:${C.black};padding:34px ${PAD}px 38px ${PAD}px;">
@@ -280,7 +284,7 @@ ${heroB.lead ? `<div style="font-family:${FONT};font-size:16px;line-height:25px;
 <tr><td height="34" style="height:34px;font-size:0;line-height:0;">&nbsp;</td></tr>
 ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;"><div class="rule" style="border-top:1px solid ${C.rule};padding-top:20px;font-family:${FONT};font-size:15px;line-height:23px;color:${C.ink};"><span class="tx">${inlineHtml(helpLine(email))}</span></div></td></tr>
 <tr><td class="px foot" bgcolor="${C.wash}" style="background-color:${C.wash};padding:26px ${PAD}px 30px ${PAD}px;">
-<div class="tx" style="font-family:${FONT};font-size:16px;line-height:22px;font-weight:700;letter-spacing:-0.4px;color:${C.ink};">CarmaCars</div>
+<div>${wordmark(21, C.ink, 'tx')}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">CarmaCars is operated by ${BRAND.legal}<br>{{company_address}}</div>

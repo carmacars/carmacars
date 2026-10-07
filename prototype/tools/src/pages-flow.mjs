@@ -13,7 +13,7 @@ export function request() {
   <div class="wrap req__head">
     <p class="small muted"><a class="link" href="fleet.html">Fleet</a> / Request to book</p>
     <h1 class="d2">Request to book</h1>
-    <p class="req__assure"><b>No payment and no card at this stage.</b> We confirm the car and the price first.</p>
+    <p class="req__assure"><b>No payment and no card at this stage.</b> We confirm the car and the price first. The car is booked only when you approve, sign and pay.</p>
     <ol class="steps" aria-label="Progress">
       <li data-label="Dates"><b>Dates</b><span> and delivery</span></li>
       <li data-label="Driver"><b>Driver</b><span> details</span></li>
@@ -109,7 +109,7 @@ export function request() {
       <section data-step="4" class="req__step stack-lg" aria-labelledby="rs4" hidden>
         <h2 class="d3" id="rs4">Check it and send</h2>
         <table class="spec req__review"><tbody data-review></tbody></table>
-        <div class="alert"><span class="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book the car, and it takes no payment. The estimate may change if we need to adjust something. You see the final price before you pay.</span></div>
+        <div class="alert"><span class="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for 24 hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
         <div class="field"><label class="check"><input type="checkbox" name="agree" data-v="required" data-msg="Tick this box to send your request."><span>I am 18 or older, the details above are true, and I agree to the <a class="link" href="terms.html">Terms of use</a> and <a class="link" href="privacy.html">Privacy policy</a>.</span></label><p class="error" role="alert"></p></div>
         <label class="check"><input type="checkbox" name="marketing"><span class="small">Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by 18122211 Canada Inc. (CarmaCars), ${EMAIL}.</span></label>
         <div class="req__nav"><button type="button" class="btn btn--ghost" data-back>Back</button><button type="submit" class="btn btn--primary btn--lg">Send request</button></div>
@@ -137,7 +137,7 @@ export function confirmation() {
   <div class="wrap">
     <p class="row"><span class="plate plate--dark plate--lg" data-conf-ref>R-000000</span><span class="small muted">Your request number</span></p>
     <h1 class="d1">Request sent<span data-conf-name></span>.</h1>
-    <p class="lead">Nothing has been charged. A person at CarmaCars is checking the car now.</p>
+    <p class="lead">Nothing has been charged, and the car is not booked yet. A person at CarmaCars is checking it now.</p>
   </div>
 </section>
 <section class="section">
@@ -145,9 +145,9 @@ export function confirmation() {
     <div class="c-7 stack-lg">
       <h2 class="d2">What happens next</h2>
       <ol class="seq">
-        <li><div><h3>We check the car and your details</h3><p>We look at the calendar, your dates and your delivery address. Our target is to reply within 15 minutes during opening hours.</p><span class="seq__who">CarmaCars</span></div></li>
-        <li><div><h3>You get the confirmed price</h3><p>By email<span data-conf hidden> to <b data-conf-email></b></span>, with every fee and HST. If we had to adjust anything, the message says what changed. We hold the car for two hours from then.</p><span class="seq__who">CarmaCars</span></div></li>
-        <li><div><h3>You approve, sign and pay</h3><p>Reply yes and we send the rental agreement to sign online and a secure payment link. Use a credit card in your own name. Your booking is confirmed when the payment goes through.</p><span class="seq__who">You</span></div></li>
+        <li><div><h3>We check the car and your details</h3><p>We look at the calendar, your dates and your delivery address. We reply as fast as we can during opening hours.</p><span class="seq__who">CarmaCars</span></div></li>
+        <li><div><h3>You get the confirmed price</h3><p>By email<span data-conf hidden> to <b data-conf-email></b></span>, with every fee and HST. If we had to adjust anything, the message says what changed. That price is an offer and stays open for 24 hours. It does not hold the car.</p><span class="seq__who">CarmaCars</span></div></li>
+        <li><div><h3>You approve, sign and pay</h3><p>Reply yes and we send the rental agreement to sign online and a secure payment link. Use a credit card in your own name. The car is booked when the payment goes through. If someone else pays for the same car and dates before you do, we tell you and offer another car or other dates.</p><span class="seq__who">You</span></div></li>
         <li><div><h3>You send your licence and coverage proof</h3><p>A photo of your licence, front and back, and a selfie holding it, at least 24 hours before pickup.
           <span data-conf-cov="1" hidden>For option 1, add the policy page or insurer letter that shows OPCF 27.</span><span data-conf-cov="2" hidden>For option 2, add your card’s benefits certificate, and pay with that card.</span><span data-conf-cov="3" hidden>For option 3, we send the provider’s terms and activate the coverage once it is paid.</span></p><span class="seq__who">You</span></div></li>
         <li><div><h3>Pickup day</h3><p>Bring your original licence and the card you paid with. We take the deposit, walk around the car with you and hand over the keys.</p><span class="seq__who">Both</span></div></li>
@@ -171,8 +171,8 @@ export function confirmation() {
 
 // ---------------------------------------------------------------- owners
 export const OWNER_FAQ = [
-  ['What does it cost me?', 'Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a $100 tracker install fee. There is no security deposit.'],
-  ['How do I get paid?', 'On the 10th of each month for the month before, with a statement for each car that lists every rental and deduction. Your payout is the rental charge plus mileage overage fees, less our revenue share.'],
+  ['What does it cost me?', 'Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a tracker install fee. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit.'],
+  ['How do I get paid?', 'On the 10th of each month for the month before, with a statement for each car that lists every rental and deduction. Your payout is the rental charge plus mileage overage fees, less our revenue share, which is agreed with you before you sign.'],
   ['Can I still drive my own car?', 'Yes, whenever it is not booked. You book it like a renter and sign the same agreement, but you pay no rental charge, fee or deposit. A renter’s confirmed booking comes first.'],
   ['Who insures the car?', 'From its enrolment date the car is listed on our commercial fleet policy. We manage every claim, and repairs are done only at shops we approve. You are not paid for the time a car is off the road.'],
   ['Is there a minimum term?', 'No. You can take any car out of the program with 30 days’ written notice. If it is on a rental when the notice ends, it leaves when that rental does.'],
@@ -204,7 +204,7 @@ export function owners() {
     <div class="c-5"><div class="how__sticky stack"><h2 class="d1" id="oh-how">From driveway to first rental</h2><p class="lead">Five steps. We prepare the government forms and come to the registry with you.</p></div></div>
     <div class="c-7 how__steps"><span class="how__line fx-grow-y" aria-hidden="true"></span>
       <ol class="seq">
-        <li><div><h3>Tell us about the car</h3><p>Year, make, model, kilometres, and whether it is owned outright, financed or leased. We reply within one business day with the fees for your car and what registration will cost you.</p></div></li>
+        <li><div><h3>Tell us about the car</h3><p>Year, make, model, kilometres, and whether it is owned outright, financed or leased. We reply within one business day and set up a call to confirm the fees for your car and what registration will cost you.</p></div></li>
         <li><div><h3>Sign the agreements</h3><p>An enrolment agreement and a title agreement, signed online. One agreement covers all your cars. Each car is added with its own schedule.</p></div></li>
         <li><div><h3>One registry visit</h3><p>You get the safety certificate and appraisal your route needs. We fill in the forms, book the visit and attend with you. You pay ServiceOntario directly.</p></div></li>
         <li><div><h3>Tracker and insurance</h3><p>We install a GPS tracker and add the car to our fleet policy. Once we confirm that in writing, you can cancel your own insurance on it.</p></div></li>
@@ -241,25 +241,23 @@ export function owners() {
         <tr><th scope="row">You earn</th><td>The rental charge and mileage overage fees on your car, less our revenue share</td></tr>
         <tr><th scope="row">CarmaCars keeps</th><td>Its revenue share, plus delivery, fuel, cleaning, late return and young driver fees</td></tr>
         <tr><th scope="row">You pay monthly</th><td>An insurance fee and a tracker fee for each car, billed on the 15th, rented or not</td></tr>
-        <tr><th scope="row">You pay once</th><td>First and last month’s insurance fee and a $100 tracker install fee. Registry costs go to ServiceOntario, not us.</td></tr>
+        <tr><th scope="row">You pay once</th><td>First and last month’s insurance fee and a tracker install fee. Registry costs go to ServiceOntario, not us.</td></tr>
         <tr><th scope="row">You are paid</th><td>On the 10th, for the month before, with a statement per car</td></tr>
         <tr><th scope="row">Referrals</th><td>Send us a new renter and earn 20% of the rental charge on their first rental. Not on your own car.</td></tr>
       </tbody></table>
     </div>
     <div class="c-5 s-8 stack-lg">
-      <h2 class="d2">Standard starting grid</h2>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Standard starting grid">
-      <table class="data data--min"><thead><tr><th scope="col">Your cars with us</th><th scope="col" class="r">Insurance fee</th><th scope="col" class="r">Tracker fee</th><th scope="col" class="r">Revenue share</th></tr></thead>
-        <tbody><tr><td>1 to 2</td><td class="r">$450 a month</td><td class="r">$25 a month</td><td class="r">35%</td></tr><tr><td>3 to 9</td><td class="r">$400 a month</td><td class="r">$20 a month</td><td class="r">30%</td></tr><tr><td>10 or more</td><td class="r">$350 a month</td><td class="r">$15 a month</td><td class="r">25%</td></tr></tbody></table>
-      </div>
-      <p class="small muted">A starting point only, per car, before HST. Your own fees and share are set car by car in your agreement. No revenue share on self-managed cars. Earnings depend on bookings and are not promised.</p>
+      <h2 class="d2">What it costs you</h2>
+      <p class="lead">Fees and our revenue share depend on how many cars you have with us. We confirm them on a call, before you sign anything.</p>
+      <ul class="ticks"><li>Every owner’s terms are agreed individually and written into the agreement, car by car</li><li>Self-managed cars pay no revenue share</li><li>Earnings depend on bookings and are not promised</li></ul>
+      <p><a class="btn" href="#apply">Apply and book the call</a></p>
     </div>
   </div>
 </section>
 
 <section class="section on-dark" id="apply" aria-labelledby="oh-apply">
   <div class="wrap grid">
-    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Apply to list your car</h2><p class="lead muted">Six questions. We answer within one business day with your fees and your registration options. Applying commits you to nothing.</p></div>
+    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Apply to list your car</h2><p class="lead muted">Six questions. We answer within one business day and arrange a call to confirm your fees and registration options. Applying commits you to nothing.</p></div>
     <div class="c-6 s-7">
       <form class="panel stack-lg" data-simple-form="apply-done" aria-labelledby="oh-apply">
         <div class="field-row">${field({ id: 'ow-name', name: 'name', label: 'Your name', auto: 'name', msg: 'Enter your name.' })}${field({ id: 'ow-phone', name: 'phone', label: 'Mobile number', type: 'tel', v: 'required phone', auto: 'tel' })}</div>
@@ -273,7 +271,7 @@ export function owners() {
         <button class="btn btn--primary btn--lg btn--block" type="submit">Send application</button>
         <p class="xs muted">We use these details to reply to you about your car. See the <a class="link" href="privacy.html">Privacy policy</a>.</p>
       </form>
-      <div class="panel stack" id="apply-done" hidden><p class="d3">Application sent.</p><p>We will reply within one business day with the fees for your car and the registration routes open to you.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="index.html">Back to home</a></p></div>
+      <div class="panel stack" id="apply-done" hidden><p class="d3">Application sent.</p><p>We will reply within one business day to arrange a call about the fees for your car and the registration routes open to you.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="index.html">Back to home</a></p></div>
     </div>
   </div>
 </section>
@@ -321,7 +319,7 @@ export function signin() {
 export function contact() {
   const trail = [['Home', 'index.html'], ['Contact']];
   const main = `
-<section class="page-head on-dark"><div class="wrap">${crumbs(trail)}<h1 class="d1">Talk to a person.</h1><p class="lead muted">Questions about a car, a booking or listing your own. We answer during opening hours, and our target is 15 minutes.</p></div></section>
+<section class="page-head on-dark"><div class="wrap">${crumbs(trail)}<h1 class="d1">Talk to a person.</h1><p class="lead muted">Questions about a car, a booking or listing your own. We answer as fast as we can during opening hours.</p></div></section>
 <section class="section">
   <div class="wrap grid">
     <div class="c-5 stack-lg">

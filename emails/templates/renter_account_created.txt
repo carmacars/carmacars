@@ -15,7 +15,7 @@ The link works once and expires in {{link_expiry}}. If it has expired, sign in a
 1. Request a car
    Pick your dates and send a request. No card is needed to ask.
 2. Get our offer
-   We check the car and reply with a firm price.
+   We check the car and reply with a firm price. An offer does not hold the car.
 3. Approve, sign and pay
    Your booking is confirmed once the agreement is signed and paid.
 

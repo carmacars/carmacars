@@ -97,7 +97,8 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const [f, s] of outputs) {
     if (!f.endsWith('.html')) continue;
     for (const m of s.matchAll(/text-transform:uppercase[^>]*>([^<]*)/g)) if (/carmacars/i.test(m[1])) p.push(`${f}: brand name inside an upper-case label`);
-    if (!/>CarmaCars<\/a>/.test(s)) p.push(`${f}: wordmark missing`);
+    if ((s.match(/>Carma<span style="color:#D0111B;">Cars<\/span><\/span>/g) || []).length !== 2) p.push(`${f}: wordmark missing from header or footer`);
+    if (s.replace(/<[^>]+>/g, '').match(/Carma\s+Cars/)) p.push(`${f}: wordmark splits when tags are stripped`);
   }
   check('CarmaCars is always spelled and capitalised exactly so', p);
 }

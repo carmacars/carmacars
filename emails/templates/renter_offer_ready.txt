@@ -7,6 +7,11 @@ Your car is available. Approve to confirm.
 
 We reviewed your request, {{first_name}}. Nothing is booked or charged until you approve, sign and pay.
 
+{{#if is_revised}}
+This replaces our earlier offer
+The offer we sent before is closed. Only this one can be approved.
+{{/if}}
+
 {{vehicle_name}}
 
 Pickup: {{pickup_date}}, {{pickup_time}}
@@ -34,10 +39,10 @@ Security deposit: {{deposit_amount}}, taken at pickup and separate from the tota
 Review, approve and pay:
 https://carmacars.ca/account/bookings/{{booking_number}}/offer
 
-This offer expires {{offer_expires_at}}
-After that the car goes back on the calendar and you would need to send a new request.
+This offer is open until {{offer_expires_at}}
+An offer does not hold the car. It is booked only when you approve, sign and pay. If another renter pays for the same car and dates first, we withdraw the offer and tell you.
 
-For different dates or another car, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change) before you approve. To pass on this offer, do nothing and it will lapse.
+For different dates or another car, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change) before you approve. To pass on this offer, do nothing and it will expire.
 
 ----------------------------------------
 

@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Booking status changes to declined from requested or needs_info. Staff choose a reason; it fills decline_reason.',
+  trigger: 'Booking status changes from requested to declined. Staff choose a reason; it fills decline_reason.',
   timing: 'Immediate',
   subject: 'We cannot fill your request for {{pickup_date}}',
   preheader: 'Nothing was charged. Here is why, and what you can do.',

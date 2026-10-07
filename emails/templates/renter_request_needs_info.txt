@@ -16,7 +16,7 @@ Return: {{return_date}}, {{return_time}}
 Answer now:
 https://carmacars.ca/account/bookings/{{booking_number}}/request
 
-Please answer by {{reply_by}}. After that we release the car to other renters and close the request. You can also reply to this email.
+Please answer by {{reply_by}}. After that we may close the request. Nothing is booked until you approve an offer, sign and pay. You can also reply to this email.
 
 ----------------------------------------
 

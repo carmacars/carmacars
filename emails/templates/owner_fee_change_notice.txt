@@ -1,0 +1,42 @@
+CarmaCars  |  Notice of change
+
+========================================
+
+[Notice of change]
+Your terms for the {{vehicle_name}} are changing
+
+This is your written notice, {{first_name}}. The change takes effect on {{effective_date}}.
+
+Effective: {{effective_date}}
+{{notice_days}} days from this notice.
+
+{{#each fee_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Why
+{{fee_change_reason}}
+
+{{#if is_share_change}}
+A change to the Revenue Share applies only if you sign a new Vehicle Schedule. Until you do, your current share stays in place.
+
+Read and sign the new schedule:
+https://carmacars.ca/owner/agreements
+{{else}}
+You do not need to do anything. The new amounts appear on the first invoice dated on or after {{effective_date}}, charged on the 15th as usual.
+
+View my vehicle:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}
+{{/if}}
+
+This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give 30 days' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

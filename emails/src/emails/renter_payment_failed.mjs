@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.billing,
   digest: false,
-  trigger: 'A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an offer fails, no fee, booking stays offered; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)',
+  trigger: 'A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an approved offer fails, no fee, the booking stays pending_payment and does not block the car; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)',
   timing: 'Immediate',
   source: 'T10',
   subject: 'Payment of {{amount}} did not go through, booking {{booking_number}}',
@@ -18,7 +18,7 @@ export default {
     hero('Payment failed', 'Your card was declined', 'We tried to charge {{amount}} to your {{card_brand}} ending {{card_last4}}, {{first_name}}. The bank said no.'),
     when('is_booking_payment', [
       figure('Still to pay', '{{amount}}', 'For the {{vehicle_name}}, {{pickup_date}} to {{return_date}}.'),
-      notice('alert', 'Your booking is not confirmed yet', 'The car is held for you until {{pay_by}}. Pay before then to confirm. There is no fee for the failed attempt.'),
+      notice('alert', 'Your booking is not confirmed yet', 'The car is booked only once the payment goes through, and it is not held in the meantime. If another renter pays for the same car and dates first, we have to withdraw the offer. There is no fee for the failed attempt.'),
       button('Try again or use another card', '@booking_pay'),
     ], [
       price({ rows: [['{{payment_reason}}', '{{amount}}'], ['Declined payment fee, HST included', '{{declined_fee}}']], total: ['Now due', '{{amount_due}}'] }),

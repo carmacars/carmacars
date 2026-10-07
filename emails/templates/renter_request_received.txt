@@ -24,7 +24,7 @@ What happens next
 2. You get our offer by email
    It shows the final price and anything we changed.
 3. You approve, sign and pay
-   Only then is the booking confirmed. A security deposit hold is taken later, at pickup.
+   Only then is the car booked. Until then it is not held, and another renter can book it first. A security deposit hold is taken later, at pickup.
 
 View my request:
 https://carmacars.ca/account/bookings/{{booking_number}}/request

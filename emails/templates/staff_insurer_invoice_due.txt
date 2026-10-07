@@ -1,0 +1,36 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Insurer invoice due]
+Unpaid for {{days_outstanding}} days
+
+{{insurer_name}} has not paid invoice {{invoice_number}} in full. Chase it today.
+
+Balance: {{balance_due}}
+Invoiced {{invoice_total}}, received {{amount_paid}}.
+
+Insurer: {{insurer_name}}
+Claim no.: {{claim_number}}
+Adjuster: {{adjuster_contact}}
+Booking: {{booking_number}}, {{renter_name}}
+Sent: {{invoice_sent_at}}
+Last contact: {{last_contact}}
+
+Open the invoice:
+https://carmacars.ca/va/finance/insurer-invoices/{{invoice_number}}
+
+- Email the adjuster with the invoice and the claim number. Log the date and the answer.
+- Record any receipt against the invoice the day it arrives, with its reference.
+- On a booking billed wholly to the insurer, the owner is paid for the rental only once the insurer pays.
+- Only an admin can write an invoice off.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

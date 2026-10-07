@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Booking status changes to confirmed (the offer was approved, the agreement signed and the booking total paid).',
+  trigger: 'Booking status changes from pending_payment to confirmed (the offer was approved, the agreement signed, the booking total paid and the car still free for the dates).',
   timing: 'Immediate',
   subject: 'Confirmed: {{vehicle_name}}, {{pickup_date}}',
   preheader: 'Booking {{booking_number}}. {{amount_paid}} paid. Next: licence and coverage check.',

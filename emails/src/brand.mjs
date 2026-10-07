@@ -1,4 +1,4 @@
-// Brand constants. Red, black and white only, plus neutral greys.
+// Brand constants. Red, black and white only, plus neutral greys. Values follow prototype/DESIGN.md.
 export const BRAND = {
   name: 'CarmaCars',
   legal: '18122211 Canada Inc.',
@@ -8,20 +8,26 @@ export const BRAND = {
 };
 
 export const C = {
-  red: '#D90429',     // the one red: buttons, top rule, key figures
-  black: '#0A0A0A',
-  ink: '#111111',     // body text
-  mid: '#5C5C5C',     // secondary text
-  soft: '#8A8A8A',    // labels
-  rule: '#E4E4E4',
-  wash: '#F5F5F5',    // notice and table wash
-  page: '#EDEDED',
+  red: '#D0111B',      // --red-600, the CarmaCars red: buttons, top rule, key figures, "Cars" in the wordmark
+  redDark: '#A30C14',  // --red-700, hover and pressed (used as the button border)
+  redOnBlack: '#FF4D52', // --red-400, small red text on black
+  black: '#000000',
+  ink: '#000000',      // body text
+  mid: '#5E5E5E',      // --grey-600, secondary text on white
+  soft: '#7A7A7A',     // --grey-500, labels
+  rule: '#E2E2E2',     // --grey-200, hairlines
+  wash: '#F0F0F0',     // --grey-100, quiet surface
+  page: '#F0F0F0',
   white: '#FFFFFF',
-  onBlack: '#C8C8C8', // secondary text on the black bands
-  slot: '#1C1C1E',    // vehicle photo placeholder
+  onBlack: '#C9C9C9',  // --grey-300, lead text on black
+  labelOnBlack: '#A3A3A3', // --grey-400, secondary text on black
+  slot: '#1A1A1A',     // --grey-900, vehicle photo placeholder
 };
 
-export const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+// Matches the site tokens in prototype/assets/css/tokens.css. No web fonts are loaded in email.
+export const FONT = "Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif";
+// Wordmark: bold italic condensed. Falls back through the condensed faces most systems carry, then to Arial bold italic.
+export const FONT_WORDMARK = "'Heros Condensed', 'HelveticaNeue-CondensedBold', 'Helvetica Neue Condensed', 'Arial Narrow', 'Roboto Condensed', 'Liberation Sans Narrow', Arial, Helvetica, sans-serif";
 
 // Sender addresses. Display name is always CarmaCars.
 export const FROM = {

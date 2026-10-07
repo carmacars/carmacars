@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Deposit declined]
+The deposit did not go through
+
+We tried to take the {{deposit_amount}} security deposit on your {{card_brand}} ending {{card_last4}}, {{first_name}}. The bank declined it.
+
+IMPORTANT: We cannot hand over the keys yet
+The deposit is taken before every handover, so the car cannot be released without it.
+
+What you can do now
+------------------------
+
+- Call the number on the back of your card and ask the bank to allow the {{deposit_method_text}} from CarmaCars.
+- Or use another credit card. It must be in your name, and you need the physical card with you.
+
+Use another card:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+
+The deposit is separate from what you paid at booking. It comes back within 7 business days of check-in, less any charges. If you cannot arrange it today, call {{support_phone}} before you leave so we can talk through your options.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

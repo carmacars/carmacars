@@ -1,0 +1,31 @@
+CarmaCars  |  Security notice
+
+========================================
+
+[Security notice]
+Your payment details were changed
+
+We are telling you because money moves through these details, {{first_name}}.
+
+What changed: {{change_summary}}
+When: {{changed_at}}
+Changed by: {{changed_by}}
+Now on file: {{details_on_file}}
+
+IMPORTANT: If this was not you
+Call {{support_phone}} now so we can check the change with you before any money moves on it.
+
+Review my payment details:
+https://carmacars.ca/owner/billing
+
+If you made this change, there is nothing to do. We never ask for bank details by email, and we never show a full account number.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/
