@@ -215,7 +215,7 @@ select test.eq('finance: no tracker commands', test.visible('select * from track
 select test.eq('finance: a customer whose last rental ended 200 days ago is not in reach',
   test.visible(format('select * from renters where id = %L', test.id('renter:old_oscar'))), 0::bigint);
 select test.eq('finance: current customers are', test.visible(format('select * from renters where id in (%L, %L)', test.id('renter:rita'), test.id('renter:rob'))), 2::bigint);
-select test.eq('finance: sees the finance queue, not the CS queue', (select string_agg(queue, ',') from tasks), 'finance');
+select test.eq('finance: sees the finance queue, not the CS queue', (select string_agg(distinct queue, ',') from tasks), 'finance');
 select test.throws('finance: cannot approve a refund outside the cancellation table',
   format($$update refunds set status = 'approved', approved_by = %L where id = %L$$, test.id('va_fay'), test.id('refund:goodwill')), 'needs an Admin');
 select test.throws('finance: cannot record an Admin''s approval for them',
