@@ -1,0 +1,20 @@
+# dependencies and builds (the Next.js app is not scaffolded yet)
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+*.tsbuildinfo
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# local databases and tooling
+pgdata/
+carmacars-pg.*/
+supabase/.branches/
+supabase/.temp/
+*.log
+.DS_Store
