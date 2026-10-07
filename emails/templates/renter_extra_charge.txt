@@ -1,0 +1,38 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extra charge]
+{{charge_type}} charge on your rental
+
+A charge has come in for the time you had the {{vehicle_name}}, {{first_name}}. The record is below so you can check it.
+
+What: {{charge_summary}}
+When: {{charge_event_date}}
+{{#if charge_reference}}
+Reference: {{charge_reference}}
+{{/if}}
+Your rental: {{pickup_date}} to {{return_date}}
+
+{{#each charge_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total charged: {{charge_total}}
+
+How it was paid
+{{charge_total}} was taken from {{charged_to}} on {{payment_date}}.
+
+View the supporting record:
+{{supporting_document_url}}
+
+The record link works for 7 days. The charge and its record also stay in your statement (https://carmacars.ca/account/bookings/{{booking_number}}/statement). If you think this is not yours, reply to this email and tell us why. We check it against the trip record for the car.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

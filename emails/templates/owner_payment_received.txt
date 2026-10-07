@@ -1,0 +1,28 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Payment received]
+Paid. Thank you, {{first_name}}.
+
+Your payment for the {{vehicle_name}} has cleared.
+
+Received: {{amount}}
+Invoice {{invoice_number}}, {{payment_method}}.
+
+Invoice no.: {{invoice_number}}
+Received on: {{payment_date}}
+Vehicle: {{vehicle_name}}
+
+View invoice and receipt:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

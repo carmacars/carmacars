@@ -1,0 +1,33 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Monthly fee invoice]
+{{invoice_month}} fees for your {{vehicle_name}}
+
+This invoice is charged today, the 15th, by pre-authorized debit to your account on file, {{first_name}}.
+
+{{#each invoice_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total charged on the 15th: {{invoice_total}}
+
+Invoice no.: {{invoice_number}}
+Covers: {{invoice_period}}
+Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
+Debited from: Account ending {{bank_last4}}
+
+View invoice:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+Fees run from the Enrollment Date to the Exit Date, whether or not the car is rented. A bank debit can take up to 5 business days to clear. If it fails, we tell you the same day we find out.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

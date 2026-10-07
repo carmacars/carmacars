@@ -1,0 +1,43 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Pickup details]
+{{field_staff_name}} will meet you at {{pickup_time}}
+
+Here is everything for today's handover of the {{vehicle_name}}, {{first_name}}.
+
+{{vehicle_name}}
+Plate {{vehicle_plate}}
+
+When: {{pickup_date}}, {{pickup_time}}
+Where: {{pickup_place}}
+Who: {{field_staff_name}} from CarmaCars
+{{#if meeting_note}}
+Meeting note: {{meeting_note}}
+{{/if}}
+
+How the handover works
+------------------------
+
+1. We check your licence and card
+   Bring your original licence and the physical card ending {{card_last4}}. We can only hand over to you in person.
+2. We take the deposit
+   {{deposit_amount}} on that card, before the keys change hands.
+3. We walk around the car together
+   We record the odometer, fuel and any marks, with photos. You and {{field_staff_name}} both sign the condition report.
+
+Open pickup details:
+https://carmacars.ca/account/bookings/{{booking_number}}/pickup
+
+If you are running late, call {{support_phone}} so {{field_staff_name}} knows.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,35 @@
+CarmaCars  |  Payout run
+
+========================================
+
+[Payouts due today]
+{{payout_count}} transfers to send
+
+{{payout_run_name}}. Send each transfer from the business account and record its reference.
+
+Transfers: {{payout_count}}
+Total: {{payout_total}}
+
+{{#if run_approved}}
+{{#each payout_rows}}
+  Payee: {{name}} | Amount: {{amount}}
+{{/each}}
+{{else}}
+IMPORTANT: The run is not approved yet
+Nothing can be paid until an admin approves the statements.
+{{/if}}
+
+Open the payout run:
+https://carmacars.ca/admin/payouts
+
+Marking a payout as paid sends the payee their notice. Check the amount and the account before you send.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

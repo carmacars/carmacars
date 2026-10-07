@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Balance overdue]
+Your balance is now overdue
+
+We sent your statement on {{statement_date}}, {{first_name}}, and the amount below is still unpaid.
+
+Overdue: {{amount_due}}
+Includes interest to date of {{interest_to_date}}.
+
+IMPORTANT: Interest is being added
+Overdue amounts carry interest of {{interest_rate}} a month, compounded monthly, until paid. Collection costs are billed at cost.
+
+Pay {{amount_due}} now:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+
+If you cannot pay in full today, reply to this email or call us. We would rather agree a plan with you than send this further.
+
+View the statement and records: https://carmacars.ca/account/bookings/{{booking_number}}/statement
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

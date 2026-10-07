@@ -1,0 +1,1045 @@
+{
+  "_readme": "One entry per photo slot. To use a real photo: drop the file in assets/photos/, point \"src\" at it, set width and height to the real pixel size, set \"standIn\" to false, run `node tools/build.mjs`. See PHOTOS.md for the shot list.",
+  "slots": {
+    "home.hero": {
+      "alt": "A silver sedan parked on a Toronto street at night",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/home-hero-wide.svg",
+        "width": 2400,
+        "height": 1200
+      },
+      "tall": {
+        "src": "assets/photos/home-hero-tall.svg",
+        "width": 1200,
+        "height": 1500
+      }
+    },
+    "home.delivery": {
+      "alt": "A black SUV delivered to a driveway in front of a house",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/home-delivery-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/home-delivery-tall.svg",
+        "width": 1200,
+        "height": 1500
+      }
+    },
+    "home.owner": {
+      "alt": "Three CarmaCars fleet cars lined up side by side",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/home-owner-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/home-owner-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    "how.handover": {
+      "alt": "A car key being handed over",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/how-handover-wide.svg",
+        "width": 1800,
+        "height": 1200
+      },
+      "tall": {
+        "src": "assets/photos/how-handover-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    "delivery.hero": {
+      "alt": "A car arriving at a home for delivery",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/delivery-hero-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/delivery-hero-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    "owners.hero": {
+      "alt": "Cars in the CarmaCars fleet",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/owners-hero-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/owners-hero-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    "contact.city": {
+      "alt": "A Toronto street at dusk",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/contact-city-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/contact-city-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    "fleet.band": {
+      "alt": "A white sedan on an Ontario highway",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/fleet-band-wide.svg",
+        "width": 2400,
+        "height": 800
+      },
+      "tall": {
+        "src": "assets/photos/fleet-band-tall.svg",
+        "width": 1200,
+        "height": 900
+      }
+    },
+    "requirements.band": {
+      "alt": "A key fob on a dark surface",
+      "standIn": true,
+      "wide": {
+        "src": "assets/photos/requirements-band-wide.svg",
+        "width": 2400,
+        "height": 1030
+      },
+      "tall": {
+        "src": "assets/photos/requirements-band-tall.svg",
+        "width": 1200,
+        "height": 1200
+      }
+    }
+  },
+  "cars": {
+    "mercedes-benz-a220": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2021 Mercedes-Benz A220 in Polar White, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mercedes-Benz A220 side profile",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mercedes-Benz A220 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mercedes-Benz A220 from the front",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mercedes-Benz A220 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mercedes-Benz A220 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mercedes-Benz A220 seats",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mercedes-Benz A220 wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-a220-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "mercedes-benz-cla250": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Mercedes-Benz CLA250 in Night Black, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mercedes-Benz CLA250 side profile",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mercedes-Benz CLA250 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mercedes-Benz CLA250 from the front",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mercedes-Benz CLA250 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mercedes-Benz CLA250 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mercedes-Benz CLA250 seats",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mercedes-Benz CLA250 wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-cla250-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "mercedes-benz-c300": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Mercedes-Benz C300 in Iridium Silver, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mercedes-Benz C300 side profile",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mercedes-Benz C300 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mercedes-Benz C300 from the front",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mercedes-Benz C300 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mercedes-Benz C300 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mercedes-Benz C300 seats",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mercedes-Benz C300 wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-c300-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "mercedes-benz-glc300": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Mercedes-Benz GLC300 in Obsidian Black, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mercedes-Benz GLC300 side profile",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mercedes-Benz GLC300 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mercedes-Benz GLC300 from the front",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mercedes-Benz GLC300 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mercedes-Benz GLC300 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mercedes-Benz GLC300 seats",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mercedes-Benz GLC300 wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-glc300-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "mercedes-benz-gle350": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Mercedes-Benz GLE350 in Diamond White, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mercedes-Benz GLE350 side profile",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mercedes-Benz GLE350 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mercedes-Benz GLE350 from the front",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mercedes-Benz GLE350 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mercedes-Benz GLE350 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mercedes-Benz GLE350 seats",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mercedes-Benz GLE350 wheel",
+          "standIn": true,
+          "src": "assets/photos/mercedes-benz-gle350-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "toyota-corolla": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Toyota Corolla in Classic Silver, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Toyota Corolla side profile",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Toyota Corolla rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Toyota Corolla from the front",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Toyota Corolla from the rear",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Toyota Corolla dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Toyota Corolla seats",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Toyota Corolla wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-corolla-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "hyundai-elantra": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Hyundai Elantra in Cyber Grey, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Hyundai Elantra side profile",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Hyundai Elantra rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Hyundai Elantra from the front",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Hyundai Elantra from the rear",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Hyundai Elantra dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Hyundai Elantra seats",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Hyundai Elantra wheel",
+          "standIn": true,
+          "src": "assets/photos/hyundai-elantra-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "honda-civic": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Honda Civic in Rallye Red, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Honda Civic side profile",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Honda Civic rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Honda Civic from the front",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Honda Civic from the rear",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Honda Civic dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Honda Civic seats",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Honda Civic wheel",
+          "standIn": true,
+          "src": "assets/photos/honda-civic-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "toyota-rav4": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Toyota RAV4 in Magnetic Grey, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Toyota RAV4 side profile",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Toyota RAV4 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Toyota RAV4 from the front",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Toyota RAV4 from the rear",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Toyota RAV4 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Toyota RAV4 seats",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Toyota RAV4 wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-rav4-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "tesla-model-3": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Tesla Model 3 in Pearl White, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Tesla Model 3 side profile",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Tesla Model 3 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Tesla Model 3 from the front",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Tesla Model 3 from the rear",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Tesla Model 3 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Tesla Model 3 seats",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Tesla Model 3 wheel",
+          "standIn": true,
+          "src": "assets/photos/tesla-model-3-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "chrysler-pacifica": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Chrysler Pacifica in Billet Silver, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Chrysler Pacifica side profile",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Chrysler Pacifica rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Chrysler Pacifica from the front",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Chrysler Pacifica from the rear",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Chrysler Pacifica dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Chrysler Pacifica seats",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Chrysler Pacifica wheel",
+          "standIn": true,
+          "src": "assets/photos/chrysler-pacifica-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "mazda-mx-5": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2021 Mazda MX-5 in Soul Red, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Mazda MX-5 side profile",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Mazda MX-5 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Mazda MX-5 from the front",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Mazda MX-5 from the rear",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Mazda MX-5 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Mazda MX-5 seats",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Mazda MX-5 wheel",
+          "standIn": true,
+          "src": "assets/photos/mazda-mx-5-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    }
+  }
+}

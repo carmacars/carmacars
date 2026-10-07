@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.6" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1200" height="1200" fill="#000"/>
+<rect width="1200" height="1080" fill="url(#spot)"/>
+<rect y="1080" width="1200" height="120" fill="url(#fl)"/>
+<ellipse cx="720" cy="1106.4" rx="624" ry="60" fill="url(#pool)"/>
+<rect y="1079" width="1200" height="2" fill="#fff" opacity=".1"/>
+<g transform="translate(696 600) scale(1.935483870967742) rotate(-18)"><rect x="-70" y="-120" width="140" height="240" rx="46" fill="#1b1b1b" stroke="#777" stroke-width="3"/><circle cx="0" cy="-58" r="20" fill="#0a0a0a" stroke="#555" stroke-width="2"/><circle cx="0" cy="4" r="20" fill="#0a0a0a" stroke="#555" stroke-width="2"/><circle cx="0" cy="66" r="20" fill="#D0111B"/><circle cx="0" cy="-150" r="46" fill="none" stroke="#bdbdbd" stroke-width="7"/><rect x="26" y="-196" width="170" height="54" rx="6" fill="#f4f4f4" transform="rotate(24 26 -196)"/></g>
+<g font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="16" fill="#fff" fill-opacity=".55"><text x="1170" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  HANDOVER  KEYS PASSING BETWEEN TWO HANDS, CLOSE</text><rect x="1176" y="1153" width="8.4" height="11" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

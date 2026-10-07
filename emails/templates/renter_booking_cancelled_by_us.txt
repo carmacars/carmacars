@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Cancelled by us]
+We have had to cancel your booking
+
+We are sorry, {{first_name}}. We cannot provide the {{vehicle_name}} for {{pickup_date}}, and you are refunded in full.
+
+Reason
+{{cancel_reason}}
+
+Full refund: {{refund_amount}}
+Everything you paid at booking. Any deposit already taken is also returned in full.
+
+The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.
+
+See other cars for your dates:
+https://carmacars.ca/cars
+
+If you still need a car, reply to this email or call us. We will look for one that fits and put your request first.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

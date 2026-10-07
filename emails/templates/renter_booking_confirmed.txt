@@ -1,0 +1,53 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Booking confirmed]
+You are booked, {{first_name}}
+
+Your agreement is signed and your payment went through. The {{vehicle_name}} is yours for these dates.
+
+{{vehicle_name}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Pickup place: {{pickup_place}}
+Return place: {{return_place}}
+
+{{#each line_items}}
+  {{label}}: {{amount}}
+{{/each}}
+  Paid: {{amount_paid}}
+
+Receipt no.: {{receipt_number}}
+Card: {{card_brand}} ending {{card_last4}}
+Kilometres included: {{km_allowance}}, then {{overage_rate}} per km
+Security deposit: {{deposit_amount}}, taken on this card at pickup
+
+{{#if needs_verification}}
+IMPORTANT: One step left before pickup
+We need each driver's licence photos and a selfie, plus proof of coverage, by {{verify_by}}. No car is released without them.
+
+Upload licence and coverage:
+https://carmacars.ca/account/bookings/{{booking_number}}/verify
+{{else}}
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+{{/if}}
+
+{{#if is_non_refundable}}
+This is a non-refundable booking. You saved 10% on the rental charge, and it cannot be refunded if you cancel.
+{{else}}
+If your plans change, the refund depends on when we receive your cancellation. See the cancellation policy (https://carmacars.ca/terms#cancellation).
+{{/if}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

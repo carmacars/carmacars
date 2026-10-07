@@ -1,0 +1,51 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Final statement]
+Your statement and deposit
+
+Here is the full account for your rental of the {{vehicle_name}}, {{first_name}}.
+
+Deposit returned: {{deposit_returned}}
+{{deposit_return_note}}
+
+{{#if has_charges}}
+Charges after return
+------------------------
+
+{{#each statement_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total charges: {{charges_total}}
+{{else}}
+There are no charges after return. Thank you for bringing the car back as you found it.
+{{/if}}
+
+Your deposit
+------------------------
+
+Deposit taken: {{deposit_amount}}
+Applied to charges: {{deposit_applied}}
+{{#if has_holdback}}
+Held back: {{deposit_held_back}}. {{holdback_reason}} We apply or release it within 30 days of check-in.
+{{/if}}
+Returned: {{deposit_returned}}
+{{#if has_card_charge}}
+Charged to card ending {{card_last4}}: {{card_charged}}
+{{/if}}
+
+View statement and records:
+https://carmacars.ca/account/bookings/{{booking_number}}/statement
+
+Each charge comes with its record: photos, a receipt or a shop estimate. If a line looks wrong, reply to this email and tell us which one. Tolls and tickets can reach us weeks later. If one does, we send you a copy of the notice with the charge.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

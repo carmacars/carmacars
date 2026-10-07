@@ -1,0 +1,28 @@
+CarmaCars  |  Notice received
+
+========================================
+
+[Notice received]
+We have your notice
+
+Hello {{first_name}}. This confirms that we received your written notice.
+
+Received: {{notice_date}}
+About: {{notice_subject}}
+{{#if notice_effective}}
+Takes effect: {{notice_effective}}
+{{/if}}
+
+There is nothing more you need to do. If the details above do not match what you sent, reply to this email so we can correct our record.
+
+This is a confirmation of receipt only. Your signed Investment Agreement continues to govern.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+This is a servicing notice for an existing investor. It is not an offer or a solicitation.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

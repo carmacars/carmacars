@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Roadside help]
+Help is on the way
+
+Roadside assistance has been sent to you, {{first_name}}.
+
+Arriving in about: {{eta_minutes}} minutes
+Going to: {{breakdown_location}}
+
+IMPORTANT: Stay somewhere safe
+If you are on a highway, stay well away from traffic. Call {{roadside_phone}} if anything changes or you need to move.
+
+- Keep your phone on and the keys with you.
+- Do not arrange your own tow or repair. Call us first.
+- If the fault is mechanical and not your doing, roadside is free and we arrange a replacement car or refund the unused time.
+
+View my booking: https://carmacars.ca/account/bookings/{{booking_number}}
+
+----------------------------------------
+
+24-hour line: {{roadside_phone}}
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

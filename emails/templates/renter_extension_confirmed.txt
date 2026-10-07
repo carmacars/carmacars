@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extension confirmed]
+Your new return is {{new_return_date}}
+
+Paid and confirmed, {{first_name}}. This email is your written confirmation.
+
+New return: {{new_return_date}}, {{new_return_time}}
+Where: {{return_place}}
+
+Booking total, repriced: {{new_total_amount}}
+Paid today: {{extension_amount}}
+Kilometres included: {{km_allowance}} for the whole rental
+{{#if deposit_note}}
+Deposit: {{deposit_note}}
+{{/if}}
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+All other terms of your rental agreement are unchanged.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

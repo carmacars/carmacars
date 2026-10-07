@@ -1,0 +1,35 @@
+CarmaCars  |  Incident {{incident_number}}
+
+========================================
+
+[Incident update]
+{{incident_status}}
+
+Here is the latest on your {{vehicle_name}}, {{first_name}}.
+
+Update of {{update_date}}
+{{incident_update}}
+
+File no.: {{incident_number}}
+Status: {{incident_status}}
+{{#if expected_back}}
+Expected back: {{expected_back}}
+{{/if}}
+{{#if owner_action}}
+You need to: {{owner_action}}
+{{/if}}
+
+Follow this incident:
+https://carmacars.ca/owner/claims/{{incident_number}}
+
+Please keep all contact about this claim with CarmaCars, not the insurer.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

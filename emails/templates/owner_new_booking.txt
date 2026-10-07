@@ -1,0 +1,40 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[New booking]
+Your {{vehicle_name}} is booked
+
+A renter has signed and paid, {{first_name}}. The dates are blocked on your calendar.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Rental charge: {{rental_charge}} before tax
+Length: {{billable_days}} days
+{{#if is_self_managed}}
+Renter: {{renter_name}}, {{renter_phone}}
+{{/if}}
+
+{{#if is_self_managed}}
+You hand over this rental
+Complete the condition report and the photo set at pickup and at return. We enable the car for the booked period only. Keep the renter's details confidential and use them only for this handover.
+{{else}}
+During this rental
+You keep live location. Your lock, alarm and shut-off controls are blocked from pickup until the car is checked in.
+{{/if}}
+
+View this booking:
+https://carmacars.ca/owner/bookings/{{booking_number}}
+
+The rental counts toward your statement for the month it ends, once collected. Your statement shows the final figures.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

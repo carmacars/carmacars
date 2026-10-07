@@ -1,0 +1,42 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Request received]
+We have your request, {{first_name}}
+
+A person on our team is checking the car and your dates now. Nothing is booked and no card has been taken.
+
+{{vehicle_name}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Pickup place: {{pickup_place}}
+Return place: {{return_place}}
+Estimate: {{estimate_amount}} with HST. We confirm the firm price in our offer.
+
+What happens next
+------------------------
+
+1. We review your request
+   We check the car, the dates and the price. We may suggest a small change, such as a different pickup time.
+2. You get our offer by email
+   It shows the final price and anything we changed.
+3. You approve, sign and pay
+   Only then is the booking confirmed. A security deposit hold is taken later, at pickup.
+
+View my request:
+https://carmacars.ca/account/bookings/{{booking_number}}/request
+
+To save time at pickup, you can upload your licence photos and a selfie from the same page.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

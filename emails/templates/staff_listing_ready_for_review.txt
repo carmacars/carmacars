@@ -1,0 +1,38 @@
+CarmaCars  |  Vehicle listing
+
+========================================
+
+[Listing review]
+A drafted listing needs a person
+
+The draft for the {{vehicle_name}} is ready. It was written automatically, so read every line before it goes live.
+
+{{vehicle_name}}
+
+Owner: {{owner_name}}
+Photos: {{photo_count}} processed
+Rates and deposit: {{rates_status}}
+Flagged by the draft step: {{listing_flags}}
+Live by: {{listing_due}}
+
+Review the listing:
+https://carmacars.ca/va/fleet/listings/{{vehicle_id}}
+
+Check before you publish
+------------------------
+
+- Year, make, model, trim, colour and fuel match the fleet register.
+- The photos are of this car and show no plate glare, people or personal items.
+- Features in the text are really on the car. Remove anything you cannot confirm.
+- Rates, deposit, kilometres and the "18 to 20 allowed" flag are set by an admin.
+- The text says "liability coverage included" and never names a coverage provider.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

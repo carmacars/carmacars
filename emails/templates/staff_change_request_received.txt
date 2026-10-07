@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change request]
+{{renter_name}} asked to change a booking
+
+The booking stays as it is until you approve and the renter accepts.
+
+{{#each requested_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Booking status: {{booking_status}}
+Vehicle: {{vehicle_name}}
+{{#if renter_note}}
+Renter note: {{renter_note}}
+{{/if}}
+
+Open the change request:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+Check the calendar and reprice the whole booking at its new length. Escalate to an admin for a rate change, unpaid charges or a clash with another booking.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

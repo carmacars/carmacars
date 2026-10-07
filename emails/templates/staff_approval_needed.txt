@@ -1,0 +1,29 @@
+CarmaCars  |  Approval
+
+========================================
+
+[Approval needed]
+{{approval_type}}
+
+{{requested_by}} needs an admin decision before this can go ahead.
+
+Amount: {{amount}}
+{{approval_summary}}
+
+Asked by: {{requested_by}} at {{requested_at}}
+About: {{approval_subject}}
+Reason given: {{approval_reason}}
+Decide by: {{approval_due}}
+
+Review and decide:
+https://carmacars.ca/admin/approvals
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

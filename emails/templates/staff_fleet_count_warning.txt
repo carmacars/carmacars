@@ -1,0 +1,30 @@
+CarmaCars  |  Fleet count
+
+========================================
+
+[Fleet warning]
+The fleet is close to its minimum
+
+The fleet policy needs 10 or more vehicles at all times.
+
+On the policy now: {{fleet_count}}
+After exits: {{fleet_count_after}}
+
+Under exit notice: {{fleet_exiting}}
+Next Exit Date: {{next_exit_date}}
+In onboarding: {{fleet_onboarding}}
+
+Open the fleet register:
+https://carmacars.ca/admin/fleet
+
+Turo-Only cars are not counted. The monthly report to the franchisor goes out on the 1st.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

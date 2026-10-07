@@ -1,0 +1,35 @@
+CarmaCars  |  Owner application
+
+========================================
+
+[Owner application]
+A new vehicle application is in
+
+{{owner_name}} applied to enrol a vehicle. Reply within 1 business day.
+
+Owner: {{owner_name}} ({{owner_type}})
+Contact: {{owner_contact}}
+Vehicle: {{vehicle_name}}, {{vehicle_km}}
+VIN and plate: {{vehicle_vin}}, {{vehicle_plate}}
+Held as: {{ownership_summary}}
+Lender: {{lender}}
+Current insurer: {{current_insurer}}
+Management mode wanted: {{management_mode}}
+Referred by: {{referred_by}}
+
+Open the application:
+https://carmacars.ca/va/sales/applications/{{application_id}}
+
+- Rebuilt, salvage or irreparable brand: decline that vehicle.
+- Offer only the registration methods open to this car and give the owner the estimate for their situation.
+- An admin sets the fees, the revenue share and the management mode before documents go out.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

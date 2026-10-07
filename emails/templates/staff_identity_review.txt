@@ -1,0 +1,36 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Identity review]
+Documents are waiting for your review
+
+{{driver_name}} uploaded documents for booking {{booking_number}}. Review them before {{verify_by}}.
+
+Driver: {{driver_name}} ({{driver_role}})
+Uploaded: {{documents_summary}}
+Pickup: {{pickup_date}}, {{pickup_time}}
+Review due: {{verify_by}}
+
+Review the documents:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}/identity
+
+Check
+------------------------
+
+- Name and date of birth match the booking.
+- Licence class is G2 or G, and it expires after the return date.
+- The face in the selfie matches the licence photo.
+- Coverage proof is active to the return date and covers this car and every driver.
+
+Escalate to an admin for a non-Ontario licence, a doubtful document, proof that does not clearly cover the car, or any refusal. Never copy document images out of the portal.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

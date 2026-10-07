@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Return overdue]
+Your rental ended at {{return_time}}
+
+We have not checked in the {{vehicle_name}} yet, {{first_name}}. Please return it now or call us to extend.
+
+Was due: {{return_date}}, {{return_time}}
+Return place: {{return_place}}
+
+IMPORTANT: What it costs
+Once you are more than 30 minutes late you owe the rental charge for each extra day, plus a late fee of {{late_fee_hourly}} per started hour counted from {{return_time}}.
+
+Pay for an extension:
+https://carmacars.ca/account/bookings/{{booking_number}}/extend
+
+To talk it through, call {{support_phone}} now. If you are already on your way, thank you. We will see you shortly.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

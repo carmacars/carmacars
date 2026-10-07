@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Your review]
+Tell us how it went, {{first_name}}
+
+You had the {{vehicle_name}} from {{pickup_date}} to {{return_date}}. Tell us how it went.
+
+{{vehicle_name}}
+
+It takes about two minutes. A star rating and a line or two about the car and the handover is plenty. We read every review, and we publish them so other renters can choose well.
+
+Write a review:
+https://carmacars.ca/account/bookings/{{booking_number}}/review
+
+If something went wrong and you would rather tell us directly, reply to this email. It reaches a person.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you rented from CarmaCars recently.
+Unsubscribe at any time: {{unsubscribe_url}}
+We act on it within 10 business days.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

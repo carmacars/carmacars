@@ -1,0 +1,29 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Request declined]
+We cannot fill this request
+
+Sorry, {{first_name}}. We are not able to offer the {{vehicle_name}} for your dates. Nothing was booked or charged.
+
+Reason
+{{decline_reason}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Other cars may be free for the same dates. Take a look, or reply to this email and tell us what you need. We will check for you.
+
+See available cars:
+https://carmacars.ca/cars
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

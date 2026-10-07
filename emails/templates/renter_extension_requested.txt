@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extension requested]
+We are checking if the car is free
+
+Thanks, {{first_name}}. We will reply as soon as we have checked the calendar.
+
+Current return: {{return_date}}, {{return_time}}
+You asked for: {{requested_return_date}}, {{requested_return_time}}
+
+IMPORTANT: Your return time has not changed
+An extension counts only when we confirm it in writing and it is paid before {{return_time}} on {{return_date}}. Until then, please plan to return on time.
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+If your return time is close, call {{support_phone}} and we will deal with it on the phone.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Signature needed]
+Your rental agreement is ready to sign
+
+Hi {{first_name}}. The agreement for the {{vehicle_name}} needs your signature as {{signer_role}}.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Read and sign:
+https://carmacars.ca/account/bookings/{{booking_number}}/agreement
+
+Please sign by {{sign_by}}. You sign on the CarmaCars website by typing your name or drawing on the screen. You can read and save the agreement before you sign.
+
+- The booking is confirmed only when every signature is in and the total is paid.
+- Every driver ticks the consents for tracking, identity verification and electronic signature.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

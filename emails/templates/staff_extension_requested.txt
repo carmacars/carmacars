@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extension request]
+Answer before {{return_time}} on {{return_date}}
+
+{{renter_name}} asked to keep the {{vehicle_name}} longer. It only counts if confirmed and paid before the current return time.
+
+Current return: {{return_date}}, {{return_time}}
+Asked for: {{requested_return_date}}, {{requested_return_time}}
+
+Total length if approved: {{new_length}}
+Unpaid charges: {{unpaid_charges}}
+Coverage proof valid to: {{coverage_valid_to}}
+
+Open the extension:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+- Check the calendar, unpaid charges, and coverage proof to the new return date.
+- Total of 30 days or less: reprice the whole booking and take the difference.
+- Total over 30 days: it is a renewal, with a new booking and a new agreement.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

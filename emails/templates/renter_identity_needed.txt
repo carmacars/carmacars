@@ -1,0 +1,42 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Documents needed]
+Send us your licence and coverage proof
+
+We check every driver before pickup, {{first_name}}. It takes about five minutes on your phone.
+
+IMPORTANT: Due by {{verify_by}}
+That is 24 hours before your pickup. Without these we cannot hand over the {{vehicle_name}}.
+
+For each driver
+------------------------
+
+- A photo of the front of the driver's licence
+- A photo of the back of the licence
+- A selfie holding the licence next to your face
+
+Every driver must be 18 or older and hold a G2 or G licence that is valid past the return date.
+
+Proof of coverage, one of these
+------------------------
+
+- OPCF 27 on your own auto policy. Send the policy page or a letter from your insurer that shows it.
+- Credit card rental coverage. Send the card's benefits certificate. The same card must pay for the rental and be your card on file.
+- {{#if coverage_for_sale}}Coverage bought through CarmaCars. Choose it on the upload page and we send you the terms first.{{else}}If you have neither, reply to this email before the due date and we will go through your options.{{/if}}
+
+Upload my documents:
+https://carmacars.ca/account/bookings/{{booking_number}}/verify
+
+Still missing: {{missing_items}}. A person on our team reviews what you send. We delete licence images and selfies 90 days after the rental ends.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

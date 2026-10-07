@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.5" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<g transform="scale(1.8 1.935483870967742)"><defs><linearGradient id="wb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F4F4"/><stop offset=".6" stop-color="#B9B9B9"/><stop offset="1" stop-color="#6E6E6E"/></linearGradient><radialGradient id="wr"><stop offset="0" stop-color="#9a9a9a"/><stop offset=".8" stop-color="#555"/><stop offset="1" stop-color="#222"/></radialGradient></defs>
+<path d="M 0,60 H 1000 V 470 H 800 A 280 280 0 0 0 240,470 H 0 Z" fill="url(#wb)"/>
+<path d="M 0,150 H 1000" stroke="#fff" stroke-opacity=".4" stroke-width="3"/>
+<g transform="translate(520 430)"><circle r="250" fill="#050505"/><circle r="182" fill="url(#wr)"/><rect x="-13" y="-178" width="26" height="356" fill="#141414" transform="rotate(0)"/><rect x="-13" y="-178" width="26" height="356" fill="#141414" transform="rotate(36)"/><rect x="-13" y="-178" width="26" height="356" fill="#141414" transform="rotate(72)"/><rect x="-13" y="-178" width="26" height="356" fill="#141414" transform="rotate(108)"/><rect x="-13" y="-178" width="26" height="356" fill="#141414" transform="rotate(144)"/><circle r="44" fill="#0c0c0c" stroke="#888" stroke-width="3"/><circle r="182" fill="none" stroke="#000" stroke-width="5"/><path d="M -70,-120 a 140 140 0 0 1 140,0" stroke="#D0111B" stroke-width="16" fill="none"/></g></g>
+<g font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MERCEDES-BENZ GLE350  8/8 WHEEL DETAIL</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

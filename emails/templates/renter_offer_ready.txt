@@ -1,0 +1,50 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Offer ready]
+Your car is available. Approve to confirm.
+
+We reviewed your request, {{first_name}}. Nothing is booked or charged until you approve, sign and pay.
+
+{{vehicle_name}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+{{#if has_adjustments}}
+IMPORTANT: We changed part of your request
+{{offer_note}}
+
+{{#each adjustments}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+{{/if}}
+
+{{#each line_items}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total to pay now: {{total_amount}}
+
+Pickup place: {{pickup_place}}
+Return place: {{return_place}}
+Kilometres included: {{km_allowance}}, then {{overage_rate}} per km
+Security deposit: {{deposit_amount}}, taken at pickup and separate from the total
+
+Review, approve and pay:
+https://carmacars.ca/account/bookings/{{booking_number}}/offer
+
+This offer expires {{offer_expires_at}}
+After that the car goes back on the calendar and you would need to send a new request.
+
+For different dates or another car, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change) before you approve. To pass on this offer, do nothing and it will lapse.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

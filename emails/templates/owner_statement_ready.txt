@@ -1,0 +1,50 @@
+CarmaCars  |  Statement {{statement_number}}
+
+========================================
+
+[Monthly statement]
+Your {{statement_month}} statement is ready
+
+Here are the totals across your vehicles, {{first_name}}. The full statement lists every rental.
+
+{{payout_label}}: {{payout_amount}}
+{{payout_summary}}
+
+By vehicle
+------------------------
+
+{{#each statement_vehicles}}
+  Vehicle: {{name}} | Owner Revenue: {{owner_revenue}} | Payable: {{payable}}
+{{/each}}
+
+Totals
+------------------------
+
+  Rentals collected (rental charge and mileage overage): {{rentals_total}}
+  Referral kickbacks deducted: {{kickbacks_deducted}}
+  Owner Revenue: {{owner_revenue_total}}
+  Revenue share kept by CarmaCars: {{revenue_share_total}}
+  Deductions (unpaid fees, late fees, owner costs): {{deductions_total}}
+  Referral kickbacks you earned: {{kickbacks_earned}}
+{{#if has_payout_hst}}
+  HST on payout: {{payout_hst}}
+{{/if}}
+{{#if has_balance_forward}}
+  Balance brought forward: {{balance_forward}}
+{{/if}}
+  {{payout_label}}: {{payout_amount}}
+
+View the full statement:
+https://carmacars.ca/owner/statements/{{statement_number}}
+
+Deductions are limited to unpaid fees and late fees, costs we paid for you, your share of a refund or chargeback, and amounts you agreed to in writing. If a line looks wrong, reply to this email and tell us which one.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

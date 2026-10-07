@@ -15,8 +15,6 @@ select test.eq('B the booking snapshots the vehicle''s owner, mode and Revenue S
   (select (owner_id = test.id('owner:fiona')) || '/' || management_mode || '/' || company_share_bps from bookings where id = test.id('booking:L1')), 'true/managed/3500');
 select test.throws('B extending a booking past 30 days in one transaction is refused by the table itself',
   format($$update bookings set return_at = pickup_at + interval '31 days', billable_days = 31, km_allowance_total = 6200 where id = %L$$, test.id('booking:L1')), 'billable_days');
-select test.throws('B a vehicle holds only one live booking for any moment',
-  $$select test.mk_booking('L1X', 'F1', 'lia', '2027-02-03 10:00', '2027-02-05 10:00', 'tentative')$$, 'conflicting');
 select test.throws('B tentative cannot jump to on rent',
   format('update bookings set status = ''on_rent'' where id = %L', test.id('booking:L1')), 'cannot go from tentative to on_rent');
 update bookings set status = 'pending_payment' where id = test.id('booking:L1');
@@ -31,6 +29,9 @@ select test.throws('B not confirmed until payment succeeds',
   format('update bookings set status = ''confirmed'' where id = %L', test.id('booking:L1')), 'payment succeeds');
 update payments set status = 'succeeded' where id = test.id('payment:L1');
 select test.lives('B signed and paid: confirmed', format('update bookings set status = ''confirmed'' where id = %L', test.id('booking:L1')));
+-- (migration 0016: only a confirmed or on rent booking blocks the car, so this check moved here from before the confirmation)
+select test.throws('B a vehicle holds only one confirmed booking for any moment',
+  $$select test.mk_booking('L1X', 'F1', 'lia', '2027-02-03 10:00', '2027-02-05 10:00', 'confirmed')$$, 'conflicting');
 select test.throws('B a referrer cannot be added after the booking is made',
   format('update bookings set referred_by_code = ''FIONA20'' where id = %L', test.id('booking:L1')), 'before the booking is made');
 select test.throws('B the rates stored on a confirmed booking cannot change',
@@ -401,9 +402,9 @@ select test.throws('A the audit log cannot be deleted', 'delete from audit_log',
 -- ------------------------------------------------------------------ catalogue: every charge in the renter spec has a home
 select test.eq('CAT every catalogue charge is tagged owner revenue / company only / pass-through (the deposit is not revenue)',
   (select string_agg(code, ',') from fee_types where revenue_class is null), 'deposit');
-select test.eq('CAT owner revenue is exactly: rental charge, discount, extra days, mileage overage',
+select test.eq('CAT owner revenue is exactly: rental charge, its discounts (non-refundable, promo code, staff), extra days, mileage overage',
   (select string_agg(code, ',' order by code) from fee_types where revenue_class = 'owner_revenue'),
-  'late_return_extra_days,mileage_overage,non_refundable_discount,rental_charge');
+  'late_return_extra_days,mileage_overage,non_refundable_discount,promo_discount,rental_charge,staff_discount');
 select test.eq('CAT pass-through amounts',
   (select string_agg(code, ',' order by code) from fee_types where revenue_class = 'pass_through'),
   'collection_cost,damage_at_cost,lost_key_cost,recovery_cost,roadside_callout,ticket_amount,toll_amount');

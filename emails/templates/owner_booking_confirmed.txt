@@ -1,0 +1,38 @@
+CarmaCars  |  Owner Booking {{booking_number}}
+
+========================================
+
+[Owner Booking confirmed]
+Your car is reserved for you
+
+The {{vehicle_name}} is blocked for these dates, {{first_name}}. No renter can book over them.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Pickup place: {{pickup_place}}
+Return place: {{return_place}}
+Rental charge, fees, deposit: None
+
+Good to know
+------------------------
+
+- Bring your driver's licence. We complete a condition report with photos at pickup and at return, the same as any rental.
+- Tolls and tickets from these dates are billed to you at cost, with no administration fee.
+- If you damage the car: under $2,500 you repair it at your own cost. If a claim is made on the fleet policy, you pay the $2,500 deductible.
+- Your monthly fees continue as normal.
+
+View this booking:
+https://carmacars.ca/owner/bookings/{{booking_number}}
+
+To change the dates, reply to this email. A renter's confirmed booking has priority, so ask early.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

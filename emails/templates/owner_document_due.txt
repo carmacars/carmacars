@@ -1,0 +1,30 @@
+CarmaCars  |  Document due
+
+========================================
+
+[Document due]
+{{document_type}} is due {{due_date}}
+
+A date is coming up on your {{vehicle_name}}, {{first_name}}.
+
+Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
+Item: {{document_type}}
+Expires: {{due_date}}
+
+IMPORTANT: What you need to do
+{{document_action}}
+
+Upload or review documents:
+https://carmacars.ca/owner/documents
+
+{{document_consequence}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

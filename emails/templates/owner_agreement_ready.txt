@@ -1,0 +1,44 @@
+CarmaCars  |  Owner documents
+
+========================================
+
+[Signature needed]
+Your documents are ready, {{first_name}}
+
+These set the terms for your {{vehicle_name}}. Read them in full before you sign.
+
+Your terms for this vehicle
+------------------------
+
+Management mode: {{management_mode}}
+Insurance fee: {{insurance_fee}} a month plus HST
+Tracker fee: {{tracker_fee}} a month plus HST
+Revenue share kept by CarmaCars: {{revenue_share}}
+Registration method: {{onboarding_method}}
+
+To sign on the website
+------------------------
+
+{{#each documents_to_sign}}
+  Document: {{name}} | Note: {{note}}
+{{/each}}
+
+Read and sign:
+https://carmacars.ca/owner/agreements
+
+{{#if has_paper_forms}}
+Some forms need a witness
+{{paper_forms}} must be signed on paper in front of a witness. Print, sign, scan and upload them on the same page.
+{{/if}}
+
+Please sign by {{sign_by}}. The vehicle is enrolled only once the documents are signed and we confirm it in writing. Until then, keep your own insurance on it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

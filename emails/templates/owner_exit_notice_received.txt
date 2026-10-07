@@ -1,0 +1,42 @@
+CarmaCars  |  Vehicle exit
+
+========================================
+
+[Exit notice]
+We have your notice. Exit Date: {{exit_date}}
+
+This confirms the exit of your {{vehicle_name}} in writing, {{first_name}}. Your other vehicles carry on as they are.
+
+Notice received: {{notice_date}}
+Exit Date: {{exit_date}}
+How it is set: {{exit_date_basis}}
+Transfer-back fees: {{retransfer_fee_note}}
+
+What happens
+------------------------
+
+1. We stop new bookings after the Exit Date
+   Bookings already confirmed before that date go ahead.
+2. You send proof of your own insurance
+   It must start on the Exit Date. We need it before we hand the car back.
+3. On the Exit Date
+   We remove the tracker, record the odometer and photos, and take the car off the fleet policy.
+4. Registration goes back to you
+   We complete our part within 10 business days after the Exit Date. We both sign Form E and you get the car, keys and permit.
+5. Final account
+   The last month's fees are pro-rated to the Exit Date. Your final balance is paid on the first payout date after the month of the Exit Date.
+
+Upload my proof of insurance:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}/exit
+
+Getting your car back is never delayed because money is owed.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

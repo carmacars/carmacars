@@ -1,0 +1,37 @@
+CarmaCars  |  Job {{job_id}}
+
+========================================
+
+[Job changed]
+{{job_change_headline}}
+
+Hi {{first_name}}. A job on your list has changed. Please check the new details.
+
+{{#if job_cancelled}}
+IMPORTANT: This job is off your list
+{{job_change_summary}}
+{{else}}
+{{#each job_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Job: {{job_type}}
+When: {{job_date}}, {{job_time}}
+Where: {{job_place}}
+Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
+{{/if}}
+
+Open my jobs:
+https://carmacars.ca/field
+
+If the new time does not work, tell Fleet right away.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

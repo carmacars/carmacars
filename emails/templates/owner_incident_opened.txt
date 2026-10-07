@@ -1,0 +1,38 @@
+CarmaCars  |  Incident {{incident_number}}
+
+========================================
+
+[Incident opened]
+Your {{vehicle_name}} was in an incident
+
+We want you to hear this from us first, {{first_name}}. We are handling it.
+
+What happened: {{incident_summary}}
+When: {{incident_date}}
+Where the car is now: {{vehicle_location}}
+File no.: {{incident_number}}
+
+What we do
+------------------------
+
+- We manage the claim and the repair at an approved shop.
+- We keep the car off the calendar until the shop releases it.
+- We update you when the estimate is in and when the car is back.
+
+IMPORTANT: Please do not contact the insurer
+All contact goes through CarmaCars so the claim is not delayed.
+
+Follow this incident:
+https://carmacars.ca/owner/claims/{{incident_number}}
+
+Your monthly fees continue while the car is being repaired, and downtime is not paid.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

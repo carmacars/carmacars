@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | CarmaCars</title>
+<meta name="description" content="Sign in to CarmaCars to see your bookings, agreements, statements and, for owners, your cars and payouts.">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="Sign in | CarmaCars">
+<meta property="og:description" content="Sign in to CarmaCars to see your bookings, agreements, statements and, for owners, your cars and payouts.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CarmaCars">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M9 22l3-12h11l-1.2 4H15l-.9 4h6.5L19.5 22z' fill='%23D0111B'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/heros-cn-bold.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/core.css">
+<link rel="stylesheet" href="assets/css/pages.css">
+
+</head>
+<body class="p-auth">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header on-dark">
+  <div class="wrap">
+    <a class="wordmark " href="index.html" aria-label="CarmaCars home">Carma<b>Cars</b></a>
+    <nav class="nav" aria-label="Main"><a class="nav__link" href="fleet.html" data-nav="fleet.html">Fleet</a><a class="nav__link" href="how-it-works.html" data-nav="how-it-works.html">How it works</a><a class="nav__link" href="delivery.html" data-nav="delivery.html">Delivery</a><a class="nav__link" href="requirements.html" data-nav="requirements.html">Requirements</a><a class="nav__link" href="owners.html" data-nav="owners.html">List your car</a><a class="nav__link" href="faq.html" data-nav="faq.html">FAQ</a></nav>
+    <div class="header-actions">
+      <a class="btn btn--quiet btn--sm header-signin" href="signin.html" data-nav="signin.html">Sign in</a>
+      <a class="btn btn--primary btn--sm" href="fleet.html">Find a car</a>
+      <button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu"><span>Menu</span><i aria-hidden="true"></i></button>
+    </div>
+  </div>
+</header>
+<div class="menu-panel on-dark" id="menu">
+  <nav class="menu-panel__links" aria-label="Menu"><a href="fleet.html" data-nav="fleet.html">Fleet<span>12 cars</span></a><a href="how-it-works.html" data-nav="how-it-works.html">How it works<span>Request to book</span></a><a href="delivery.html" data-nav="delivery.html">Delivery<span>$75 to $200 each way</span></a><a href="requirements.html" data-nav="requirements.html">Requirements<span>Age, licence, coverage</span></a><a href="owners.html" data-nav="owners.html">List your car<span>Owner program</span></a><a href="faq.html" data-nav="faq.html">FAQ<span>Straight answers</span></a><a href="contact.html" data-nav="contact.html">Contact<span>Talk to a person</span></a></nav>
+  <div class="row"><a class="btn btn--light" href="signin.html">Sign in</a><a class="btn btn--primary" href="fleet.html">Find a car</a></div>
+</div>
+<main id="main" tabindex="-1">
+
+<section class="auth">
+  <div class="auth__side on-dark"><div class="auth__side-in stack"><p class="d1">One sign-in for renters, owners and staff.</p><p class="muted">Renters see bookings, agreements and statements. Owners see their cars, calendar and payouts.</p></div></div>
+  <div class="auth__main">
+    <div class="auth__box stack-lg">
+      <h1 class="d2">Sign in</h1>
+      <div class="tabs" role="tablist" aria-label="Sign in or create an account"><button class="tab" role="tab" id="t-in" aria-controls="p-in" aria-selected="true">Sign in</button><button class="tab" role="tab" id="t-new" aria-controls="p-new" aria-selected="false" tabindex="-1">Create account</button></div>
+      <div id="p-in" role="tabpanel" aria-labelledby="t-in">
+        <form class="stack-lg" data-simple-form="" data-toast-msg="Sign-in is not connected in this prototype.">
+          <div class="field"><label class="label" for="si-email">Email</label><input class="input" id="si-email" name="email" type="email" autocomplete="username" data-v="required email"  ><p class="error" role="alert"></p></div>
+          <div class="field"><label class="label" for="si-pass">Password</label><input class="input" id="si-pass" name="password" type="password" autocomplete="current-password" data-v="required" data-msg="Enter your password." ><p class="error" role="alert"></p></div>
+          <button class="btn btn--primary btn--lg btn--block" type="submit">Sign in</button>
+          <p class="small"><a class="link" href="contact.html">Forgot your password? Contact us</a></p>
+        </form>
+      </div>
+      <div id="p-new" role="tabpanel" aria-labelledby="t-new" hidden>
+        <form class="stack-lg" data-simple-form="" data-toast-msg="Accounts are not connected in this prototype.">
+          <div class="field"><label class="label" for="su-name">Full name</label><input class="input" id="su-name" name="name" type="text" autocomplete="name" data-v="required" data-msg="Enter your name." ><p class="error" role="alert"></p></div>
+          <div class="field"><label class="label" for="su-email">Email</label><input class="input" id="su-email" name="email" type="email" autocomplete="email" data-v="required email"  ><p class="error" role="alert"></p></div>
+          <div class="field"><label class="label" for="su-pass">Password</label><input class="input" id="su-pass" name="password" type="password" autocomplete="new-password" data-v="required password"  ><p class="hint">At least 8 characters.</p><p class="error" role="alert"></p></div>
+          <div class="field"><label class="check"><input type="checkbox" name="agree" data-v="required" data-msg="Tick this box to create an account."><span class="small">I am 18 or older and agree to the <a class="link" href="terms.html">Terms of use</a> and <a class="link" href="privacy.html">Privacy policy</a>.</span></label><p class="error" role="alert"></p></div>
+          <button class="btn btn--primary btn--lg btn--block" type="submit">Create account</button>
+        </form>
+      </div>
+      <p class="small muted">You do not need an account to <a class="link" href="fleet.html">request a car</a>.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer on-dark">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-cta stack">
+        <p class="d3">Toronto car rental,<br>confirmed by a person.</p>
+        <p class="muted small measure">Request a car, get a confirmed price, then sign and pay online. Pick it up or have it delivered.</p>
+        <p><a class="btn btn--primary" href="fleet.html">Find a car</a></p>
+      </div>
+      <nav aria-label="Rent"><h2>Rent</h2><ul><li><a href="fleet.html">Fleet</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="requirements.html">Requirements and coverage</a></li><li><a href="delivery.html">Delivery</a></li><li><a href="request.html">Request to book</a></li></ul></nav>
+      <nav aria-label="Cars"><h2>Cars</h2><ul><li><a href="car-mercedes-benz-a220.html">Mercedes-Benz A220</a></li><li><a href="car-mercedes-benz-cla250.html">Mercedes-Benz CLA250</a></li><li><a href="car-mercedes-benz-c300.html">Mercedes-Benz C300</a></li><li><a href="car-mercedes-benz-glc300.html">Mercedes-Benz GLC300</a></li><li><a href="car-mercedes-benz-gle350.html">Mercedes-Benz GLE350</a></li><li><a href="car-toyota-corolla.html">Toyota Corolla</a></li><li><a href="fleet.html">All 12 cars</a></li></ul></nav>
+      <nav aria-label="Company"><h2>CarmaCars</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li></ul></nav>
+      <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li><li><a href="styleguide.html">Style guide</a></li></ul></nav>
+    </div>
+    <div class="footer-legal"><span>CarmaCars is operated by 18122211 Canada Inc. Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
+    <span class="wordmark wordmark--xl footer-mark" aria-hidden="true">Carma<b>Cars</b></span>
+  </div>
+</footer>
+<script src="assets/js/fleet-data.js" defer></script>
+<script src="assets/js/app.js" defer></script>
+<script src="assets/js/pages.js" defer></script>
+<script>document.addEventListener('DOMContentLoaded', function () { CC.boot(); });</script>
+</body>
+</html>

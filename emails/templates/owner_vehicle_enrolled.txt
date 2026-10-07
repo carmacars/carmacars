@@ -1,0 +1,37 @@
+CarmaCars  |  Enrollment confirmation
+
+========================================
+
+[Enrolled]
+Your vehicle is on the CarmaCars fleet policy
+
+This is your written confirmation, {{first_name}}. Keep it with your agreement.
+
+Vehicle: {{vehicle_name}}
+VIN: {{vehicle_vin}}
+Plate: {{vehicle_plate}}
+On the fleet policy from: {{enrollment_date}}
+Enrollment Date: {{enrollment_date}}
+
+Your own insurance
+You may now cancel your own insurance on this vehicle, effective {{enrollment_date}} or later. Not before.
+
+From here
+------------------------
+
+- Monthly fees start from the Enrollment Date and are charged on the 15th.
+- We photograph and list the car. You get an email when it is live.
+- You can see the car's live location in your owner account at any time.
+
+Open my vehicle:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

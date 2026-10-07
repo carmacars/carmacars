@@ -20,3 +20,6 @@ supabase/.branches/
 supabase/.temp/
 *.log
 .DS_Store
+
+prototype/shots/
+emails/shots/

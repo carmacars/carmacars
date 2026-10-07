@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CarmaCars email gallery</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f3f3f3;color:#111}
+header{background:#0a0a0a;color:#fff;border-top:4px solid #D90429;padding:28px 32px}
+header .wm{font-size:26px;font-weight:700;letter-spacing:-.8px}header p{margin:8px 0 0;color:#c8c8c8;font-size:15px}
+nav{background:#fff;border-bottom:1px solid #e4e4e4;padding:12px 32px;position:sticky;top:0;z-index:2;font-size:14px}
+nav a{color:#111;margin-right:18px;text-decoration:none;font-weight:700;white-space:nowrap;display:inline-block;padding:4px 0}nav a span{color:#8a8a8a;font-weight:400}
+main{padding:8px 32px 60px;max-width:1500px;margin:0 auto}
+h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;border-top:2px solid #0a0a0a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.c{background:#fff;border:1px solid #e4e4e4;border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
+.c .th{display:block;height:230px;overflow:hidden;background:#ededed;border-bottom:1px solid #e4e4e4}
+.c .th img{width:100%;display:block}
+.c .b{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#D90429}
+.sub{font-weight:700;font-size:15px;line-height:21px}
+.tr{font-size:13px;line-height:19px;color:#5c5c5c;flex:1}
+.tags span{display:inline-block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;border:1px solid #0a0a0a;padding:2px 6px;margin:0 4px 4px 0;border-radius:2px}
+.tags .m{background:#D90429;border-color:#D90429;color:#fff}.tags .d{background:#0a0a0a;color:#fff}
+.ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
+</style></head><body>
+<header><div class="wm">CarmaCars</div><p>116 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>47</span></a><a href="#owner">Owner <span>24</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>11</span></a><a href="#staff_va_finance">Staff: VA finance <span>8</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
+<main>
+<h2 id="renter">Renter (47)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
+<div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A password reset is requested for any account (the sign-in service recovery event). One template for every account type.</div>
+<div class="ln"><a href="../dist/account_password_reset.html">HTML</a><a href="../dist/account_password_reset.txt">Text</a><a href="../shots/account_password_reset.desktop.png">Desktop</a><a href="../shots/account_password_reset.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/account_sign_in_link.html"><img loading="lazy" src="../shots/account_sign_in_link.desktop.png" alt="Screenshot of account_sign_in_link"></a><div class="b">
+<div class="code">account_sign_in_link</div><div class="sub">Your CarmaCars sign-in link</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A one-time sign-in link is requested for any account (the sign-in service magic link event). Also used as the invitation when an admin creates an owner, investor or staff account.</div>
+<div class="ln"><a href="../dist/account_sign_in_link.html">HTML</a><a href="../dist/account_sign_in_link.txt">Text</a><a href="../shots/account_sign_in_link.desktop.png">Desktop</a><a href="../shots/account_sign_in_link.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_accident_instructions.html"><img loading="lazy" src="../shots/renter_accident_instructions.desktop.png" alt="Screenshot of renter_accident_instructions"></a><div class="b">
+<div class="code">renter_accident_instructions</div><div class="sub">What to do now, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident of type accident, theft or vandalism is opened on an on_rent booking (Fleet logs the renter's call). (Message template T16.)</div>
+<div class="ln"><a href="../dist/renter_accident_instructions.html">HTML</a><a href="../dist/renter_accident_instructions.txt">Text</a><a href="../shots/renter_accident_instructions.desktop.png">Desktop</a><a href="../shots/renter_accident_instructions.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_account_created.html"><img loading="lazy" src="../shots/renter_account_created.desktop.png" alt="Screenshot of renter_account_created"></a><div class="b">
+<div class="code">renter_account_created</div><div class="sub">Confirm your email to finish your CarmaCars account</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A user with the renter role is created (sign-up form, or the account made with a first booking request) and the email address is not yet verified.</div>
+<div class="ln"><a href="../dist/renter_account_created.html">HTML</a><a href="../dist/renter_account_created.txt">Text</a><a href="../shots/renter_account_created.desktop.png">Desktop</a><a href="../shots/renter_account_created.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_agreement_ready.html"><img loading="lazy" src="../shots/renter_agreement_ready.desktop.png" alt="Screenshot of renter_agreement_ready"></a><div class="b">
+<div class="code">renter_agreement_ready</div><div class="sub">Sign your rental agreement for booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A signature request is opened for a signer who is not in the middle of checkout: each additional driver on the booking, or the renter when the agreement is reissued (accepted change, extension or renewal) or left unsigned for 1 hour after approving the offer.</div>
+<div class="ln"><a href="../dist/renter_agreement_ready.html">HTML</a><a href="../dist/renter_agreement_ready.txt">Text</a><a href="../shots/renter_agreement_ready.desktop.png">Desktop</a><a href="../shots/renter_agreement_ready.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_agreement_signed.html"><img loading="lazy" src="../shots/renter_agreement_signed.desktop.png" alt="Screenshot of renter_agreement_signed"></a><div class="b">
+<div class="code">renter_agreement_signed</div><div class="sub">Your signed rental agreement, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A rental agreement signature request is completed (every signer has signed and CarmaCars has countersigned). Sent to the renter and to each additional driver who signed.</div>
+<div class="ln"><a href="../dist/renter_agreement_signed.html">HTML</a><a href="../dist/renter_agreement_signed.txt">Text</a><a href="../shots/renter_agreement_signed.desktop.png">Desktop</a><a href="../shots/renter_agreement_signed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_balance_overdue.html"><img loading="lazy" src="../shots/renter_balance_overdue.desktop.png" alt="Screenshot of renter_balance_overdue"></a><div class="b">
+<div class="code">renter_balance_overdue</div><div class="sub">Overdue: $80.57 on booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Daily check: a renter statement was sent 7 days ago and a balance on it is still unpaid (all card retries failed or are pending). Sent once at 7 days, then with each monthly interest posting on the 1st while a balance remains.</div>
+<div class="ln"><a href="../dist/renter_balance_overdue.html">HTML</a><a href="../dist/renter_balance_overdue.txt">Text</a><a href="../shots/renter_balance_overdue.desktop.png">Desktop</a><a href="../shots/renter_balance_overdue.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_booking_cancelled.html"><img loading="lazy" src="../shots/renter_booking_cancelled.desktop.png" alt="Screenshot of renter_booking_cancelled"></a><div class="b">
+<div class="code">renter_booking_cancelled</div><div class="sub">Booking CC-10482 is cancelled. Refund $351.71</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes from confirmed to cancelled or no_show with a booking cancellation row where cancelled_by is renter (the database computes the tier, percent and refund). (Message template T12.)</div>
+<div class="ln"><a href="../dist/renter_booking_cancelled.html">HTML</a><a href="../dist/renter_booking_cancelled.txt">Text</a><a href="../shots/renter_booking_cancelled.desktop.png">Desktop</a><a href="../shots/renter_booking_cancelled.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_booking_cancelled_by_us.html"><img loading="lazy" src="../shots/renter_booking_cancelled_by_us.desktop.png" alt="Screenshot of renter_booking_cancelled_by_us"></a><div class="b">
+<div class="code">renter_booking_cancelled_by_us</div><div class="sub">We have had to cancel booking CC-10482. Full refund</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes from confirmed to cancelled with a booking cancellation row where the cancelling party is CarmaCars (no car or accepted substitute), or where the reason is that a driver could not be verified. The refund is 100%, including non-refundable bookings.</div>
+<div class="ln"><a href="../dist/renter_booking_cancelled_by_us.html">HTML</a><a href="../dist/renter_booking_cancelled_by_us.txt">Text</a><a href="../shots/renter_booking_cancelled_by_us.desktop.png">Desktop</a><a href="../shots/renter_booking_cancelled_by_us.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_booking_confirmed.html"><img loading="lazy" src="../shots/renter_booking_confirmed.desktop.png" alt="Screenshot of renter_booking_confirmed"></a><div class="b">
+<div class="code">renter_booking_confirmed</div><div class="sub">Confirmed: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes to confirmed (the offer was approved, the agreement signed and the booking total paid).</div>
+<div class="ln"><a href="../dist/renter_booking_confirmed.html">HTML</a><a href="../dist/renter_booking_confirmed.txt">Text</a><a href="../shots/renter_booking_confirmed.desktop.png">Desktop</a><a href="../shots/renter_booking_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_booking_reminder.html"><img loading="lazy" src="../shots/renter_booking_reminder.desktop.png" alt="Screenshot of renter_booking_reminder"></a><div class="b">
+<div class="code">renter_booking_reminder</div><div class="sub">Tomorrow: your 2024 Honda Civic Sport at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Hourly reminders job: booking status is confirmed and the pickup time is 24 hours away. Sent once. (Message template T5.)</div>
+<div class="ln"><a href="../dist/renter_booking_reminder.html">HTML</a><a href="../dist/renter_booking_reminder.txt">Text</a><a href="../shots/renter_booking_reminder.desktop.png">Desktop</a><a href="../shots/renter_booking_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_breakdown_help.html"><img loading="lazy" src="../shots/renter_breakdown_help.desktop.png" alt="Screenshot of renter_breakdown_help"></a><div class="b">
+<div class="code">renter_breakdown_help</div><div class="sub">Help is on the way, about 35 minutes</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident of type breakdown on an on_rent booking has roadside dispatched (dispatched_at is set by Fleet). (Message template T18.)</div>
+<div class="ln"><a href="../dist/renter_breakdown_help.html">HTML</a><a href="../dist/renter_breakdown_help.txt">Text</a><a href="../shots/renter_breakdown_help.desktop.png">Desktop</a><a href="../shots/renter_breakdown_help.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_request_approved.html"><img loading="lazy" src="../shots/renter_change_request_approved.desktop.png" alt="Screenshot of renter_change_request_approved"></a><div class="b">
+<div class="code">renter_change_request_approved</div><div class="sub">Your change to booking CC-10482 is ready to accept</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff approve a change request on a confirmed booking. Sent when the change request status becomes approved. (A change to a booking that is still offered is sent as a revised offer with renter_offer_ready instead.)</div>
+<div class="ln"><a href="../dist/renter_change_request_approved.html">HTML</a><a href="../dist/renter_change_request_approved.txt">Text</a><a href="../shots/renter_change_request_approved.desktop.png">Desktop</a><a href="../shots/renter_change_request_approved.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_request_declined.html"><img loading="lazy" src="../shots/renter_change_request_declined.desktop.png" alt="Screenshot of renter_change_request_declined"></a><div class="b">
+<div class="code">renter_change_request_declined</div><div class="sub">We cannot make that change to booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff decline a change request. Sent when the change request status becomes declined; staff enter the reason.</div>
+<div class="ln"><a href="../dist/renter_change_request_declined.html">HTML</a><a href="../dist/renter_change_request_declined.txt">Text</a><a href="../shots/renter_change_request_declined.desktop.png">Desktop</a><a href="../shots/renter_change_request_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_request_received.html"><img loading="lazy" src="../shots/renter_change_request_received.desktop.png" alt="Screenshot of renter_change_request_received"></a><div class="b">
+<div class="code">renter_change_request_received</div><div class="sub">We have your change request for booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking change request row is created by the renter on a booking with status offered or confirmed.</div>
+<div class="ln"><a href="../dist/renter_change_request_received.html">HTML</a><a href="../dist/renter_change_request_received.txt">Text</a><a href="../shots/renter_change_request_received.desktop.png">Desktop</a><a href="../shots/renter_change_request_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_comeback_1m.html"><img loading="lazy" src="../shots/renter_comeback_1m.desktop.png" alt="Screenshot of renter_comeback_1m"></a><div class="b">
+<div class="code">renter_comeback_1m</div><div class="sub">15% off your next rental, Maya</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">30 days after booking status becomes closed, only if the renter's marketing consent is true, they have not unsubscribed, no booking or request was created since that booking closed, the renter is not blocked and has no unpaid balance. A new single-use discount code is generated at send time. This is the last automated offer for that booking.</div>
+<div class="ln"><a href="../dist/renter_comeback_1m.html">HTML</a><a href="../dist/renter_comeback_1m.txt">Text</a><a href="../shots/renter_comeback_1m.desktop.png">Desktop</a><a href="../shots/renter_comeback_1m.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_comeback_1w.html"><img loading="lazy" src="../shots/renter_comeback_1w.desktop.png" alt="Screenshot of renter_comeback_1w"></a><div class="b">
+<div class="code">renter_comeback_1w</div><div class="sub">10% off your next CarmaCars rental</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">7 days after booking status becomes closed, only if the renter's marketing consent is true, they have not unsubscribed, no future booking or open request exists, the renter is not blocked and has no unpaid balance. A single-use discount code is generated for the renter at send time.</div>
+<div class="ln"><a href="../dist/renter_comeback_1w.html">HTML</a><a href="../dist/renter_comeback_1w.txt">Text</a><a href="../shots/renter_comeback_1w.desktop.png">Desktop</a><a href="../shots/renter_comeback_1w.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_damage_found.html"><img loading="lazy" src="../shots/renter_damage_found.desktop.png" alt="Screenshot of renter_damage_found"></a><div class="b">
+<div class="code">renter_damage_found</div><div class="sub">Damage found on the 2024 Honda Civic Sport after your return</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-in. (Message template T8.)</div>
+<div class="ln"><a href="../dist/renter_damage_found.html">HTML</a><a href="../dist/renter_damage_found.txt">Text</a><a href="../shots/renter_damage_found.desktop.png">Desktop</a><a href="../shots/renter_damage_found.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_deposit_released.html"><img loading="lazy" src="../shots/renter_deposit_released.desktop.png" alt="Screenshot of renter_deposit_released"></a><div class="b">
+<div class="code">renter_deposit_released</div><div class="sub">The rest of your deposit has been released, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-in.</div>
+<div class="ln"><a href="../dist/renter_deposit_released.html">HTML</a><a href="../dist/renter_deposit_released.txt">Text</a><a href="../shots/renter_deposit_released.desktop.png">Desktop</a><a href="../shots/renter_deposit_released.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_extension_approved.html"><img loading="lazy" src="../shots/renter_extension_approved.desktop.png" alt="Screenshot of renter_extension_approved"></a><div class="b">
+<div class="code">renter_extension_approved</div><div class="sub">Extension available. Pay $226.00 by 10:00 am to confirm</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking extension status changes from requested to approved (staff checked the calendar, unpaid charges and coverage to the new return date). Payment is still outstanding.</div>
+<div class="ln"><a href="../dist/renter_extension_approved.html">HTML</a><a href="../dist/renter_extension_approved.txt">Text</a><a href="../shots/renter_extension_approved.desktop.png">Desktop</a><a href="../shots/renter_extension_approved.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_extension_confirmed.html"><img loading="lazy" src="../shots/renter_extension_confirmed.desktop.png" alt="Screenshot of renter_extension_confirmed"></a><div class="b">
+<div class="code">renter_extension_confirmed</div><div class="sub">Extension confirmed. New return Wed, Oct 28, 2026, 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking extension status changes to confirmed (the extension payment succeeded before the return time and the booking return time was moved). This is the written confirmation. (Message template T11.)</div>
+<div class="ln"><a href="../dist/renter_extension_confirmed.html">HTML</a><a href="../dist/renter_extension_confirmed.txt">Text</a><a href="../shots/renter_extension_confirmed.desktop.png">Desktop</a><a href="../shots/renter_extension_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_extension_declined.html"><img loading="lazy" src="../shots/renter_extension_declined.desktop.png" alt="Screenshot of renter_extension_declined"></a><div class="b">
+<div class="code">renter_extension_declined</div><div class="sub">We cannot extend booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking extension status changes from requested to declined. Staff choose the reason.</div>
+<div class="ln"><a href="../dist/renter_extension_declined.html">HTML</a><a href="../dist/renter_extension_declined.txt">Text</a><a href="../shots/renter_extension_declined.desktop.png">Desktop</a><a href="../shots/renter_extension_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_extension_requested.html"><img loading="lazy" src="../shots/renter_extension_requested.desktop.png" alt="Screenshot of renter_extension_requested"></a><div class="b">
+<div class="code">renter_extension_requested</div><div class="sub">We have your extension request for booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking extension row is created with status requested by the renter on an on_rent or confirmed booking.</div>
+<div class="ln"><a href="../dist/renter_extension_requested.html">HTML</a><a href="../dist/renter_extension_requested.txt">Text</a><a href="../shots/renter_extension_requested.desktop.png">Desktop</a><a href="../shots/renter_extension_requested.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_extra_charge.html"><img loading="lazy" src="../shots/renter_extra_charge.desktop.png" alt="Screenshot of renter_extra_charge"></a><div class="b">
+<div class="code">renter_extra_charge</div><div class="sub">Toll charge of $35.37 on booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A charge is billed to a renter after the final statement: a toll or ticket matched to the booking and charged, or a damage, fuel, cleaning, mileage, lost key or other line added by Finance with its supporting record. One email per charge event. The supporting document is required; the charge cannot be sent without it. (Message template T19 for tolls and tickets.)</div>
+<div class="ln"><a href="../dist/renter_extra_charge.html">HTML</a><a href="../dist/renter_extra_charge.txt">Text</a><a href="../shots/renter_extra_charge.desktop.png">Desktop</a><a href="../shots/renter_extra_charge.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_final_statement.html"><img loading="lazy" src="../shots/renter_final_statement.desktop.png" alt="Screenshot of renter_final_statement"></a><div class="b">
+<div class="code">renter_final_statement</div><div class="sub">Your final statement for booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A renter statement for a returned booking is issued (statement sent_at is set by Finance), which captures charges from the deposit and releases the balance. Due within 7 business days of check-in. (Message template T9.)</div>
+<div class="ln"><a href="../dist/renter_final_statement.html">HTML</a><a href="../dist/renter_final_statement.txt">Text</a><a href="../shots/renter_final_statement.desktop.png">Desktop</a><a href="../shots/renter_final_statement.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_identity_approved.html"><img loading="lazy" src="../shots/renter_identity_approved.desktop.png" alt="Screenshot of renter_identity_approved"></a><div class="b">
+<div class="code">renter_identity_approved</div><div class="sub">You are verified. All set for Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Every driver on a confirmed booking has identity_status verified and the booking coverage proof is marked confirmed (whichever happens last).</div>
+<div class="ln"><a href="../dist/renter_identity_approved.html">HTML</a><a href="../dist/renter_identity_approved.txt">Text</a><a href="../shots/renter_identity_approved.desktop.png">Desktop</a><a href="../shots/renter_identity_approved.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_identity_needed.html"><img loading="lazy" src="../shots/renter_identity_needed.desktop.png" alt="Screenshot of renter_identity_needed"></a><div class="b">
+<div class="code">renter_identity_needed</div><div class="sub">Upload your licence and coverage proof for Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status becomes confirmed while any driver has identity_status other than verified or the booking has no confirmed coverage option (skipped when renter_booking_confirmed already carried the notice in the same minute). Sent again 48 hours before pickup if anything is still missing.</div>
+<div class="ln"><a href="../dist/renter_identity_needed.html">HTML</a><a href="../dist/renter_identity_needed.txt">Text</a><a href="../shots/renter_identity_needed.desktop.png">Desktop</a><a href="../shots/renter_identity_needed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_identity_rejected.html"><img loading="lazy" src="../shots/renter_identity_rejected.desktop.png" alt="Screenshot of renter_identity_rejected"></a><div class="b">
+<div class="code">renter_identity_rejected</div><div class="sub">Please resend a document for booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff reject an identity document, selfie or coverage proof on a confirmed booking (identity verification or coverage proof status becomes rejected). Staff choose the reason; it fills reject_reason.</div>
+<div class="ln"><a href="../dist/renter_identity_rejected.html">HTML</a><a href="../dist/renter_identity_rejected.txt">Text</a><a href="../shots/renter_identity_rejected.desktop.png">Desktop</a><a href="../shots/renter_identity_rejected.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_late_return_final.html"><img loading="lazy" src="../shots/renter_late_return_final.desktop.png" alt="Screenshot of renter_late_return_final"></a><div class="b">
+<div class="code">renter_late_return_final</div><div class="sub">Final notice: return the 2024 Honda Civic Sport by 1:05 pm today</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Late-returns job: the booking is 2 hours past its return time, still on_rent, with no paid extension. The deadline shown is 1 hour after this email is sent. (Message template T14.)</div>
+<div class="ln"><a href="../dist/renter_late_return_final.html">HTML</a><a href="../dist/renter_late_return_final.txt">Text</a><a href="../shots/renter_late_return_final.desktop.png">Desktop</a><a href="../shots/renter_late_return_final.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_late_return_first.html"><img loading="lazy" src="../shots/renter_late_return_first.desktop.png" alt="Screenshot of renter_late_return_first"></a><div class="b">
+<div class="code">renter_late_return_first</div><div class="sub">Your rental ended at 10:00 am. Please return the car now</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Late-returns job (every 5 minutes): the return time has passed, booking status is still on_rent and no paid extension covers the time. Sent once, at 0 minutes late. (Message template T13.)</div>
+<div class="ln"><a href="../dist/renter_late_return_first.html">HTML</a><a href="../dist/renter_late_return_first.txt">Text</a><a href="../shots/renter_late_return_first.desktop.png">Desktop</a><a href="../shots/renter_late_return_first.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_offer_expired.html"><img loading="lazy" src="../shots/renter_offer_expired.desktop.png" alt="Screenshot of renter_offer_expired"></a><div class="b">
+<div class="code">renter_offer_expired</div><div class="sub">Your offer for the 2024 Honda Civic Sport has expired</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes from offered to expired (offer_expires_at passed without approval and payment).</div>
+<div class="ln"><a href="../dist/renter_offer_expired.html">HTML</a><a href="../dist/renter_offer_expired.txt">Text</a><a href="../shots/renter_offer_expired.desktop.png">Desktop</a><a href="../shots/renter_offer_expired.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_offer_ready.html"><img loading="lazy" src="../shots/renter_offer_ready.desktop.png" alt="Screenshot of renter_offer_ready"></a><div class="b">
+<div class="code">renter_offer_ready</div><div class="sub">Your offer is ready: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes to offered (staff reviewed the request and sent the offer). Also sent again when staff replace an open offer with a revised one.</div>
+<div class="ln"><a href="../dist/renter_offer_ready.html">HTML</a><a href="../dist/renter_offer_ready.txt">Text</a><a href="../shots/renter_offer_ready.desktop.png">Desktop</a><a href="../shots/renter_offer_ready.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_offer_reminder.html"><img loading="lazy" src="../shots/renter_offer_reminder.desktop.png" alt="Screenshot of renter_offer_reminder"></a><div class="b">
+<div class="code">renter_offer_reminder</div><div class="sub">Your offer for the 2024 Honda Civic Sport expires Wed, Oct 21 at 2:15 pm</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled check: booking status is still offered and offer_expires_at is 6 hours away (for an offer window shorter than 12 hours, at the halfway point). Sent once per offer.</div>
+<div class="ln"><a href="../dist/renter_offer_reminder.html">HTML</a><a href="../dist/renter_offer_reminder.txt">Text</a><a href="../shots/renter_offer_reminder.desktop.png">Desktop</a><a href="../shots/renter_offer_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_offer_withdrawn.html"><img loading="lazy" src="../shots/renter_offer_withdrawn.desktop.png" alt="Screenshot of renter_offer_withdrawn"></a><div class="b">
+<div class="code">renter_offer_withdrawn</div><div class="sub">We have withdrawn your offer for the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An open offer is withdrawn before the renter approves it: staff withdraw it (booking event offer_withdrawn), or the booking is pushed back from offered to requested because the car was confirmed for someone else on overlapping dates (booking event pushed_back). Not sent when staff replace the offer with a revised one in the same action; renter_offer_ready covers that.</div>
+<div class="ln"><a href="../dist/renter_offer_withdrawn.html">HTML</a><a href="../dist/renter_offer_withdrawn.txt">Text</a><a href="../shots/renter_offer_withdrawn.desktop.png">Desktop</a><a href="../shots/renter_offer_withdrawn.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_payment_failed.html"><img loading="lazy" src="../shots/renter_payment_failed.desktop.png" alt="Screenshot of renter_payment_failed"></a><div class="b">
+<div class="code">renter_payment_failed</div><div class="sub">Payment of $35.37 did not go through, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A renter payment attempt fails. Two cases, set by is_booking_payment: (true) the checkout payment for an offer fails, no fee, booking stays offered; (false) a charge to the Card on File is declined, the declined payment fee is added once per charge and retries are scheduled after 1, 3 and 7 days. Sent on the first decline and again after each failed retry. (Message template T10.)</div>
+<div class="ln"><a href="../dist/renter_payment_failed.html">HTML</a><a href="../dist/renter_payment_failed.txt">Text</a><a href="../shots/renter_payment_failed.desktop.png">Desktop</a><a href="../shots/renter_payment_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_payment_receipt.html"><img loading="lazy" src="../shots/renter_payment_receipt.desktop.png" alt="Screenshot of renter_payment_receipt"></a><div class="b">
+<div class="code">renter_payment_receipt</div><div class="sub">Receipt: $113.00 paid, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A renter payment of kind charge or capture succeeds, except the payment that confirms a booking (renter_booking_confirmed carries that receipt). Covers extensions, accepted changes, extra charges paid by link and retried payments.</div>
+<div class="ln"><a href="../dist/renter_payment_receipt.html">HTML</a><a href="../dist/renter_payment_receipt.txt">Text</a><a href="../shots/renter_payment_receipt.desktop.png">Desktop</a><a href="../shots/renter_payment_receipt.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_pickup_details.html"><img loading="lazy" src="../shots/renter_pickup_details.desktop.png" alt="Screenshot of renter_pickup_details"></a><div class="b">
+<div class="code">renter_pickup_details</div><div class="sub">Pickup today: Sam meets you at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The pickup field job for a confirmed booking has an assigned staff member and the pickup is 3 hours away. Sent earlier, at once, if the job is assigned inside that window, and sent again if the place, time or staff member changes after sending.</div>
+<div class="ln"><a href="../dist/renter_pickup_details.html">HTML</a><a href="../dist/renter_pickup_details.txt">Text</a><a href="../shots/renter_pickup_details.desktop.png">Desktop</a><a href="../shots/renter_pickup_details.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_refund_issued.html"><img loading="lazy" src="../shots/renter_refund_issued.desktop.png" alt="Screenshot of renter_refund_issued"></a><div class="b">
+<div class="code">renter_refund_issued</div><div class="sub">Refund of $113.00 sent, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A refund row reaches status succeeded at the processor, for any refund except one already reported by a cancellation email sent in the same hour. Covers refunds for unused time after a breakdown, corrections and a charged deposit returned.</div>
+<div class="ln"><a href="../dist/renter_refund_issued.html">HTML</a><a href="../dist/renter_refund_issued.txt">Text</a><a href="../shots/renter_refund_issued.desktop.png">Desktop</a><a href="../shots/renter_refund_issued.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rental_started.html"><img loading="lazy" src="../shots/renter_rental_started.desktop.png" alt="Screenshot of renter_rental_started"></a><div class="b">
+<div class="code">renter_rental_started</div><div class="sub">Your rental has started. Condition report inside</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes to on_rent (deposit taken, pickup condition report signed, keys handed over).</div>
+<div class="ln"><a href="../dist/renter_rental_started.html">HTML</a><a href="../dist/renter_rental_started.txt">Text</a><a href="../shots/renter_rental_started.desktop.png">Desktop</a><a href="../shots/renter_rental_started.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_request_declined.html"><img loading="lazy" src="../shots/renter_request_declined.desktop.png" alt="Screenshot of renter_request_declined"></a><div class="b">
+<div class="code">renter_request_declined</div><div class="sub">We cannot fill your request for Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes to declined from requested or needs_info. Staff choose a reason; it fills decline_reason.</div>
+<div class="ln"><a href="../dist/renter_request_declined.html">HTML</a><a href="../dist/renter_request_declined.txt">Text</a><a href="../shots/renter_request_declined.desktop.png">Desktop</a><a href="../shots/renter_request_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_request_needs_info.html"><img loading="lazy" src="../shots/renter_request_needs_info.desktop.png" alt="Screenshot of renter_request_needs_info"></a><div class="b">
+<div class="code">renter_request_needs_info</div><div class="sub">One question before we can send your offer</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes from requested to needs_info. Staff must enter the question; it fills info_request.</div>
+<div class="ln"><a href="../dist/renter_request_needs_info.html">HTML</a><a href="../dist/renter_request_needs_info.txt">Text</a><a href="../shots/renter_request_needs_info.desktop.png">Desktop</a><a href="../shots/renter_request_needs_info.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_request_received.html"><img loading="lazy" src="../shots/renter_request_received.desktop.png" alt="Screenshot of renter_request_received"></a><div class="b">
+<div class="code">renter_request_received</div><div class="sub">We have your request for the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking row is created with status requested (the renter submitted the request form).</div>
+<div class="ln"><a href="../dist/renter_request_received.html">HTML</a><a href="../dist/renter_request_received.txt">Text</a><a href="../shots/renter_request_received.desktop.png">Desktop</a><a href="../shots/renter_request_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_return_complete.html"><img loading="lazy" src="../shots/renter_return_complete.desktop.png" alt="Screenshot of renter_return_complete"></a><div class="b">
+<div class="code">renter_return_complete</div><div class="sub">Returned. Thanks for renting the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking status changes to returned (keys taken, return condition report signed).</div>
+<div class="ln"><a href="../dist/renter_return_complete.html">HTML</a><a href="../dist/renter_return_complete.txt">Text</a><a href="../shots/renter_return_complete.desktop.png">Desktop</a><a href="../shots/renter_return_complete.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_return_details.html"><img loading="lazy" src="../shots/renter_return_details.desktop.png" alt="Screenshot of renter_return_details"></a><div class="b">
+<div class="code">renter_return_details</div><div class="sub">Return details for today: 10:00 am, Union Station, 65 Front Street West, Toronto</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The return field job of an on_rent booking has its place, time or assigned staff member changed after renter_return_reminder was sent, or is first assigned inside the last 24 hours before return.</div>
+<div class="ln"><a href="../dist/renter_return_details.html">HTML</a><a href="../dist/renter_return_details.txt">Text</a><a href="../shots/renter_return_details.desktop.png">Desktop</a><a href="../shots/renter_return_details.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_return_reminder.html"><img loading="lazy" src="../shots/renter_return_reminder.desktop.png" alt="Screenshot of renter_return_reminder"></a><div class="b">
+<div class="code">renter_return_reminder</div><div class="sub">Your rental ends tomorrow at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Hourly reminders job: booking status is on_rent and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. (Message template T6.)</div>
+<div class="ln"><a href="../dist/renter_return_reminder.html">HTML</a><a href="../dist/renter_return_reminder.txt">Text</a><a href="../shots/renter_return_reminder.desktop.png">Desktop</a><a href="../shots/renter_return_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_review_request.html"><img loading="lazy" src="../shots/renter_review_request.desktop.png" alt="Screenshot of renter_review_request"></a><div class="b">
+<div class="code">renter_review_request</div><div class="sub">Rate your rental of the 2024 Honda Civic Sport</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed, the booking had no open incident, dispute or unpaid balance, and no review exists for it. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_vehicle_disabled.html"><img loading="lazy" src="../shots/renter_vehicle_disabled.desktop.png" alt="Screenshot of renter_vehicle_disabled"></a><div class="b">
+<div class="code">renter_vehicle_disabled</div><div class="sub">Your rental has ended and the 2024 Honda Civic Sport will not restart</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A tracker command of type engine disable for a booking is confirmed by the tracker (status confirmed), after admin approval. (Message template T15.)</div>
+<div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="owner">Owner (24)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
+<div class="code">owner_account_created</div><div class="sub">Confirm your email to open your CarmaCars owner account</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A user with the owner role is created (owner sign-up, or created by staff from an application) and the email address is not yet verified.</div>
+<div class="ln"><a href="../dist/owner_account_created.html">HTML</a><a href="../dist/owner_account_created.txt">Text</a><a href="../shots/owner_account_created.desktop.png">Desktop</a><a href="../shots/owner_account_created.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_agreement_ready.html"><img loading="lazy" src="../shots/owner_agreement_ready.desktop.png" alt="Screenshot of owner_agreement_ready"></a><div class="b">
+<div class="code">owner_agreement_ready</div><div class="sub">Your CarmaCars owner documents are ready to sign</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to documents_sent (a signature request for the owner documents is opened): the Enrollment Agreement and Title Agreement for a first vehicle, or an Additional Vehicle Schedule for a later one, with the forms that vehicle needs.</div>
+<div class="ln"><a href="../dist/owner_agreement_ready.html">HTML</a><a href="../dist/owner_agreement_ready.txt">Text</a><a href="../shots/owner_agreement_ready.desktop.png">Desktop</a><a href="../shots/owner_agreement_ready.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_agreement_signed.html"><img loading="lazy" src="../shots/owner_agreement_signed.desktop.png" alt="Screenshot of owner_agreement_signed"></a><div class="b">
+<div class="code">owner_agreement_signed</div><div class="sub">Signed: your owner documents for the 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to documents_signed (every owner document for the vehicle is signed by the owner and countersigned by CarmaCars, and witnessed forms are uploaded).</div>
+<div class="ln"><a href="../dist/owner_agreement_signed.html">HTML</a><a href="../dist/owner_agreement_signed.txt">Text</a><a href="../shots/owner_agreement_signed.desktop.png">Desktop</a><a href="../shots/owner_agreement_signed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_application_declined.html"><img loading="lazy" src="../shots/owner_application_declined.desktop.png" alt="Screenshot of owner_application_declined"></a><div class="b">
+<div class="code">owner_application_declined</div><div class="sub">We cannot enrol your 2019 Nissan Rogue SV</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to declined at any step before enrolled. Staff choose the reason.</div>
+<div class="ln"><a href="../dist/owner_application_declined.html">HTML</a><a href="../dist/owner_application_declined.txt">Text</a><a href="../shots/owner_application_declined.desktop.png">Desktop</a><a href="../shots/owner_application_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_application_received.html"><img loading="lazy" src="../shots/owner_application_received.desktop.png" alt="Screenshot of owner_application_received"></a><div class="b">
+<div class="code">owner_application_received</div><div class="sub">We have your application for the 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner vehicle application is submitted (vehicle onboarding row created with status intake), for a first vehicle or an added vehicle.</div>
+<div class="ln"><a href="../dist/owner_application_received.html">HTML</a><a href="../dist/owner_application_received.txt">Text</a><a href="../shots/owner_application_received.desktop.png">Desktop</a><a href="../shots/owner_application_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_booking_confirmed.html"><img loading="lazy" src="../shots/owner_booking_confirmed.desktop.png" alt="Screenshot of owner_booking_confirmed"></a><div class="b">
+<div class="code">owner_booking_confirmed</div><div class="sub">Confirmed: your own booking of the 2023 Toyota RAV4 XLE, Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking of type owner (an Owner Booking: the owner driving their own vehicle) changes to confirmed, after the owner signs the Owner Rental agreement and staff confirm the licence is valid.</div>
+<div class="ln"><a href="../dist/owner_booking_confirmed.html">HTML</a><a href="../dist/owner_booking_confirmed.txt">Text</a><a href="../shots/owner_booking_confirmed.desktop.png">Desktop</a><a href="../shots/owner_booking_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_document_due.html"><img loading="lazy" src="../shots/owner_document_due.desktop.png" alt="Screenshot of owner_document_due"></a><div class="b">
+<div class="code">owner_document_due</div><div class="sub">Insurance proof for your 2023 Toyota RAV4 XLE is due Sat, Nov 21, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Expiry-watch job (daily 06:00): a document or registration item on the owner's vehicle expires in 14 days: plate renewal, or for a Turo-Only vehicle the owner's insurance proof. Sent once at 14 days and again at 3 days if still open. (Message template T23 for Turo-Only insurance.)</div>
+<div class="ln"><a href="../dist/owner_document_due.html">HTML</a><a href="../dist/owner_document_due.txt">Text</a><a href="../shots/owner_document_due.desktop.png">Desktop</a><a href="../shots/owner_document_due.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_exit_completed.html"><img loading="lazy" src="../shots/owner_exit_completed.desktop.png" alt="Screenshot of owner_exit_completed"></a><div class="b">
+<div class="code">owner_exit_completed</div><div class="sub">Exit complete: your 2023 Toyota RAV4 XLE is back with you</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle status changes from exit_notice to exited (Form E signed by both sides, tracker removed, registration returned).</div>
+<div class="ln"><a href="../dist/owner_exit_completed.html">HTML</a><a href="../dist/owner_exit_completed.txt">Text</a><a href="../shots/owner_exit_completed.desktop.png">Desktop</a><a href="../shots/owner_exit_completed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_exit_notice_received.html"><img loading="lazy" src="../shots/owner_exit_notice_received.desktop.png" alt="Screenshot of owner_exit_notice_received"></a><div class="b">
+<div class="code">owner_exit_notice_received</div><div class="sub">Exit notice received for your 2023 Toyota RAV4 XLE. Exit Date Wed, Dec 2, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle status changes to exit_notice (the owner's written notice naming the vehicle is logged, or an admin decides to remove it) and the Exit Date is set. This email confirms the Exit Date in writing.</div>
+<div class="ln"><a href="../dist/owner_exit_notice_received.html">HTML</a><a href="../dist/owner_exit_notice_received.txt">Text</a><a href="../shots/owner_exit_notice_received.desktop.png">Desktop</a><a href="../shots/owner_exit_notice_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_fee_invoice.html"><img loading="lazy" src="../shots/owner_fee_invoice.desktop.png" alt="Screenshot of owner_fee_invoice"></a><div class="b">
+<div class="code">owner_fee_invoice</div><div class="sub">Invoice INV-2026-11-0042: November fees for your 2023 Toyota RAV4 XLE, $536.75</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Owner-billing job on the 15th: a monthly owner invoice for a vehicle is issued and its pre-authorized debit is submitted. One invoice and one email per vehicle. Not sent for Turo-Only vehicles or vehicles owned personally by the two principals. (Message template T24.)</div>
+<div class="ln"><a href="../dist/owner_fee_invoice.html">HTML</a><a href="../dist/owner_fee_invoice.txt">Text</a><a href="../shots/owner_fee_invoice.desktop.png">Desktop</a><a href="../shots/owner_fee_invoice.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_in_arrears.html"><img loading="lazy" src="../shots/owner_in_arrears.desktop.png" alt="Screenshot of owner_in_arrears"></a><div class="b">
+<div class="code">owner_in_arrears</div><div class="sub">In arrears: $586.75 owing on your 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Debit-retry job on the 18th: the retry of a failed owner invoice also fails and the invoice status becomes in_arrears (the vehicle's arrears flag is set).</div>
+<div class="ln"><a href="../dist/owner_in_arrears.html">HTML</a><a href="../dist/owner_in_arrears.txt">Text</a><a href="../shots/owner_in_arrears.desktop.png">Desktop</a><a href="../shots/owner_in_arrears.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_incident_opened.html"><img loading="lazy" src="../shots/owner_incident_opened.desktop.png" alt="Screenshot of owner_incident_opened"></a><div class="b">
+<div class="code">owner_incident_opened</div><div class="sub">Incident involving your 2023 Toyota RAV4 XLE on Sat, Oct 24, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident (accident, theft, vandalism, or damage found at return) is opened on a vehicle that belongs to a third-party owner, or a claim is opened for it. (Message template T17.)</div>
+<div class="ln"><a href="../dist/owner_incident_opened.html">HTML</a><a href="../dist/owner_incident_opened.txt">Text</a><a href="../shots/owner_incident_opened.desktop.png">Desktop</a><a href="../shots/owner_incident_opened.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_incident_update.html"><img loading="lazy" src="../shots/owner_incident_update.desktop.png" alt="Screenshot of owner_incident_update"></a><div class="b">
+<div class="code">owner_incident_update</div><div class="sub">Update on incident INC-2041: In repair</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A claim on a third-party owner's vehicle changes status (submitted, accepted, in_repair, repaired, settling, closed), or staff post an incident event marked visible to the owner.</div>
+<div class="ln"><a href="../dist/owner_incident_update.html">HTML</a><a href="../dist/owner_incident_update.txt">Text</a><a href="../shots/owner_incident_update.desktop.png">Desktop</a><a href="../shots/owner_incident_update.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_new_booking.html"><img loading="lazy" src="../shots/owner_new_booking.desktop.png" alt="Screenshot of owner_new_booking"></a><div class="b">
+<div class="code">owner_new_booking</div><div class="sub">New booking on your 2023 Toyota RAV4 XLE: Fri, Oct 23, 2026 to Mon, Oct 26, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A standard or non-refundable booking on the owner's vehicle changes to confirmed. Not sent for Owner Bookings or for Turo trips. is_self_managed is true when the vehicle's management mode is Self-Managed; only then are the renter's name and mobile number included.</div>
+<div class="ln"><a href="../dist/owner_new_booking.html">HTML</a><a href="../dist/owner_new_booking.txt">Text</a><a href="../shots/owner_new_booking.desktop.png">Desktop</a><a href="../shots/owner_new_booking.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_onboarding_steps.html"><img loading="lazy" src="../shots/owner_onboarding_steps.desktop.png" alt="Screenshot of owner_onboarding_steps"></a><div class="b">
+<div class="code">owner_onboarding_steps</div><div class="sub">Next steps to enrol your 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to upfront_paid (or straight from documents_signed for a shareholder-owned vehicle). Lists the steps and documents for that vehicle's onboarding method.</div>
+<div class="ln"><a href="../dist/owner_onboarding_steps.html">HTML</a><a href="../dist/owner_onboarding_steps.txt">Text</a><a href="../shots/owner_onboarding_steps.desktop.png">Desktop</a><a href="../shots/owner_onboarding_steps.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_payment_failed.html"><img loading="lazy" src="../shots/owner_payment_failed.desktop.png" alt="Screenshot of owner_payment_failed"></a><div class="b">
+<div class="code">owner_payment_failed</div><div class="sub">Your $536.75 payment for the 2023 Toyota RAV4 XLE failed</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Debit-results job (15th to 25th, daily): the debit for a monthly owner invoice is returned and the invoice status becomes failed, which adds the Late Fee to that vehicle. One email per vehicle. (Message template T25.)</div>
+<div class="ln"><a href="../dist/owner_payment_failed.html">HTML</a><a href="../dist/owner_payment_failed.txt">Text</a><a href="../shots/owner_payment_failed.desktop.png">Desktop</a><a href="../shots/owner_payment_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_payment_received.html"><img loading="lazy" src="../shots/owner_payment_received.desktop.png" alt="Screenshot of owner_payment_received"></a><div class="b">
+<div class="code">owner_payment_received</div><div class="sub">Payment received: $536.75 for invoice INV-2026-11-0042</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner invoice changes to paid: the debit for a monthly invoice clears (including a cleared retry), or the upfront invoice is paid by card or e-Transfer.</div>
+<div class="ln"><a href="../dist/owner_payment_received.html">HTML</a><a href="../dist/owner_payment_received.txt">Text</a><a href="../shots/owner_payment_received.desktop.png">Desktop</a><a href="../shots/owner_payment_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_payout_sent.html"><img loading="lazy" src="../shots/owner_payout_sent.desktop.png" alt="Screenshot of owner_payout_sent"></a><div class="b">
+<div class="code">owner_payout_sent</div><div class="sub">Payout sent: $1,922.25 for November</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A payout row for an owner changes to paid (an admin sent the bank transfer and recorded its reference). Normally the 10th. Not sent when the statement shows a balance owing instead of a payout. (Message template T26, payment part.)</div>
+<div class="ln"><a href="../dist/owner_payout_sent.html">HTML</a><a href="../dist/owner_payout_sent.txt">Text</a><a href="../shots/owner_payout_sent.desktop.png">Desktop</a><a href="../shots/owner_payout_sent.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_registry_visit.html"><img loading="lazy" src="../shots/owner_registry_visit.desktop.png" alt="Screenshot of owner_registry_visit"></a><div class="b">
+<div class="code">owner_registry_visit</div><div class="sub">Registry visit booked: Thu, Nov 5, 2026 at 11:30 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to registry_booked (Fleet booked the registry visit), and again if the date, time or place changes. (Message template T21.)</div>
+<div class="ln"><a href="../dist/owner_registry_visit.html">HTML</a><a href="../dist/owner_registry_visit.txt">Text</a><a href="../shots/owner_registry_visit.desktop.png">Desktop</a><a href="../shots/owner_registry_visit.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_statement_ready.html"><img loading="lazy" src="../shots/owner_statement_ready.desktop.png" alt="Screenshot of owner_statement_ready"></a><div class="b">
+<div class="code">owner_statement_ready</div><div class="sub">Your November statement: $1,922.25</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner statement changes to issued: on the 10th of the month, after an admin approves the payout run, for the previous month. One statement and one email per owner, covering all their vehicles. (Message template T26, statement part.)</div>
+<div class="ln"><a href="../dist/owner_statement_ready.html">HTML</a><a href="../dist/owner_statement_ready.txt">Text</a><a href="../shots/owner_statement_ready.desktop.png">Desktop</a><a href="../shots/owner_statement_ready.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_toll_ticket.html"><img loading="lazy" src="../shots/owner_toll_ticket.desktop.png" alt="Screenshot of owner_toll_ticket"></a><div class="b">
+<div class="code">owner_toll_ticket</div><div class="sub">Parking ticket for your 2023 Toyota RAV4 XLE, $50.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A toll or ticket is matched to the owner rather than a renter. is_forwarded true: the owner had the car outside the program, or the car is Turo-Only, and the notice is forwarded for the owner to pay. is_forwarded false: the owner had the car on an Owner Booking, CarmaCars paid it and an owner deduction is created at cost with no fee.</div>
+<div class="ln"><a href="../dist/owner_toll_ticket.html">HTML</a><a href="../dist/owner_toll_ticket.txt">Text</a><a href="../shots/owner_toll_ticket.desktop.png">Desktop</a><a href="../shots/owner_toll_ticket.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_upfront_invoice.html"><img loading="lazy" src="../shots/owner_upfront_invoice.desktop.png" alt="Screenshot of owner_upfront_invoice"></a><div class="b">
+<div class="code">owner_upfront_invoice</div><div class="sub">Upfront invoice INV-U-0031 for the 2023 Toyota RAV4 XLE: $1,130.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The upfront owner invoice for a vehicle is issued after documents_signed: the Install Fee plus the first and last month's Insurance Fee, with HST. Not issued for Turo-Only or shareholder-owned vehicles.</div>
+<div class="ln"><a href="../dist/owner_upfront_invoice.html">HTML</a><a href="../dist/owner_upfront_invoice.txt">Text</a><a href="../shots/owner_upfront_invoice.desktop.png">Desktop</a><a href="../shots/owner_upfront_invoice.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_vehicle_enrolled.html"><img loading="lazy" src="../shots/owner_vehicle_enrolled.desktop.png" alt="Screenshot of owner_vehicle_enrolled"></a><div class="b">
+<div class="code">owner_vehicle_enrolled</div><div class="sub">Written confirmation: your 2023 Toyota RAV4 XLE is on the fleet policy</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle onboarding status changes to enrolled (the insurer's confirmation is filed and the vehicle is on the fleet policy). This email is the written confirmation that sets the Enrollment Date. (Message template T22.)</div>
+<div class="ln"><a href="../dist/owner_vehicle_enrolled.html">HTML</a><a href="../dist/owner_vehicle_enrolled.txt">Text</a><a href="../shots/owner_vehicle_enrolled.desktop.png">Desktop</a><a href="../shots/owner_vehicle_enrolled.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_vehicle_listed.html"><img loading="lazy" src="../shots/owner_vehicle_listed.desktop.png" alt="Screenshot of owner_vehicle_listed"></a><div class="b">
+<div class="code">owner_vehicle_listed</div><div class="sub">Your 2023 Toyota RAV4 XLE is live and open for bookings</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing).</div>
+<div class="ln"><a href="../dist/owner_vehicle_listed.html">HTML</a><a href="../dist/owner_vehicle_listed.txt">Text</a><a href="../shots/owner_vehicle_listed.desktop.png">Desktop</a><a href="../shots/owner_vehicle_listed.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="investor">Investor (3)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/investor_notice_received.html"><img loading="lazy" src="../shots/investor_notice_received.desktop.png" alt="Screenshot of investor_notice_received"></a><div class="b">
+<div class="code">investor_notice_received</div><div class="sub">We received your notice of Mon, Jul 5, 2027</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An admin logs a written notice received from an existing investor (change of bank account, change of the pay or reinvest election, change of contact details, or another notice under the Investment Agreement).</div>
+<div class="ln"><a href="../dist/investor_notice_received.html">HTML</a><a href="../dist/investor_notice_received.txt">Text</a><a href="../shots/investor_notice_received.desktop.png">Desktop</a><a href="../shots/investor_notice_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/investor_return_paid.html"><img loading="lazy" src="../shots/investor_return_paid.desktop.png" alt="Screenshot of investor_return_paid"></a><div class="b">
+<div class="code">investor_return_paid</div><div class="sub">Payment sent: $500.00 for July 2027</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An investor monthly return row changes to paid (an admin sent the transfer on the Payment Date, the 15th of the month after the Return Month, and recorded its reference). Not sent for a reinvested return.</div>
+<div class="ln"><a href="../dist/investor_return_paid.html">HTML</a><a href="../dist/investor_return_paid.txt">Text</a><a href="../shots/investor_return_paid.desktop.png">Desktop</a><a href="../shots/investor_return_paid.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/investor_statement_ready.html"><img loading="lazy" src="../shots/investor_statement_ready.desktop.png" alt="Screenshot of investor_statement_ready"></a><div class="b">
+<div class="code">investor_statement_ready</div><div class="sub">Your July 2027 statement is ready</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An investor monthly statement for a Return Month is issued by an admin (after the returns accrual on the 1st). Sent only to existing investors with an active investment. Neutral servicing notice.</div>
+<div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_admin">Staff: admin (11)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
+<div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A task that only an admin can approve is raised, other than a tracker disable: a refund outside the tier table or over the VA limit, a deposit release with a hold-back, a price override, a fee off the grid, or a write-off. Queued for the next admin digest. Sent immediately instead when its due time is within 4 hours.</div>
+<div class="ln"><a href="../dist/staff_approval_needed.html">HTML</a><a href="../dist/staff_approval_needed.txt">Text</a><a href="../shots/staff_approval_needed.desktop.png">Desktop</a><a href="../shots/staff_approval_needed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_eod_admin.html"><img loading="lazy" src="../shots/staff_digest_eod_admin.desktop.png" alt="Screenshot of staff_digest_eod_admin"></a><div class="b">
+<div class="code">staff_digest_eod_admin</div><div class="sub">Admin end of day: 4 items open, Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Admin. Sent every day at 18:15 Toronto time (after the 18:00 reconcile job) to each active staff member with this role. Skipped when there is nothing to report. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: bookings confirmed today, money collected today, approvals still open, incidents updated today, anything a VA escalated that is not closed, tomorrow's pickups and returns. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_eod_admin.html">HTML</a><a href="../dist/staff_digest_eod_admin.txt">Text</a><a href="../shots/staff_digest_eod_admin.desktop.png">Desktop</a><a href="../shots/staff_digest_eod_admin.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_morning_admin.html"><img loading="lazy" src="../shots/staff_digest_morning_admin.desktop.png" alt="Screenshot of staff_digest_morning_admin"></a><div class="b">
+<div class="code">staff_digest_morning_admin</div><div class="sub">Admin morning digest: 5 items for Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Admin. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: approvals waiting, open incidents and claims, open disputes, late returns, charges unpaid over 24 hours, owners in arrears, requests waiting over 2 hours, failed jobs. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_morning_admin.html">HTML</a><a href="../dist/staff_digest_morning_admin.txt">Text</a><a href="../shots/staff_digest_morning_admin.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_admin.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_disable_approval_needed.html"><img loading="lazy" src="../shots/staff_disable_approval_needed.desktop.png" alt="Screenshot of staff_disable_approval_needed"></a><div class="b">
+<div class="code">staff_disable_approval_needed</div><div class="sub">APPROVAL NEEDED: disable 2024 Honda Civic Sport, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A tracker command of type engine disable is created with status requested (Fleet asks after the final notice deadline passes, or on another ground in procedure 8). Sent to both admins. Immediate. The car is never disabled by a job.</div>
+<div class="ln"><a href="../dist/staff_disable_approval_needed.html">HTML</a><a href="../dist/staff_disable_approval_needed.txt">Text</a><a href="../shots/staff_disable_approval_needed.desktop.png">Desktop</a><a href="../shots/staff_disable_approval_needed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_dispute_opened.html"><img loading="lazy" src="../shots/staff_dispute_opened.desktop.png" alt="Screenshot of staff_dispute_opened"></a><div class="b">
+<div class="code">staff_dispute_opened</div><div class="sub">DISPUTE: $468.95 on booking CC-10482, answer by Mon, Nov 9, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A dispute row is created from the payment processor webhook (a card dispute or chargeback is opened on a renter payment, or a debit dispute on an owner invoice). Sent to both admins and finance. Immediate.</div>
+<div class="ln"><a href="../dist/staff_dispute_opened.html">HTML</a><a href="../dist/staff_dispute_opened.txt">Text</a><a href="../shots/staff_dispute_opened.desktop.png">Desktop</a><a href="../shots/staff_dispute_opened.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_fleet_count_warning.html"><img loading="lazy" src="../shots/staff_fleet_count_warning.desktop.png" alt="Screenshot of staff_fleet_count_warning"></a><div class="b">
+<div class="code">staff_fleet_count_warning</div><div class="sub">Fleet count is 11. The minimum is 10</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Fleet-recount job (Monday 08:00): vehicles on the fleet policy, less those under exit notice, number 11 or fewer. Also sent at once when an exit notice or removal would take the count to 11 or fewer. Turo-Only cars are not counted.</div>
+<div class="ln"><a href="../dist/staff_fleet_count_warning.html">HTML</a><a href="../dist/staff_fleet_count_warning.txt">Text</a><a href="../shots/staff_fleet_count_warning.desktop.png">Desktop</a><a href="../shots/staff_fleet_count_warning.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_incident_reported.html"><img loading="lazy" src="../shots/staff_incident_reported.desktop.png" alt="Screenshot of staff_incident_reported"></a><div class="b">
+<div class="code">staff_incident_reported</div><div class="sub">INCIDENT INC-2041: Accident, 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident row is created of type accident, theft, vandalism or damage (including damage recorded on a return condition report or found in the photo review). Sent to both admins and Fleet. Immediate.</div>
+<div class="ln"><a href="../dist/staff_incident_reported.html">HTML</a><a href="../dist/staff_incident_reported.txt">Text</a><a href="../shots/staff_incident_reported.desktop.png">Desktop</a><a href="../shots/staff_incident_reported.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_job_failed.html"><img loading="lazy" src="../shots/staff_job_failed.desktop.png" alt="Screenshot of staff_job_failed"></a><div class="b">
+<div class="code">staff_job_failed</div><div class="sub">JOB FAILED: owner-billing, Sun, Nov 15, 2026 at 6:10 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A scheduled job run is marked failed in job_runs (which also raises one urgent admin task). Sent to both admins once per job per day. Immediate.</div>
+<div class="ln"><a href="../dist/staff_job_failed.html">HTML</a><a href="../dist/staff_job_failed.txt">Text</a><a href="../shots/staff_job_failed.desktop.png">Desktop</a><a href="../shots/staff_job_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_payouts_due.html"><img loading="lazy" src="../shots/staff_payouts_due.desktop.png" alt="Screenshot of staff_payouts_due"></a><div class="b">
+<div class="code">staff_payouts_due</div><div class="sub">Payouts due today: 14 transfers, $21,480.60</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Payouts job on the 10th at 08:00: approved owner payouts are due to be sent by bank transfer that day. Also on the 15th at 08:00 for investor returns due on the Payment Date. One email to both admins and finance. If the run is not approved yet, the email says so.</div>
+<div class="ln"><a href="../dist/staff_payouts_due.html">HTML</a><a href="../dist/staff_payouts_due.txt">Text</a><a href="../shots/staff_payouts_due.desktop.png">Desktop</a><a href="../shots/staff_payouts_due.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_statements_ready_for_approval.html"><img loading="lazy" src="../shots/staff_statements_ready_for_approval.desktop.png" alt="Screenshot of staff_statements_ready_for_approval"></a><div class="b">
+<div class="code">staff_statements_ready_for_approval</div><div class="sub">November owner statements are ready for approval</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Statements-draft job on the 5th at 06:00: the draft owner statements for last month are built and an approval task is raised. One email to both admins. A reminder is sent on the 8th at 09:00 if the run is still not approved.</div>
+<div class="ln"><a href="../dist/staff_statements_ready_for_approval.html">HTML</a><a href="../dist/staff_statements_ready_for_approval.txt">Text</a><a href="../shots/staff_statements_ready_for_approval.desktop.png">Desktop</a><a href="../shots/staff_statements_ready_for_approval.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_weekly_summary.html"><img loading="lazy" src="../shots/staff_weekly_summary.desktop.png" alt="Screenshot of staff_weekly_summary"></a><div class="b">
+<div class="code">staff_weekly_summary</div><div class="sub">Week of Oct 19 to 25: 14 bookings, $9,842.10 collected</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled: every Monday at 07:45 Toronto time, for the week that ended Sunday at midnight. One email to each of the two admins. Always sent, even with no activity.</div>
+<div class="ln"><a href="../dist/staff_weekly_summary.html">HTML</a><a href="../dist/staff_weekly_summary.txt">Text</a><a href="../shots/staff_weekly_summary.desktop.png">Desktop</a><a href="../shots/staff_weekly_summary.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_va_finance">Staff: VA finance (8)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_cancellation_received.html"><img loading="lazy" src="../shots/staff_cancellation_received.desktop.png" alt="Screenshot of staff_cancellation_received"></a><div class="b">
+<div class="code">staff_cancellation_received</div><div class="sub">Cancelled: CC-10482, refund $351.71 to process</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A booking cancellation row is created (booking status becomes cancelled or no_show). Queued for the next finance and customer service digests. Sent immediately to the admins instead when the refund is over $500 or outside the tier table, because it needs approval.</div>
+<div class="ln"><a href="../dist/staff_cancellation_received.html">HTML</a><a href="../dist/staff_cancellation_received.txt">Text</a><a href="../shots/staff_cancellation_received.desktop.png">Desktop</a><a href="../shots/staff_cancellation_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_eod_va_finance.html"><img loading="lazy" src="../shots/staff_digest_eod_va_finance.desktop.png" alt="Screenshot of staff_digest_eod_va_finance"></a><div class="b">
+<div class="code">staff_digest_eod_va_finance</div><div class="sub">Finance end of day: 2 items open, Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Finance. Sent every day at 18:15 Toronto time (after the 18:00 reconcile job) to each active staff member with this role. Skipped when there is nothing to report. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: processor payouts not matched by the 18:00 reconcile job, today's returns not yet billed, refunds still open, cancellations received today, payments that failed today. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_eod_va_finance.html">HTML</a><a href="../dist/staff_digest_eod_va_finance.txt">Text</a><a href="../shots/staff_digest_eod_va_finance.desktop.png">Desktop</a><a href="../shots/staff_digest_eod_va_finance.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_morning_va_finance.html"><img loading="lazy" src="../shots/staff_digest_morning_va_finance.desktop.png" alt="Screenshot of staff_digest_morning_va_finance"></a><div class="b">
+<div class="code">staff_digest_morning_va_finance</div><div class="sub">Finance morning digest: 5 items for Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Finance. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: returns waiting for a statement, deposits near 7 business days since check-in, hold-backs near 30 days, card retries due today, declined payments, tolls and tickets to match and charge, refunds to process, owner invoices failed. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_morning_va_finance.html">HTML</a><a href="../dist/staff_digest_morning_va_finance.txt">Text</a><a href="../shots/staff_digest_morning_va_finance.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_finance.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_invoice_failed.html"><img loading="lazy" src="../shots/staff_owner_invoice_failed.desktop.png" alt="Screenshot of staff_owner_invoice_failed"></a><div class="b">
+<div class="code">staff_owner_invoice_failed</div><div class="sub">Owner debit first failure: Daniel Rossi, 2022 Hyundai Elantra Preferred, $536.75</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">An owner invoice changes to failed (first debit returned) or in_arrears (retry on the 18th returned). Queued for the next finance digest. The in_arrears case is also sent immediately to both admins.</div>
+<div class="ln"><a href="../dist/staff_owner_invoice_failed.html">HTML</a><a href="../dist/staff_owner_invoice_failed.txt">Text</a><a href="../shots/staff_owner_invoice_failed.desktop.png">Desktop</a><a href="../shots/staff_owner_invoice_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_payment_failed.html"><img loading="lazy" src="../shots/staff_payment_failed.desktop.png" alt="Screenshot of staff_payment_failed"></a><div class="b">
+<div class="code">staff_payment_failed</div><div class="sub">Declined: $35.37 on booking CC-10482</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A charge to a renter's Card on File is declined (payment attempt fails, not a checkout attempt on an offer). Queued for the next finance digest. Sent immediately to finance and admins instead when the booking is on_rent and the charge is still unpaid 24 hours after the request.</div>
+<div class="ln"><a href="../dist/staff_payment_failed.html">HTML</a><a href="../dist/staff_payment_failed.txt">Text</a><a href="../shots/staff_payment_failed.desktop.png">Desktop</a><a href="../shots/staff_payment_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_return_findings.html"><img loading="lazy" src="../shots/staff_return_findings.desktop.png" alt="Screenshot of staff_return_findings"></a><div class="b">
+<div class="code">staff_return_findings</div><div class="sub">Return findings: booking CC-10482, fuel short, no damage</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Fleet completes the review of a return (the return condition report is reviewed and the findings are saved on the booking). Queued for the next finance digest. Sent immediately to the admins as well when damage is recorded. (Message template T7, internal.)</div>
+<div class="ln"><a href="../dist/staff_return_findings.html">HTML</a><a href="../dist/staff_return_findings.txt">Text</a><a href="../shots/staff_return_findings.desktop.png">Desktop</a><a href="../shots/staff_return_findings.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_toll_ticket_logged.html"><img loading="lazy" src="../shots/staff_toll_ticket_logged.desktop.png" alt="Screenshot of staff_toll_ticket_logged"></a><div class="b">
+<div class="code">staff_toll_ticket_logged</div><div class="sub">Toll invoice logged: plate CMCR 482, $18.42, due Nov 20, 2026</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A toll or ticket row is created (a notice is logged) and the automatic match has run. Queued for the next finance digest with the match result.</div>
+<div class="ln"><a href="../dist/staff_toll_ticket_logged.html">HTML</a><a href="../dist/staff_toll_ticket_logged.txt">Text</a><a href="../shots/staff_toll_ticket_logged.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_logged.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_toll_ticket_unmatched.html"><img loading="lazy" src="../shots/staff_toll_ticket_unmatched.desktop.png" alt="Screenshot of staff_toll_ticket_unmatched"></a><div class="b">
+<div class="code">staff_toll_ticket_unmatched</div><div class="sub">Unmatched for 2 business days: Parking ticket, plate CMCR 482</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Daily check at 06:00: a toll or ticket row has had no match for 2 business days since it was logged. Queued for the morning digest of finance and the admins, once per notice.</div>
+<div class="ln"><a href="../dist/staff_toll_ticket_unmatched.html">HTML</a><a href="../dist/staff_toll_ticket_unmatched.txt">Text</a><a href="../shots/staff_toll_ticket_unmatched.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_unmatched.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_va_fleet">Staff: VA fleet (7)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_breakdown_reported.html"><img loading="lazy" src="../shots/staff_breakdown_reported.desktop.png" alt="Screenshot of staff_breakdown_reported"></a><div class="b">
+<div class="code">staff_breakdown_reported</div><div class="sub">BREAKDOWN: 2024 Honda Civic Sport, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An incident row of type breakdown is created (a call to the 24-hour line is logged, or the renter reports it in the portal). Sent to the on-call Fleet person. Immediate.</div>
+<div class="ln"><a href="../dist/staff_breakdown_reported.html">HTML</a><a href="../dist/staff_breakdown_reported.txt">Text</a><a href="../shots/staff_breakdown_reported.desktop.png">Desktop</a><a href="../shots/staff_breakdown_reported.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_eod_va_fleet.html"><img loading="lazy" src="../shots/staff_digest_eod_va_fleet.desktop.png" alt="Screenshot of staff_digest_eod_va_fleet"></a><div class="b">
+<div class="code">staff_digest_eod_va_fleet</div><div class="sub">Fleet end of day: 2 items open, Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Fleet. Sent every day at 18:15 Toronto time (after the 18:00 reconcile job) to each active staff member with this role. Skipped when there is nothing to report. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: the closing checks of procedure 19: handovers and returns without a signed condition report or full photo set, returns with no findings sent to Finance, calendar statuses that do not match, tomorrow's cars not cleaned, incidents updated, the handover note for the on-call person. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_eod_va_fleet.html">HTML</a><a href="../dist/staff_digest_eod_va_fleet.txt">Text</a><a href="../shots/staff_digest_eod_va_fleet.desktop.png">Desktop</a><a href="../shots/staff_digest_eod_va_fleet.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_morning_va_fleet.html"><img loading="lazy" src="../shots/staff_digest_morning_va_fleet.desktop.png" alt="Screenshot of staff_digest_morning_va_fleet"></a><div class="b">
+<div class="code">staff_digest_morning_va_fleet</div><div class="sub">Fleet morning digest: 4 items for Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Fleet. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: the opening checks of procedure 19: trackers not reporting, overnight movement or tamper alerts, today's handovers and returns with their field person and acknowledgement, tomorrow's pickups not ready, late returns, the expiry watch, listings to review, cars due for cleaning. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_morning_va_fleet.html">HTML</a><a href="../dist/staff_digest_morning_va_fleet.txt">Text</a><a href="../shots/staff_digest_morning_va_fleet.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_fleet.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_exit_notice_received.html"><img loading="lazy" src="../shots/staff_exit_notice_received.desktop.png" alt="Screenshot of staff_exit_notice_received"></a><div class="b">
+<div class="code">staff_exit_notice_received</div><div class="sub">Exit notice: Daniel Rossi, 2024 Honda Civic Sport, Exit Date Wed, Dec 2, 2026</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Vehicle status changes to exit_notice. Queued for the next Fleet, finance and admin digests. Sent immediately to the admins instead when the fleet count after the exit would be below 10.</div>
+<div class="ln"><a href="../dist/staff_exit_notice_received.html">HTML</a><a href="../dist/staff_exit_notice_received.txt">Text</a><a href="../shots/staff_exit_notice_received.desktop.png">Desktop</a><a href="../shots/staff_exit_notice_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_expiry_watch.html"><img loading="lazy" src="../shots/staff_expiry_watch.desktop.png" alt="Screenshot of staff_expiry_watch"></a><div class="b">
+<div class="code">staff_expiry_watch</div><div class="sub">Expiry watch: 4 items, 1 within 3 days</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Expiry-watch job (daily 06:00) finds at least one item inside its window: plate renewal within 30 days, an insurance document within 14 days, a safety certificate inside its 36-day window with no registry visit booked, or arrears older than 30 days. The list is included in the Fleet morning digest; sent as its own email to Fleet and admins only when an item expires within 3 days.</div>
+<div class="ln"><a href="../dist/staff_expiry_watch.html">HTML</a><a href="../dist/staff_expiry_watch.txt">Text</a><a href="../shots/staff_expiry_watch.desktop.png">Desktop</a><a href="../shots/staff_expiry_watch.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_late_return_alert.html"><img loading="lazy" src="../shots/staff_late_return_alert.desktop.png" alt="Screenshot of staff_late_return_alert"></a><div class="b">
+<div class="code">staff_late_return_alert</div><div class="sub">LATE 120 min: 2024 Honda Civic Sport, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Late-returns job (every 5 minutes): an on_rent booking passes its return time with no paid extension. Sent to Fleet at 0 minutes and at 30 minutes, and to Fleet and both admins at 2 hours. Immediate. The stage fills late_stage.</div>
+<div class="ln"><a href="../dist/staff_late_return_alert.html">HTML</a><a href="../dist/staff_late_return_alert.txt">Text</a><a href="../shots/staff_late_return_alert.desktop.png">Desktop</a><a href="../shots/staff_late_return_alert.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_listing_ready_for_review.html"><img loading="lazy" src="../shots/staff_listing_ready_for_review.desktop.png" alt="Screenshot of staff_listing_ready_for_review"></a><div class="b">
+<div class="code">staff_listing_ready_for_review</div><div class="sub">Listing ready for review: 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">The AI drafting step finishes for a vehicle listing (photos processed, description and details drafted) and the vehicle status becomes ready_to_list. Queued for the next Fleet digest. Nothing is published until a person approves.</div>
+<div class="ln"><a href="../dist/staff_listing_ready_for_review.html">HTML</a><a href="../dist/staff_listing_ready_for_review.txt">Text</a><a href="../shots/staff_listing_ready_for_review.desktop.png">Desktop</a><a href="../shots/staff_listing_ready_for_review.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_va_cs">Staff: VA customer service (9)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_booking_request_new.html"><img loading="lazy" src="../shots/staff_booking_request_new.desktop.png" alt="Screenshot of staff_booking_request_new"></a><div class="b">
+<div class="code">staff_booking_request_new</div><div class="sub">New request CC-10482: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking row is created with status requested. Sent to every active customer service VA. Immediate, never batched.</div>
+<div class="ln"><a href="../dist/staff_booking_request_new.html">HTML</a><a href="../dist/staff_booking_request_new.txt">Text</a><a href="../shots/staff_booking_request_new.desktop.png">Desktop</a><a href="../shots/staff_booking_request_new.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_change_request_received.html"><img loading="lazy" src="../shots/staff_change_request_received.desktop.png" alt="Screenshot of staff_change_request_received"></a><div class="b">
+<div class="code">staff_change_request_received</div><div class="sub">Change request on CC-10482: return one day later</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A booking change request row is created by a renter. Queued for the next customer service digest. Sent immediately instead when the pickup is less than 48 hours away or the booking is on_rent.</div>
+<div class="ln"><a href="../dist/staff_change_request_received.html">HTML</a><a href="../dist/staff_change_request_received.txt">Text</a><a href="../shots/staff_change_request_received.desktop.png">Desktop</a><a href="../shots/staff_change_request_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_eod_va_cs.html"><img loading="lazy" src="../shots/staff_digest_eod_va_cs.desktop.png" alt="Screenshot of staff_digest_eod_va_cs"></a><div class="b">
+<div class="code">staff_digest_eod_va_cs</div><div class="sub">Customer service end of day: 4 items open, Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Customer service. Sent every day at 18:15 Toronto time (after the 18:00 reconcile job) to each active staff member with this role. Skipped when there is nothing to report. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: requests still unanswered, offers sent today and still open, documents still to review, change requests open, tomorrow's pickups and their verification status, reviews received today. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_eod_va_cs.html">HTML</a><a href="../dist/staff_digest_eod_va_cs.txt">Text</a><a href="../shots/staff_digest_eod_va_cs.desktop.png">Desktop</a><a href="../shots/staff_digest_eod_va_cs.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_morning_va_cs.html"><img loading="lazy" src="../shots/staff_digest_morning_va_cs.desktop.png" alt="Screenshot of staff_digest_morning_va_cs"></a><div class="b">
+<div class="code">staff_digest_morning_va_cs</div><div class="sub">Customer service morning digest: 6 items for Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Customer service. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: requests waiting for an offer, requests waiting on the renter, offers open and when each expires, identity and coverage documents to review, change requests, tomorrow's pickups with verification incomplete, reviews to moderate, bookings confirmed since the last digest. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_morning_va_cs.html">HTML</a><a href="../dist/staff_digest_morning_va_cs.txt">Text</a><a href="../shots/staff_digest_morning_va_cs.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_cs.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_extension_requested.html"><img loading="lazy" src="../shots/staff_extension_requested.desktop.png" alt="Screenshot of staff_extension_requested"></a><div class="b">
+<div class="code">staff_extension_requested</div><div class="sub">Extension asked: CC-10482, current return Mon, Oct 26, 2026 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booking extension row is created with status requested. Immediate, because an extension must be confirmed in writing and paid before the current return time.</div>
+<div class="ln"><a href="../dist/staff_extension_requested.html">HTML</a><a href="../dist/staff_extension_requested.txt">Text</a><a href="../shots/staff_extension_requested.desktop.png">Desktop</a><a href="../shots/staff_extension_requested.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_identity_review.html"><img loading="lazy" src="../shots/staff_identity_review.desktop.png" alt="Screenshot of staff_identity_review"></a><div class="b">
+<div class="code">staff_identity_review</div><div class="sub">Documents to review: Maya Okafor, booking CC-10482</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A renter or additional driver uploads identity documents (licence front, back and selfie) or coverage proof, creating a verification in status pending review. Queued for the next customer service digest. Sent immediately instead when the booking's pickup is less than 48 hours away.</div>
+<div class="ln"><a href="../dist/staff_identity_review.html">HTML</a><a href="../dist/staff_identity_review.txt">Text</a><a href="../shots/staff_identity_review.desktop.png">Desktop</a><a href="../shots/staff_identity_review.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_offer_approved_paid.html"><img loading="lazy" src="../shots/staff_offer_approved_paid.desktop.png" alt="Screenshot of staff_offer_approved_paid"></a><div class="b">
+<div class="code">staff_offer_approved_paid</div><div class="sub">Confirmed and paid: CC-10482, 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Booking status changes to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.</div>
+<div class="ln"><a href="../dist/staff_offer_approved_paid.html">HTML</a><a href="../dist/staff_offer_approved_paid.txt">Text</a><a href="../shots/staff_offer_approved_paid.desktop.png">Desktop</a><a href="../shots/staff_offer_approved_paid.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_request_waiting.html"><img loading="lazy" src="../shots/staff_request_waiting.desktop.png" alt="Screenshot of staff_request_waiting"></a><div class="b">
+<div class="code">staff_request_waiting</div><div class="sub">Waiting 2 hours 5 minutes: request CC-10482 has no offer</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours with no offer, information request or decline. Sent once per request, to customer service and both admins. Immediate.</div>
+<div class="ln"><a href="../dist/staff_request_waiting.html">HTML</a><a href="../dist/staff_request_waiting.txt">Text</a><a href="../shots/staff_request_waiting.desktop.png">Desktop</a><a href="../shots/staff_request_waiting.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_review_received.html"><img loading="lazy" src="../shots/staff_review_received.desktop.png" alt="Screenshot of staff_review_received"></a><div class="b">
+<div class="code">staff_review_received</div><div class="sub">New review: 5 of 5 for the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A renter submits a review for a closed booking (review row created, status pending moderation). Queued for the next customer service digest. A rating of 2 stars or lower is sent immediately to customer service and both admins instead.</div>
+<div class="ln"><a href="../dist/staff_review_received.html">HTML</a><a href="../dist/staff_review_received.txt">Text</a><a href="../shots/staff_review_received.desktop.png">Desktop</a><a href="../shots/staff_review_received.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_va_sales">Staff: VA sales (3)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_digest_eod_va_sales.html"><img loading="lazy" src="../shots/staff_digest_eod_va_sales.desktop.png" alt="Screenshot of staff_digest_eod_va_sales"></a><div class="b">
+<div class="code">staff_digest_eod_va_sales</div><div class="sub">Sales end of day: 2 items open, Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Sales. Sent every day at 18:15 Toronto time (after the 18:00 reconcile job) to each active staff member with this role. Skipped when there is nothing to report. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: applications received today and whether each was answered, documents signed today, upfront invoices paid today, applications with no contact for 3 days. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_eod_va_sales.html">HTML</a><a href="../dist/staff_digest_eod_va_sales.txt">Text</a><a href="../shots/staff_digest_eod_va_sales.desktop.png">Desktop</a><a href="../shots/staff_digest_eod_va_sales.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_digest_morning_va_sales.html"><img loading="lazy" src="../shots/staff_digest_morning_va_sales.desktop.png" alt="Screenshot of staff_digest_morning_va_sales"></a><div class="b">
+<div class="code">staff_digest_morning_va_sales</div><div class="sub">Sales morning digest: 4 items for Tue, Oct 20</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for Sales. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: owner applications not yet answered, owners with documents sent but not signed, upfront invoices unpaid, onboardings waiting on an owner document, registry visits in the next 7 days. Each line links to the item. One email replaces the separate notices.</div>
+<div class="ln"><a href="../dist/staff_digest_morning_va_sales.html">HTML</a><a href="../dist/staff_digest_morning_va_sales.txt">Text</a><a href="../shots/staff_digest_morning_va_sales.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_sales.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_application_received.html"><img loading="lazy" src="../shots/staff_owner_application_received.desktop.png" alt="Screenshot of staff_owner_application_received"></a><div class="b">
+<div class="code">staff_owner_application_received</div><div class="sub">New owner application: Daniel Rossi, 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner vehicle application is submitted (vehicle onboarding row created with status intake), from a new owner or an enrolled owner adding a vehicle. Sent to every active sales VA. Immediate.</div>
+<div class="ln"><a href="../dist/staff_owner_application_received.html">HTML</a><a href="../dist/staff_owner_application_received.txt">Text</a><a href="../shots/staff_owner_application_received.desktop.png">Desktop</a><a href="../shots/staff_owner_application_received.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="staff_field">Staff: field (4)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/staff_field_job_assigned.html"><img loading="lazy" src="../shots/staff_field_job_assigned.desktop.png" alt="Screenshot of staff_field_job_assigned"></a><div class="b">
+<div class="code">staff_field_job_assigned</div><div class="sub">New job: Pickup handover, Fri, Oct 23 at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A field job (pickup handover, return, tracker install, detail or photo shoot) is assigned to a field staff member, or reassigned to a new one. Sent to the new assignee. Immediate.</div>
+<div class="ln"><a href="../dist/staff_field_job_assigned.html">HTML</a><a href="../dist/staff_field_job_assigned.txt">Text</a><a href="../shots/staff_field_job_assigned.desktop.png">Desktop</a><a href="../shots/staff_field_job_assigned.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_field_job_changed.html"><img loading="lazy" src="../shots/staff_field_job_changed.desktop.png" alt="Screenshot of staff_field_job_changed"></a><div class="b">
+<div class="code">staff_field_job_changed</div><div class="sub">Job changed: Pickup handover, now Fri, Oct 23 at 10:30 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An assigned field job has its time, place or vehicle changed, or is cancelled or taken away from the assignee. Sent to the staff member who held the job. Immediate.</div>
+<div class="ln"><a href="../dist/staff_field_job_changed.html">HTML</a><a href="../dist/staff_field_job_changed.txt">Text</a><a href="../shots/staff_field_job_changed.desktop.png">Desktop</a><a href="../shots/staff_field_job_changed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_field_jobs_today.html"><img loading="lazy" src="../shots/staff_field_jobs_today.desktop.png" alt="Screenshot of staff_field_jobs_today"></a><div class="b">
+<div class="code">staff_field_jobs_today</div><div class="sub">Today: 3 jobs, first at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for field staff: every day at 07:00 Toronto time, one email to each field staff member who has at least one job that day. Skipped for a person with no jobs. Lists the same jobs as the evening digest, with any changes made overnight.</div>
+<div class="ln"><a href="../dist/staff_field_jobs_today.html">HTML</a><a href="../dist/staff_field_jobs_today.txt">Text</a><a href="../shots/staff_field_jobs_today.desktop.png">Desktop</a><a href="../shots/staff_field_jobs_today.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_field_jobs_tomorrow.html"><img loading="lazy" src="../shots/staff_field_jobs_tomorrow.desktop.png" alt="Screenshot of staff_field_jobs_tomorrow"></a><div class="b">
+<div class="code">staff_field_jobs_tomorrow</div><div class="sub">Tomorrow: 3 jobs, first at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Scheduled digest for field staff: every day at 18:00 Toronto time, one email to each field staff member who has at least one job assigned for the next day (pickup handovers, returns, tracker installs, details, photo shoots). Skipped for a person with no jobs. Jobs assigned or changed after it is sent go out at once with staff_field_job_assigned or staff_field_job_changed.</div>
+<div class="ln"><a href="../dist/staff_field_jobs_tomorrow.html">HTML</a><a href="../dist/staff_field_jobs_tomorrow.txt">Text</a><a href="../shots/staff_field_jobs_tomorrow.desktop.png">Desktop</a><a href="../shots/staff_field_jobs_tomorrow.phone.png">Phone</a></div>
+</div></div>
+</div>
+</main></body></html>

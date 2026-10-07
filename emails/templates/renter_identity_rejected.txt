@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Action needed]
+We could not accept one of your documents
+
+Your booking still stands, {{first_name}}. We need a new copy of one item before we can hand over the car.
+
+Item: {{rejected_item}}
+Driver: {{driver_name}}
+Problem: {{reject_reason}}
+
+Upload a new one:
+https://carmacars.ca/account/bookings/{{booking_number}}/verify
+
+Please send it by {{verify_by}}. Use good light, keep all four corners in the frame, and make sure the text is sharp.
+
+If we cannot verify a driver
+We cancel the booking and refund what you paid. False documents, or no confirmed coverage at pickup, count as a cancellation by you at that time.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

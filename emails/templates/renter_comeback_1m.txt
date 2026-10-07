@@ -1,0 +1,32 @@
+CarmaCars  |  An offer for you
+
+========================================
+
+[For your next trip]
+A car when you need one, {{discount_percent}}% off
+
+It has been a month since you returned the {{last_vehicle_name}}, {{first_name}}. If a trip is coming up, this code is yours.
+
+Your code: {{discount_code}}
+{{discount_percent}}% off {{discount_applies_to}}. Book by {{discount_expires}}.
+
+See what is available:
+https://carmacars.ca/cars
+
+- Enter the code when you send your request. We apply it in our offer.
+- One use, for you only.
+- Same process as before: request, approve our offer, sign and pay.
+
+This is the last offer we will send about your last rental.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you agreed to get CarmaCars offers by email.
+Unsubscribe at any time: {{unsubscribe_url}}
+We act on it within 10 business days.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

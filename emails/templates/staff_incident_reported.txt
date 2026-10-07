@@ -1,0 +1,38 @@
+CarmaCars  |  Incident {{incident_number}}
+
+========================================
+
+[Incident reported]
+{{incident_type}}: {{vehicle_name}}
+
+Opened by {{requested_by}} at {{requested_at}}. Every incident goes to an admin at once.
+
+What happened: {{incident_summary}}
+When and where: {{incident_date}}, {{incident_place}}
+Booking: {{booking_number}}, {{renter_name}}
+Injuries: {{injuries}}
+Car drivable: {{drivable}}
+Police report: {{police_report}}
+Vehicle owner: {{owner_name}}
+
+Open the incident:
+https://carmacars.ca/admin/incidents/{{incident_number}}
+
+Today
+------------------------
+
+- Not drivable: tow to an approved shop. The rental ends.
+- Get the estimate from an approved shop only.
+- $2,500 or more: tell the broker the same day.
+- Send the owner their incident notice.
+- Block the calendar until the shop releases the car.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

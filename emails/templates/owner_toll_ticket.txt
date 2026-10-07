@@ -1,0 +1,39 @@
+CarmaCars  |  Notice {{notice_number}}
+
+========================================
+
+[{{notice_type}}]
+A {{notice_type_lower}} came in for your {{vehicle_name}}
+
+Our records show you had the car at the time, {{first_name}}.
+
+Notice: {{notice_description}}
+Date and time: {{notice_event_date}}
+Notice no.: {{notice_number}}
+Amount: {{notice_amount}}
+{{#if is_forwarded}}
+Due to the authority by: {{notice_due_date}}
+{{/if}}
+
+{{#if is_forwarded}}
+IMPORTANT: Please pay this directly by {{notice_due_date}}
+We are forwarding the notice to you. CarmaCars has not paid it. Pay the authority named on the notice so no penalty is added.
+{{else}}
+We paid it. It comes off your next payout.
+{{notice_amount}} is deducted on your next statement, at cost, with no administration fee, because you had the car on an Owner Booking.
+{{/if}}
+
+View the notice:
+{{supporting_document_url}}
+
+If you think this was not you, reply to this email. We check every notice against the trip record for the car.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

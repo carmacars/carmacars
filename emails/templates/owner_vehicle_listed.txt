@@ -1,0 +1,34 @@
+CarmaCars  |  Vehicle listing
+
+========================================
+
+[Approved and listed]
+Your car is live
+
+The {{vehicle_name}} is on carmacars.ca and can be requested from today, {{first_name}}.
+
+{{vehicle_name}}
+
+Daily rate: {{daily_rate}}
+Weekend rate: {{weekend_rate}}
+Weekly rate: {{weekly_rate}}
+Monthly rate (30 days): {{monthly_rate}}
+Kilometres per day: {{km_per_day}}
+Renter deposit: {{deposit_amount}}
+
+View my listing and calendar:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}/calendar
+
+- When you need the car yourself, ask for an Owner Booking in your account before you plan around it. A renter's confirmed booking has priority.
+- We email you each time a booking on this car is confirmed.
+- Earnings are paid on the 10th of each month for the month before, with a statement.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

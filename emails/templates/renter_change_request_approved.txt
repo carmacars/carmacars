@@ -1,0 +1,34 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change available]
+We can make that change
+
+Here is your booking with the change applied, {{first_name}}. It takes effect when you accept.
+
+{{#each approved_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+{{#if has_difference}}
+{{difference_label}}: {{difference_amount}}
+HST included. New booking total: {{total_amount}}.
+{{else}}
+The price stays the same: {{total_amount}}.
+{{/if}}
+
+Review and accept:
+https://carmacars.ca/account/bookings/{{booking_number}}/change
+
+Accept by {{accept_by}}. If the agreement changes, you sign the updated copy in the same step. If you do not accept, your booking stays as it was.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

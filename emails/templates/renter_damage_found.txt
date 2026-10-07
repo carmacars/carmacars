@@ -1,0 +1,34 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Inspection result]
+We found damage after your return
+
+Our inspection of the {{vehicle_name}} on {{inspection_date}} found damage that is not on the pickup report, {{first_name}}.
+
+Found: {{damage_description}}
+Inspected: {{inspection_date}}
+Checked in: {{checkin_date}}, {{checkin_time}}
+
+View the photos:
+{{supporting_document_url}}
+
+What happens next
+------------------------
+
+- We get an estimate from an approved shop.
+- You receive an itemized statement with the estimate before anything is charged.
+- If you have coverage for the rental, tell your insurer or card issuer now. They may have a deadline.
+
+If you know how this happened, or believe it was there before, reply to this email with anything that helps. Photos from your rental are useful.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

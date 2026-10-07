@@ -1,0 +1,29 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Offer withdrawn]
+We have had to withdraw this offer
+
+Sorry, {{first_name}}. The offer we sent for the {{vehicle_name}} is no longer open. Nothing was booked or charged.
+
+Reason
+{{withdraw_reason}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Your request is still with us. We are checking whether another car or other times can work, and we will email you a new offer or tell you plainly if we cannot help.
+
+View my request:
+https://carmacars.ca/account/bookings/{{booking_number}}/request
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,29 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Offer expiring]
+Your offer ends in {{time_left}}
+
+We are still holding the {{vehicle_name}} for you, {{first_name}}. The hold ends {{offer_expires_at}}.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Total to pay now: {{total_amount}}
+HST included. The {{deposit_amount}} security deposit is separate and taken at pickup.
+
+Approve and pay:
+https://carmacars.ca/account/bookings/{{booking_number}}/offer
+
+If the dates no longer work, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change). If you have changed your mind, do nothing and the offer will lapse. No charge either way.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

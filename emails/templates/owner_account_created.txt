@@ -1,0 +1,32 @@
+CarmaCars  |  Owner account
+
+========================================
+
+[Owner account]
+Confirm your email, {{first_name}}
+
+Your owner account is where you sign agreements, follow each vehicle, and see invoices, statements and payouts.
+
+Confirm my email:
+{{verify_url}}
+
+The link works once and expires in {{link_expiry}}. If it has expired, sign in and we will send a new one.
+
+What you can do there
+------------------------
+
+- Apply to enrol a vehicle and track each onboarding step
+- Sign your agreements on screen
+- See bookings, live location, fee invoices and monthly statements
+
+If you did not open this account, ignore this email and nothing happens.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

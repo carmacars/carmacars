@@ -1,0 +1,32 @@
+CarmaCars  |  {{digest_date}}
+
+========================================
+
+[Jobs for today]
+Today, {{digest_date}}
+
+Hi {{first_name}}. {{jobs_summary}}
+
+Jobs: {{job_count}}
+First job: {{first_job_time}}
+
+{{#each jobs}}
+- {{time}}  {{type}}: {{vehicle}}
+  {{place}}. {{note}}
+  {{url}}
+{{/each}}
+
+Open my jobs:
+https://carmacars.ca/field
+
+Have each car ready 30 minutes before a pickup. Photos are reviewed within 1 hour, so upload the full set, in order, before you leave. If you cannot do a job, tell Fleet right away.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

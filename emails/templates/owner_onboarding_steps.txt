@@ -1,0 +1,52 @@
+CarmaCars  |  Vehicle onboarding
+
+========================================
+
+[Onboarding steps]
+Here is the path to a live car
+
+Thanks for your payment, {{first_name}}. These are the steps for your {{vehicle_name}}, in order.
+
+Registration method: {{onboarding_method}}
+Your estimate: {{onboarding_estimate}}, paid by you directly to the registry
+Government forms: {{government_forms}}
+
+About the estimate
+It is an estimate only and may vary. You pay ServiceOntario, the safety inspection and any appraisal directly, at the counter or to the shop. CarmaCars does not collect these amounts.
+
+Your steps
+------------------------
+
+1. Get what your method needs
+   {{owner_to_obtain}}
+2. We prepare the forms and book the registry visit
+   We fill in the government forms and send you the date, time and place. A safety certificate is valid for 36 days, so we book inside that window.
+3. Registry visit
+   You attend with one of our admins and pay the registry fees and any tax at the counter.
+4. Tracker install
+   Our field staff fit the tracker and we test it with the car parked. You get access to live location.
+5. Fleet policy
+   We add the car to the CarmaCars fleet policy and send you written confirmation. That date is your Enrollment Date.
+
+Documents to upload now
+------------------------
+
+{{#each documents_needed}}
+  Document: {{name}} | Status: {{status}}
+{{/each}}
+
+Open my onboarding checklist:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}/onboarding
+
+IMPORTANT: Keep your own insurance for now
+Do not cancel it until we confirm in writing that the car is on the fleet policy.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

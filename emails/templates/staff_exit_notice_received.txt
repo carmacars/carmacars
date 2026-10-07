@@ -1,0 +1,35 @@
+CarmaCars  |  Vehicle exit
+
+========================================
+
+[Exit notice]
+{{vehicle_name}} is leaving on {{exit_date}}
+
+{{owner_name}} gave written notice on {{notice_date}}. The owner's other vehicles carry on.
+
+Exit Date: {{exit_date}}
+Bookings before the Exit Date: {{bookings_before_exit}}
+On the fleet policy since: {{enrollment_date}}
+Transfer-back fees: {{retransfer_fee_note}}
+Fleet count after exit: {{fleet_count_after}}
+
+Open the vehicle:
+https://carmacars.ca/va/fleet/vehicles/{{vehicle_id}}
+
+- Block the calendar after the Exit Date.
+- Get the owner's proof of own insurance from the Exit Date.
+- On the Exit Date: remove the tracker, record odometer and photos, have the broker remove the car.
+- Complete our part of the re-transfer within 10 business days after the Exit Date. Both sides sign Form E.
+- Finance: bill the final month pro-rated and pay the final balance on the first payout date after the month of the Exit Date.
+
+Never delay a re-transfer because money is owed.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

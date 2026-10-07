@@ -1,0 +1,27 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Agreement signed]
+Here is your signed agreement
+
+Everyone has signed the rental agreement for the {{vehicle_name}}. This is your copy to keep, {{first_name}}.
+
+Agreement no.: {{booking_number}}
+Signed: {{signed_at}}
+Signed by: {{signers}}
+
+Download the signed agreement:
+{{signed_agreement_url}}
+
+The download link works for 7 days. After that, the agreement is always in your booking (https://carmacars.ca/account/bookings/{{booking_number}}).
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

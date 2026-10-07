@@ -1,0 +1,37 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Return details]
+{{field_staff_name}} will meet you at {{return_time}}
+
+These are the confirmed details for handing back the {{vehicle_name}}, {{first_name}}.
+
+When: {{return_date}}, {{return_time}}
+Where: {{return_place}}
+Who: {{field_staff_name}} from CarmaCars
+{{#if meeting_note}}
+Meeting note: {{meeting_note}}
+{{/if}}
+
+1. Hand over the car and all keys
+   That moment is your check-in time.
+2. Walk around the car together
+   We record odometer, fuel, cleanliness and any new marks, with photos.
+3. Sign the condition report
+   You get a copy by email right after.
+
+Open return details:
+https://carmacars.ca/account/bookings/{{booking_number}}/return
+
+If you cannot make it on time, call {{support_phone}} before {{return_time}}.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

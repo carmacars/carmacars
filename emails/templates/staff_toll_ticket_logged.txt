@@ -1,0 +1,32 @@
+CarmaCars  |  Notice {{notice_number}}
+
+========================================
+
+[Toll or ticket]
+{{notice_type}} logged for plate {{vehicle_plate}}
+
+Match and charge it within 3 business days, and before the due date on the notice.
+
+Notice: {{notice_description}}, no. {{notice_number}}
+Date and time: {{notice_event_date}}
+Amount: {{notice_amount}}
+Due: {{notice_due_date}}
+Match: {{match_summary}}
+
+Open the notice:
+https://carmacars.ca/va/finance/tolls-tickets/{{toll_ticket_id}}
+
+- Renter: pay it, charge the amount plus the fee to the deposit if still held, otherwise the card on file. Send the notice copy.
+- Owner on an Owner Booking: bill at cost, no fee.
+- Owner outside the program, or a Turo-Only car: forward to the owner.
+- Staff: CarmaCars pays. Log the staff member.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Payment failed]
+A card on file was declined
+
+{{renter_name}} owes {{amount_due}} on booking {{booking_number}}. The renter has been emailed a link to pay.
+
+Charge: {{payment_reason}}, {{amount}}
+Declined fee added: {{declined_fee}}
+Now due: {{amount_due}}
+Card: {{card_brand}} ending {{card_last4}}
+Attempt: {{attempt_number}}
+Next retry: {{next_retry_date}}
+Booking status: {{booking_status}}
+
+Open the payment:
+https://carmacars.ca/va/finance/bookings/{{booking_number}}
+
+Retries run after 1, 3 and 7 days. The fee is added once per charge. Escalate to an admin when a charge is unpaid after 24 hours.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

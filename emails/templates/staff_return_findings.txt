@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Return findings]
+Booking {{booking_number}} is ready to bill
+
+Fleet has reviewed the return of the {{vehicle_name}}. Price the findings and issue the statement.
+
+Km out and in: {{odometer_out}} and {{odometer_in}}
+Allowance: {{km_allowance}}, driven {{km_driven}}
+Fuel out and in: {{fuel_out}} and {{fuel_in}}
+Cleaning: {{cleaning_grade}}
+Damage: {{damage_summary}}
+Minutes late: {{minutes_late}}
+Keys: {{keys_summary}}
+Deposit: {{deposit_amount}} {{deposit_method}}, release due {{deposit_release_due}}
+
+Bill this booking:
+https://carmacars.ca/va/finance/bookings/{{booking_number}}
+
+Price each finding from the charge table, before HST. Email the itemized statement with the record for each line. Release the deposit balance within 7 business days of check-in, target 2. Any damage line goes to an admin.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

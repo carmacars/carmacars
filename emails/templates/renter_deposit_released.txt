@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Deposit released]
+The held-back part of your deposit is settled
+
+We kept part of your deposit while an item was open, {{first_name}}. That item is now closed.
+
+Released to you: {{release_amount}}
+To your {{card_brand}} ending {{card_last4}}. Your bank may take a few days to show it.
+
+Held back: {{deposit_held_back}}
+Applied to charges: {{holdback_applied}}
+Released: {{release_amount}}
+Reason it was held: {{holdback_reason}}
+
+View my statement:
+https://carmacars.ca/account/bookings/{{booking_number}}/statement
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,33 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Owner invoice failed]
+A fee debit was returned
+
+{{owner_name}}'s debit for the {{vehicle_name}} did not clear. Stage: {{failure_stage}}.
+
+Invoice: {{invoice_number}}, {{invoice_month}}
+Amount: {{amount}}
+Late fee: {{late_fee}}
+Now owing: {{arrears_amount}}
+Bank reason: {{bank_reason}}
+Next step: {{failure_next_step}}
+
+Open the invoice:
+https://carmacars.ca/va/finance/owner-invoices/{{invoice_number}}
+
+- First failure: late fee added per vehicle, owner told, retry on the 18th.
+- Retry fails: deduct from that vehicle's revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell an admin.
+- Balance left at the next 10th: debt payable on demand. Deduct from the owner's other vehicles.
+- 30 days after the failed retry: an admin may remove the vehicle.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

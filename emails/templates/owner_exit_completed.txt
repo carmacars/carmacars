@@ -1,0 +1,36 @@
+CarmaCars  |  Vehicle exit
+
+========================================
+
+[Exit complete]
+Your {{vehicle_name}} has left the program
+
+Everything on our side is done, {{first_name}}. Thank you for having your car with us.
+
+Exit Date: {{exit_date}}
+Tracker: Removed
+Fleet policy: Car removed. Your own insurance applies from the Exit Date.
+Registration: {{retransfer_summary}}
+Form E: Signed by both sides
+
+Money still to settle
+------------------------
+
+- Your prepaid last month's insurance fee pays the exit month, pro-rated to the Exit Date. The unused part is refunded.
+- The tracker fee for the exit month is billed pro-rated.
+- Your final statement and balance are paid on {{final_payout_date}}.
+
+Download my exit documents:
+{{signed_agreement_url}}
+
+The download link works for 7 days. Your documents stay in your owner account (https://carmacars.ca/owner/documents).
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

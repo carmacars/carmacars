@@ -1,0 +1,32 @@
+CarmaCars  |  Your account
+
+========================================
+
+[Welcome]
+Confirm your email, {{first_name}}
+
+Your CarmaCars account is open. Confirm this email address so we can send you offers, agreements and receipts.
+
+Confirm my email:
+{{verify_url}}
+
+The link works once and expires in {{link_expiry}}. If it has expired, sign in and we will send a new one.
+
+1. Request a car
+   Pick your dates and send a request. No card is needed to ask.
+2. Get our offer
+   We check the car and reply with a firm price.
+3. Approve, sign and pay
+   Your booking is confirmed once the agreement is signed and paid.
+
+If you did not open this account, ignore this email and nothing happens.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

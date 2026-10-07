@@ -1,0 +1,34 @@
+CarmaCars  |  Payout run
+
+========================================
+
+[Approval needed]
+{{statement_month}} statements are drafted
+
+Review and approve the run by the 9th so payouts go out on the 10th.
+
+Statements: {{statement_count}}
+Total to pay: {{payout_total}}
+
+Owner Revenue: {{owner_revenue_total}}
+Revenue share kept: {{revenue_share_total}}
+Deductions: {{deductions_total}}
+Kickbacks to owners: {{kickbacks_earned}}
+Field staff kickbacks, for payroll: {{staff_kickbacks}}
+Owners with a balance owing: {{negative_balances}}
+Flags: {{statement_flags}}
+
+Review and approve:
+https://carmacars.ca/admin/statements
+
+Only these may be deducted: unpaid fees and late fees, owner costs we paid, the owner's share of a refund or chargeback, and amounts agreed in writing.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

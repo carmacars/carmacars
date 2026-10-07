@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[New review]
+{{review_rating}} of 5 from {{renter_name}}
+
+For the {{vehicle_name}}, booking {{booking_number}}. It is not public until you publish it.
+
+{{review_title}}
+{{review_text}}
+
+Rental: {{pickup_date}} to {{return_date}}
+Handover by: {{field_staff_name}}
+
+Open reviews:
+https://carmacars.ca/va/cs/reviews
+
+Publish it as written, or hold it and tell an admin if it names a person or contains private details. Reply personally to a low rating.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

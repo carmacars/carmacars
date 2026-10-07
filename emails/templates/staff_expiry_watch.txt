@@ -1,0 +1,29 @@
+CarmaCars  |  Expiry watch
+
+========================================
+
+[Expiry watch]
+{{expiry_count}} dates coming up
+
+Sorted by date. The first {{expiry_urgent_count}} expire within 3 days.
+
+{{#each expiry_items}}
+  Vehicle: {{vehicle}} | Item: {{item}} | Expires: {{expires}}
+{{/each}}
+
+Open the expiry list:
+https://carmacars.ca/va/fleet/expiries
+
+- Turo-Only insurance: the owner gets a notice 14 days before. Unlist the car if proof lapses.
+- Plates: renew before the month ends. The cost is an owner cost on the next statement.
+- Safety certificate: the registry visit must fall inside its 36 days.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

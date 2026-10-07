@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Admin decision]
+Fleet asks to disable the {{vehicle_name}}
+
+Only an admin can approve this. Read the facts below before you decide.
+
+Ground: {{disable_ground}}
+Requested by: {{requested_by}} at {{requested_at}}
+Final notice sent: {{final_notice_at}}
+Renter: {{renter_name}}, {{renter_phone}}
+Tracker now: {{tracker_summary}}
+
+IMPORTANT: Before you approve
+The car must be stationary with the ignition off. Never disable a moving car. If anyone is at risk where it is parked, re-enable at once.
+
+Review and decide:
+https://carmacars.ca/admin/approvals
+
+The system refuses the command unless a tracker reading from the last five minutes shows speed 0 and ignition off. Your decision and the reading are logged.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

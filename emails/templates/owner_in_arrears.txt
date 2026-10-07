@@ -1,0 +1,43 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[In arrears]
+The retry failed. Your vehicle is in arrears.
+
+We tried the debit for your {{vehicle_name}} a second time, {{first_name}}, and your bank returned it again.
+
+Owing: {{arrears_amount}}
+Invoice {{invoice_number}}: fees {{amount}} plus the {{late_fee}} late fee.
+
+What happens now
+------------------------
+
+1. You can pay today
+   Paying now clears the arrears and stops everything below.
+2. Otherwise we deduct it on {{next_payout_date}}
+   The amount comes out of this car's revenue at the next payout.
+3. Any balance left becomes a debt payable on demand
+   We may deduct it from the revenue of your other vehicles.
+4. After {{removal_date}} we may remove the vehicle
+   That is 30 days after the failed retry. You would pay the fees to transfer the registration back.
+
+{{#if is_self_managed}}
+IMPORTANT: New bookings are paused
+While this vehicle is in arrears, it is not enabled for new bookings.
+{{/if}}
+
+Pay {{arrears_amount}} now:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+Getting your car back is never delayed because money is owed. If there is a problem we should know about, reply to this email or call us today.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

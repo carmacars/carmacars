@@ -1,0 +1,29 @@
+CarmaCars  |  Payment notice
+
+========================================
+
+[Payment sent]
+Your {{statement_month}} Return has been paid
+
+Hello {{first_name}}. We sent the payment below today under your Investment Agreement.
+
+Amount: {{return_amount}}
+Return Month: {{statement_month}}
+Sent on: {{payment_date}}
+To: Account ending {{bank_last4}}
+Transfer reference: {{payout_reference}}
+
+View statement:
+{{statement_url}}
+
+Bank transfers can take a few business days to show. To change the account we pay, send written notice at least 10 days before a Payment Date.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+This is a servicing notice for an existing investor. It is not an offer or a solicitation.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

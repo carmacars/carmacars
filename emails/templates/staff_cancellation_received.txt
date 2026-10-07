@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Cancellation]
+Booking {{booking_number}} was cancelled
+
+{{renter_name}} cancelled the {{vehicle_name}}. The calendar is free again.
+
+Booking made: {{booked_at}}
+Cancellation received: {{cancellation_received_at}}
+Start: {{pickup_date}}, {{pickup_time}}
+Tier: {{refund_tier}}
+Refund: {{refund_percent}} of {{amount_paid}} = {{refund_amount}}
+Deposit: {{deposit_status}}
+
+Process the refund:
+https://carmacars.ca/va/finance/bookings/{{booking_number}}
+
+Target 2 business days, limit 10. Any refund outside the table, or over $500, needs an admin.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,36 @@
+CarmaCars  |  Vehicle onboarding
+
+========================================
+
+[Registry visit]
+Your registry visit is booked
+
+One of our admins will meet you there, {{first_name}}, to register your {{vehicle_name}}.
+
+When: {{visit_date}}, {{visit_time}}
+Where: {{visit_place}}
+
+Bring these
+------------------------
+
+{{#each visit_items}}
+  Item: {{name}}
+{{/each}}
+
+You pay at the counter
+You pay the registry fees and any tax directly. Your estimate is {{onboarding_estimate}}. Amounts may vary.
+
+Open my onboarding checklist:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}/onboarding
+
+If you cannot make it, reply to this email as soon as you can. The visit has to fall inside the 36 days your safety certificate is valid.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

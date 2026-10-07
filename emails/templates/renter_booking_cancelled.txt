@@ -1,0 +1,38 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Booking cancelled]
+Your booking is cancelled
+
+We received your cancellation on {{cancellation_received_at}}, {{first_name}}. The {{vehicle_name}} is released.
+
+Your refund: {{refund_amount}}
+{{refund_percent}} of the {{amount_paid}} you paid at booking.
+
+Cancellation received: {{cancellation_received_at}}
+Pickup was: {{pickup_date}}, {{pickup_time}}
+Refund tier: {{refund_tier}}
+Refund: {{refund_percent}} of {{amount_paid}} = {{refund_amount}}
+Deposit: Any deposit already taken is returned in full
+
+{{#if has_refund}}
+The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.
+{{else}}
+No refund is due under the policy for this booking, so nothing will be returned to your card.
+{{/if}}
+
+See the cancellation policy:
+https://carmacars.ca/terms#cancellation
+
+The refund depends on when we receive the cancellation. The first row of the policy that fits applies. This does not limit any right you have under the Ontario Consumer Protection Act.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

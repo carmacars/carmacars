@@ -1,0 +1,25 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Rental ended]
+The car has been disabled
+
+Your rental of the {{vehicle_name}} has ended, {{first_name}}. The car is parked and will not restart.
+
+IMPORTANT: If anyone is unsafe where the car is parked
+Call {{roadside_phone}} now. We will re-enable the car so you can reach a safe place.
+
+Please call us to arrange the return of the car and all keys. Charges for the extra time and any recovery costs will appear on your statement, with the records for each line.
+
+View my booking: https://carmacars.ca/account/bookings/{{booking_number}}
+
+----------------------------------------
+
+Call us: {{support_phone}}, or the 24-hour line at {{roadside_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

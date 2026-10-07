@@ -1,0 +1,38 @@
+CarmaCars  |  Job {{job_id}}
+
+========================================
+
+[Job assigned]
+{{job_type}}: {{job_date}} at {{job_time}}
+
+Hi {{first_name}}. This job is yours. Please acknowledge it in the field app.
+
+Job: {{job_type}}
+When: {{job_date}}, {{job_time}}
+Where: {{job_place}}
+Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
+{{#if customer_first_name}}
+Customer: {{customer_first_name}}
+{{/if}}
+{{#if job_note}}
+Note from Fleet: {{job_note}}
+{{/if}}
+
+Open the job and acknowledge:
+https://carmacars.ca/field/jobs/{{job_id}}
+
+- Have the car ready 30 minutes before a pickup.
+- Hand over only to the renter, in person. Check the original licence and the physical card.
+- Complete every line of the condition report and the full photo set, in order.
+
+If you cannot do it, tell Fleet right away so the job can be reassigned.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

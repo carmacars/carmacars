@@ -1,0 +1,473 @@
+{
+  "_note": "SAMPLE fleet for the prototype. Rules come from docs/source.",
+  "today": "2026-10-15",
+  "rules": {
+    "hst": 0.13,
+    "maxDays": 30,
+    "depositByClass": {
+      "Economy": 500,
+      "Standard": 500,
+      "Premium": 1000,
+      "SUV": 1000,
+      "Luxury": 2500
+    },
+    "youngDriver": {
+      "18-20": {
+        "perDay": 35,
+        "cap": 350
+      },
+      "21-25": {
+        "perDay": 20,
+        "cap": 200
+      }
+    },
+    "additionalDriver": {
+      "perDay": 10,
+      "cap": 70
+    },
+    "winterTire": {
+      "perDay": 15,
+      "cap": 150
+    },
+    "babySeat": {
+      "perDay": 12,
+      "cap": 70
+    },
+    "nonRefundableDiscount": 0.1,
+    "deliveryRange": [
+      75,
+      200
+    ],
+    "deductible": 2500
+  },
+  "cars": [
+    {
+      "slug": "mercedes-benz-a220",
+      "code": "CC 01",
+      "name": "Mercedes-Benz A220",
+      "make": "Mercedes-Benz",
+      "model": "A220",
+      "year": 2021,
+      "trim": "4MATIC Sedan",
+      "cls": "Premium",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 95,
+        "weekend": 115,
+        "weekly": 560,
+        "monthly": 1850
+      },
+      "delivery": 100,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-17",
+          "2026-10-19"
+        ],
+        [
+          "2026-10-27",
+          "2026-11-02"
+        ],
+        [
+          "2026-11-13",
+          "2026-11-15"
+        ]
+      ],
+      "photo": "assets/photos/mercedes-benz-a220-lead.svg"
+    },
+    {
+      "slug": "mercedes-benz-cla250",
+      "code": "CC 02",
+      "name": "Mercedes-Benz CLA250",
+      "make": "Mercedes-Benz",
+      "model": "CLA250",
+      "year": 2022,
+      "trim": "4MATIC Coupe",
+      "cls": "Premium",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 105,
+        "weekend": 125,
+        "weekly": 620,
+        "monthly": 2050
+      },
+      "delivery": 100,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-21",
+          "2026-10-23"
+        ],
+        [
+          "2026-10-30",
+          "2026-11-01"
+        ],
+        [
+          "2026-11-20",
+          "2026-11-27"
+        ]
+      ],
+      "photo": "assets/photos/mercedes-benz-cla250-lead.svg"
+    },
+    {
+      "slug": "mercedes-benz-c300",
+      "code": "CC 03",
+      "name": "Mercedes-Benz C300",
+      "make": "Mercedes-Benz",
+      "model": "C300",
+      "year": 2022,
+      "trim": "4MATIC Sedan",
+      "cls": "Premium",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 119,
+        "weekend": 142,
+        "weekly": 700,
+        "monthly": 2300
+      },
+      "delivery": 100,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-15",
+          "2026-10-21"
+        ],
+        [
+          "2026-11-06",
+          "2026-11-08"
+        ]
+      ],
+      "photo": "assets/photos/mercedes-benz-c300-lead.svg"
+    },
+    {
+      "slug": "mercedes-benz-glc300",
+      "code": "CC 04",
+      "name": "Mercedes-Benz GLC300",
+      "make": "Mercedes-Benz",
+      "model": "GLC300",
+      "year": 2022,
+      "trim": "4MATIC SUV",
+      "cls": "SUV",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 135,
+        "weekend": 160,
+        "weekly": 800,
+        "monthly": 2650
+      },
+      "delivery": 125,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-23",
+          "2026-10-26"
+        ],
+        [
+          "2026-11-10",
+          "2026-11-19"
+        ]
+      ],
+      "photo": "assets/photos/mercedes-benz-glc300-lead.svg"
+    },
+    {
+      "slug": "mercedes-benz-gle350",
+      "code": "CC 05",
+      "name": "Mercedes-Benz GLE350",
+      "make": "Mercedes-Benz",
+      "model": "GLE350",
+      "year": 2023,
+      "trim": "4MATIC SUV",
+      "cls": "Luxury",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 189,
+        "weekend": 225,
+        "weekly": 1120,
+        "monthly": 3700
+      },
+      "delivery": 175,
+      "deposit": 2500,
+      "kmPerDay": 150,
+      "overage": 0.75,
+      "booked": [
+        [
+          "2026-10-20",
+          "2026-10-22"
+        ],
+        [
+          "2026-11-01",
+          "2026-11-04"
+        ]
+      ],
+      "photo": "assets/photos/mercedes-benz-gle350-lead.svg"
+    },
+    {
+      "slug": "toyota-corolla",
+      "code": "CC 06",
+      "name": "Toyota Corolla",
+      "make": "Toyota",
+      "model": "Corolla",
+      "year": 2023,
+      "trim": "LE",
+      "cls": "Economy",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": true,
+      "rates": {
+        "daily": 59,
+        "weekend": 69,
+        "weekly": 350,
+        "monthly": 1150
+      },
+      "delivery": 75,
+      "deposit": 500,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-15",
+          "2026-10-16"
+        ],
+        [
+          "2026-10-20",
+          "2026-10-30"
+        ]
+      ],
+      "photo": "assets/photos/toyota-corolla-lead.svg"
+    },
+    {
+      "slug": "hyundai-elantra",
+      "code": "CC 07",
+      "name": "Hyundai Elantra",
+      "make": "Hyundai",
+      "model": "Elantra",
+      "year": 2023,
+      "trim": "Preferred",
+      "cls": "Economy",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": true,
+      "rates": {
+        "daily": 62,
+        "weekend": 72,
+        "weekly": 365,
+        "monthly": 1200
+      },
+      "delivery": 75,
+      "deposit": 500,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        [
+          "2026-11-03",
+          "2026-11-12"
+        ]
+      ],
+      "photo": "assets/photos/hyundai-elantra-lead.svg"
+    },
+    {
+      "slug": "honda-civic",
+      "code": "CC 08",
+      "name": "Honda Civic",
+      "make": "Honda",
+      "model": "Civic",
+      "year": 2022,
+      "trim": "Sport",
+      "cls": "Standard",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": true,
+      "rates": {
+        "daily": 69,
+        "weekend": 82,
+        "weekly": 410,
+        "monthly": 1350
+      },
+      "delivery": 75,
+      "deposit": 500,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-19",
+          "2026-10-22"
+        ],
+        [
+          "2026-11-14",
+          "2026-11-16"
+        ]
+      ],
+      "photo": "assets/photos/honda-civic-lead.svg"
+    },
+    {
+      "slug": "toyota-rav4",
+      "code": "CC 09",
+      "name": "Toyota RAV4",
+      "make": "Toyota",
+      "model": "RAV4",
+      "year": 2023,
+      "trim": "XLE AWD",
+      "cls": "SUV",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 89,
+        "weekend": 105,
+        "weekly": 525,
+        "monthly": 1750
+      },
+      "delivery": 125,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-26",
+          "2026-10-29"
+        ],
+        [
+          "2026-10-31",
+          "2026-11-07"
+        ]
+      ],
+      "photo": "assets/photos/toyota-rav4-lead.svg"
+    },
+    {
+      "slug": "tesla-model-3",
+      "code": "CC 10",
+      "name": "Tesla Model 3",
+      "make": "Tesla",
+      "model": "Model 3",
+      "year": 2023,
+      "trim": "Rear-Wheel Drive",
+      "cls": "Premium",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Electric",
+      "young": false,
+      "rates": {
+        "daily": 109,
+        "weekend": 129,
+        "weekly": 645,
+        "monthly": 2150
+      },
+      "delivery": 100,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-22",
+          "2026-10-25"
+        ],
+        [
+          "2026-11-07",
+          "2026-11-09"
+        ]
+      ],
+      "photo": "assets/photos/tesla-model-3-lead.svg"
+    },
+    {
+      "slug": "chrysler-pacifica",
+      "code": "CC 11",
+      "name": "Chrysler Pacifica",
+      "make": "Chrysler",
+      "model": "Pacifica",
+      "year": 2022,
+      "trim": "Touring L",
+      "cls": "Premium",
+      "seats": 7,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 99,
+        "weekend": 119,
+        "weekly": 590,
+        "monthly": 1950
+      },
+      "delivery": 125,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-21",
+          "2026-10-28"
+        ],
+        [
+          "2026-11-21",
+          "2026-11-23"
+        ]
+      ],
+      "photo": "assets/photos/chrysler-pacifica-lead.svg"
+    },
+    {
+      "slug": "mazda-mx-5",
+      "code": "CC 12",
+      "name": "Mazda MX-5",
+      "make": "Mazda",
+      "model": "MX-5",
+      "year": 2021,
+      "trim": "GS-P Soft Top",
+      "cls": "Premium",
+      "seats": 2,
+      "transmission": "Manual",
+      "fuel": "Gasoline",
+      "young": false,
+      "rates": {
+        "daily": 99,
+        "weekend": 135,
+        "weekly": 620,
+        "monthly": 2050
+      },
+      "delivery": 100,
+      "deposit": 1000,
+      "kmPerDay": 200,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-23",
+          "2026-10-25"
+        ],
+        [
+          "2026-10-30",
+          "2026-11-01"
+        ]
+      ],
+      "photo": "assets/photos/mazda-mx-5-lead.svg"
+    }
+  ]
+}

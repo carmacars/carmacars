@@ -1,0 +1,36 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Check-in complete]
+The car is back. Thank you, {{first_name}}.
+
+We checked in the {{vehicle_name}} on {{checkin_date}} at {{checkin_time}}. Your signed return report is saved to your booking.
+
+Odometer, out and in: {{odometer_out}} to {{odometer_in}}
+Distance driven: {{km_driven}} of {{km_allowance}} included
+Fuel or charge, out and in: {{fuel_out}} to {{fuel_in}}
+Noted at return: {{return_findings}}
+
+What happens next
+------------------------
+
+1. We review the photos
+   If we find damage that was not visible at hand-back, we tell you within 48 hours, with photos.
+2. You get an itemized statement
+   Within 7 business days, with the record for every line.
+3. Your deposit is released
+   The {{deposit_amount}} deposit comes back within 7 business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.
+
+View the return report:
+https://carmacars.ca/account/bookings/{{booking_number}}/condition-report
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

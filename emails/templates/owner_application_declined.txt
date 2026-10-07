@@ -1,0 +1,30 @@
+CarmaCars  |  Owner application
+
+========================================
+
+[Application declined]
+We cannot enrol this vehicle
+
+Sorry, {{first_name}}. We are not able to take the {{vehicle_name}} into the program.
+
+Reason
+{{decline_reason}}
+
+This decision is about this vehicle only. Any other vehicle you have with us, or apply for, is looked at on its own.
+
+{{#if has_amount_paid}}
+You paid {{amount_paid}} for this vehicle. We will return it to you and confirm by email when it is sent.
+{{/if}}
+
+Go to my owner account:
+https://carmacars.ca/owner
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

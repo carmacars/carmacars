@@ -1,0 +1,40 @@
+CarmaCars  |  Dispute {{dispute_id}}
+
+========================================
+
+[Chargeback opened]
+A payment is being disputed
+
+The cardholder's bank has opened a dispute. The amount stays owed while we contest it.
+
+Disputed: {{amount}}
+Evidence is due by {{evidence_due}}.
+
+Booking: {{booking_number}}, {{vehicle_name}}
+Renter: {{renter_name}}
+Payment: {{payment_reason}}, paid {{payment_date}}
+Bank's reason: {{dispute_reason}}
+Owner Revenue in dispute: {{owner_revenue_in_dispute}}, withheld from the payout
+
+Open the dispute:
+https://carmacars.ca/admin/disputes/{{dispute_id}}
+
+Evidence to send
+------------------------
+
+- Signed agreement and consents
+- Condition reports, pickup and return
+- Tracker data for the rental period
+- The statement and its supporting records
+
+A debit dispute on an owner invoice cannot be contested.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

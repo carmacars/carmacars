@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Breakdown]
+Dispatch roadside within 15 minutes
+
+{{renter_name}} reported a breakdown in the {{vehicle_name}}.
+
+Where: {{breakdown_location}}
+Symptom: {{breakdown_symptom}}
+Renter: {{renter_name}}, {{renter_phone}}
+Tracker: {{tracker_summary}}
+
+Open the booking:
+https://carmacars.ca/va/fleet/bookings/{{booking_number}}
+
+- Confirm the renter is safe first.
+- Dispatch the roadside provider on file and send the renter the help notice.
+- Mechanical and not the renter's fault: roadside is free, then a replacement car or a refund of unused time. Needs an admin.
+- Lockout, fuel, flat battery from lights, tire damage or stuck: the renter pays the call-out cost plus the fee.
+- Tell the owner and mark the car Out of Service.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

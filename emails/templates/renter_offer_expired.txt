@@ -1,0 +1,26 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Offer expired]
+This offer has ended
+
+We did not receive your approval by {{offer_expires_at}}, so the {{vehicle_name}} is back on the calendar. Nothing was charged.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+If you still need a car for these dates, send a new request and we will check what is available. The price may differ from the offer that lapsed.
+
+Send a new request:
+https://carmacars.ca/cars
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

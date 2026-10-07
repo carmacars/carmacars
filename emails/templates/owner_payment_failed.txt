@@ -1,0 +1,30 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Payment failed]
+Your fee payment did not go through
+
+The debit for your {{vehicle_name}} was returned by your bank, {{first_name}}.
+
+  Invoice {{invoice_number}}, {{invoice_month}} fees: {{amount}}
+  Late fee: {{late_fee}}
+  We retry on {{retry_date}}: {{retry_amount}}
+
+IMPORTANT: Make sure the money is there on {{retry_date}}
+We debit the same account again that day for {{retry_amount}}. If that fails too, the amount is deducted from this car's revenue at the next payout.
+
+Check my payment details:
+https://carmacars.ca/owner/billing
+
+If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

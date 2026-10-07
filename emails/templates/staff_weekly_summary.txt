@@ -1,0 +1,52 @@
+CarmaCars  |  Weekly summary
+
+========================================
+
+[Weekly summary]
+Week of {{week_label}}
+
+Good morning, {{first_name}}. Here is last week across the fleet, with the week before for comparison.
+
+Bookings confirmed: {{bookings_confirmed}}, {{bookings_change}}
+Collected: {{revenue_collected}}, {{revenue_change}}
+
+Utilization: {{utilization}}, {{utilization_change}}
+Overdue items: {{overdue_count}}, Need a decision
+
+The week in numbers
+------------------------
+
+{{#each weekly_metrics}}
+  Measure: {{label}} | Last week: {{value}} | Week before: {{previous}}
+{{/each}}
+
+Overdue
+------------------------
+
+{{#each overdue_items}}
+- {{line}}
+  {{meta}}
+  {{url}}
+{{/each}}
+
+Coming up this week
+------------------------
+
+- {{upcoming_1}}
+- {{upcoming_2}}
+- {{upcoming_3}}
+
+Open the weekly report:
+https://carmacars.ca/admin/reports/weekly
+
+Utilization is rented days divided by available days, for vehicles on the fleet policy. Collected means money received, HST included, net of refunds.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

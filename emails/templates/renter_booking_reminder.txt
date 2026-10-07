@@ -1,0 +1,43 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Pickup tomorrow]
+See you tomorrow at {{pickup_time}}
+
+Your {{vehicle_name}} will be clean, fuelled and ready, {{first_name}}.
+
+When: {{pickup_date}}, {{pickup_time}}
+Where: {{pickup_place}}
+
+Bring these
+------------------------
+
+- Your original driver's licence
+- The physical card ending {{card_last4}}, in your name
+
+Deposit
+A {{deposit_amount}} security deposit is taken on that card before we hand over the keys.
+
+{{#if verification_pending}}
+IMPORTANT: Your documents are not complete
+Still missing: {{missing_items}}. Upload them today or we cannot release the car.
+
+Finish my documents:
+https://carmacars.ca/account/bookings/{{booking_number}}/verify
+{{else}}
+View pickup details:
+https://carmacars.ca/account/bookings/{{booking_number}}/pickup
+{{/if}}
+
+If you are running late or need to change the time, reply to this email or call us before your pickup time.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

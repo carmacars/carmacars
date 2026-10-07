@@ -1,0 +1,37 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Return tomorrow]
+Your rental ends tomorrow at {{return_time}}
+
+Here is what to do so the return is quick, {{first_name}}.
+
+When: {{return_date}}, {{return_time}}
+Where: {{return_place}}
+
+Before you hand it back
+------------------------
+
+- Bring the fuel or charge back to the pickup level: {{fuel_out}}.
+- Bring all keys and anything that came with the car.
+- Take your belongings and leave the car reasonably clean.
+- You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.
+
+Ask to extend my rental:
+https://carmacars.ca/account/bookings/{{booking_number}}/extend
+
+Please be on time
+An extension only counts once we confirm it in writing and it is paid before your return time. More than 30 minutes late, a late fee of {{late_fee_hourly}} per started hour applies, plus the rental charge for each extra day.
+
+We inspect the car with you at hand-back and you both sign the condition report.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

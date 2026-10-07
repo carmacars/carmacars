@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change requested]
+We are checking your change
+
+Thanks, {{first_name}}. We will confirm whether the change is possible and what it does to the price.
+
+{{#each requested_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Nothing has changed yet
+Your {{current_state}} stays exactly as it is until you accept our reply. A change is never applied without your approval.
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+If your pickup is less than 24 hours away, call us as well so we see it in time.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

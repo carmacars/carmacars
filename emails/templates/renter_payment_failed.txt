@@ -1,0 +1,43 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Payment failed]
+Your card was declined
+
+We tried to charge {{amount}} to your {{card_brand}} ending {{card_last4}}, {{first_name}}. The bank said no.
+
+{{#if is_booking_payment}}
+Still to pay: {{amount}}
+For the {{vehicle_name}}, {{pickup_date}} to {{return_date}}.
+
+IMPORTANT: Your booking is not confirmed yet
+The car is held for you until {{pay_by}}. Pay before then to confirm. There is no fee for the failed attempt.
+
+Try again or use another card:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+{{else}}
+  {{payment_reason}}: {{amount}}
+  Declined payment fee, HST included: {{declined_fee}}
+  Now due: {{amount_due}}
+
+IMPORTANT: Please pay by {{pay_by}}
+We will try the card again on {{next_retry_date}}. Paying now by another card stops the retries.
+
+Pay {{amount_due}} now:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+
+Amounts still unpaid 7 days after your statement carry interest of {{interest_rate}} a month. If a charge stays unpaid for 24 hours while you have the car, we may end the rental.
+{{/if}}
+
+Common causes: not enough available credit, an expired card, or a block by your bank on a new merchant. A quick call to your bank usually clears it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

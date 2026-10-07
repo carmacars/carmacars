@@ -1,0 +1,28 @@
+CarmaCars  |  System
+
+========================================
+
+[System alert]
+The {{job_name}} job failed
+
+It will try again on the next hourly run today. Until it succeeds, the work below has not happened.
+
+Job: {{job_name}}
+Run: {{job_run_date}}
+What did not happen: {{job_effect}}
+Error: {{job_error}}
+
+Open the job log:
+https://carmacars.ca/admin/jobs
+
+If it has not recovered within a few hours, send this email to the developer. Do not run money jobs by hand without checking the run key.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

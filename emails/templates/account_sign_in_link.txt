@@ -1,0 +1,26 @@
+CarmaCars  |  Your account
+
+========================================
+
+[Sign in]
+Here is your sign-in link
+
+Tap the button on the device you want to use. No password needed.
+
+Sign in to CarmaCars:
+{{sign_in_url}}
+
+The link works once and expires in {{link_expiry}}.
+
+If you did not ask for this
+Ignore this email. Nobody can sign in without the link, and we will never ask you to forward it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

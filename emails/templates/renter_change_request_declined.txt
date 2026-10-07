@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change not possible]
+We cannot make that change
+
+Sorry, {{first_name}}. Your booking is unchanged and still stands.
+
+Reason
+{{decline_reason}}
+
+{{vehicle_name}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+If the booking no longer works for you, you can cancel from the same page. The refund depends on how close you are to pickup. See the cancellation policy (https://carmacars.ca/terms#cancellation).
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

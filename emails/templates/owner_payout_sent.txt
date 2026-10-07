@@ -1,0 +1,31 @@
+CarmaCars  |  Statement {{statement_number}}
+
+========================================
+
+[Payout sent]
+Your {{statement_month}} payout is on its way
+
+We sent your payout today by bank transfer, {{first_name}}.
+
+Paid today: {{payout_amount}}
+To your account ending {{bank_last4}}.
+
+Statement no.: {{statement_number}}
+For: {{statement_month}}
+Sent on: {{payment_date}}
+Transfer reference: {{payout_reference}}
+
+View the statement:
+https://carmacars.ca/owner/statements/{{statement_number}}
+
+Bank transfers usually show within a few business days. If the account on file is no longer right, tell us before the next payout on the 10th.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

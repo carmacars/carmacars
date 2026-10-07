@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extension declined]
+We cannot extend this rental
+
+Sorry, {{first_name}}. The {{vehicle_name}} is due back at the original time.
+
+Reason
+{{decline_reason}}
+
+Return by: {{return_date}}, {{return_time}}
+Where: {{return_place}}
+
+If you need a car for longer, reply to this email and we will check whether another car is free from your return time.
+
+View return details:
+https://carmacars.ca/account/bookings/{{booking_number}}/return
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

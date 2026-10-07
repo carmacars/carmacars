@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Final notice]
+The {{vehicle_name}} is 2 hours overdue
+
+We have called and written, {{first_name}}. You now have until {{final_deadline}} to return the car or pay for an extension.
+
+Deadline: {{final_deadline}}
+Return to {{return_place}}, or pay for an extension before then.
+
+IMPORTANT: After the deadline
+We may end the rental, disable the car once it is parked, and recover it. Recovery costs are charged to you and there is no refund.
+
+Pay for an extension now:
+https://carmacars.ca/account/bookings/{{booking_number}}/extend
+
+Call {{support_phone}} right away if something has gone wrong. We would rather sort it out with you.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

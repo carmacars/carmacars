@@ -1,0 +1,39 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[New booking request]
+Review and send an offer
+
+{{renter_name}} asked for the {{vehicle_name}}. No card has been taken. The renter is waiting for our offer.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Renter: {{renter_name}} ({{renter_history}})
+Drivers: {{drivers_summary}}
+Pickup place: {{pickup_place}}
+Estimate shown: {{estimate_amount}}
+Identity documents: {{identity_summary}}
+{{#if renter_note}}
+Renter note: {{renter_note}}
+{{/if}}
+
+Open the request:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+- Check the calendar, each driver's age and licence class, and the price.
+- Adjust dates, car or price if needed, then send the offer. Or ask for information, or decline with a reason.
+- Escalate to an admin for other discounts, travel outside Ontario, pets, a refusal, or more than 30 days.
+
+Target: reply within 15 minutes during opening hours. At 2 hours without an answer, this request is flagged to the admins.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

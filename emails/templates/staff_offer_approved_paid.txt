@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Offer approved and paid]
+Booking {{booking_number}} is confirmed
+
+{{renter_name}} approved the offer, signed and paid {{amount_paid}}. The calendar is blocked.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
+Pickup place: {{pickup_place}}
+Verification: {{identity_summary}}
+Coverage: {{coverage_summary}}
+
+Open the booking:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+- Customer service: complete licence and coverage verification at least 24 hours before pickup.
+- Fleet: assign the pickup and return jobs and check the car is clean for the day.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

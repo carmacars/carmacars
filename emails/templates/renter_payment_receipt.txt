@@ -1,0 +1,36 @@
+CarmaCars  |  Receipt {{receipt_number}}
+
+========================================
+
+[Payment received]
+Thanks. Your payment went through.
+
+This is your receipt, {{first_name}}. There is nothing more to do.
+
+Paid: {{amount}}
+{{payment_reason}}
+
+{{#each receipt_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total paid: {{amount}}
+
+Receipt no.: {{receipt_number}}
+Paid on: {{payment_date}}
+Card: {{card_brand}} ending {{card_last4}}
+Booking: {{booking_number}}, {{vehicle_name}}
+
+Download the receipt:
+{{receipt_url}}
+
+The download link works for 7 days. Your receipts are always in your booking (https://carmacars.ca/account/bookings/{{booking_number}}).
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,34 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Extension available]
+You can keep the car. Pay to confirm.
+
+The {{vehicle_name}} is free for the extra time, {{first_name}}. The extension is confirmed once you pay.
+
+Current return: {{return_date}}, {{return_time}}
+New return: {{new_return_date}}, {{new_return_time}}
+
+{{#each extension_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  To pay now: {{extension_amount}}
+
+Pay and confirm the extension:
+https://carmacars.ca/account/bookings/{{booking_number}}/extend
+
+IMPORTANT: Pay before {{return_time}} on {{return_date}}
+If it is not paid by then, the extension does not apply and the car is due back at the original time.
+
+We reprice the whole booking at its new length, so the extra can be less than the daily rate. New booking total: {{new_total_amount}}.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

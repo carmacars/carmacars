@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Refund issued]
+Your refund is on its way
+
+We sent a refund to the card you paid with, {{first_name}}.
+
+Refunded: {{refund_amount}}
+To your {{card_brand}} ending {{card_last4}}.
+
+Reason: {{refund_reason}}
+Sent on: {{payment_date}}
+Booking: {{booking_number}}, {{vehicle_name}}
+
+Refunds arrive within 10 business days. Your bank may take longer to show it. There is nothing you need to do.
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,37 @@
+CarmaCars  |  Incident {{incident_number}}
+
+========================================
+
+[Incident reported]
+Here is what to do now
+
+We have opened a file for the {{vehicle_name}}, {{first_name}}. If anyone is hurt, call 911 first.
+
+1. Make sure everyone is safe
+   Call 911 if anyone is hurt. Report to the police where the law requires it.
+2. Get the other party's details
+   Name, phone, licence, plate and insurer. Ask witnesses for a name and number.
+3. Take photos
+   All vehicles, the scene, the damage and any plates.
+4. Do not admit fault
+   Do not settle or sign anything at the scene.
+5. Send us your report
+   A written account, your photos and all keys, by {{report_due}}. That is 48 hours from the incident.
+
+Send my report and photos:
+https://carmacars.ca/account/bookings/{{booking_number}}/incident
+
+If the car cannot be driven
+We tow it to an approved shop and the rental ends. Call {{roadside_phone}} and we will arrange it.
+
+If you have coverage for this rental, tell your insurer or card issuer today.
+
+----------------------------------------
+
+24-hour line: {{roadside_phone}}. You can also reply to this email.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

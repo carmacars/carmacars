@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Verified]
+Licence and coverage confirmed
+
+Everything checks out, {{first_name}}. There is nothing more to send us before pickup.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Bring these to pickup
+------------------------
+
+- Your original driver's licence. A photo or a copy is not accepted.
+- The physical {{card_brand}} card ending {{card_last4}}. The {{deposit_amount}} deposit is taken on it before handover.
+
+View my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+We send the pickup details the day before.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

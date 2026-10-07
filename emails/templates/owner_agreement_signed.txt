@@ -1,0 +1,32 @@
+CarmaCars  |  Owner documents
+
+========================================
+
+[Documents signed]
+Signed by both sides
+
+Your documents for the {{vehicle_name}} are complete, {{first_name}}. Keep these copies.
+
+Agreement no.: {{agreement_number}}
+Signed: {{signed_at}}
+Documents: {{document_count}}
+
+Download my signed documents:
+{{signed_agreement_url}}
+
+Not enrolled yet
+Your vehicle joins the fleet policy only when we confirm it in writing. Keep your own insurance active until you get that email.
+
+Next: {{next_step}}
+
+The download link works for 7 days. Your documents are always in your owner account (https://carmacars.ca/owner/agreements).
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

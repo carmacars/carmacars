@@ -1,0 +1,39 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Late return]
+{{vehicle_name}} is {{minutes_late}} minutes late
+
+{{renter_name}} was due back at {{return_time}}. Stage: {{late_stage}}.
+
+Due: {{return_date}}, {{return_time}}, {{return_place}}
+Renter: {{renter_name}}, {{renter_phone}}
+Tracker: {{tracker_summary}}
+Next booking on this car: {{next_booking}}
+
+IMPORTANT: Do now
+{{late_action}}
+
+Open the booking:
+https://carmacars.ca/va/fleet/bookings/{{booking_number}}
+
+The ladder
+------------------------
+
+- 0 minutes: call, check the tracker, offer a paid extension.
+- 30 minutes: charges start. Extra day plus the late fee from the return time.
+- 2 hours: call twice, send the final notice (1 hour to return or pay), tell an admin.
+- 1 hour after the final notice: only an admin approves disabling, and only with the car stationary and the ignition off.
+
+Log every call, message and command in the incident log, with the time.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

@@ -1,0 +1,43 @@
+CarmaCars  |  {{digest_date}}
+
+========================================
+
+[Morning digest]
+Good morning, {{first_name}}
+
+{{digest_summary}}
+
+Requests to answer: {{stat_1}}
+Documents to review: {{stat_2}}
+
+{{#if has_items}}
+{{#each sections}}
+{{title}} ({{count}})
+------------------------
+
+{{#each items}}
+- {{line}}
+  {{meta}}
+  {{url}}
+{{/each}}
+
+{{/each}}
+{{else}}
+Nothing waiting
+Your queue is clear.
+{{/if}}
+
+Open my queue:
+https://carmacars.ca/va/cs
+
+Urgent items are still sent on their own, at once: late returns, incidents, disputes, new booking requests and anything due within hours.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

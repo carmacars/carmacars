@@ -1,0 +1,34 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Upfront invoice]
+One payment to get started
+
+This is the only amount CarmaCars bills before your {{vehicle_name}} is enrolled, {{first_name}}.
+
+{{#each invoice_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total due: {{invoice_total}}
+
+Pay this invoice:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+- Pay by card or by e-Transfer. The invoice page has the details for both.
+- The first month's insurance fee pays your enrollment month. Any unused part is credited to your next charge.
+- The last month's insurance fee is held and pays your exit month. Any unused part is refunded.
+- There is no security deposit.
+
+Registry costs are separate
+You pay ServiceOntario, the safety inspection and any appraisal directly. CarmaCars does not bill them.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/

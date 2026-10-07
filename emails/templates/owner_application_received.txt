@@ -1,0 +1,38 @@
+CarmaCars  |  Owner application
+
+========================================
+
+[Application received]
+Thanks, {{first_name}}. We have your vehicle.
+
+We are reviewing your {{vehicle_name}} now. You will hear from us within 1 business day.
+
+Vehicle: {{vehicle_name}}
+VIN: {{vehicle_vin}}
+Plate: {{vehicle_plate}}
+Held as: {{ownership_summary}}
+
+What happens next
+------------------------
+
+1. We review the vehicle
+   We confirm it can join the fleet policy. A vehicle with a rebuilt, salvage or irreparable brand cannot be enrolled.
+2. We send your terms
+   Your monthly fees and revenue share, and an estimate of the registry costs for your situation.
+3. You sign
+   The agreements are signed on the website. Nothing is owed until then.
+
+View my application:
+https://carmacars.ca/owner/application
+
+You can add or correct details on the same page until we send your terms.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+CarmaCars is operated by 18122211 Canada Inc.
+{{company_address}}
+https://carmacars.ca/
