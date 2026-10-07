@@ -1,6 +1,6 @@
 # Data model
 
-101 tables in 14 migrations (`supabase/migrations/`). Standard PostgreSQL 15 or later.
+101 tables in migrations 0001 to 0014 (`supabase/migrations/`); 0015 adds the scheduled job functions and no table. Standard PostgreSQL 15 or later.
 
 **Conventions**
 
@@ -25,10 +25,10 @@
 | `program_settings` | Dated rows of the standard numbers: HST, the 15th / 18th / 10th, Late Fee, Install Fee, deductible, kickback rate, shareholder 10%, 30-day maximum, minimum fleet, retention periods |
 | `holidays` | Dates that are not business days |
 | `documents` | One row per stored file: kind, bucket and path, retention class, legal hold, links to booking / owner / vehicle / renter / incident / claim / investor |
-| `signature_requests` | A document sent through the e-signature service, with status |
+| `signature_requests` | A document opened for signature in the platform's built-in signing, with status and the signed copy |
 | `signature_records` | Each signer: role, time, method, IP, initials |
 | `audit_log` | Every insert, update and delete on audited tables: who, when, before, after |
-| `job_runs` | One row per scheduled job run, keyed so a run cannot repeat |
+| `job_runs` | One row per scheduled job run, keyed so a run cannot repeat (claimed by `app.job_claim()`, migration 0015) |
 
 ### Owners and vehicles (0002)
 

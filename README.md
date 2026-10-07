@@ -1,6 +1,6 @@
 # CarmaCars platform
 
-The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking site, renter portal, owner portal, admin portal, VA portal and field staff portal in one Next.js app, on Supabase (Postgres, sign-in) and Cloudflare (hosting, files), with Stripe, built-in signing and a GPS tracker with remote killswitch.
+The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking site, renter portal, owner portal, admin portal, VA portal and field staff portal in one Next.js app, on Supabase (Postgres, sign-in) and Cloudflare (hosting, files), with Stripe, built-in signing and a GPS tracker with remote killswitch. It is one responsive website for phones and desktops, not a native app.
 
 **This commit is the foundation only:** the database, its rules, its permissions and its tests. The Next.js app is not scaffolded yet.
 
@@ -8,13 +8,15 @@ The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking
 
 | Path | What |
 | --- | --- |
-| `supabase/migrations/` | 14 migrations: 101 tables, the billing rules as SQL functions, status flows, row-level security, audit log, reference data |
-| `supabase/tests/` | Four test files and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 15 migrations: 101 tables, the billing rules as SQL functions, status flows, row-level security, audit log, reference data, the scheduled SQL jobs |
+| `supabase/tests/` | Five test files and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `scripts/test.sh` | One command: fresh database, all migrations, all tests |
-| `docs/architecture.md` | System overview, environments, app areas, integrations, scheduled jobs, file storage, what is out of scope |
+| `scripts/check-text.sh` | Fails if a document or SQL file we write contains an em dash or a sentence en dash |
+| `docs/architecture.md` | System overview, environments, app areas, integrations, scheduled jobs, file storage, what is out of scope, deploy and backups |
+| `docs/decisions/` | Decision records. 0001: the launch stack with no fixed monthly fees |
 | `docs/data-model.md` | Tables by group, status flows, where each billing rule lives, assumptions |
 | `docs/permissions.md` | The role matrix and how it is enforced |
-| `docs/setup.md` | Creating and connecting Supabase and Stripe (hosting: see `docs/decisions/0001-zero-fixed-fee-stack.md`); environment variables; running the tests |
+| `docs/setup.md` | The accounts (Stripe, GitHub, Supabase, Cloudflare, Resend, Google Workspace) and how they connect; environment variables and GitHub secrets; running the tests; backups |
 | `docs/source/` | The agreements, billing specifications and procedures the model was built from |
 | `.env.example` | Every environment variable, without values |
 
@@ -22,9 +24,10 @@ The rental platform of 18122211 Canada Inc. (CarmaCars), Ontario: public booking
 
 ```bash
 scripts/test.sh
+scripts/check-text.sh
 ```
 
-Needs PostgreSQL 15 or later on the machine (`psql`, `initdb`, `pg_ctl`). See `docs/setup.md` section 7.
+The first needs PostgreSQL 15 or later on the machine (`psql`, `initdb`, `pg_ctl`) and ends with `ALL TESTS PASSED`. See `docs/setup.md` section 7.
 
 ## Migrations
 
@@ -44,6 +47,7 @@ Needs PostgreSQL 15 or later on the machine (`psql`, `initdb`, `pg_ctl`). See `d
 | `0012_security.sql` | Row-level security, limited views, approval and limit guards, privileges |
 | `0013_audit.sql` | Audit trigger on every table that holds money, pricing or status |
 | `0014_reference_data.sql` | Program settings, the charge catalogue and defaults, fee grid, onboarding estimates, message template codes |
+| `0015_scheduled_jobs.sql` | The five scheduled jobs that are pure SQL, their once-per-day guard on `job_runs`, and their `pg_cron` schedule (skipped where `pg_cron` is absent) |
 
 ## Rules for changes
 

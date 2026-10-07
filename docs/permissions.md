@@ -16,53 +16,53 @@ A user who is suspended, or whose staff profile is ended, loses all access at on
 
 ## 2. Role matrix
 
-R = read, W = create or update, A = approve, — = no access. "own" = only rows that belong to that person. "view" = through a limited view.
+R = read, W = create or update, A = approve, "none" = no access. "own" = only rows that belong to that person. "view" = through a limited view.
 
 | Data | Admin | VA Finance | VA Fleet | VA CS | VA Sales | Field | Owner | Renter |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Bookings | RW | R | RW | RW | RW quotes only | view, assigned job | view, own vehicles | view, own |
 | Renter record (name, contact) | RW | R in window | R in window | RW in window | W new lead, R in window | name and mobile on the job | name and mobile on Self-Managed only | own, R |
-| Licences and drivers | RW | — | names on a booking | RW in window | — | on the job view | — | own, R |
-| ID images and face photos | R | — | — | R in window | — | upload only | — | own, R |
-| Identity checks | RW | — | — | RW in window | — | — | — | own, R |
-| Card on File (brand, last four) | R | R in window | — | R in window | — | last four on the job | — | own, R |
-| Card and debit tokens, processor payloads | R | — | — | — | — | — | — | — |
-| Payments | RW | R | — | R | — | — | — | own, R |
-| Charge lines | RW | RW | R | R | — | — | — | own, R (not internal lines) |
-| Deposits | RW A | RW, release within limit | — | R | — | — | — | own, R |
-| Refunds | RW A | W request, A within limit | — | R | — | — | — | own, R |
-| Chargebacks | RW | RW | — | — | — | — | — | — |
-| Cancellations | RW | R | R | RW | — | — | — | own, R |
-| Booking split | RW | R | — | — | — | — | own vehicles, R | — |
-| Vehicles | RW | R | RW (not owner, mode, dates) | R | R | job vehicle, R | own, R | — |
-| Vehicle Schedule, fees, Revenue Share | RW | R | R | R | — | — | own, R | — |
-| Rate cards | RW | R | RW | R | R | — | own, R | public listing |
+| Licences and drivers | RW | none | names on a booking | RW in window | none | on the job view | none | own, R |
+| ID images and face photos | R | none | none | R in window | none | upload only | none | own, R |
+| Identity checks | RW | none | none | RW in window | none | none | none | own, R |
+| Card on File (brand, last four) | R | R in window | none | R in window | none | last four on the job | none | own, R |
+| Card and debit tokens, processor payloads | R | none | none | none | none | none | none | none |
+| Payments | RW | R | none | R | none | none | none | own, R |
+| Charge lines | RW | RW | R | R | none | none | none | own, R (not internal lines) |
+| Deposits | RW A | RW, release within limit | none | R | none | none | none | own, R |
+| Refunds | RW A | W request, A within limit | none | R | none | none | none | own, R |
+| Chargebacks | RW | RW | none | none | none | none | none | none |
+| Cancellations | RW | R | R | RW | none | none | none | own, R |
+| Booking split | RW | R | none | none | none | none | own vehicles, R | none |
+| Vehicles | RW | R | RW (not owner, mode, dates) | R | R | job vehicle, R | own, R | none |
+| Vehicle Schedule, fees, Revenue Share | RW | R | R | R | none | none | own, R | none |
+| Rate cards | RW | R | RW | R | R | none | own, R | public listing |
 | Fee catalogue and defaults | RW | R | R | R | R | catalogue | catalogue | catalogue |
-| Per-booking price override | A | — | — | — | — | — | — | — |
-| Owners | RW | R | R | RW (not shareholder, balance, payout) | — | — | own, R | — |
-| Owner bank details | RW | — | — | — | — | — | own, R | — |
-| Owner agreements and forms | RW | R | R | RW drafts | — | — | own, R | — |
-| Onboarding, registration, exit | RW | R | RW | RW | — | — | own, R | — |
-| Owner invoices | RW | R | — | R | — | — | own, R | — |
-| Owner deductions | RW | RW (not "agreed") | — | — | — | — | own, R | — |
-| Owner statements | RW A | R | — | — | — | — | own, approved only | — |
-| Payouts | RW A | W prepare (owner, payroll) | — | — | — | own, R | own, R | — |
-| Referral kickbacks | RW | R | — | — | — | own, R | own earned, R | — |
-| Turo trips | RW | RW | R | — | — | — | own, R | — |
-| Field jobs | RW | R | RW | R | — | own: progress only | — | — |
-| Condition Reports and photos | RW | R | RW | R | — | own job, RW | baseline, exit, own | own, R |
-| Tracker status (location) | R | R (toll proof) | R | — | — | — | own vehicles, always | — |
-| Tracker commands | RW A | — | W request | — | — | — | own, blocked during a managed rental | — |
-| Incidents | RW | R | RW | R | — | — | — | — |
-| Claims and claim ledger | RW A | R | R claims | — | — | — | view: status only | — |
-| Tolls and tickets | RW | RW | R | — | — | — | own, R | own, R |
-| Tasks | RW | finance queue | fleet queue | cs queue | sales queue | — | — | — |
-| Messages | RW | RW in window | RW in window | RW in window | — | — | own, R | own, R |
-| Fleet reports | RW | RW | R | — | — | — | — | — |
-| Investors, investments, returns | RW A | — | — | — | — | — | — | — (an investor reads their own) |
-| Staff profiles and limits | RW | own, R | own, R | own, R | own, R | own, R | — | — |
+| Per-booking price override | A | none | none | none | none | none | none | none |
+| Owners | RW | R | R | RW (not shareholder, balance, payout) | none | none | own, R | none |
+| Owner bank details | RW | none | none | none | none | none | own, R | none |
+| Owner agreements and forms | RW | R | R | RW drafts | none | none | own, R | none |
+| Onboarding, registration, exit | RW | R | RW | RW | none | none | own, R | none |
+| Owner invoices | RW | R | none | R | none | none | own, R | none |
+| Owner deductions | RW | RW (not "agreed") | none | none | none | none | own, R | none |
+| Owner statements | RW A | R | none | none | none | none | own, approved only | none |
+| Payouts | RW A | W prepare (owner, payroll) | none | none | none | own, R | own, R | none |
+| Referral kickbacks | RW | R | none | none | none | own, R | own earned, R | none |
+| Turo trips | RW | RW | R | none | none | none | own, R | none |
+| Field jobs | RW | R | RW | R | none | own: progress only | none | none |
+| Condition Reports and photos | RW | R | RW | R | none | own job, RW | baseline, exit, own | own, R |
+| Tracker status (location) | R | R (toll proof) | R | none | none | none | own vehicles, always | none |
+| Tracker commands | RW A | none | W request | none | none | none | own, blocked during a managed rental | none |
+| Incidents | RW | R | RW | R | none | none | none | none |
+| Claims and claim ledger | RW A | R | R claims | none | none | none | view: status only | none |
+| Tolls and tickets | RW | RW | R | none | none | none | own, R | own, R |
+| Tasks | RW | finance queue | fleet queue | cs queue | sales queue | none | none | none |
+| Messages | RW | RW in window | RW in window | RW in window | none | none | own, R | own, R |
+| Fleet reports | RW | RW | R | none | none | none | none | none |
+| Investors, investments, returns | RW A | none | none | none | none | none | none | none (an investor reads their own) |
+| Staff profiles and limits | RW | own, R | own, R | own, R | own, R | own, R | none | none |
 | Users (emails, phones) | RW | own | own | own | own | own | own | own |
-| Audit log, access log | R | — | — | — | — | — | — | — |
+| Audit log, access log | R | none | none | none | none | none | none | none |
 
 "In window" means: while the renter has a live booking, for 90 days after their last rental ends, while a task is open on them, or for 24 hours after a logged lookup.
 

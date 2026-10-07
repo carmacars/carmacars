@@ -3,7 +3,9 @@ node_modules/
 .next/
 out/
 dist/
-.vercel/
+.open-next/
+.wrangler/
+.dev.vars
 *.tsbuildinfo
 
 # secrets
