@@ -1,6 +1,6 @@
 # Architecture
 
-CarmaCars is the rental platform of 18122211 Canada Inc. (Ontario). This document describes the foundation in this repository and the shape of the application that will be built on it. The business rules themselves are in `docs/source/`; where they live in the database is in `docs/data-model.md`. The choice of services, and what each costs, is in `docs/decisions/0001-zero-fixed-fee-stack.md`.
+CarmaCars is a car rental platform in Ontario. This document describes the foundation in this repository and the shape of the application that will be built on it. The business rules themselves are in `docs/source/`; where they live in the database is in `docs/data-model.md`. Sections 11 to 14 describe the flows built in migrations 0016 to 0024; each migration's full record is in `docs/changes/`. The choice of services, and what each costs, is in `docs/decisions/0001-zero-fixed-fee-stack.md`.
 
 ## 1. System overview
 
@@ -94,39 +94,54 @@ Rules that apply to the adapters:
 Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 
 - **SQL.** `pg_cron` calls a wrapper function in the `app` schema directly. Nothing leaves the database.
-- **Edge Function.** Where the job must call Stripe, send email or delete files, `pg_cron` calls a Supabase Edge Function (`supabase/functions/<job>`) over HTTPS with `pg_net`, sending the service role key held in Supabase Vault. The function calls the outside service and writes the result through the same SQL functions.
+- **Edge Function.** Where the job must call Stripe, send email, call a listing provider or delete files, `pg_cron` calls a Supabase Edge Function (`supabase/functions/<job>`) over HTTPS with `pg_net`, sending the service role key held in Supabase Vault. The function calls the outside service and writes the result through the same SQL functions.
 
-`pg_cron` runs on UTC. A job that belongs to a Toronto time is scheduled every hour; the job works out the Toronto date and hour itself and claims a row in `job_runs (job_name, run_key)`, so a daylight-saving shift or a retry cannot run a business day twice. A run that fails is marked `failed` with its error, raises one urgent admin task, and is tried again on the next hourly call that day. Times below are Toronto time.
+`pg_cron` runs on UTC. A job that belongs to a Toronto time is scheduled every hour (or more often); the wrapper works out the Toronto date and hour itself and claims a row in `job_runs (job_name, run_key)` with `app.job_claim()`, so a daylight-saving shift or a retry cannot run a business day (or a slot) twice. A run that fails is marked `failed` with its error, raises one urgent admin task and the `staff_job_failed` email, and is tried again on the next call. Every wrapper takes the instant to judge by, so a missed run can be made by hand, for example `select app.job_owner_invoices(timestamptz '2026-11-15 06:00 America/Toronto')`; the run key still stops a second run. Where `pg_cron` is absent (a plain local database) the migrations schedule nothing. Times below are Toronto time.
 
-| When | Job | What it does | Source | Runs as |
+### Run by pg_cron inside the database (20 jobs)
+
+| Cron job | When | Wrapper | What it does | Migration |
 | --- | --- | --- | --- | --- |
-| Every 5 minutes | `holds-expire` | Expire tentative holds after 2 hours | Procedure 1 | SQL; function not written yet |
-| Every 5 minutes | `late-returns` | At 0, 30 minutes, 2 hours and T14 + 1 hour: messages, charges, admin task. Never disables a car by itself | Procedure 8 | Runs in an Edge Function, built with the app |
-| Every 15 minutes | `payment-retries` | Retry declined charges due (1, 3, 7 days); add the $40 fee once | Renter spec 7 | Runs in an Edge Function, built with the app |
-| Hourly | `reminders` | T5 the day before pickup, T6 24 hours before return, T3 chase | Procedures 2 to 4 | Runs in an Edge Function, built with the app |
-| Hourly | `deposit-holds` | Before a card hold lapses: place a new hold and release the old one; once the rental passes 7 days in total, capture it instead | Renter spec 3; decision 0001 | Runs in an Edge Function, built with the app |
-| Daily 06:00 | `deposits-due` | List deposits near 7 business days and hold-backs near 30 days | Renter spec 3 | SQL; function not written yet |
-| Daily 06:00 | `retention` | Purge ID images and face data 90 days after the rental (not on legal hold) | Website policies | Runs in an Edge Function, built with the app |
-| Daily 06:00 | `expiry-watch` | Turo-Only insurance and plate expiry (T23, 14 days before); safety certificate window; arrears older than 30 days | Procedures 12, 13, 14 | Runs in an Edge Function, built with the app |
-| Daily 18:00 | `reconcile` | Match processor payouts to payments; raise a task for anything unmatched | Procedure 19 | Runs in an Edge Function, built with the app |
-| Monday 08:00 | `fleet-recount` | Count the fleet less cars under exit notice; warn an admin at 11 or fewer | Procedure 20 | SQL, scheduled in migration 0015: `app.job_fleet_recount()` |
-| Business day before the 1st, 08:00 | `fleet-report-prepare` | `app.build_fleet_report()` for the coming month | Procedure 20 | SQL, scheduled in migration 0015: `app.job_fleet_report_prepare()` |
-| 1st, 06:00 | `returns-accrue` | `app.accrue_investment_returns()` for last month | Payment setup 7 | SQL, scheduled in migration 0015: `app.job_returns_accrue()` |
-| 1st | `month-open` | Send the fleet report; compute last month's splits; interest on overdue charges | Payment setup 7 | Runs in an Edge Function, built with the app |
-| 5th, 06:00 (by the 9th) | `statements-draft` | `app.build_owner_statement()` per owner; task for admin approval | Owner spec 5 | SQL, scheduled in migration 0015: `app.job_statements_draft()` |
-| 10th | `payouts` | After admin approval: pay by bank transfer, send T26, list field staff kickbacks for payroll | Owner spec 2 | Runs in an Edge Function, built with the app |
-| 15th, 06:00 | `owner-invoices` | `app.generate_owner_invoices()`: one draft invoice per vehicle | Owner spec 1 | SQL, scheduled in migration 0015: `app.job_owner_invoices()` |
-| 15th | `owner-billing` | Submit the debits for the invoices; T24. Pay investor returns | Owner spec 1, 4 | Runs in an Edge Function, built with the app |
-| 15th to 25th, daily | `debit-results` | Failed debit: status `failed` (adds the $50 Late Fee), T25 | Owner spec 6 | Runs in an Edge Function, built with the app |
-| 18th | `debit-retry` | Retry fees plus Late Fee; on failure `in_arrears` | Owner spec 6 | Runs in an Edge Function, built with the app |
+| `carmacars-fleet-recount` | Monday from 08:00 | `app.job_fleet_recount()` | Count the fleet less cars under exit notice; warn an admin at the warning level | 0015 |
+| `carmacars-fleet-report-prepare` | Business day before the 1st, from 08:00 | `app.job_fleet_report_prepare()` | `app.build_fleet_report()` for the coming month | 0015 |
+| `carmacars-returns-accrue` | 1st, from 06:00 | `app.job_returns_accrue()` | Investor returns for last month | 0015 |
+| `carmacars-statements-draft` | 5 days before the payout date, from 06:00 | `app.job_statements_draft()` | `app.build_owner_statement()` per owner; review task | 0015 |
+| `carmacars-owner-invoices` | 15th, from 06:00 | `app.job_owner_invoices()` | One draft fee invoice per vehicle | 0015 |
+| `carmacars-offers-expire` | Every 5 minutes | `app.job_offers_expire()` | An offer past its expiry goes back to `requested` with a task | 0016 |
+| `carmacars-notify-events` | Every minute | `app.job_notify_events()` | `app.process_events()`: events to outbox, digests and in-app notices | 0018 |
+| `carmacars-deposits-due` | Daily from 06:00 | `app.job_deposits_due()` | Deposits due back soon, hold-backs near their last day | 0020 |
+| `carmacars-expiry-watch` | Daily from 06:00 | `app.job_expiry_watch()` | Turo-Only expiry, safety certificate window, plate renewal, arrears past the removal date | 0020 |
+| `carmacars-reconcile` | Daily from 18:00 | `app.job_reconcile()` | Matches recorded processor payouts again; flags card payments no payout carried | 0020 |
+| `carmacars-ops-watch` | Every 15 minutes | `app.job_ops_watch()` | Wakes waiting tasks; raises the clock-driven tasks (offers to chase, verification, Deposit, late returns, unacknowledged jobs, daily checks). Sends nothing, charges nothing | 0020 |
+| `carmacars-toll-watch` | Daily from 06:00 | `app.job_toll_watch()` | A notice still unmatched after the set business days: Admin task and email | 0021 |
+| `carmacars-company-statement` | The owner statements' draft day, from 06:00 | `app.job_company_statement_draft()` | Drafts CarmaCars' statement for last month with its checks | 0021 |
+| `carmacars-notify-reminders` | Every 5 minutes | `app.job_notify_reminders()` | Booking, pickup, return and offer reminders, identity chase, unsigned agreement, late return stages, requests waiting | 0023 |
+| `carmacars-notify-scheduled` | Every 5 minutes | `app.job_notify_scheduled()` | Follow-ups, daily checks, statement reminder, payouts due, digests, field job lists, weekly summary, each once per day, week or month | 0023 |
+| `carmacars-rate-limit-purge` | Daily from `housekeeping_hour` (03:00) | `app.job_rate_limit_purge()` | Removes rate limit counters older than `rate_limit_keep_hours` | 0024 |
+| `carmacars-form-drafts-purge` | Daily from `housekeeping_hour` | `app.job_form_drafts_purge()` | Removes expired drafts and submitted drafts past `form_submitted_keep_days` | 0024 |
+| `carmacars-lapse-extensions` | Every 15 minutes | `app.job_lapse_extensions()` | An extension not paid by the current return time lapses | 0024 |
+| `carmacars-listing-sweep` | Every 10 minutes | `app.job_listing_sweep()` | A listing job a worker claimed and did not finish goes back to the queue (or fails after its attempts); counts what is due | 0024 |
+| `carmacars-listings-publish` | Every 5 minutes | `app.job_publish_listings()` | Publishes listings whose `publish_at` has come, in the scheduler's name; a refusal is kept in `publish_error` with a Fleet task | 0024 |
 
-Notes on the table:
+These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.sql`, `09_operations.sql`, `10_tolls_statements.sql` and `12_end_to_end.sql`, by calling each wrapper with chosen instants.
 
-- The five jobs marked "scheduled in migration 0015" exist now and are tested (`supabase/tests/05_jobs.sql`). The schedule itself is created only where `pg_cron` is available, so the migration does nothing on a plain local database.
-- The 1st and the 15th each had one job that mixed SQL work with an outside call. They are now two jobs each: the SQL step (`returns-accrue`, `owner-invoices`) runs at 06:00, and the step that needs Stripe or email (`month-open`, `owner-billing`) follows in an Edge Function.
-- `statements-draft` runs 5 days before the payout date, which is the 5th while payouts are on the 10th. That leaves the admins until the 9th to approve.
-- "SQL; function not written yet" means the job needs no outside call, but its function is not in migrations 0001 to 0015. It is added by a later migration, with the app.
-- To run a missed day by hand, call the wrapper with the instant it should have run, for example `select app.job_owner_invoices(timestamptz '2026-11-15 06:00 America/Toronto')`. The run key still stops a second run.
+### Still to run in an Edge Function (each calls an outside service)
+
+| Job | When | What it does | Outside service |
+| --- | --- | --- | --- |
+| `send-outbox` | Every minute | `app.outbox_claim()`, render with `emails/src/engine.mjs`, send, then `app.outbox_mark_sent()` or `app.outbox_mark_failed()`; bounces through `app.outbox_record_bounce()` | Resend |
+| `listing-worker` | Every few minutes | `app.claim_listing_jobs()`, call the provider, `app.complete_listing_job()` or `app.fail_listing_job()` (the sweep above only re-queues) | VIN decoder, copy model, photo processor |
+| `late-returns` | Every 5 minutes | The charges of a late return (the tasks are raised by `ops-watch`, the emails by `notify-reminders`) | Stripe |
+| `payment-retries` | Every 15 minutes | Retry declined charges due (1, 3, 7 days); add the declined-payment fee once | Stripe |
+| `deposit-holds` | Hourly | Before a card hold lapses: place a new hold and release the old one, or capture it once the rental passes the hold period | Stripe |
+| `retention` | Daily 06:00 | Purge ID images and face data 90 days after the rental (not on legal hold) | R2 |
+| `reconcile` (fetch step) | Daily before 18:00 | Read processor payouts, then `app.record_processor_payout()`; the SQL matching runs in `carmacars-reconcile` | Stripe |
+| `month-open` | 1st | Send the fleet report; interest on overdue charges | Email, Stripe |
+| `payouts` | 10th | After admin approval: pay by bank transfer, list field staff kickbacks for payroll | Bank, email |
+| `owner-billing` | 15th | Submit the debits for the invoices; pay investor returns | Stripe |
+| `debit-results`, `debit-retry` | 15th to 25th; 18th | Failed debit and its retry | Stripe |
+
+The 1st and the 15th each have the SQL step at 06:00 (`returns-accrue`, `owner-invoices`) and the step that needs Stripe or email after it (`month-open`, `owner-billing`). `statements-draft` runs 5 days before the payout date, which leaves the admins until the 9th to approve.
 
 ## 6. File storage layout
 
@@ -196,3 +211,44 @@ The launch stack has no fixed monthly fee except the staff mailbox. These are th
 | Requests fail on the 10 ms limit under real traffic | Cloudflare Workers Paid, US$5 a month |
 | Database nears 500 MB, or point-in-time recovery is wanted | Supabase Pro, US$25 a month |
 | More than 100 emails a day | Resend Pro, US$20 a month |
+
+## 11. Request to book (migrations 0016, 0019, 0020)
+
+A booking is asked for, offered, approved, signed and paid; only then does it take the car.
+
+1. **Quote and search.** `app.quote_booking()` and `app.search_available()` price a listed car from the rate card in force through one function, `app.price_lines()`, which also prices every stored booking. The visitor sees the total, the Deposit and the kilometre allowance.
+2. **Request.** The server checks the bot test and calls `app.submit_booking_request()` with the visitor's address: one transaction finds or creates the user, renter and driver, checks dates, ages, licence, drivers, extras and consents, creates the request (`requested`) with its lines, and stores the request key, so a second press returns the first booking. Rate limits per address and per customer are settings.
+3. **Offer.** Customer service may adjust the request (`app.adjust_booking()`), then sends a numbered offer (`app.send_offer()`); an offer expires after `offer_expiry_hours` and goes back to `requested`. The renter approves it (`pending_payment`) or asks for a change (`requested`).
+4. **Sign.** `app.open_rental_agreement()` opens the `RA-` agreement for the approved version; the renter signs by typing or drawing (`app.record_signature()`, with the document hash and consent text).
+5. **Pay and confirm.** When the card is authorized, `app.record_booking_payment()` checks everything again under a lock on the car (status, offer version, signature, amount, a credit card, the car free), saves the Card on File, countersigns for CarmaCars and confirms. Any refusal tells the server to void the authorization. Another booking that wanted the same dates goes back to customer service.
+6. **Before pickup.** The renter uploads the licence, selfie and proof of coverage; customer service reviews them. `app.booking_readiness()` lists what is missing.
+7. **Handover and return.** On a phone (`app.complete_handover()`, `app.complete_return()`) with the photo list in order, the Deposit taken or waived, signatures and readings. After the return Fleet reviews the photos, Finance assesses the charges (`app.assess_check_in()`), the Check-in statement is issued and the Deposit is settled (`app.settle_deposit()`), which closes the booking.
+8. **Changes.** Cancellation by the tier table (`app.cancel_booking()`). An extension (`app.request_extension()`), from the renter or from the calendar, is priced by `app.preview_extension()` with its fee lines, approved by staff and paid before the current return time; unpaid, it lapses. A change of dates or car on a confirmed booking is one flow since 0024: a change request (`booking_change_requests`), asked by the renter or proposed by staff (on the calendar it is `source = 'staff_calendar'`), priced by `app.preview_booking_change()`, approved, agreed by the renter (an Admin may record an agreement by phone when nothing more is owed), and applied with the payment of exactly the difference or a refund for approval. Open field jobs follow the booking. Requests and offers are moved on the calendar directly; insurer-billed bookings keep the calendar's own path.
+9. **After the rental.** Tolls, tickets and damage are matched to whoever had the car and charged on a later-charge statement (section 13). A charge line Finance adds by hand after the Check-in statement emails the renter once.
+
+## 12. The notification layer (migrations 0017, 0018, 0023, 0024)
+
+1. A business function or trigger calls `app.emit_event(code, entity, id, payload, dedupe_key)`. The dedupe key is `code:entity_id:discriminator`, so the same action never makes two events. Each code has one emitter (the catalogue's `emitted_by` says which).
+2. `app.process_events()` (every minute) reads new events in order, looks up the catalogue, finds the recipients by audience and writes, per recipient, one `notification_outbox` row (or, for a staff notice that is digested, one `staff_digest_items` row per role) and one in-app notice for anyone with an account. The merge payload is built by `app.notification_payload()` from the records, in Toronto time and `$1,234.56`; the sender supplies only signed links and sign-in links. Consent, suppression and preferences decide `skipped` or `suppressed`.
+3. The `send-outbox` Edge Function claims queued rows under the daily and monthly caps (customer email first, marketing last and only in its window), renders the template from `emails/` and sends through Resend. What cannot go today is delayed, never dropped.
+4. Reminders, chases, follow-ups, digests, field job lists and the weekly summary are made by the two notification jobs of 0023.
+
+`12_end_to_end.sql` drives the newer flows and checks that each business action produced exactly one outbox row per intended recipient, with no duplicate across the emitters of 0019 to 0023.
+
+## 13. Statements (migrations 0005, 0007, 0020, 0021)
+
+| Statement | Built by | When | Notes |
+| --- | --- | --- | --- |
+| Renter Check-in statement | `app.issue_booking_statement()` | After the return is reviewed and assessed | Charges, HST, Deposit applied, returned, held back, charged to the card; interest from `statement_interest_days` |
+| Renter later-charge statement | The same, through `app.charge_after_rental()` | A toll, ticket or damage charged after the Check-in statement | The issued statement is never rewritten |
+| Owner monthly statement | `app.build_owner_statement()` (job `statements-draft`) | 5 days before the payout date | A block per vehicle; Owner Revenue raised later is credited on the next statement; an approved statement can be reissued before its payout is sent |
+| CarmaCars monthly statement | `app.build_company_statement()` (job `company-statement`) | The same day | Per vehicle, per owner and in total, with reconciliation checks; a failed check blocks finalizing; CSV exports and a ledger by account |
+
+## 14. The listing pipeline (migration 0022, 0024)
+
+1. An owner, field staff, Fleet or an Admin starts an intake for a car (`app.start_listing_intake()`) and uploads the shot list in order (`app.record_listing_upload()`), then submits it.
+2. Jobs go to `listing_jobs`: decode the VIN, draft the copy, process and resize each photo. The `listing-worker` Edge Function claims due jobs (`app.claim_listing_jobs()`, skip locked), calls the provider, and reports success or failure; a failure is retried after the back-off in `listing_job_backoff_minutes` up to `listing_job_max_attempts`. Photo work stops for the day at `photo_daily_budget_microusd`. The `listing-sweep` job puts back any job a worker claimed and did not finish.
+3. A failed decode or copy draft never stops the listing (the reviewer types it); a failed photo step puts the intake in `failed` until someone retries.
+4. When everything is in, the intake waits for review if the starter's role is in `listing_review_required_roles` (owner and field staff by default); customer service, Fleet or an Admin approves with edits.
+5. `app.publish_listing()` refuses, naming the first thing missing (status, rates, specifications, photos, copy, canonical twin), then sets a stable slug, publishes, makes the approved photos public and tells the owner. `app.schedule_listing_publish()` sets a later time instead; the `listings-publish` job publishes it then. `app.unlist_listing()` keeps what the address earned with a 301 or 410.
+6. The public site reads only through functions (`car_page`, `fleet`, `model_hub`, `sitemap_rows`, `resolve_path`), which never return a VIN, plate, owner, cost or private field.

@@ -1,6 +1,6 @@
 # Data model
 
-101 tables in migrations 0001 to 0014 (`supabase/migrations/`); 0015 adds the scheduled job functions and no table. Standard PostgreSQL 15 or later.
+161 tables in the `public` schema, from migrations 0001 to 0022 (`supabase/migrations/`), plus `app.rate_limit_hits`; 0015, 0023 and 0024 add functions, triggers, columns and schedules but no table. Section 1 groups them by area and migration. Standard PostgreSQL 15 or later.
 
 **Conventions**
 
@@ -151,6 +151,98 @@
 | `status_history` | Every status change, with who and when |
 | `data_access_log` | Staff searches for, and opens of, older customer records |
 
+### Request to book (0016)
+
+| Table | Holds |
+| --- | --- |
+| `booking_offers` | One row per offer version sent: who, when, expiry, message, vehicle, dates, every price and term as sent, the charge lines as sent; status `sent`, `approved`, `change_requested`, `declined`, `expired`, `superseded`, `withdrawn`. A sent offer cannot be rewritten |
+| `booking_events` | The readable, append-only history of a booking: requested, adjusted, offer sent and answered, withdrawn, expired, pushed back, calendar switch, promo code, and (0019) agreement, payment, extension, change request, cancellation, verification and Deposit waiver steps, each with who |
+| `insurers`, `insurer_invoices` | Insurers that pay for a renter's rental, their terms, and the invoices sent to them |
+| `promo_codes`, `promo_redemptions` | Promotion codes (percent or amount, limits, validity, single use bound to a renter) and each use |
+| `reviews` | A renter's review of a closed booking, with moderation (0019 adds the publish consent and Google prompt columns) |
+
+Columns added to existing tables: `bookings.blocks_calendar` (the calendar switch, with who and why), the offer version, expiry and approval columns, who is billed (`bill_to`, insurer, provisional dates), promo and staff discounts, pickup and return methods and places; `program_settings.offer_expiry_hours`.
+
+### Events and notifications (0017, 0018, 0023)
+
+| Table | Holds |
+| --- | --- |
+| `app_events` | Append-only business events: code, entity, entity id, payload, a unique dedupe key `code:entity_id:discriminator`, processed time and note. Written only by `app.emit_event()` |
+| `notification_catalogue` | One row per email code (generated from `emails/catalogue.json`) plus the in-app-only cap notice: audience, category, priority, consent rule, digest, variables, template paths, `is_enabled`, `emitted_by` |
+| `notification_link_paths` | The link paths the emails use (generated) |
+| `notification_outbox` | One email per recipient: code, recipient, address, booking, vehicle, entity, payload, missing variables, unique dedupe key, status (`queued`, `sending`, `sent`, `failed`, `suppressed`, `skipped`, `delayed`), attempts, send-after, provider id, unsubscribe token |
+| `staff_digest_items` | Staff notices carried in a role's digest, one per role (not per person), `next` or `morning` slot |
+| `notifications` | In-app notices per user, with read time |
+| `notification_preferences` | Per user and code: email and in-app switches (only where the catalogue lets the user mute) |
+| `email_suppressions` | Addresses that bounced, complained or unsubscribed: scope `all` or `marketing` |
+| `marketing_sends` | One row per marketing email decided for a booking, with the promo code and consent used |
+
+48 `program_settings.notify_*` columns hold every limit, time and percentage of the layer (daily and monthly caps, class limits, marketing window, retries, digest and reminder times, follow-up days); 0023 adds `notify_photo_base_url`.
+
+### The booking application (0019)
+
+| Table | Holds |
+| --- | --- |
+| `rental_agreements`, `rental_agreement_signers` | The `RA-` agreement per approved offer version: document hash and storage path, status, voided reason; one signer row per renter, additional driver and CarmaCars countersigner |
+| `webhook_events` | Each processor event received, once (`provider`, `event_id` unique) |
+| `booking_change_requests` | A change to a confirmed booking: by the renter (`requested`) or staff (`proposed`), then `approved`, `applied`, `declined` or `cancelled`; the changes, the booking before and after, the price line by line, the difference with HST, the renter's agreement (online, or by phone through an Admin), the payment or refund; `source` (0024: `booking_app` or `staff_calendar`) |
+| `booking_info_requests` | Questions staff ask the renter on a request, the answer and when it closed |
+| `verification_uploads` | Each identity or coverage file a renter, driver or staff member uploaded, with its review |
+| `app.rate_limit_hits` | Fixed-window counters for the public request and the optional quote limit (in `app`, outside the API and the audit log) |
+
+Columns added: `bookings.request_key`, `request_details`, `awaiting_renter_since`, the four `deposit_waived_*` columns; `booking_extensions.requested_by`, `note`, `lines`, approval and decline columns, status `approved`; `signature_records.typed_name`, `consent_text`, `document_sha256`; the booking limits and `require_staff_two_step` in `program_settings`.
+
+### Operations (0020)
+
+| Table | Holds |
+| --- | --- |
+| `required_shots` | The photo list per report kind (19 shots; 4 for "ready"), optionally per vehicle class |
+| `vehicle_moves` | Each time staff drive a car: who, why, from and to, odometer, the field job or booking |
+| `task_rules` | Per task type: queue, title, priority, due time, procedure, completion rule. An Admin edits due times and priorities here |
+| `quick_replies` | Saved replies for the VA queues |
+| `incident_steps` | The first-response steps of an incident, ticked as they are done |
+| `payout_reconciliations`, `payout_reconciliation_items` | Processor payouts and the payments they carried, matched or flagged |
+
+Columns added: Condition Report signatures, diagram, belongings, findings and completion; damage kind, size and position; photo device time, place and size; `booking_line_items.assessment_key` and `supporting_refs` (every line the Check-in assessment writes carries both); field job `auto_created`, `cancel_reason`; task `sla_minutes`, `wake_at`, `waiting_reason`, `completion_rule`, `completion_note`, `dedupe_key`; 19 timing settings. Views: `field_job_list` and the six work queues. Sequence `renter_statement_number_seq` (`RS-20001` onward).
+
+### Tolls, damage and statements (0021)
+
+| Table | Holds |
+| --- | --- |
+| `vehicle_transponders`, `vehicle_plate_history` | Date ranges of transponders and plates per car, never overlapping |
+| `toll_import_profiles`, `toll_import_batches` | The saved column mapping per toll operator; each imported statement with its row results |
+| `damage_intakes` | Damage found after a rental: when, where, the reports either side, the estimate or invoice, the match and its evidence, the route, the statement or company expense |
+| `owner_credits` | Owner Revenue raised after a booking was paid out, owed to the owner on the next statement |
+| `company_statements`, `company_statement_lines` | CarmaCars' own monthly statement, `draft` or `final`, with lines per vehicle, per owner and in total, the reconciliation checks and their result |
+| `company_expenses`, `company_expense_categories` | Expenses entered by hand, by category and account |
+| `gl_accounts`, `gl_account_map` | The chart of accounts and how each kind of line maps to it |
+
+Columns added: 24 on `toll_tickets` (match evidence, confidence, statement and batch, charge, dispute, naming, closing); `owner_statements.version`, `supersedes_statement_id`, `credits_cents` and the void columns; `fee_types.gl_account`; five settings. Views: `toll_work_queue`, `toll_work_queue_summary`, `damage_work_queue`, `owner_statement_vehicle_lines` and the four company statement report views.
+
+### Owners, forms and listings (0022)
+
+| Table | Holds |
+| --- | --- |
+| `site_settings`, `site_content_blocks` | The one row of public site settings (brand, contact, areas, hours, slots, social, SEO) and the editable headings, paragraphs and FAQs |
+| `form_drafts` | Autosaved form drafts, owned by a user or a visitor token (stored hashed); never bank, licence or card numbers |
+| `leads` | Enquiries without an account: owner program and general contact, with source, UTM fields and consent |
+| `owner_applications` | One owner application, with its vehicles' onboarding rows |
+| `owner_private_details` | The owner's licence number, province and birth date (the owner and an Admin only) |
+| `onboarding_situations`, `onboarding_checklist_items` | The six ownership situations and their forms; the onboarding checklist items, order and wording |
+| `vehicle_term_changes` | Fee change notices and Revenue Share changes |
+| `pdf_templates`, `government_form_fields`, `government_form_fills` | Registry form templates and their field maps, the data sheet rows, and each fill with its status (draft, ready, printed, signed, filed) |
+| `listing_shot_types` | The listing shot list (15 rows) |
+| `listing_intakes` | One open listing intake per vehicle and its state, from `started` to `published` |
+| `vin_decodes`, `listing_drafts` | Each VIN decode; each copy draft with model, prompt version and lint problems |
+| `listing_jobs`, `provider_calls` | The listing work queue (decode, copy, photo, resize, publish) with attempts, back-off, lock and cost; every provider call |
+| `listing_redirects` | 301 and 410 redirects of unlisted car pages |
+
+Columns added: owner names, signing officer and mailing address; vehicle onboarding situation, forms, estimate and checklist marks; `vehicle_photos` shot type, size, variants, background status, public flag; `photo_jobs` provider and cost; `vehicle_listings` specs, FAQ, SEO fields, canonical twin, `publish_at`, first published and unpublished times, redirect and rewrite flags; 20 settings.
+
+### Gap fixes (0024)
+
+No new table. Columns: `vehicles.created_seq` (insertion order, which breaks ties between vehicles created in one transaction); `vehicle_listings.publish_scheduled_by` and `publish_error` (timed publishing); `booking_change_requests.source`; `program_settings.housekeeping_hour` and `rate_limit_keep_hours`.
+
 ## 2. Status flows
 
 Enforced by `app.enforce_status_flow()` from `status_transitions`. A change not listed is refused. A row may be inserted in any status, which is how the manual records kept before the platform are imported.
@@ -164,6 +256,17 @@ tentative ──▶ pending_payment ──▶ confirmed ──▶ on_rent ──
     ▼               ▼                 ▼
  expired / cancelled / declined   cancelled / no_show
 ```
+
+Since 0016 a booking starts as a request; the rows above that start at `tentative` are kept for imported records only:
+
+```
+requested ──▶ offered ──▶ pending_payment ──▶ confirmed ──▶ on_rent ──▶ returned ──▶ closed
+    ▲            │  │            │
+    └────────────┘  │            │      requested, offered, pending_payment ──▶ declined
+    └───────────────┼────────────┘      Owner Booking: requested ──▶ pending_payment (no offer, nothing to pay)
+```
+
+`offered` needs a sent offer for the current version; `pending_payment` needs it approved; going back to `requested` clears the approval. Only `confirmed` and `on_rent` bookings with `blocks_calendar` on take the car (exclusion constraint `bookings_no_double_booking`). Since 0019, `on_rent` also needs the calendar switch on, every additional driver's acceptance of the agreement, and the Deposit taken or waived by an Admin.
 
 | To | The database also requires |
 | --- | --- |

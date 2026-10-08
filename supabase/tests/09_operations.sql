@@ -716,12 +716,18 @@ select test.eq('P without the renter''s agreement nothing moves: customer servic
 select test.throws('P only an Admin records the renter''s agreement by word',
   format($$select app.calendar_apply_change(%L, %L, %L, 'agreed by phone', true)$$, test.b('opP2'), test.id('op_cs'), jsonb_build_object('return_at', test.at('2031-08-23 10:00'))), 'Only an Admin records');
 create table test.op_ap4 as select app.calendar_apply_change(test.b('opP2'), test.id('op_admin'), jsonb_build_object('return_at', test.at('2031-08-23 10:00')), 'agreed by phone 14:05', true) as r;
-select test.eq('P with it: the booking moves at its stored rates, the difference is a line and a pending card charge, the task is closed',
+select test.eq('P (0024) a change that costs the renter more is not agreed by word: the calendar''s change request waits for the renter to agree and pay online',
+  (select (r ->> 'applied') || '/' || (r ->> 'renter_pays_online') from test.op_ap4)
+  || ' ' || (select status || '/' || source || '/' || requested_by_role || '/' || total_difference_cents from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4))
+  || ' ' || (select (return_at = test.at('2031-08-22 10:00'))::text from bookings where id = test.b('opP2')), 'false/true proposed/staff_calendar/staff/13560 true');
+select app.agree_booking_change((select (r ->> 'change_request_id')::uuid from test.op_ap4), test.id('op_r7'), inet '203.0.113.9', 'test browser');
+select app.apply_booking_change((select (r ->> 'change_request_id')::uuid from test.op_ap4), test.id('op_r7'), '{"payment_id": "pi_opP2", "charge_id": "ch_opP2"}', 13560);
+select test.eq('P (0024) the renter agrees and pays online: the booking moves at its stored rates through 0019, the payment is the difference, the task is closed',
   (select (return_at = test.at('2031-08-23 10:00')) || '/' || billable_days || '/' || rental_charge_cents || '/' || km_allowance_total || '/' || total_due_at_booking_cents from bookings where id = test.b('opP2'))
-  || ' ' || (select p.purpose || ':' || p.status || ':' || p.amount_cents from payments p where p.id = (select (r ->> 'payment_id')::uuid from test.op_ap4))
-  || ' ' || (select amount_cents || '+' || hst_cents || ':' || revenue_class from booking_line_items where booking_id = test.b('opP2') and payment_id = (select (r ->> 'payment_id')::uuid from test.op_ap4))
+  || ' ' || (select p.purpose || ':' || p.status || ':' || p.amount_cents from payments p where p.id = (select payment_id from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4)))
+  || ' ' || (select status from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4))
   || ' ' || (select status from tasks where booking_id = test.b('opP2') and task_type = 'booking_change_approval'),
-  'true/3/32000/600/36160 extension:pending:13560 12000+1560:owner_revenue done');
+  'true/3/32000/600/36160 extension:succeeded:13560 applied done');
 select test.eq('P the return job follows the booking, and its field staff member is told the time changed',
   (select (scheduled_at = test.at('2031-08-23 10:00')) || '/' || status from field_jobs where id = test.b('jobP2'))
   || ' ' || (select (payload -> 'job_changes')::text from app_events where code = 'staff_field_job_changed' and entity_id = test.b('jobP2') order by id desc limit 1), 'true/scheduled ["time"]');
