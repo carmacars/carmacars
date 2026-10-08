@@ -13,17 +13,17 @@
   CC.renderEstimate = function (el, car, st) {
     if (!st.from || !st.to) {
       el.innerHTML = '<p class="estimate__empty">Pick your pickup and return dates to see the price for this car.</p><table class="spec spec--num"><tbody>' +
-        row('Daily', CC.money(car.rates.daily)) + row('Weekend day (Fri, Sat)', CC.money(car.rates.weekend)) + row('Weekly', CC.money(car.rates.weekly)) + row('Monthly (30 days)', CC.money(car.rates.monthly)) + '</tbody></table>';
+        row('Daily', CC.money(car.rates.daily)) + row('Weekend day (Fri, Sat)', CC.money(car.rates.weekend)) + row('Weekly', CC.money(car.rates.weekly)) + row('Monthly (' + CC.t('maxDays') + ' days)', CC.money(car.rates.monthly)) + '</tbody></table>';
       return null;
     }
     var e = P.estimate(car, st);
     if (e.invalid) { el.innerHTML = '<p class="alert alert--error"><span class="alert__title">Return is before pickup</span><span>Set a return time after the pickup time.</span></p>'; return null; }
     var h = '<div class="estimate__dates"><div><span class="xs muted">Pickup</span><b>' + D.short(st.from) + '</b><span class="small">' + D.time(st.tFrom) + '</span></div><div><span class="xs muted">Return</span><b>' + D.short(st.to) + '</b><span class="small">' + D.time(st.tTo) + '</span></div><div class="estimate__days"><b class="num">' + e.days + '</b><span class="xs">' + (e.days === 1 ? 'day' : 'days') + '</span></div></div>';
-    if (e.over) h += '<p class="alert alert--warn"><span class="alert__title">30 days is the most for one booking</span><span>This estimate covers the first 30 days. To keep the car longer you renew with a new booking before this one ends.</span></p>';
+    if (e.over) h += '<p class="alert alert--warn"><span class="alert__title">' + CC.t('maxDays') + ' days is the most for one booking</span><span>This estimate covers the first ' + CC.t('maxDays') + ' days. To keep the car longer you renew with a new booking before this one ends.</span></p>';
     h += '<table class="estimate__lines"><tbody>';
     e.lines.forEach(function (l) { h += '<tr><th scope="row">' + l.k + (l.note ? '<small>' + l.note + '</small>' : '') + '</th><td class="num">' + (l.v < 0 ? '−' + CC.money(-l.v, true) : CC.money(l.v, true)) + '</td></tr>'; });
     if (e.coverageExtra) h += '<tr><th scope="row">Coverage bought through CarmaCars<small>Priced for your car and dates</small></th><td>In your quote</td></tr>';
-    h += '<tr><th scope="row">HST (13%)</th><td class="num">' + CC.money(e.hst, true) + '</td></tr></tbody>';
+    h += '<tr><th scope="row">HST (' + CC.t('hst') + ')</th><td class="num">' + CC.money(e.hst, true) + '</td></tr></tbody>';
     h += '<tfoot><tr><th scope="row">Estimated total<small>Due when you approve, sign and pay. Nothing now.</small></th><td class="num"><b data-total></b></td></tr></tfoot></table>';
     h += '<dl class="estimate__after"><div><dt>Deposit at pickup</dt><dd class="num">' + CC.money(e.deposit) + ' <small>' + e.depositMethod + '</small></dd></div><div><dt>Kilometres included</dt><dd class="num">' + e.km.toLocaleString('en-CA') + ' km <small>then ' + CC.money(car.overage, true) + ' per km</small></dd></div></dl>';
     var old = el.querySelector('[data-total]'); var prev = old ? old.dataset.v : '0';
@@ -88,14 +88,14 @@
       var by = { 'price-asc': function (a, b) { return a.dataset.sortPrice - b.dataset.sortPrice; }, 'price-desc': function (a, b) { return b.dataset.sortPrice - a.dataset.sortPrice; }, name: function (a, b) { return a.dataset.name.localeCompare(b.dataset.name); }, seats: function (a, b) { return b.dataset.seats - a.dataset.seats || a.dataset.sortPrice - b.dataset.sortPrice; }, featured: function (a, b) { return a.dataset.i - b.dataset.i; } }[s.sort];
       items.slice().sort(function (a, b) { return (a.classList.contains('is-booked') - b.classList.contains('is-booked')) || by(a, b); }).forEach(function (li) { grid.appendChild(li); });
       var free = shown.filter(function (li) { return !li.classList.contains('is-booked'); }).length;
-      count.textContent = s.from ? free + (free === 1 ? ' car' : ' cars') + ' free ' + D.short(s.from) + ' to ' + D.short(s.to) : shown.length + (shown.length === 1 ? ' car' : ' cars');
+      var filtered = shown.length < items.length; count.textContent = s.from ? free + (free === 1 ? ' car' : ' cars') + ' free ' + D.short(s.from) + ' to ' + D.short(s.to) : filtered ? 'Showing ' + shown.length + (shown.length === 1 ? ' car' : ' cars') : 'Showing every car';
       bookedNote.hidden = !(s.from && booked); if (booked) $('span', bookedNote).textContent = booked + (booked === 1 ? ' car that matches is' : ' cars that match are') + ' booked for those dates.';
       empty.hidden = shown.length > 0; grid.hidden = shown.length === 0;
       $$('[data-filters-count]', main).forEach(function (b) { b.textContent = 'Show ' + shown.length + (shown.length === 1 ? ' car' : ' cars'); });
       // active filter chips
       var ch = [];
       s.cls.forEach(function (v) { ch.push(['cls', v, v]); }); if (s.seats !== 'any') ch.push(['seats', 'any', s.seats === '2' ? '2 seats' : s.seats + '+ seats']);
-      if (s.trans !== 'any') ch.push(['trans', 'any', s.trans]); if (s.max < +max.max) ch.push(['max', max.max, 'Up to ' + CC.money(s.max)]); if (s.young) ch.push(['young', '', 'Ages 18 to 20']);
+      if (s.trans !== 'any') ch.push(['trans', 'any', s.trans]); if (s.max < +max.max) ch.push(['max', max.max, 'Up to ' + CC.money(s.max)]); if (s.young) ch.push(['young', '', 'Ages ' + CC.t('youngA')]);
       chips.innerHTML = ch.map(function (c) { return '<button type="button" class="chip" data-chip="' + c[0] + '" data-val="' + c[1] + '"><span class="vh">Remove filter </span>' + c[2] + '<i aria-hidden="true">×</i></button>'; }).join('') + (ch.length > 1 ? '<button type="button" class="chip chip--clear" data-clear>Clear all</button>' : '');
       if (openBtn) $('b', openBtn).textContent = ch.length ? ' (' + ch.length + ')' : '';
       CC.setParams({ from: s.from, to: s.to, tf: s.from ? s.tf : '', tt: s.from ? s.tt : '', mode: s.mode, cls: s.cls.join(','), seats: s.seats === 'any' ? '' : s.seats, trans: s.trans === 'any' ? '' : s.trans, max: s.max < +max.max ? s.max : '', young: s.young ? 1 : '', sort: s.sort === 'featured' ? '' : s.sort });
@@ -185,7 +185,7 @@
     if (from && car() && D.overlaps(from, to || from, car().booked)) { from = ''; to = ''; }
     var cal = CC.Calendar($('[data-cal]', form), { months: window.matchMedia('(min-width: 44rem)').matches ? 2 : 1, booked: car() ? car().booked : [], from: from, to: to, onChange: function (v) { from = v.from; to = v.to; $('[data-dates-field]', form).classList.remove('has-error'); refresh(); } });
     function ageAtPickup() { var y = +el.dobY.value; var m = +el.dobM.value; var d = +el.dobD.value; if (!y || !m || !d || y < 1900) return null; var ref = D.parse(from || CC.TODAY); var a = ref.getUTCFullYear() - y; if (ref.getUTCMonth() + 1 < m || (ref.getUTCMonth() + 1 === m && ref.getUTCDate() < d)) a--; return a; }
-    function band() { var a = ageAtPickup(); if (a == null) return p.get('age') || '26+'; return a <= 20 ? '18-20' : a <= 25 ? '21-25' : '26+'; }
+    function band() { var a = ageAtPickup(); if (a == null) return p.get('age') || '26+'; var RU = window.CC_FLEET.rules; return a < RU.standardMinAge ? '18-20' : a < RU.noFeeAge ? '21-25' : '26+'; }
     function state() { return { from: from, to: to, tFrom: el.tf.value, tTo: el.tt.value, deliver: el.deliver.checked, collect: el.collect.checked, age: band(), addDrivers: +el.addDrivers.value || 0, winter: el.winter.checked, babySeats: +el.babySeats.value || 0, nonRefundable: el.bookingType.value === 'nonrefundable', coverage: el.coverage.value }; }
     function refresh() {
       var c = car(); $('[data-addr-deliver]', form).hidden = !el.deliver.checked; $('[data-addr-collect]', form).hidden = !el.collect.checked;
@@ -207,14 +207,14 @@
       var scope = steps[n - 1]; var ok = CC.checkAll(scope); var first = null; var bad = function (f) { ok = false; if (!first) first = f; };
       if (n === 1) {
         if (!from || !to) bad(fieldError('[data-dates-field]', !from ? 'Pick a pickup date and a return date.' : 'Pick a return date.'));
-        else { var d = P.days(from, el.tf.value, to, el.tt.value); if (d.invalid) bad(fieldError('[data-dates-field]', 'The return time is before the pickup time.')); else if (d.over) bad(fieldError('[data-dates-field]', 'One booking covers up to 30 days. Shorten the dates; you can renew later.')); else fieldError('[data-dates-field]', ''); }
+        else { var d = P.days(from, el.tf.value, to, el.tt.value); if (d.invalid) bad(fieldError('[data-dates-field]', 'The return time is before the pickup time.')); else if (d.over) bad(fieldError('[data-dates-field]', 'One booking covers up to ' + CC.t('maxDays') + ' days. Shorten the dates; you can renew later.')); else fieldError('[data-dates-field]', ''); }
       }
       if (n === 2) {
         var a = ageAtPickup(); var c = car(); var msg = '';
         if (a == null || +el.dobD.value > 31) msg = 'Enter your full date of birth.';
-        else if (a < 18) msg = 'Drivers must be 18 or older at pickup.';
+        else if (a < window.CC_FLEET.rules.minAge) msg = 'Drivers must be ' + CC.t('minAge') + ' or older at pickup.';
         else if (a > 110) msg = 'Check the year.';
-        else if (a <= 20 && c && !c.young) msg = 'Drivers aged 18 to 20 can book the cars we mark for them. The ' + c.name + ' is not one of them. Go back a step to choose another car.';
+        else if (a < window.CC_FLEET.rules.standardMinAge && c && !c.young) msg = 'Drivers aged ' + CC.t('youngA') + ' can book the cars we mark for them. The ' + c.name + ' is not one of them. Go back a step to choose another car.';
         var f = fieldError('[data-dob-field]', msg); if (msg) bad(f);
       }
       if (n === 3) {
@@ -245,7 +245,7 @@
         ['Driver', el.first.value + ' ' + el.last.value + (ageAtPickup() != null ? ', ' + ageAtPickup() + ' at pickup' : ''), 2], ['Contact', el.email.value + ', ' + el.phone.value, 2],
         ['Additional drivers', (+el.addDrivers.value || 0) ? el.addDrivers.value : 'None', 2],
         ['Licence', (el.licClass.value === 'other' ? 'Other, for review' : 'Ontario class ' + el.licClass.value) + ', expires ' + el.licM.value + '/' + el.licY.value, 3], ['Coverage', cov, 3],
-        ['Booking type', s.nonRefundable ? 'Non-refundable, 10% off the rental charge' : 'Standard, refund by cancellation tier', 3],
+        ['Booking type', s.nonRefundable ? 'Non-refundable, ' + CC.t('nonRef') + ' off the rental charge' : 'Standard, refund by cancellation tier', 3],
         ['Extras', [el.winter.checked ? 'Winter tires' : '', (+el.babySeats.value || 0) ? el.babySeats.value + ' baby seat' + (+el.babySeats.value > 1 ? 's' : '') : ''].filter(Boolean).join(', ') || 'None', 3]
       ];
       $('[data-review]', form).innerHTML = rows.map(function (r) { return '<tr><th scope="row">' + r[0] + '</th><td>' + CC.esc(r[1]) + '</td><td><button type="button" class="link small" data-goto="' + r[2] + '">Edit<span class="vh"> ' + r[0] + '</span></button></td></tr>'; }).join('');

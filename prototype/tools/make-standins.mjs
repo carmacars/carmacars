@@ -124,7 +124,7 @@ function wheelDetail(paint) { // local 1000 x 620
 }
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const FONT = `font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700"`;
+const FONT = `font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800"`;
 
 // Studio frame: black backdrop, overhead spot, floor line, ghosted name, slate.
 function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = true, spotX = 0.5, slateTop = false }) {

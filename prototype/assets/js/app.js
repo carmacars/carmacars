@@ -68,17 +68,19 @@
 
   /* ---------- pricing: the rate rule from the renter billing spec, section 2 ---------- */
   var P = (CC.pricing = {});
+  // Policy numbers and their wording come from the data file (Admin > Pricing and Policies), never from this script.
+  var RL = function () { return window.CC_FLEET.rules; }; var TK = (CC.t = function (k) { return window.CC_FLEET.tokens[k]; });
   P.round = function (n) { return Math.round((n + Number.EPSILON) * 100) / 100; };
   // Hours from pickup to return, divided by 24, rounded up. Minimum 1, maximum 30.
   P.days = function (from, tFrom, to, tTo) {
     var a = D.parse(from).getTime() + mins(tFrom) * 6e4; var b = D.parse(to).getTime() + mins(tTo) * 6e4;
     var raw = Math.ceil((b - a) / 36e5 / 24);
-    return { days: Math.max(1, raw), over: raw > 30, invalid: b <= a };
+    return { days: Math.max(1, raw), over: raw > RL().maxDays, invalid: b <= a };
   };
   function mins(t) { var a = (t || '10:00').split(':'); return +a[0] * 60 + +a[1]; }
   P.rental = function (rates, from, days) {
-    if (days >= 30) return { amount: rates.monthly, basis: 'Monthly rate (30 days)', capped: false };
-    if (days >= 7) {
+    if (days >= RL().maxDays) return { amount: rates.monthly, basis: 'Monthly rate (' + RL().maxDays + ' days)', capped: false };
+    if (days >= RL().weeklyFromDays) {
       var w = P.round(rates.weekly / 7 * days);
       if (w > rates.monthly) return { amount: rates.monthly, basis: days + ' days at the weekly rate, capped at the monthly rate', capped: true };
       return { amount: w, basis: days + ' days at ' + CC.money(rates.weekly) + ' a week (' + CC.money(P.round(rates.weekly / 7), true) + ' a day)', capped: false };
@@ -93,20 +95,20 @@
   };
   // Estimate shown before a request. Charges and caps are the Schedule of Fees defaults.
   P.estimate = function (car, s) {
-    var R = window.CC_FLEET.rules; var d = P.days(s.from, s.tFrom, s.to, s.tTo); var days = Math.min(d.days, 30);
+    var R = window.CC_FLEET.rules; var d = P.days(s.from, s.tFrom, s.to, s.tTo); var days = Math.min(d.days, R.maxDays);
     var rent = P.rental(car.rates, s.from, days); var lines = [];
     lines.push({ k: 'Rental charge', note: rent.basis, v: rent.amount });
     var discount = s.nonRefundable ? P.round(rent.amount * R.nonRefundableDiscount) : 0;
-    if (discount) lines.push({ k: 'Non-refundable booking, 10% off', v: -discount });
+    if (discount) lines.push({ k: 'Non-refundable booking, ' + TK('nonRef') + ' off', v: -discount });
     if (s.deliver) lines.push({ k: 'Delivery to you', v: car.delivery });
     if (s.collect) lines.push({ k: 'Pickup from you at the end', v: car.delivery });
     var y = R.youngDriver[s.age];
     if (y) lines.push({ k: 'Young driver fee, ages ' + s.age.replace('-', ' to '), note: CC.money(y.perDay) + ' a day, up to ' + CC.money(y.cap), v: Math.min(y.perDay * days, y.cap) });
-    if (s.addDrivers) lines.push({ k: 'Additional driver' + (s.addDrivers > 1 ? 's (' + s.addDrivers + ')' : ''), note: '$10 a day each, up to $70 each', v: s.addDrivers * Math.min(R.additionalDriver.perDay * days, R.additionalDriver.cap) });
-    if (s.winter) lines.push({ k: 'Winter tires', note: '$15 a day, up to $150', v: Math.min(R.winterTire.perDay * days, R.winterTire.cap) });
-    if (s.babySeats) lines.push({ k: 'Baby seat' + (s.babySeats > 1 ? 's (' + s.babySeats + ')' : ''), note: '$12 a day each, up to $70 each', v: s.babySeats * Math.min(R.babySeat.perDay * days, R.babySeat.cap) });
+    if (s.addDrivers) lines.push({ k: 'Additional driver' + (s.addDrivers > 1 ? 's (' + s.addDrivers + ')' : ''), note: TK('addDrv') + ' a day each, up to ' + TK('addDrvCap') + ' each', v: s.addDrivers * Math.min(R.additionalDriver.perDay * days, R.additionalDriver.cap) });
+    if (s.winter) lines.push({ k: 'Winter tires', note: TK('winter') + ' a day, up to ' + TK('winterCap'), v: Math.min(R.winterTire.perDay * days, R.winterTire.cap) });
+    if (s.babySeats) lines.push({ k: 'Baby seat' + (s.babySeats > 1 ? 's (' + s.babySeats + ')' : ''), note: TK('baby') + ' a day each, up to ' + TK('babyCap') + ' each', v: s.babySeats * Math.min(R.babySeat.perDay * days, R.babySeat.cap) });
     var sub = P.round(lines.reduce(function (t, l) { return t + l.v; }, 0)); var hst = P.round(sub * R.hst);
-    return { days: days, over: d.over, invalid: d.invalid, lines: lines, subtotal: sub, hst: hst, total: P.round(sub + hst), deposit: car.deposit, depositMethod: days <= 7 ? 'card hold' : 'charged, then refunded', km: car.kmPerDay * days, coverageExtra: s.coverage === '3' };
+    return { days: days, over: d.over, invalid: d.invalid, lines: lines, subtotal: sub, hst: hst, total: P.round(sub + hst), deposit: car.deposit, depositMethod: days <= R.depositHoldMaxDays ? 'card hold' : 'charged, then refunded', km: car.kmPerDay * days, coverageExtra: s.coverage === '3' };
   };
 
   /* ---------- number tween (used for totals) ---------- */
@@ -127,7 +129,7 @@
 
   /* ---------- calendar (single or range, keyboard usable) ---------- */
   CC.Calendar = function (root, o) {
-    o = Object.assign({ months: 1, min: CC.TODAY, booked: [], from: '', to: '', maxDays: 30, onChange: function () {} }, o);
+    o = Object.assign({ months: 1, min: CC.TODAY, booked: [], from: '', to: '', maxDays: window.CC_FLEET.rules.maxDays, onChange: function () {} }, o);
     var view = (o.from || o.min).slice(0, 7); var focus = o.from || o.min; var self = { from: o.from, to: o.to };
     var uid = 'cal' + Math.random().toString(36).slice(2, 7);
     root.classList.add('cal'); if (o.months === 2) root.classList.add('cal--two');
@@ -171,7 +173,7 @@
       if (!self.from || self.to || iso < self.from) { self.from = iso; self.to = ''; say('Pickup ' + D.short(iso) + '. Now pick a return date.'); }
       else {
         if (D.overlaps(self.from, iso, o.booked)) return say('Those dates cross another booking. Pick an earlier return date, or start after it.', true);
-        if (D.diff(self.from, iso) > o.maxDays) return say('One booking covers up to 30 days. For longer, you renew with a new booking.', true);
+        if (D.diff(self.from, iso) > o.maxDays) return say('One booking covers up to ' + o.maxDays + ' days. For longer, you renew with a new booking.', true);
         self.to = iso; var n = Math.max(1, D.diff(self.from, iso)); say(D.short(self.from) + ' to ' + D.short(iso) + ', ' + n + (n === 1 ? ' day' : ' days') + '.');
       }
       focus = iso; render(true); o.onChange({ from: self.from, to: self.to });

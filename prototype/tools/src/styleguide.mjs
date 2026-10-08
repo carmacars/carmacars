@@ -1,6 +1,6 @@
 // Style guide: tokens, every component, and one dense portal sample.
 import { CARS, PROTO_TODAY } from './data.mjs';
-import { doc, carCard, carImg, plate, icon, dateRange, faq, money, esc } from './layout.mjs';
+import { doc, carCard, carImg, plate, icon, dateRange, faq, money, esc, wordmark } from './layout.mjs';
 
 const sw = (name, hex, note = '', dark = false) => `<li class="sw"><span class="sw__chip" style="background:${hex}"></span><b>${name}</b><code>${hex}</code>${note ? `<span class="muted xs">${note}</span>` : ''}</li>`;
 const sec = (id, title, body, note = '') => `<section class="sg-sec" id="${id}" aria-labelledby="sg-${id}"><div class="sg-sec__head"><h2 class="d3" id="sg-${id}">${title}</h2>${note ? `<p class="muted small measure">${note}</p>` : ''}</div><div class="sg-sec__body">${body}</div></section>`;
@@ -35,7 +35,7 @@ function masterCalendar() {
   // quotes that do not block the calendar (outlined)
   bars += bar(['2026-11-02', '2026-11-05'], 'is-open', 'Offer', 5) + bar(['2026-10-26', '2026-10-28'], 'is-open', 'Offer', 9) + bar(['2026-11-04', '2026-11-08'], 'is-open', 'Owner asks', 13) + bar(['2026-10-27', '2026-10-29'], 'is-svc', 'Service', 11);
   return `<div class="mc-wrap" tabindex="0" role="region" aria-label="Fleet master calendar, scrolls sideways">
-    <div class="mc" style="--n:${N}" role="img" aria-label="Calendar grid: 12 vehicles down the side, 28 days across, bookings drawn as bars">
+    <div class="mc" style="--n:${N}" role="img" aria-label="Calendar grid: vehicles down the side, days across, bookings drawn as bars">
       <div class="mc__corner">Vehicle</div>
       ${days.map((d, i) => { const dt = new Date(d + 'T00:00:00Z'); const w = dt.getUTCDay(); return `<div class="mc__day${w === 5 || w === 6 ? ' is-we' : ''}${i === 0 ? ' is-today' : ''}" style="grid-column:${i + 2}"><span>${dow[w]}</span><b>${dt.getUTCDate()}</b></div>`; }).join('')}
       ${CARS.map((c, i) => `<div class="mc__car" style="grid-row:${i + 2}">${plate(c.code)}<span>${c.model}</span></div>${days.map((d, k) => { const w = new Date(d + 'T00:00:00Z').getUTCDay(); return `<div class="mc__cell${w === 5 || w === 6 ? ' is-we' : ''}" style="grid-row:${i + 2};grid-column:${k + 2}"></div>`; }).join('')}`).join('')}
@@ -62,14 +62,16 @@ export function styleguide() {
     <div class="sg-surfaces"><div class="sg-surface"><b>On white</b><p class="muted small">Secondary text</p><a class="link" href="#colour">Link</a></div><div class="sg-surface on-grey"><b>On grey</b><p class="muted small">Secondary text</p><a class="link" href="#colour">Link</a></div><div class="sg-surface on-dark"><b>On black</b><p class="muted small">Secondary text</p><a class="link" href="#colour">Link</a></div><div class="sg-surface on-red"><b>On red</b><p class="small">Secondary text</p><a class="link" href="#colour">Link</a></div></div>`,
     'No other hues. Status is carried by fill, outline and hatch, never by green or amber.')}
   ${sec('type', 'Type', `
-    <div class="sg-type"><p class="d-hero">Hero 152</p><code>.d-hero  Heros Condensed Bold, uppercase, 0.86</code></div>
-    <div class="sg-type"><p class="d1">Display one</p><code>.d1  44 to 96 px, 0.92</code></div>
-    <div class="sg-type"><p class="d2">Display two</p><code>.d2  34 to 64 px</code></div>
-    <div class="sg-type"><p class="d3">Display three</p><code>.d3  26 to 36 px</code></div>
-    <div class="sg-type"><p class="d4">Display four</p><code>.d4  22 px</code></div>
+    <div class="sg-type"><p class="d-hero">Hero heading</p><code>.d-hero  Inter Display 700, 38 to 96 px, line height 0.98, tracking -0.04em</code></div>
+    <div class="sg-type"><p class="d1">Display one</p><code>.d1  Inter Display 700, 36 to 72 px, 1.02, -0.035em</code></div>
+    <div class="sg-type"><p class="d2">Display two</p><code>.d2  Inter Display 700, 28 to 48 px, 1.06, -0.03em</code></div>
+    <div class="sg-type"><p class="d3">Display three</p><code>.d3  Inter Display 600, 22 to 28 px, 1.15, -0.022em</code></div>
+    <div class="sg-type"><p class="d4">Display four</p><code>.d4  Inter Display 600, 18 px, 1.25</code></div>
+    <div class="sg-type"><p class="eyebrow">Eyebrow label</p><code>.eyebrow  Inter 600, 12 px, capitals, tracking 0.14em. The only capitals in the system, with plates.</code></div>
     <div class="sg-type"><p class="lead">Lead paragraph. Inter Regular, 17 to 20 px, line height 1.45, set to a measure of 38 em.</p><code>.lead</code></div>
-    <div class="sg-type"><p>Body. Inter Regular 16 px on 1.55. Sentence case everywhere outside display type. Numbers in tables and prices use tabular figures: <span class="num">$1,234.56</span>.</p><code>body, .num</code></div>
-    <div class="sg-type"><p class="small muted">Small 14 px, secondary colour. Labels are 14 px semibold, sentence case, never tracked caps.</p><code>.small .muted</code></div>`)}
+    <div class="sg-type"><p>Body. Inter Regular 16 px on 1.55. Sentence case everywhere, headings included. Numbers in tables and prices use tabular figures: <span class="num">$1,234.56</span>.</p><code>body, .num</code></div>
+    <div class="sg-type"><p class="small muted">Small 14 px, secondary colour. Labels are 14 px semibold, sentence case.</p><code>.small .muted</code></div>
+    <div class="sg-type"><p>${wordmark('', 'span', false)}</p><code>Wordmark: Inter Display 800, upright, tracking -0.045em, "Cars" in red. Replaced by the logo image when one is set in site settings.</code></div>`)}
   ${sec('space', 'Space and shape', `
     <ul class="sg-space">${[['s-1', 4], ['s-2', 8], ['s-3', 12], ['s-4', 16], ['s-5', 24], ['s-6', 32], ['s-7', 48], ['s-8', 64], ['s-9', 96], ['s-10', 128]].map(([n, p]) => `<li><i style="width:${p}px"></i><code>${n}</code><span class="muted xs num">${p}px</span></li>`).join('')}</ul>
     <ul class="sg-radii"><li><i style="border-radius:0"></i><code>r-0</code><span class="muted xs">Photos, sections, tables</span></li><li><i style="border-radius:4px"></i><code>r-1  4px</code><span class="muted xs">Plates, badges, days</span></li><li><i style="border-radius:6px"></i><code>r-2  6px</code><span class="muted xs">Buttons, inputs</span></li><li><i style="border-radius:14px"></i><code>r-3  14px</code><span class="muted xs">Things that float</span></li></ul>`,
@@ -88,7 +90,7 @@ export function styleguide() {
   ${sec('labels', 'Plates and badges', `
     <div class="row">${plate('CC 03')}${plate('CC 03', 'plate--dark')}${plate('R-221704', 'plate--lg')}</div>
     <div class="row"><span class="badge badge--red">On rent</span><span class="badge">Confirmed</span><span class="badge badge--hatch">Request</span><span class="badge badge--outline">Offer sent</span><span class="badge badge--grey">Returned</span></div>`,
-    'The plate is the one decorative device, and it always carries a real identifier: a fleet number or a request number. Badges are rectangular and state status only.')}
+    'The plate is the one decorative device, and it always carries a real identifier: a fleet number or a request number. It is set in small tracked capitals. Badges are rectangular and state status only.')}
   ${sec('forms', 'Form controls', `
     <div class="field-row"><div class="field"><label class="label" for="sg-a">Text input</label><input class="input" id="sg-a" placeholder="Placeholder"><p class="hint">Hint text sits under the field.</p></div>
       <div class="field has-error"><label class="label" for="sg-b">With an error</label><input class="input" id="sg-b" value="name@" aria-invalid="true" aria-describedby="sg-b-e"><p class="error" id="sg-b-e">Enter an email address like name@example.com.</p></div></div>

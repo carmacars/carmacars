@@ -2,12 +2,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CARS, money } from './data.mjs';
+import { CARS, money, TOKENS } from './data.mjs';
+import { SITE as S } from './site.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const PHOTOS = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/photos.json'), 'utf8'));
-export const SITE = 'https://carmacars.ca/';
-export const EMAIL = 'info@carmacars.ca';
+export const SITE = S.url;
+export const EMAIL = S.email;
+export { S as SETTINGS };
 export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 export { money };
 
@@ -41,7 +43,7 @@ export function carCard(c, { i = 0, tag = 'h3' } = {}) {
       <${tag} class="car-card__name"><a href="car-${c.slug}.html">${c.make} <span>${c.model}</span></a></${tag}>
       <p class="car-card__meta">${c.year} ${c.trim}</p>
       <p class="car-card__price"><b class="num" data-price>${money(c.rates.daily)}</b><span data-unit>a day</span></p>
-      <ul class="car-card__specs"><li>${c.cls}</li><li>${c.seats} seats</li><li>${c.transmission}</li><li>${c.fuel}</li>${c.young ? '<li class="strong">Ages 18+</li>' : ''}</ul>
+      <ul class="car-card__specs"><li>${c.cls}</li><li>${c.seats} seats</li><li>${c.transmission}</li><li>${c.fuel}</li>${c.young ? '<li class="strong">Ages {{minAge}}+</li>' : ''}</ul>
     </div>
   </article>`;
 }
@@ -67,10 +69,15 @@ export function dateRange({ id, label = true } = {}) {
 export const timeSelect = (name, label, id, def) => `<div class="field"><label class="label" for="${id}">${label}</label><select class="select" id="${id}" name="${name}" data-times="${def}"></select></div>`;
 
 // ---------- chrome ----------
-const NAV = [['fleet.html', 'Fleet', `${CARS.length} cars`], ['how-it-works.html', 'How it works', 'Request to book'], ['delivery.html', 'Delivery', '$75 to $200 each way'], ['requirements.html', 'Requirements', 'Age, licence, coverage'], ['owners.html', 'List your car', 'Owner program'], ['faq.html', 'FAQ', 'Straight answers']];
-export const wordmark = (cls = '', tag = 'a') => tag === 'a'
-  ? `<a class="wordmark ${cls}" href="index.html" aria-label="CarmaCars home">Carma<b>Cars</b></a>`
-  : `<span class="wordmark ${cls}" aria-hidden="true">Carma<b>Cars</b></span>`;
+const NAV = [['fleet.html', 'Fleet', 'Every car, with dates and prices'], ['how-it-works.html', 'How it works', 'Request to book'], ['delivery.html', 'Delivery', '{{delMin}} to {{delMax}} each way'], ['requirements.html', 'Requirements', 'Age, licence, coverage'], ['owners.html', 'List your car', 'Owner program'], ['faq.html', 'FAQ', 'Straight answers']];
+// Logo slot: an image if Admin > Settings has one, otherwise the text wordmark.
+const mark = (dark) => { const img = (dark && S.logo.imageOnDark) || S.logo.image; return img ? `<img src="${img}" width="${S.logo.width}" height="${S.logo.height}" alt="${esc(S.logo.alt)}">` : 'Carma<b>Cars</b>'; };
+export const wordmark = (cls = '', tag = 'a', dark = true) => tag === 'a'
+  ? `<a class="wordmark ${cls}" href="index.html" aria-label="${S.brand} home">${mark(dark)}</a>`
+  : `<span class="wordmark ${cls}" aria-hidden="true">${mark(dark)}</span>`;
+// A site setting, or a hatched "to be added" marker when the owner has not confirmed it yet.
+export const setting = (v, label) => (v ? esc(v) : `<span class="tbc">${label} to be added</span>`);
+const socials = () => { const l = Object.entries(S.social).filter(([, u]) => u); return l.length ? `<li class="footer-social">${l.map(([n, u]) => `<a href="${u}" rel="noopener">${n[0].toUpperCase() + n.slice(1)}</a>`).join('')}</li>` : ''; };
 
 export const header = () => `<a class="skip" href="#main">Skip to content</a>
 <header class="site-header on-dark">
@@ -93,21 +100,26 @@ export const footer = () => `<footer class="site-footer on-dark">
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-cta stack">
-        <p class="d3">Toronto car rental,<br>confirmed by a person.</p>
-        <p class="muted small measure">Request a car, get a confirmed price, then sign and pay online. Pick it up or have it delivered.</p>
+        <p class="d3">{{tagline}}</p>
+        <p class="muted small measure">Car rental in {{city}}, picked up or delivered. Bring it back the way you got it, and so does your deposit.</p>
         <p><a class="btn btn--primary" href="fleet.html">Find a car</a></p>
       </div>
       <nav aria-label="Rent"><h2>Rent</h2><ul><li><a href="fleet.html">Fleet</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="requirements.html">Requirements and coverage</a></li><li><a href="delivery.html">Delivery</a></li><li><a href="request.html">Request to book</a></li></ul></nav>
-      <nav aria-label="Cars"><h2>Cars</h2><ul>${CARS.slice(0, 6).map((c) => `<li><a href="car-${c.slug}.html">${c.name}</a></li>`).join('')}<li><a href="fleet.html">All ${CARS.length} cars</a></li></ul></nav>
-      <nav aria-label="Company"><h2>CarmaCars</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li></ul></nav>
+      <nav aria-label="Cars"><h2>Cars</h2><ul>${CARS.slice(0, 6).map((c) => `<li><a href="car-${c.slug}.html">${c.name}</a></li>`).join('')}<li><a href="fleet.html">See every car</a></li></ul></nav>
+      <nav aria-label="Company"><h2>{{brand}}</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li>${socials()}</ul></nav>
       <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li><li><a href="styleguide.html">Style guide</a></li></ul></nav>
     </div>
-    <div class="footer-legal"><span>CarmaCars is operated by 18122211 Canada Inc. Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
+    <div class="footer-legal"><span>{{brand}}. {{serviceArea}}, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
     ${wordmark('wordmark--xl footer-mark', 'span')}
   </div>
 </footer>`;
 
-export function doc({ file, title, desc, main, ld, bodyClass = '', extra = '', noindex = false }) {
+// Every {{token}} in a page is filled from tools/src/data.mjs (policy, fees) or tools/src/site.mjs (settings).
+const ALL = { ...TOKENS, brand: S.brand, tagline: S.tagline, city: S.city, region: S.region, serviceArea: S.serviceArea, email: S.email || '', reply: S.replyWording };
+export const fill = (html) => html.replace(/\{\{(\w+)\}\}/g, (m, k) => { if (!(k in ALL)) throw new Error('Unknown token ' + m); return ALL[k]; });
+
+export function doc(o) { return fill(rawDoc(o)); }
+function rawDoc({ file, title, desc, main, ld, bodyClass = '', extra = '', noindex = false }) {
   const graph = ld ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': [].concat(ld) })}</script>` : '';
   return `<!doctype html>
 <html lang="en-CA">
@@ -120,10 +132,10 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="CarmaCars">
+<meta property="og:site_name" content="{{brand}}">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M9 22l3-12h11l-1.2 4H15l-.9 4h6.5L19.5 22z' fill='%23D0111B'/%3E%3C/svg%3E">
-<link rel="preload" href="assets/fonts/heros-cn-bold.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="assets/fonts/inter-display-700.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="assets/css/tokens.css">
 <link rel="stylesheet" href="assets/css/core.css">
 <link rel="stylesheet" href="assets/css/pages.css">

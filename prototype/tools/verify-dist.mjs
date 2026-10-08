@@ -41,7 +41,7 @@ for (const width of [1440, 375]) {
   // click-through: real clicks, real routing
   await page.evaluate(() => { location.hash = '#/index.html'; }); await page.waitForTimeout(200);
   if (width < 1024) { await page.locator('.menu-btn').click(); await page.locator('.menu-panel a[data-nav="fleet.html"]').click(); } else await page.locator('.nav a[data-nav="fleet.html"]').click();
-  await page.waitForTimeout(200); if (!/fleet/i.test(await page.locator('main h1').textContent())) problems.push(`@${width} click to fleet did not route`);
+  await page.waitForTimeout(200); if (!(await page.locator('[data-page="fleet"]').count())) problems.push(`@${width} click to fleet did not route`);
   await page.locator('#fleet-grid > li:not([hidden]) a').first().click(); await page.waitForTimeout(250);
   if (!(await page.locator('[data-page="car"]').count())) problems.push(`@${width} click to a car did not route`);
   await page.locator('.car-top__cta a').click(); await page.waitForTimeout(250); // in-page anchor must not change the view

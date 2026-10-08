@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="CarmaCars">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M9 22l3-12h11l-1.2 4H15l-.9 4h6.5L19.5 22z' fill='%23D0111B'/%3E%3C/svg%3E">
-<link rel="preload" href="assets/fonts/heros-cn-bold.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="assets/fonts/inter-display-700.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="assets/css/tokens.css">
 <link rel="stylesheet" href="assets/css/core.css">
 <link rel="stylesheet" href="assets/css/pages.css">
@@ -32,7 +32,7 @@
   </div>
 </header>
 <div class="menu-panel on-dark" id="menu">
-  <nav class="menu-panel__links" aria-label="Menu"><a href="fleet.html" data-nav="fleet.html">Fleet<span>12 cars</span></a><a href="how-it-works.html" data-nav="how-it-works.html">How it works<span>Request to book</span></a><a href="delivery.html" data-nav="delivery.html">Delivery<span>$75 to $200 each way</span></a><a href="requirements.html" data-nav="requirements.html">Requirements<span>Age, licence, coverage</span></a><a href="owners.html" data-nav="owners.html">List your car<span>Owner program</span></a><a href="faq.html" data-nav="faq.html">FAQ<span>Straight answers</span></a><a href="contact.html" data-nav="contact.html">Contact<span>Talk to a person</span></a></nav>
+  <nav class="menu-panel__links" aria-label="Menu"><a href="fleet.html" data-nav="fleet.html">Fleet<span>Every car, with dates and prices</span></a><a href="how-it-works.html" data-nav="how-it-works.html">How it works<span>Request to book</span></a><a href="delivery.html" data-nav="delivery.html">Delivery<span>$75 to $200 each way</span></a><a href="requirements.html" data-nav="requirements.html">Requirements<span>Age, licence, coverage</span></a><a href="owners.html" data-nav="owners.html">List your car<span>Owner program</span></a><a href="faq.html" data-nav="faq.html">FAQ<span>Straight answers</span></a><a href="contact.html" data-nav="contact.html">Contact<span>Talk to a person</span></a></nav>
   <div class="row"><a class="btn btn--light" href="signin.html">Sign in</a><a class="btn btn--primary" href="fleet.html">Find a car</a></div>
 </div>
 <main id="main" tabindex="-1">
@@ -56,7 +56,7 @@
     <form id="request" class="req__form" novalidate aria-label="Request to book">
       <!-- STEP 1 -->
       <section data-step="1" class="req__step stack-lg" aria-labelledby="rs1">
-        <h2 class="d3" id="rs1">When do you need it?</h2>
+        <h2 class="d3" id="rs1">Your dates</h2>
         <div class="field"><label class="label" for="rq-car">Car</label>
           <select class="select" id="rq-car" name="car" data-v="required" data-msg="Choose a car.">
             <option value="">Choose a car</option><option value="mercedes-benz-a220">Mercedes-Benz A220, from $95 a day</option><option value="mercedes-benz-cla250">Mercedes-Benz CLA250, from $105 a day</option><option value="mercedes-benz-c300">Mercedes-Benz C300, from $119 a day</option><option value="mercedes-benz-glc300">Mercedes-Benz GLC300, from $135 a day</option><option value="mercedes-benz-gle350">Mercedes-Benz GLE350, from $189 a day</option><option value="toyota-corolla">Toyota Corolla, from $59 a day</option><option value="hyundai-elantra">Hyundai Elantra, from $62 a day</option><option value="honda-civic">Honda Civic, from $69 a day</option><option value="toyota-rav4">Toyota RAV4, from $89 a day</option><option value="tesla-model-3">Tesla Model 3, from $109 a day</option><option value="chrysler-pacifica">Chrysler Pacifica, from $99 a day</option><option value="mazda-mx-5">Mazda MX-5, from $99 a day</option>
@@ -80,7 +80,7 @@
 
       <!-- STEP 2 -->
       <section data-step="2" class="req__step stack-lg" aria-labelledby="rs2" hidden>
-        <h2 class="d3" id="rs2">Who is driving?</h2>
+        <h2 class="d3" id="rs2">The driver</h2>
         <div class="field-row"><div class="field"><label class="label" for="rq-first">First name</label><input class="input" id="rq-first" name="first" type="text" autocomplete="given-name" data-v="required" data-msg="Enter your first name as it appears on your licence." ><p class="error" role="alert"></p></div><div class="field"><label class="label" for="rq-last">Last name</label><input class="input" id="rq-last" name="last" type="text" autocomplete="family-name" data-v="required" data-msg="Enter your last name as it appears on your licence." ><p class="error" role="alert"></p></div></div>
         <div class="field-row"><div class="field"><label class="label" for="rq-email">Email</label><input class="input" id="rq-email" name="email" type="email" autocomplete="email" data-v="required email" data-msg="Enter your email so we can send the price." ><p class="hint">We send the confirmed price here.</p><p class="error" role="alert"></p></div><div class="field"><label class="label" for="rq-phone">Mobile number</label><input class="input" id="rq-phone" name="phone" type="tel" autocomplete="tel" data-v="required phone" data-msg="Enter a mobile number we can reach you on." ><p class="hint">For questions about this request only.</p><p class="error" role="alert"></p></div></div>
         <fieldset class="field" data-dob-field><legend class="label">Date of birth</legend>
@@ -139,7 +139,7 @@
         <table class="spec req__review"><tbody data-review></tbody></table>
         <div class="alert"><span class="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for 24 hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
         <div class="field"><label class="check"><input type="checkbox" name="agree" data-v="required" data-msg="Tick this box to send your request."><span>I am 18 or older, the details above are true, and I agree to the <a class="link" href="terms.html">Terms of use</a> and <a class="link" href="privacy.html">Privacy policy</a>.</span></label><p class="error" role="alert"></p></div>
-        <label class="check"><input type="checkbox" name="marketing"><span class="small">Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by 18122211 Canada Inc. (CarmaCars), info@carmacars.ca.</span></label>
+        <label class="check"><input type="checkbox" name="marketing"><span class="small">Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars, info@carmacars.ca.</span></label>
         <div class="req__nav"><button type="button" class="btn btn--ghost" data-back>Back</button><button type="submit" class="btn btn--primary btn--lg">Send request</button></div>
         <p class="small muted">No payment now. No card needed.</p>
       </section>
@@ -160,16 +160,16 @@
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-cta stack">
-        <p class="d3">Toronto car rental,<br>confirmed by a person.</p>
-        <p class="muted small measure">Request a car, get a confirmed price, then sign and pay online. Pick it up or have it delivered.</p>
+        <p class="d3">What goes around, drives around.</p>
+        <p class="muted small measure">Car rental in Toronto, picked up or delivered. Bring it back the way you got it, and so does your deposit.</p>
         <p><a class="btn btn--primary" href="fleet.html">Find a car</a></p>
       </div>
       <nav aria-label="Rent"><h2>Rent</h2><ul><li><a href="fleet.html">Fleet</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="requirements.html">Requirements and coverage</a></li><li><a href="delivery.html">Delivery</a></li><li><a href="request.html">Request to book</a></li></ul></nav>
-      <nav aria-label="Cars"><h2>Cars</h2><ul><li><a href="car-mercedes-benz-a220.html">Mercedes-Benz A220</a></li><li><a href="car-mercedes-benz-cla250.html">Mercedes-Benz CLA250</a></li><li><a href="car-mercedes-benz-c300.html">Mercedes-Benz C300</a></li><li><a href="car-mercedes-benz-glc300.html">Mercedes-Benz GLC300</a></li><li><a href="car-mercedes-benz-gle350.html">Mercedes-Benz GLE350</a></li><li><a href="car-toyota-corolla.html">Toyota Corolla</a></li><li><a href="fleet.html">All 12 cars</a></li></ul></nav>
+      <nav aria-label="Cars"><h2>Cars</h2><ul><li><a href="car-mercedes-benz-a220.html">Mercedes-Benz A220</a></li><li><a href="car-mercedes-benz-cla250.html">Mercedes-Benz CLA250</a></li><li><a href="car-mercedes-benz-c300.html">Mercedes-Benz C300</a></li><li><a href="car-mercedes-benz-glc300.html">Mercedes-Benz GLC300</a></li><li><a href="car-mercedes-benz-gle350.html">Mercedes-Benz GLE350</a></li><li><a href="car-toyota-corolla.html">Toyota Corolla</a></li><li><a href="fleet.html">See every car</a></li></ul></nav>
       <nav aria-label="Company"><h2>CarmaCars</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li></ul></nav>
       <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li><li><a href="styleguide.html">Style guide</a></li></ul></nav>
     </div>
-    <div class="footer-legal"><span>CarmaCars is operated by 18122211 Canada Inc. Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
+    <div class="footer-legal"><span>CarmaCars. Toronto, Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
     <span class="wordmark wordmark--xl footer-mark" aria-hidden="true">Carma<b>Cars</b></span>
   </div>
 </footer>

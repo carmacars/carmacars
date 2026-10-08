@@ -9,7 +9,7 @@
 <rect y="888" width="1800" height="312" fill="url(#fl)"/>
 <ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
 <rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
-<text x="900" y="648" text-anchor="middle" font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">GLC300</text>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">GLC300</text>
 <g transform="translate(432.0 416.9) scale(1.5600)"><defs>
 <linearGradient id="e39b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A4A4A"/><stop offset=".5" stop-color="#1C1C1C"/><stop offset="1" stop-color="#070707"/></linearGradient>
 <linearGradient id="e39g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c4c4c"/><stop offset="1" stop-color="#050505"/></linearGradient></defs>
@@ -22,5 +22,5 @@
 <rect x="24" y="118" width="34" height="18" rx="6" fill="#1C1C1C"/><rect x="542" y="118" width="34" height="18" rx="6" fill="#1C1C1C"/>
 <rect x="64" y="156" width="472" height="12" rx="6" fill="#E0121C"/><rect x="238" y="188" width="124" height="34" rx="4" fill="#f2f2f2"/><rect x="150" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="390" y="262" width="60" height="10" rx="5" fill="#000"/>
 </g>
-<g font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MERCEDES-BENZ GLC300  5/8 REAR</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MERCEDES-BENZ GLC300  5/8 REAR</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
 </svg>

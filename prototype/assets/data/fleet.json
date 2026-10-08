@@ -4,6 +4,11 @@
   "rules": {
     "hst": 0.13,
     "maxDays": 30,
+    "weeklyFromDays": 7,
+    "minAge": 18,
+    "standardMinAge": 21,
+    "noFeeAge": 26,
+    "licence": "G2 or G",
     "depositByClass": {
       "Economy": 500,
       "Standard": 500,
@@ -11,6 +16,10 @@
       "SUV": 1000,
       "Luxury": 2500
     },
+    "depositHoldMaxDays": 7,
+    "depositReleaseBusinessDays": 7,
+    "depositHoldbackDays": 30,
+    "refundBusinessDays": 10,
     "youngDriver": {
       "18-20": {
         "perDay": 35,
@@ -38,7 +47,135 @@
       75,
       200
     ],
-    "deductible": 2500
+    "deductible": 2500,
+    "adminFee": {
+      "claim": 75,
+      "other": 50
+    },
+    "overage": {
+      "standard": 0.35,
+      "luxury": [
+        0.75,
+        1.5
+      ]
+    },
+    "lateReturn": {
+      "graceMinutes": 30,
+      "perHour": 25
+    },
+    "fuel": {
+      "markupPct": 25,
+      "serviceFee": 25,
+      "per10PctBattery": 10
+    },
+    "cleaning": {
+      "standard": 75,
+      "heavy": 250,
+      "pet": 150,
+      "smoking": 300
+    },
+    "lostKeyFee": 50,
+    "tollFee": 15,
+    "ticketFee": 40,
+    "declinedPaymentFee": 40,
+    "cancellation": {
+      "graceHours": 24,
+      "earlyHours": 48,
+      "lateHours": 24,
+      "gracePct": 95,
+      "earlyPct": 75,
+      "midPct": 50
+    },
+    "offerOpenHours": 24,
+    "verifyHoursBeforePickup": 24,
+    "accidentCallHours": 24,
+    "accidentReportHours": 48,
+    "hiddenDamageHours": 48,
+    "owner": {
+      "payoutDay": "10th",
+      "billingDay": "15th",
+      "noticeDays": 30,
+      "referralPct": 20,
+      "replyBusinessDays": "one business day",
+      "listingBusinessDays": "two business days"
+    }
+  },
+  "tokens": {
+    "hst": "13%",
+    "maxDays": "30",
+    "maxDaysLess1": "29",
+    "weekFrom": "7",
+    "weekFromLess1": "6",
+    "minAge": "18",
+    "stdAge": "21",
+    "fullAge": "26",
+    "youngA": "18 to 20",
+    "youngB": "21 to 25",
+    "licence": "G2 or G",
+    "dep1": "$500",
+    "dep2": "$1,000",
+    "dep3": "$2,500",
+    "holdDays": "7",
+    "releaseDays": "7 business days",
+    "holdbackDays": "30 days",
+    "refundDays": "10 business days",
+    "ydA": "$35",
+    "ydACap": "$350",
+    "ydB": "$20",
+    "ydBCap": "$200",
+    "addDrv": "$10",
+    "addDrvCap": "$70",
+    "winter": "$15",
+    "winterCap": "$150",
+    "baby": "$12",
+    "babyCap": "$70",
+    "nonRef": "10%",
+    "delMin": "$75",
+    "delMax": "$200",
+    "deductible": "$2,500",
+    "adminClaim": "$75",
+    "adminOther": "$50",
+    "over": "$0.35",
+    "overLuxMin": "$0.75",
+    "overLuxMax": "$1.50",
+    "grace": "30 minutes",
+    "graceShort": "30 minute",
+    "lateHr": "$25",
+    "fuelPct": "25%",
+    "fuelFee": "$25",
+    "evPer": "$10",
+    "clean": "$75",
+    "cleanHeavy": "$250",
+    "pet": "$150",
+    "smoke": "$300",
+    "keyFee": "$50",
+    "tollFee": "$15",
+    "ticketFee": "$40",
+    "declined": "$40",
+    "c1": "95%",
+    "c2": "75%",
+    "c3": "50%",
+    "cGrace": "24",
+    "cEarly": "48",
+    "cLate": "24",
+    "offerHours": "24",
+    "verifyHours": "24",
+    "callHours": "24",
+    "reportHours": "48",
+    "hiddenHours": "48",
+    "payoutDay": "10th",
+    "billDay": "15th",
+    "noticeDays": "30",
+    "referralPct": "20%",
+    "ownerReply": "one business day",
+    "listDays": "two business days",
+    "minDaily": "$59"
+  },
+  "site": {
+    "brand": "CarmaCars",
+    "tagline": "What goes around, drives around.",
+    "email": "info@carmacars.ca",
+    "phone": null
   },
   "cars": [
     {

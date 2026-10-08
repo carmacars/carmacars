@@ -5,17 +5,45 @@
 
 export const PROTO_TODAY = '2026-10-15'; // launch day; the prototype clock is fixed here
 
+// RULES. Policy numbers, fees and thresholds. The stand-in for Admin > Pricing and
+// Admin > Policies. Every page reads these through tokens like {{deductible}}, so a
+// change here changes every page, the estimates and the structured data.
 export const RULES = {
   hst: 0.13,
   maxDays: 30,
+  weeklyFromDays: 7,
+  minAge: 18,
+  standardMinAge: 21,
+  noFeeAge: 26,
+  licence: 'G2 or G',
   depositByClass: { Economy: 500, Standard: 500, Premium: 1000, SUV: 1000, Luxury: 2500 },
+  depositHoldMaxDays: 7,
+  depositReleaseBusinessDays: 7,
+  depositHoldbackDays: 30,
+  refundBusinessDays: 10,
   youngDriver: { '18-20': { perDay: 35, cap: 350 }, '21-25': { perDay: 20, cap: 200 } },
   additionalDriver: { perDay: 10, cap: 70 },
   winterTire: { perDay: 15, cap: 150 },
   babySeat: { perDay: 12, cap: 70 },
   nonRefundableDiscount: 0.10,
   deliveryRange: [75, 200],
-  deductible: 2500
+  deductible: 2500,
+  adminFee: { claim: 75, other: 50 },
+  overage: { standard: 0.35, luxury: [0.75, 1.5] },
+  lateReturn: { graceMinutes: 30, perHour: 25 },
+  fuel: { markupPct: 25, serviceFee: 25, per10PctBattery: 10 },
+  cleaning: { standard: 75, heavy: 250, pet: 150, smoking: 300 },
+  lostKeyFee: 50,
+  tollFee: 15,
+  ticketFee: 40,
+  declinedPaymentFee: 40,
+  cancellation: { graceHours: 24, earlyHours: 48, lateHours: 24, gracePct: 95, earlyPct: 75, midPct: 50 },
+  offerOpenHours: 24,
+  verifyHoursBeforePickup: 24,
+  accidentCallHours: 24,
+  accidentReportHours: 48,
+  hiddenDamageHours: 48,
+  owner: { payoutDay: '10th', billingDay: '15th', noticeDays: 30, referralPct: 20, replyBusinessDays: 'one business day', listingBusinessDays: 'two business days' }
 };
 
 const car = (o) => ({
@@ -95,3 +123,24 @@ export const FEATURED = ['mercedes-benz-c300', 'mercedes-benz-a220', 'mercedes-b
 
 export const bySlug = (s) => CARS.find((c) => c.slug === s);
 export const money = (n) => '$' + Number(n).toLocaleString('en-CA', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
+
+// TOKENS. Formatted strings for the page templates: write {{name}} in any template text.
+const $ = (n) => money(n);
+const R = RULES;
+export const TOKENS = {
+  hst: Math.round(R.hst * 100) + '%', maxDays: String(R.maxDays), maxDaysLess1: String(R.maxDays - 1), weekFrom: String(R.weeklyFromDays), weekFromLess1: String(R.weeklyFromDays - 1),
+  minAge: String(R.minAge), stdAge: String(R.standardMinAge), fullAge: String(R.noFeeAge), youngA: `${R.minAge} to ${R.standardMinAge - 1}`, youngB: `${R.standardMinAge} to ${R.noFeeAge - 1}`, licence: R.licence,
+  dep1: $(R.depositByClass.Economy), dep2: $(R.depositByClass.Premium), dep3: $(R.depositByClass.Luxury), holdDays: String(R.depositHoldMaxDays), releaseDays: `${R.depositReleaseBusinessDays} business days`, holdbackDays: `${R.depositHoldbackDays} days`, refundDays: `${R.refundBusinessDays} business days`,
+  ydA: $(R.youngDriver['18-20'].perDay), ydACap: $(R.youngDriver['18-20'].cap), ydB: $(R.youngDriver['21-25'].perDay), ydBCap: $(R.youngDriver['21-25'].cap),
+  addDrv: $(R.additionalDriver.perDay), addDrvCap: $(R.additionalDriver.cap), winter: $(R.winterTire.perDay), winterCap: $(R.winterTire.cap), baby: $(R.babySeat.perDay), babyCap: $(R.babySeat.cap),
+  nonRef: Math.round(R.nonRefundableDiscount * 100) + '%', delMin: $(R.deliveryRange[0]), delMax: $(R.deliveryRange[1]),
+  deductible: $(R.deductible), adminClaim: $(R.adminFee.claim), adminOther: $(R.adminFee.other),
+  over: '$' + R.overage.standard.toFixed(2), overLuxMin: '$' + R.overage.luxury[0].toFixed(2), overLuxMax: '$' + R.overage.luxury[1].toFixed(2),
+  grace: `${R.lateReturn.graceMinutes} minutes`, graceShort: `${R.lateReturn.graceMinutes} minute`, lateHr: $(R.lateReturn.perHour),
+  fuelPct: R.fuel.markupPct + '%', fuelFee: $(R.fuel.serviceFee), evPer: $(R.fuel.per10PctBattery),
+  clean: $(R.cleaning.standard), cleanHeavy: $(R.cleaning.heavy), pet: $(R.cleaning.pet), smoke: $(R.cleaning.smoking), keyFee: $(R.lostKeyFee), tollFee: $(R.tollFee), ticketFee: $(R.ticketFee), declined: $(R.declinedPaymentFee),
+  c1: R.cancellation.gracePct + '%', c2: R.cancellation.earlyPct + '%', c3: R.cancellation.midPct + '%', cGrace: String(R.cancellation.graceHours), cEarly: String(R.cancellation.earlyHours), cLate: String(R.cancellation.lateHours),
+  offerHours: String(R.offerOpenHours), verifyHours: String(R.verifyHoursBeforePickup), callHours: String(R.accidentCallHours), reportHours: String(R.accidentReportHours), hiddenHours: String(R.hiddenDamageHours),
+  payoutDay: R.owner.payoutDay, billDay: R.owner.billingDay, noticeDays: String(R.owner.noticeDays), referralPct: R.owner.referralPct + '%', ownerReply: R.owner.replyBusinessDays, listDays: R.owner.listingBusinessDays,
+  minDaily: $(Math.min(...CARS.map((c) => c.rates.daily)))
+};

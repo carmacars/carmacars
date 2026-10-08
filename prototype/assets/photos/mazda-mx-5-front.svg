@@ -9,7 +9,7 @@
 <rect y="888" width="1800" height="312" fill="url(#fl)"/>
 <ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
 <rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
-<text x="900" y="648" text-anchor="middle" font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">MX-5</text>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">MX-5</text>
 <g transform="translate(432.0 416.9) scale(1.5600)"><defs>
 <linearGradient id="e78b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE3A42"/><stop offset=".5" stop-color="#C20F18"/><stop offset="1" stop-color="#5C060A"/></linearGradient>
 <linearGradient id="e78g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c4c4c"/><stop offset="1" stop-color="#050505"/></linearGradient></defs>
@@ -22,5 +22,5 @@
 <rect x="34" y="166" width="34" height="18" rx="6" fill="#C20F18"/><rect x="532" y="166" width="34" height="18" rx="6" fill="#C20F18"/>
 <path d="M 74,204 h 96 l -10,20 h -78 z" fill="#fff"/><path d="M 526,204 h -96 l 10,20 h 78 z" fill="#fff"/><rect x="202" y="202" width="196" height="46" rx="8" fill="#0a0a0a"/><path d="M 214,216 h 172 M 214,228 h 172 M 214,238 h 172" stroke="#3a3a3a" stroke-width="3"/><rect x="130" y="246" width="340" height="22" rx="6" fill="#000" opacity=".8"/>
 </g>
-<g font-family="'Arial Narrow','Helvetica Neue Condensed','Roboto Condensed',Arial,Helvetica,sans-serif" font-weight="700" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MAZDA MX-5  4/8 FRONT</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MAZDA MX-5  4/8 FRONT</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
 </svg>
