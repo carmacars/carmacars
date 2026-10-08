@@ -152,7 +152,7 @@ The first row that fits applies. The "start" is the pickup time on your booking.
 
 - **How to cancel.** Cancel in your renter portal or email [●]. Notice counts from when we receive it.
 - **What the percentage applies to.** The total you paid at booking.
-- **Deposit.** Taken at pickup. Any Deposit already taken is returned in full when a booking is cancelled.
+- **Deposit.** Taken about 1 hour before pickup. Any Deposit already taken is returned in full when a booking is cancelled.
 - **How refunds are paid.** To the card you paid with, within 10 business days after cancellation. Your bank may take longer to show it. A Deposit taken as a card hold is released, not refunded.
 - **Early return.** Returning the vehicle early earns no refund.
 - **Identity check.** If we cannot verify a driver, we refund what you paid. False documents, or no confirmed Coverage Option at pickup, count as cancelling at that time.

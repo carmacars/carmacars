@@ -507,3 +507,11 @@ select test.eq('state-changing functions of 0025 are not executable from a brows
                                               'apply_booking_places', 'set_booking_places', 'reopen_expired_request', 'decide_review_request',
                                               'compute_booking_split', 'booking_split_parts', 'hold_review_request')
       and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))), 'none');
+
+-- 0026: the catalogue decides the desk unless an admin overrides it
+select test.eq('0026 reply-to follows the email catalogue',
+  (select app.email_reply_to_for(c.code, c.audience) = c.reply_to from notification_catalogue c
+    where c.code = 'renter_account_created'), true);
+select test.eq('0026 every catalogue reply-to is an active alias',
+  (select count(*) from notification_catalogue c
+    where c.reply_to is not null and not exists (select 1 from email_aliases a where a.address = c.reply_to and a.is_active)), 0::bigint);
