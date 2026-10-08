@@ -25,6 +25,6 @@ View my booking: https://carmacars.ca/account/bookings/{{booking_number}}
 
 You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/

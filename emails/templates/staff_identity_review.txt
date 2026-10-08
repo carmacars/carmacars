@@ -31,6 +31,6 @@ If this notice looks wrong, tell an admin.
 
 Internal CarmaCars notice. It may contain customer information. Do not forward it.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/

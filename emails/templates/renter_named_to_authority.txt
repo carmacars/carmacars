@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Notice transferred]
+The authority will contact you about this {{notice_type_lower}}
+
+It was issued while you had the {{vehicle_name}}, {{first_name}}, so we named you as the driver as your rental agreement allows.
+
+Notice: {{notice_description}}
+Notice no.: {{notice_number}}
+Date and time: {{notice_event_date}}
+Amount on the notice: {{notice_amount}}
+Issued by: {{authority_name}}
+Booking: {{booking_number}}
+
+What happens next
+The authority sends the notice, and any further steps, to you at the address on your licence. Pay it or respond to them directly by the date they give. CarmaCars has not paid it and will not charge you for it.
+
+View the notice:
+{{supporting_document_url}}
+
+If you think this notice is not yours, reply to this email with the booking number. We check every notice against the trip record for the car.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+CarmaCars
+{{company_address}}
+https://carmacars.ca/

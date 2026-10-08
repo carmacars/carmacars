@@ -37,6 +37,6 @@ Help: reply to this email or call {{support_phone}}.
 
 You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/

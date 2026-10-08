@@ -1,0 +1,32 @@
+CarmaCars  |  Month end
+
+========================================
+
+[Review needed]
+{{statement_month}} statements are drafted
+
+The company statement is final and ties out, {{first_name}}. Review the owner statements and approve them before payouts on {{payout_date}}.
+
+Owner statements: {{owner_statement_count}}
+Still in draft: {{draft_count}}
+
+Company statement: {{company_statement_status}}
+Owner Revenue: {{owner_revenue_total}}
+Revenue share kept: {{revenue_share_total}}
+Total to pay owners: {{payout_total}}
+Payout date: {{payout_date}}
+
+Review the statements:
+https://carmacars.ca/admin/statements
+
+An owner sees a statement only once it is approved. A statement already issued can be reissued as a new version; the old one is kept.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{company_address}}
+https://carmacars.ca/

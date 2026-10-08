@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>121 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>49</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>11</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>123 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>50</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
 <main>
-<h2 id="renter">Renter (49)</h2>
+<h2 id="renter">Renter (50)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -217,6 +217,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Late-returns job (every 5 minutes): the return time has passed, booking status is still on_rent and no paid extension covers the time. Sent once, at 0 minutes late. (Message template T13.)</div>
 <div class="ln"><a href="../dist/renter_late_return_first.html">HTML</a><a href="../dist/renter_late_return_first.txt">Text</a><a href="../shots/renter_late_return_first.desktop.png">Desktop</a><a href="../shots/renter_late_return_first.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_named_to_authority.html"><img loading="lazy" src="../shots/renter_named_to_authority.desktop.png" alt="Screenshot of renter_named_to_authority"></a><div class="b">
+<div class="code">renter_named_to_authority</div><div class="sub">We gave your details to the issuing authority for red light camera notice RLC 2026 448 190</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An admin names the renter to the issuing authority for a ticket or offence notice matched to the renter's booking (toll ticket status becomes named_to_authority). The authority will send its notice to the renter directly; CarmaCars does not pay it and adds no charge for it.</div>
+<div class="ln"><a href="../dist/renter_named_to_authority.html">HTML</a><a href="../dist/renter_named_to_authority.txt">Text</a><a href="../shots/renter_named_to_authority.desktop.png">Desktop</a><a href="../shots/renter_named_to_authority.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_offer_expired.html"><img loading="lazy" src="../shots/renter_offer_expired.desktop.png" alt="Screenshot of renter_offer_expired"></a><div class="b">
 <div class="code">renter_offer_expired</div><div class="sub">Your offer for the 2024 Honda Civic Sport has expired</div>
@@ -501,7 +507,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (11)</h2>
+<h2 id="staff_admin">Staff: admin (12)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
@@ -550,6 +556,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A scheduled job run is marked failed in job_runs (which also raises one urgent admin task). Sent to both admins once per job per day. Immediate.</div>
 <div class="ln"><a href="../dist/staff_job_failed.html">HTML</a><a href="../dist/staff_job_failed.txt">Text</a><a href="../shots/staff_job_failed.desktop.png">Desktop</a><a href="../shots/staff_job_failed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_monthly_statements_ready.html"><img loading="lazy" src="../shots/staff_monthly_statements_ready.desktop.png" alt="Screenshot of staff_monthly_statements_ready"></a><div class="b">
+<div class="code">staff_monthly_statements_ready</div><div class="sub">November statements are drafted and need your review</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The company statement for a month is finalized (company statement status becomes final): the company statement and the owner statements for that month are drafted and need an admin's review before the owner statements are approved and issued. One email to each admin.</div>
+<div class="ln"><a href="../dist/staff_monthly_statements_ready.html">HTML</a><a href="../dist/staff_monthly_statements_ready.txt">Text</a><a href="../shots/staff_monthly_statements_ready.desktop.png">Desktop</a><a href="../shots/staff_monthly_statements_ready.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_payouts_due.html"><img loading="lazy" src="../shots/staff_payouts_due.desktop.png" alt="Screenshot of staff_payouts_due"></a><div class="b">
 <div class="code">staff_payouts_due</div><div class="sub">Payouts due today: 14 transfers, $21,480.60</div>

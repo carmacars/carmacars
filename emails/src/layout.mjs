@@ -287,7 +287,7 @@ ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;
 <div>${wordmark(21, C.ink, 'tx')}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
-<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">CarmaCars is operated by ${BRAND.legal}<br>{{company_address}}</div>
+<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">CarmaCars<br>{{company_address}}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}`}</div>
 </td></tr>
 </table>
@@ -310,7 +310,7 @@ export function textTemplate(email) {
     '----------------------------------------',
     inlineText(helpLine(email)),
     reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time: {{unsubscribe_url}}\nWe act on it within 10 business days.' : ''),
-    `CarmaCars is operated by ${BRAND.legal}\n{{company_address}}\n${url('home')}`,
+    `CarmaCars\n{{company_address}}\n${url('home')}`,
   ];
   return parts.join('\n\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }

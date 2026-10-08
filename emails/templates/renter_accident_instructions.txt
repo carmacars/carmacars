@@ -32,6 +32,6 @@ If you have coverage for this rental, tell your insurer or card issuer today.
 
 You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/

@@ -1,7 +1,10 @@
 // Brand constants. Red, black and white only, plus neutral greys. Values follow prototype/DESIGN.md.
+// The sender is shown as CarmaCars only. No numbered company or "operated by" line appears in any
+// email. TO CONFIRM WITH THE LAWYER: whether the anti-spam law (or any other rule) requires the
+// legal name of the business on commercial (marketing) emails. If it does, add it back to the
+// footer in layout.mjs for marketing emails only, and to check 10 in check.mjs.
 export const BRAND = {
   name: 'CarmaCars',
-  legal: '18122211 Canada Inc.',
   site: 'https://carmacars.ca',
   replyTo: 'info@carmacars.ca',
   mailDomain: 'mail.carmacars.ca',
@@ -45,5 +48,5 @@ export const GLOBALS = {
 
 export const GLOBAL_NOTES = {
   support_phone: 'CarmaCars phone line, formatted for display. Set once in program settings.',
-  company_address: 'Mailing address of 18122211 Canada Inc. Required by the anti-spam law on marketing email. Set once in program settings.',
+  company_address: 'Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings.',
 };

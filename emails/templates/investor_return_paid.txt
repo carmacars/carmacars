@@ -24,6 +24,6 @@ Help: reply to this email or call {{support_phone}}.
 
 This is a servicing notice for an existing investor. It is not an offer or a solicitation.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/

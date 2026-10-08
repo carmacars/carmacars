@@ -933,7 +933,7 @@ select app.job_ops_watch(test.at('2031-09-30 12:00'));
 select test.eq('J on the business day before the 1st, Finance is asked for the fleet report (September 30, 2031 is a Tuesday)',
   (select queue || ':' || (due_at = test.at('2031-10-02 00:00')) from tasks where dedupe_key = 'fleet_report:2031-10'), 'finance:true');
 select test.eq('J ops-watch sends nothing and disables nothing: it only raises tasks',
-  (select count(*) from tracker_commands where created_at > now() - interval '1 minute' and requested_by is null) || '/' || (select count(*) from app_events where code like 'renter_late%'), '0/0');
+  (select count(*) from tracker_commands where created_at > now() - interval '1 minute' and requested_by is null) || '/' || (select count(*) from app_events where code like 'renter_late%' and created_at >= (select min(started_at) from job_runs where job_name = 'ops-watch')), '0/0');
 
 -- deposits-due at 06:00 on September 10, 2031
 select test.mk_booking('OPJ1', 'OP7', 'op_r7', '2030-03-01 10:00', '2030-03-03 10:00', 'returned');

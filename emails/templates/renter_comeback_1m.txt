@@ -27,6 +27,6 @@ You are receiving this because you agreed to get CarmaCars offers by email.
 Unsubscribe at any time: {{unsubscribe_url}}
 We act on it within 10 business days.
 
-CarmaCars is operated by 18122211 Canada Inc.
+CarmaCars
 {{company_address}}
 https://carmacars.ca/
