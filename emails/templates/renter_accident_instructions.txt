@@ -32,6 +32,10 @@ If you have coverage for this rental, tell your insurer or card issuer today.
 
 You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
 
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}

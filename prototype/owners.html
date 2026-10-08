@@ -32,7 +32,7 @@
   </div>
 </header>
 <div class="menu-panel on-dark" id="menu">
-  <nav class="menu-panel__links" aria-label="Menu"><a href="fleet.html" data-nav="fleet.html">Fleet<span>Every car, with dates and prices</span></a><a href="how-it-works.html" data-nav="how-it-works.html">How it works<span>Request to book</span></a><a href="delivery.html" data-nav="delivery.html">Delivery<span>$75 to $200 each way</span></a><a href="requirements.html" data-nav="requirements.html">Requirements<span>Age, licence, coverage</span></a><a href="owners.html" data-nav="owners.html">List your car<span>Owner program</span></a><a href="faq.html" data-nav="faq.html">FAQ<span>Straight answers</span></a><a href="contact.html" data-nav="contact.html">Contact<span>Talk to a person</span></a></nav>
+  <nav class="menu-panel__links" aria-label="Menu"><a href="fleet.html" data-nav="fleet.html">Fleet<span>Every car, with dates and prices</span></a><a href="how-it-works.html" data-nav="how-it-works.html">How it works<span>Request to book</span></a><a href="delivery.html" data-nav="delivery.html">Delivery<span>Anywhere, airports too</span></a><a href="requirements.html" data-nav="requirements.html">Requirements<span>Age, licence, coverage</span></a><a href="owners.html" data-nav="owners.html">List your car<span>Owner program</span></a><a href="faq.html" data-nav="faq.html">FAQ<span>Straight answers</span></a><a href="contact.html" data-nav="contact.html">Contact<span>Talk to a person</span></a></nav>
   <div class="row"><a class="btn btn--light" href="signin.html">Sign in</a><a class="btn btn--primary" href="fleet.html">Find a car</a></div>
 </div>
 <main id="main" tabindex="-1">
@@ -63,7 +63,7 @@
         <li><div><h3>Sign the agreements</h3><p>An enrolment agreement and a title agreement, signed online. One agreement covers all your cars. Each car is added with its own schedule.</p></div></li>
         <li><div><h3>One registry visit</h3><p>You get the safety certificate and appraisal your route needs. We fill in the forms, book the visit and attend with you. You pay ServiceOntario directly.</p></div></li>
         <li><div><h3>Tracker and insurance</h3><p>We install a GPS tracker and add the car to our fleet policy. Once we confirm that in writing, you can cancel your own insurance on it.</p></div></li>
-        <li><div><h3>Photos, listing, first booking</h3><p>We detail the car, photograph it and publish it, usually within two business days. Then it is open for requests.</p></div></li>
+        <li><div><h3>Photos, listing, first booking</h3><p>We detail the car, photograph it and publish it within 1 business day. Then it is open for requests.</p></div></li>
       </ol>
     </div>
   </div>
@@ -112,11 +112,12 @@
 
 <section class="section on-dark" id="apply" aria-labelledby="oh-apply">
   <div class="wrap grid">
-    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Put your car to work</h2><p class="lead muted">Six questions. We answer within one business day and arrange a call to confirm your fees and registration options. Applying commits you to nothing.</p></div>
+    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Put your car to work</h2><p class="lead muted">Seven questions. We answer within one business day and arrange a call to confirm your fees and registration options. Applying commits you to nothing.</p></div>
     <div class="c-6 s-7">
       <form class="panel stack-lg" data-simple-form="apply-done" aria-labelledby="oh-apply">
         <div class="field-row"><div class="field"><label class="label" for="ow-name">Your name</label><input class="input" id="ow-name" name="name" type="text" autocomplete="name" data-v="required" data-msg="Enter your name." ><p class="error" role="alert"></p></div><div class="field"><label class="label" for="ow-phone">Mobile number</label><input class="input" id="ow-phone" name="phone" type="tel" autocomplete="tel" data-v="required phone"  ><p class="error" role="alert"></p></div></div>
         <div class="field"><label class="label" for="ow-email">Email</label><input class="input" id="ow-email" name="email" type="email" autocomplete="email" data-v="required email"  ><p class="error" role="alert"></p></div>
+        <div class="field"><label class="label" for="ow-addr">Where is the car kept?</label><input class="input" id="ow-addr" name="carAddress" type="text"  data-v="required" data-msg="Start typing the address where the car is kept." data-addr-lookup autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"><p class="hint">Start typing and choose the address. It helps us plan the registry visit and handovers.</p><p class="error" role="alert"></p></div>
         <div class="field-row field-row--3"><div class="field"><label class="label" for="ow-year">Year</label><input class="input" id="ow-year" name="year" type="text"  data-v="required year"  inputmode="numeric" maxlength="4" placeholder="2021"><p class="error" role="alert"></p></div><div class="field"><label class="label" for="ow-make">Make</label><input class="input" id="ow-make" name="make" type="text"  data-v="required" data-msg="Enter the make, for example Mercedes-Benz." ><p class="error" role="alert"></p></div><div class="field"><label class="label" for="ow-model">Model</label><input class="input" id="ow-model" name="model" type="text"  data-v="required" data-msg="Enter the model, for example C300." ><p class="error" role="alert"></p></div></div>
         <div class="field-row">
           <div class="field"><label class="label" for="ow-own">How is it owned?</label><select class="select" id="ow-own" name="own" data-v="required" data-msg="Choose one."><option value="">Choose</option><option>Owned outright</option><option>Financed</option><option>Leased</option></select><p class="error" role="alert"></p></div>
@@ -124,7 +125,7 @@
         </div>
         <fieldset class="field"><legend class="label">Which option interests you?</legend><div class="seg"><label><input type="radio" name="mode" value="managed" checked>Managed</label><label><input type="radio" name="mode" value="self">Self-managed</label><label><input type="radio" name="mode" value="turo">Turo only</label></div></fieldset>
         <button class="btn btn--primary btn--lg btn--block" type="submit">Send application</button>
-        <p class="xs muted">We use these details to reply to you about your car. See the <a class="link" href="privacy.html">Privacy policy</a>.</p>
+        <p class="xs muted">We use these details to reply to you about your car. See the <a class="link" href="privacy.html">Privacy policy</a>. Questions first? Email <a class="link" href="mailto:owners@carmacars.ca">owners@carmacars.ca</a>.</p>
       </form>
       <div class="panel stack" id="apply-done" hidden><p class="d3">Application sent.</p><p>We will reply within one business day to arrange a call about the fees for your car and the registration routes open to you.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="index.html">Back to home</a></p></div>
     </div>
@@ -145,11 +146,11 @@
         <p><a class="btn btn--primary" href="fleet.html">Find a car</a></p>
       </div>
       <nav aria-label="Rent"><h2>Rent</h2><ul><li><a href="fleet.html">Fleet</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="requirements.html">Requirements and coverage</a></li><li><a href="delivery.html">Delivery</a></li><li><a href="request.html">Request to book</a></li></ul></nav>
-      <nav aria-label="Cars"><h2>Cars</h2><ul><li><a href="car-mercedes-benz-a220.html">Mercedes-Benz A220</a></li><li><a href="car-mercedes-benz-cla250.html">Mercedes-Benz CLA250</a></li><li><a href="car-mercedes-benz-c300.html">Mercedes-Benz C300</a></li><li><a href="car-mercedes-benz-glc300.html">Mercedes-Benz GLC300</a></li><li><a href="car-mercedes-benz-gle350.html">Mercedes-Benz GLE350</a></li><li><a href="car-toyota-corolla.html">Toyota Corolla</a></li><li><a href="fleet.html">See every car</a></li></ul></nav>
-      <nav aria-label="Company"><h2>CarmaCars</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li></ul></nav>
-      <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li><li><a href="styleguide.html">Style guide</a></li></ul></nav>
+      <div class="footer-contact"><h2>Talk to us</h2><ul><li><a href="tel:+16475753377">647-575-3377</a><span>Phone and 24-hour roadside line</span></li><li><a href="https://wa.me/16475753377" rel="noopener">WhatsApp</a></li><li><a href="mailto:contact@carmacars.ca">contact@carmacars.ca</a></li><li><span>Open 24 hours, every day. We reply within 2 hours.</span></li></ul></div>
+      <nav aria-label="Company"><h2>CarmaCars</h2><ul><li><a href="owners.html">List your car</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="signin.html">Sign in</a></li><li><a href="https://instagram.com/carmacars.ca" rel="noopener">Instagram</a></li><li><a href="https://tiktok.com/@carmacars.ca" rel="noopener">TikTok</a></li></ul></nav>
+      <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li><li><button type="button" class="footer-btn" data-cookie-prefs>Cookie choices</button></li><li><a href="styleguide.html">Style guide</a></li></ul></nav>
     </div>
-    <div class="footer-legal"><span>CarmaCars. Toronto, Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span></div>
+    <div class="footer-legal"><span>CarmaCars. Toronto, Ontario, Canada.</span><span>Prices in Canadian dollars, before HST unless stated.</span><a class="footer-investor" href="investors.html">Investor sign in</a></div>
     <span class="wordmark wordmark--xl footer-mark" aria-hidden="true">Carma<b>Cars</b></span>
   </div>
 </footer>

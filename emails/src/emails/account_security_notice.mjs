@@ -7,6 +7,7 @@ export default {
   also: ['owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field'],
   category: 'transactional',
   from: FROM.hello,
+  replyTo: 'privacy', // account security and personal information go to the privacy desk
   digest: false,
   trigger: 'A security event on any account: a sign-in from a device or browser not seen before on that account, a password change, or a change of the account email address. One template for every account type. For an email change it is sent to both the old and the new address. Never batched.',
   timing: 'Immediate',

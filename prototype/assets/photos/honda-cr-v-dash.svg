@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.5" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<g transform="scale(1.8 1.935483870967742)"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2d2d"/><stop offset="1" stop-color="#9a9a9a"/></linearGradient>
+<linearGradient id="dash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2b2b"/><stop offset="1" stop-color="#080808"/></linearGradient></defs>
+<path d="M 60,300 L 190,40 H 810 L 940,300 Z" fill="url(#sky)"/>
+<path d="M 160,300 L 420,205 M 840,300 L 580,205" stroke="#fff" stroke-opacity=".5" stroke-width="3" stroke-dasharray="26 22"/>
+<path d="M 0,0 H 1000 V 620 H 0 Z M 60,300 L 190,40 H 810 L 940,300 Z" fill="#070707" fill-rule="evenodd"/>
+<path d="M 0,300 Q 500,250 1000,300 V 620 H 0 Z" fill="url(#dash)"/>
+<rect x="455" y="318" width="300" height="150" rx="12" fill="#000" stroke="#444" stroke-width="2"/><rect x="471" y="334" width="268" height="118" rx="6" fill="#181818"/><path d="M 490,420 l 50,-40 40,22 50,-50 70,40" stroke="#D0111B" stroke-width="4" fill="none"/>
+<g transform="translate(265 430)"><circle r="128" fill="none" stroke="#1d1d1d" stroke-width="30"/><circle r="128" fill="none" stroke="#555" stroke-width="2"/><path d="M -118,0 H 118 M 0,0 V 120" stroke="#1d1d1d" stroke-width="26"/><circle r="38" fill="#151515" stroke="#555" stroke-width="2"/></g>
+<rect x="800" y="330" width="130" height="34" rx="8" fill="#000" stroke="#444"/><rect x="505" y="500" width="200" height="120" rx="14" fill="#111" stroke="#333"/></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  HONDA CR-V  6/8 DASHBOARD</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

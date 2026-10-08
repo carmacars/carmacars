@@ -10,7 +10,7 @@ Calm, confident and precise: the feel of a premium car maker's site, with a rent
 2. **Large, crisp, sentence-case type.** One family at two optical sizes. Headings are big and tightly tracked, never in capitals.
 3. **The plate.** One decorative device, a small licence-plate label. It always carries a real identifier: a fleet number (`CC 03`) or a request number (`R-221704`).
 
-The brand idea is karma: what goes around comes around. The tagline is "What goes around, drives around." It is used with restraint: the home hero, the footer, the owner band ("Good cars come back around."), the reviews heading ("Word gets around.") and the 404. Other headings sell the cars and the ease first and explain the request process second.
+The brand idea is karma: what goes around comes around. The tagline is "What goes around, drives around." The owner's own line is "Drive your carma." Both are used with restraint: the tagline in the home hero and the footer; "Drive your carma." as the closing red band of the home page and the eyebrow of the fleet page's bottom band; the owner band ("Good cars come back around."), the reviews heading ("Word gets around.") and the 404 keep their karma lines. Other headings sell the cars and the ease first and explain the request process second.
 
 Left aligned throughout. No centred sections, no card grids of features, no gradients as decoration, no pills, no icons standing in for words.
 
@@ -79,7 +79,7 @@ Rules: every heading is sentence case. Capitals appear only in `.eyebrow` labels
 
 The wordmark is the single word `CarmaCars` in Inter Display 800, upright, tracking -0.045em: "Carma" in the surface's text colour and "Cars" in `--red-600`. No bar, no slant, no symbol. Minimum height 18 px; clear space of one cap height.
 
-It is a slot, not a fixed asset. If `logo.image` is set in site settings (Admin > Settings > Brand), every header, footer and style guide instance renders that image instead (`<img>` inside `.wordmark`, height 1.6em). `logo.imageOnDark` is used on black surfaces when present. The text wordmark is the fallback.
+A logo is coming. Until it arrives the text wordmark is used, and the favicon is a drawn stand-in (`site.mjs` `favicon`, later made from the logo). It is a slot, not a fixed asset. If `logo.image` is set in site settings (Admin > Settings > Brand), every header, footer and style guide instance renders that image instead (`<img>` inside `.wordmark`, height 1.6em). `logo.imageOnDark` is used on black surfaces when present. The text wordmark is the fallback.
 
 ## 4. Space, grid and shape
 
@@ -152,6 +152,10 @@ Class names are stable; copy the CSS from `assets/css/core.css`.
 | Breadcrumbs | `.crumbs` | 13 px, slash separators |
 | Sticky bar | `.bookbar` | Fixed bottom, price left, button right |
 | Prototype note | `.proto-note`, `.tbc` | Dashed outline. Marks sample data and blanks. Remove for launch |
+| Cookie banner | `.cookie` (built by `app.js` from `COOKIES` in `site.mjs`) | Black, red left bar, 14 px radius, fixed at the foot of the screen, first in the tab order. Accept all, Necessary only, Preferences (native dialog with an analytics checkbox). Remembered for the session in the prototype; the wording carries a version, and a new version asks again. "Cookie choices" in the footer reopens it |
+| Address lookup | `input[data-addr-lookup]` + `.lookup` | ARIA combobox: suggestions while typing, arrow keys and Enter, Escape closes. Sample list in the prototype; a maps service in production |
+| Reviews | `.reviews`, `.greviews` | Our renters' reviews, then Google reviews with "Reviews from Google", the rating and a link to the Google profile. Each has an honest empty state |
+| Calendar part day | `.cal__day.is-part` | Half hatched: the car is free for part of the day because of the turnaround next to another booking. The spoken label says from or until when |
 
 Portal patterns (bottom of `styleguide.html`): a dense bookings table with a detail side panel, and the fleet master calendar (`.mc`): vehicles down a sticky first column, days across, bookings as bars in the status styles from section 2.
 
@@ -175,29 +179,32 @@ Nothing a renter or owner reads is typed into a page template. The prototype rea
 | Tagline | `site.mjs` `tagline` | Settings > Brand |
 | Logo image, dark-surface logo, alt text | `site.mjs` `logo` (text wordmark when empty) | Settings > Brand |
 | City, region, service area | `site.mjs` `city`, `region`, `serviceArea` | Settings > Locations |
-| Delivery area, airport delivery | `site.mjs` `deliveryArea`, `airportDelivery` | Settings > Locations |
-| Email, phone, WhatsApp, 24-hour line | `site.mjs` `email`, `phone`, `whatsapp`, `roadsideLine` | Settings > Contact |
+| Airports, per-km delivery rate, company location | `data.mjs` `RULES.airports`, `deliveryPerKm`, `companyLocation` | Settings > Locations |
+| Email, receiving aliases, phone, WhatsApp, 24-hour line | `site.mjs` `email`, `emails`, `phone`, `whatsapp`, `roadsideLine` | Settings > Contact |
+| The owner's line ("Drive your carma.") | `site.mjs` `carmaLine` | Settings > Brand |
+| Cookie banner wording and version | `site.mjs` `COOKIES` | Settings > Legal pages |
+| Google place id for reviews | `site.mjs` `googlePlaceId` | Settings > Reviews |
+| Legal pages: last updated, Privacy Officer | `site.mjs` `legal` | Settings > Legal pages |
 | Address, opening hours | `site.mjs` `address`, `hours` | Settings > Contact |
 | Social links | `site.mjs` `social` | Settings > Contact |
-| Reply-time wording | `site.mjs` `replyWording` | Settings > Contact |
-| Review source | `site.mjs` `reviewSource` | Settings > Reviews |
-| Reviews | none yet (empty state) | Reviews |
-| Cars: year, make, model, trim, class, body, colour, seats, doors, transmission, drive, fuel, consumption, luggage, features, description, fleet number | `data.mjs` `CARS` | Fleet > Vehicle |
+| Reply-time wording | `site.mjs` `replyWording`, `replyShort` | Settings > Contact |
+| Reviews (ours and Google) | `data.mjs` `REVIEWS` (empty state until real ones exist) | Reviews |
+| Cars: year, make, model, trim, classes (several per car), body, colour, seats, doors, transmission, drive, fuel, consumption, luggage, features, description, fleet number | `data.mjs` `CARS` | Fleet > Vehicle |
 | Daily, weekend, weekly and monthly rates | `data.mjs` `CARS[].rates` | Fleet > Vehicle > Rates |
-| Kilometres per day, overage rate | `data.mjs` `CARS[].kmPerDay`, `overage` | Fleet > Vehicle > Rates |
-| Delivery and pickup fee per car | `data.mjs` `CARS[].delivery` | Fleet > Vehicle > Rates |
-| Open to drivers 18 to 20 | `data.mjs` `CARS[].young` | Fleet > Vehicle |
+| Kilometres per day (400, 300, 200 or 150), overage rate | `data.mjs` `CARS[].kmPerDay`, `overage`; choices in `RULES.kmChoices` | Fleet > Vehicle > Rates |
+| Deposit per car (a tier) | `data.mjs` `CARS[].deposit`; tiers in `RULES.depositTiers` | Fleet > Vehicle > Rates |
+| Delivery and pickup fee per car (before distance) | `data.mjs` `CARS[].delivery` | Fleet > Vehicle > Rates |
+| Young driver fees per car, handover at the owner's location | `data.mjs` `CARS[].youngFees`, `ownerPickup` | Fleet > Vehicle |
 | Booked and pending dates | `data.mjs` `CARS[].booked`, `pending` | Bookings (computed) |
-| Featured cars on the home page | `data.mjs` `FEATURED` | Fleet > Featured |
+| Featured cars on the home page (random pick on each visit) | `data.mjs` `FEATURED` | Fleet > Featured |
 | Car photos and alt text | `assets/photos.json` `cars` | Fleet > Vehicle > Photos |
 | Scene photos and alt text | `assets/photos.json` `slots` | Settings > Site photos |
-| Deposit by class | `data.mjs` `RULES.depositByClass` | Pricing > Deposits |
+| Deposit tiers, lead time before pickup | `data.mjs` `RULES.depositTiers`, `depositLeadHours` | Pricing > Deposits |
 | Deposit hold limit, release time, hold-back time | `RULES.depositHoldMaxDays`, `depositReleaseBusinessDays`, `depositHoldbackDays` | Pricing > Deposits |
+| Notice, turnaround, time slot | `RULES.minNoticeHours`, `turnaroundHours`, `handoverSlotMinutes` | Policies > Booking |
 | HST rate | `RULES.hst` | Pricing > Tax |
-| Young driver fees and caps | `RULES.youngDriver` | Pricing > Fees |
-| Additional driver, winter tire, baby seat fees and caps | `RULES.additionalDriver`, `winterTire`, `babySeat` | Pricing > Fees |
-| Delivery fee range | `RULES.deliveryRange` | Pricing > Fees |
-| Overage rates (standard, luxury) | `RULES.overage` | Pricing > Fees |
+| Young driver fees (defaults, no maximum) | `RULES.youngDriver` | Pricing > Fees |
+| Additional driver (25% of the daily rate, no maximum), winter tire and baby seat fees and caps | `RULES.additionalDriverPct`, `winterTire`, `babySeat` | Pricing > Fees |
 | Late return grace and hourly fee | `RULES.lateReturn` | Pricing > Fees |
 | Fuel and recharging fees | `RULES.fuel` | Pricing > Fees |
 | Cleaning, pet, smoking fees | `RULES.cleaning` | Pricing > Fees |
@@ -206,10 +213,10 @@ Nothing a renter or owner reads is typed into a page template. The prototype rea
 | Non-refundable discount | `RULES.nonRefundableDiscount` | Pricing > Booking types |
 | Cancellation tiers (hours and percentages), refund time | `RULES.cancellation`, `refundBusinessDays` | Policies > Cancellation |
 | Longest booking, weekly-rate threshold | `RULES.maxDays`, `weeklyFromDays` | Policies > Booking |
-| Minimum age, standard age, no-fee age, licence classes | `RULES.minAge`, `standardMinAge`, `noFeeAge`, `licence` | Policies > Drivers |
+| Minimum age, young driver bands, no-fee age, licence classes | `RULES.minAge`, `youngBandSplit`, `noFeeAge`, `licence` | Policies > Drivers |
 | Offer validity, verification deadline, accident reporting times | `RULES.offerOpenHours`, `verifyHoursBeforePickup`, `accidentCallHours`, `accidentReportHours`, `hiddenDamageHours` | Policies > Booking |
 | Owner program: payout day, billing day, notice, referral rate, reply and listing times | `RULES.owner` | Owners > Program settings |
-| Terms, privacy and cancellation text | `docs/source/website_terms_policies.md` | Settings > Legal pages |
+| Terms, privacy and cancellation text (final) | `docs/source/website_terms_policies.md` | Settings > Legal pages |
 | Prototype clock | `data.mjs` `PROTO_TODAY` | not in production |
 
 Still written in templates as copy rather than data: headings, explanatory sentences and FAQ wording (the numbers inside them are tokens). In production these belong to a content screen (Settings > Site copy) if the owner wants to edit them without a deploy.
@@ -218,9 +225,9 @@ Still written in templates as copy rather than data: headings, explanatory sente
 
 ```
 prototype/
-  index.html, fleet.html, car-<make>-<model>.html (12), request.html, confirmation.html,
+  index.html, fleet.html, car-<make>-<model>.html (one per sample car), request.html, confirmation.html,
   owners.html, how-it-works.html, requirements.html, delivery.html, faq.html, contact.html,
-  terms.html, privacy.html, cancellation.html, signin.html, 404.html, styleguide.html
+  terms.html, privacy.html, cancellation.html, signin.html, investors.html, 404.html, styleguide.html
   assets/css/tokens.css, core.css, pages.css
   assets/js/app.js (core + components), pages.js (page behaviour), fleet-data.js (generated)
   assets/fonts/, assets/photos/, assets/photos.json, assets/data/fleet.json
@@ -240,6 +247,6 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tools/verify-dist.mjs  # single f
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tools/shots.mjs        # screenshots at 375 and 1440
 ```
 
-The page files are plain HTML. `tools/build.mjs` only stamps the shared header, footer, fleet data and photo manifest into them from `tools/src/`, so the 28 pages cannot drift apart. Open the page files through `tools/serve.mjs` (browsers block web fonts on `file://`); the single file in `dist/` opens straight from disk.
+The page files are plain HTML. `tools/build.mjs` only stamps the shared header, footer, fleet data and photo manifest into them from `tools/src/`, so the pages cannot drift apart. Open the page files through `tools/serve.mjs` (browsers block web fonts on `file://`); the single file in `dist/` opens straight from disk.
 
 Sample cars live in `tools/src/data.mjs` and are marked as sample. Policy numbers and fees are in `RULES` in the same file, taken from `docs/source/renter_billing_spec.md`; site settings are in `tools/src/site.mjs`. `CC.pricing` in `assets/js/app.js` holds only the rate rule's logic and reads every number from those files. Legal pages are rendered from `docs/source/website_terms_policies.md` at build time.

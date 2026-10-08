@@ -65,6 +65,37 @@
   D.valid = function (iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso || '') && !isNaN(D.parse(iso)); };
   D.time = function (t) { var a = t.split(':'); var h = +a[0]; return ((h + 11) % 12 + 1) + ':' + a[1] + (h < 12 ? ' a.m.' : ' p.m.'); };
   D.overlaps = function (from, to, ranges) { return (ranges || []).some(function (r) { return from <= r[1] && to >= r[0]; }); };
+  // Availability with times. A booking [start, end, startTime, endTime] blocks the car from the
+  // turnaround time before its start to the turnaround time after its end (Admin > Policies).
+  var hm = function (t) { var a = (t || '10:00').split(':'); return +a[0] * 60 + +a[1]; };
+  D.at = function (iso, t) { return D.parse(iso).getTime() / 6e4 + hm(t); };
+  D.blocks = function (booked) {
+    var R = window.CC_FLEET.rules; var buf = R.turnaroundHours * 60;
+    return (booked || []).map(function (b) { return [D.at(b[0], b[2] || R.sampleHandover) - buf, D.at(b[1], b[3] || R.sampleHandover) + buf]; });
+  };
+  D.clash = function (from, tf, to, tt, booked) { var a = D.at(from, tf); var z = D.at(to, tt); return D.blocks(booked).some(function (w) { return a < w[1] && z > w[0]; }); };
+  // A day is free, fully blocked, or partly free: freeFrom (a block ends that day) and freeUntil (one starts).
+  D.day = function (iso, booked) {
+    var s = D.at(iso, '00:00'); var e = s + 1440; var st = null;
+    D.blocks(booked).forEach(function (w) {
+      if (w[0] <= s && w[1] >= e) { st = { full: true }; return; }
+      if (w[0] < e && w[1] > s && !(st && st.full)) { st = st || {}; if (w[1] < e) st.freeFrom = w[1] - s; if (w[0] > s) st.freeUntil = w[0] - s; }
+    });
+    return st;
+  };
+  D.clock = function (m) { return D.time(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); };
+  // Problems with the chosen times: notice, and the turnaround around other bookings. '' when fine.
+  D.timeProblem = function (car, from, tf, to, tt) {
+    var R = window.CC_FLEET.rules; var F = window.CC_FLEET;
+    if (D.at(from, tf) < D.at(F.today, F.now) + R.minNoticeHours * 60) return 'Pickup needs at least ' + CC.t('notice') + '’ notice. The earliest today is ' + D.clock(hm(F.now) + R.minNoticeHours * 60) + '.';
+    if (car && D.clash(from, tf, to, tt, car.booked)) {
+      var a = D.day(from, car.booked); var z = D.day(to, car.booked);
+      if (a && a.freeFrom != null) return 'The ' + car.name + ' is free from ' + D.clock(a.freeFrom) + ' on ' + D.short(from) + ', ' + CC.t('turnaround') + ' after the booking before yours. Choose a later pickup time.';
+      if (z && z.freeUntil != null) return 'The ' + car.name + ' has to be back by ' + D.clock(z.freeUntil) + ' on ' + D.short(to) + ', ' + CC.t('turnaround') + ' before the next booking. Choose an earlier return time.';
+      return 'Those times cross another booking of the ' + car.name + '.';
+    }
+    return '';
+  };
 
   /* ---------- pricing: the rate rule from the renter billing spec, section 2 ---------- */
   var P = (CC.pricing = {});
@@ -100,11 +131,12 @@
     lines.push({ k: 'Rental charge', note: rent.basis, v: rent.amount });
     var discount = s.nonRefundable ? P.round(rent.amount * R.nonRefundableDiscount) : 0;
     if (discount) lines.push({ k: 'Non-refundable booking, ' + TK('nonRef') + ' off', v: -discount });
-    if (s.deliver) lines.push({ k: 'Delivery to you', v: car.delivery });
-    if (s.collect) lines.push({ k: 'Pickup from you at the end', v: car.delivery });
-    var y = R.youngDriver[s.age];
-    if (y) lines.push({ k: 'Young driver fee, ages ' + s.age.replace('-', ' to '), note: CC.money(y.perDay) + ' a day, up to ' + CC.money(y.cap), v: Math.min(y.perDay * days, y.cap) });
-    if (s.addDrivers) lines.push({ k: 'Additional driver' + (s.addDrivers > 1 ? 's (' + s.addDrivers + ')' : ''), note: TK('addDrv') + ' a day each, up to ' + TK('addDrvCap') + ' each', v: s.addDrivers * Math.min(R.additionalDriver.perDay * days, R.additionalDriver.cap) });
+    var dist = 'Plus distance from our location, priced in your offer'; var air = '. An airport surcharge may apply';
+    if (s.deliver) lines.push({ k: s.deliverKind === 'airport' ? 'Delivery to the airport' : 'Delivery to you', note: dist + (s.deliverKind === 'airport' ? air : ''), v: car.delivery });
+    if (s.collect) lines.push({ k: s.collectKind === 'airport' ? 'Pickup at the airport at the end' : 'Pickup from you at the end', note: dist + (s.collectKind === 'airport' ? air : ''), v: car.delivery });
+    var yf = car.youngFees && car.youngFees[s.age]; // per day, no maximum; set per car
+    if (yf) lines.push({ k: 'Young driver fee, ages ' + s.age.replace('-', ' to '), note: CC.money(yf) + ' a day, no maximum', v: yf * days });
+    if (s.addDrivers) { var per = P.round(car.rates.daily * R.additionalDriverPct); lines.push({ k: 'Additional driver' + (s.addDrivers > 1 ? 's (' + s.addDrivers + ')' : ''), note: CC.money(per, true) + ' a day each, ' + TK('addDrvPct') + ' of the daily rate', v: P.round(s.addDrivers * per * days) }); }
     if (s.winter) lines.push({ k: 'Winter tires', note: TK('winter') + ' a day, up to ' + TK('winterCap'), v: Math.min(R.winterTire.perDay * days, R.winterTire.cap) });
     if (s.babySeats) lines.push({ k: 'Baby seat' + (s.babySeats > 1 ? 's (' + s.babySeats + ')' : ''), note: TK('baby') + ' a day each, up to ' + TK('babyCap') + ' each', v: s.babySeats * Math.min(R.babySeat.perDay * days, R.babySeat.cap) });
     var sub = P.round(lines.reduce(function (t, l) { return t + l.v; }, 0)); var hst = P.round(sub * R.hst);
@@ -135,9 +167,12 @@
     root.classList.add('cal'); if (o.months === 2) root.classList.add('cal--two');
     root.innerHTML = '<div class="cal__head"><button type="button" class="icon-btn" data-nav="-1" aria-label="Previous month"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><div class="cal__title" id="' + uid + '" aria-live="polite"></div><button type="button" class="icon-btn" data-nav="1" aria-label="Next month"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></div><div class="cal__months"></div>' +
       '<p class="cal__status" role="status" aria-live="polite"></p>' +
-      (o.legend === false ? '' : '<div class="cal__legend" aria-hidden="true"><span><i class="k-sel"></i>Your dates</span><span><i class="k-booked"></i>Not available</span><span><i class="k-open"></i>Available</span></div>');
+      (o.legend === false ? '' : '<div class="cal__legend" aria-hidden="true"><span><i class="k-sel"></i>Your dates</span><span><i class="k-booked"></i>Not available</span><span><i class="k-part"></i>Part of the day</span><span><i class="k-open"></i>Available</span></div>');
     var monthsEl = $('.cal__months', root); var title = $('.cal__title', root); var status = $('.cal__status', root);
-    var isBooked = function (iso) { return D.overlaps(iso, iso, o.booked); };
+    var isBooked = function (iso) { var d = D.day(iso, o.booked); return !!(d && d.full); };
+    var partOf = function (iso) { var d = D.day(iso, o.booked); return d && !d.full ? d : null; };
+    var crosses = function (a, z) { var x = partOf(a); var y = partOf(z); if ((x && x.freeUntil != null) || (y && y.freeFrom != null)) return true; for (var d = D.add(a, 1); d < z; d = D.add(d, 1)) if (D.day(d, o.booked)) return true; return false; };
+    var partText = function (p) { return p.freeFrom != null && p.freeUntil != null ? 'free from ' + D.clock(p.freeFrom) + ' to ' + D.clock(p.freeUntil) : p.freeFrom != null ? 'free from ' + D.clock(p.freeFrom) : 'free until ' + D.clock(p.freeUntil); };
     var ym = function (s, n) { var y = +s.slice(0, 4); var m = +s.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + '-' + String(m + 1).padStart(2, '0'); };
     function monthHTML(m) {
       var y = +m.slice(0, 4); var mo = +m.slice(5, 7) - 1; var first = new Date(Date.UTC(y, mo, 1)).getUTCDay(); var n = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
@@ -147,6 +182,7 @@
         var iso = m + '-' + String(d).padStart(2, '0'); var cls = ['cal__day']; var dis = false; var label = D.long(iso);
         if (iso < o.min) { cls.push('is-past'); dis = true; label += ', in the past'; }
         else if (isBooked(iso)) { cls.push('is-booked'); dis = true; label += ', not available'; }
+        else if (partOf(iso)) { cls.push('is-part'); label += ', partly available, ' + partText(partOf(iso)); }
         if (iso === CC.TODAY) cls.push('is-today');
         if (self.from && iso === self.from) { cls.push('is-start'); label += ', pickup date'; }
         if (self.to && iso === self.to) { cls.push('is-end'); label += ', return date'; }
@@ -170,11 +206,11 @@
     function pick(iso) {
       if (iso < o.min) return say('That date has passed.', true);
       if (isBooked(iso)) return say(D.short(iso) + ' is not available for this car.', true);
-      if (!self.from || self.to || iso < self.from) { self.from = iso; self.to = ''; say('Pickup ' + D.short(iso) + '. Now pick a return date.'); }
+      if (!self.from || self.to || iso < self.from) { self.from = iso; self.to = ''; var pp = partOf(iso); say('Pickup ' + D.short(iso) + (pp ? ', ' + partText(pp) : '') + '. Now pick a return date.'); }
       else {
-        if (D.overlaps(self.from, iso, o.booked)) return say('Those dates cross another booking. Pick an earlier return date, or start after it.', true);
+        if (crosses(self.from, iso)) return say('Those dates cross another booking. Pick an earlier return date, or start after it.', true);
         if (D.diff(self.from, iso) > o.maxDays) return say('One booking covers up to ' + o.maxDays + ' days. For longer, you renew with a new booking.', true);
-        self.to = iso; var n = Math.max(1, D.diff(self.from, iso)); say(D.short(self.from) + ' to ' + D.short(iso) + ', ' + n + (n === 1 ? ' day' : ' days') + '.');
+        self.to = iso; var n = Math.max(1, D.diff(self.from, iso)); var zp = partOf(iso); say(D.short(self.from) + ' to ' + D.short(iso) + ', ' + n + (n === 1 ? ' day' : ' days') + '.' + (zp ? ' On ' + D.short(iso) + ' the car is ' + partText(zp) + '.' : ''));
       }
       focus = iso; render(true); o.onChange({ from: self.from, to: self.to });
     }
@@ -392,5 +428,89 @@
     e.preventDefault(); t.scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'start' }); if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true });
   });
 
-  CC.boot = function () { header(); if (!CC.SINGLE) { CC.markNav(CC.route().page); CC.init(document); } };
+  /* ---------- featured cars: a random pick on each visit ---------- */
+  inits.push(function (root) {
+    $$('[data-featured]', root).forEach(function (ul) {
+      var lis = $$('[data-feature]', ul); var n = Math.min(+ul.dataset.featured, lis.length); var idx = lis.map(function (_, i) { return i; });
+      for (var i = idx.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+      var keep = idx.slice(0, n); var end = $('.rail__end', ul);
+      lis.forEach(function (li, k) { li.hidden = keep.indexOf(k) < 0; });
+      keep.forEach(function (k) { ul.insertBefore(lis[k], end); });
+    });
+  });
+
+  /* ---------- address lookup while typing ---------- */
+  // PROTOTYPE: suggestions come from a small SAMPLE list (CC_FLEET.addressSamples).
+  // Production asks a maps service as the person types and keeps the same markup.
+  CC.addressLookup = function (inp) {
+    if (inp._lookup) return; inp._lookup = true;
+    var list = document.createElement('ul'); list.className = 'lookup'; list.id = inp.id + '-list'; list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', 'Address suggestions'); list.hidden = true;
+    inp.setAttribute('aria-controls', list.id); inp.insertAdjacentElement('afterend', list);
+    var items = []; var idx = -1; var all = (window.CC_FLEET && window.CC_FLEET.addressSamples) || [];
+    function render() {
+      list.innerHTML = items.map(function (a, i) { return '<li role="option" id="' + list.id + '-' + i + '" aria-selected="' + (i === idx) + '">' + CC.esc(a) + '</li>'; }).join('') + (items.length ? '<li class="lookup__note" role="presentation">Sample addresses in this prototype</li>' : '');
+      list.hidden = !items.length; inp.setAttribute('aria-expanded', items.length ? 'true' : 'false');
+      if (idx > -1) inp.setAttribute('aria-activedescendant', list.id + '-' + idx); else inp.removeAttribute('aria-activedescendant');
+    }
+    function search() { var q = inp.value.trim().toLowerCase(); var words = q.split(/[\s,]+/).filter(Boolean); idx = -1; items = q.length < 2 ? [] : all.filter(function (a) { var l = a.toLowerCase(); return words.every(function (w) { return l.indexOf(w) > -1; }); }).slice(0, 6); render(); }
+    function choose(i) { if (i < 0 || !items[i]) return; inp.value = items[i]; items = []; idx = -1; render(); inp.dispatchEvent(new Event('change', { bubbles: true })); }
+    inp.addEventListener('input', search);
+    inp.addEventListener('keydown', function (e) {
+      if (list.hidden) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(items.length - 1, idx + 1); render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(0, idx - 1); render(); }
+      else if (e.key === 'Enter' && idx > -1) { e.preventDefault(); choose(idx); }
+      else if (e.key === 'Escape') { e.preventDefault(); items = []; render(); }
+    });
+    list.addEventListener('mousedown', function (e) { var li = e.target.closest('[role="option"]'); if (li) { e.preventDefault(); choose(+li.id.split('-').pop()); } });
+    inp.addEventListener('blur', function () { setTimeout(function () { items = []; idx = -1; render(); }, 120); });
+  };
+  inits.push(function (root) { $$('input[data-addr-lookup]', root).forEach(CC.addressLookup); });
+
+  /* ---------- cookie consent ---------- */
+  // Remembered for the browser session in the prototype. Production stores the answer with
+  // public.record_cookie_choice(visitor, choice, wording version, analytics) and loads
+  // analytics only when analytics is true.
+  var CK = 'cc.cookies';
+  CC.cookieChoice = function () { try { var v = JSON.parse(sessionStorage.getItem(CK)); var C = window.CC_FLEET.cookies; return v && v.version === C.version ? v : null; } catch (e) { return null; } };
+  function cookieSave(choice, analytics) {
+    var C = window.CC_FLEET.cookies; var v = { version: C.version, choice: choice, analytics: !!analytics, at: Date.now() };
+    try { sessionStorage.setItem(CK, JSON.stringify(v)); } catch (e) { /* private mode: asks again next page */ }
+    window.CC_CONSENT = v; var b = $('.cookie'); if (b) b.remove();
+    CC.toast(analytics ? 'Saved. Analytics cookies are on.' : 'Saved. Only necessary cookies are used.');
+  }
+  function cookieDialog(opener) {
+    var C = window.CC_FLEET.cookies; var cur = CC.cookieChoice(); var d = $('#cookie-prefs');
+    if (!d) {
+      d = document.createElement('dialog'); d.className = 'modal'; d.id = 'cookie-prefs'; d.setAttribute('aria-labelledby', 'ck-pt');
+      d.innerHTML = '<div class="modal__head"><h2 class="d3" id="ck-pt">' + CC.esc(C.title) + '</h2><button type="button" class="modal__close" data-ck-close aria-label="Close">×</button></div><div class="modal__body stack"><p class="small">' + CC.esc(C.text) + '</p>' +
+        C.groups.map(function (g) { return '<label class="check cookie__opt"><input type="checkbox" name="' + g.code + '"' + (g.always ? ' checked disabled' : '') + '><span><b>' + CC.esc(g.name) + '</b><br><span class="small muted">' + CC.esc(g.text) + '</span></span></label>'; }).join('') +
+        '</div><div class="modal__foot"><button type="button" class="btn btn--ghost" data-ck-necessary>' + CC.esc(C.necessary) + '</button><button type="button" class="btn btn--primary" data-ck-save>' + CC.esc(C.save) + '</button></div>';
+      document.body.appendChild(d);
+      d.addEventListener('click', function (e) {
+        if (e.target === d || e.target.closest('[data-ck-close]')) d.close();
+        if (e.target.closest('[data-ck-save]')) { cookieSave('custom', $('[name="analytics_cookies"]', d).checked); d.close(); }
+        if (e.target.closest('[data-ck-necessary]')) { cookieSave('necessary_only', false); d.close(); }
+      });
+      d.addEventListener('close', function () { var o = d._opener; if (o && document.contains(o)) o.focus(); });
+    }
+    $('[name="analytics_cookies"]', d).checked = !!(cur && cur.analytics); d._opener = opener;
+    if (d.showModal) d.showModal();
+  }
+  function cookieBanner() {
+    var C = window.CC_FLEET && window.CC_FLEET.cookies; if (!C) return;
+    document.addEventListener('click', function (e) { var b = e.target.closest('[data-cookie-prefs]'); if (b) cookieDialog(b); });
+    var have = CC.cookieChoice(); if (have) { window.CC_CONSENT = have; return; }
+    var box = document.createElement('section'); box.className = 'cookie on-dark'; box.setAttribute('aria-labelledby', 'ck-t');
+    box.innerHTML = '<div class="cookie__in"><div class="cookie__text"><h2 class="d4" id="ck-t">' + CC.esc(C.title) + '</h2><p class="small">' + CC.esc(C.text) + ' <a class="link" href="' + CC.url('privacy.html#cookies-and-analytics') + '">How we use cookies</a></p></div>' +
+      '<div class="cookie__btns"><button type="button" class="btn btn--quiet btn--sm" data-ck-prefs>' + CC.esc(C.prefs) + '</button><button type="button" class="btn btn--light btn--sm" data-ck-necessary>' + CC.esc(C.necessary) + '</button><button type="button" class="btn btn--primary btn--sm" data-ck-all>' + CC.esc(C.accept) + '</button></div></div>';
+    var skip = $('.skip'); document.body.insertBefore(box, skip ? skip.nextSibling : document.body.firstChild);
+    box.addEventListener('click', function (e) {
+      if (e.target.closest('[data-ck-all]')) cookieSave('accept_all', true);
+      else if (e.target.closest('[data-ck-necessary]')) cookieSave('necessary_only', false);
+      else if (e.target.closest('[data-ck-prefs]')) cookieDialog(e.target.closest('[data-ck-prefs]'));
+    });
+  }
+
+  CC.boot = function () { header(); cookieBanner(); if (!CC.SINGLE) { CC.markNav(CC.route().page); CC.init(document); } };
 })();

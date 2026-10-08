@@ -19,10 +19,14 @@ This is a confirmation of receipt only. Your signed Investment Agreement continu
 
 ----------------------------------------
 
-Help: reply to this email or call {{support_phone}}.
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}.
 
 This is a servicing notice for an existing investor. It is not an offer or a solicitation.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}

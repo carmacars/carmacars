@@ -1,39 +1,46 @@
 {
-  "_note": "SAMPLE fleet for the prototype. Rules come from docs/source.",
+  "_note": "SAMPLE fleet for the prototype. Rules are the owner's confirmed answers.",
   "today": "2026-10-15",
+  "now": "09:00",
   "rules": {
     "hst": 0.13,
     "maxDays": 30,
     "weeklyFromDays": 7,
     "minAge": 18,
-    "standardMinAge": 21,
     "noFeeAge": 26,
+    "youngBandSplit": 21,
     "licence": "G2 or G",
-    "depositByClass": {
-      "Economy": 500,
-      "Standard": 500,
-      "Premium": 1000,
-      "SUV": 1000,
-      "Luxury": 2500
-    },
+    "depositTiers": [
+      500,
+      1000,
+      2500,
+      5000
+    ],
+    "kmChoices": [
+      400,
+      300,
+      200,
+      150
+    ],
+    "depositLeadHours": 1,
     "depositHoldMaxDays": 7,
     "depositReleaseBusinessDays": 7,
     "depositHoldbackDays": 30,
     "refundBusinessDays": 10,
+    "minNoticeHours": 2,
+    "turnaroundHours": 2,
+    "handoverSlotMinutes": 30,
+    "defaultTime": "10:00",
+    "sampleHandover": "10:00",
     "youngDriver": {
       "18-20": {
-        "perDay": 35,
-        "cap": 350
+        "perDay": 35
       },
       "21-25": {
-        "perDay": 20,
-        "cap": 200
+        "perDay": 20
       }
     },
-    "additionalDriver": {
-      "perDay": 10,
-      "cap": 70
-    },
+    "additionalDriverPct": 0.25,
     "winterTire": {
       "perDay": 15,
       "cap": 150
@@ -43,21 +50,24 @@
       "cap": 70
     },
     "nonRefundableDiscount": 0.1,
-    "deliveryRange": [
-      75,
-      200
+    "deliveryPerKm": null,
+    "companyLocation": null,
+    "airports": [
+      {
+        "code": "YYZ",
+        "name": "Toronto Pearson",
+        "surcharge": null
+      },
+      {
+        "code": "YTZ",
+        "name": "Billy Bishop Toronto City Airport",
+        "surcharge": null
+      }
     ],
     "deductible": 2500,
     "adminFee": {
       "claim": 75,
       "other": 50
-    },
-    "overage": {
-      "standard": 0.35,
-      "luxury": [
-        0.75,
-        1.5
-      ]
     },
     "lateReturn": {
       "graceMinutes": 30,
@@ -97,7 +107,7 @@
       "noticeDays": 30,
       "referralPct": 20,
       "replyBusinessDays": "one business day",
-      "listingBusinessDays": "two business days"
+      "listingBusinessDays": "1 business day"
     }
   },
   "tokens": {
@@ -107,24 +117,24 @@
     "weekFrom": "7",
     "weekFromLess1": "6",
     "minAge": "18",
-    "stdAge": "21",
     "fullAge": "26",
     "youngA": "18 to 20",
     "youngB": "21 to 25",
     "licence": "G2 or G",
-    "dep1": "$500",
-    "dep2": "$1,000",
-    "dep3": "$2,500",
+    "depTiers": "$500, $1,000, $2,500 or $5,000",
+    "depMin": "$500",
+    "depMax": "$5,000",
+    "kmChoices": "400, 300, 200 or 150",
+    "depLead": "1 hour",
     "holdDays": "7",
     "releaseDays": "7 business days",
     "holdbackDays": "30 days",
     "refundDays": "10 business days",
+    "notice": "2 hours",
+    "turnaround": "2 hours",
     "ydA": "$35",
-    "ydACap": "$350",
     "ydB": "$20",
-    "ydBCap": "$200",
-    "addDrv": "$10",
-    "addDrvCap": "$70",
+    "addDrvPct": "25%",
     "winter": "$15",
     "winterCap": "$150",
     "baby": "$12",
@@ -132,12 +142,12 @@
     "nonRef": "10%",
     "delMin": "$75",
     "delMax": "$200",
+    "airports": "Toronto Pearson and Billy Bishop Toronto City Airport",
     "deductible": "$2,500",
     "adminClaim": "$75",
     "adminOther": "$50",
-    "over": "$0.35",
-    "overLuxMin": "$0.75",
-    "overLuxMax": "$1.50",
+    "overMin": "$0.25",
+    "overMax": "$1.50",
     "grace": "30 minutes",
     "graceShort": "30 minute",
     "lateHr": "$25",
@@ -168,15 +178,70 @@
     "noticeDays": "30",
     "referralPct": "20%",
     "ownerReply": "one business day",
-    "listDays": "two business days",
+    "listDays": "1 business day",
     "minDaily": "$59"
+  },
+  "classes": [
+    "Economy",
+    "Standard",
+    "Premium",
+    "Luxury",
+    "SUV",
+    "Convertible",
+    "Coupe",
+    "Sedan",
+    "Van",
+    "Pickup"
+  ],
+  "cookies": {
+    "version": "2026-10-08",
+    "title": "Cookies on CarmaCars",
+    "text": "We use necessary cookies to keep the site working and your bookings secure. With your consent we also use analytics cookies to see how the site is used, so we can improve it.",
+    "accept": "Accept all",
+    "necessary": "Necessary only",
+    "prefs": "Preferences",
+    "save": "Save my choice",
+    "groups": [
+      {
+        "code": "necessary_cookies",
+        "name": "Necessary",
+        "always": true,
+        "text": "Sign-in, security and your booking request. Always on."
+      },
+      {
+        "code": "analytics_cookies",
+        "name": "Analytics",
+        "always": false,
+        "text": "Counts visits and pages viewed, so we can see what to improve. Off unless you turn it on."
+      }
+    ]
   },
   "site": {
     "brand": "CarmaCars",
     "tagline": "What goes around, drives around.",
-    "email": "info@carmacars.ca",
-    "phone": null
+    "email": "contact@carmacars.ca",
+    "phone": {
+      "display": "647-575-3377",
+      "e164": "+16475753377"
+    },
+    "address": null
   },
+  "addressSamples": [
+    "Union Station, 65 Front Street West, Toronto, ON",
+    "Toronto Pearson Airport, Terminal 1, Mississauga, ON",
+    "Toronto Pearson Airport, Terminal 3, Mississauga, ON",
+    "Billy Bishop Toronto City Airport, 1 Eireann Quay, Toronto, ON",
+    "CN Tower, 290 Bremner Boulevard, Toronto, ON",
+    "Royal Ontario Museum, 100 Queens Park, Toronto, ON",
+    "Scotiabank Arena, 40 Bay Street, Toronto, ON",
+    "Yorkdale Shopping Centre, 3401 Dufferin Street, Toronto, ON",
+    "Square One, 100 City Centre Drive, Mississauga, ON",
+    "Vaughan Mills, 1 Bass Pro Mills Drive, Vaughan, ON",
+    "Markville Mall, 5000 Highway 7 East, Markham, ON",
+    "Scarborough Town Centre, 300 Borough Drive, Toronto, ON",
+    "Toronto City Hall, 100 Queen Street West, Toronto, ON",
+    "St. Lawrence Market, 93 Front Street East, Toronto, ON"
+  ],
   "cars": [
     {
       "slug": "mercedes-benz-a220",
@@ -187,10 +252,18 @@
       "year": 2021,
       "trim": "4MATIC Sedan",
       "cls": "Premium",
+      "classes": [
+        "Premium",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 95,
         "weekend": 115,
@@ -199,7 +272,7 @@
       },
       "delivery": 100,
       "deposit": 1000,
-      "kmPerDay": 200,
+      "kmPerDay": 300,
       "overage": 0.35,
       "booked": [
         [
@@ -226,10 +299,19 @@
       "year": 2022,
       "trim": "4MATIC Coupe",
       "cls": "Premium",
+      "classes": [
+        "Premium",
+        "Coupe",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 105,
         "weekend": 125,
@@ -238,8 +320,8 @@
       },
       "delivery": 100,
       "deposit": 1000,
-      "kmPerDay": 200,
-      "overage": 0.35,
+      "kmPerDay": 300,
+      "overage": 0.4,
       "booked": [
         [
           "2026-10-21",
@@ -265,10 +347,18 @@
       "year": 2022,
       "trim": "4MATIC Sedan",
       "cls": "Premium",
+      "classes": [
+        "Premium",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 119,
         "weekend": 142,
@@ -278,7 +368,7 @@
       "delivery": 100,
       "deposit": 1000,
       "kmPerDay": 200,
-      "overage": 0.35,
+      "overage": 0.45,
       "booked": [
         [
           "2026-10-15",
@@ -299,11 +389,19 @@
       "model": "GLC300",
       "year": 2022,
       "trim": "4MATIC SUV",
-      "cls": "SUV",
+      "cls": "Premium",
+      "classes": [
+        "Premium",
+        "SUV"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 135,
         "weekend": 160,
@@ -311,9 +409,9 @@
         "monthly": 2650
       },
       "delivery": 125,
-      "deposit": 1000,
+      "deposit": 2500,
       "kmPerDay": 200,
-      "overage": 0.35,
+      "overage": 0.5,
       "booked": [
         [
           "2026-10-23",
@@ -335,10 +433,18 @@
       "year": 2023,
       "trim": "4MATIC SUV",
       "cls": "Luxury",
+      "classes": [
+        "Luxury",
+        "SUV"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 189,
         "weekend": 225,
@@ -370,10 +476,18 @@
       "year": 2023,
       "trim": "LE",
       "cls": "Economy",
+      "classes": [
+        "Economy",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": true,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 59,
         "weekend": 69,
@@ -382,8 +496,8 @@
       },
       "delivery": 75,
       "deposit": 500,
-      "kmPerDay": 200,
-      "overage": 0.35,
+      "kmPerDay": 400,
+      "overage": 0.25,
       "booked": [
         [
           "2026-10-15",
@@ -405,10 +519,18 @@
       "year": 2023,
       "trim": "Preferred",
       "cls": "Economy",
+      "classes": [
+        "Economy",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": true,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 62,
         "weekend": 72,
@@ -417,8 +539,8 @@
       },
       "delivery": 75,
       "deposit": 500,
-      "kmPerDay": 200,
-      "overage": 0.35,
+      "kmPerDay": 400,
+      "overage": 0.25,
       "booked": [
         [
           "2026-10-24",
@@ -440,10 +562,18 @@
       "year": 2022,
       "trim": "Sport",
       "cls": "Standard",
+      "classes": [
+        "Standard",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": true,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 69,
         "weekend": 82,
@@ -452,8 +582,8 @@
       },
       "delivery": 75,
       "deposit": 500,
-      "kmPerDay": 200,
-      "overage": 0.35,
+      "kmPerDay": 300,
+      "overage": 0.3,
       "booked": [
         [
           "2026-10-19",
@@ -474,11 +604,19 @@
       "model": "RAV4",
       "year": 2023,
       "trim": "XLE AWD",
-      "cls": "SUV",
+      "cls": "Standard",
+      "classes": [
+        "Standard",
+        "SUV"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 89,
         "weekend": 105,
@@ -487,8 +625,8 @@
       },
       "delivery": 125,
       "deposit": 1000,
-      "kmPerDay": 200,
-      "overage": 0.35,
+      "kmPerDay": 300,
+      "overage": 0.3,
       "booked": [
         [
           "2026-10-26",
@@ -510,10 +648,18 @@
       "year": 2023,
       "trim": "Rear-Wheel Drive",
       "cls": "Premium",
+      "classes": [
+        "Premium",
+        "Sedan"
+      ],
       "seats": 5,
       "transmission": "Automatic",
       "fuel": "Electric",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 109,
         "weekend": 129,
@@ -522,7 +668,7 @@
       },
       "delivery": 100,
       "deposit": 1000,
-      "kmPerDay": 200,
+      "kmPerDay": 300,
       "overage": 0.35,
       "booked": [
         [
@@ -544,11 +690,19 @@
       "model": "Pacifica",
       "year": 2022,
       "trim": "Touring L",
-      "cls": "Premium",
+      "cls": "Van",
+      "classes": [
+        "Van",
+        "Premium"
+      ],
       "seats": 7,
       "transmission": "Automatic",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": true,
       "rates": {
         "daily": 99,
         "weekend": 119,
@@ -557,7 +711,7 @@
       },
       "delivery": 125,
       "deposit": 1000,
-      "kmPerDay": 200,
+      "kmPerDay": 300,
       "overage": 0.35,
       "booked": [
         [
@@ -579,11 +733,19 @@
       "model": "MX-5",
       "year": 2021,
       "trim": "GS-P Soft Top",
-      "cls": "Premium",
+      "cls": "Convertible",
+      "classes": [
+        "Convertible",
+        "Premium"
+      ],
       "seats": 2,
       "transmission": "Manual",
       "fuel": "Gasoline",
-      "young": false,
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
       "rates": {
         "daily": 99,
         "weekend": 135,
@@ -593,7 +755,7 @@
       "delivery": 100,
       "deposit": 1000,
       "kmPerDay": 200,
-      "overage": 0.35,
+      "overage": 0.4,
       "booked": [
         [
           "2026-10-23",
@@ -605,6 +767,351 @@
         ]
       ],
       "photo": "assets/photos/mazda-mx-5-lead.svg"
+    },
+    {
+      "slug": "kia-forte",
+      "code": "CC 13",
+      "name": "Kia Forte",
+      "make": "Kia",
+      "model": "Forte",
+      "year": 2023,
+      "trim": "EX",
+      "cls": "Economy",
+      "classes": [
+        "Economy",
+        "Sedan"
+      ],
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 64,
+        "weekend": 74,
+        "weekly": 380,
+        "monthly": 1250
+      },
+      "delivery": 75,
+      "deposit": 500,
+      "kmPerDay": 400,
+      "overage": 0.25,
+      "booked": [
+        [
+          "2026-10-18",
+          "2026-10-21"
+        ],
+        [
+          "2026-11-05",
+          "2026-11-09"
+        ]
+      ],
+      "photo": "assets/photos/kia-forte-lead.svg"
+    },
+    {
+      "slug": "toyota-camry",
+      "code": "CC 14",
+      "name": "Toyota Camry",
+      "make": "Toyota",
+      "model": "Camry",
+      "year": 2023,
+      "trim": "SE",
+      "cls": "Standard",
+      "classes": [
+        "Standard",
+        "Sedan"
+      ],
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": true,
+      "rates": {
+        "daily": 79,
+        "weekend": 92,
+        "weekly": 470,
+        "monthly": 1550
+      },
+      "delivery": 75,
+      "deposit": 500,
+      "kmPerDay": 300,
+      "overage": 0.3,
+      "booked": [
+        [
+          "2026-10-16",
+          "2026-10-18"
+        ],
+        [
+          "2026-10-29",
+          "2026-11-03"
+        ]
+      ],
+      "photo": "assets/photos/toyota-camry-lead.svg"
+    },
+    {
+      "slug": "honda-cr-v",
+      "code": "CC 15",
+      "name": "Honda CR-V",
+      "make": "Honda",
+      "model": "CR-V",
+      "year": 2023,
+      "trim": "EX-L AWD",
+      "cls": "Standard",
+      "classes": [
+        "Standard",
+        "SUV"
+      ],
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 92,
+        "weekend": 108,
+        "weekly": 540,
+        "monthly": 1800
+      },
+      "delivery": 125,
+      "deposit": 1000,
+      "kmPerDay": 300,
+      "overage": 0.3,
+      "booked": [
+        [
+          "2026-10-22",
+          "2026-10-24"
+        ],
+        [
+          "2026-11-11",
+          "2026-11-14"
+        ]
+      ],
+      "photo": "assets/photos/honda-cr-v-lead.svg"
+    },
+    {
+      "slug": "kia-carnival",
+      "code": "CC 16",
+      "name": "Kia Carnival",
+      "make": "Kia",
+      "model": "Carnival",
+      "year": 2023,
+      "trim": "EX",
+      "cls": "Van",
+      "classes": [
+        "Van",
+        "Standard"
+      ],
+      "seats": 8,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 109,
+        "weekend": 129,
+        "weekly": 650,
+        "monthly": 2150
+      },
+      "delivery": 125,
+      "deposit": 1000,
+      "kmPerDay": 300,
+      "overage": 0.35,
+      "booked": [
+        [
+          "2026-10-16",
+          "2026-10-19"
+        ],
+        [
+          "2026-11-13",
+          "2026-11-16"
+        ]
+      ],
+      "photo": "assets/photos/kia-carnival-lead.svg"
+    },
+    {
+      "slug": "ford-f-150",
+      "code": "CC 17",
+      "name": "Ford F-150",
+      "make": "Ford",
+      "model": "F-150",
+      "year": 2022,
+      "trim": "XLT SuperCrew 4x4",
+      "cls": "Pickup",
+      "classes": [
+        "Pickup",
+        "Standard"
+      ],
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": true,
+      "rates": {
+        "daily": 129,
+        "weekend": 149,
+        "weekly": 770,
+        "monthly": 2550
+      },
+      "delivery": 150,
+      "deposit": 2500,
+      "kmPerDay": 200,
+      "overage": 0.45,
+      "booked": [
+        [
+          "2026-10-24",
+          "2026-10-26"
+        ],
+        [
+          "2026-11-07",
+          "2026-11-08"
+        ]
+      ],
+      "photo": "assets/photos/ford-f-150-lead.svg"
+    },
+    {
+      "slug": "bmw-330i",
+      "code": "CC 18",
+      "name": "BMW 330i",
+      "make": "BMW",
+      "model": "330i",
+      "year": 2022,
+      "trim": "xDrive Sedan",
+      "cls": "Premium",
+      "classes": [
+        "Premium",
+        "Sedan"
+      ],
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 125,
+        "weekend": 149,
+        "weekly": 745,
+        "monthly": 2450
+      },
+      "delivery": 100,
+      "deposit": 2500,
+      "kmPerDay": 200,
+      "overage": 0.5,
+      "booked": [
+        [
+          "2026-10-19",
+          "2026-10-21"
+        ],
+        [
+          "2026-11-02",
+          "2026-11-06"
+        ]
+      ],
+      "photo": "assets/photos/bmw-330i-lead.svg"
+    },
+    {
+      "slug": "ford-mustang",
+      "code": "CC 19",
+      "name": "Ford Mustang",
+      "make": "Ford",
+      "model": "Mustang",
+      "year": 2022,
+      "trim": "EcoBoost Premium Convertible",
+      "cls": "Convertible",
+      "classes": [
+        "Convertible",
+        "Coupe",
+        "Premium"
+      ],
+      "seats": 4,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 35,
+        "21-25": 20
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 139,
+        "weekend": 169,
+        "weekly": 830,
+        "monthly": 2750
+      },
+      "delivery": 125,
+      "deposit": 2500,
+      "kmPerDay": 200,
+      "overage": 0.5,
+      "booked": [
+        [
+          "2026-10-17",
+          "2026-10-18"
+        ],
+        [
+          "2026-10-31",
+          "2026-11-01"
+        ]
+      ],
+      "photo": "assets/photos/ford-mustang-lead.svg"
+    },
+    {
+      "slug": "porsche-911",
+      "code": "CC 20",
+      "name": "Porsche 911",
+      "make": "Porsche",
+      "model": "911",
+      "year": 2021,
+      "trim": "Carrera",
+      "cls": "Luxury",
+      "classes": [
+        "Luxury",
+        "Coupe"
+      ],
+      "seats": 4,
+      "transmission": "Automatic",
+      "fuel": "Gasoline",
+      "youngFees": {
+        "18-20": 75,
+        "21-25": 50
+      },
+      "ownerPickup": false,
+      "rates": {
+        "daily": 449,
+        "weekend": 529,
+        "weekly": 2650,
+        "monthly": 8900
+      },
+      "delivery": 200,
+      "deposit": 5000,
+      "kmPerDay": 150,
+      "overage": 1.5,
+      "booked": [
+        [
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        [
+          "2026-11-14",
+          "2026-11-15"
+        ]
+      ],
+      "photo": "assets/photos/porsche-911-lead.svg"
     }
   ]
 }

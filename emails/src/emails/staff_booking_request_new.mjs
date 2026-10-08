@@ -32,7 +32,7 @@ export default {
       'Adjust dates, car or price if needed, then send the offer. Or ask for information, or decline with a reason.',
       'Escalate to an admin for other discounts, travel outside Ontario, pets, a refusal, or more than 30 days.',
     ),
-    small('Target: reply within 15 minutes during opening hours. At 2 hours without an answer, this request is flagged to the admins.'),
+    small('Target: send the offer, or a question, within 2 hours, day or night. We are open 24 hours. At 2 hours without an answer, this request is flagged to the admins.'),
   ],
   sample: {
     estimate_amount: '$468.95', renter_history: 'new renter', drivers_summary: '1 driver, age 29, G licence',

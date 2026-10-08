@@ -22,10 +22,14 @@ If the booking no longer works for you, you can cancel from the same page. The r
 
 ----------------------------------------
 
-Help: reply to this email or call {{support_phone}}.
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
 
 You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}

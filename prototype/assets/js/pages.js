@@ -5,9 +5,11 @@
   var FLEET = function () { return window.CC_FLEET.cars; };
   var carBy = function (slug) { return FLEET().filter(function (c) { return c.slug === slug; })[0]; };
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var TIMES = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
-  CC.fillTimes = function (sel, val) { if (sel.options.length) { if (val) sel.value = val; return; } sel.innerHTML = TIMES.map(function (t) { return '<option value="' + t + '"' + (t === (val || '10:00') ? ' selected' : '') + '>' + D.time(t) + '</option>'; }).join(''); };
-  CC.inits.push(function (root) { $$('select[data-times]', root).forEach(function (s) { var p = CC.params(); CC.fillTimes(s, p.get(s.name) || s.dataset.times || '10:00'); }); });
+  // Pickup and return any time of day (Admin > Policies: handover slot length).
+  var TIMES = (function () { var R = window.CC_FLEET.rules; var out = []; for (var m = 0; m < 1440; m += R.handoverSlotMinutes) out.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); return out; })();
+  var DEF = window.CC_FLEET.rules.defaultTime;
+  CC.fillTimes = function (sel, val) { if (sel.options.length) { if (val) sel.value = val; return; } sel.innerHTML = TIMES.map(function (t) { return '<option value="' + t + '"' + (t === (val || DEF) ? ' selected' : '') + '>' + D.time(t) + '</option>'; }).join(''); };
+  CC.inits.push(function (root) { $$('select[data-times]', root).forEach(function (s) { var p = CC.params(); CC.fillTimes(s, p.get(s.name) || s.dataset.times || DEF); }); });
 
   /* ---------- estimate block ---------- */
   CC.renderEstimate = function (el, car, st) {
@@ -18,14 +20,15 @@
     }
     var e = P.estimate(car, st);
     if (e.invalid) { el.innerHTML = '<p class="alert alert--error"><span class="alert__title">Return is before pickup</span><span>Set a return time after the pickup time.</span></p>'; return null; }
-    var h = '<div class="estimate__dates"><div><span class="xs muted">Pickup</span><b>' + D.short(st.from) + '</b><span class="small">' + D.time(st.tFrom) + '</span></div><div><span class="xs muted">Return</span><b>' + D.short(st.to) + '</b><span class="small">' + D.time(st.tTo) + '</span></div><div class="estimate__days"><b class="num">' + e.days + '</b><span class="xs">' + (e.days === 1 ? 'day' : 'days') + '</span></div></div>';
+    var tp = D.timeProblem(car, st.from, st.tFrom, st.to, st.tTo);
+    var h = (tp ? '<p class="alert alert--warn" data-time-problem><span class="alert__title">Check the times</span><span>' + CC.esc(tp) + '</span></p>' : '') + '<div class="estimate__dates"><div><span class="xs muted">Pickup</span><b>' + D.short(st.from) + '</b><span class="small">' + D.time(st.tFrom) + '</span></div><div><span class="xs muted">Return</span><b>' + D.short(st.to) + '</b><span class="small">' + D.time(st.tTo) + '</span></div><div class="estimate__days"><b class="num">' + e.days + '</b><span class="xs">' + (e.days === 1 ? 'day' : 'days') + '</span></div></div>';
     if (e.over) h += '<p class="alert alert--warn"><span class="alert__title">' + CC.t('maxDays') + ' days is the most for one booking</span><span>This estimate covers the first ' + CC.t('maxDays') + ' days. To keep the car longer you renew with a new booking before this one ends.</span></p>';
     h += '<table class="estimate__lines"><tbody>';
     e.lines.forEach(function (l) { h += '<tr><th scope="row">' + l.k + (l.note ? '<small>' + l.note + '</small>' : '') + '</th><td class="num">' + (l.v < 0 ? '−' + CC.money(-l.v, true) : CC.money(l.v, true)) + '</td></tr>'; });
-    if (e.coverageExtra) h += '<tr><th scope="row">Coverage bought through CarmaCars<small>Priced for your car and dates</small></th><td>In your quote</td></tr>';
+    if (e.coverageExtra) h += '<tr><th scope="row">Coverage bought through CarmaCars<small>By car and driver age</small></th><td>Priced in your offer</td></tr>';
     h += '<tr><th scope="row">HST (' + CC.t('hst') + ')</th><td class="num">' + CC.money(e.hst, true) + '</td></tr></tbody>';
     h += '<tfoot><tr><th scope="row">Estimated total<small>Due when you approve, sign and pay. Nothing now.</small></th><td class="num"><b data-total></b></td></tr></tfoot></table>';
-    h += '<dl class="estimate__after"><div><dt>Deposit at pickup</dt><dd class="num">' + CC.money(e.deposit) + ' <small>' + e.depositMethod + '</small></dd></div><div><dt>Kilometres included</dt><dd class="num">' + e.km.toLocaleString('en-CA') + ' km <small>then ' + CC.money(car.overage, true) + ' per km</small></dd></div></dl>';
+    h += '<dl class="estimate__after"><div><dt>Deposit before pickup</dt><dd class="num">' + CC.money(e.deposit) + ' <small>' + e.depositMethod + '</small></dd></div><div><dt>Kilometres included</dt><dd class="num">' + e.km.toLocaleString('en-CA') + ' km <small>then ' + CC.money(car.overage, true) + ' per km</small></dd></div></dl>';
     var old = el.querySelector('[data-total]'); var prev = old ? old.dataset.v : '0';
     el.innerHTML = h; var t = el.querySelector('[data-total]'); t.dataset.v = prev; CC.tween(t, e.total, function (n) { return CC.money(n, true); });
     return e;
@@ -34,7 +37,7 @@
   function stateQuery(st, slug) {
     var q = new URLSearchParams(); if (slug) q.set('car', slug);
     if (st.from && st.to) { q.set('from', st.from); q.set('to', st.to); q.set('tf', st.tFrom); q.set('tt', st.tTo); }
-    if (st.deliver) q.set('deliver', '1'); if (st.collect) q.set('collect', '1'); if (st.age && st.age !== '26+') q.set('age', st.age);
+    if (st.deliver) q.set('deliver', st.deliverKind === 'airport' ? 'airport' : '1'); if (st.collect) q.set('collect', st.collectKind === 'airport' ? 'airport' : '1'); if (st.age && st.age !== '26+') q.set('age', st.age);
     return q.toString();
   }
 
@@ -55,7 +58,6 @@
     (p.get('cls') || '').split(',').filter(Boolean).forEach(function (v) { var c = form.querySelector('[name="cls"][value="' + v + '"]'); if (c) c.checked = true; });
     ['seats', 'trans'].forEach(function (k) { if (p.get(k)) { var r = form.querySelector('[name="' + k + '"][value="' + p.get(k) + '"]'); if (r) r.checked = true; } });
     if (p.get('max')) { max.value = p.get('max'); max.dispatchEvent(new Event('input')); }
-    if (p.get('young')) form.elements.young.checked = true;
     if (p.get('sort')) sort.value = p.get('sort');
     var dr = CC.DateRange($('[data-daterange]', main), { onChange: function () { apply(true); } });
     var timer;
@@ -63,18 +65,18 @@
       var v = dr.value();
       return { from: v.from && v.to ? v.from : '', to: v.from && v.to ? v.to : '', tf: tf.value, tt: tt.value,
         cls: $$('[name="cls"]:checked', form).map(function (c) { return c.value; }), seats: form.elements.seats.value, trans: form.elements.trans.value,
-        max: +max.value, young: form.elements.young.checked, showBooked: form.elements.showBooked.checked, sort: sort.value, mode: p.get('mode') || '' };
+        max: +max.value, showBooked: form.elements.showBooked.checked, sort: sort.value, mode: p.get('mode') || '' };
     }
     function apply(lookup) {
       var s = read(); var shown = []; var booked = 0;
       $('[data-max-out]', main).textContent = s.max >= +max.max ? 'Any price' : 'Up to ' + CC.money(s.max) + ' a day';
       items.forEach(function (li) {
         var c = carBy(li.dataset.slug); var ok = true;
-        if (s.cls.length && s.cls.indexOf(c.cls) === -1) ok = false;
+        if (s.cls.length && !s.cls.some(function (k) { return c.classes.indexOf(k) > -1; })) ok = false; // any of the chosen classes
         if (s.seats === '2' && c.seats !== 2) ok = false; if (s.seats === '5' && c.seats < 5) ok = false; if (s.seats === '7' && c.seats < 7) ok = false;
         if (s.trans !== 'any' && c.transmission !== s.trans) ok = false;
-        if (c.rates.daily > s.max) ok = false; if (s.young && !c.young) ok = false;
-        var busy = ok && s.from && D.overlaps(s.from, s.to, c.booked);
+        if (c.rates.daily > s.max) ok = false;
+        var busy = ok && s.from && D.clash(s.from, s.tf, s.to, s.tt, c.booked);
         if (busy) booked++;
         var flag = $('[data-flag]', li); var price = $('[data-price]', li); var unit = $('[data-unit]', li); var a = $('a', li);
         li.classList.toggle('is-booked', !!busy);
@@ -88,27 +90,28 @@
       var by = { 'price-asc': function (a, b) { return a.dataset.sortPrice - b.dataset.sortPrice; }, 'price-desc': function (a, b) { return b.dataset.sortPrice - a.dataset.sortPrice; }, name: function (a, b) { return a.dataset.name.localeCompare(b.dataset.name); }, seats: function (a, b) { return b.dataset.seats - a.dataset.seats || a.dataset.sortPrice - b.dataset.sortPrice; }, featured: function (a, b) { return a.dataset.i - b.dataset.i; } }[s.sort];
       items.slice().sort(function (a, b) { return (a.classList.contains('is-booked') - b.classList.contains('is-booked')) || by(a, b); }).forEach(function (li) { grid.appendChild(li); });
       var free = shown.filter(function (li) { return !li.classList.contains('is-booked'); }).length;
-      var filtered = shown.length < items.length; count.textContent = s.from ? free + (free === 1 ? ' car' : ' cars') + ' free ' + D.short(s.from) + ' to ' + D.short(s.to) : filtered ? 'Showing ' + shown.length + (shown.length === 1 ? ' car' : ' cars') : 'Showing every car';
-      bookedNote.hidden = !(s.from && booked); if (booked) $('span', bookedNote).textContent = booked + (booked === 1 ? ' car that matches is' : ' cars that match are') + ' booked for those dates.';
+      // No fleet counts anywhere: the heading names the dates or the filter, never a number of cars.
+      var filtered = shown.length < items.length; count.textContent = s.from ? (free ? 'Cars free ' : 'No cars free ') + D.short(s.from) + ' to ' + D.short(s.to) : filtered ? 'Cars that match' : 'Every car';
+      bookedNote.hidden = !(s.from && booked); if (booked) $('span', bookedNote).textContent = 'Some cars that match are booked for those dates.';
       empty.hidden = shown.length > 0; grid.hidden = shown.length === 0;
-      $$('[data-filters-count]', main).forEach(function (b) { b.textContent = 'Show ' + shown.length + (shown.length === 1 ? ' car' : ' cars'); });
+      $$('[data-filters-count]', main).forEach(function (b) { b.textContent = shown.length ? 'Show cars' : 'No cars match'; });
       // active filter chips
       var ch = [];
       s.cls.forEach(function (v) { ch.push(['cls', v, v]); }); if (s.seats !== 'any') ch.push(['seats', 'any', s.seats === '2' ? '2 seats' : s.seats + '+ seats']);
-      if (s.trans !== 'any') ch.push(['trans', 'any', s.trans]); if (s.max < +max.max) ch.push(['max', max.max, 'Up to ' + CC.money(s.max)]); if (s.young) ch.push(['young', '', 'Ages ' + CC.t('youngA')]);
+      if (s.trans !== 'any') ch.push(['trans', 'any', s.trans]); if (s.max < +max.max) ch.push(['max', max.max, 'Up to ' + CC.money(s.max)]);
       chips.innerHTML = ch.map(function (c) { return '<button type="button" class="chip" data-chip="' + c[0] + '" data-val="' + c[1] + '"><span class="vh">Remove filter </span>' + c[2] + '<i aria-hidden="true">×</i></button>'; }).join('') + (ch.length > 1 ? '<button type="button" class="chip chip--clear" data-clear>Clear all</button>' : '');
       if (openBtn) $('b', openBtn).textContent = ch.length ? ' (' + ch.length + ')' : '';
-      CC.setParams({ from: s.from, to: s.to, tf: s.from ? s.tf : '', tt: s.from ? s.tt : '', mode: s.mode, cls: s.cls.join(','), seats: s.seats === 'any' ? '' : s.seats, trans: s.trans === 'any' ? '' : s.trans, max: s.max < +max.max ? s.max : '', young: s.young ? 1 : '', sort: s.sort === 'featured' ? '' : s.sort });
+      CC.setParams({ from: s.from, to: s.to, tf: s.from ? s.tf : '', tt: s.from ? s.tt : '', mode: s.mode, cls: s.cls.join(','), seats: s.seats === 'any' ? '' : s.seats, trans: s.trans === 'any' ? '' : s.trans, max: s.max < +max.max ? s.max : '', sort: s.sort === 'featured' ? '' : s.sort });
       // PROTOTYPE: stands in for the availability request the real site makes.
       if (lookup && s.from && !reduce.matches) { clearTimeout(timer); main.classList.add('is-loading'); skel.hidden = false; grid.setAttribute('aria-busy', 'true'); timer = setTimeout(function () { main.classList.remove('is-loading'); skel.hidden = true; grid.removeAttribute('aria-busy'); }, 520); }
     }
-    function clearAll() { $$('[name="cls"]', form).forEach(function (c) { c.checked = false; }); form.querySelector('[name="seats"][value="any"]').checked = true; form.querySelector('[name="trans"][value="any"]').checked = true; max.value = max.max; max.dispatchEvent(new Event('input')); form.elements.young.checked = false; apply(); }
+    function clearAll() { $$('[name="cls"]', form).forEach(function (c) { c.checked = false; }); form.querySelector('[name="seats"][value="any"]').checked = true; form.querySelector('[name="trans"][value="any"]').checked = true; max.value = max.max; max.dispatchEvent(new Event('input')); apply(); }
     form.addEventListener('change', function () { apply(); }); form.addEventListener('input', function (e) { if (e.target === max) apply(); });
     form.addEventListener('submit', function (e) { e.preventDefault(); });
     sort.addEventListener('change', function () { apply(); }); tf.addEventListener('change', function () { apply(); }); tt.addEventListener('change', function () { apply(); });
     main.addEventListener('click', function (e) {
       var chip = e.target.closest('[data-chip]');
-      if (chip) { var k = chip.dataset.chip; if (k === 'cls') form.querySelector('[name="cls"][value="' + chip.dataset.val + '"]').checked = false; else if (k === 'young') form.elements.young.checked = false; else if (k === 'max') { max.value = max.max; max.dispatchEvent(new Event('input')); } else form.querySelector('[name="' + k + '"][value="any"]').checked = true; apply(); return; }
+      if (chip) { var k = chip.dataset.chip; if (k === 'cls') form.querySelector('[name="cls"][value="' + chip.dataset.val + '"]').checked = false; else if (k === 'max') { max.value = max.max; max.dispatchEvent(new Event('input')); } else form.querySelector('[name="' + k + '"][value="any"]').checked = true; apply(); return; }
       if (e.target.closest('[data-clear]')) { clearAll(); return; }
       if (e.target.closest('[data-clear-dates]')) { dr.set('', ''); apply(); return; }
       if (e.target.closest('[data-show-booked]')) { form.elements.showBooked.checked = true; apply(); }
@@ -139,15 +142,14 @@
 
     // dates + estimate
     var tf = $('select[name="tf"]', main); var tt = $('select[name="tt"]', main); var est = $('[data-estimate]', main); var bar = $('.bookbar', root) || $('.bookbar');
-    var st = { from: D.valid(p.get('from')) ? p.get('from') : '', to: D.valid(p.get('to')) ? p.get('to') : '', tFrom: tf.value, tTo: tt.value, deliver: p.get('deliver') === '1', collect: p.get('collect') === '1', age: p.get('age') || '26+' };
-    if (st.from && (st.from < CC.TODAY || D.overlaps(st.from, st.to || st.from, car.booked))) { var clash = true; }
+    var st = { from: D.valid(p.get('from')) ? p.get('from') : '', to: D.valid(p.get('to')) ? p.get('to') : '', tFrom: tf.value, tTo: tt.value, deliver: !!p.get('deliver'), collect: !!p.get('collect'), deliverKind: p.get('deliver') === 'airport' ? 'airport' : 'delivery', collectKind: p.get('collect') === 'airport' ? 'airport' : 'delivery', age: p.get('age') || '26+' };
+    if (st.from && (st.from < CC.TODAY || D.clash(st.from, st.tFrom, st.to || st.from, st.tTo, car.booked))) { var clash = true; }
     var note = $('[data-date-clash]', main);
     if (clash) { note.hidden = false; note.querySelector('span').textContent = 'This car is booked for part of ' + D.short(st.from) + ' to ' + D.short(st.to || st.from) + '. Pick other dates below, or look at similar cars.'; st.from = ''; st.to = ''; }
     $('[name="deliver"]', main).checked = st.deliver; $('[name="collect"]', main).checked = st.collect; $('[name="age"]', main).value = st.age;
     var cal = CC.Calendar($('[data-cal]', main), { months: 1, booked: car.booked, from: st.from, to: st.to, onChange: function (v) { st.from = v.from; st.to = v.to; if (v.to) note.hidden = true; update(); } });
     function update() {
       st.tFrom = tf.value; st.tTo = tt.value; st.deliver = $('[name="deliver"]', main).checked; st.collect = $('[name="collect"]', main).checked; st.age = $('[name="age"]', main).value;
-      var ageNote = $('[data-age-note]', main); ageNote.hidden = !(st.age === '18-20' && !car.young);
       var e = CC.renderEstimate(est, car, st); var ready = !!e;
       var href = CC.url('request.html?' + stateQuery(st, car.slug));
       $$('[data-book]', root).forEach(function (a) { a.setAttribute('href', href); });
@@ -177,19 +179,25 @@
     Object.keys(saved.f || {}).forEach(function (k) { var i = el[k]; if (!i) return; if (i.type === 'checkbox') i.checked = !!saved.f[k]; else if (i.length && i[0] && i[0].type === 'radio') { $$('[name="' + k + '"]', form).forEach(function (r) { r.checked = r.value === saved.f[k]; }); } else i.value = saved.f[k]; });
     if (p.get('car') && carBy(p.get('car'))) el.car.value = p.get('car');
     CC.fillTimes(el.tf, p.get('tf') || (saved.f && saved.f.tf)); CC.fillTimes(el.tt, p.get('tt') || (saved.f && saved.f.tt));
-    if (p.get('deliver')) el.deliver.checked = true; if (p.get('collect')) el.collect.checked = true;
+    var setPlace = function (name, v) { $$('[name="' + name + '"]', form).forEach(function (r) { r.checked = r.value === v; }); };
+    if (p.get('deliver')) setPlace('pickupAt', p.get('deliver') === 'airport' ? 'airport' : 'delivery'); if (p.get('collect')) setPlace('returnAt', p.get('collect') === 'airport' ? 'airport' : 'delivery');
     var from = D.valid(p.get('from')) ? p.get('from') : (!fresh && saved.from) || ''; var to = D.valid(p.get('to')) ? p.get('to') : (!fresh && saved.to) || '';
     if (from && from < CC.TODAY) { from = ''; to = ''; }
     $$('.qty', form).forEach(function (q) { if (q._set) q._set(+$('input', q).value || 0); });
     var car = function () { return carBy(el.car.value); };
-    if (from && car() && D.overlaps(from, to || from, car().booked)) { from = ''; to = ''; }
+    if (from && car() && D.clash(from, el.tf.value, to || from, el.tt.value, car().booked)) { from = ''; to = ''; }
     var cal = CC.Calendar($('[data-cal]', form), { months: window.matchMedia('(min-width: 44rem)').matches ? 2 : 1, booked: car() ? car().booked : [], from: from, to: to, onChange: function (v) { from = v.from; to = v.to; $('[data-dates-field]', form).classList.remove('has-error'); refresh(); } });
     function ageAtPickup() { var y = +el.dobY.value; var m = +el.dobM.value; var d = +el.dobD.value; if (!y || !m || !d || y < 1900) return null; var ref = D.parse(from || CC.TODAY); var a = ref.getUTCFullYear() - y; if (ref.getUTCMonth() + 1 < m || (ref.getUTCMonth() + 1 === m && ref.getUTCDate() < d)) a--; return a; }
-    function band() { var a = ageAtPickup(); if (a == null) return p.get('age') || '26+'; var RU = window.CC_FLEET.rules; return a < RU.standardMinAge ? '18-20' : a < RU.noFeeAge ? '21-25' : '26+'; }
-    function state() { return { from: from, to: to, tFrom: el.tf.value, tTo: el.tt.value, deliver: el.deliver.checked, collect: el.collect.checked, age: band(), addDrivers: +el.addDrivers.value || 0, winter: el.winter.checked, babySeats: +el.babySeats.value || 0, nonRefundable: el.bookingType.value === 'nonrefundable', coverage: el.coverage.value }; }
+    function band() { var a = ageAtPickup(); if (a == null) return p.get('age') || '26+'; var RU = window.CC_FLEET.rules; return a < RU.youngBandSplit ? '18-20' : a < RU.noFeeAge ? '21-25' : '26+'; }
+    var far = function (v) { return v === 'delivery' || v === 'airport'; };
+    function state() { return { from: from, to: to, tFrom: el.tf.value, tTo: el.tt.value, deliver: far(el.pickupAt.value), collect: far(el.returnAt.value), deliverKind: el.pickupAt.value, collectKind: el.returnAt.value, age: band(), addDrivers: +el.addDrivers.value || 0, winter: el.winter.checked, babySeats: +el.babySeats.value || 0, nonRefundable: el.bookingType.value === 'nonrefundable', coverage: el.coverage.value }; }
     function refresh() {
-      var c = car(); $('[data-addr-deliver]', form).hidden = !el.deliver.checked; $('[data-addr-collect]', form).hidden = !el.collect.checked;
-      $$('[data-car-fee]', form).forEach(function (s) { s.textContent = c ? CC.money(c.delivery) : '$75 to $200'; });
+      var c = car();
+      // the car owner's location is offered only by some cars
+      $$('[data-owner-opt]', form).forEach(function (o) { o.hidden = !(c && c.ownerPickup); var r = $('input', o); if (o.hidden && r.checked) setPlace(r.name, 'ours'); });
+      $('[data-addr-deliver]', form).hidden = el.pickupAt.value !== 'delivery'; $('[data-addr-collect]', form).hidden = el.returnAt.value !== 'delivery';
+      $('[data-airport-pickup]', form).hidden = el.pickupAt.value !== 'airport'; $('[data-airport-return]', form).hidden = el.returnAt.value !== 'airport';
+      $$('[data-car-fee]', form).forEach(function (s) { s.textContent = c ? CC.money(c.delivery) : 'From ' + CC.t('delMin'); });
       var head = $('[data-summary-car]', main);
       if (c) { head.innerHTML = '<img src="' + CC.photo(c.photo) + '" alt="" width="1800" height="1200" loading="lazy"><div><span class="plate">' + c.code + '</span><b>' + c.year + ' ' + c.name + '</b><span class="small muted">' + c.trim + '</span></div>'; }
       else head.innerHTML = '<p class="muted">Choose a car to see the estimate.</p>';
@@ -207,14 +215,13 @@
       var scope = steps[n - 1]; var ok = CC.checkAll(scope); var first = null; var bad = function (f) { ok = false; if (!first) first = f; };
       if (n === 1) {
         if (!from || !to) bad(fieldError('[data-dates-field]', !from ? 'Pick a pickup date and a return date.' : 'Pick a return date.'));
-        else { var d = P.days(from, el.tf.value, to, el.tt.value); if (d.invalid) bad(fieldError('[data-dates-field]', 'The return time is before the pickup time.')); else if (d.over) bad(fieldError('[data-dates-field]', 'One booking covers up to ' + CC.t('maxDays') + ' days. Shorten the dates; you can renew later.')); else fieldError('[data-dates-field]', ''); }
+        else { var d = P.days(from, el.tf.value, to, el.tt.value); var tp = D.timeProblem(car(), from, el.tf.value, to, el.tt.value); if (d.invalid) bad(fieldError('[data-dates-field]', 'The return time is before the pickup time.')); else if (d.over) bad(fieldError('[data-dates-field]', 'One booking covers up to ' + CC.t('maxDays') + ' days. Shorten the dates; you can renew later.')); else if (tp) bad(fieldError('[data-dates-field]', tp)); else fieldError('[data-dates-field]', ''); }
       }
       if (n === 2) {
         var a = ageAtPickup(); var c = car(); var msg = '';
         if (a == null || +el.dobD.value > 31) msg = 'Enter your full date of birth.';
         else if (a < window.CC_FLEET.rules.minAge) msg = 'Drivers must be ' + CC.t('minAge') + ' or older at pickup.';
         else if (a > 110) msg = 'Check the year.';
-        else if (a < window.CC_FLEET.rules.standardMinAge && c && !c.young) msg = 'Drivers aged ' + CC.t('youngA') + ' can book the cars we mark for them. The ' + c.name + ' is not one of them. Go back a step to choose another car.';
         var f = fieldError('[data-dob-field]', msg); if (msg) bad(f);
       }
       if (n === 3) {
@@ -237,11 +244,13 @@
       save();
     }
     function review() {
-      var c = car(); var s = state(); var cov = { 1: 'Option 1: OPCF 27 on my own auto policy', 2: 'Option 2: my credit card rental coverage', 3: 'Option 3: buy coverage through CarmaCars' }[el.coverage.value] || '';
+      var c = car(); var s = state(); var cov = { 1: 'Option 1: OPCF 27 on my own auto policy', 2: 'Option 2: my credit card rental coverage', 3: 'Option 3: buy coverage through CarmaCars, priced in your offer' }[el.coverage.value] || '';
+      var airportName = function (code) { var a = window.CC_FLEET.rules.airports.filter(function (x) { return x.code === code; })[0]; return a ? a.name : ''; };
+      var place = function (v, addr, ap, verb) { return v === 'delivery' ? verb + ' ' + (addr || 'your address') : v === 'airport' ? 'at ' + airportName(ap) : v === 'owner' ? 'at the car owner’s location' : 'at our location'; };
       var rows = [
         ['Car', c ? c.year + ' ' + c.name : '', 1],
-        ['Pickup', from ? D.long(from) + ', ' + D.time(el.tf.value) + (el.deliver.checked ? '. Delivered to ' + (el.addrDeliver.value || 'your address') : '. You collect it from us') : '', 1],
-        ['Return', to ? D.long(to) + ', ' + D.time(el.tt.value) + (el.collect.checked ? '. We pick it up from ' + (el.addrCollect.value || el.addrDeliver.value || 'your address') : '. You bring it back to us') : '', 1],
+        ['Pickup', from ? D.long(from) + ', ' + D.time(el.tf.value) + ', ' + place(el.pickupAt.value, el.addrDeliver.value, el.airportPickup.value, 'delivered to') : '', 1],
+        ['Return', to ? D.long(to) + ', ' + D.time(el.tt.value) + ', ' + place(el.returnAt.value, el.addrCollect.value || el.addrDeliver.value, el.airportReturn.value, 'we pick it up from') : '', 1],
         ['Driver', el.first.value + ' ' + el.last.value + (ageAtPickup() != null ? ', ' + ageAtPickup() + ' at pickup' : ''), 2], ['Contact', el.email.value + ', ' + el.phone.value, 2],
         ['Additional drivers', (+el.addDrivers.value || 0) ? el.addDrivers.value : 'None', 2],
         ['Licence', (el.licClass.value === 'other' ? 'Other, for review' : 'Ontario class ' + el.licClass.value) + ', expires ' + el.licM.value + '/' + el.licY.value, 3], ['Coverage', cov, 3],
@@ -256,7 +265,7 @@
       if (e.target.closest('[data-back]')) { show(cur - 1, true); return; }
       if (e.target.closest('[data-reset]')) { CC.store.del(KEY); CC.go('request.html' + (el.car.value ? '?car=' + el.car.value : '')); if (CC.SINGLE) location.reload(); }
     });
-    form.addEventListener('change', function (e) { if (e.target === el.car) { var c = car(); cal.setBooked(c ? c.booked : []); if (from && c && D.overlaps(from, to || from, c.booked)) { from = ''; to = ''; cal.set('', ''); fieldError('[data-dates-field]', 'The ' + c.name + ' is booked for part of those dates. Pick new dates.'); } } refresh(); });
+    form.addEventListener('change', function (e) { if (e.target === el.car) { var c = car(); cal.setBooked(c ? c.booked : []); if (from && c && D.clash(from, el.tf.value, to || from, el.tt.value, c.booked)) { from = ''; to = ''; cal.set('', ''); fieldError('[data-dates-field]', 'The ' + c.name + ' is booked for part of those dates. Pick new dates.'); } } refresh(); });
     form.addEventListener('input', function (e) { if (e.target.matches('input[type="text"], input[type="email"], input[type="tel"], textarea')) save(); if (e.target.name && /^dob/.test(e.target.name)) refresh(); });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -264,7 +273,7 @@
       var c = car(); var est = P.estimate(c, state());
       // PROTOTYPE: the real site posts this to the booking service.
       var ref = 'R-' + String(Date.now()).slice(-6);
-      try { sessionStorage.setItem('cc.lastRequest', JSON.stringify({ ref: ref, car: c.year + ' ' + c.name, slug: c.slug, from: from, to: to, tf: el.tf.value, tt: el.tt.value, deliver: el.deliver.checked, total: est.total, deposit: est.deposit, days: est.days, email: el.email.value, first: el.first.value, coverage: el.coverage.value })); } catch (x) { /* ignore */ }
+      try { sessionStorage.setItem('cc.lastRequest', JSON.stringify({ ref: ref, car: c.year + ' ' + c.name, slug: c.slug, from: from, to: to, tf: el.tf.value, tt: el.tt.value, deliver: far(el.pickupAt.value), total: est.total, deposit: est.deposit, days: est.days, email: el.email.value, first: el.first.value, coverage: el.coverage.value })); } catch (x) { /* ignore */ }
       CC.store.del(KEY); CC.go('confirmation.html?ref=' + ref);
     });
     var sumBox = $('.req__sum', main); var wide = window.matchMedia('(min-width: 64rem)'); var fit = function () { if (wide.matches) sumBox.open = true; }; fit(); wide.addEventListener('change', fit);
@@ -279,7 +288,7 @@
     var box = $('[data-conf]', main); if (!r) { $('[data-conf-none]', main).hidden = false; box.hidden = true; $('.conf-head .row', main).hidden = true; $('h1', main).textContent = 'No request to show.'; $('.conf-head .lead', main).textContent = 'This page confirms a request right after you send it. Here is what happens once you do.'; return; }
     $('[data-conf-ref]', main).textContent = r.ref; $('[data-conf-name]', main).textContent = r.first ? ', ' + r.first : '';
     $('[data-conf-email]', main).textContent = r.email;
-    $('[data-conf-rows]', main).innerHTML = [['Car', r.car], ['Pickup', D.long(r.from) + ', ' + D.time(r.tf) + (r.deliver ? ', delivered' : '')], ['Return', D.long(r.to) + ', ' + D.time(r.tt)], ['Length', r.days + (r.days === 1 ? ' day' : ' days')], ['Estimated total', CC.money(r.total, true) + ' with HST. Not charged.'], ['Deposit at pickup', CC.money(r.deposit)]].map(function (x) { return '<tr><th scope="row">' + x[0] + '</th><td>' + CC.esc(x[1]) + '</td></tr>'; }).join('');
+    $('[data-conf-rows]', main).innerHTML = [['Car', r.car], ['Pickup', D.long(r.from) + ', ' + D.time(r.tf) + (r.deliver ? ', delivered' : '')], ['Return', D.long(r.to) + ', ' + D.time(r.tt)], ['Length', r.days + (r.days === 1 ? ' day' : ' days')], ['Estimated total', CC.money(r.total, true) + ' with HST. Not charged.'], ['Deposit, about ' + CC.t('depLead') + ' before pickup', CC.money(r.deposit)]].map(function (x) { return '<tr><th scope="row">' + x[0] + '</th><td>' + CC.esc(x[1]) + '</td></tr>'; }).join('');
     $$('[data-conf-cov]', main).forEach(function (e) { e.hidden = e.dataset.confCov !== String(r.coverage); });
   });
 

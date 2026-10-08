@@ -462,3 +462,15 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .page-head .eyebrow, .band__copy .eyebrow { margin-bottom: var(--s-3); }
 @media (max-width: 39.99rem) { #fleet-grid .car-card__price span { display: inline; margin-left: 0; max-width: none; } }
 @media (max-width: 47.99rem) { .band--hero .band__inner { padding-bottom: 56vw; } }
+
+/* ---------- reviews: ours and Google ---------- */
+.reviews__set { display: grid; gap: var(--s-7); }
+.stars { color: var(--black); letter-spacing: 0.08em; font-size: 1rem; line-height: 1; }
+.greviews { display: grid; gap: var(--s-5); }
+.greviews__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-3); border-top: var(--bw) solid var(--black); padding-top: var(--s-4); }
+.greviews__source { font-weight: 600; }
+.glogo { font-family: "Product Sans", Arial, sans-serif; font-weight: 500; }
+.greviews__score { display: flex; align-items: baseline; gap: var(--s-2); }
+.greviews__score b { font-family: var(--font-display); font-size: 1.75rem; letter-spacing: -0.02em; }
+.greviews .reviews__empty { border-top: 0; padding-top: 0; }
+.greviews__foot { border-top: 1px solid var(--grey-200); padding-top: var(--s-3); }

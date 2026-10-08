@@ -31,10 +31,14 @@ The rental counts toward your statement for the month it ends, once collected. Y
 
 ----------------------------------------
 
-Help: reply to this email or call {{support_phone}}.
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
 
 You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}

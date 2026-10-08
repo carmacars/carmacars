@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CARS, RULES } from './data.mjs';
 const money2 = (n) => '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-import { doc, slotPic, crumbs, crumbsLd, icon, money, faq, faqLd, esc, ROOT, EMAIL } from './layout.mjs';
+import { doc, slotPic, crumbs, crumbsLd, icon, money, faq, faqLd, esc, ROOT, EMAIL, SETTINGS, TEL } from './layout.mjs';
 import { HOW_STEPS, REQUIREMENTS_ROWS, COVERAGE_OPTIONS } from './pages-main.mjs';
 import { OWNER_FAQ } from './pages-flow.mjs';
 
@@ -14,11 +14,11 @@ const cta = (h, p, btn = ['Find a car', 'fleet.html']) => `<section class="secti
 export function how() {
   const trail = [['Home', 'index.html'], ['How it works']];
   const detail = [
-    ['What you tell us', ['The car, pickup and return dates and times', 'Collecting it yourself, or delivery to an address', 'The driver’s name, age and contact details', 'Licence class and which coverage option you plan to use']],
-    ['What we check and send back', ['That the car is free and the trip is {{maxDays}} days or less', 'The rental charge, delivery and pickup fees, any young driver or additional driver fee, extras and {{hst}} HST', 'The deposit amount, shown separately because it is taken at pickup', 'Anything we need to adjust, and why', 'The price is an offer, open for {{offerHours}} hours. It does not hold the car']],
+    ['What you tell us', ['The car, pickup and return dates and times, any time of day with at least {{notice}}’ notice', 'Where you get it and return it: our location, the car owner’s location where offered, an address or an airport', 'The driver’s name, age and contact details', 'Licence class and which coverage option you plan to use']],
+    ['What we check and send back', ['That the car is free and the trip is {{maxDays}} days or less', 'The rental charge, delivery and pickup fees, any young driver or additional driver fee, extras and {{hst}} HST', 'The deposit amount, shown separately because it is taken about {{depLead}} before pickup', 'The price of coverage bought through us, if you chose it', 'Anything we need to adjust, and why', 'The price is an offer, open for {{offerHours}} hours. It does not hold the car']],
     ['What you do to confirm', ['Sign the rental agreement online and tick the four consents', 'Pay the total through our checkout with a credit card in your own name', 'Choose non-refundable if you want {{nonRef}} off the rental charge', 'The car is booked at this moment. If someone else pays for the same car and dates first, we tell you and offer another car or other dates']],
     ['What we need before pickup', ['A photo of each driver’s licence, front and back', 'A selfie of each driver holding their licence', 'Proof of your coverage option, or payment for coverage bought through us', 'All of it at least {{verifyHours}} hours before pickup']],
-    ['What happens at handover', ['We hand the car only to the renter, in person', 'We check your original licence and the physical card you paid with', 'We take the deposit: a card hold for {{holdDays}} days or less, a refundable charge for longer', 'We complete the condition report and photo set together, and you both sign it']]
+    ['What happens at handover', ['We hand the car only to the renter, in person', 'We check your original licence and the physical card you paid with', 'We take the deposit about {{depLead}} before pickup: a card hold for {{holdDays}} days or less, a refundable charge for longer', 'We complete the condition report and photo set together, and you both sign it']]
   ];
   const main = `
 ${head(trail, 'Choose, request, drive.', 'Booking a car here takes five steps. The first costs nothing. The car is yours once you have approved, signed and paid.')}
@@ -74,7 +74,6 @@ ${cta('Find the car first.', 'The request takes a few minutes and costs nothing.
 // ---------------------------------------------------------------- requirements + coverage
 export function requirements() {
   const trail = [['Home', 'index.html'], ['Requirements and coverage']];
-  const young = CARS.filter((c) => c.young);
   const main = `
 ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. Here they are in full, with the numbers.')}
 <nav class="car-nav" aria-label="On this page"><div class="wrap"><ul><li><a href="#drivers">Drivers</a></li><li><a href="#coverage">Coverage</a></li><li><a href="#damage">Damage</a></li><li><a href="#deposit">Deposit</a></li><li><a href="#fees">Fees</a></li><li><a href="#rules">Rules of the road</a></li></ul></div></nav>
@@ -84,14 +83,14 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
     <div class="c-8 stack-lg">
       <table class="spec"><tbody>${REQUIREMENTS_ROWS.slice(0, 3).map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('')}
         <tr><th scope="row">Identity check</th><td>Before pickup, each driver sends a photo of their licence, front and back, and a selfie holding it. If we cannot verify a driver, we refund what you paid.</td></tr>
-        <tr><th scope="row">Additional drivers</th><td>{{addDrv}} a day each, up to {{addDrvCap}} per rental. Each one meets the same rules, is verified, and signs the agreement.</td></tr>
+        <tr><th scope="row">Additional drivers</th><td>{{addDrvPct}} of the car’s daily rate, a day, for each one, with no maximum. Each one meets the same rules, is verified, and signs the agreement.</td></tr>
         <tr><th scope="row">At pickup</th><td>Your original licence and the physical card you paid with. We hand the car only to the renter, in person.</td></tr>
       </tbody></table>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Young driver fees">
-      <table class="data data--min"><caption>Young driver fees, by age at pickup</caption><thead><tr><th scope="col">Age</th><th scope="col">Which cars</th><th scope="col" class="r">Fee per day</th><th scope="col" class="r">Most per rental</th></tr></thead>
-        <tbody><tr><td>{{youngA}}</td><td>Cars marked “Ages {{minAge}}+”</td><td class="r">{{ydA}}</td><td class="r">{{ydACap}}</td></tr><tr><td>{{youngB}}</td><td>Any car</td><td class="r">{{ydB}}</td><td class="r">{{ydBCap}}</td></tr><tr><td>{{fullAge}} and over</td><td>Any car</td><td class="r">None</td><td class="r">None</td></tr></tbody></table>
+      <table class="data data--min"><caption>Young driver fees, by age at pickup</caption><thead><tr><th scope="col">Age</th><th scope="col">Which cars</th><th scope="col" class="r">Usual fee per day</th><th scope="col" class="r">Most per rental</th></tr></thead>
+        <tbody><tr><td>{{youngA}}</td><td>Any car</td><td class="r">{{ydA}}</td><td class="r">No maximum</td></tr><tr><td>{{youngB}}</td><td>Any car</td><td class="r">{{ydB}}</td><td class="r">No maximum</td></tr><tr><td>{{fullAge}} and over</td><td>Any car</td><td class="r">None</td><td class="r">None</td></tr></tbody></table>
       </div>
-      <p class="small">Open to ages {{youngA}} right now: ${young.map((c) => `<a class="link" href="car-${c.slug}.html">${c.name}</a>`).join(', ')}. <span class="muted">(Sample fleet.)</span></p>
+      <p class="small muted">Some cars set their own young driver fee. It is on the car’s page and in your estimate.</p>
     </div>
   </div>
 </section>
@@ -99,12 +98,12 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
   <div class="wrap grid">
     <div class="c-4 stack"><h2 class="d2" id="rq-c">Coverage</h2><p class="muted">Liability is included. Damage to the car is on you, so you need one of three options in place before we release it.</p></div>
     <div class="c-8 stack-lg">
-      <div class="alert alert--ok"><span class="alert__title">Included in every rate</span><span>Third-party liability coverage at the minimum limits Ontario law requires, and basic 24-hour roadside assistance for mechanical breakdown. Liability coverage does not cover damage to the rental car or your belongings.</span></div>
+      <div class="alert alert--ok"><span class="alert__title">Included in every rate</span><span>Third-party liability coverage at the minimum limits Ontario law requires, and basic 24-hour roadside assistance for mechanical breakdown: call ${TEL(SETTINGS.roadsideLine)}. Liability coverage does not cover damage to the rental car or your belongings.</span></div>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage options compared">
       <table class="data cov-table"><thead><tr><th scope="col">Option</th><th scope="col">What it is</th><th scope="col">What we need from you</th><th scope="col">What we check</th></tr></thead><tbody>
         <tr><th scope="row">1. OPCF 27</th><td>Rental vehicle coverage on your own active auto policy</td><td>The policy page or an insurer letter showing OPCF 27</td><td>It is active to your return date and covers this car and every driver</td></tr>
         <tr><th scope="row">2. Credit card</th><td>Rental car coverage that comes with your credit card</td><td>The card’s benefits certificate</td><td>The same card pays for the rental, and the benefit covers this class of car and the length of the trip</td></tr>
-        <tr><th scope="row">3. Through CarmaCars</th><td>Coverage you buy with your booking, supplied by a third-party provider on its own terms</td><td>Payment for it. We send the provider’s terms before you buy.</td><td>We activate it and confirm. The price is in your quote.</td></tr>
+        <tr><th scope="row">3. Through CarmaCars</th><td>Coverage you buy with your booking, supplied by a third-party provider on its own terms</td><td>Payment for it. We send the provider’s terms before you buy.</td><td>We activate it and confirm. Priced in your offer, by car and driver age.</td></tr>
       </tbody></table></div>
       <p class="small muted measure">For options 1 and 2 it is your job to check that the coverage really applies to the car, the rental and every driver. No confirmed option at pickup counts as cancelling at that moment. CarmaCars is not an insurer.</p>
     </div>
@@ -120,7 +119,7 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
       </div>
       <p class="measure">You are responsible for damage during your rental whoever is at fault, except mechanical failure you did not cause. The limit above does not apply if the insurer denies the claim because of an unapproved driver, impaired driving, a prohibited use or false information.</p>
       <h3 class="d4">After an accident, theft or vandalism</h3>
-      <ol class="ticks ticks--n"><li>Call 911 if anyone is hurt. Report to police or a Collision Reporting Centre where the law requires, and always for theft.</li><li>Call our 24-hour line as soon as it is safe, and within {{callHours}} hours.</li><li>Get everyone’s details, take photos, and do not admit fault or settle.</li><li>Send us a written report, your photos and all the keys within {{reportHours}} hours.</li></ol>
+      <ol class="ticks ticks--n"><li>Call 911 if anyone is hurt. Report to police or a Collision Reporting Centre where the law requires, and always for theft.</li><li>Call our 24-hour line, ${TEL(SETTINGS.roadsideLine)}, as soon as it is safe, and within {{callHours}} hours.</li><li>Get everyone’s details, take photos, and do not admit fault or settle.</li><li>Send us a written report, your photos and all the keys within {{reportHours}} hours.</li></ol>
     </div>
   </div>
 </section>
@@ -129,13 +128,11 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
     <div class="c-4"><h2 class="d2" id="rq-dp">Deposit</h2></div>
     <div class="c-8 stack-lg">
       <div class="table-scroll" tabindex="0" role="region" aria-label="Deposit by class">
-      <table class="data"><thead><tr><th scope="col">Car class</th><th scope="col" class="r">Deposit</th><th scope="col">In the fleet</th></tr></thead><tbody>
-        <tr><td>Economy and Standard</td><td class="r">{{dep1}}</td><td>${CARS.filter((c) => c.deposit === 500).map((c) => c.model).join(', ')}</td></tr>
-        <tr><td>Premium and SUV</td><td class="r">{{dep2}}</td><td>${CARS.filter((c) => c.deposit === 1000).map((c) => c.model).join(', ')}</td></tr>
-        <tr><td>Luxury and exotic</td><td class="r">{{dep3}}</td><td>${CARS.filter((c) => c.deposit === 2500).map((c) => c.model).join(', ')}</td></tr>
+      <table class="data"><thead><tr><th scope="col" class="r">Deposit</th><th scope="col">Cars with this deposit</th></tr></thead><tbody>
+        ${RULES.depositTiers.map((t) => `<tr><td class="r num">${money(t)}</td><td>${CARS.filter((c) => c.deposit === t).map((c) => `<a class="link" href="car-${c.slug}.html">${c.name}</a>`).join(', ') || 'None right now'}</td></tr>`).join('')}
       </tbody></table></div>
       <table class="spec"><tbody>
-        <tr><th scope="row">When</th><td>At pickup, before handover. Never at request or booking.</td></tr>
+        <tr><th scope="row">When</th><td>About {{depLead}} before pickup. Never at request or booking.</td></tr>
         <tr><th scope="row">How</th><td>A card hold for rentals of {{holdDays}} days or less. Charged, then refunded, for longer rentals.</td></tr>
         <tr><th scope="row">Back to you</th><td>The balance within {{releaseDays}} after you return the car</td></tr>
         <tr><th scope="row">Held back</th><td>Only the amount expected for an open toll, ticket or claim, for up to {{holdbackDays}}</td></tr>
@@ -150,10 +147,14 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
     <div class="c-8">
       <div class="table-scroll" tabindex="0" role="region" aria-label="Schedule of fees">
       <table class="data"><thead><tr><th scope="col">Fee</th><th scope="col">When</th><th scope="col" class="r">Amount</th></tr></thead><tbody>
-        <tr><td>Delivery, pickup</td><td>Each way, if you choose it</td><td class="r">{{delMin}} to {{delMax}} by car</td></tr>
+        <tr><td>Delivery, pickup</td><td>Each way, if you choose it</td><td class="r">The car’s fee, from {{delMin}}, plus distance</td></tr>
+        <tr><td>Airport delivery or pickup</td><td>{{airports}}</td><td class="r">As delivery; a surcharge may apply</td></tr>
+        <tr><td>Additional driver</td><td>Each driver, each day</td><td class="r">{{addDrvPct}} of the daily rate</td></tr>
+        <tr><td>Young driver</td><td>Ages {{youngA}}, each day</td><td class="r">Usually {{ydA}}</td></tr>
+        <tr><td>Young driver</td><td>Ages {{youngB}}, each day</td><td class="r">Usually {{ydB}}</td></tr>
         <tr><td>Winter tires</td><td>On request</td><td class="r">{{winter}} a day, up to {{winterCap}}</td></tr>
         <tr><td>Baby seat</td><td>Each seat</td><td class="r">{{baby}} a day, up to {{babyCap}}</td></tr>
-        <tr><td>Extra kilometres</td><td>Over your allowance</td><td class="r">{{over}} per km; {{overLuxMin}} to {{overLuxMax}} luxury</td></tr>
+        <tr><td>Extra kilometres</td><td>Over your allowance</td><td class="r">{{overMin}} to {{overMax}} per km, set per car</td></tr>
         <tr><td>Late return</td><td>More than {{grace}} late</td><td class="r">{{lateHr}} an hour, plus the extra day</td></tr>
         <tr><td>Fuel</td><td>Less fuel than at pickup</td><td class="r">Pump price + {{fuelPct}}, + {{fuelFee}}</td></tr>
         <tr><td>Recharging</td><td>Less charge than at pickup</td><td class="r">{{evPer}} per 10% of battery, + {{fuelFee}}</td></tr>
@@ -178,12 +179,13 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
       <tr><th scope="row">Smoking and pets</th><td>No smoking or vaping. Pets need our approval first. Service animals are always welcome.</td></tr>
       <tr><th scope="row">Tracking</th><td>Every car has a GPS tracker that records location for the whole rental. The car’s owner can see its location too.</td></tr>
       <tr><th scope="row">Tolls and tickets</th><td>Yours to pay, including Highway 407 ETR</td></tr>
+      <tr><th scope="row">Pickup and return</th><td>Any time, day or night, with at least {{notice}}’ notice. A car needs {{turnaround}} between bookings.</td></tr>
       <tr><th scope="row">Longest booking</th><td>{{maxDays}} days. To keep the car longer, you renew with a new booking before the current one ends.</td></tr>
     </tbody></table></div>
   </div>
 </section>
 ${cta('Ready when you are.', 'Pick a car and send a request. We take it from there.')}`;
-  return doc({ file: 'requirements.html', title: 'Rental requirements and coverage | {{brand}}, {{city}}', desc: 'Who can rent from CarmaCars and how you are covered: age {{minAge}} and up, Ontario {{licence}} licence, three coverage options, deposits from {{dep1}} taken at pickup, and the full fee list.', main, bodyClass: 'p-req', ld: [crumbsLd(trail, 'requirements.html')] });
+  return doc({ file: 'requirements.html', title: 'Rental requirements and coverage | {{brand}}, {{city}}', desc: 'Who can rent from CarmaCars and how you are covered: age {{minAge}} and up, Ontario {{licence}} licence, three coverage options, deposits from {{depMin}} taken just before pickup, and the full fee list.', main, bodyClass: 'p-req', ld: [crumbsLd(trail, 'requirements.html')] });
 }
 
 // ---------------------------------------------------------------- delivery
@@ -193,16 +195,16 @@ export function delivery() {
   const main = `
 <section class="band band--hero on-dark">
   <div class="band__media photo fx-drift">${slotPic('delivery.hero', { eager: true })}</div>
-  <div class="wrap band__inner"><div class="band__copy stack">${crumbs(trail)}<h1 class="d1">The car comes to you.</h1><p class="lead">We deliver to homes, offices and hotels, and we can collect the car at the end. Each way costs {{delMin}} to {{delMax}}, set per car.</p><p><a class="btn btn--primary btn--lg" href="fleet.html?mode=delivery">Find a car for delivery</a></p></div></div>
+  <div class="wrap band__inner"><div class="band__copy stack">${crumbs(trail)}<h1 class="d1">The car comes to you.</h1><p class="lead">Anywhere: homes, offices, hotels and {{airports}}, day or night. We can collect the car at the end too. Each way costs the car’s delivery fee plus the distance from our location.</p><p><a class="btn btn--primary btn--lg" href="fleet.html?mode=delivery">Find a car for delivery</a></p></div></div>
 </section>
 <section class="section" aria-labelledby="dl-how">
   <div class="wrap grid">
     <div class="c-5"><div class="how__sticky stack"><h2 class="d1" id="dl-how">How delivery works</h2><p class="lead">The same handover as collecting it yourself, at your door.</p></div></div>
     <div class="c-7 how__steps"><span class="how__line fx-grow-y" aria-hidden="true"></span>
       <ol class="seq">
-        <li><div><h3>Add your address to the request</h3><p>Tick delivery, pickup at the end, or both. We confirm the address and the time with your booking.</p></div></li>
+        <li><div><h3>Add your address to the request</h3><p>Choose delivery, pickup at the end, or both, and start typing the address. We price the distance in your offer.</p></div></li>
         <li><div><h3>We message you the day before</h3><p>A reminder with the time, the place and what to bring: your original licence and the card you paid with.</p></div></li>
-        <li><div><h3>Handover at your door</h3><p>We take the deposit, check your licence and card, then walk around the car with you and photograph it. You both sign the condition report.</p></div></li>
+        <li><div><h3>Handover at your door</h3><p>The deposit is taken about {{depLead}} before. At the door we check your licence and card, then walk around the car with you and photograph it. You both sign the condition report.</p></div></li>
         <li><div><h3>At the end, we come back</h3><p>If you chose pickup, meet our driver with the car and all the keys. The return inspection happens there, with you.</p></div></li>
       </ol>
     </div>
@@ -210,16 +212,18 @@ export function delivery() {
 </section>
 <section class="section on-grey" aria-labelledby="dl-fee">
   <div class="wrap grid">
-    <div class="c-4 stack"><h2 class="d2" id="dl-fee">What it costs</h2><p class="muted">One fee for delivery, the same again for pickup at the end. Before HST. Collecting and returning the car yourself is free.</p></div>
+    <div class="c-4 stack"><h2 class="d2" id="dl-fee">What it costs</h2><p class="muted">The car’s fee plus distance for delivery, the same again for pickup at the end. Before HST. Collecting and returning the car yourself, at our location or the car owner’s, is free.</p></div>
     <div class="c-8 stack-lg">
       <div class="table-scroll" tabindex="0" role="region" aria-label="Delivery fee by car">
-      <table class="data"><thead><tr><th scope="col">Each way</th><th scope="col">Cars</th></tr></thead><tbody>
+      <table class="data"><thead><tr><th scope="col">Each way, plus distance</th><th scope="col">Cars</th></tr></thead><tbody>
         ${groups.map((g) => `<tr><td class="num strong">${money(g)}</td><td>${CARS.filter((c) => c.delivery === g).map((c) => `<a class="link" href="car-${c.slug}.html">${c.name}</a>`).join(', ')}</td></tr>`).join('')}
       </tbody></table></div>
-      <p class="proto-note"><b>Sample fees.</b> Real fees are set per car between {{delMin}} and {{delMax}}.</p>
+      <p class="proto-note"><b>Sample fees.</b> Real fees are set per car when the cars are uploaded. The rate per kilometre is set in Admin.</p>
       <table class="spec"><tbody>
         <tr><th scope="row">Who receives the car</th><td>The renter, in person. We cannot leave a car with someone else.</td></tr>
-        <tr><th scope="row">Where</th><td>Tell us the address in your request. We confirm whether we can deliver there before you pay.</td></tr>
+        <tr><th scope="row">Where</th><td>Anywhere. Tell us the address in your request and the distance is priced in your offer, before you pay.</td></tr>
+        <tr><th scope="row">Airports</th><td>{{airports}}. Add your flight number to the request. An airport surcharge may apply.</td></tr>
+        <tr><th scope="row">When</th><td>Any time, day or night, with at least {{notice}}’ notice</td></tr>
         <tr><th scope="row">Cancelling</th><td>Delivery and pickup fees are refunded on the same tiers as the rest of the booking</td></tr>
         <tr><th scope="row">Leaving it somewhere else</th><td>A car left anywhere other than the agreed place has not been returned</td></tr>
       </tbody></table>
@@ -227,7 +231,7 @@ export function delivery() {
   </div>
 </section>
 ${cta('Delivery is one tick in the request.', 'Pick the car first. The delivery fee is on its page.')}`;
-  return doc({ file: 'delivery.html', title: 'Car rental delivery in {{city}} | {{brand}}', desc: '{{brand}} delivers rental cars to your home, office or hotel in the {{city}} area and can pick them up at the end. {{delMin}} to {{delMax}} each way depending on the car.', main, bodyClass: 'p-delivery', ld: [crumbsLd(trail, 'delivery.html')] });
+  return doc({ file: 'delivery.html', title: 'Car rental delivery in {{city}} | {{brand}}', desc: '{{brand}} delivers rental cars anywhere, including your home, office, hotel and {{city}} airports, and picks them up at the end. From {{delMin}} each way plus distance.', main, bodyClass: 'p-delivery', ld: [crumbsLd(trail, 'delivery.html')] });
 }
 
 // ---------------------------------------------------------------- FAQ
@@ -237,7 +241,8 @@ export function faqPage() {
     ['Booking', 'booking', [
       ['How does request to book work?', 'You send a request with the car and dates. A person checks it and sends back the full price. If you approve, you sign the rental agreement online and pay. That is when the booking is confirmed. <a class="link" href="how-it-works.html">See every step</a>.'],
       ['Do I pay anything when I send a request?', 'No. No card, no payment, no hold. You pay only after we confirm the car and the price and you approve.'],
-      ['How fast will I hear back?', 'We reply as fast as we can during opening hours. Requests sent outside opening hours are answered when we reopen.'],
+      ['How fast will I hear back?', '{{reply}}. We are open 24 hours, every day, so that holds at night and on weekends too.'],
+      ['When can I pick up and return the car?', 'Any time, day or night, with at least {{notice}}’ notice. Each car needs {{turnaround}} between bookings for cleaning and checks, so a car returned at 10 a.m. is free again from noon.'],
       ['Does a request, or your offer, hold the car for me?', 'No. The price we send is an offer that stays open for {{offerHours}} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.'],
       ['How long is the price good for?', 'The offer we send stays open for {{offerHours}} hours. After that, ask again and we will check the car and price once more.'],
       ['Is the price on the car’s page the final price?', 'It is an estimate built from that car’s real rates and the standard fees. The confirmed price we send you is the one that counts. You see the total with HST, the deposit and the agreement before you pay.'],
@@ -246,35 +251,37 @@ export function faqPage() {
       ['Can I extend once I have the car?', 'Ask before your return time. An extension counts only when we confirm it in writing and you have paid for it. The whole booking is repriced at its new length and you pay the difference.']
     ]],
     ['Drivers and licences', 'drivers', [
-      ['How old do I have to be?', '{{minAge}} or older at pickup. Drivers aged {{youngA}} can book the cars we mark “Ages {{minAge}}+”. From {{stdAge}} you can book any car.'],
-      ['Is there a young driver fee?', 'Yes. {{ydA}} a day for ages {{youngA}}, up to {{ydACap}} per rental. {{ydB}} a day for ages {{youngB}}, up to {{ydBCap}} per rental.'],
+      ['How old do I have to be?', '{{minAge}} or older at pickup, with a {{licence}} licence. That applies to every car.'],
+      ['Is there a young driver fee?', 'Yes, for each day, with no maximum. Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}. Some cars set their own; it is on the car’s page.'],
       ['Can I rent with a G2?', 'Yes. We accept Ontario G2 and G licences. The licence has to be valid for the whole rental.'],
       ['I have a licence from outside Ontario. Can I rent?', 'Possibly. Other licences are reviewed by a person before we confirm. Choose “Something else” in the request and we will tell you.'],
-      ['Can someone else drive too?', 'Yes, as an additional driver: {{addDrv}} a day, up to {{addDrvCap}} per rental. They meet the same age and licence rules, pass the identity check and sign the agreement.'],
+      ['Can someone else drive too?', 'Yes, as an additional driver: {{addDrvPct}} of the car’s daily rate for each day, with no maximum. They meet the same age and licence rules, pass the identity check and sign the agreement.'],
       ['How do you verify my identity?', 'Each driver sends a photo of their licence, front and back, and a selfie holding it. We need this at least {{verifyHours}} hours before pickup. If we cannot verify a driver, we refund what you paid.']
     ]],
     ['Coverage and damage', 'coverage', [
+      ['Can I buy coverage from you?', 'Yes. Coverage bought through CarmaCars is priced in your offer, for your car and the driver’s age. A third-party provider supplies it, and we send its terms before you buy.'],
       ['Is insurance included?', 'Third-party liability coverage is included in every rate, at the minimum limits Ontario law requires. It does not cover damage to the rental car.'],
       ['What coverage do I need for the car itself?', 'One of three: OPCF 27 on your own auto policy, rental coverage on your credit card (with the rental paid on that card), or coverage bought through CarmaCars. <a class="link" href="requirements.html#coverage">Compare them</a>.'],
       ['What is OPCF 27?', 'An endorsement on an Ontario auto policy that extends your coverage to vehicles you rent. Your insurer or broker can tell you if you have it and send you proof.'],
       ['What do I pay if the car is damaged?', 'If the damage costs under {{deductible}}, you pay the repair at cost plus a {{adminOther}} administration fee. If it costs {{deductible}} or more, we claim on our fleet policy and you pay the {{deductible}} deductible plus a {{adminClaim}} administration fee. Your coverage option is how you recover that.'],
-      ['What if the car breaks down?', 'Call our 24-hour line. Roadside assistance for mechanical breakdown is included. If the breakdown is not your fault, we give you a replacement car or refund the unused time.']
+      ['What if the car breaks down?', 'Call our 24-hour line, {{roadside}}. Roadside assistance for mechanical breakdown is included. If the breakdown is not your fault, we give you a replacement car or refund the unused time.']
     ]],
     ['Payment and deposit', 'payment', [
       ['How do I pay?', 'Through our online checkout, with a credit card in the renter’s own name. That card stays on file for the rental.'],
-      ['How much is the deposit?', '{{dep1}} for economy and standard cars, {{dep2}} for premium cars and SUVs, and {{dep3}} for luxury cars. Each car’s page shows its own.'],
-      ['When is the deposit taken?', 'At pickup, before handover. For rentals of {{holdDays}} days or less it is a hold on your card. For longer rentals it is charged and later refunded.'],
+      ['How much is the deposit?', '{{depTiers}}, set per car. Each car’s page shows its own.'],
+      ['When is the deposit taken?', 'About {{depLead}} before pickup. For rentals of {{holdDays}} days or less it is a hold on your card. For longer rentals it is charged and later refunded.'],
       ['When do I get the deposit back?', 'We release the balance within {{releaseDays}} after you return the car. If a toll, ticket or claim is still open, we can hold back the amount we expect it to cost for up to {{holdbackDays}}.'],
       ['Are prices before or after tax?', 'Rates and fees are shown before {{hst}} HST. Your estimate and your confirmed price show the HST and the total.']
     ]],
     ['Delivery, pickup and return', 'delivery', [
-      ['Do you deliver?', 'Yes. Delivery and pickup each cost {{delMin}} to {{delMax}} depending on the car. <a class="link" href="delivery.html">How delivery works</a>.'],
+      ['Do you deliver?', 'Yes, anywhere, including {{airports}}. Each way costs the car’s delivery fee plus the distance from our location, priced in your offer. An airport surcharge may apply. <a class="link" href="delivery.html">How delivery works</a>.'],
+      ['Where can I pick the car up?', 'At our location, at the car owner’s location where the car offers it, at an address we deliver to, or at the airport. You choose in your request.'],
       ['What do I bring to pickup?', 'Your original licence and the physical card you paid with. We hand the car only to the renter, in person.'],
       ['What if I am late bringing it back?', 'There is a {{graceShort}} grace period. After that you owe the rental charge for each extra day or part day, plus a late fee of {{lateHr}} an hour counted from the return time. If you know you will be late, ask for an extension first.'],
       ['Do I need to refuel or recharge?', 'Return it with the same level it had at pickup. Otherwise we refuel at the pump price plus {{fuelPct}}, or recharge at {{evPer}} per 10% of battery, plus a {{fuelFee}} service fee either way.']
     ]],
     ['On the road', 'road', [
-      ['How many kilometres can I drive?', 'Each car has a daily allowance, shown on its page, multiplied by the days you book. Extra kilometres cost {{over}} each, or {{overLuxMin}} to {{overLuxMax}} for luxury cars.'],
+      ['How many kilometres can I drive?', 'Each car has a daily allowance, shown on its page, multiplied by the days you book. Each car also has its own rate for extra kilometres, from {{overMin}} to {{overMax}} each.'],
       ['Can I leave Ontario?', 'Only with our written consent. Ask in your request.'],
       ['Can I bring a pet?', 'With our approval, yes. Mention it in the request. Service animals do not need approval. A pet cleaning fee of {{pet}} applies if the car comes back with hair, odour or soiling.'],
       ['Can I smoke or vape in the car?', 'No. A {{smoke}} fee applies if there is evidence of it.'],
@@ -312,8 +319,9 @@ ${cta('Ask a person.', 'We would rather answer now than surprise you later.', ['
 
 // ---------------------------------------------------------------- legal (rendered from docs/source)
 function md(src) {
-  const inline = (s0) => esc(s0.replace(/\d{6,} Canada Inc\.,? operating as CarmaCars/g, 'CarmaCars@@LEGAL@@').replace(/\d{6,} Canada Inc\.( \(CarmaCars\))?/g, 'CarmaCars@@LEGAL@@'))
-    .replace(/@@LEGAL@@/g, '<!-- For the lawyer: the legal entity name is deliberately not displayed on the public site, at the owner\'s request. -->')
+  const inline = (s0) => esc(s0.replace(/\d{6,} Canada Inc\.,? operating as CarmaCars/g, 'CarmaCars').replace(/\d{6,} Canada Inc\.( \(CarmaCars\))?/g, 'CarmaCars'))
+    .replace(/@@MAIL:([^@]+@[^@]+)@@/g, '<a class="link" href="mailto:$1">$1</a>')
+    .replace(/@@TBC:([^@]+)@@/g, '<span class="tbc">$1 to be added</span>')
     .replace(/\[●\]/g, '<span class="tbc">to be added</span>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a class="link" href="$2" rel="noopener">$1</a>')
@@ -337,7 +345,14 @@ function md(src) {
   return out;
 }
 function legalParts() {
-  const src = fs.readFileSync(path.join(ROOT, '../docs/source/website_terms_policies.md'), 'utf8').split('\n---')[0];
+  // The text is final. Values that live in site settings are filled in here; values still missing stay as hatched blanks.
+  const L = SETTINGS.legal; const E = SETTINGS.emails;
+  const src = fs.readFileSync(path.join(ROOT, '../docs/source/website_terms_policies.md'), 'utf8').split('\n---')[0]
+    .replace('Last updated: [●]', `Last updated: ${L.lastUpdated}`)
+    .replace('Contact us at [●]', `Contact us at @@MAIL:${E.contact}@@`)
+    .replace('Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] (address).', `Our Privacy Officer is responsible for this policy: ${L.privacyOfficer || '@@TBC:Name@@'}, @@MAIL:${E.privacy}@@ (email), ${SETTINGS.address || '@@TBC:Address@@'} (address).`)
+    .replace('Cancel in your renter portal or email [●]', `Cancel in your renter portal or email @@MAIL:${E.bookings}@@`)
+    .replace('including in the United States and [●]', 'including in the United States and @@TBC:Other countries@@');
   const parts = src.split(/^## Part \d . .+$/m).slice(1);
   return { terms: parts[0], privacy: parts[1], cancel: parts[2] };
 }
@@ -349,7 +364,7 @@ ${head(trail, h1, lead)}
 <section class="section">
   <div class="wrap grid">
     <aside class="c-4"><div class="how__sticky stack-lg">
-      <p class="alert alert--warn"><span class="alert__title">Draft for legal review</span><span>This text is the working draft of October 6, 2026. Hatched blanks are filled in before launch.</span></p>
+      <p class="small muted">Last updated ${SETTINGS.legal.lastUpdated}.</p>
       ${toc !== false && heads.length ? `<nav aria-label="Sections"><ul class="toc">${heads.map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join('')}</ul></nav>` : ''}
       <ul class="toc toc--plain"><li><a href="terms.html">Terms of use</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cancellation.html">Cancellation policy</a></li></ul>
     </div></aside>

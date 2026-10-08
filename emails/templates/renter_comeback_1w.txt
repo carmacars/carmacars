@@ -19,12 +19,16 @@ https://carmacars.ca/cars
 
 ----------------------------------------
 
-Help: reply to this email or call {{support_phone}}.
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
 
 You are receiving this because you agreed to get CarmaCars offers by email.
 Unsubscribe at any time: {{unsubscribe_url}}
 We act on it within 10 business days.
 
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}

@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { render, renderText, usedNames } from './src/engine.mjs';
 import { htmlTemplate, textTemplate } from './src/layout.mjs';
 import { SAMPLES, AUDIENCE_SAMPLES } from './src/variables.mjs';
-import { GLOBALS, GLOBAL_NOTES, BRAND, FROM } from './src/brand.mjs';
+import { GLOBALS, GLOBAL_NOTES, BRAND, FROM, ALIASES, replyToFor } from './src/brand.mjs';
 import { PATHS, SITE } from './src/links.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -98,7 +98,7 @@ for (const file of files) {
       ...(email.digest ? { digest_slot: email.digestSlot || 'next' } : {}),
       ...(email.source ? { source: email.source } : {}),
       from: email.from,
-      reply_to: BRAND.replyTo,
+      reply_to: replyToFor(email),
       subject: email.subject,
       preheader: email.preheader,
       sample_subject: renderText(email.subject, values).trim(),
@@ -120,7 +120,8 @@ catalogue.sort((a, b) => AUDIENCES.indexOf(a.audience) - AUDIENCES.indexOf(b.aud
 writeFileSync(join(ROOT, 'catalogue.json'), JSON.stringify({
   generated_by: 'emails/build.mjs. Do not edit by hand; edit emails/src/emails/<code>.mjs and rebuild.',
   event_key: 'The event key of every email is its code. The database emits it with app.emit_event(code, entity, entity_id, payload, dedupe_key); the payload carries the values named in variables.',
-  reply_to: BRAND.replyTo,
+  reply_to_aliases: ALIASES,
+  reply_to_rule: 'Each email has its own reply_to: investors to investors@; staff to contact@; emails sent from billing to billing@; owners to owners@; renter booking emails to bookings@; other renter emails to contact@; an email may name another alias (privacy@ for account security).',
   global_variables: Object.keys(GLOBALS).map((k) => ({ name: k, type: 'string', sample: GLOBALS[k], note: GLOBAL_NOTES[k] })),
   count: catalogue.length,
   emails: catalogue,

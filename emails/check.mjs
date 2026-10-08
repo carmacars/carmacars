@@ -50,7 +50,17 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     if (typeof e.digest !== 'boolean') p.push(`${e.code}: digest is not true or false`);
     if (!AUD.includes(e.audience)) p.push(`${e.code}: audience ${e.audience}`);
     if (!/^CarmaCars <(bookings|owners|billing|hello)@mail\.carmacars\.ca>$/.test(e.from)) p.push(`${e.code}: from ${e.from}`);
-    if (e.reply_to !== 'info@carmacars.ca') p.push(`${e.code}: reply_to`);
+    // Reply-to: the alias of the desk that handles the email (docs/email-aliases.md).
+    const A = cat.reply_to_aliases || {};
+    if (!Object.values(A).includes(e.reply_to) || !/^[a-z]+@carmacars\.ca$/.test(e.reply_to)) p.push(`${e.code}: reply_to ${e.reply_to} is not a receiving alias`);
+    const billingFrom = /<billing@/.test(e.from);
+    const want = e.audience === 'investor' ? [A.investors]
+      : e.audience.startsWith('staff_') ? [A.contact]
+      : billingFrom ? [A.billing]
+      : e.audience === 'owner' ? [A.owners]
+      : /<bookings@/.test(e.from) ? [A.bookings]
+      : [A.contact, A.privacy];
+    if (!want.includes(e.reply_to)) p.push(`${e.code}: reply_to ${e.reply_to}, expected ${want.join(' or ')}`);
     if (!/^[a-z][a-z0-9_]*$/.test(e.code)) p.push(`${e.code}: code is not snake_case`);
     for (const v of e.variables) if (v.sample === undefined) p.push(`${e.code}: variable ${v.name} has no sample`);
     if (e.digest && !e.audience.startsWith('staff_')) p.push(`${e.code}: digest on a non-staff email`);
@@ -193,6 +203,22 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   const p = [];
   for (const c of codes) for (const k of ['desktop', 'phone']) if (!existsSync(join(ROOT, 'shots', `${c}.${k}.png`))) p.push(`missing shots/${c}.${k}.png`);
   check(`screenshots exist for all ${codes.length} emails, desktop and phone`, p);
+}
+
+// 14. Retired and private addresses never appear; the public contact line and socials are in every customer footer.
+{
+  const p = [];
+  for (const [f, s] of written) {
+    if (f === 'check.mjs') continue;
+    if (/info@carmacars\.ca/.test(s)) p.push(`${f}: info@carmacars.ca`);
+    if (/rent@carmacars\.ca/.test(s)) p.push(`${f}: names the private mailbox rent@carmacars.ca`);
+  }
+  for (const e of cat.emails) {
+    if (e.audience.startsWith('staff_')) continue;
+    const t = read('dist', e.code + '.txt');
+    for (const need of ['contact@carmacars.ca', '647-575-3377', 'Open 24 hours', 'within 2 hours', 'https://instagram.com/carmacars.ca', 'https://tiktok.com/@carmacars.ca']) if (!t.includes(need)) p.push(`${e.code}: footer lacks ${need}`);
+  }
+  check('no info@ or rent@ anywhere; every customer email carries contact@, the phone, hours, reply time and Instagram and TikTok', p);
 }
 
 // 13. Gallery links every email.

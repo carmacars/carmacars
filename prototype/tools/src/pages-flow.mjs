@@ -1,6 +1,16 @@
 // Request to book, confirmation, owner program, sign in, contact, 404.
-import { CARS } from './data.mjs';
-import { doc, slotPic, crumbs, crumbsLd, timeSelect, icon, money, faq, faqLd, EMAIL, SETTINGS, setting } from './layout.mjs';
+import { CARS, RULES } from './data.mjs';
+import { doc, slotPic, crumbs, crumbsLd, timeSelect, icon, money, faq, faqLd, EMAIL, SETTINGS, setting, TEL, WA, MAIL, esc } from './layout.mjs';
+const E = SETTINGS.emails;
+// Address field with lookup while typing (CC.addressLookup in app.js). Sample suggestions in the prototype.
+const lookup = 'data-addr-lookup autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"';
+const placeOpts = (kind, name, addrWrap, addrField, airportName) => `
+          <label class="option"><input type="radio" name="${name}" value="ours" checked><span class="option__title">At our location <span class="muted">No charge</span></span><span class="option__body">${SETTINGS.address ? esc(SETTINGS.address) : 'We send the address with your offer.'}</span></label>
+          <label class="option" data-owner-opt hidden><input type="radio" name="${name}" value="owner"><span class="option__title">At the car owner’s location <span class="muted">No charge</span></span><span class="option__body">Offered for this car. We send the address with your offer.</span></label>
+          <label class="option"><input type="radio" name="${name}" value="delivery"><span class="option__title">${kind === 'pickup' ? 'Deliver it to an address' : 'Pick it up from an address'} <span class="muted num">+<span data-car-fee>{{delMin}}</span> plus distance</span></span><span class="option__body">${kind === 'pickup' ? 'Home, office or hotel, anywhere. We hand it over in person.' : 'Leave it with our driver instead of bringing it back.'}</span></label>
+          <div ${addrWrap} hidden>${addrField}</div>
+          <label class="option"><input type="radio" name="${name}" value="airport"><span class="option__title">At the airport <span class="muted num">+<span data-car-fee>{{delMin}}</span> plus distance</span></span><span class="option__body">{{airports}}. An airport surcharge may apply.</span></label>
+          <div data-airport-${kind} hidden><div class="field"><label class="label" for="rq-${airportName}">Airport</label><select class="select" id="rq-${airportName}" name="${airportName}">${RULES.airports.map((a) => `<option value="${a.code}">${a.name}</option>`).join('')}</select><p class="hint">Add your flight number in the notes on step 3.</p></div></div>`;
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const field = ({ id, label, name = id, type = 'text', v = 'required', auto = '', hint = '', opt = false, attrs = '', msg = '' }) =>
@@ -39,13 +49,13 @@ export function request() {
           <div class="req__cal" data-cal></div>
           <p class="error" role="alert"></p>
         </div>
-        <div class="field-row">${timeSelect('tf', 'Pickup time', 'rq-tf', '10:00')}${timeSelect('tt', 'Return time', 'rq-tt', '10:00')}</div>
-        <fieldset class="stack"><legend class="label">Pickup or delivery</legend>
-          <label class="option"><input type="checkbox" name="deliver"><span class="option__title">Deliver the car to me <span class="muted num">+<span data-car-fee>{{delMin}} to {{delMax}}</span></span></span><span class="option__body">We bring it to your home, office or hotel and hand it over in person.</span></label>
-          <div data-addr-deliver hidden>${field({ id: 'rq-addr1', name: 'addrDeliver', label: 'Delivery address', auto: 'street-address', msg: 'Add the delivery address so we can confirm it.', hint: 'Street address and city. We confirm it with your booking.' })}</div>
-          <label class="option"><input type="checkbox" name="collect"><span class="option__title">Pick it up from me at the end <span class="muted num">+<span data-car-fee>{{delMin}} to {{delMax}}</span></span></span><span class="option__body">Leave it with our driver instead of bringing it back.</span></label>
-          <div data-addr-collect hidden>${field({ id: 'rq-addr2', name: 'addrCollect', label: 'Pickup address', v: '', opt: true, hint: 'Leave empty if it is the same as the delivery address.' })}</div>
-          <p class="hint">Neither ticked? You collect and return the car yourself at no charge. We confirm the place with your booking.</p>
+        <div class="field-row">${timeSelect('tf', 'Pickup time', 'rq-tf', RULES.defaultTime)}${timeSelect('tt', 'Return time', 'rq-tt', RULES.defaultTime)}</div>
+        <p class="hint">Any time, day or night, with at least {{notice}}’ notice. Each car needs {{turnaround}} between bookings, so a day next to another booking may only be free for part of it.</p>
+        <fieldset class="stack"><legend class="label">Where do you want to get the car?</legend>
+          ${placeOpts('pickup', 'pickupAt', 'data-addr-deliver', field({ id: 'rq-addr1', name: 'addrDeliver', label: 'Delivery address', attrs: lookup, msg: 'Add the delivery address so we can price the trip.', hint: 'Start typing and choose your address.' }), 'airportPickup')}
+        </fieldset>
+        <fieldset class="stack"><legend class="label">Where will you return it?</legend>
+          ${placeOpts('return', 'returnAt', 'data-addr-collect', field({ id: 'rq-addr2', name: 'addrCollect', label: 'Pickup address', v: '', opt: true, attrs: lookup, hint: 'Leave empty if it is the same as the delivery address.' }), 'airportReturn')}
         </fieldset>
         <div class="req__nav"><span></span><button type="button" class="btn btn--primary btn--lg" data-next>Continue to driver details</button></div>
       </section>
@@ -64,8 +74,8 @@ export function request() {
           </div>
           <p class="error" role="alert"></p>
         </fieldset>
-        <div class="field"><span class="label" id="rq-add-l">Additional drivers</span><p class="hint">{{addDrv}} a day each, up to {{addDrvCap}} per rental. Each one needs a {{licence}} licence and signs the agreement.</p>
-          <div class="qty" data-min="0" data-max="3"><button type="button" aria-label="Fewer additional drivers">−</button><output aria-labelledby="rq-add-l">0</output><button type="button" aria-label="More additional drivers">+</button><input type="hidden" name="addDrivers" value="0"></div></div>
+        <div class="field"><span class="label" id="rq-add-l">Additional drivers</span><p class="hint">{{addDrvPct}} of the car’s daily rate, a day, for each one. No maximum. Each one needs a {{licence}} licence and signs the agreement.</p>
+          <div class="qty" data-min="0" data-max="9"><button type="button" aria-label="Fewer additional drivers">−</button><output aria-labelledby="rq-add-l">0</output><button type="button" aria-label="More additional drivers">+</button><input type="hidden" name="addDrivers" value="0"></div></div>
         ${field({ id: 'rq-ref', name: 'referrer', label: 'Did someone refer you?', v: '', opt: true, hint: 'Their name, if so.' })}
         <div class="req__nav"><button type="button" class="btn btn--ghost" data-back>Back</button><button type="button" class="btn btn--primary btn--lg" data-next>Continue to licence</button></div>
       </section>
@@ -87,7 +97,7 @@ export function request() {
           <div class="stack">
             <label class="option"><input type="radio" name="coverage" value="1"><span class="option__title">Option 1: OPCF 27 on my own auto policy</span><span class="option__body">You will send the policy page or an insurer letter showing OPCF 27.</span></label>
             <label class="option"><input type="radio" name="coverage" value="2"><span class="option__title">Option 2: my credit card’s rental coverage</span><span class="option__body">You will pay with that card and send its benefits certificate.</span></label>
-            <label class="option"><input type="radio" name="coverage" value="3"><span class="option__title">Option 3: buy coverage through CarmaCars</span><span class="option__body">We add the price to your quote and send the provider’s terms before you buy.</span></label>
+            <label class="option"><input type="radio" name="coverage" value="3"><span class="option__title">Option 3: buy coverage through CarmaCars</span><span class="option__body">Priced in your offer, for your car and the driver’s age. We send the provider’s terms before you buy.</span></label>
           </div><p class="error" role="alert"></p>
         </fieldset>
         <fieldset class="field"><legend class="label">Booking type</legend>
@@ -111,7 +121,7 @@ export function request() {
         <table class="spec req__review"><tbody data-review></tbody></table>
         <div class="alert"><span class="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for {{offerHours}} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
         <div class="field"><label class="check"><input type="checkbox" name="agree" data-v="required" data-msg="Tick this box to send your request."><span>I am {{minAge}} or older, the details above are true, and I agree to the <a class="link" href="terms.html">Terms of use</a> and <a class="link" href="privacy.html">Privacy policy</a>.</span></label><p class="error" role="alert"></p></div>
-        <label class="check"><input type="checkbox" name="marketing"><span class="small">Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by {{brand}}, ${EMAIL}.</span></label>
+        <label class="check"><input type="checkbox" name="marketing"><span class="small">Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by {{brand}}, ${setting(SETTINGS.mailingAddress, 'Mailing address')}, ${EMAIL}.</span></label>
         <div class="req__nav"><button type="button" class="btn btn--ghost" data-back>Back</button><button type="submit" class="btn btn--primary btn--lg">Send request</button></div>
         <p class="small muted">No payment now. No card needed.</p>
       </section>
@@ -145,12 +155,12 @@ export function confirmation() {
     <div class="c-7 stack-lg">
       <h2 class="d2">What happens next</h2>
       <ol class="seq">
-        <li><div><h3>We check the car and your details</h3><p>We look at the calendar, your dates and your delivery address. We reply as fast as we can during opening hours.</p><span class="seq__who">CarmaCars</span></div></li>
+        <li><div><h3>We check the car and your details</h3><p>We look at the calendar, your dates and the place you chose. {{reply}}, day or night.</p><span class="seq__who">CarmaCars</span></div></li>
         <li><div><h3>You get the confirmed price</h3><p>By email<span data-conf hidden> to <b data-conf-email></b></span>, with every fee and HST. If we had to adjust anything, the message says what changed. That price is an offer and stays open for {{offerHours}} hours. It does not hold the car.</p><span class="seq__who">CarmaCars</span></div></li>
         <li><div><h3>You approve, sign and pay</h3><p>Reply yes and we send the rental agreement to sign online and a secure payment link. Use a credit card in your own name. The car is booked when the payment goes through. If someone else pays for the same car and dates before you do, we tell you and offer another car or other dates.</p><span class="seq__who">You</span></div></li>
         <li><div><h3>You send your licence and coverage proof</h3><p>A photo of your licence, front and back, and a selfie holding it, at least {{verifyHours}} hours before pickup.
           <span data-conf-cov="1" hidden>For option 1, add the policy page or insurer letter that shows OPCF 27.</span><span data-conf-cov="2" hidden>For option 2, add your card’s benefits certificate, and pay with that card.</span><span data-conf-cov="3" hidden>For option 3, we send the provider’s terms and activate the coverage once it is paid.</span></p><span class="seq__who">You</span></div></li>
-        <li><div><h3>Pickup day</h3><p>Bring your original licence and the card you paid with. We take the deposit, walk around the car with you and hand over the keys.</p><span class="seq__who">Both</span></div></li>
+        <li><div><h3>Pickup day</h3><p>We take the deposit about {{depLead}} before pickup. Bring your original licence and the card you paid with. We walk around the car with you and hand over the keys.</p><span class="seq__who">Both</span></div></li>
       </ol>
     </div>
     <aside class="c-4 s-8 stack-lg" aria-label="Your request">
@@ -159,7 +169,7 @@ export function confirmation() {
         <table class="spec"><tbody data-conf-rows></tbody></table>
       </div>
       <p class="alert" data-conf-none hidden><span class="alert__title">No request found on this device</span><span>This page shows the request you just sent. <a class="link" href="fleet.html">Find a car</a> to start one.</span></p>
-      <div class="stack"><h2 class="d4">Need to change something?</h2><p class="small">Email <a class="link" href="mailto:${EMAIL}">${EMAIL}</a> with your request number. Nothing is locked in until you sign and pay.</p></div>
+      <div class="stack"><h2 class="d4">Need to change something?</h2><p class="small">Email ${MAIL(E.bookings)} with your request number, or call ${TEL()}. Nothing is locked in until you sign and pay.</p></div>
       <p class="row"><a class="btn" href="fleet.html">Back to the fleet</a><a class="btn btn--ghost" href="how-it-works.html">How it works</a></p>
       <p class="proto-note"><b>Prototype.</b> Requests are not sent anywhere. The number above is generated in your browser.</p>
     </aside>
@@ -209,7 +219,7 @@ export function owners() {
         <li><div><h3>Sign the agreements</h3><p>An enrolment agreement and a title agreement, signed online. One agreement covers all your cars. Each car is added with its own schedule.</p></div></li>
         <li><div><h3>One registry visit</h3><p>You get the safety certificate and appraisal your route needs. We fill in the forms, book the visit and attend with you. You pay ServiceOntario directly.</p></div></li>
         <li><div><h3>Tracker and insurance</h3><p>We install a GPS tracker and add the car to our fleet policy. Once we confirm that in writing, you can cancel your own insurance on it.</p></div></li>
-        <li><div><h3>Photos, listing, first booking</h3><p>We detail the car, photograph it and publish it, usually within {{listDays}}. Then it is open for requests.</p></div></li>
+        <li><div><h3>Photos, listing, first booking</h3><p>We detail the car, photograph it and publish it within {{listDays}}. Then it is open for requests.</p></div></li>
       </ol>
     </div>
   </div>
@@ -258,11 +268,12 @@ export function owners() {
 
 <section class="section on-dark" id="apply" aria-labelledby="oh-apply">
   <div class="wrap grid">
-    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Put your car to work</h2><p class="lead muted">Six questions. We answer within {{ownerReply}} and arrange a call to confirm your fees and registration options. Applying commits you to nothing.</p></div>
+    <div class="c-5 stack"><h2 class="d1" id="oh-apply">Put your car to work</h2><p class="lead muted">Seven questions. We answer within {{ownerReply}} and arrange a call to confirm your fees and registration options. Applying commits you to nothing.</p></div>
     <div class="c-6 s-7">
       <form class="panel stack-lg" data-simple-form="apply-done" aria-labelledby="oh-apply">
         <div class="field-row">${field({ id: 'ow-name', name: 'name', label: 'Your name', auto: 'name', msg: 'Enter your name.' })}${field({ id: 'ow-phone', name: 'phone', label: 'Mobile number', type: 'tel', v: 'required phone', auto: 'tel' })}</div>
         ${field({ id: 'ow-email', name: 'email', label: 'Email', type: 'email', v: 'required email', auto: 'email' })}
+        ${field({ id: 'ow-addr', name: 'carAddress', label: 'Where is the car kept?', attrs: lookup, msg: 'Start typing the address where the car is kept.', hint: 'Start typing and choose the address. It helps us plan the registry visit and handovers.' })}
         <div class="field-row field-row--3">${field({ id: 'ow-year', name: 'year', label: 'Year', v: 'required year', attrs: 'inputmode="numeric" maxlength="4" placeholder="2021"' })}${field({ id: 'ow-make', name: 'make', label: 'Make', msg: 'Enter the make, for example Mercedes-Benz.' })}${field({ id: 'ow-model', name: 'model', label: 'Model', msg: 'Enter the model, for example C300.' })}</div>
         <div class="field-row">
           <div class="field"><label class="label" for="ow-own">How is it owned?</label><select class="select" id="ow-own" name="own" data-v="required" data-msg="Choose one."><option value="">Choose</option><option>Owned outright</option><option>Financed</option><option>Leased</option></select><p class="error" role="alert"></p></div>
@@ -270,7 +281,7 @@ export function owners() {
         </div>
         <fieldset class="field"><legend class="label">Which option interests you?</legend><div class="seg"><label><input type="radio" name="mode" value="managed" checked>Managed</label><label><input type="radio" name="mode" value="self">Self-managed</label><label><input type="radio" name="mode" value="turo">Turo only</label></div></fieldset>
         <button class="btn btn--primary btn--lg btn--block" type="submit">Send application</button>
-        <p class="xs muted">We use these details to reply to you about your car. See the <a class="link" href="privacy.html">Privacy policy</a>.</p>
+        <p class="xs muted">We use these details to reply to you about your car. See the <a class="link" href="privacy.html">Privacy policy</a>. Questions first? Email ${MAIL(E.owners)}.</p>
       </form>
       <div class="panel stack" id="apply-done" hidden><p class="d3">Application sent.</p><p>We will reply within {{ownerReply}} to arrange a call about the fees for your car and the registration routes open to you.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="index.html">Back to home</a></p></div>
     </div>
@@ -325,14 +336,21 @@ export function contact() {
   <div class="wrap grid">
     <div class="c-5 stack-lg">
       <table class="spec"><tbody>
-        <tr><th scope="row">Email</th><td>${EMAIL ? `<a class="link" href="mailto:${EMAIL}">${EMAIL}</a>` : setting(null, 'Email')}</td></tr>
-        <tr><th scope="row">Phone and WhatsApp</th><td>${setting(SETTINGS.phone, 'Number')}</td></tr>
-        <tr><th scope="row">On a rental right now</th><td>Call the 24-hour incident and roadside line. The number is in your rental agreement and your pickup message.</td></tr>
-        <tr><th scope="row">Opening hours</th><td>${setting(SETTINGS.hours, 'Hours')}</td></tr>
-        <tr><th scope="row">Location</th><td>${setting(SETTINGS.address, 'Address')}</td></tr>
-        <tr><th scope="row">Where we rent</th><td>{{serviceArea}}${SETTINGS.deliveryArea ? '. Delivery to ' + SETTINGS.deliveryArea : ''}</td></tr>
+        <tr><th scope="row">Phone</th><td>${TEL()}</td></tr>
+        <tr><th scope="row">WhatsApp</th><td>${WA()}</td></tr>
+        <tr><th scope="row">Email</th><td>${MAIL(E.contact)}</td></tr>
+        <tr><th scope="row">On a rental right now</th><td>Call the 24-hour incident and roadside line, ${TEL(SETTINGS.roadsideLine)}</td></tr>
+        <tr><th scope="row">Hours</th><td>${esc(SETTINGS.hours)}. {{reply}}.</td></tr>
+        <tr><th scope="row">Location</th><td>${setting(SETTINGS.address, 'Street address')}</td></tr>
+        <tr><th scope="row">Where we rent</th><td>{{serviceArea}}. Delivery anywhere, including {{airports}}</td></tr>
       </tbody></table>
-      <div class="alert alert--error"><span class="alert__title">After an accident</span><span>If anyone is hurt, call 911 first. Then call our 24-hour line as soon as it is safe, and within {{callHours}} hours.</span></div>
+      <table class="spec"><caption class="small strong">Write to the right desk</caption><tbody>
+        <tr><th scope="row">A booking or a request</th><td>${MAIL(E.bookings)}</td></tr>
+        <tr><th scope="row">Listing your car</th><td>${MAIL(E.owners)}</td></tr>
+        <tr><th scope="row">A charge or a statement</th><td>${MAIL(E.billing)}</td></tr>
+        <tr><th scope="row">Your personal information</th><td>${MAIL(E.privacy)}</td></tr>
+      </tbody></table>
+      <div class="alert alert--error"><span class="alert__title">After an accident</span><span>If anyone is hurt, call 911 first. Then call our 24-hour line, ${TEL(SETTINGS.roadsideLine)}, as soon as it is safe, and within {{callHours}} hours.</span></div>
       <p class="small">Most questions are answered in the <a class="link" href="faq.html">FAQ</a>.</p>
     </div>
     <div class="c-6 s-7">
@@ -344,12 +362,33 @@ export function contact() {
         <div class="field"><label class="label" for="ct-msg">Message</label><textarea class="textarea" id="ct-msg" name="message" data-v="required" data-msg="Write a short message so we know how to help."></textarea><p class="error" role="alert"></p></div>
         <button class="btn btn--primary btn--lg" type="submit">Send message</button>
       </form>
-      <div class="stack" id="contact-done" hidden><p class="d3">Message sent.</p><p>We reply by email during opening hours.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="fleet.html">Browse the fleet</a></p></div>
+      <div class="stack" id="contact-done" hidden><p class="d3">Message sent.</p><p>{{reply}}, by email.</p><p class="proto-note"><b>Prototype.</b> Nothing was actually sent.</p><p><a class="btn" href="fleet.html">Browse the fleet</a></p></div>
     </div>
   </div>
 </section>
 <section class="band band--short on-dark" aria-hidden="true"><div class="band__media photo fx-drift">${slotPic('contact.city', { alt: '' })}</div></section>`;
-  return doc({ file: 'contact.html', title: 'Contact {{brand}} | Car rental in {{city}}', desc: 'Contact {{brand}} about renting a car in {{city}}, a booking you have made, or listing your own car. Send a message and a person replies.', main, bodyClass: 'p-contact', ld: [crumbsLd(trail, 'contact.html')] });
+  return doc({ file: 'contact.html', title: 'Contact {{brand}} | Car rental in {{city}}', desc: 'Contact {{brand}} about renting a car in {{city}}, a booking you have made, or listing your own car. Open 24 hours. Call, WhatsApp or send a message and a person replies.', main, bodyClass: 'p-contact', ld: [crumbsLd(trail, 'contact.html')] });
+}
+
+// ---------------------------------------------------------------- investor sign in (no public pitch)
+export function investors() {
+  const main = `
+<section class="auth">
+  <div class="auth__side on-dark"><div class="auth__side-in stack"><p class="d2">Investor sign in</p><p class="muted">For people who already invest with {{brand}}.</p></div></div>
+  <div class="auth__main">
+    <div class="auth__box stack-lg">
+      <h1 class="d2">Sign in to the investor portal</h1>
+      <p>Investor information is available to signed-in investors only. Nothing about investing with {{brand}} is published on this site.</p>
+      <form class="stack-lg" data-simple-form="" data-toast-msg="Investor sign-in is not connected in this prototype.">
+        ${field({ id: 'iv-email', name: 'email', label: 'Email', type: 'email', v: 'required email', auto: 'username' })}
+        ${field({ id: 'iv-pass', name: 'password', label: 'Password', type: 'password', v: 'required', auto: 'current-password', msg: 'Enter your password.' })}
+        <button class="btn btn--primary btn--lg btn--block" type="submit">Sign in</button>
+      </form>
+      <p class="small muted">Existing investors with a question can email ${MAIL(E.investors)}.</p>
+    </div>
+  </div>
+</section>`;
+  return doc({ file: 'investors.html', title: 'Investor sign in | CarmaCars', desc: 'Sign in for existing CarmaCars investors. Investor information is available to signed-in investors only.', main, bodyClass: 'p-auth', noindex: true });
 }
 
 // ---------------------------------------------------------------- 404

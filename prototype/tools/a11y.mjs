@@ -16,7 +16,7 @@ for (const f of fs.readdirSync(ROOT).filter((x) => x.endsWith('.html'))) {
     const lum = (c) => { const a = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; };
     const rgb = (s) => { const m = s.match(/[\d.]+/g).map(Number); return { c: m.slice(0, 3), a: m.length > 3 ? m[3] : 1 }; };
     const bgOf = (el) => { for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); const b = rgb(cs.backgroundColor); if (b.a > 0.95) return b.c; if (cs.backgroundImage !== 'none' && /gradient/.test(cs.backgroundImage) && !/repeating/.test(cs.backgroundImage)) return null; } return [255, 255, 255]; };
-    document.querySelectorAll('main *, header *, footer *').forEach((el) => {
+    document.querySelectorAll('main *, header *, footer *, .cookie *').forEach((el) => {
       if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1)) return;
       const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none' || !el.getClientRects().length || el.closest('[hidden], [aria-hidden="true"], .vh, .skip')) return;
       if (el.closest('[aria-disabled="true"], [disabled], .is-booked, .is-past')) return; // disabled controls are exempt

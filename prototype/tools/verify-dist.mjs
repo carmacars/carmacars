@@ -8,9 +8,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const file = path.join(ROOT, 'dist/carmacars-prototype.html'); const url = pathToFileURL(file).href;
+const { COOKIES } = await import('./src/site.mjs');
+const CONSENT = `try { sessionStorage.setItem('cc.cookies', JSON.stringify({ version: '${COOKIES.version}', choice: 'necessary_only', analytics: false })); } catch (e) {}`;
 const browser = await chromium.launch(); const problems = []; const requests = []; const errors = [];
 for (const width of [1440, 375]) {
-  const ctx = await browser.newContext({ viewport: { width, height: width < 500 ? 740 : 900 }, reducedMotion: 'reduce', offline: true });
+  const ctx = await browser.newContext({ viewport: { width, height: width < 500 ? 740 : 900 }, reducedMotion: 'reduce', offline: true }); await ctx.addInitScript(CONSENT);
   const page = await ctx.newPage(); page.setDefaultTimeout(6000);
   page.on('request', (r) => { if (!r.url().startsWith('data:') && r.url().split('#')[0] !== url) requests.push(r.url().slice(0, 120)); });
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`@${width} ${m.text()}`); });

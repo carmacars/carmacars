@@ -21,7 +21,7 @@ No HTML or CSS changes are needed. Every frame crops with `object-fit: cover`, s
 - **Consistency:** same spot, same lens, same height for every car. That is what makes a fleet page look like one fleet.
 - **Not allowed:** AI-generated images, manufacturer press photos, stock photos, or photos of a different car of the same model.
 
-## A. Per car: 8 photos (96 for the 12 sample cars)
+## A. Per car: 8 photos (160 for the 20 sample cars; the real list replaces them)
 
 All 3:2 landscape, at least 2400 x 1600 px (the site shows them up to 1200 px wide on high-density screens). The order is the gallery order.
 
@@ -60,7 +60,7 @@ Scene photos sit under text with a dark gradient over them. Underexpose slightly
 
 | Set | Count | Ratio | Minimum size |
 | --- | --- | --- | --- |
-| Car gallery | 8 per car (96 for 12 cars) | 3:2 | 2400 x 1600 |
+| Car gallery | 8 per car (160 for the 20 sample cars) | 3:2 | 2400 x 1600 |
 | Scenes, wide crops | 9 | 2:1 to 3:1 | 2880 px wide |
 | Scenes, tall crops | 9 (crops of the same frames) | 4:5 or 1:1 | 1200 px wide |
 | Distinct scenes to shoot | 6 | | |

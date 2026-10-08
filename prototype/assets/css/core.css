@@ -429,3 +429,36 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .skeleton::after { display: none; }
 }
+
+/* ---------- calendar: partly free day (2 hour turnaround next to another booking) ---------- */
+.cal__day.is-part { background: linear-gradient(135deg, transparent 50%, var(--grey-200) 50%); }
+.cal__day.is-part.is-start, .cal__day.is-part.is-end { background: var(--red-600); }
+.cal__legend .k-part { background: linear-gradient(135deg, var(--white) 50%, var(--grey-300) 50%); outline: 1px solid var(--grey-300); }
+
+/* ---------- address lookup (combobox) ---------- */
+.field { position: relative; }
+.lookup { position: absolute; z-index: 60; left: 0; right: 0; margin-top: 4px; background: var(--white); color: var(--black); border: var(--bw) solid var(--black); border-radius: var(--r-2); box-shadow: var(--shadow-float); list-style: none; padding: 4px 0; max-height: 18rem; overflow-y: auto; }
+.lookup [role="option"] { padding: 0.65rem 0.85rem; font-size: var(--fs-sm); cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.lookup [role="option"]:hover, .lookup [aria-selected="true"] { background: var(--grey-100); box-shadow: inset 3px 0 0 var(--red-600); }
+.lookup__note { padding: 0.4rem 0.85rem; font-size: var(--fs-xs); color: var(--grey-600); border-top: 1px solid var(--grey-200); }
+
+/* ---------- cookie consent banner ---------- */
+.cookie { position: fixed; z-index: 90; left: var(--gutter); right: var(--gutter); bottom: var(--s-4); max-width: 60rem; margin-inline: auto; background: var(--black); color: var(--white); border-radius: var(--r-3); border-left: 5px solid var(--red-600); box-shadow: var(--shadow-float); padding: var(--s-4) var(--s-5); }
+.cookie__in { display: grid; gap: var(--s-4); }
+.cookie__text p { margin-top: var(--s-2); color: var(--grey-300); }
+.cookie .link { color: var(--white); }
+.cookie__btns { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.cookie__btns .btn { flex: 1 1 auto; }
+.cookie__opt { padding: var(--s-3) 0; border-top: 1px solid var(--grey-200); align-items: start; }
+@media (min-width: 64rem) { .cookie__in { grid-template-columns: 1fr auto; align-items: center; gap: var(--s-6); } .cookie__btns { flex-wrap: nowrap; } }
+@media (prefers-reduced-motion: no-preference) { .cookie { animation: toast-in var(--t-3) var(--ease); } }
+
+/* ---------- footer additions ---------- */
+.footer-contact ul { list-style: none; margin: 0; padding: 0; }
+.footer-contact li span { display: block; font-size: var(--fs-xs); color: var(--grey-400); margin-top: 2px; }
+.footer-contact li > span:only-child { font-size: var(--fs-sm); color: var(--grey-300); margin-top: 0; }
+.footer-btn { background: none; border: 0; padding: 0; color: var(--white); font: inherit; font-size: var(--fs-sm); cursor: pointer; text-align: left; }
+.footer-btn:hover { text-decoration: underline; text-decoration-color: var(--red-600); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.footer-investor { color: var(--grey-400); font-size: var(--fs-xs); }
+.footer-investor:hover { color: var(--white); }
+a[href^="tel:"] { white-space: nowrap; }

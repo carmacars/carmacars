@@ -1040,6 +1040,614 @@
           "height": 1200
         }
       ]
+    },
+    "kia-forte": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Kia Forte in Snow White Pearl, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Kia Forte side profile",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Kia Forte rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Kia Forte from the front",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Kia Forte from the rear",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Kia Forte dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Kia Forte seats",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Kia Forte wheel",
+          "standIn": true,
+          "src": "assets/photos/kia-forte-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "toyota-camry": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Toyota Camry in Midnight Black, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Toyota Camry side profile",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Toyota Camry rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Toyota Camry from the front",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Toyota Camry from the rear",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Toyota Camry dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Toyota Camry seats",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Toyota Camry wheel",
+          "standIn": true,
+          "src": "assets/photos/toyota-camry-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "honda-cr-v": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Honda CR-V in Lunar Silver, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Honda CR-V side profile",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Honda CR-V rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Honda CR-V from the front",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Honda CR-V from the rear",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Honda CR-V dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Honda CR-V seats",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Honda CR-V wheel",
+          "standIn": true,
+          "src": "assets/photos/honda-cr-v-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "kia-carnival": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2023 Kia Carnival in Panthera Metal, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Kia Carnival side profile",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Kia Carnival rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Kia Carnival from the front",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Kia Carnival from the rear",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Kia Carnival dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Kia Carnival seats",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Kia Carnival wheel",
+          "standIn": true,
+          "src": "assets/photos/kia-carnival-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "ford-f-150": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Ford F-150 in Agate Black, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Ford F-150 side profile",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Ford F-150 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Ford F-150 from the front",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Ford F-150 from the rear",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Ford F-150 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Ford F-150 seats",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Ford F-150 wheel",
+          "standIn": true,
+          "src": "assets/photos/ford-f-150-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "bmw-330i": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 BMW 330i in Mineral Grey, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "BMW 330i side profile",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "BMW 330i rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "BMW 330i from the front",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "BMW 330i from the rear",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "BMW 330i dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "BMW 330i seats",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "BMW 330i wheel",
+          "standIn": true,
+          "src": "assets/photos/bmw-330i-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "ford-mustang": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2022 Ford Mustang in Race Red, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Ford Mustang side profile",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Ford Mustang rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Ford Mustang from the front",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Ford Mustang from the rear",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Ford Mustang dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Ford Mustang seats",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Ford Mustang wheel",
+          "standIn": true,
+          "src": "assets/photos/ford-mustang-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
+    },
+    "porsche-911": {
+      "gallery": [
+        {
+          "shot": "lead",
+          "label": "Front three-quarter (lead)",
+          "alt": "2021 Porsche 911 in GT Silver, front three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-lead.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "side",
+          "label": "Side profile",
+          "alt": "Porsche 911 side profile",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-side.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear34",
+          "label": "Rear three-quarter",
+          "alt": "Porsche 911 rear three-quarter view",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-rear34.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "front",
+          "label": "Front",
+          "alt": "Porsche 911 from the front",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-front.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "rear",
+          "label": "Rear",
+          "alt": "Porsche 911 from the rear",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-rear.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "dash",
+          "label": "Dashboard",
+          "alt": "Porsche 911 dashboard and steering wheel",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-dash.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "seats",
+          "label": "Seats",
+          "alt": "Porsche 911 seats",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-seats.svg",
+          "width": 1800,
+          "height": 1200
+        },
+        {
+          "shot": "wheel",
+          "label": "Wheel detail",
+          "alt": "Porsche 911 wheel",
+          "standIn": true,
+          "src": "assets/photos/porsche-911-wheel.svg",
+          "width": 1800,
+          "height": 1200
+        }
+      ]
     }
   }
 }

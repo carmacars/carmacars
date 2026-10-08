@@ -5,24 +5,28 @@ CarmaCars  |  Request {{booking_number}}
 [Offer expired]
 This offer has ended
 
-We did not receive your approval by {{offer_expires_at}}, so the offer for the {{vehicle_name}} has closed. Nothing was booked or charged.
+We did not receive your approval by {{offer_expires_at}}, so the offer for the {{vehicle_name}} has expired and your request is now closed. Nothing was booked or charged.
 
 Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}
 
-Your request is still on file. If you still need the car, tell us and we will check it again and send a fresh offer. The car, times or price may differ from the offer that expired.
+Our team will follow up with you about this request. If you still need a car, reply to this email or open your request and we can reopen it with a fresh offer. The car, times or price may differ from the offer that expired.
 
-Ask for a new offer:
+Open your request:
 https://carmacars.ca/account/bookings/{{booking_number}}/request
 
-If you no longer need a car, there is nothing to do. We will close the request.
+If you no longer need a car, there is nothing to do.
 
 ----------------------------------------
 
-Help: reply to this email or call {{support_phone}}.
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
 
 You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}
