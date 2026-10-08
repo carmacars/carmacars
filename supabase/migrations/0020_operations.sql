@@ -20,8 +20,11 @@
 --      tracker disable request and approval.
 --   9. Reconciliation of processor payouts against payments.
 --
--- Relies on migrations 0001 to 0017 only. Notes, decisions and assumptions:
--- docs/changes/0020_operations.md.
+-- Relies on migrations 0001 to 0019. Merged with migration 0019 (written at the same time):
+-- the Deposit waiver columns and app.waive_deposit(), app.user_va_has(), the setting for when
+-- documents are due before pickup and the handover readiness check (app.booking_readiness) are
+-- defined once, in 0019, and used here. See docs/changes/0019_0020_integration.md.
+-- Notes, decisions and assumptions: docs/changes/0020_operations.md.
 --
 -- No enum value is added here, so nothing in this file is affected by the rule that a new enum
 -- value cannot be used in the transaction that adds it. Where a view or an SQL-language function
@@ -45,7 +48,6 @@ alter table program_settings
   add column if not exists deposit_due_warning_business_days integer not null default 2 check (deposit_due_warning_business_days >= 0),
   add column if not exists holdback_warning_days          integer not null default 3 check (holdback_warning_days >= 0),
   add column if not exists chase_offer_hours              integer not null default 6 check (chase_offer_hours > 0),
-  add column if not exists verification_due_hours         integer not null default 24 check (verification_due_hours >= 0), -- before pickup
   add column if not exists chase_verification_hours       integer not null default 48 check (chase_verification_hours > 0),
   add column if not exists handover_schedule_hours        integer not null default 24 check (handover_schedule_hours >= 0), -- before pickup
   add column if not exists take_deposit_lead_minutes      integer not null default 60 check (take_deposit_lead_minutes >= 0),
@@ -60,12 +62,8 @@ comment on column program_settings.opening_hours is
   'Toronto opening hours: open and close as HH:MI, days as ISO weekdays (1 = Monday). Task due times that count "in opening hours" use them.';
 comment on column program_settings.insurer_terms_days is 'Days after which an unpaid insurer invoice is called overdue in lists and reminders.';
 
--- The Deposit may be waived by an Admin before handover. The amount waived is kept.
-alter table bookings
-  add column if not exists deposit_waived_cents  bigint not null default 0 check (deposit_waived_cents >= 0),
-  add column if not exists deposit_waived_by     uuid references users (id),
-  add column if not exists deposit_waived_at     timestamptz,
-  add column if not exists deposit_waiver_reason text;
+-- The Deposit waiver (bookings.deposit_waived_at, deposit_waived_by, deposit_waived_reason,
+-- deposit_waived_cents) and its rules are added by migration 0019.
 
 -- Condition reports: what the phone checklist records beyond migration 0006.
 alter table condition_reports
@@ -121,15 +119,7 @@ create sequence if not exists renter_statement_number_seq start 20001;
 
 -- ================================================================ 2. who is acting (by user id)
 -- The server acts for a named user, so these take the user's id (as app.user_is_staff of 0016).
-create or replace function app.user_va_has(p_user uuid, variadic p_functions text[] default '{}') returns boolean
-language sql stable security definer set search_path = public, app as $$
-  select exists (
-    select 1 from user_roles r join users u on u.id = r.user_id
-      join staff_profiles sp on sp.user_id = r.user_id and sp.staff_type = 'va' and sp.is_active
-     where r.user_id = p_user and r.role = 'va' and u.status = 'active'
-       and (cardinality(p_functions) = 0 or sp.va_function::text = any (p_functions)))
-$$;
-
+-- app.user_va_has(user, functions) is defined in migration 0019.
 create or replace function app.user_is_field(p_user uuid) returns boolean
 language sql stable security definer set search_path = public, app as $$
   select exists (
@@ -1384,38 +1374,17 @@ begin
     'renter_deposit_declined:' || p_booking || ':' || coalesce(p_payment::text, to_char(p_now at time zone 'UTC', 'YYYYMMDD"T"HH24MISS')));
 end $$;
 
--- An Admin waives the Deposit of one booking before handover, with the reason.
-create or replace function app.waive_deposit(p_booking uuid, p_admin uuid, p_reason text) returns void
-language plpgsql security definer set search_path = public, app as $$
-declare
-  b bookings;
-begin
-  if not app.user_is_admin(p_admin) then
-    raise exception 'Only an Admin waives a Deposit' using errcode = '42501';
-  end if;
-  if btrim(coalesce(p_reason, '')) = '' then
-    raise exception 'Give the reason for waiving the Deposit' using errcode = '22023';
-  end if;
-  select * into b from bookings where id = p_booking for update;
-  if b.id is null then raise exception 'Booking % not found', p_booking; end if;
-  if b.status <> 'confirmed' then
-    raise exception 'Booking % is %: a Deposit is waived on a confirmed booking, before handover', b.booking_number, b.status using errcode = '23514';
-  end if;
-  if exists (select 1 from deposits d where d.booking_id = p_booking and d.status in ('held', 'captured')) then
-    raise exception 'The Deposit on booking % has already been taken: release it instead', b.booking_number using errcode = '23514';
-  end if;
-  if b.deposit_cents = 0 then return; end if;
-  update bookings
-     set deposit_waived_cents = deposit_waived_cents + deposit_cents, deposit_cents = 0,
-         deposit_waived_by = p_admin, deposit_waived_at = now(), deposit_waiver_reason = p_reason
-   where id = p_booking;
-  perform app.resolve_tasks(array['take_deposit', 'deposit_declined'], p_booking, p_admin, 'Deposit waived: ' || p_reason);
-end $$;
+-- An Admin waives the Deposit of one booking before handover, with the reason:
+-- app.waive_deposit(booking, by, reason) of migration 0019. When a waiver is recorded the
+-- Deposit tasks are closed by app.ops_booking_status_after() below.
 
 -- ================================================================ 11. handover
 -- One transaction for the end of the handover checklist: the pickup Condition Report is
--- completed, the booking goes on rent (the booking's own trigger checks every precondition
+-- completed, the booking goes on rent (the booking's own triggers check every precondition
 -- again, moves the vehicle to on rent and blocks the Owner's controls) and the job is done.
+-- Whether the booking itself is ready (drivers verified and accepted, coverage, Deposit,
+-- calendar switch) is read from app.booking_readiness() of migration 0019, not checked again
+-- here; this function adds the checklist's own checks (readings, keys, signatures, photos).
 -- p_report: everything app.save_condition_report takes, plus
 --   deposit_payment_id   the hold or charge the server just placed, when not recorded yet
 --   deposit_waiver       {"by": admin id, "reason": "..."} in place of a Deposit
@@ -1434,15 +1403,12 @@ declare
   v_role text;
   v_problems text[];
   v_owner_booking boolean;
+  v_ready jsonb;
 begin
   select * into b from bookings where id = p_booking for update;
   if b.id is null then raise exception 'Booking % not found', p_booking; end if;
   if b.status <> 'confirmed' then
     raise exception 'Booking % is %: only a confirmed booking is handed over', b.booking_number, b.status using errcode = '23514';
-  end if;
-  if not b.blocks_calendar then
-    raise exception 'Booking % does not block the calendar: turn the calendar switch on before the car is released', b.booking_number
-      using errcode = '23514';
   end if;
   v_owner_booking := b.booking_type = 'owner';
   select * into v from vehicles where id = b.vehicle_id;
@@ -1451,14 +1417,22 @@ begin
     raise exception 'A handover is completed by CarmaCars staff or the vehicle''s Owner' using errcode = '42501';
   end if;
 
-  -- the ready check of the checklist, said plainly before the booking's trigger says it
-  if exists (select 1 from booking_drivers x where x.booking_id = p_booking and x.identity_verified_on is null)
-     or not exists (select 1 from booking_drivers x where x.booking_id = p_booking and x.role = 'renter') then
+  -- the ready check of the checklist, from the booking's readiness roll-up, said plainly before
+  -- the booking's triggers say it (the agreement and the pickup Condition Report are not asked
+  -- here: a confirmed booking is signed, and the report is the one being completed now)
+  v_ready := app.booking_readiness(p_booking);
+  if not (v_ready ->> 'blocks_calendar')::boolean then
+    raise exception 'Booking % does not block the calendar: turn the calendar switch on before the car is released', b.booking_number
+      using errcode = '23514';
+  end if;
+  if not (v_ready ->> 'all_drivers_verified')::boolean then
     raise exception 'Do not release the car: every driver''s identity must be verified first' using errcode = '23514';
   end if;
-  if not v_owner_booking and (b.coverage_confirmed_at is null or not exists (
-       select 1 from coverage_proofs x where x.booking_id = p_booking and x.status = 'confirmed')) then
+  if not (v_ready ->> 'coverage_confirmed')::boolean then
     raise exception 'Do not release the car: no Coverage Option is confirmed' using errcode = '23514';
+  end if;
+  if not (v_ready ->> 'additional_drivers_accepted')::boolean then
+    raise exception 'Do not release the car: every additional driver must accept the rental agreement first' using errcode = '23514';
   end if;
 
   -- the Deposit: taken by the server just now, waived by an Admin, or already on file
@@ -1469,9 +1443,9 @@ begin
         and not exists (select 1 from deposits x where x.booking_id = p_booking and x.status in ('held', 'captured')) then
     perform app.record_deposit_taken(p_booking, (d ->> 'deposit_payment_id')::uuid, p_by, null, p_now);
   end if;
-  if not v_owner_booking and b.deposit_cents > 0
-     and not exists (select 1 from deposits x where x.booking_id = p_booking and x.status in ('held', 'captured')) then
-    raise exception 'Do not release the car: the Deposit is taken at pickup, before handover' using errcode = '23514';
+  if not (app.booking_readiness(p_booking) ->> 'deposit_ok')::boolean then
+    raise exception 'Do not release the car: the Deposit is taken at pickup, before handover, or waived by an Admin with a reason'
+      using errcode = '23514';
   end if;
 
   v_report := app.save_condition_report(p_booking, 'pickup', p_by, d - 'deposit_payment_id' - 'deposit_waiver' - 'odometer_confirmed', p_job);
@@ -3063,6 +3037,12 @@ declare
   v_set program_settings := app.settings();
   v_first text;
 begin
+  -- a Deposit waiver (app.waive_deposit of migration 0019, or an Admin in the portal): the
+  -- Deposit tasks no longer apply
+  if new.deposit_waived_at is not null and old.deposit_waived_at is null then
+    perform app.resolve_tasks(array['take_deposit', 'deposit_declined'], new.id, new.deposit_waived_by,
+                              'Deposit waived: ' || new.deposit_waived_reason);
+  end if;
   if new.status is not distinct from old.status then return null; end if;
 
   if new.status = 'confirmed' then
@@ -3088,7 +3068,7 @@ begin
         p_title => format('Booking %s confirmed: verify the drivers%s', new.booking_number,
                           case when new.booking_type = 'owner' then '' else ' and the coverage' end),
         p_booking => new.id, p_vehicle => new.vehicle_id, p_renter => new.renter_id,
-        p_due_at => greatest(new.pickup_at - make_interval(hours => v_set.verification_due_hours), now()),
+        p_due_at => greatest(new.pickup_at - make_interval(hours => v_set.verification_due_hours_before_pickup), now()),
         p_dedupe => 'offer_approved_paid:' || new.id);
   elsif new.status = 'on_rent' then
     perform app.resolve_tasks(array['schedule_handover', 'take_deposit', 'offer_approved_paid', 'verify_renter', 'chase_verification',
@@ -3107,7 +3087,7 @@ begin
   end if;
   return null;
 end $$;
-create trigger bookings_ops_status_after after update of status on bookings
+create trigger bookings_ops_status_after after update of status, deposit_waived_at on bookings
   for each row execute function app.ops_booking_status_after();
 
 -- ================================================================ 16. the other task-creating triggers
@@ -3158,7 +3138,9 @@ begin
     if v_booking is not null then
       select * into b from bookings where id = v_booking;
       v_renter := coalesce(v_renter, b.renter_id);
-      v_due := greatest(b.pickup_at - make_interval(hours => v_set.verification_due_hours), now());
+      -- due before pickup; when the pickup is too close, within the review time (both settings of 0019)
+      v_due := greatest(b.pickup_at - make_interval(hours => v_set.verification_due_hours_before_pickup),
+                        now() + make_interval(hours => v_set.verification_review_hours));
     end if;
     perform app.raise_task(p_type => 'verify_renter',
         p_title => case when b.id is not null then format('Booking %s: identity documents or coverage proof to review', b.booking_number) end,
@@ -4175,7 +4157,7 @@ begin
   loop
     perform app.raise_task(p_type => 'chase_verification', p_title => format('Booking %s: verification missing before pickup', r.booking_number),
         p_booking => r.id, p_vehicle => r.vehicle_id, p_renter => r.renter_id,
-        p_due_at => greatest(r.pickup_at - make_interval(hours => v_set.verification_due_hours), p_now),
+        p_due_at => greatest(r.pickup_at - make_interval(hours => v_set.verification_due_hours_before_pickup), p_now),
         p_dedupe => 'chase_verification:' || r.id);
   end loop;
 
@@ -4492,14 +4474,14 @@ declare
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'app' and p.proname in (
-              'user_va_has', 'user_is_field', 'user_runs_fleet', 'user_runs_finance', 'from_browser', 'add_opening_minutes',
+              'user_is_field', 'user_runs_fleet', 'user_runs_finance', 'from_browser', 'add_opening_minutes',
               'required_shots_for', 'condition_report_problems', 'start_vehicle_move', 'end_vehicle_move',
               'task_due', 'task_fill_from_rule', 'raise_task', 'resolve_tasks', 'user_works_queue', 'task_completion_problem',
               'assign_task', 'snooze_task', 'wake_tasks', 'complete_task', 'cancel_task', 'escalate_task',
               'field_job_is_move', 'create_field_job', 'assign_field_job', 'reschedule_field_job', 'accept_field_job', 'start_field_job',
               'complete_field_job', 'cancel_field_job', 'field_job_after_write', 'staff_field_jobs',
               'booking_fee_term', 'snapshot_booking_fee_terms', 'set_booking_fee_term',
-              'condition_report_actor', 'save_condition_report', 'record_deposit_taken', 'record_deposit_declined', 'waive_deposit',
+              'condition_report_actor', 'save_condition_report', 'record_deposit_taken', 'record_deposit_declined',
               'complete_handover', 'block_handover', 'booking_km_driven', 'return_findings', 'complete_return',
               'submit_return_findings', 'review_condition_report', 'condition_report_after_write', 'report_damage_to_renter', 'record_late_damage',
               'money_text', 'open_incident', 'complete_incident_step', 'incident_after_insert', 'swap_vehicle', 'complete_condition_report',

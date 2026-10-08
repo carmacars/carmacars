@@ -1,19 +1,21 @@
 # 0020: operations
 
+> **Merged with 0019.** Migrations 0019 and 0020 were written in parallel and have been integrated into one design. The Deposit waiver columns and `app.waive_deposit`, `app.user_va_has`, the setting `verification_due_hours_before_pickup` and the handover readiness check (`app.booking_readiness`) now come from 0019; the review-extension, refund-cancellation and verify-renter tasks come from this migration only. Every overlap and its resolution: [0019_0020_integration.md](0019_0020_integration.md). Where this record differs, that file wins.
+
 Migration `supabase/migrations/0020_operations.sql`, tests `supabase/tests/09_operations.sql`.
 
-Day-to-day operations on top of request to book (0016): handover and return on a phone, post-rental charges, the renter's statement and the Deposit, field jobs and vehicle moves, the calendar's new entries and its drag and resize functions, rates and fees, the task queues, four scheduled jobs, incidents, vehicle swap, tracker disable, and payout reconciliation. It relies on migrations 0001 to 0017 only. No shared document, earlier migration, email or prototype file was edited.
+Day-to-day operations on top of request to book (0016): handover and return on a phone, post-rental charges, the renter's statement and the Deposit, field jobs and vehicle moves, the calendar's new entries and its drag and resize functions, rates and fees, the task queues, four scheduled jobs, incidents, vehicle swap, tracker disable, and payout reconciliation. It relies on migrations 0001 to 0019 (see the merge note above). No shared document, earlier migration, email or prototype file was edited.
 
 ## 1. Pickup and return
 
 | Function (server only) | Does |
 | --- | --- |
 | `app.save_condition_report(booking, kind, by, report, job, vehicle)` | Saves a Condition Report as it is filled in: answers, photos (a photo with the same `seq` is a retake), damage marks with their close-ups. Creates the report on the first call. Refused once the report is completed |
-| `app.complete_handover(booking, by, report, job, now)` | Checks every driver verified and coverage confirmed, takes note of the Deposit (the payment the server just placed, `deposit_payment_id`, or an Admin's waiver, `deposit_waiver`), requires odometer, fuel, keys, licence seen, card seen, Tracker reporting, both signature references and the complete photo set, then moves the booking to `on_rent` and the job to `done`. The booking's own trigger (0016) checks its conditions again |
+| `app.complete_handover(booking, by, report, job, now)` | Reads the booking's readiness from `app.booking_readiness` (0019): calendar switch, every driver verified, coverage confirmed, additional drivers accepted; takes note of the Deposit (the payment the server just placed, `deposit_payment_id`, or an Admin's waiver, `deposit_waiver`), requires odometer, fuel, keys, licence seen, card seen, Tracker reporting, both signature references and the complete photo set, checks the Deposit is taken or waived (readiness `deposit_ok`), then moves the booking to `on_rent` and the job to `done`. The booking's own triggers (0016, 0019) check their conditions again |
 | `app.block_handover(booking, by, reason, job)` | "Do not release the car": an urgent, escalated Admin task |
 | `app.record_deposit_taken(booking, payment, by, hold_expires_at, now)` | Records the hold (7 days or less) or the charge (longer) the server placed |
 | `app.record_deposit_declined(booking, payment, decline_code, by, now)` | Deposit `failed`, urgent Admin task, event `renter_deposit_declined` |
-| `app.waive_deposit(booking, admin, reason)` | Admin only. `bookings.deposit_cents` becomes 0 and the waiver is kept on the booking |
+| `app.waive_deposit(booking, by, reason)` | Defined in 0019 (one definition). Admin only. `bookings.deposit_cents` becomes 0 and the waiver is kept on the booking; `app.ops_booking_status_after` closes the `take_deposit` and `deposit_declined` tasks |
 | `app.complete_return(booking, by, report, job, now)` | Completes the return report, works out lateness (a part day counts as a full day, through `calc_late_return()`), moves the booking to `returned`, the job to `done`. New damage opens an incident. Returns the findings |
 | `app.submit_return_findings(booking, by, findings)` | Fleet confirms the findings (procedure 4 step 6): the return report is marked reviewed, the T7 note is written to `messages`, and the report's trigger raises the Finance task and the event |
 | `app.review_condition_report(report, by)` | Marks any other report reviewed |
@@ -150,8 +152,7 @@ Still an Edge Function, because each calls an outside service: `late-returns` (m
 
 | Table | Columns |
 | --- | --- |
-| `program_settings` | `opening_hours`, `insurer_terms_days`, `incident_report_hours`, `tracker_notice_minutes`, `tracker_reading_max_minutes`, `statement_interest_days`, `deposit_due_warning_business_days`, `holdback_warning_days`, `chase_offer_hours`, `verification_due_hours`, `chase_verification_hours`, `handover_schedule_hours`, `take_deposit_lead_minutes`, `job_acknowledge_lead_minutes`, `late_admin_minutes`, `provisional_watch_days`, `turo_expiry_notice_days`, `plate_renewal_notice_days`, `payout_unmatched_business_days`, `early_return_minutes` |
-| `bookings` | `deposit_waived_cents`, `deposit_waived_by`, `deposit_waived_at`, `deposit_waiver_reason` |
+| `program_settings` | `opening_hours`, `insurer_terms_days`, `incident_report_hours`, `tracker_notice_minutes`, `tracker_reading_max_minutes`, `statement_interest_days`, `deposit_due_warning_business_days`, `holdback_warning_days`, `chase_offer_hours`, `chase_verification_hours`, `handover_schedule_hours`, `take_deposit_lead_minutes`, `job_acknowledge_lead_minutes`, `late_admin_minutes`, `provisional_watch_days`, `turo_expiry_notice_days`, `plate_renewal_notice_days`, `payout_unmatched_business_days`, `early_return_minutes` |
 | `condition_reports` | `renter_signature_ref`, `staff_signature_ref`, `renter_declined_to_sign`, `renter_decline_reason`, `car_diagram`, `belongings_found`, `findings`, `completed_at`, `completed_by` |
 | `condition_report_damages` | `kind`, `size_cm`, `position`, `status_vs_pickup` |
 | `condition_report_photos` | `device_taken_at`, `latitude`, `longitude`, `width`, `height`, `quality_flags`, `purge_after` |
@@ -163,7 +164,7 @@ All added with `add column if not exists`.
 
 **Triggers on existing tables:** `tasks_fill_from_rule`, `field_jobs_after_write`, `condition_reports_after_write`, `incidents_after_insert`, `tracker_commands_task`, `bookings_ops_status_after`, and `*_ops_task` on `booking_cancellations`, `booking_extensions`, `identity_verifications`, `coverage_proofs`, `vehicle_onboardings`, `owner_invoices`, `owner_statements`, `vehicle_exits`, `reviews`, `documents`.
 
-**Helper functions not named above:** `app.user_va_has`, `app.user_is_field`, `app.user_runs_fleet`, `app.user_runs_finance`, `app.user_works_queue`, `app.from_browser`, `app.add_opening_minutes`, `app.task_due`, `app.task_completion_problem`, `app.field_job_is_move`, `app.return_findings`, `app.set_assessed_line`, `app.money_text`, `app.bulk_rate_vehicles`, and the trigger functions `app.task_fill_from_rule`, `app.field_job_after_write`, `app.condition_report_after_write`, `app.incident_after_insert`, `app.tracker_command_task`, `app.ops_booking_status_after`, `app.ops_task_trigger`.
+**Helper functions not named above:** `app.user_is_field`, `app.user_runs_fleet`, `app.user_runs_finance`, `app.user_works_queue`, `app.from_browser`, `app.add_opening_minutes`, `app.task_due`, `app.task_completion_problem`, `app.field_job_is_move`, `app.return_findings`, `app.set_assessed_line`, `app.money_text`, `app.bulk_rate_vehicles`, and the trigger functions `app.task_fill_from_rule`, `app.field_job_after_write`, `app.condition_report_after_write`, `app.incident_after_insert`, `app.tracker_command_task`, `app.ops_booking_status_after`, `app.ops_task_trigger`.
 
 ## 11. Permissions
 

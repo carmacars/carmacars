@@ -450,14 +450,17 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- ================================================================ who is acting (by user id), continued
--- An active virtual assistant holding one of the named functions. For the server, which acts
--- for a named user (app.va_has() is the same question about the browser session).
-create or replace function app.user_va_has(p_user uuid, variadic p_functions text[]) returns boolean
+-- An active virtual assistant holding one of the named functions (any function when none is
+-- named, as app.va_has()). For the server, which acts for a named user (app.va_has() is the
+-- same question about the browser session). The one definition: migration 0020 uses it as is
+-- (docs/changes/0019_0020_integration.md).
+create or replace function app.user_va_has(p_user uuid, variadic p_functions text[] default '{}') returns boolean
 language sql stable security definer set search_path = public, app as $$
   select exists (
     select 1 from user_roles r join users u on u.id = r.user_id
       join staff_profiles sp on sp.user_id = r.user_id and sp.staff_type = 'va' and sp.is_active
-     where r.user_id = p_user and r.role = 'va' and u.status = 'active' and sp.va_function::text = any (p_functions))
+     where r.user_id = p_user and r.role = 'va' and u.status = 'active'
+       and (cardinality(p_functions) = 0 or sp.va_function::text = any (p_functions)))
 $$;
 
 -- Age in whole years on a date, and the age band the fees and the booking_drivers table use.
@@ -2191,6 +2194,9 @@ create trigger booking_extensions_guard_approver before insert or update on book
   for each row execute function app.guard_approver('approved_by', 'declined_by');
 
 -- An Admin waives the Deposit of a confirmed booking, with a reason. The amount waived is kept.
+-- The one definition: the checks are in app.booking_app_before(), so a waiver from the portal
+-- and one through this function follow the same rules. Migration 0020 calls it from
+-- app.complete_handover() and closes the Deposit tasks when a waiver is recorded.
 create or replace function app.waive_deposit(p_booking uuid, p_by uuid, p_reason text) returns void
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -2304,14 +2310,8 @@ begin
       perform app.allocate_refund(v_refund);
     end if;
   end if;
-  insert into tasks (queue, task_type, title, detail, procedure_no, priority, booking_id, vehicle_id, renter_id, related_table, related_id)
-  values ('finance', 'cancellation_refund', format('Booking %s was cancelled', b.booking_number),
-          format('Tier %s: refund of %s cents (%s basis points of %s paid), kept %s. %s', c.tier, c.refund_cents, c.refund_bps, c.total_paid_cents,
-                 c.retained_cents,
-                 case when c.refund_cents > 0 then 'Approve and pay the refund within the refund period.' else 'No refund applies.' end
-                 || case when (v_preview ->> 'deposit_hold_to_release')::boolean or c.deposit_returned_cents > 0
-                         then ' Any Deposit already taken is returned in full.' else '' end),
-          1, 'high', p_booking, b.vehicle_id, b.renter_id, case when v_refund is not null then 'refunds' end, v_refund);
+  -- Finance's refund task (refund_cancellation, procedure 7) is raised by the booking_cancellations
+  -- trigger of migration 0020 (docs/changes/0019_0020_integration.md).
   perform app.log_booking_event(p_booking, 'cancelled', 'confirmed', v_to::text, null, p_note, p_by, null,
     jsonb_build_object('reason', p_reason, 'tier', c.tier, 'refund_bps', c.refund_bps, 'refund_cents', c.refund_cents,
                        'retained_cents', c.retained_cents, 'refund_id', v_refund));
@@ -2443,10 +2443,8 @@ begin
       (v ->> 'fees_difference_cents')::bigint, (v ->> 'hst_cents')::bigint, (v ->> 'total_cents')::bigint,
       p_by, nullif(btrim(coalesce(p_note, '')), ''), v -> 'lines')
   returning id into v_id;
-  insert into tasks (queue, task_type, title, detail, procedure_no, priority, due_at, booking_id, vehicle_id, renter_id, related_table, related_id)
-  values ('cs', 'extension_requested', format('Booking %s: extension asked for', b.booking_number),
-          'Check the calendar, unpaid charges and coverage to the new return date, then approve or decline. It must be paid before the current return time.',
-          1, 'high', b.return_at, p_booking, b.vehicle_id, b.renter_id, 'booking_extensions', v_id);
+  -- customer service's task (review_extension, procedure 6, due by the current return time) is
+  -- raised by the booking_extensions trigger of migration 0020
   perform app.log_booking_event(p_booking, 'extension', b.status::text, b.status::text, null, p_note, p_by, null,
     jsonb_build_object('extension_id', v_id, 'step', 'requested', 'new_return_at', p_new_return, 'total_cents', (v ->> 'total_cents')::bigint));
   perform app.emit_event('renter_extension_requested', 'booking_extension', v_id,
@@ -3301,15 +3299,8 @@ begin
   values (p_booking, p_driver, p_kind, v_doc, v_iv, v_cp, p_by)
   returning id into v_id;
 
-  -- one review task per booking, due before pickup
-  if not exists (select 1 from tasks t where t.booking_id = p_booking and t.task_type = 'verify_renter' and t.status in ('open', 'in_progress', 'waiting')) then
-    insert into tasks (queue, task_type, title, detail, procedure_no, priority, due_at, booking_id, vehicle_id, renter_id)
-    values ('cs', 'verify_renter', format('Booking %s: documents to review', b.booking_number),
-            'Review each licence image, selfie and proof of coverage, and approve or reject each with a reason.', 2, 'normal',
-            greatest(b.pickup_at - make_interval(hours => v_set.verification_due_hours_before_pickup),
-                     now() + make_interval(hours => v_set.verification_review_hours)),
-            p_booking, b.vehicle_id, b.renter_id);
-  end if;
+  -- the review task (verify_renter, one per booking, due before pickup) is raised by the
+  -- identity_verifications and coverage_proofs triggers of migration 0020
   -- ready for review: the proof of coverage at once; a driver's identity once all three images are in
   if not v_id_kind or (select count(distinct u.kind) from verification_uploads u
                         where u.booking_id = p_booking and u.driver_id = p_driver and u.status in ('submitted', 'approved')) = 3 then

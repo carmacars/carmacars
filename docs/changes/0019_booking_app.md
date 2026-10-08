@@ -1,5 +1,7 @@
 # 0019: the booking application
 
+> **Merged with 0020.** Migrations 0019 and 0020 were written in parallel and have been integrated into one design. This migration now holds the one definition of the Deposit waiver columns, `app.waive_deposit(booking, by, reason)`, `app.user_va_has` (any function when none is named) and `verification_due_hours_before_pickup`. The extension, cancellation refund and document review tasks are no longer inserted here: 0020's rule-based task triggers raise them (`review_extension`, `refund_cancellation`, `verify_renter`). Every overlap and its resolution: [0019_0020_integration.md](0019_0020_integration.md). Where this record differs, that file wins.
+
 Migration `supabase/migrations/0019_booking_app.sql`, tests `supabase/tests/08_booking_app.sql` (415 assertions). Builds on migrations 0001 to 0017 only. No shared document, earlier migration or existing test was edited.
 
 What it adds: the quote and the search for the public site, the public booking request, signing built into the platform, the confirmation under a lock on the vehicle when the card is authorized, renter self-service (cancellation, extensions, change requests, questions from staff), identity and coverage documents with staff review, the handover guards, two-step sign-in for staff, and the `public` wrappers the API needs.

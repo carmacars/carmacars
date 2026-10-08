@@ -548,7 +548,7 @@ select app.complete_handover(test.b('opW'), test.id('op_fleet'),
                      'renter_signature_ref', 's', 'staff_signature_ref', 's', 'photos', test.op_photos('pickup'),
                      'deposit_waiver', jsonb_build_object('by', test.id('op_admin'), 'reason', 'long-standing customer')), null, test.at('2031-07-10 10:00'));
 select test.eq('H with an Admin''s waiver the car is handed over with no Deposit, and the waiver is on the booking',
-  (select status || '/' || deposit_cents || '/' || deposit_waived_cents || '/' || (deposit_waived_by = test.id('op_admin')) || '/' || deposit_waiver_reason from bookings where id = test.b('opW'))
+  (select status || '/' || deposit_cents || '/' || deposit_waived_cents || '/' || (deposit_waived_by = test.id('op_admin')) || '/' || deposit_waived_reason from bookings where id = test.b('opW'))
   || ' ' || (select count(*) from deposits where booking_id = test.b('opW')), 'on_rent/0/100000/true/long-standing customer 0');
 
 -- ------------------------------------------------------------------ incidents, breakdown, vehicle swap

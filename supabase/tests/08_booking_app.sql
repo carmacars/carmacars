@@ -992,7 +992,7 @@ select test.eq('C the refund waits for approval, against the payment, due within
           || '/' || (r.due_by = app.add_business_days(app.today(), 10)) || '/' || (select sum(amount_cents + hst_cents) from refund_allocations where refund_id = r.id)
      from refunds r where r.booking_id = test.ba('c1')), 'pending_approval/cancellation/9500/64410/true/true/64410');
 select test.eq('C Finance has the task, the history has the cancellation, and the car is free again',
-  (select count(*) || ':' || min(queue) from tasks where booking_id = test.ba('c1') and task_type = 'cancellation_refund')
+  (select count(*) || ':' || min(queue) from tasks where booking_id = test.ba('c1') and task_type = 'refund_cancellation')
   || '/' || (select actor_type || ':' || (details ->> 'tier') from booking_events where booking_id = test.ba('c1') and kind = 'cancelled')
   || '/' || app.vehicle_is_available(test.id('vehicle:BA2'), test.soon('10 days'), test.soon('13 days')), '1:finance/renter:within_24h_of_booking/true');
 select test.throws('C a cancelled booking is not cancelled again', $$select app.cancel_booking(test.ba('c1'), test.id('ba_cs'))$$, 'only a confirmed booking is cancelled');
@@ -1058,7 +1058,7 @@ select test.eq('E the renter asks: the request is on record, priced, with who as
 select test.eq('E the renter gets an acknowledgement and customer service is told at once; the task is due by the current return time',
   (select string_agg(code || ':' || (dedupe_key = code || ':' || entity_id || ':requested'), ' ' order by code) from app_events where entity = 'booking_extension' and entity_id = test.ba('e1:x'))
   || '/' || (select count(*) || ':' || min(priority) || ':' || bool_and(due_at = test.soon('10 days')) from tasks where related_id = test.ba('e1:x')),
-  'renter_extension_requested:true staff_extension_requested:true/1:high:true');
+  'renter_extension_requested:true staff_extension_requested:true/1:urgent:true');
 select test.eq('E asking does not move the return time', (select return_at = test.soon('10 days') and billable_days = 7 from bookings where id = test.ba('e1')), true);
 select test.throws('E one extension request at a time',
   $$select app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.soon('14 days'))$$, 'already open');
