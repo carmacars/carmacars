@@ -127,9 +127,9 @@ select test.eq('R5 CarmaCars cancels a non-refundable booking: everything paid i
 
 -- young drivers
 update drivers set date_of_birth = date '2008-01-01' where id = test.id('driver:other');
-select test.throws('P2 a driver aged 18 to 20 may only take a car flagged for them',
+select test.lives('P2 (0025) every car takes drivers aged 18 to 20 (the flag defaults to allowed)',
   format($$insert into booking_drivers (booking_id, driver_id, role, full_name, date_of_birth, age_at_pickup, age_band)
-           values (%L, %L, 'renter', 'Other', date '2008-01-01', 19, '18_to_20')$$, test.id('booking:CY'), test.id('driver:other')), '18 to 20');
+           values (%L, %L, 'renter', 'Other', date '2008-01-01', 19, '18_to_20')$$, test.id('booking:CY'), test.id('driver:other')));
 select test.throws('P2 nobody under 18 drives',
   format($$insert into booking_drivers (booking_id, driver_id, role, full_name, date_of_birth, age_at_pickup, age_band)
            values (%L, %L, 'renter', 'Other', date '2010-01-01', 17, '26_plus')$$, test.id('booking:CY'), test.id('driver:other')), 'check');

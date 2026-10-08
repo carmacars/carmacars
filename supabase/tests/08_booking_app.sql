@@ -153,12 +153,12 @@ select test.eq('S the numbers an Admin may change are program settings, with the
 select test.eq('S an extension can now be approved between asking and paying',
   (select pg_get_constraintdef(oid) ~ 'requested.*approved.*confirmed.*declined.*lapsed' from pg_constraint
     where conrelid = 'public.booking_extensions'::regclass and conname = 'booking_extensions_status_check'), true);
-select test.eq('S the consent list keeps its seven codes and gains the two of the request form',
+select test.eq('S the consent list keeps its seven codes and gains the two of the request form (and 0025''s necessary_cookies)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('terms_of_use', 'privacy_policy', 'marketing', 'tracking_disabling'))
-     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'consents_consent_code_check'), '''([a-z_]+)''::text', 'g') m), '9/4');
-select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen',
+     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'consents_consent_code_check'), '''([a-z_]+)''::text', 'g') m), '10/4');
+select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen (and 0025''s two)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('requested', 'pushed_back', 'agreement_voided', 'payment_refused'))
-     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '25/4');
+     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '27/4');
 select test.eq('S nothing in the app schema that this migration added is executable from a browser session, except the quote, the search and the assurance level',
   (select string_agg(distinct p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
@@ -265,29 +265,31 @@ select test.eq('Q 12 days, every per-day fee at its cap per rental: young driver
                || 'additional driver $10 x 12 capped at $70, per driver; winter tire $15 x 12 capped at $150; baby seat $12 x 12 capped at $70, per seat',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || ':' || (l -> 'detail' ->> 'capped'), ' ' order by o)
      from test.out('q6') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)),
-  'rental_charge=96000:false young_driver_18_20=35000:true young_driver_21_25=20000:true additional_driver=7000:true additional_driver=7000:true winter_tire=15000:true baby_seat=14000:true');
+  -- 0025: young driver fees have no maximum; the additional driver fee is 25% of the $100 daily rate a day, no maximum
+  'rental_charge=96000:false young_driver_18_20=42000:false young_driver_21_25=24000:false additional_driver=30000:false additional_driver=30000:false winter_tire=15000:true baby_seat=14000:true');
 select test.eq('Q each per-driver line names its driver and their age band',
   (select string_agg((l ->> 'description'), ' | ' order by o) from test.out('q6') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)
     where l ->> 'charge_type' like 'young%'), 'Young driver, 18 to 20: Yara Young | Young driver, 21 to 25: Tom Twenty');
-select test.eq('Q the total is the sum of the lines, HST per line: $1,940.00 + $252.20',
-  (select (v ->> 'subtotal_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents') from test.out('q6') v), '194000/25220/219220');
-select test.eq('Q under their caps the fees are per day: 3 days, a driver of 19 ($105) and one additional driver of 30 ($30), one baby seat ($36)',
+select test.eq('Q the total is the sum of the lines, HST per line: $2,510.00 + $326.30 (0025 fees)',
+  (select (v ->> 'subtotal_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents') from test.out('q6') v), '251000/32630/283630');
+select test.eq('Q the fees are per day: 3 days, a driver of 19 ($105) and one additional driver of 30 ($75: 25% of $100 a day, 0025), one baby seat ($36)',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || ':' || (l -> 'detail' ->> 'capped'), ' ' order by o)
      from app.quote_booking(test.id('vehicle:BAY'), test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'),
             '{"drivers": [{"age": 19}, {"age": 30}], "extras": {"baby_seats": 1}}') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)),
-  'rental_charge=30000:false young_driver_18_20=10500:false additional_driver=3000:false baby_seat=3600:false');
-select test.eq('Q a driver of 18 to 20 on a car not offered to them, and a driver under 18, are problems the quote names',
+  'rental_charge=30000:false young_driver_18_20=10500:false additional_driver=7500:false baby_seat=3600:false');
+select test.eq('Q a driver under 18 is a problem the quote names; a driver of 18 to 20 is not (0025: every car takes them)',
   (select string_agg(p ->> 'code', ',' order by p ->> 'code')
      from app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'), '{"drivers": [{"age": 19}, {"age": 17}]}') v,
-          jsonb_array_elements(v -> 'problems') p), 'driver_under_minimum_age,vehicle_not_for_young_drivers');
+          jsonb_array_elements(v -> 'problems') p), 'driver_under_minimum_age');
 select test.eq('Q with no driver given the quote assumes one renter of 26 or over: no driver fee',
   (select (v -> 'drivers' -> 0 ->> 'assumed') || '/' || jsonb_array_length(v -> 'lines') from test.out('q1') v), 'true/1');
 -- coverage: a placeholder until an Admin prices it
 select test.keep('q7', app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-03 10:00'), test.at('2029-05-06 10:00'), '{"coverage_option": 3}'));
-select test.eq('Q coverage through CarmaCars has no price yet: no line, the quote says it is not available and why',
+select test.eq('Q (0025) coverage through CarmaCars is sold; with no default price: no line, no problem, the quote says it is priced in the offer',
   (select jsonb_array_length(v -> 'lines') || '/' || (v -> 'coverage' ->> 'option') || '/' || (v -> 'coverage' ->> 'sold_by_carmacars_available')
-          || '/' || coalesce(v -> 'coverage' ->> 'sold_by_carmacars_price_cents', 'no price') || '/' || (v -> 'problems' -> 0 ->> 'code') from test.out('q7') v),
-  '1/3/false/no price/coverage_not_sold_yet');
+          || '/' || coalesce(v -> 'coverage' ->> 'sold_by_carmacars_price_cents', 'no price') || '/' || coalesce(v -> 'problems' -> 0 ->> 'code', 'no problem')
+          || '/' || (v -> 'coverage' ->> 'price_note') from test.out('q7') v),
+  '1/3/true/no price/no problem/Priced in your offer');
 insert into vehicle_fee_overrides (vehicle_id, fee_type_code, amount_cents, reason, effective_from)
 values (test.id('vehicle:BA2'), 'coverage_sold', 4500, 'test price', app.today()),
        (test.id('vehicle:BA2'), 'additional_driver', 1500, 'test price', app.today());
@@ -340,12 +342,12 @@ select test.eq('SR a car with a confirmed booking in the dates is not in the res
 select test.eq('SR the search total is the quote total',
   (select bool_and(s.total_cents = (app.quote_booking(s.vehicle_id, test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00')) ->> 'total_cents')::bigint)
      from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00')) s), true);
-select test.eq('SR filters: class; cars offered to drivers of 18 to 20; a ceiling on the daily rate; and the quote options (a driver of 19 on the young-driver car)',
+select test.eq('SR filters: class; cars offered to drivers of 18 to 20 (0025: every car); a ceiling on the daily rate; and the quote options (a driver of 19)',
   (select string_agg(slug, ',') from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'), '{"class": "economy"}') where slug like 'ba-%')
   || ' ' || (select string_agg(slug || '=' || total_cents, ',') from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'),
                       '{"young": true, "options": {"drivers": [{"age": 19}]}}') where slug like 'ba-%')
   || ' ' || (select string_agg(slug, ',') from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'), '{"max_daily_rate_cents": 9000}') where slug like 'ba-%'),
-  'ba-ba9 ba-bay=45765 ba-ba9');
+  'ba-ba9 ba-ba9=38985,ba-ba1=45765,ba-ba2=45765,ba-ba3=45765,ba-ba4=45765,ba-ba5=45765,ba-ba6=45765,ba-ba8=45765,ba-bap=45765,ba-bay=45765 ba-ba9');
 select test.eq('SR it returns the car and the price only: no owner, plate, VIN or person',
   (select pg_get_function_result('app.search_available(timestamptz, timestamptz, jsonb)'::regprocedure) ~ '(owner|plate|vin|renter|fleet_number)'), false);
 select test.throws('SR over 30 days is refused', $$select * from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-06-21 09:00'))$$, '1 to 30 days');
@@ -395,13 +397,13 @@ select test.eq('R the drivers are on the booking with their age band at pickup',
 select test.eq('R every line of the price is created with the request: rental (weekly rule, $800), delivery, the young driver and additional driver fees, winter tires, the baby seat',
   (select string_agg(charge_type || '=' || amount_cents || '+' || hst_cents, ' ' order by f.sort_order)
      from booking_line_items li join fee_types f on f.code = li.charge_type where li.booking_id = test.ba('r1') and li.voided_at is null),
-  'rental_charge=80000+10400 delivery=7500+975 young_driver_21_25=20000+2600 additional_driver=7000+910 winter_tire=15000+1950 baby_seat=7000+910');
+  'rental_charge=80000+10400 delivery=7500+975 young_driver_21_25=20000+2600 additional_driver=25000+3250 winter_tire=15000+1950 baby_seat=7000+910');
 select test.eq('R the per-driver lines carry their driver',
   (select count(*) filter (where li.driver_id is not null) || '/' || count(*) from booking_line_items li
     where li.booking_id = test.ba('r1') and li.charge_type in ('young_driver_21_25', 'additional_driver')), '2/2');
-select test.eq('R the totals are the sum of the lines: $1,365.00 + HST $177.45',
+select test.eq('R the totals are the sum of the lines: $1,545.00 + HST $200.85 (0025 fees)',
   (select subtotal_at_booking_cents || '/' || hst_at_booking_cents || '/' || total_due_at_booking_cents || '/' || renter_due_at_booking_cents
-     from bookings where id = test.ba('r1')), '136500/17745/154245/154245');
+     from bookings where id = test.ba('r1')), '154500/20085/174585/174585');
 select test.eq('R the quote for the same choices and the booking agree, line by line and in total',
   (select (q ->> 'total_cents')::bigint = b.total_due_at_booking_cents
           and (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || '+' || (l ->> 'hst_cents'), ' ' order by o)
@@ -416,7 +418,7 @@ select test.eq('R the quote for the same choices and the booking agree, line by 
 select test.eq('R the fee terms of the booking are snapshotted with where each came from',
   (select count(*) || '/' || string_agg(fee_type_code || '=' || coalesce(amount_cents::text, 'not priced') || ':' || coalesce(cap_cents::text, '-') || ':' || source, ' ' order by fee_type_code)
      from booking_fee_terms where booking_id = test.ba('r1')),
-  '6/additional_driver=1000:7000:default baby_seat=1200:7000:default coverage_sold=not priced:-:default winter_tire=1500:15000:default young_driver_18_20=3500:35000:default young_driver_21_25=2000:20000:default');
+  '6/additional_driver=not priced:-:default baby_seat=1200:7000:default coverage_sold=not priced:-:default winter_tire=1500:15000:default young_driver_18_20=3500:-:default young_driver_21_25=2000:-:default');
 select test.eq('R the request as sent is kept on the booking: extras, what else the customer said, the consent versions, the flags',
   (select (d -> 'extras' ->> 'winter_tire') || '/' || (d -> 'extras' ->> 'baby_seats') || '/' || (d ->> 'accepts_similar') || '/' || (d ->> 'landing_path')
           || '/' || (d ->> 'terms_version') || '/' || (d ->> 'privacy_version') || '/' || (d ->> 'marketing_opt_in') || '/' || (d ->> 'conflict_at_submit')
@@ -486,13 +488,12 @@ update program_settings set max_rental_days = 30 where effective_from = (select 
 select test.throws('R a renter under 18 at pickup is refused',
   $$select app.submit_booking_request(test.ba_req('x9', 'x.nine@example.test', 'BAY', test.soon('10 days'), test.soon('12 days'),
       jsonb_build_object('renter', jsonb_build_object('date_of_birth', test.dob(17)))))$$, '18 or older at pickup');
-select test.throws('R a renter of 18 to 20 is refused on a car not offered to them',
+select test.lives('R (0025) a renter of 18 to 20 is accepted on any car',
   $$select app.submit_booking_request(test.ba_req('x10', 'x.ten@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'),
-      jsonb_build_object('renter', jsonb_build_object('date_of_birth', test.dob(19)))))$$, 'for drivers 21 and over');
-select test.throws('R so is an additional driver of 18 to 20',
+      jsonb_build_object('renter', jsonb_build_object('date_of_birth', test.dob(19)))))$$);
+select test.lives('R (0025) so is an additional driver of 18 to 20',
   $$select app.submit_booking_request(test.ba_req('x11', 'x.eleven@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'),
-      jsonb_build_object('additional_drivers', jsonb_build_array(jsonb_build_object('full_name', 'Kid K', 'date_of_birth', test.dob(19), 'email', 'kid@example.test')))))$$,
-  'for drivers 21 and over');
+      jsonb_build_object('additional_drivers', jsonb_build_array(jsonb_build_object('full_name', 'Kid K', 'date_of_birth', test.dob(19), 'email', 'kid@example.test')))))$$);
 select test.throws('R a G1 licence is refused: class G or G2',
   $$select app.submit_booking_request(test.ba_req('x12', 'x.twelve@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'),
       '{"renter": {"licence_class": "G1"}}'))$$, 'class G or G2 licence is needed');
@@ -517,8 +518,8 @@ select test.throws('R an additional driver needs a name, a date of birth and an 
       '{"additional_drivers": [{"full_name": "Dee Dee", "date_of_birth": "1980-01-01"}]}'))$$, 'full name, a date of birth and an email');
 select test.throws('R a coverage option must be chosen',
   $$select app.submit_booking_request(test.ba_req('x19', 'x.nineteen@example.test', 'BA1', test.soon('10 days'), test.soon('12 days')) - 'coverage_option')$$, 'option 1, 2 or 3');
-select test.throws('R coverage through CarmaCars cannot be chosen while it has no price',
-  $$select app.submit_booking_request(test.ba_req('x20', 'x.twenty@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'), '{"coverage_option": 3}'))$$, 'not available yet');
+select test.lives('R (0025) coverage through CarmaCars may be chosen before it has a price: it is priced in the offer',
+  $$select app.submit_booking_request(test.ba_req('x20', 'x.twenty@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'), '{"coverage_option": 3}'))$$);
 select test.throws('R a delivery needs its address',
   $$select app.submit_booking_request(test.ba_req('x21', 'x.twentyone@example.test', 'BA1', test.soon('10 days'), test.soon('12 days'), '{"pickup_method": "delivered"}'))$$, 'needs its address');
 select test.throws('R the note has a maximum length (500 characters, a setting)',
@@ -529,7 +530,9 @@ select test.throws('R at most 3 baby seats',
 select test.throws('R a valid email address is needed',
   $$select app.submit_booking_request(test.ba_req('x24', 'not-an-email', 'BA1', test.soon('10 days'), test.soon('12 days')))$$, 'valid email');
 select test.eq('R a refused request leaves nothing behind: no user, no booking',
-  (select count(*) from users where email like 'x.%@example.test') + (select count(*) from bookings where request_key like 'ba-key-x%'), 0::bigint);
+  (select count(*) from users where email like 'x.%@example.test' and email not in ('x.ten@example.test', 'x.eleven@example.test', 'x.twenty@example.test'))
+  + (select count(*) from bookings b join renters r on r.id = b.renter_id join users u on u.id = r.user_id
+      where b.request_key like 'ba-key-x%' and u.email not in ('x.ten@example.test', 'x.eleven@example.test', 'x.twenty@example.test')), 0::bigint);
 
 -- a licence from elsewhere, a young driver, and coverage once priced
 select test.ba_new('r3', 'cat.clark@example.test', 'BAY', test.soon('10 days'), test.soon('13 days'),
@@ -609,10 +612,10 @@ select test.eq('R dates that another booking has confirmed are still accepted as
   'true/true/true');
 
 -- ------------------------------------------------------------------ request, offer, approve, sign, pay, confirmed
--- F1: 7 days ($560) with one additional driver ($10 x 7 = $70): $630 + HST $81.90 = $711.90
+-- F1: 7 days ($560) with one additional driver (0025: 25% of $100 = $25 x 7 = $175): $735 + HST $95.55 = $830.55
 select test.ba_new('f1', 'gus.green@example.test', 'BA8', test.soon('10 days'), test.soon('17 days'),
   '{"additional_drivers": [{"full_name": "Gina Green", "date_of_birth": "1985-02-02", "email": "gina.green@example.test"}]}');
-select test.eq('F the request is priced: $711.90 due at booking', (select total_due_at_booking_cents from bookings where id = test.ba('f1')), 71190::bigint);
+select test.eq('F the request is priced: $830.55 due at booking', (select total_due_at_booking_cents from bookings where id = test.ba('f1')), 83055::bigint);
 select test.throws('F an agreement cannot be opened on a request', $$select test.ba_open('f1')$$, 'opened once the offer is approved');
 select test.eq('F customer service sends the offer: version 1', app.send_offer(test.ba('f1'), test.id('ba_cs'), 'Hello Gus, here is your offer.'), 1);
 select test.throws('F nor while the offer is still with the renter', $$select test.ba_open('f1')$$, 'opened once the offer is approved');
@@ -696,7 +699,7 @@ select test.throws('SG nor removed', format($$delete from signature_records wher
 -- payment
 select test.eq('P an amount other than what the renter owes at booking is refused, saying what is owed',
   (select (v ->> 'ok') || '/' || (v ->> 'reason') || '/' || (v ->> 'action') || '/' || (v ->> 'expected_cents') || '/' || (v ->> 'received_cents') from test.ba_pay('f1', 71100) v),
-  'false/amount_mismatch/void_authorization/71190/71100');
+  'false/amount_mismatch/void_authorization/83055/71100');
 select test.eq('P a payment for an offer version that is not the approved one is refused',
   (select (v ->> 'reason') || '/' || (v ->> 'action') from test.ba_pay('f1', null, 2) v), 'offer_changed/void_authorization');
 select test.eq('P nothing was recorded by those attempts, each is in the history, and the booking still waits',
@@ -705,12 +708,12 @@ select test.eq('P nothing was recorded by those attempts, each is in the history
 select test.keep('f1:paid', test.ba_pay('f1', null, null, 'evt_f1'));
 select test.eq('P signed, the right amount, the car free: the payment is recorded and the booking confirmed in one step; the server may capture',
   (select (v ->> 'ok') || '/' || (v ->> 'status') || '/' || (v ->> 'action') || '/' || (v ->> 'amount_cents') from test.out('f1:paid') v) || '/' || test.ba_st('f1'),
-  'true/confirmed/capture/71190/confirmed');
+  'true/confirmed/capture/83055/confirmed');
 select test.eq('P the payment: the booking total, a card charge, succeeded, with the card shown as brand and last four',
   (select p.purpose || '/' || p.kind || '/' || p.method || '/' || p.status || '/' || p.amount_cents || '/' || p.card_brand || '/' || p.card_last4 || '/' || (p.processed_at is not null)
           || '/' || d.processor || '/' || d.processor_payment_id || '/' || d.processor_charge_id
      from payments p join payment_processor_details d on d.payment_id = p.id where p.booking_id = test.ba('f1')),
-  'booking_total/charge/card/succeeded/71190/visa/4242/true/stripe/pi_f1/ch_f1');
+  'booking_total/charge/card/succeeded/83055/visa/4242/true/stripe/pi_f1/ch_f1');
 select test.eq('P the card becomes the Card on File; the processor''s ids are in the admin-only table',
   (select pm.card_brand || '/' || pm.card_last4 || '/' || pm.is_credit || '/' || pm.cardholder_name || '/' || s.processor_method_id || '/' || s.processor_customer_id
      from bookings b join payment_methods pm on pm.id = b.card_on_file_id join payment_method_secrets s on s.payment_method_id = pm.id where b.id = test.ba('f1')),
@@ -1037,9 +1040,9 @@ select test.eq('E line by line',
      from test.out('e1:pv') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)), 'rental_charge=24000+3120 young_driver_21_25=6000+780');
 select test.eq('E the rental difference is the one public.calc_extension() gives',
   (select rental_difference_cents from public.calc_extension(test.soon('3 days'), 7, 10, 10000, 12000, 56000, 180000)), 24000::bigint);
-select test.eq('E to 12 days the fee is already at its cap: rental $960 (+$400), fee +$60',
+select test.eq('E to 12 days: rental $960 (+$400), young driver fee +$100 (0025: no maximum)',
   (select (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'total_cents') from app.preview_extension(test.ba('e1'), test.soon('15 days')) v),
-  '40000/6000/51980');
+  '40000/10000/56500');
 select test.eq('E what cannot be done is said: not later than the current return; over 30 days in total; asked after the return time; a booking that is not live',
   (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.soon('9 days')) v) || ' '
   || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.soon('40 days')) v) || ' '
@@ -1175,13 +1178,13 @@ select test.eq('CH staff approve: a change the renter asked for that costs nothi
      from booking_change_requests where id = test.ba('ch:1'))
   || '/' || (select count(*) from app_events where code = 'renter_change_request_approved' and entity_id = test.ba('ch:1')), 'approved/true/true/true/1');
 select test.keep('ch:1:done', app.apply_booking_change(test.ba('ch:1'), test.id('ba_cs')));
-select test.eq('CH applied: the booking has the new dates, the same price, and the calendar follows',
+select test.eq('CH applied: the booking has the new dates, the same price, and the calendar follows (0025: the day before the new pickup ends inside its 2-hour turnaround)',
   (select (v ->> 'ok') || '/' || (v ->> 'status') from test.out('ch:1:done') v)
   || '/' || (select (pickup_at = test.soon('51 days')) || ':' || (return_at = test.soon('58 days')) || ':' || (original_return_at = test.soon('58 days')) || ':' || total_due_at_booking_cents || ':' || status
                from bookings where id = test.ba('ch'))
   || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.soon('50 days'), test.soon('51 days')) || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.soon('57 days'), test.soon('58 days'))
   || '/' || (select status || ':' || (applied_by = test.id('ba_cs')) || ':' || (applied_at is not null) from booking_change_requests where id = test.ba('ch:1')),
-  'true/applied/true:true:true:63280:confirmed/true/false/applied:true:true');
+  'true/applied/true:true:true:63280:confirmed/false/false/applied:true:true');
 -- a change that costs more: the renter agrees and pays the difference
 insert into test.ba_ids values ('ch:2', app.request_booking_change(test.ba('ch'), test.ba_user('wes.west@example.test'), jsonb_build_object('return_at', test.soon('61 days'))));
 select app.approve_booking_change(test.ba('ch:2'), test.id('ba_fleet'));
@@ -1229,11 +1232,10 @@ insert into test.ba_ids values ('ch:5', app.request_booking_change(test.ba('ch')
 select app.withdraw_booking_change(test.ba('ch:5'), test.ba_user('wes.west@example.test'));
 select test.eq('CH the renter withdraws a request', (select status from booking_change_requests where id = test.ba('ch:5')), 'cancelled');
 -- another car
-select test.eq('CH another Owner''s car is not possible on a confirmed booking (it keeps the Owner and Revenue Share stored on it); the preview says so',
-  (select (v ->> 'ok') || '/' || (v -> 'problems' -> 0 ->> 'code') from app.preview_booking_change(test.ba('ch'), jsonb_build_object('vehicle_id', test.id('vehicle:BAP'))) v),
-  'false/other_owner_vehicle');
-select test.throws('CH and asking for it is refused',
-  $$select app.request_booking_change(test.ba('ch'), test.id('ba_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:BAP')))$$, 'same Owner on the same terms');
+select test.eq('CH (0025) another Owner''s car is possible on a confirmed booking once the renter agrees; the preview raises no Owner problem',
+  (select coalesce((select string_agg(p ->> 'code', ',') from jsonb_array_elements(v -> 'problems') p where p ->> 'code' = 'other_owner_vehicle'), 'none')
+     from app.preview_booking_change(test.ba('ch'), jsonb_build_object('vehicle_id', test.id('vehicle:BAP'))) v),
+  'none');
 select test.eq('CH dates on which the car is not free are refused in the preview',
   (select (v ->> 'available') || '/' || (v -> 'problems' -> 0 ->> 'code')
      from app.preview_booking_change(test.ba('ch'), jsonb_build_object('pickup_at', test.soon('12 days'), 'return_at', test.soon('19 days'))) v), 'false/not_available');
@@ -1526,12 +1528,12 @@ select test.throws('renter: cannot add a signature by hand',
 select test.throws('renter: cannot write a change request', $$insert into booking_change_requests (booking_id, requested_by_role, changes) values (gen_random_uuid(), 'renter', '{}')$$, 'permission denied');
 select test.throws('renter: cannot write an upload record', $$update verification_uploads set status = 'approved'$$, 'permission denied');
 select test.eq('renter: previews the cancellation of his own booking through the wrapper',
-  (select (v ->> 'can_cancel') || '/' || (v ->> 'total_paid_cents') || '/' || ((v ->> 'tier') is not null) from public.my_cancellation_preview(test.ba('f1')) v), 'true/71190/true');
+  (select (v ->> 'can_cancel') || '/' || (v ->> 'total_paid_cents') || '/' || ((v ->> 'tier') is not null) from public.my_cancellation_preview(test.ba('f1')) v), 'true/83055/true');
 select test.eq('renter: and an extension, a change of dates, the readiness roll-up and a promo code, each for his own booking',
   (select (v ->> 'new_days') || ':' || (v ->> 'total_cents') || ':' || ((v -> 'lines' -> 0) ? 'revenue_class') from public.my_extension_preview(test.ba('f1'), test.soon('20 days')) v)
   || '/' || (select v ->> 'total_difference_cents' from public.my_booking_change_preview(test.ba('f1'), jsonb_build_object('pickup_at', test.soon('11 days'), 'return_at', test.soon('18 days'))) v)
   || '/' || (select v ->> 'agreement_completed' from public.my_booking_readiness(test.ba('f1')) v)
-  || '/' || public.my_promo_code_problem('NOPE', test.ba('f1')), '10:27120:false/0/true/This code is not known');
+  || '/' || public.my_promo_code_problem('NOPE', test.ba('f1')), '10:35595:false/0/true/This code is not known');
 select test.throws('renter: the cancellation preview of someone else''s booking is refused', $$select public.my_cancellation_preview(test.ba('g1'))$$, 'not your booking');
 select test.throws('renter: so is the extension preview', $$select public.my_extension_preview(test.ba('g1'), test.soon('40 days'))$$, 'not your booking');
 select test.throws('renter: the change preview', $$select public.my_booking_change_preview(test.ba('g1'), '{}')$$, 'not your booking');

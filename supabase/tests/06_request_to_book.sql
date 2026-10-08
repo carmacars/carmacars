@@ -110,12 +110,12 @@ select test.eq('S every new table has row-level security, the admin policy and a
       and c.relrowsecurity
       and exists (select 1 from pg_policies p where p.tablename = c.relname and p.policyname = 'admin_all')
       and exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), 7::bigint);
-select test.eq('S offers expire after 24 hours unless set otherwise; the turnaround buffer is 0',
-  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '24/0');
+select test.eq('S offers expire after 24 hours unless set otherwise; the turnaround buffer is 2 hours (0025)',
+  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '24/120');
 select test.eq('S the status flow lists the request steps',
   (select string_agg(from_status || '>' || to_status, ' ' order by from_status, to_status) from status_transitions
     where entity = 'booking' and (from_status in ('requested', 'offered') or to_status in ('requested', 'offered'))),
-  'offered>declined offered>pending_payment offered>requested pending_payment>requested requested>declined requested>offered requested>pending_payment');
+  'expired>requested offered>declined offered>expired offered>pending_payment offered>requested pending_payment>requested requested>declined requested>offered requested>pending_payment');
 select test.eq('S state-changing and money functions of this migration are not executable from a browser session',
   (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
@@ -387,8 +387,8 @@ select test.eq('SW it stays unconfirmed', test.st('T'), 'pending_payment');
 select app.set_blocks_calendar(test.b('T'), false, test.id('rq_fleet'), 'insurer booking: dates still moving');
 select test.lives('SW with the switch off the same booking can be confirmed over the other one',
   $$update bookings set status = 'confirmed' where id = test.b('T')$$);
-select test.eq('SW and it does not take the car from anyone: the confirmed, blocking booking is the only one that counts',
-  app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 10:00'), test.at('2029-06-08 10:00')), true);
+select test.eq('SW and it does not take the car from anyone: the confirmed, blocking booking (and its 2-hour turnaround, 0025) is the only one that counts',
+  app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 12:00'), test.at('2029-06-08 10:00')), true);
 select test.throws('SW turning the switch on runs the same overlap check as confirmation',
   $$select app.set_blocks_calendar(test.b('T'), true, test.id('rq_cs'), 'dates are now final')$$, 'not available for these dates');
 select test.eq('SW so the switch stays off', (select blocks_calendar from bookings where id = test.b('T')), false);
@@ -420,9 +420,9 @@ select test.throws('SW moving a blocking booking onto another one is refused',
   $$update bookings set pickup_at = pickup_at - interval '14 days', return_at = return_at - interval '14 days' where id = test.b('P')$$, 'not available for these dates');
 
 -- ------------------------------------------------------------------ availability
-select test.eq('AV false across a confirmed, blocking booking; true for the time right after it; true when that booking is ignored',
+select test.eq('AV false across a confirmed, blocking booking; true from the end of its 2-hour turnaround (0025); true when that booking is ignored',
   app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-06 10:00'), test.at('2029-06-07 12:00')) || '/'
-  || app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 10:00'), test.at('2029-06-08 10:00')) || '/'
+  || app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 12:00'), test.at('2029-06-08 10:00')) || '/'
   || app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-04 10:00'), test.at('2029-06-07 10:00'), test.b('A')), 'false/true/true');
 select test.eq('AV an empty or backwards range is never available',
   app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-07-01 10:00'), test.at('2029-07-01 10:00')) || '/'
@@ -432,7 +432,7 @@ insert into program_settings (effective_from, turnaround_buffer_minutes) values 
 select test.eq('AV with a 2-hour turnaround buffer set, the two hours after a return are not available, and the time after that is',
   app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 10:00'), test.at('2029-06-08 10:00')) || '/'
   || app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 12:00'), test.at('2029-06-08 10:00')), 'false/true');
-update program_settings set turnaround_buffer_minutes = 0 where effective_from = app.today();
+update program_settings set turnaround_buffer_minutes = 120 where effective_from = app.today();   -- 0025: the buffer is 2 hours
 -- calendar blocks
 select test.rq_new('k1', 'rq_eve', 'RQ1', '2029-07-02 10:00', '2029-07-05 10:00');
 select test.rq_ready('k1');
@@ -466,9 +466,9 @@ select test.eq('X the job does nothing while no offer is due, and records nothin
   app.job_offers_expire((select at from test.rq_times where k = 't0')) || '/' || (select count(*) from job_runs where job_name = 'offers-expire'), 'not_due/0');
 select test.eq('X ninety minutes later the offer is due: the job runs',
   app.job_offers_expire((select at + interval '90 minutes' from test.rq_times where k = 't0')), 'succeeded');
-select test.eq('X the expired offer goes back to requested, the offer is marked expired, the deadline cleared',
+select test.eq('X (0025) the expired offer closes the request: booking expired, the offer marked expired, the deadline cleared',
   (select b.status || '/' || o.status || '/' || coalesce(b.offer_expires_at::text, 'none') from bookings b join booking_offers o on o.booking_id = b.id where b.id = test.b('x1')),
-  'requested/expired/none');
+  'expired/expired/none');
 select test.eq('X with a system note and a follow-up task for customer service',
   (select actor_type || ':' || (note like 'Offer version 1 was not answered by%') from booking_events where booking_id = test.b('x1') and kind = 'offer_expired')
   || ' ' || (select count(*) || ':' || min(queue) from tasks where booking_id = test.b('x1') and task_type = 'offer_expired'), 'system:true 1:cs');
@@ -488,9 +488,10 @@ select test.eq('X a second call inside a minute that already ran waits for the n
   app.job_offers_expire((select at + interval '90 minutes' from test.rq_times where k = 't0')), 'already_run');
 select test.eq('X so that offer is still open', test.st('x2'), 'offered');
 select test.eq('X and the next run expires it', app.job_offers_expire((select at + interval '95 minutes' from test.rq_times where k = 't0')), 'succeeded');
-select test.eq('X back to requested', test.st('x2'), 'requested');
-select test.lives('X staff send an expired offer again with one call: version 2',
-  $$select app.send_offer(test.b('x1'), test.id('rq_cs'), 'Still interested?')$$);
+select test.eq('X (0025) closed as expired', test.st('x2'), 'expired');
+select test.lives('X (0025) staff reopen the expired request and send the offer again: version 2',
+  $$select app.reopen_expired_request(test.b('x1'), test.id('rq_cs')); select app.send_offer(test.b('x1'), test.id('rq_cs'), 'Still interested?')$$);
+select app.reopen_expired_request(test.b('x2'), test.id('rq_cs'));
 update program_settings set offer_expiry_hours = 48 where effective_from = (select effective_from from app.settings());
 select app.send_offer(test.b('x2'), test.id('rq_cs'));
 select test.eq('X the standard expiry is a program setting',
@@ -752,11 +753,11 @@ insert into vehicle_calendar_blocks (vehicle_id, reason, starts_at, ends_at, not
 values (test.id('vehicle:RQ2'), 'service', test.at('2029-06-07 10:00'), test.at('2029-06-08 10:00'), 'oil change, shop: Main St', test.id('rq_fleet'));
 insert into vehicle_calendar_blocks (vehicle_id, reason, starts_at, ends_at, removed_at, removed_by)
 values (test.id('vehicle:RQ2'), 'repair', test.at('2029-06-25 10:00'), test.at('2029-06-26 10:00'), now(), test.id('rq_fleet'));
-select test.eq('PC June 2029: the confirmed booking and the service block right after it are one stretch; then the second blocking booking. Nothing else.',
+select test.eq('PC June 2029: the confirmed booking (with its 2-hour turnaround either side, 0025) and the service block right after it are one stretch; then the second blocking booking. Nothing else.',
   (select string_agg(to_char(unavailable_from at time zone 'America/Toronto', 'MM-DD HH24:MI') || '>' || to_char(unavailable_to at time zone 'America/Toronto', 'MM-DD HH24:MI')
                      || ' ' || first_date || '..' || last_date, ' | ' order by unavailable_from)
      from app.public_vehicle_calendar(test.id('vehicle:RQ2'), date '2029-06-01', date '2029-06-30')),
-  '06-04 10:00>06-08 10:00 2029-06-04..2029-06-08 | 06-18 10:00>06-21 10:00 2029-06-18..2029-06-21');
+  '06-04 08:00>06-08 10:00 2029-06-04..2029-06-08 | 06-18 08:00>06-21 12:00 2029-06-18..2029-06-21');
 select test.eq('PC requests, offers, a removed block and a confirmed booking with the switch off are not on it',
   (select count(*) from app.public_vehicle_calendar(test.id('vehicle:RQ2'), date '2029-06-09', date '2029-06-17'))
   + (select count(*) from app.public_vehicle_calendar(test.id('vehicle:RQ2'), date '2029-06-22', date '2029-06-30')), 0::bigint);

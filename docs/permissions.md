@@ -1,15 +1,15 @@
 # Permissions
 
-Who can see and do what, and how the database enforces it. Implemented in `supabase/migrations/0012_security.sql` and, for the tables and functions added later, in each migration from 0016 to 0024; proved by `supabase/tests/04_rls.sql` and the role sections of test files 06 to 11.
+Who can see and do what, and how the database enforces it. Implemented in `supabase/migrations/0012_security.sql` and, for the tables and functions added later, in each migration from 0016 to 0025; proved by `supabase/tests/04_rls.sql`, the role sections of test files 06 to 11 and `13_owner_answers.sql`.
 
 ## 1. How it is enforced
 
 | Layer | What it does |
 | --- | --- |
-| Row-level security | On all 161 tables (and `app.rate_limit_hits`). With no policy, a signed-in user sees nothing. Admins have a policy (`admin_all`) on every table |
+| Row-level security | On all 171 tables (and `app.rate_limit_hits`). With no policy, a signed-in user sees nothing. Admins have a policy (`admin_all`) on every table |
 | Limited views | Where a role may see a row but not all of its columns, the role has no access to the table and reads a view: `renter_bookings`, `owner_bookings`, `owner_claims`, `field_job_details`, `staff_directory`, `public_vehicle_listings` |
 | Guards (triggers) | Approvals and limits that hold whoever is asking, the server included: refund and deposit-release limits, admin-only payout approval, own-approval-only, admin-only columns, tracker rules |
-| Privileges | Browser sessions can select, insert and update, never delete. The anonymous role can read one view. Functions that move money are executable by the server only |
+| Privileges | Browser sessions can select, insert and update, never delete. The anonymous role can read one view and call the public functions (section 3), including the cookie banner's `record_cookie_choice` (0025). Functions that move money are executable by the server only |
 | Server actions | Renters, owners, field staff and investors change nothing directly; the server validates and writes for them |
 
 A user who is suspended, or whose staff profile is ended, loses all access at once: every check reads `users.status` and `staff_profiles.is_active`.
@@ -66,7 +66,7 @@ R = read, W = create or update, A = approve, "none" = no access. "own" = only ro
 
 "In window" means: while the renter has a live booking, for 90 days after their last rental ends, while a task is open on them, or for 24 hours after a logged lookup.
 
-## 3. Tables and functions added in migrations 0016 to 0024
+## 3. Tables and functions added in migrations 0016 to 0025
 
 Same notation as section 2. "RW" for an Admin means the portal may insert and update (privilege granted, policy `admin_all`); "R" for an Admin means the server's functions write and the browser only reads. No browser session deletes anything. Every table below has row-level security, `admin_all` and an audit trigger.
 
@@ -121,6 +121,12 @@ Same notation as section 2. "RW" for an Admin means the portal may insert and up
 | `listing_intakes` (0022) | R | none | R | R | none | started by them, R | own vehicles, R | none | none |
 | `listing_drafts`, `listing_jobs` (0022) | R | none | R | R | none | none | none | none | none |
 | `provider_calls` (0022) | R | R | R | none | none | none | none | none | none |
+| `vehicle_classes`, `deposit_tiers`, `km_allowance_choices`, `airports`, `email_aliases`, `email_reply_to` (0025) | RW | R | R | R | R | R | none | none | class list through `public.vehicle_classes` |
+| `vehicle_class_links` (0025) | R (set through `set_vehicle_classes`) | R | R | R | R | R | own vehicles, R | none | in the public car rows |
+| `coverage_prices` (0025) | RW | R | R | R | none | none | none | none | the price in a quote only |
+| `review_request_decisions` (0025) | R | none | none | R (decides through `decide_review_request`) | none | none | none | none | none |
+| `cookie_consents` (0025) | R | none | none | none | none | none | none | none | write only, through `record_cookie_choice` |
+| Investor tables (0010; checked in 0025) | RW | none | none | none | none | none | none | none | none; an investor reads only their own rows after signing in (`self_read`) |
 
 Views added: the work queues (`work_queue` for everyone with a queue, `va_finance_queue`, `va_fleet_queue`, `va_cs_queue`, `va_sales_queue`, `admin_queue`) each show only their own queue; `field_job_list` shows a field staff member their own jobs for today and tomorrow, with the renter's first name only; `toll_work_queue`, its summary and `damage_work_queue` are for Admins, Finance and Fleet; `owner_statement_vehicle_lines` is for Admins and Finance, and for an owner their own approved statements; the company statement views are for Admins and Finance. 0024 adds no table and no view; its new columns follow the policies of their tables.
 
@@ -143,6 +149,9 @@ Every function in the `app` schema is revoked from `public`, `anon` and `authent
 | Notification layer (0018, 0023) | `process_events`, the `outbox_*` sender functions, `unsubscribe`, `notification_payload` and its helpers, `dispatch_roadside` | server and scheduler only |
 | Scheduled jobs (0015 to 0024) | every `job_*` wrapper, `sweep_listing_jobs`, `publish_scheduled_listings` | scheduler (pg_cron runs as the database owner) and server only |
 | Timed publishing (0024) | `schedule_listing_publish` | server only; inside, an Admin or a customer service or fleet assistant |
+| Public (0025) | `record_cookie_choice`, `cookie_choice`, `vehicle_classes`, `featured_cars` (wrapped in `public`) | anon, authenticated, server |
+| Staff reads (0025) | `rate_card_choices`, `site_setup_problems` | authenticated |
+| The owner's answers (0025) | `set_vehicle_classes` (Fleet, Admin), `review_listing_classes` (Fleet, customer service, Admin), `propose_listing_classes` (worker), `set_vehicle_deposit` (Admin), `set_coverage_price` (customer service, Admin), `set_booking_places` (staff), `reopen_expired_request` (staff), `decide_review_request` (customer service, Admin), the segment and split functions | server only; each checks `p_by` |
 
 Two-step sign-in (0019): with `program_settings.require_staff_two_step` on, `app.is_admin()`, `app.va_has()` and `app.is_field()` are true only for a session signed in with a second factor, so a staff session without one reads and writes nothing as staff. Off by default until every staff member has enrolled.
 
@@ -160,12 +169,13 @@ Two-step sign-in (0019): with `program_settings.require_staff_two_step` on, `app
 | A VA can never approve a payout | `app.guard_payout()`; the finance policy on `payouts` stops at "pending approval" |
 | Nobody records another person's approval | `app.guard_approver()` |
 | No bulk export path | No VA policy on `users`; renter records only in window; `app.staff_find_renter()` returns at most 10 names and is logged; no customer-list view exists; no delete privilege |
-| Only an admin sets fees, Revenue Share, management mode, discounts or a per-booking price | Admin-only write on `vehicle_schedules`, `vehicle_fee_history`, `fee_defaults`; `app.guard_admin_columns()`; `app.guard_booking_override()` |
+| Only an admin sets fees, Revenue Share, management mode, discounts or a per-booking price (0025: customer service may also price coverage sold on a request) | Admin-only write on `vehicle_schedules`, `vehicle_fee_history`, `fee_defaults`; `app.guard_admin_columns()`; `app.guard_booking_override()` |
 | Only an admin changes a payee's bank details | Admin-only write on `owner_payout_accounts` |
 | Field staff see only their assigned jobs | `field_jobs` policy; `field_job_details` view, from 36 hours before the job to 24 hours after it is done |
 | Field staff cannot reassign a job or change a booking | `app.guard_field_job()`; no policy on `bookings` |
 | Only an admin approves disabling a car, and never while it is moving | Check constraint on `tracker_commands` and `app.guard_tracker_command()` |
 | Investor, staff and shareholder documents are admin only | `documents` policies exclude those kinds for every other role |
+| Investment terms are seen only by the signed-in investor (and Admins) | No anon privilege on investor tables; only `admin_all` and `self_read` policies; no public function reads them (tested in 13) |
 | Money-moving functions cannot be called from a browser | Execute revoked from everyone but `service_role` |
 
 ## 5. Adding a table later

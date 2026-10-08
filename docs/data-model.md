@@ -1,6 +1,6 @@
 # Data model
 
-161 tables in the `public` schema, from migrations 0001 to 0022 (`supabase/migrations/`), plus `app.rate_limit_hits`; 0015, 0023 and 0024 add functions, triggers, columns and schedules but no table. Section 1 groups them by area and migration. Standard PostgreSQL 15 or later.
+171 tables in the `public` schema, from migrations 0001 to 0025 (`supabase/migrations/`), plus `app.rate_limit_hits`; 0015, 0023 and 0024 add functions, triggers, columns and schedules but no table. Section 1 groups them by area and migration. Standard PostgreSQL 15 or later.
 
 **Conventions**
 
@@ -9,7 +9,7 @@
 - **Time** is `timestamptz`, stored in UTC. Business dates (the 1st, 10th, 15th, 18th; "the month a rental ends") are Toronto calendar dates, taken with `app.local_date()` and never from the UTC date. The test run sets the session time zone to UTC to prove nothing depends on the server's zone.
 - **Billable days** and "days starting Friday or Saturday" are measured on the Toronto clock, so 10:00 to 10:00 across a daylight-saving change is whole days. **Cancellation notice** (24 and 48 hours) is elapsed time.
 - **Business days** are Monday to Friday except the dates in `holidays` (`app.add_business_days()`).
-- **Snapshots.** A booking stores its rates, fee terms, owner, management mode and revenue share when it is made, and always uses them.
+- **Snapshots.** A booking stores its rates, fee terms, owner, management mode and revenue share when it is made, and always uses them. Since 0025 a swap during the rental starts a new segment with the replacement car's Owner, mode and Revenue Share (kept on the swap row), and a confirmed booking moved to another car before pickup takes that car's terms; the stored rates never change.
 - **Append-only** tables: `audit_log`, `status_history`, `claim_ledger_entries`, `incident_events`, `data_access_log`; `tracker_commands` and `messages` cannot be deleted.
 - **Supabase seam:** `app.uid()` only.
 
@@ -40,7 +40,7 @@
 | `owner_payment_method_secrets` | Processor tokens for the above (admin only) |
 | `owner_agreements` | One live Enrollment Agreement per owner (and one Title Agreement), with the three initialled confirmations |
 | `owner_agreement_forms` | Forms A to E of the Title Agreement, per agreement or per vehicle |
-| `vehicles` | VIN, plate, class, status, management mode, shareholder flag, derived `billing_case`, enrollment and exit dates, arrears flag, "18 to 20 allowed" |
+| `vehicles` | VIN, plate, pricing class, status, management mode, shareholder flag, derived `billing_case`, enrollment and exit dates, arrears flag, "18 to 20 allowed" (true for every car since 0025), the Owner's pickup address (0025) |
 | `vehicle_schedules` | Each signed Vehicle Schedule entry (including Additional Vehicle Schedules): mode, onboarding method, Insurance Fee, Tracker Fee, Install Fee, Revenue Share, lender, lien |
 | `vehicle_fee_history` | Fee terms in force over time; a notice needs 30 days; a share change needs a new schedule |
 | `vehicle_onboardings` | The per-vehicle onboarding record and its status |
@@ -93,9 +93,9 @@
 | `disputes` | Chargebacks: evidence, Owner Revenue withheld and reversed |
 | `booking_extensions` | Each extension: repriced total, difference, paid and confirmed before the return time |
 | `booking_renewals` | Link between a booking and its renewal; deposit carried |
-| `booking_vehicle_swaps` | Replacement vehicle after a breakdown |
+| `booking_vehicle_swaps` | Replacement vehicle after a breakdown, with the replacement car's Owner, mode and Revenue Share at the swap (0025) |
 | `booking_statements` | Itemized statements sent to the renter |
-| `booking_splits` | Per booking: kickback, Owner Revenue, company share, owner payout, company-only and pass-through totals, payout month |
+| `booking_splits` | Per booking and car (one row per car of its segments since 0025): kickback, Owner Revenue, company share, owner payout, company-only and pass-through totals, the segment's days and times, payout month |
 
 ### Operations (0006)
 
@@ -239,6 +239,20 @@ Columns added: 24 on `toll_tickets` (match evidence, confidence, statement and b
 
 Columns added: owner names, signing officer and mailing address; vehicle onboarding situation, forms, estimate and checklist marks; `vehicle_photos` shot type, size, variants, background status, public flag; `photo_jobs` provider and cost; `vehicle_listings` specs, FAQ, SEO fields, canonical twin, `publish_at`, first published and unpublished times, redirect and rewrite flags; 20 settings.
 
+### The owner's answers (0025)
+
+| Table | Holds |
+| --- | --- |
+| `vehicle_classes`, `vehicle_class_links` | The editable class list and each car's classes (several per car); `vehicles.class` stays the pricing class and is always one of them |
+| `deposit_tiers`, `km_allowance_choices` | The Deposit tiers ($500, $1,000, $2,500, $5,000) and the daily kilometre allowances (400, 300, 200, 150) staff pick from; the values themselves are per car on `rate_cards` |
+| `coverage_prices` | Default prices of coverage sold through CarmaCars, by car or class and age band, per day or per booking, dated |
+| `airports` | Airports offered for delivery and pickup: code, name, coordinates, distance, surcharge |
+| `email_aliases`, `email_reply_to` | The staff mailboxes and the reply-to of each email audience (or code) |
+| `review_request_decisions` | A review request held because the booking had a problem, and the staff decision |
+| `cookie_consents` | Each cookie banner answer: anonymous visitor id, choice, analytics, codes, wording version, time |
+
+Columns added: the swap's replacement terms; `booking_line_items.arose_vehicle_id`; `booking_splits` segment columns (key `booking_id, vehicle_id`); the booking's place kinds, distances and airports; `vehicles.owner_pickup_address` and coordinates; `listing_drafts.proposed_classes` and the decision; the delivery settings in `program_settings`; nine `site_settings` columns (display phones, any-time handover, Google place id, listing promise, featured mode, mailing address flag); `notification_outbox.reply_to`. Record: [docs/changes/0025_owner_answers.md](changes/0025_owner_answers.md).
+
 ### Gap fixes (0024)
 
 No new table. Columns: `vehicles.created_seq` (insertion order, which breaks ties between vehicles created in one transaction); `vehicle_listings.publish_scheduled_by` and `publish_error` (timed publishing); `booking_change_requests.source`; `program_settings.housekeeping_hour` and `rate_limit_keep_hours`.
@@ -264,6 +278,8 @@ requested ──▶ offered ──▶ pending_payment ──▶ confirmed ──
     ▲            │  │            │
     └────────────┘  │            │      requested, offered, pending_payment ──▶ declined
     └───────────────┼────────────┘      Owner Booking: requested ──▶ pending_payment (no offer, nothing to pay)
+                    │
+                    └──▶ expired ──▶ requested   (0025: an offer not answered in time closes the request; staff may reopen it)
 ```
 
 `offered` needs a sent offer for the current version; `pending_payment` needs it approved; going back to `requested` clears the approval. Only `confirmed` and `on_rent` bookings with `blocks_calendar` on take the car (exclusion constraint `bookings_no_double_booking`). Since 0019, `on_rent` also needs the calendar switch on, every additional driver's acceptance of the agreement, and the Deposit taken or waived by an Admin.
@@ -324,7 +340,7 @@ draft or issued ─▶ void          paid ─▶ failed (a debit returned after 
 | --- | --- | --- |
 | 1 | Charge catalogue, D / V / B, HST, "belongs to" | `fee_types`, `fee_defaults`, `rate_cards`, `vehicle_fee_overrides`, `booking_fee_terms`; resolved by `effective_fee()` |
 | 1 | Each charge as a tagged line with HST | `booking_line_items.revenue_class`, `hst_cents` |
-| 1 | Per-day fees with per-rental caps | `calc_capped_per_day()` |
+| 1 | Per-day fees with per-rental caps; a fee as a percentage of the daily rate (0025) | `calc_capped_per_day()`, `app.fee_per_day()`; young driver and additional driver fees have no cap since 0025 |
 | 1 | Mileage overage; fuel; late return; loss of use; interest | `calc_mileage_overage()`, `calc_fuel_charge()`, `calc_late_return()`, `calc_loss_of_use()`, `calc_monthly_interest()` |
 | 1 | Damage under / over $2,500, deductible, administration fees | `calc_damage_billing()`, `app.open_claim()` |
 | 2 | Billable days; rate selection; 30-day maximum | `calc_billable_days()`, `calc_rental_charge()`; check constraints on `bookings` |
@@ -334,7 +350,7 @@ draft or issued ─▶ void          paid ─▶ failed (a debit returned after 
 | 5 | Retained amount split across lines | `app.allocate_refund()`, `refund_allocations` |
 | 6 | Extension repricing; renewal as a linked booking | `calc_extension()`, `booking_extensions`, `bookings.renews_booking_id`, `booking_renewals` |
 | 7 | Declined payment fee and retries; chargebacks | `payments`, `payment_attempts`, `calc_payment_retry_at()`, `disputes` |
-| 8 | Kickback, Owner Revenue, company share, owner payout | `calc_kickback()`, `calc_booking_split()`, `app.kickback_ineligible_reason()`, `app.compute_booking_split()`, `booking_splits` |
+| 8 | Kickback, Owner Revenue, company share, owner payout | `calc_kickback()`, `calc_booking_split()`, `app.kickback_ineligible_reason()`, `app.compute_booking_split()`, `booking_splits`; per car of a swapped booking: `app.booking_segments()`, `app.booking_line_allocation()`, `app.booking_split_parts()` (0025) |
 | 9 | Owner rentals | `bookings.booking_type = 'owner'` and its check constraint; no split; tolls at cost |
 
 ### Owner billing specification
@@ -392,3 +408,4 @@ Where the specifications are silent or disagree, the reading closest to the agre
 20. **Recharging** is entered as a number of 10% steps; the specification does not say how a part step rounds.
 21. **Total loss.** "Amounts the Owner owes" is unpaid invoices, open deductions and any debt carried forward.
 22. **No deletes from a browser session**, including by an admin. Corrections are voids, reversals or new rows.
+23. **Swapped bookings (0025).** Billable days go to the car that was out when each day started, except that the day of a swap counts for the new car. Rental charge and discounts follow the days; late return days the last car; mileage overage the car driven once the allowance ran out. Booking-wide amounts (collected, refunded, charged back, withheld) are shared in proportion to each car's Owner Revenue.

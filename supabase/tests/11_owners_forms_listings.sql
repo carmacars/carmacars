@@ -129,14 +129,14 @@ select test.eq('A an Admin edits the settings and the content from the portal',
 select test.throws('A nobody deletes settings from a browser session', $$delete from site_settings$$, 'permission denied');
 select test.logout();
 select test.eq('A every change is in the audit log with the row before and after (the version history)',
-  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' is null and after ->> 'phone' = '416-555-0142'), true);
+  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' = '+16475753377' and after ->> 'phone' = '416-555-0142'), true);
 select test.eq('A the editor is recorded on the row', (select updated_by from site_settings), test.id('ofl_admin'));
 
 set role anon;
-select test.eq('A the public site reads the settings: phone, delivery fee by area, slots, logo; no hidden street address',
+select test.eq('A the public site reads the settings: phone, delivery fee by area, slots, logo; the street address once entered (0025: shown by default)',
   (select (s ->> 'phone') || '/' || (s -> 'delivery_areas' -> 0 ->> 'fee_cents') || '/' || jsonb_array_length(s -> 'handover_slots')
           || '/' || (s -> 'logo' ->> 'light') || '/' || coalesce(s ->> 'street_address', 'hidden')
-     from public.site_settings_public() s), '416-555-0142/5000/3/brand/logo.svg/hidden');
+     from public.site_settings_public() s), '416-555-0142/5000/3/brand/logo.svg/9 Hidden Lane');
 select test.eq('A the public settings never carry the legal company name, the numbered corporation or who edited',
   (select (s::text ilike '%18122211%') or (s::text ilike '%Canada Inc%') or (s::text ilike '%' || test.id('ofl_admin')::text || '%')
           or s ? 'legal_name' or s ? 'updated_by' from public.site_settings_public() s), false);

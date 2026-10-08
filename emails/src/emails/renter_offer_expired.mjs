@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking returns to requested, not to expired, and customer service gets an offer_expired task.',
+  trigger: 'The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking becomes expired (the request is closed), and customer service gets an offer_expired task to reopen it with a new offer or leave it closed. Sent once per offer version.',
   timing: 'Immediate',
   subject: 'Your offer for the {{vehicle_name}} has expired',
   preheader: 'Nothing was charged. Tell us if you still want the car and we will send a fresh offer.',

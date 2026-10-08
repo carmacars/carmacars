@@ -124,10 +124,10 @@ select test.eq('S 19 photos are required at pickup and at return, 4 after detail
 insert into required_shots (report_kind, vehicle_class, seq, shot, is_required) values ('pickup', 'exotic', 18, 'trunk', false);
 select test.eq('S a vehicle class can have its own list: no trunk photo on an exotic', (select count(*) from app.required_shots_for('pickup', 'exotic')), 18::bigint);
 
--- opening hours: 09:00 to 18:00 every day until an Admin sets them
+-- opening hours: 0025, the business is always open (opening_hours.always_open)
 select test.eq('O 15 opening minutes from 10:00 is 10:15', app.add_opening_minutes(test.at('2031-03-03 10:00'), 15), test.at('2031-03-03 10:15'));
-select test.eq('O 15 opening minutes from 22:00 is 09:15 the next morning', app.add_opening_minutes(test.at('2031-03-03 22:00'), 15), test.at('2031-03-04 09:15'));
-select test.eq('O 30 opening minutes from 17:50 runs over to 09:20', app.add_opening_minutes(test.at('2031-03-03 17:50'), 30), test.at('2031-03-04 09:20'));
+select test.eq('O (0025) always open: 15 opening minutes from 22:00 is 22:15', app.add_opening_minutes(test.at('2031-03-03 22:00'), 15), test.at('2031-03-03 22:15'));
+select test.eq('O (0025) always open: 30 opening minutes from 17:50 is 18:20', app.add_opening_minutes(test.at('2031-03-03 17:50'), 30), test.at('2031-03-03 18:20'));
 
 -- ------------------------------------------------------------------ confirmation: jobs, tasks, fee terms
 -- A: Thursday 10:00 to Sunday 10:00, the renter collects. B: the same days on another car, delivered and collected by staff.
@@ -136,9 +136,9 @@ insert into test.rq_ids values ('opB', app.request_booking(test.id('renter:op_r2
   'standard', null, 'phone', test.id('rq_cs'), null, null, 'delivered', 'picked_up', '12 Elm St, Toronto', '12 Elm St, Toronto'));
 select test.eq('C the spec''s first example: Thursday to Sunday is $100 + $120 + $120 = $340',
   (select rental_charge_cents || '/' || deposit_cents from bookings where id = test.b('opA')), '34000/100000');
-select test.eq('C the new request task takes its queue, priority and due time from its rule (15 opening minutes)',
+select test.eq('C the new request task takes its queue, priority and due time from its rule (0025: the 2-hour reply target)',
   (select queue || '/' || priority || '/' || sla_minutes || '/' || (due_at is not null) || '/' || completion_rule from tasks
-    where booking_id = test.b('opA') and task_type = 'booking_request'), 'cs/high/15/true/offer_sent_or_declined');
+    where booking_id = test.b('opA') and task_type = 'booking_request'), 'cs/high/120/true/offer_sent_or_declined');
 select test.op_confirm('opA', 'op_r1');
 select test.op_confirm('opB', 'op_r2');
 select test.eq('C a confirmed booking the renter collects gets no automatic job', (select count(*) from field_jobs where booking_id = test.b('opA')), 0::bigint);
@@ -704,8 +704,8 @@ select test.eq('P a move onto a confirmed booking is shown as a conflict, with t
 create table test.op_pv3 as select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('return_at', test.at('2031-08-23 10:00'))) as r;
 select test.eq('P resizing a confirmed booking: the renter must approve; Wednesday to Saturday at the stored rates is $320, $135.60 more with HST',
   (select (r ->> 'action') || '/' || (r ->> 'renter_must_approve') || '/' || (r -> 'new' ->> 'rental_charge_cents') || '/' || (r ->> 'difference_cents') from test.op_pv3), 'renter_approval/true/32000/13560');
-select test.eq('P a confirmed booking cannot move to another Owner''s car, into the past, past 30 days, or to a car that does not exist',
-  (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('vehicle_id', test.id('vehicle:OP8'))) as r) x) like '%same Owner%'
+select test.eq('P (0025) a confirmed booking may move to another Owner''s car once the renter agrees, but not into the past, past 30 days, or to a car that does not exist',
+  (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('vehicle_id', test.id('vehicle:OP8'))) as r) x) is null
   and (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('pickup_at', test.at('2020-01-01 10:00'), 'return_at', test.at('2020-01-03 10:00'))) as r) x) like '%into the past%'
   and (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('return_at', test.at('2031-10-20 10:00'))) as r) x) like '%at most 30 days%'
   and (select r ->> 'action' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('vehicle_id', gen_random_uuid())) as r) x) = 'refused', true);

@@ -227,7 +227,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_offer_expired.html"><img loading="lazy" src="../shots/renter_offer_expired.desktop.png" alt="Screenshot of renter_offer_expired"></a><div class="b">
 <div class="code">renter_offer_expired</div><div class="sub">Your offer for the 2024 Honda Civic Sport has expired</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking returns to requested, not to expired, and customer service gets an offer_expired task.</div>
+<div class="tr">The offers-expire job (every 5 minutes, app.expire_offers) marks the current booking_offers row expired because offer_expires_at passed without approval. The booking becomes expired (the request is closed), and customer service gets an offer_expired task to reopen it with a new offer or leave it closed. Sent once per offer version.</div>
 <div class="ln"><a href="../dist/renter_offer_expired.html">HTML</a><a href="../dist/renter_offer_expired.txt">Text</a><a href="../shots/renter_offer_expired.desktop.png">Desktop</a><a href="../shots/renter_offer_expired.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_offer_ready.html"><img loading="lazy" src="../shots/renter_offer_ready.desktop.png" alt="Screenshot of renter_offer_ready"></a><div class="b">
@@ -317,7 +317,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_review_request.html"><img loading="lazy" src="../shots/renter_review_request.desktop.png" alt="Screenshot of renter_review_request"></a><div class="b">
 <div class="code">renter_review_request</div><div class="sub">Rate your rental of the 2024 Honda Civic Sport</div>
 <div class="tags"><span class="m">Marketing</span></div>
-<div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed, the booking had no open incident, dispute or unpaid balance, and no review exists for it. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is held for a staff decision (review_request_decision task): only a yes sends it, at once. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_vehicle_disabled.html"><img loading="lazy" src="../shots/renter_vehicle_disabled.desktop.png" alt="Screenshot of renter_vehicle_disabled"></a><div class="b">

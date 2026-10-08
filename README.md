@@ -8,8 +8,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 
 | Path | What |
 | --- | --- |
-| `supabase/migrations/` | 24 migrations: 161 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, and 20 scheduled SQL jobs |
-| `supabase/tests/` | Twelve test files (2,132 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 25 migrations: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -18,7 +18,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | `docs/architecture.md` | System overview, environments, app areas, integrations, the request-to-book flow, the notification layer, the listing pipeline, statements, scheduled jobs, file storage, scope, deploy |
 | `docs/data-model.md` | Tables by area, status flows, where each billing rule lives, assumptions |
 | `docs/permissions.md` | The role matrix, every table and function group, and how it is enforced |
-| `docs/changes/` | One record per migration from 0016 on: what was added, decisions, tests changed, what is not done |
+| `docs/changes/` | One record per migration from 0016 on (0025: the owner's answers): what was added, decisions, tests changed, what is not done |
 | `docs/decisions/` | Decision records. 0001: the launch stack with no fixed monthly fees |
 | `docs/blueprint/` | The product blueprint the later migrations follow |
 | `docs/setup.md` | The accounts and how they connect; environment variables and secrets; running the tests; backups |
@@ -63,6 +63,7 @@ cd emails && node check.mjs
 | `0022_owners_forms_listings.sql` | Site settings and content, form drafts, leads, the owner application and onboarding, government form pre-fill, exit, fee and bank changes, the owner portal, the listing pipeline, the public website reads |
 | `0023_notification_wiring.sql` | The full merge payload, the triggers that emit events from the tables of 0019 to 0022, the reminder and daily notification jobs |
 | `0024_gap_fixes.sql` | Schedules for the remaining SQL jobs, timed listing publishing, the email for a charge line added by hand, one flow for changing a confirmed booking (calendar and change requests), a fixed order in the owner portal |
+| `0025_owner_answers.sql` | The owner's answers: swap revenue by segment, expired offers closed and back to staff, 2-hour notice and turnaround, always open, several classes per car, Deposit and kilometre choices, no age or fee caps, additional driver at 25% of the daily rate, coverage sold through CarmaCars, delivery by distance and airports, review requests held on problem bookings, site defaults and reply-to aliases, cookie consent |
 
 ## Test files
 
@@ -75,11 +76,12 @@ cd emails && node check.mjs
 | `05_jobs.sql` | The scheduled jobs of 0015 and the cron count | 56 |
 | `06_request_to_book.sql` | Request to book (0016) | 348 |
 | `07_notifications.sql` | The notification layer and its wiring (0018, 0023) | 135 |
-| `08_booking_app.sql` | The booking application (0019) | 415 |
+| `08_booking_app.sql` | The booking application (0019) | 414 |
 | `09_operations.sql` | Operations (0020) | 309 |
 | `10_tolls_statements.sql` | Tolls, damage and statements (0021) | 146 |
 | `11_owners_forms_listings.sql` | Owners, forms and listings (0022) | 200 |
 | `12_end_to_end.sql` | The newer flows end to end with the duplicate check across emitters, and the jobs of 0024 | 40 |
+| `13_owner_answers.sql` | The owner's answers (0025), one block per decision | 104 |
 
 ## Rules for changes
 
