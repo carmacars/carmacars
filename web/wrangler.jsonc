@@ -1,0 +1,37 @@
+{
+  // Cloudflare Worker for the CarmaCars site (docs/decisions/0001-zero-fixed-fee-stack.md).
+  // Names follow docs/architecture.md section 2. Create the R2 bucket, the D1 database and
+  // the secrets before the first deploy (web/README.md, "Deploy").
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "carmacars-prod",
+  "main": "custom-worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-prod" }],
+  "r2_buckets": [
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-prod-opennext-cache" }
+  ],
+  "d1_databases": [
+    { "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-prod-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],
+  "vars": {
+    "APP_ENV": "production",
+    "DATA_BACKEND": "supabase"
+  },
+  "env": {
+    "staging": {
+      "name": "carmacars-staging",
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-staging" }],
+      "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-staging-opennext-cache" }],
+      "d1_databases": [{ "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-staging-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }],
+      "durable_objects": { "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }] },
+      "vars": { "APP_ENV": "staging", "DATA_BACKEND": "supabase" }
+    }
+  }
+}

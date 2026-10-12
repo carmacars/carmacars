@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.open-next/
+.wrangler/
+out/
+.env.local
+.env*.local
+.dev.vars
+next-env.d.ts
+*.tsbuildinfo
+public/_local/
+test-results/
+playwright-report/
+reports/

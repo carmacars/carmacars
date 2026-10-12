@@ -1,0 +1,396 @@
+{
+  "home_faq": [
+    {
+      "question": "Do I pay anything when I send a request?",
+      "answer": "No. A request needs no card and takes no payment. You pay only after we confirm the car and price and you approve it."
+    },
+    {
+      "question": "Does a request reserve the car?",
+      "answer": "No. The price we send is an offer that stays open for {{offerHours}} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates."
+    },
+    {
+      "question": "How old do I have to be?",
+      "answer": "{{minAge}} or older, with an Ontario {{licence}} licence, for every car. Drivers under {{fullAge}} pay a young driver fee for each day, usually {{ydA}} for ages {{youngA}} and {{ydB}} for ages {{youngB}}, with no maximum. Each car’s page shows its own."
+    },
+    {
+      "question": "What coverage do I need?",
+      "answer": "Third-party liability coverage is included in the rate. For damage to the car you need one of three options before pickup: OPCF 27 on your own auto policy, rental coverage on your credit card, or coverage bought through us. <a class=\"link\" href=\"/requirements#coverage\">Compare the three options</a>."
+    },
+    {
+      "question": "When is the deposit taken, and when do I get it back?",
+      "answer": "About {{depLead}} before pickup. For rentals of {{holdDays}} days or less it is a hold on your card. For longer rentals it is charged and refunded. We release the balance within {{releaseDays}} after you return the car."
+    },
+    {
+      "question": "Can you bring the car to me?",
+      "answer": "Yes, anywhere, including {{airports}}. Each way costs the car’s delivery fee, shown on its page, plus the distance from our location. An airport surcharge may apply. <a class=\"link\" href=\"/delivery\">How delivery works</a>."
+    },
+    {
+      "question": "What happens if I cancel?",
+      "answer": "It depends on timing. Cancel {{cEarly}} hours or more before pickup and you get {{c2}} back, or {{c1}} if that is also within {{cGrace}} hours of booking. Between {{cLate}} and {{cEarly}} hours you get {{c3}}. Inside {{cLate}} hours there is no refund. <a class=\"link\" href=\"/cancellation-policy\">Read the cancellation policy</a>."
+    }
+  ],
+  "owner_faq": [
+    {
+      "question": "What does it cost me?",
+      "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a tracker install fee. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
+    },
+    {
+      "question": "How do I get paid?",
+      "answer": "On the {{payoutDay}} of each month for the month before, with a statement for each car that lists every rental and deduction. Your payout is the rental charge plus mileage overage fees, less our revenue share, which is agreed with you before you sign."
+    },
+    {
+      "question": "Can I still drive my own car?",
+      "answer": "Yes, whenever it is not booked. You book it like a renter and sign the same agreement, but you pay no rental charge, fee or deposit. A renter’s confirmed booking comes first."
+    },
+    {
+      "question": "Who insures the car?",
+      "answer": "From its enrolment date the car is listed on our commercial fleet policy. We manage every claim, and repairs are done only at shops we approve. You are not paid for the time a car is off the road."
+    },
+    {
+      "question": "Is there a minimum term?",
+      "answer": "No. You can take any car out of the program with {{noticeDays}} days’ written notice. If it is on a rental when the notice ends, it leaves when that rental does."
+    },
+    {
+      "question": "My car is financed or leased. Can I enrol it?",
+      "answer": "Often, yes, with written permission from your lender or lessor. Tell us in the form and we will say which registration route is open to you and what it costs at ServiceOntario."
+    },
+    {
+      "question": "Which cars do you turn down?",
+      "answer": "Cars branded rebuilt, salvage or irreparable. Every other car is approved one at a time with our insurance broker."
+    },
+    {
+      "question": "Who pays for maintenance?",
+      "answer": "You do: servicing, tires, brakes and mechanical repairs. Renters pay for damage they cause, tolls and tickets."
+    }
+  ],
+  "how_steps": [
+    {
+      "title": "Choose a car and send a request",
+      "body": "Pick the car, your dates and times, and where you want it: at our location, at the car owner’s location, delivered to an address or at the airport. Any time of day, with at least {{notice}}’ notice. No card and no payment at this point.",
+      "who": "You"
+    },
+    {
+      "title": "We confirm the car and the price",
+      "body": "A person checks the car’s calendar and your details, then sends the full price with fees and HST. If something has to change, such as the pickup time or the car, we say what and why. That price is an offer, open for {{offerHours}} hours. It does not hold the car.",
+      "who": "CarmaCars"
+    },
+    {
+      "title": "You approve, sign and pay",
+      "body": "Sign the rental agreement online and pay through our checkout with a credit card in your name. The car is booked once the payment goes through, and not before. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.",
+      "who": "You"
+    },
+    {
+      "title": "We check your licence and coverage",
+      "body": "Send a photo of your licence, front and back, a selfie holding it, and proof of your coverage option. We need these at least {{verifyHours}} hours before pickup.",
+      "who": "You, then CarmaCars"
+    },
+    {
+      "title": "Pick up, or we deliver",
+      "body": "Bring your original licence and the card you paid with. The deposit is taken about {{depLead}} before pickup, and we photograph the car together.",
+      "who": "Both"
+    }
+  ],
+  "requirements_rows": [
+    {
+      "label": "Age",
+      "text": "{{minAge}} or older at pickup, for every car in the fleet."
+    },
+    {
+      "label": "Licence",
+      "text": "A valid Ontario {{licence}} licence, carried for the whole rental. Other licences are reviewed before we confirm."
+    },
+    {
+      "label": "Card",
+      "text": "A credit card in your own name. It pays for the booking and stays on file for the rental."
+    },
+    {
+      "label": "Coverage",
+      "text": "One of three coverage options, confirmed before pickup."
+    },
+    {
+      "label": "Deposit",
+      "text": "{{depTiers}} depending on the car. Taken about {{depLead}} before pickup, never when you book."
+    },
+    {
+      "label": "Young driver fee",
+      "text": "Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}, with no maximum. Each car’s page shows its own."
+    }
+  ],
+  "coverage_options": [
+    {
+      "title": "OPCF 27 on your own auto policy",
+      "body": "If your Ontario auto insurance includes the OPCF 27 endorsement, it can cover a rental. Send us the policy page or a letter from your insurer."
+    },
+    {
+      "title": "Your credit card’s rental coverage",
+      "body": "Many cards include it. The rental has to be paid with that card, and the benefit has to cover the car and the length of the rental."
+    },
+    {
+      "title": "Coverage bought through CarmaCars",
+      "body": "If you have no policy and no card benefit, add coverage to your booking. It is priced in your offer, for your car and the driver’s age. A third-party provider supplies it on its own terms, which we send you before you buy."
+    }
+  ],
+  "faq_groups": [
+    {
+      "title": "Booking",
+      "id": "booking",
+      "items": [
+        {
+          "question": "How does request to book work?",
+          "answer": "You send a request with the car and dates. A person checks it and sends back the full price. If you approve, you sign the rental agreement online and pay. That is when the booking is confirmed. <a class=\"link\" href=\"/how-it-works\">See every step</a>."
+        },
+        {
+          "question": "Do I pay anything when I send a request?",
+          "answer": "No. No card, no payment, no hold. You pay only after we confirm the car and the price and you approve."
+        },
+        {
+          "question": "How fast will I hear back?",
+          "answer": "{{reply}}. We are open 24 hours, every day, so that holds at night and on weekends too."
+        },
+        {
+          "question": "When can I pick up and return the car?",
+          "answer": "Any time, day or night, with at least {{notice}}’ notice. Each car needs {{turnaround}} between bookings for cleaning and checks, so a car returned at 10 a.m. is free again from noon."
+        },
+        {
+          "question": "Does a request, or your offer, hold the car for me?",
+          "answer": "No. The price we send is an offer that stays open for {{offerHours}} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates."
+        },
+        {
+          "question": "How long is the price good for?",
+          "answer": "The offer we send stays open for {{offerHours}} hours. After that, ask again and we will check the car and price once more."
+        },
+        {
+          "question": "Is the price on the car’s page the final price?",
+          "answer": "It is an estimate built from that car’s real rates and the standard fees. The confirmed price we send you is the one that counts. You see the total with HST, the deposit and the agreement before you pay."
+        },
+        {
+          "question": "How are multi-day prices worked out?",
+          "answer": "A day is 24 hours from your pickup time, and a part day counts as a day. For 1 to {{weekFromLess1}} days, each day costs the daily rate, or the weekend rate if it starts on a Friday or Saturday, and the total never exceeds the weekly rate. For {{weekFrom}} to {{maxDaysLess1}} days, each day costs one-seventh of the weekly rate, never more than the monthly rate. {{maxDays}} days is the monthly rate."
+        },
+        {
+          "question": "What is the longest I can rent for?",
+          "answer": "{{maxDays}} days in one booking. To keep the car longer, you make a new booking and sign a new agreement before the current one ends."
+        },
+        {
+          "question": "Can I extend once I have the car?",
+          "answer": "Ask before your return time. An extension counts only when we confirm it in writing and you have paid for it. The whole booking is repriced at its new length and you pay the difference."
+        }
+      ]
+    },
+    {
+      "title": "Drivers and licences",
+      "id": "drivers",
+      "items": [
+        {
+          "question": "How old do I have to be?",
+          "answer": "{{minAge}} or older at pickup, with a {{licence}} licence. That applies to every car."
+        },
+        {
+          "question": "Is there a young driver fee?",
+          "answer": "Yes, for each day, with no maximum. Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}. Some cars set their own; it is on the car’s page."
+        },
+        {
+          "question": "Can I rent with a G2?",
+          "answer": "Yes. We accept Ontario G2 and G licences. The licence has to be valid for the whole rental."
+        },
+        {
+          "question": "I have a licence from outside Ontario. Can I rent?",
+          "answer": "Possibly. Other licences are reviewed by a person before we confirm. Choose “Something else” in the request and we will tell you."
+        },
+        {
+          "question": "Can someone else drive too?",
+          "answer": "Yes, as an additional driver: {{addDrvPct}} of the car’s daily rate for each day, with no maximum. They meet the same age and licence rules, pass the identity check and sign the agreement."
+        },
+        {
+          "question": "How do you verify my identity?",
+          "answer": "Each driver sends a photo of their licence, front and back, and a selfie holding it. We need this at least {{verifyHours}} hours before pickup. If we cannot verify a driver, we refund what you paid."
+        }
+      ]
+    },
+    {
+      "title": "Coverage and damage",
+      "id": "coverage",
+      "items": [
+        {
+          "question": "Can I buy coverage from you?",
+          "answer": "Yes. Coverage bought through CarmaCars is priced in your offer, for your car and the driver’s age. A third-party provider supplies it, and we send its terms before you buy."
+        },
+        {
+          "question": "Is insurance included?",
+          "answer": "Third-party liability coverage is included in every rate, at the minimum limits Ontario law requires. It does not cover damage to the rental car."
+        },
+        {
+          "question": "What coverage do I need for the car itself?",
+          "answer": "One of three: OPCF 27 on your own auto policy, rental coverage on your credit card (with the rental paid on that card), or coverage bought through CarmaCars. <a class=\"link\" href=\"/requirements#coverage\">Compare them</a>."
+        },
+        {
+          "question": "What is OPCF 27?",
+          "answer": "An endorsement on an Ontario auto policy that extends your coverage to vehicles you rent. Your insurer or broker can tell you if you have it and send you proof."
+        },
+        {
+          "question": "What do I pay if the car is damaged?",
+          "answer": "If the damage costs under {{deductible}}, you pay the repair at cost plus a {{adminOther}} administration fee. If it costs {{deductible}} or more, we claim on our fleet policy and you pay the {{deductible}} deductible plus a {{adminClaim}} administration fee. Your coverage option is how you recover that."
+        },
+        {
+          "question": "What if the car breaks down?",
+          "answer": "Call our 24-hour line, {{roadside}}. Roadside assistance for mechanical breakdown is included. If the breakdown is not your fault, we give you a replacement car or refund the unused time."
+        }
+      ]
+    },
+    {
+      "title": "Payment and deposit",
+      "id": "payment",
+      "items": [
+        {
+          "question": "How do I pay?",
+          "answer": "Through our online checkout, with a credit card in the renter’s own name. That card stays on file for the rental."
+        },
+        {
+          "question": "How much is the deposit?",
+          "answer": "{{depTiers}}, set per car. Each car’s page shows its own."
+        },
+        {
+          "question": "When is the deposit taken?",
+          "answer": "About {{depLead}} before pickup. For rentals of {{holdDays}} days or less it is a hold on your card. For longer rentals it is charged and later refunded."
+        },
+        {
+          "question": "When do I get the deposit back?",
+          "answer": "We release the balance within {{releaseDays}} after you return the car. If a toll, ticket or claim is still open, we can hold back the amount we expect it to cost for up to {{holdbackDays}}."
+        },
+        {
+          "question": "Are prices before or after tax?",
+          "answer": "Rates and fees are shown before {{hst}} HST. Your estimate and your confirmed price show the HST and the total."
+        }
+      ]
+    },
+    {
+      "title": "Delivery, pickup and return",
+      "id": "delivery",
+      "items": [
+        {
+          "question": "Do you deliver?",
+          "answer": "Yes, anywhere, including {{airports}}. Each way costs the car’s delivery fee plus the distance from our location, priced in your offer. An airport surcharge may apply. <a class=\"link\" href=\"/delivery\">How delivery works</a>."
+        },
+        {
+          "question": "Where can I pick the car up?",
+          "answer": "At our location, at the car owner’s location where the car offers it, at an address we deliver to, or at the airport. You choose in your request."
+        },
+        {
+          "question": "What do I bring to pickup?",
+          "answer": "Your original licence and the physical card you paid with. We hand the car only to the renter, in person."
+        },
+        {
+          "question": "What if I am late bringing it back?",
+          "answer": "There is a {{graceShort}} grace period. After that you owe the rental charge for each extra day or part day, plus a late fee of {{lateHr}} an hour counted from the return time. If you know you will be late, ask for an extension first."
+        },
+        {
+          "question": "Do I need to refuel or recharge?",
+          "answer": "Return it with the same level it had at pickup. Otherwise we refuel at the pump price plus {{fuelPct}}, or recharge at {{evPer}} per 10% of battery, plus a {{fuelFee}} service fee either way."
+        }
+      ]
+    },
+    {
+      "title": "On the road",
+      "id": "road",
+      "items": [
+        {
+          "question": "How many kilometres can I drive?",
+          "answer": "Each car has a daily allowance, shown on its page, multiplied by the days you book. Each car also has its own rate for extra kilometres, from {{overMin}} to {{overMax}} each."
+        },
+        {
+          "question": "Can I leave Ontario?",
+          "answer": "Only with our written consent. Ask in your request."
+        },
+        {
+          "question": "Can I bring a pet?",
+          "answer": "With our approval, yes. Mention it in the request. Service animals do not need approval. A pet cleaning fee of {{pet}} applies if the car comes back with hair, odour or soiling."
+        },
+        {
+          "question": "Can I smoke or vape in the car?",
+          "answer": "No. A {{smoke}} fee applies if there is evidence of it."
+        },
+        {
+          "question": "Who pays tolls and tickets?",
+          "answer": "You do, including Highway 407 ETR. If one reaches us, we pay it and charge you the amount plus {{tollFee}} per toll invoice or {{ticketFee}} per ticket, with a copy of the notice."
+        },
+        {
+          "question": "Are the cars tracked?",
+          "answer": "Yes. Every car has a GPS tracker that records location, speed and distance for the whole rental. It does not record sound or video. The car’s owner can see its location. <a class=\"link\" href=\"/privacy#tracking\">Read how tracking works</a>."
+        }
+      ]
+    },
+    {
+      "title": "Cancelling",
+      "id": "cancelling",
+      "items": [
+        {
+          "question": "What is the cancellation policy?",
+          "answer": "{{c1}} back if you cancel within {{cGrace}} hours of booking and {{cEarly}} hours or more before pickup. {{c2}} back at {{cEarly}} hours or more. {{c3}} between {{cLate}} and {{cEarly}} hours. Nothing inside {{cLate}} hours or for a no-show. <a class=\"link\" href=\"/cancellation-policy\">Full policy</a>."
+        },
+        {
+          "question": "What is a non-refundable booking?",
+          "answer": "You take {{nonRef}} off the rental charge and give up the refund if you cancel, miss pickup or return early. If we cancel, you still get everything back."
+        },
+        {
+          "question": "What if CarmaCars cancels?",
+          "answer": "If we cannot supply the car you booked or a comparable one you accept, we refund everything you paid."
+        },
+        {
+          "question": "Do I get money back if I return early?",
+          "answer": "No. Returning early earns no refund."
+        }
+      ]
+    },
+    {
+      "title": "Owners",
+      "id": "owners",
+      "items": [
+        {
+          "question": "What does it cost me?",
+          "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a tracker install fee. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
+        },
+        {
+          "question": "How do I get paid?",
+          "answer": "On the {{payoutDay}} of each month for the month before, with a statement for each car that lists every rental and deduction. Your payout is the rental charge plus mileage overage fees, less our revenue share, which is agreed with you before you sign."
+        },
+        {
+          "question": "Can I still drive my own car?",
+          "answer": "Yes, whenever it is not booked. You book it like a renter and sign the same agreement, but you pay no rental charge, fee or deposit. A renter’s confirmed booking comes first."
+        },
+        {
+          "question": "Who insures the car?",
+          "answer": "From its enrolment date the car is listed on our commercial fleet policy. We manage every claim, and repairs are done only at shops we approve. You are not paid for the time a car is off the road."
+        },
+        {
+          "question": "Is there a minimum term?",
+          "answer": "No. You can take any car out of the program with {{noticeDays}} days’ written notice. If it is on a rental when the notice ends, it leaves when that rental does."
+        }
+      ]
+    }
+  ],
+  "cookies": {
+    "version": "2026-10-08",
+    "title": "Cookies on CarmaCars",
+    "text": "We use necessary cookies to keep the site working and your bookings secure. With your consent we also use analytics cookies to see how the site is used, so we can improve it.",
+    "accept": "Accept all",
+    "necessary": "Necessary only",
+    "prefs": "Preferences",
+    "save": "Save my choice",
+    "groups": [
+      {
+        "code": "necessary_cookies",
+        "name": "Necessary",
+        "always": true,
+        "text": "Sign-in, security and your booking request. Always on."
+      },
+      {
+        "code": "analytics_cookies",
+        "name": "Analytics",
+        "always": false,
+        "text": "Counts visits and pages viewed, so we can see what to improve. Off unless you turn it on."
+      }
+    ]
+  },
+  "carma_line": "Drive your carma.",
+  "legal_last_updated": "October 8, 2026"
+}
