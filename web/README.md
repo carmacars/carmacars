@@ -93,6 +93,35 @@ Stripe needs `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `STRI
 R2 buckets need a CORS rule allowing `PUT` from the site for uploads. `npm run test:unit` runs the Stripe
 adapter's tests against a mocked fetch.
 
+## Owner application, owner portal (`/owner`) and admin (`/admin`)
+
+Same frame and design system as the renter portal (`src/styles/portal.css`, `src/styles/owner.css`). Owner reads go
+through migration 0029's portal functions with the signed-in user's id (`app.portal_owner_id` refuses anyone who is
+not an active owner); every write is a server action (`src/server/actions/owner.ts`, `apply.ts`, `admin.ts`) that the
+database checks again (`p_by`, `p_admin`).
+
+| Route | Does |
+| --- | --- |
+| `/list-your-car/apply` | The owner application (04-owner.md section 3): about you (individual or corporation, address lookup, licence and date of birth for the registry forms), one or many vehicles (VIN looked up once through `src/integrations/vin.ts`, NHTSA vPIC or the fake), how each will work (management mode, the onboarding methods open to it and the registry estimate the owner pays directly, lender permission and the Form C warning), review, account and submit (`submit_owner_application`). Autosaves to `form_drafts` (account, or a device cookie); "Email me a link" sends a one-time resume link (`/list-your-car/apply/resume`). An invitation link (`?invite=`) fills name and email |
+| `/owner` | Next step (sign, pay), vehicles with their next action, money tiles and recent invoices |
+| `/owner/vehicles`, `/owner/vehicles/[id]` | Status, fees, the onboarding checklist, uploads (ownership permit, lender permission, insurance), bookings, invoices, exit notice |
+| `/owner/bookings` | Two months of the owner's cars, every booking (renter details only on Self-Managed rentals and Owner Bookings), "Book my own car" |
+| `/owner/sign` | The Enrollment Agreement with Schedules A and B, the Title-Holding and Lease Agreement with Schedule 1, or an Additional Vehicle Schedule (`src/features/owner-agreement`, text from `../docs/source/v2_enrollment.md` and `v2_title_holding.md` via `npm run gen:owner-agreements`), signed once with three initialled confirmations; signed copies stored |
+| `/owner/invoices`, `/owner/invoices/[number]` | Invoices; the pay page for the upfront and the monthly invoices: card, or Canadian pre-authorized debit (Stripe `acss_debit` with its mandate, saved for the 15th) |
+| `/owner/statements`, `/owner/statements/[id]`, `/owner/payouts` | Approved statements with every line and the booking behind it; payouts |
+| `/owner/documents` (+ `/[id]`, `/forms/[id]`) | Signed agreements and uploads (5-minute signed links); government form data sheets as PDF |
+| `/owner/banking`, `/owner/profile`, `/owner/notifications` | Payout details (account number encrypted with `PAYOUT_ENCRYPTION_KEY`, verified by an Admin), payment methods, contact details, messages |
+| `/admin/owners`, `/admin/owners/[id]`, `/admin/invoices` | Admin only, and two-step sign-in when `require_staff_two_step` is on: applications, terms per vehicle (standard grid by default), issue upfront invoices, record an offline payment (e-Transfer, cheque or bank transfer with its reference, audited), invitation or sign-in links |
+| `POST /api/dev/fake-payments` | Local and tests only (fake payments, never production): settles a fake pre-authorized debit, as the bank does days later |
+
+Owner invoice payments: `src/server/owner/payment.ts`. The browser confirms in Stripe's form; the server fetches the
+PaymentIntent again and records it (`server_record_owner_invoice_payment`); the webhook does the same for
+`payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed` and `payment_intent.canceled`
+with `metadata.purpose = owner_invoice` (add these events to the Stripe endpoint). Stripe needs Canadian
+pre-authorized debits enabled on the account for `acss_debit`. Environment: `VIN_DECODER` (`fake` locally, `vpic` in
+production) and `PAYOUT_ENCRYPTION_KEY` (a Worker secret of 32+ characters; never changed without re-encrypting).
+`npm run gen:owner-agreements` rebuilds the owner agreement text from `../docs/source`.
+
 ## Layout
 
 ```
