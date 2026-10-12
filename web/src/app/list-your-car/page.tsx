@@ -29,7 +29,7 @@ export default async function Owners() {
           <p className="eyebrow">Owner program, {s.city}</p>
           <h1 className="d1">Your car, earning its keep.</h1>
           <p className="lead">{F('List your car with {{brand}}. We find the renters, check their licences, hand over the keys and collect the money. Every handover is photographed, so it comes back the way it left, and you get a statement and a payout every month.')}</p>
-          <p className="row"><a className="btn btn--primary btn--lg" href="#apply">Apply to list your car</a><a className="btn btn--ghost btn--lg" href="#how">How it works</a></p>
+          <p className="row"><a className="btn btn--primary btn--lg" href="/list-your-car/apply">Apply to list your car</a><a className="btn btn--ghost btn--lg" href="#apply">Ask us first</a></p>
         </div></div>
       </section>
       <section className="facts on-dark" aria-label="Owner program at a glance"><div className="wrap"><dl className="facts__list">
