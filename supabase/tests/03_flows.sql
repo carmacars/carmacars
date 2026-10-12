@@ -161,8 +161,8 @@ select test.throws('ON only a shareholder-owned vehicle skips the upfront charge
 select test.throws('ON upfront charges must be paid first',
   format('update vehicle_onboardings set status = ''upfront_paid'' where id = %L', test.id('onb:NEW')), 'not paid');
 select app.issue_upfront_invoice(test.id('vehicle:NEW'));
-select test.eq('ON upfront amounts come from the signed schedule, never from a tier: $100 + 2 x $400 + HST',
-  (select total_cents from owner_invoices where vehicle_id = test.id('vehicle:NEW') and kind = 'upfront'), test.money('1,017.00'));
+select test.eq('ON upfront amounts come from the signed schedule, never from a tier: 2 x $400 + HST (Install Fee invoiced apart, 0029)',
+  (select total_cents from owner_invoices where vehicle_id = test.id('vehicle:NEW') and kind = 'upfront'), test.money('904.00'));
 select test.throws('INV an invoice cannot be paid before it is issued',
   format('update owner_invoices set status = ''paid'' where vehicle_id = %L', test.id('vehicle:NEW')), 'cannot go from draft to paid');
 update owner_invoices set status = 'issued' where vehicle_id = test.id('vehicle:NEW');

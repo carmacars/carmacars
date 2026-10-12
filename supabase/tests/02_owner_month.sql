@@ -295,8 +295,8 @@ select test.throws('O3 a Turo trip is never a platform booking',
 select test.mk_owner('nora');
 select test.mk_vehicle('N', 'nora', 'managed', 45000, 2500, 3500, date '2026-11-16');
 select app.issue_upfront_invoice(test.id('vehicle:N'));
-select test.eq('O1 upfront: $100 Install Fee + 2 x $450 Insurance Fee + HST = $1,130.00',
-  (select fees_cents || '+' || hst_cents || '=' || total_cents from owner_invoices where vehicle_id = test.id('vehicle:N') and kind = 'upfront'), '100000+13000=113000');
+select test.eq('O1 upfront: 2 x $450 Insurance Fee + HST = $1,017.00 (the $100 Install Fee is its own invoice since 0029)',
+  (select fees_cents || '+' || hst_cents || '=' || total_cents from owner_invoices where vehicle_id = test.id('vehicle:N') and kind = 'upfront'), '90000+11700=101700');
 update owner_invoices set status = 'issued' where vehicle_id = test.id('vehicle:N') and kind = 'upfront';
 update owner_invoices set status = 'paid' where vehicle_id = test.id('vehicle:N') and kind = 'upfront';
 select test.eq('O1 paying it funds the prepaid first and last month',

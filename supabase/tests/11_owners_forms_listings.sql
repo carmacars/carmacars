@@ -276,13 +276,13 @@ update vehicle_onboardings set status = 'documents_sent' where vehicle_id in (te
 update vehicle_onboardings set status = 'documents_signed' where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
 create temp table ofl_inv as select * from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_fin'));
 grant all on ofl_inv to authenticated, anon;
-select test.eq('D upfront invoices: Install Fee plus first and last month''s Insurance Fee, HST 13%; registry costs are not on them',
+select test.eq('D upfront invoices: first and last month''s Insurance Fee, HST 13%; registry costs and the Install Fee (0029) are not on them',
   (select string_agg(fees_cents || '+' || hst_cents || '=' || total_cents, ' ' order by fees_cents desc) from ofl_inv),
-  '90000+11700=101700 88000+11440=99440 86000+11180=97180');
-select test.eq('D each invoice has the three lines and is issued; Finance gets a collect task per invoice (0020)',
+  '80000+10400=90400 78000+10140=88140 76000+9880=85880');
+select test.eq('D each invoice has its two lines and is issued; Finance gets a collect task per invoice (0020)',
   (select count(*) from owner_invoice_lines l join ofl_inv i on i.invoice_id = l.owner_invoice_id) || '/'
   || (select string_agg(distinct status, ',') from owner_invoices where id in (select invoice_id from ofl_inv)) || '/'
-  || (select count(*) from tasks where task_type = 'collect_upfront' and related_id in (select invoice_id from ofl_inv)), '9/issued/3');
+  || (select count(*) from tasks where task_type = 'collect_upfront' and related_id in (select invoice_id from ofl_inv)), '6/issued/3');
 select test.eq('D a second run issues nothing more', (select count(*) from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid)), 0::bigint);
 select test.throws('D a signed schedule cannot be changed through the onboarding terms', format('select app.set_vehicle_terms(%L, %L)', test.ofl_v(1), test.id('ofl_admin')), 'Terms are fixed');
 

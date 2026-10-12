@@ -23,6 +23,7 @@ language sql stable security definer set search_path = public, app as $$
     'install_fee_cents', (app.settings()).install_fee_cents,
     'hst_bps', (app.settings()).hst_bps,
     'late_fee_cents', (app.settings()).owner_late_fee_cents,
+    'trackers_available', coalesce((app.settings()).trackers_available, false),
     'grid', (select coalesce(jsonb_agg(jsonb_build_object('min_vehicles', g.min_vehicles, 'max_vehicles', g.max_vehicles,
                     'insurance_fee_cents', g.insurance_fee_cents, 'tracker_fee_cents', g.tracker_fee_cents, 'revenue_share_bps', g.revenue_share_bps)
                     order by g.min_vehicles), '[]'::jsonb)
@@ -123,6 +124,8 @@ language sql stable security definer set search_path = public, app as $$
     'exits', (select coalesce(jsonb_agg(jsonb_build_object('id', e.id, 'vehicle_id', e.vehicle_id, 'status', e.status, 'exit_date', e.exit_date,
                 'notice_ends_on', e.notice_ends_on, 'retransfer_fees_paid_by', e.retransfer_fees_paid_by)), '[]'::jsonb)
                 from vehicle_exits e join vehicles v on v.id = e.vehicle_id where v.owner_id = o.id and e.withdrawn_at is null),
+    'trackers_available', coalesce((app.settings()).trackers_available, false),
+    'tracker_pending', (select coalesce(jsonb_agg(v.id), '[]'::jsonb) from vehicles v where v.owner_id = o.id and v.tracker_install_pending),
     'next_payout_date', app.payout_date(app.month_start(app.today())),
     'next_billing_date', case when extract(day from app.today()) <= 15 then app.billing_date(app.month_start(app.today()))
                               else app.billing_date((app.month_start(app.today()) + interval '1 month')::date) end)
@@ -856,9 +859,13 @@ begin
                        'vehicle_count', a.vehicle_count, 'created_at', a.created_at, 'note', a.note) order by a.created_at), '[]'::jsonb)
                        from owner_applications a where a.owner_id = o.id),
     'signing', app.owner_signing_needed(o.id),
+    'trackers_available', coalesce((app.settings()).trackers_available, false),
     'vehicles', (select coalesce(jsonb_agg(jsonb_build_object(
         'vehicle_id', v.id, 'name', app.vehicle_name(v.id), 'vin', upper(v.vin), 'plate', v.plate, 'colour', v.colour, 'odometer_km', v.odometer_km,
         'status', v.status, 'billing_case', v.billing_case, 'is_shareholder_owned', v.is_shareholder_owned,
+        'tracker_install_pending', v.tracker_install_pending, 'tracker_installed_on', v.tracker_installed_on,
+        'tracker_invoice', (select jsonb_build_object('id', i.id, 'invoice_number', i.invoice_number, 'status', i.status, 'total_cents', i.total_cents)
+                              from owner_invoices i where i.vehicle_id = v.id and i.kind = 'tracker_install' and i.status <> 'void'),
         'onboarding', jsonb_build_object('status', ob.status, 'held_by', ob.held_by, 'title_status', ob.title_status,
             'finance_party_name', ob.finance_party_name, 'finance_permission', ob.finance_permission, 'current_insurer', ob.current_insurer,
             'proposed_management_mode', ob.proposed_management_mode, 'proposed_onboarding_method', ob.proposed_onboarding_method,
@@ -957,6 +964,233 @@ begin
   return v_out;
 end $$;
 
+-- ================================================================ trackers are not available yet
+-- The owner's decision (2026-10-12): the first and last month's Insurance Fee and the Tracker Install
+-- Fee are separate invoices, one per vehicle each (owner_invoices has one vehicle per invoice and the
+-- specification bills each vehicle on its own). Until trackers arrive the Install Fee is not billed and
+-- no monthly Tracker Fee is charged: a vehicle waits with tracker_install_pending. When trackers arrive
+-- an Admin issues the Tracker Install invoices; the monthly Tracker Fee starts on the day the tracker
+-- is installed (pro-rated in that month).
+alter table program_settings add column trackers_available boolean not null default false;
+comment on column program_settings.trackers_available is 'False until trackers can be installed: the owner wizard and portal show no tracker fees, only that a Tracker Install Fee applies when trackers become available.';
+alter table vehicles
+  add column tracker_install_pending boolean not null default false,
+  add column tracker_installed_on date;
+comment on column vehicles.tracker_install_pending is 'The vehicle waits for a tracker: no Tracker Install invoice and no monthly Tracker Fee until it is installed.';
+
+alter table owner_invoices drop constraint if exists owner_invoices_kind_check;
+alter table owner_invoices add constraint owner_invoices_kind_check check (kind in ('upfront', 'monthly', 'adjustment', 'tracker_install'));
+create unique index owner_invoices_one_tracker_install on owner_invoices (vehicle_id) where kind = 'tracker_install' and status <> 'void';
+
+-- A vehicle entering onboarding while trackers are not available waits for its tracker.
+create or replace function app.tracker_pending_on_onboarding() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if not coalesce((app.settings()).trackers_available, false) then
+    update vehicles set tracker_install_pending = true
+     where id = new.vehicle_id and management_mode <> 'turo_only' and not is_shareholder_owned and tracker_installed_on is null;
+  end if;
+  return null;
+end $$;
+create trigger vehicle_onboardings_tracker_pending after insert on vehicle_onboardings
+  for each row execute function app.tracker_pending_on_onboarding();
+
+-- The tracker is installed (the field job records tracker_installed_at): the monthly Tracker Fee starts.
+create or replace function app.tracker_installed_effects() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.tracker_installed_at is not null and old.tracker_installed_at is null then
+    update vehicles set tracker_install_pending = false, tracker_installed_on = coalesce(tracker_installed_on, app.local_date(new.tracker_installed_at))
+     where id = new.vehicle_id;
+  end if;
+  return null;
+end $$;
+create trigger vehicle_onboardings_tracker_installed after update of tracker_installed_at on vehicle_onboardings
+  for each row execute function app.tracker_installed_effects();
+
+-- An Admin records an installation done outside the onboarding flow (an enrolled vehicle that waited).
+create or replace function app.record_tracker_installed(p_vehicle uuid, p_admin uuid, p_on date default null) returns void
+language plpgsql security definer set search_path = public, app as $$
+begin
+  perform app.assert_admin(p_admin);
+  update vehicles set tracker_install_pending = false, tracker_installed_on = coalesce(p_on, app.today()) where id = p_vehicle;
+  if not found then raise exception 'Vehicle not found' using errcode = 'P0002'; end if;
+end $$;
+
+-- Upfront invoice (owner billing specification section 1, as changed): the first and last month's
+-- Insurance Fee only. Replaces 0007's version (same signature); the Install Fee is its own invoice.
+create or replace function app.issue_upfront_invoice(p_vehicle uuid, p_by uuid default null)
+returns uuid language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  s vehicle_schedules;
+  v_hst integer := (app.settings()).hst_bps;
+  v_id uuid;
+begin
+  select * into v from vehicles where id = p_vehicle;
+  if v.billing_case in ('turo_only', 'shareholder') then
+    raise exception 'No upfront charges apply to a % vehicle', v.billing_case using errcode = '23514';
+  end if;
+  select * into s from vehicle_schedules where vehicle_id = p_vehicle and superseded_by is null;
+  if s.id is null then
+    raise exception 'Vehicle % has no signed Vehicle Schedule', p_vehicle using errcode = '23514';
+  end if;
+  insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, payment_method, status, created_by)
+  values (v.owner_id, p_vehicle, 'upfront', app.today(), 'card', 'draft', p_by) returning id into v_id;
+  insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents) values
+    (v_id, 'first_month_insurance', 'First month''s Insurance Fee', s.insurance_fee_cents, true, public.calc_hst(s.insurance_fee_cents, v_hst)),
+    (v_id, 'last_month_insurance', 'Last month''s Insurance Fee', s.insurance_fee_cents, true, public.calc_hst(s.insurance_fee_cents, v_hst));
+  update vehicle_onboardings set upfront_invoice_id = v_id where vehicle_id = p_vehicle;
+  return v_id;
+end $$;
+
+-- The Tracker Install invoice of one vehicle: the Install Fee of its Vehicle Schedule, with HST.
+-- Issued once (a second call returns null).
+create or replace function app.issue_tracker_install_invoice(p_vehicle uuid, p_by uuid default null)
+returns uuid language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  s vehicle_schedules;
+  v_hst integer := (app.settings()).hst_bps;
+  v_id uuid;
+begin
+  select * into v from vehicles where id = p_vehicle for update;
+  if v.id is null then raise exception 'Vehicle not found' using errcode = 'P0002'; end if;
+  if v.billing_case in ('turo_only', 'shareholder') then
+    raise exception 'No Tracker Install Fee applies to a % vehicle', v.billing_case using errcode = '23514';
+  end if;
+  if exists (select 1 from owner_invoices i where i.vehicle_id = p_vehicle and i.kind = 'tracker_install' and i.status <> 'void') then
+    return null;
+  end if;
+  select * into s from vehicle_schedules where vehicle_id = p_vehicle and superseded_by is null;
+  if s.id is null then raise exception 'Vehicle % has no Vehicle Schedule', p_vehicle using errcode = '23514'; end if;
+  if s.install_fee_cents <= 0 then return null; end if;
+  insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, payment_method, status, created_by)
+  values (v.owner_id, p_vehicle, 'tracker_install', app.today(), 'card', 'draft', p_by) returning id into v_id;
+  insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents)
+  values (v_id, 'install_fee', 'Tracker Install Fee', s.install_fee_cents, true, public.calc_hst(s.install_fee_cents, v_hst));
+  update owner_invoices set status = 'issued' where id = v_id;
+  return v_id;
+end $$;
+
+-- When trackers arrive: an Admin issues the Tracker Install invoices, for the vehicles named or for
+-- every vehicle (of one owner, or of all owners) that waits for a tracker and has its terms set.
+create or replace function app.admin_issue_tracker_install_invoices(p_admin uuid, p_owner uuid default null, p_vehicles uuid[] default null) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r record;
+  v_inv uuid;
+  v_out jsonb := '[]'::jsonb;
+begin
+  perform app.assert_admin(p_admin);
+  for r in
+    select v.id from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id
+     where v.tracker_install_pending and v.billing_case in ('managed', 'self_managed')
+       and ob.status not in ('intake', 'declined', 'withdrawn')
+       and exists (select 1 from vehicle_schedules s where s.vehicle_id = v.id and s.superseded_by is null)
+       and (p_owner is null or v.owner_id = p_owner) and (p_vehicles is null or v.id = any (p_vehicles))
+     order by v.owner_id, v.created_at, v.plate
+  loop
+    v_inv := app.issue_tracker_install_invoice(r.id, p_admin);
+    if v_inv is not null then
+      v_out := v_out || jsonb_build_array((select jsonb_build_object('vehicle_id', i.vehicle_id, 'invoice_id', i.id, 'invoice_number', i.invoice_number,
+                                                   'total_cents', i.total_cents) from owner_invoices i where i.id = v_inv));
+    end if;
+  end loop;
+  return v_out;
+end $$;
+
+-- Monthly invoice (0007, same signature), with one change: no Tracker Fee while the vehicle waits for
+-- its tracker, and from the day it is installed (pro-rated) once it is.
+create or replace function app.generate_owner_invoice(p_vehicle uuid, p_month date, p_by uuid default null)
+returns uuid language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  v_month date := app.month_start(p_month);
+  v_end date;
+  v_days integer;
+  v_dim integer := app.days_in_month(p_month);
+  t vehicle_fee_history;
+  v_hst integer := (app.settings(v_month)).hst_bps;
+  v_ins bigint;
+  v_trk bigint;
+  v_trk_line boolean;
+  v_id uuid;
+  v_left bigint;
+  v_use bigint;
+  p vehicle_prepaids;
+begin
+  select * into v from vehicles where id = p_vehicle;
+  if v.billing_case in ('turo_only', 'shareholder') or v.enrollment_date is null then return null; end if;
+  v_end := app.vehicle_fee_end(p_vehicle);
+  v_days := public.calc_fee_days(v_month, v.enrollment_date, v_end);
+  if v_days <= 0 then return null; end if;
+  if exists (select 1 from owner_invoices where vehicle_id = p_vehicle and period_month = v_month
+               and kind = 'monthly' and status <> 'void') then
+    return null;
+  end if;
+  t := app.vehicle_terms(p_vehicle, least(greatest(app.billing_date(v_month), v.enrollment_date), coalesce(v_end, 'infinity'::date)));
+  if t.id is null then
+    raise exception 'Vehicle % has no fee terms for %', p_vehicle, v_month using errcode = '23514';
+  end if;
+  v_ins := public.calc_prorated_fee(t.insurance_fee_cents, v_days, v_dim);
+  -- 0029: the Tracker Fee runs from the installation, never while the vehicle waits for a tracker
+  v_trk_line := not v.tracker_install_pending;
+  if v.tracker_install_pending or (v.tracker_installed_on is not null and v.tracker_installed_on >= (v_month + interval '1 month')::date) then
+    v_trk := 0; v_trk_line := false;
+  elsif v.tracker_installed_on is not null and v.tracker_installed_on > v_month then
+    v_trk := public.calc_prorated_fee(t.tracker_fee_cents,
+               public.calc_fee_days(v_month, greatest(v.enrollment_date, v.tracker_installed_on), v_end), v_dim);
+  else
+    v_trk := public.calc_prorated_fee(t.tracker_fee_cents, v_days, v_dim);
+  end if;
+  if v_ins = 0 and v_trk = 0 then return null; end if;
+
+  insert into owner_invoices (owner_id, vehicle_id, kind, period_month, days_billed, days_in_month,
+                              billing_date, retry_on, status, created_by)
+  values (v.owner_id, p_vehicle, 'monthly', v_month, v_days, v_dim,
+          greatest(app.billing_date(v_month), app.today()), null, 'draft', p_by)
+  returning id into v_id;
+
+  insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents) values
+    (v_id, 'insurance_fee', format('Insurance Fee, %s (%s of %s days)', to_char(v_month, 'FMMonth YYYY'), v_days, v_dim),
+           v_ins, true, public.calc_hst(v_ins, v_hst));
+  if v_trk_line then
+    insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents) values
+      (v_id, 'tracker_fee', format('Tracker Fee, %s (%s of %s days)', to_char(v_month, 'FMMonth YYYY'), v_days, v_dim),
+             v_trk, true, public.calc_hst(v_trk, v_hst));
+  end if;
+
+  v_left := v_ins;
+  for p in select * from vehicle_prepaids
+            where vehicle_id = p_vehicle and remaining_cents > 0
+              and (kind = 'first_month_insurance'
+                   or (kind = 'last_month_insurance' and v_end is not null and app.month_start(v_end) = v_month))
+            order by kind
+  loop
+    v_use := least(p.remaining_cents, v_left);
+    if v_use > 0 then
+      insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents, vehicle_prepaid_id)
+      values (v_id, 'prepaid_credit',
+              case p.kind when 'first_month_insurance' then 'Prepaid first month''s Insurance Fee applied'
+                          else 'Prepaid last month''s Insurance Fee applied' end,
+              -v_use, true, -public.calc_hst(v_use, v_hst), p.id);
+      update vehicle_prepaids set applied_cents = applied_cents + v_use where id = p.id;
+      v_left := v_left - v_use;
+    end if;
+    if p.kind = 'last_month_insurance' then
+      update vehicle_prepaids set refund_due_since = v_end where id = p.id and remaining_cents > 0;
+    end if;
+  end loop;
+  return v_id;
+end $$;
+
+-- The onboarding can move on without a tracker while none are available (registered to on the
+-- fleet policy); the tracker is installed later.
+insert into status_transitions (entity, from_status, to_status, note)
+select 'vehicle_onboarding', 'registered', 'on_fleet_policy', 'trackers not available yet: the tracker is installed later'
+ where not exists (select 1 from status_transitions x where x.entity = 'vehicle_onboarding' and x.from_status = 'registered' and x.to_status = 'on_fleet_policy');
+
 -- ================================================================ wrappers for the server (service_role only)
 create or replace function public.server_owner_program_facts() returns jsonb
 language sql stable security invoker set search_path = public, app as $$ select app.owner_program_facts() $$;
@@ -1035,6 +1269,10 @@ create or replace function public.admin_approve_vehicle_terms(p_vehicle uuid, p_
 language sql volatile security invoker set search_path = public, app as $$ select app.admin_approve_vehicle_terms(p_vehicle, p_admin, p_approve) $$;
 create or replace function public.admin_issue_upfront_invoices(p_owner uuid, p_admin uuid, p_vehicles uuid[] default null) returns jsonb
 language sql volatile security invoker set search_path = public, app as $$ select app.admin_issue_upfront_invoices(p_owner, p_admin, p_vehicles) $$;
+create or replace function public.admin_issue_tracker_install_invoices(p_admin uuid, p_owner uuid default null, p_vehicles uuid[] default null) returns jsonb
+language sql volatile security invoker set search_path = public, app as $$ select app.admin_issue_tracker_install_invoices(p_admin, p_owner, p_vehicles) $$;
+create or replace function public.admin_record_tracker_installed(p_vehicle uuid, p_admin uuid, p_on date default null) returns void
+language sql volatile security invoker set search_path = public, app as $$ select app.record_tracker_installed(p_vehicle, p_admin, p_on) $$;
 create or replace function public.admin_record_owner_offline_payment(p_invoice uuid, p_admin uuid, p jsonb) returns jsonb
 language sql volatile security invoker set search_path = public, app as $$ select app.record_owner_offline_payment(p_invoice, p_admin, p) $$;
 
@@ -1052,7 +1290,9 @@ begin
               'owner_register_document', 'owner_signing_needed', 'owner_agreement_facts', 'owner_open_agreements', 'owner_sign_agreements', 'attach_owner_signed_copy',
               'owner_invoice_payment_facts', 'owner_invoice_apply_payment', 'record_owner_invoice_payment', 'record_owner_offline_payment',
               'admin_gate', 'assert_admin', 'admin_owner_applications', 'admin_owner_detail', 'admin_owner_invoices',
-              'admin_set_vehicle_terms', 'admin_approve_vehicle_terms', 'admin_issue_upfront_invoices']))
+              'admin_set_vehicle_terms', 'admin_approve_vehicle_terms', 'admin_issue_upfront_invoices',
+              'tracker_pending_on_onboarding', 'tracker_installed_effects', 'record_tracker_installed', 'issue_upfront_invoice',
+              'issue_tracker_install_invoice', 'admin_issue_tracker_install_invoices', 'generate_owner_invoice']))
         or (n.nspname = 'public' and p.proname = any (array[
               'server_owner_program_facts', 'server_onboarding_options', 'server_vin_lookup', 'server_record_vin_decode',
               'server_draft_resume_link', 'server_resume_form_draft', 'server_send_link_email', 'server_submit_owner_application',
@@ -1062,7 +1302,8 @@ begin
               'server_owner_agreement_facts', 'owner_open_agreements', 'owner_sign_agreements', 'server_attach_owner_signed_copy',
               'server_owner_invoice_payment_facts', 'server_owner_invoice_id', 'server_record_owner_invoice_payment',
               'admin_gate', 'admin_owner_applications', 'admin_owner_detail', 'admin_owner_invoices', 'admin_set_vehicle_terms',
-              'admin_approve_vehicle_terms', 'admin_issue_upfront_invoices', 'admin_record_owner_offline_payment']))
+              'admin_approve_vehicle_terms', 'admin_issue_upfront_invoices', 'admin_record_owner_offline_payment',
+              'admin_issue_tracker_install_invoices', 'admin_record_tracker_installed']))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

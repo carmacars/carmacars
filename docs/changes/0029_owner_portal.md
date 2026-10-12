@@ -2,7 +2,7 @@
 
 Migration `supabase/migrations/0029_owner_portal.sql`, tests `supabase/tests/16_owner_portal.sql`. Written with the owner
 onboarding wizard (`/list-your-car/apply`), the owner portal (`/owner`) and the first admin screens (`/admin`) of the web
-app. No table is added and no earlier function changes. Function bodies are checked when called
+app. No table is added. Two 0007 functions are replaced with the same signature (`issue_upfront_invoice`, `generate_owner_invoice`; section "Trackers"). Function bodies are checked when called
 (`set local check_function_bodies = off`), because some refer to functions defined further down.
 
 ## Changed
@@ -27,6 +27,31 @@ app. No table is added and no earlier function changes. Function bodies are chec
 | `admin_gate`, `assert_admin`, `admin_owner_applications`, `admin_owner_detail`, `admin_owner_invoices`, `admin_set_vehicle_terms`, `admin_approve_vehicle_terms`, `admin_issue_upfront_invoices` | The admin screens: Admin only. Terms go through 0022's `set_vehicle_terms` (the grid by default; off the grid is the Admin's decision) and then pre-fill the method's government forms; upfront invoices through 0007's `issue_upfront_invoice` for every vehicle whose terms are set |
 
 Every function above is revoked from public, anon and authenticated and granted to service_role.
+
+## Trackers: a separate invoice, and no tracker fees until a tracker is installed
+
+The owner's decision of 2026-10-12: trackers are about three weeks away, so the first and last month's Insurance Fee and
+the Tracker Install Fee are separate invoices. Both are **one per vehicle** (`owner_invoices` has one vehicle per
+invoice, a one-upfront-per-vehicle index and per-vehicle debits; the specification bills each vehicle on its own).
+
+| Object | Now |
+| --- | --- |
+| `program_settings.trackers_available` | New, default false. While false the owner wizard and portal show no tracker fees or tracker steps, only "a Tracker Install Fee applies when trackers become available" (the signed Vehicle Schedule still states the fees) |
+| `vehicles.tracker_install_pending`, `tracker_installed_on` | New. A vehicle whose onboarding starts while trackers are not available waits (trigger `vehicle_onboardings_tracker_pending`; never Turo-Only or shareholder-owned). Recording `vehicle_onboardings.tracker_installed_at` (trigger `vehicle_onboardings_tracker_installed`) or `app.record_tracker_installed` (Admin) ends the wait |
+| `owner_invoices.kind` | Adds `tracker_install`; at most one per vehicle that is not void (`owner_invoices_one_tracker_install`) |
+| `app.issue_upfront_invoice` (0007, replaced, same signature) | First and last month's Insurance Fee only, with HST. 0022's automatic path and the admin path both use it |
+| `app.issue_tracker_install_invoice`, `app.admin_issue_tracker_install_invoices` (+ `public.admin_issue_tracker_install_invoices`) | The Install Fee of the Vehicle Schedule, with HST, issued by an Admin per vehicle or in bulk (one owner, or every waiting vehicle) when trackers arrive; idempotent |
+| `app.generate_owner_invoice` (0007, replaced, same signature) | No Tracker Fee line while the vehicle waits for its tracker; from the installation day once installed (pro-rated in that month). Everything else unchanged |
+| `status_transitions` | Adds `vehicle_onboarding` `registered` to `on_fleet_policy`, so a vehicle can be enrolled before its tracker is installed |
+
+### Existing test assertions changed
+
+| File | Assertion | Was | Now | Why |
+| --- | --- | --- | --- | --- |
+| `02_owner_month.sql` | O1 upfront | $100 + 2 x $450 + HST = $1,130.00 | 2 x $450 + HST = $1,017.00 | The Install Fee is its own invoice |
+| `03_flows.sql` | ON upfront amounts | $1,017.00 | $904.00 | Same |
+| `11_owners_forms_listings.sql` | D upfront invoices | 90000/88000/86000 before HST | 80000/78000/76000 | Same |
+| `11_owners_forms_listings.sql` | D lines per invoice | 9 lines | 6 lines | Same |
 
 ## Decisions to confirm
 
