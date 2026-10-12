@@ -30,6 +30,9 @@ export function toIntent(pi: Obj): Intent {
   const c = obj(pm?.card);
   const charge = obj(pi.latest_charge);
   const funding = str(c?.funding);
+  const acss = obj(pm?.acss_debit);
+  const chargeAcss = obj(obj(charge?.payment_method_details)?.acss_debit);
+  const type = str(pm?.type) ?? str(obj(charge?.payment_method_details)?.type);
   const card: IntentCard | null = c ? {
     brand: str(c.brand) ?? 'card', last4: str(c.last4) ?? '', expMonth: num(c.exp_month), expYear: num(c.exp_year),
     funding: funding === 'credit' || funding === 'debit' || funding === 'prepaid' ? funding : 'unknown',
@@ -39,7 +42,10 @@ export function toIntent(pi: Obj): Intent {
     id: String(pi.id), status: pi.status as Intent['status'], amountCents: num(pi.amount), amountCapturableCents: num(pi.amount_capturable),
     currency: str(pi.currency) ?? 'cad', clientSecret: str(pi.client_secret), metadata: (obj(pi.metadata) ?? {}) as Record<string, string>,
     customerId: str(pi.customer) ?? str(obj(pi.customer)?.id), paymentMethodId: str(pi.payment_method) ?? str(pm?.id),
-    chargeId: str(pi.latest_charge) ?? str(charge?.id), card, lastError: str(obj(pi.last_payment_error)?.message)
+    chargeId: str(pi.latest_charge) ?? str(charge?.id), card, lastError: str(obj(pi.last_payment_error)?.message),
+    methodType: type === 'card' || type === 'acss_debit' ? type : null,
+    bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
+    mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)
   };
 }
 
@@ -80,8 +86,27 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
   return {
     name: 'stripe',
     async createCustomer(r) {
-      const c = await call('POST', '/customers', { email: r.email, name: r.name, metadata: { renter_id: r.renterId } }, r.idempotencyKey);
+      const metadata: Record<string, string> = {};
+      if (r.renterId) metadata.renter_id = r.renterId;
+      if (r.ownerId) metadata.owner_id = r.ownerId;
+      const c = await call('POST', '/customers', { email: r.email, name: r.name, metadata }, r.idempotencyKey);
       return { id: String(c.id) };
+    },
+    async createInvoiceIntent(r) {
+      const p: Params = {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, setup_future_usage: 'off_session',
+        payment_method_types: [r.method], description: r.description,
+        metadata: { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice' },
+        expand
+      };
+      if (r.method === 'acss_debit') {
+        // the debit agreement: variable amounts on a schedule (the 15th, retried on the 18th), confirmed by the owner in Stripe's form
+        p['payment_method_options[acss_debit][mandate_options][payment_schedule]'] = 'interval';
+        p['payment_method_options[acss_debit][mandate_options][interval_description]'] = 'On the 15th of each month for the vehicle fees on your invoice, and on the 18th when a debit is retried';
+        p['payment_method_options[acss_debit][mandate_options][transaction_type]'] = r.transactionType;
+        p['payment_method_options[acss_debit][verification_method]'] = 'automatic';
+      }
+      return toIntent(await call('POST', '/payment_intents', p, r.idempotencyKey));
     },
     async createBookingIntent(r) {
       return toIntent(await call('POST', '/payment_intents', {

@@ -31,6 +31,27 @@ export interface Intent {
   card: IntentCard | null;
   /** The processor's decline message, in plain words, when the last attempt failed. */
   lastError: string | null;
+  /** card, or acss_debit (Canadian pre-authorized debit). */
+  methodType: 'card' | 'acss_debit' | null;
+  /** The bank account of a pre-authorized debit (never the full number). */
+  bank: { name: string | null; last4: string } | null;
+  /** The pre-authorized debit mandate the owner accepted, kept for the monthly debit. */
+  mandateId: string | null;
+}
+
+/** An owner invoice paid on the pay page: automatic capture, one method chosen by the owner,
+ *  the method saved for the monthly debit on the 15th. */
+export interface InvoiceIntentRequest {
+  invoiceId: string;
+  invoiceNumber: string;
+  ownerId: string;
+  amountCents: number;
+  customerId: string;
+  method: 'card' | 'acss_debit';
+  /** acss_debit: personal (an individual) or business (a corporation). */
+  transactionType: 'personal' | 'business';
+  description: string;
+  idempotencyKey: string;
 }
 
 export interface BookingIntentRequest {
@@ -62,7 +83,9 @@ export interface WebhookEvent {
 export interface PaymentsAdapter {
   readonly name: 'stripe' | 'fake';
   /** The renter as a processor customer, so the card can be saved for later charges. */
-  createCustomer(r: { email: string; name: string; renterId: string; idempotencyKey: string }): Promise<{ id: string }>;
+  createCustomer(r: { email: string; name: string; renterId?: string; ownerId?: string; idempotencyKey: string }): Promise<{ id: string }>;
+  /** An owner invoice: card or Canadian pre-authorized debit (with its mandate), saved for later debits. */
+  createInvoiceIntent(r: InvoiceIntentRequest): Promise<Intent>;
   /** A card-only PaymentIntent with manual capture that saves the card for off-session use. */
   createBookingIntent(r: BookingIntentRequest): Promise<Intent>;
   retrieveIntent(id: string): Promise<Intent>;

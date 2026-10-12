@@ -2,6 +2,7 @@ import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { payments } from '@/integrations/payments';
 import { settleIntent } from '@/server/portal/payment';
+import { settleInvoiceIntent } from '@/server/owner/payment';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
 // Supabase Edge Function: the settlement code, the payments module and the signed-copy renderer live
@@ -13,7 +14,7 @@ const SR = { role: 'service_role' as const };
 
 export async function POST(req: Request): Promise<Response> {
   const e = env();
-  const secret = e.STRIPE_WEBHOOK_SECRET ?? (e.PAYMENTS_PROVIDER === 'fake' && e.APP_ENV !== 'production' ? 'whsec_local_fake' : '');
+  const secret = e.STRIPE_WEBHOOK_SECRET || (e.PAYMENTS_PROVIDER === 'fake' && e.APP_ENV !== 'production' ? 'whsec_local_fake' : '');
   const raw = await req.text();
   const p = await payments();
   let event;
@@ -35,6 +36,11 @@ export async function POST(req: Request): Promise<Response> {
         result = await settleIntent(obj.id, null, event.id);
       } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
         result = { noted: event.type };
+      }
+    } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'owner_invoice') {
+      // an owner invoice: a card charge, or a pre-authorized debit submitted (processing) and settled days later
+      if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
+        result = await settleInvoiceIntent(obj.id, null, { failedEvent: event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled' });
       }
     }
     await rpc('server_webhook_event_finish', { p_provider: 'stripe', p_event_id: event.id, p_result: result as never }, SR);

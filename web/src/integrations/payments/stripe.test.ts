@@ -112,3 +112,25 @@ test('webhook signatures: a good one passes; a forged, stale or missing one is r
   await assert.rejects(verifyStripeSignature(body, header, 'whsec_test', now + 301), /tolerance/);
   await assert.rejects(verifyStripeSignature(body, null, 'whsec_test', now), /Missing/);
 });
+
+test('an owner invoice by pre-authorized debit: acss_debit only, automatic capture, a mandate on a schedule, saved for later', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method', capture_method: 'automatic', payment_method: null, latest_charge: null, metadata: { owner_invoice_id: 'i1', purpose: 'owner_invoice' } }) }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  await s.createInvoiceIntent({ invoiceId: 'i1', invoiceNumber: 'INV-1001', ownerId: 'o1', amountCents: 101700, customerId: 'cus_1', method: 'acss_debit', transactionType: 'personal', description: 'Invoice INV-1001', idempotencyKey: 'owner-invoice:i1:acss_debit:101700:0' });
+  const body = decodeURIComponent(String(calls[0]!.init.body));
+  assert.match(body, /payment_method_types\[\]=acss_debit/);
+  assert.match(body, /setup_future_usage=off_session/);
+  assert.doesNotMatch(body, /capture_method=manual/);
+  assert.match(body, /payment_method_options\[acss_debit\]\[mandate_options\]\[payment_schedule\]=interval/);
+  assert.match(body, /payment_method_options\[acss_debit\]\[mandate_options\]\[transaction_type\]=personal/);
+  assert.match(body, /metadata\[purpose\]=owner_invoice/);
+  assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'owner-invoice:i1:acss_debit:101700:0');
+});
+
+test('a settled debit reads the bank and the mandate from the charge', () => {
+  const i = toIntent(pi({ status: 'succeeded', payment_method: { id: 'pm_a', type: 'acss_debit', acss_debit: { bank_name: 'TD', last4: '6789' } }, latest_charge: { id: 'py_1', payment_method_details: { type: 'acss_debit', acss_debit: { bank_name: 'TD', last4: '6789', mandate: 'mandate_1' } } } }));
+  assert.equal(i.methodType, 'acss_debit');
+  assert.deepEqual(i.bank, { name: 'TD', last4: '6789' });
+  assert.equal(i.mandateId, 'mandate_1');
+  assert.equal(i.card, null);
+});
