@@ -9,10 +9,10 @@ function inline(s: string): ReactNode {
   return s.split(/(\*\*[^*]+\*\*)/).filter(Boolean).map((p, i) => (p.startsWith('**') ? <strong key={i}>{p.slice(2, -2)}</strong> : <Fragment key={i}>{p}</Fragment>));
 }
 
-export function AgreementView({ blocks, id = 'agreement' }: { blocks: Block[]; id?: string }) {
+export function AgreementView({ blocks, id = 'agreement', label = 'Rental agreement' }: { blocks: Block[]; id?: string; label?: string }) {
   let part = 0;
   return (
-    <article className="agreement prose" id={id} aria-label="Rental agreement">
+    <article className="agreement prose" id={id} aria-label={label}>
       {blocks.map((b, i) => {
         switch (b.t) {
           case 'title': return <h2 key={i} className="d3">{b.text}</h2>;

@@ -65,7 +65,7 @@ export function consents(): Consent[] {
 export const consentLine = (c: Consent) => `${c.title}. ${c.text}`;
 export const SIGN_STATEMENT = 'I have read this Rental Agreement and I sign it electronically.';
 
-function markdown(body: string, values: Record<string, string>): Block[] {
+export function markdown(body: string, values: Record<string, string>): Block[] {
   const out: Block[] = [];
   const lines = body.replace(/\{\{(\w+)\}\}/g, (_, k: string) => values[k] ?? '').split('\n');
   let i = 0;

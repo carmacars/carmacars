@@ -25,7 +25,8 @@
     "check:copy": "node tests/lint/copylint.mjs",
     "check:lighthouse": "node tests/lint/lighthouse.mjs",
     "test:unit": "node --test --experimental-strip-types --no-warnings 'src/**/*.test.ts'",
-    "gen:agreement": "node scripts/gen-agreement.mjs"
+    "gen:agreement": "node scripts/gen-agreement.mjs",
+    "gen:owner-agreements": "node scripts/gen-owner-agreements.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
