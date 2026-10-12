@@ -1,0 +1,139 @@
+name: ci
+
+# Every push and pull request: the database suite (all migrations, all tests) and the web app's
+# gates (lint, types, build, Worker build, end-to-end at 375 and 1440 with axe, link check, copy lint).
+# Deploy: run by hand (Actions > ci > Run workflow > deploy = true). It applies the migrations to
+# Supabase and deploys the Worker to Cloudflare on carmacars.ca.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Apply migrations to Supabase and deploy the web app to Cloudflare
+        type: boolean
+        default: false
+      environment:
+        description: Target
+        type: choice
+        options: [production, staging]
+        default: production
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+      - name: All migrations and tests
+        run: PATH="/usr/lib/postgresql/16/bin:$PATH" scripts/test.sh
+      - name: Text check
+        run: scripts/check-text.sh
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CARMACARS_LOCAL_DIR: /tmp/cc-local
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - name: Local stack (migrations, local auth, seed)
+        run: |
+          cp .env.example .env.local
+          bash scripts/local-db.sh up
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx tsc --noEmit -p tests/tsconfig.json
+      - name: Types are generated from the schema
+        run: npm run db:types && git diff --exit-code src/lib/db/types.ts
+      - name: Worker build (runs next build)
+        run: npx opennextjs-cloudflare build
+      - name: Browsers
+        run: npx playwright install --with-deps chromium
+      - name: End to end, accessibility
+        run: PLAYWRIGHT_BROWSERS_PATH=0 npx playwright test
+      - name: Link check and copy lint
+        run: |
+          (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+          npm run check:links
+          npm run check:copy
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: web/test-results
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    needs: [database, web]
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Apply migrations to Supabase
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+      - name: Site content rows (idempotent)
+        working-directory: web
+        env:
+          # session pooler of the project (Supabase > Connect); the host is a repository variable
+          DATABASE_URL: postgresql://postgres.${{ secrets.SUPABASE_PROJECT_REF }}:${{ secrets.SUPABASE_DB_PASSWORD }}@${{ vars.SUPABASE_POOLER_HOST || 'aws-0-ca-central-1.pooler.supabase.com' }}:5432/postgres
+        run: npm ci && node scripts/seed.mjs --content-only
+      - name: Build and deploy the Worker
+        working-directory: web
+        env:
+          APP_ENV: ${{ inputs.environment }}
+          DATA_BACKEND: supabase
+          TURNSTILE_PROVIDER: cloudflare
+          PAYMENTS_PROVIDER: stripe
+          STORAGE_PROVIDER: r2
+          MAPS_PROVIDER: google
+          NEXT_PUBLIC_APP_URL: ${{ vars.APP_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          NEXT_PUBLIC_VEHICLE_PHOTOS_URL: ${{ vars.VEHICLE_PHOTOS_URL }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx opennextjs-cloudflare build
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            npx opennextjs-cloudflare deploy -- --env staging
+          else
+            npx opennextjs-cloudflare deploy
+          fi
