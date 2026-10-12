@@ -85,3 +85,22 @@ export async function sendOwnerLink(kind: 'invite' | 'portal', email: string, na
     return { ok: true, data: { url } };
   } catch (e) { return fail(e); }
 }
+
+/** When trackers arrive: the Tracker Install invoices, for one vehicle, one owner's waiting vehicles, or every waiting vehicle. */
+export async function issueTrackerInvoices(ownerId: string | null, vehicleIds: string[] | null): Promise<R<{ count: number }>> {
+  try {
+    const admin = await assertAdmin();
+    const r = (await rpc('admin_issue_tracker_install_invoices', { p_admin: admin.id, p_owner: ownerId ?? undefined, p_vehicles: vehicleIds && vehicleIds.length ? vehicleIds : undefined }, SR)) as unknown as unknown[];
+    if (ownerId) refresh(ownerId); else revalidatePath('/admin/invoices');
+    return { ok: true, data: { count: r.length } };
+  } catch (e) { return fail(e); }
+}
+
+export async function recordTrackerInstalled(ownerId: string, vehicleId: string): Promise<R> {
+  try {
+    const admin = await assertAdmin();
+    await rpc('admin_record_tracker_installed', { p_vehicle: vehicleId, p_admin: admin.id }, SR);
+    if (ownerId) refresh(ownerId);
+    return { ok: true, data: null };
+  } catch (e) { return fail(e); }
+}

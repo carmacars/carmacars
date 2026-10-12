@@ -7,7 +7,7 @@ export interface OwnerVehicle {
   government_forms: string[] | null; next: { item: string; waits_on: string; action: string | null } | null; checklist: ChecklistItem[] | null;
 }
 export interface OwnerInvoiceRow {
-  id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment'; period_month: string | null;
+  id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install'; period_month: string | null;
   billing_date: string; retry_on: string | null; status: string; fees_cents: number; hst_cents: number; late_fee_cents: number; total_cents: number;
   balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean;
 }
@@ -35,6 +35,7 @@ export interface OwnerHome {
   payout_accounts: Array<{ id: string; method: string; account_last4: string | null; institution_no: string | null; e_transfer_email: string | null; is_current: boolean; verified_at: string | null; submitted_at: string }>;
   exits: Array<{ id: string; vehicle_id: string; status: string; exit_date: string; notice_ends_on: string; retransfer_fees_paid_by: string }>;
   next_payout_date: string; next_billing_date: string;
+  trackers_available: boolean; tracker_pending: string[];
 }
 export interface OwnerBooking {
   booking_id: string; booking_number: string; booking_type: string; status: string; vehicle_id: string; vehicle_name: string;
@@ -72,6 +73,9 @@ export const INVOICE_STATUS: Record<string, { label: string; badge: string }> = 
 };
 export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'>) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
 
+export const invoiceTitle = (i: { kind: string; period_month: string | null }, month: (iso: string | null) => string) =>
+  i.kind === 'upfront' ? 'First and last month\'s insurance' : i.kind === 'tracker_install' ? 'Tracker install' : i.kind === 'adjustment' ? 'Adjustment' : `Fees for ${month(i.period_month)}`;
+export const TRACKER_LATER = 'A Tracker Install Fee applies when trackers become available. We bill it then, on its own invoice.';
 export const ONBOARDING_STATUS: Record<string, string> = {
   intake: 'Application with our team', declined: 'Declined', withdrawn: 'Withdrawn', terms_set: 'Terms ready to sign',
   documents_sent: 'Agreements to sign', documents_signed: 'Agreements signed', upfront_paid: 'Upfront invoice paid',

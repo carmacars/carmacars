@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { day, InvoiceRows, VehicleCard } from '@/features/owner/Blocks';
 import { requireOwner } from '@/server/owner/data';
+import { TRACKER_LATER } from '@/features/owner/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noindex: true, description: 'Your vehicles, agreements, invoices, statements and payouts with CarmaCars.' });
@@ -17,7 +18,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     : due.length
       ? { title: due.length === 1 ? `Pay invoice ${due[0]!.invoice_number}` : `Pay ${due.length} invoices`, note: `${money(due.reduce((s, i) => s + i.balance_cents, 0), { cents: true })} due: ${due.map((i) => i.vehicle_name).join(', ')}. Pay by card or pre-authorized debit.`, href: due.length === 1 ? `/owner/invoices/${due[0]!.invoice_number}` : '/owner/invoices', cta: due.length === 1 ? 'Pay now' : 'See invoices' }
       : null;
-  const fees = home.vehicles.reduce((s, v) => s + (v.status !== 'exited' && v.insurance_fee_cents ? v.insurance_fee_cents + (v.tracker_fee_cents ?? 0) : 0), 0);
+  const fees = home.vehicles.reduce((s, v) => s + (v.status !== 'exited' && v.insurance_fee_cents ? v.insurance_fee_cents + (home.trackers_available ? v.tracker_fee_cents ?? 0 : 0) : 0), 0);
   return (
     <>
       {sp.signed && <p className="alert alert--ok" role="status"><span className="alert__title">Signed</span><span>Thank you. Your signed agreements are in Documents.</span></p>}
@@ -39,7 +40,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
           ) : null}
           <section className="stack" aria-labelledby="ow-cars">
             <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-cars">Your vehicles</h2><Link className="btn btn--ghost btn--sm" href="/list-your-car/apply">Add a vehicle</Link></div>
-            <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact />)}</ul>
+            <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} />)}</ul>
           </section>
           <section className="stack" aria-labelledby="ow-money">
             <h2 className="pt-section-title" id="ow-money">Money</h2>
@@ -51,6 +52,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
             </div>
             <InvoiceRows items={home.invoices.slice(0, 5)} />
             {home.invoices.length > 5 && <p><Link href="/owner/invoices">All invoices</Link></p>}
+            {!home.trackers_available && home.tracker_pending.length > 0 && <p className="small muted">{TRACKER_LATER}</p>}
             {!home.payout_accounts.length && <p className="pt-note">Add the bank account we pay you into: <Link href="/owner/banking">Banking</Link>.</p>}
           </section>
         </div>

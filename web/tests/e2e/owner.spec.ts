@@ -131,6 +131,8 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   }
   await plans.nth(1).locator('label:has-text("I do not have it yet")').click();
   await expect(plans.nth(0).getByTestId('estimate')).toContainText('You pay registry fees');
+  await expect(plans.nth(0).getByTestId('estimate')).toContainText('Tracker Install Fee applies when trackers become available');
+  await expect(plans.nth(0).getByTestId('estimate')).not.toContainText('$20');
   await check(page, 'apply step 3');
   await page.screenshot({ path: `${SHOTS}/wizard-3-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: 'Review' }).click();
@@ -142,6 +144,8 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   expect(owner, 'owner created').toBeTruthy();
   const vehicles = await sql`select v.id, ob.status from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = ${owner!.id} order by v.created_at`;
   expect(vehicles.map((v) => v.status)).toEqual(['intake', 'intake', 'intake']);
+  const pending = await sql`select count(*)::int n from vehicles where owner_id = ${owner!.id} and tracker_install_pending`;
+  expect(pending[0]!.n, 'each vehicle waits for a tracker').toBe(3);
   await page.getByRole('link', { name: 'Go to your owner portal' }).click();
   await page.waitForURL(/\/owner/);
   await expect(page.getByTestId('owner-vehicle')).toHaveCount(3);
@@ -162,7 +166,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await expect(admin.getByTestId('admin-owner-invoices').locator('li')).toHaveCount(3, { timeout: 15_000 });
   await admin.screenshot({ path: `${SHOTS}/admin-owner-${info.project.name}.png`, fullPage: true });
   const invoices = await sql`select i.id, i.invoice_number, i.total_cents, i.status from owner_invoices i where i.owner_id = ${owner!.id} order by i.invoice_number`;
-  expect(invoices.map((i) => `${i.status}:${i.total_cents}`)).toEqual(['issued:101700', 'issued:101700', 'issued:101700']);
+  expect(invoices.map((i) => `${i.status}:${i.total_cents}`)).toEqual(['issued:90400', 'issued:90400', 'issued:90400']);
 
   // ---------------------------------------------------------------- 3. the owner signs
   await page.goto('/owner', { waitUntil: 'networkidle' });
@@ -186,7 +190,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
 
   // ---------------------------------------------------------------- 4. pay the first invoice by card
   await page.goto(`/owner/invoices/${invoices[0]!.invoice_number}`, { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('invoice-total')).toHaveText('$1,017.00');
+  await expect(page.getByTestId('invoice-total')).toHaveText('$904.00');
   await page.locator('label:has-text("Card")').first().click();
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await check(page, 'invoice pay card');
@@ -195,10 +199,10 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.locator('#ow-cnumber').fill('4000 0000 0000 0002');
   await page.locator('#ow-cexp').fill('12 / 31');
   await page.locator('#ow-ccvc').fill('123');
-  await page.getByRole('button', { name: /^Pay \$1,017\.00$/ }).click();
+  await page.getByRole('button', { name: /^Pay \$904\.00$/ }).click();
   await expect(page.locator('.alert--error')).toContainText('declined');
   await page.locator('#ow-cnumber').fill('4242 4242 4242 4242');
-  await page.getByRole('button', { name: /^Pay \$1,017\.00$/ }).click();
+  await page.getByRole('button', { name: /^Pay \$904\.00$/ }).click();
   await expect(page.getByTestId('invoice-paid')).toContainText('Payment received', { timeout: 20_000 });
   await check(page, 'invoice paid');
 
@@ -283,6 +287,20 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.locator('#ow-po-email').fill(email);
   await page.getByRole('button', { name: 'Submit payout details' }).click();
   await expect(page.getByTestId('payout-verifying')).toBeVisible({ timeout: 15_000 });
+
+  // ---------------------------------------------------------------- 8. trackers arrive: a separate invoice per vehicle
+  expect((await sql`select count(*)::int n from owner_invoices where owner_id = ${owner!.id} and kind = 'tracker_install'`)[0]!.n, 'no tracker invoice before trackers arrive').toBe(0);
+  const admin2 = await adminPage(browser, viewport, adminEmail);
+  await admin2.goto(`/admin/owners/${owner!.id}`, { waitUntil: 'networkidle' });
+  await admin2.getByTestId(`tracker-invoice-${String(vehicles[0]!.id).slice(0, 8)}`).click();
+  await expect(admin2.getByTestId('admin-tracker').first()).toContainText('Install invoice', { timeout: 15_000 });
+  await check(admin2, 'admin tracker');
+  await admin2.context().close();
+  await page.goto('/owner/invoices', { waitUntil: 'networkidle' });
+  const trk = page.locator('[data-testid="invoice-row"]', { hasText: 'Tracker install' });
+  await expect(trk).toHaveCount(1);
+  await expect(trk).toContainText('$113.00');
+  await expect(trk.getByTestId('invoice-status')).toHaveText('Due');
   expect(errors.filter((e) => !/favicon|Failed to load resource.*404/.test(e))).toEqual([]);
   await sql.end();
 });

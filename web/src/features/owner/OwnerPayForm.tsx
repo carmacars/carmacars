@@ -28,7 +28,7 @@ function loadStripe(key: string): Promise<StripeJs> {
 }
 
 export const mandateText = (kind: 'personal' | 'business') => [
-  'You authorize CarmaCars to debit the bank account you give for this invoice now, and for the monthly fees of your vehicles enrolled with CarmaCars (Insurance Fee and Tracker Fee, plus HST, as set in your Vehicle Schedule) on the 15th of each month. If a debit is returned, we try again on the 18th with the $50 Late Fee your Enrollment Agreement sets.',
+  'You authorize CarmaCars to debit the bank account you give for this invoice now, and for the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule) on the 15th of each month. If a debit is returned, we try again on the 18th with the $50 Late Fee your Enrollment Agreement sets.',
   'The amount can change from month to month with your vehicles and their fees. Each debit is shown on an invoice in your owner portal and emailed to you.',
   `This authorization is for ${kind} purposes and stays in effect until you cancel it. You may cancel it at any time by writing to billing@carmacars.ca; cancelling it does not end your agreement or the fees you owe. You have certain recourse rights if a debit does not comply with this agreement: for example, the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca.`
 ];

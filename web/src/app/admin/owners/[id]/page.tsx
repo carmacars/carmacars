@@ -4,7 +4,7 @@ import { money, pct } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
-import { IssueInvoices, OfflinePaymentForm, PendingTerms, SendLinkForm, TermsForm } from '@/features/admin/AdminForms';
+import { IssueInvoices, OfflinePaymentForm, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 
 export const dynamic = 'force-dynamic';
@@ -51,13 +51,19 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
                   <TermsForm ownerId={o.id} vehicleId={v.vehicle_id} standard={v.standard} mode={v.schedule?.management_mode ?? v.onboarding.proposed_management_mode ?? 'managed'}
                     method={v.schedule?.onboarding_method ?? v.onboarding.proposed_onboarding_method} options={v.options} current={v.schedule} /></details>
               )}
+              {v.billing_case !== 'turo_only' && v.billing_case !== 'shareholder' && (
+                <div className="small stack" data-testid="admin-tracker">
+                  <p><b>Tracker:</b> {v.tracker_installed_on ? `installed ${day(v.tracker_installed_on)}` : v.tracker_install_pending ? 'install pending (no tracker fees billed)' : 'not recorded'}{v.tracker_invoice ? `. Install invoice ${v.tracker_invoice.invoice_number}: ${money(v.tracker_invoice.total_cents, { cents: true })}, ${invoiceStatus({ status: v.tracker_invoice.status, pending: false }).label.toLowerCase()}.` : '. No install invoice yet.'}</p>
+                  {v.schedule && (!v.tracker_invoice || v.tracker_install_pending) && <TrackerActions ownerId={o.id} vehicleId={v.vehicle_id} installed={v.tracker_install_pending} canIssue={!v.tracker_invoice} />}
+                </div>
+              )}
               {v.upfront_invoice && <p className="small">Upfront invoice <a href={`#inv-${v.upfront_invoice.invoice_number}`}>{v.upfront_invoice.invoice_number}</a>: {money(v.upfront_invoice.total_cents, { cents: true })}, {invoiceStatus({ status: v.upfront_invoice.status, pending: false }).label.toLowerCase()}.</p>}
             </section>
           ))}
           <section className="stack" aria-labelledby="ad-inv"><h2 className="pt-section-title" id="ad-inv">Invoices</h2>
             {d.invoices.length ? <ul className="ow-rows" data-testid="admin-owner-invoices">{d.invoices.map((i) => { const s = invoiceStatus(i); const paid = i.payments.find((x) => x.status === 'succeeded'); return (
               <li key={i.id} id={`inv-${i.invoice_number}`} data-invoice={i.invoice_number}>
-                <span><b>{i.invoice_number}</b> · {i.kind === 'upfront' ? 'Upfront' : monthOf(i.period_month)} · {i.vehicle_name}</span>
+                <span><b>{i.invoice_number}</b> · {i.kind === 'upfront' ? 'First and last month' : i.kind === 'tracker_install' ? 'Tracker install' : monthOf(i.period_month)} · {i.vehicle_name}</span>
                 <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
                 <span className="ow-meta"><span className={`badge ${s.badge}`} data-testid="admin-invoice-status">{s.label}</span>{paid && <span>{PAY_METHOD_LABEL[paid.method] ?? paid.method}{paid.reference ? ` ${paid.reference}` : paid.card_last4 ? ` ending ${paid.card_last4}` : ''}, {day(paid.processed_at ?? paid.created_at)}</span>}
                   {i.payable && <OfflinePaymentForm ownerId={o.id} invoiceId={i.id} number={i.invoice_number} balance={i.balance_cents} today={today} />}</span>
@@ -66,7 +72,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="ad-up"><h2 className="d4" id="ad-up">Upfront invoices</h2>
-            <p className="small">Install Fee and first and last month&apos;s Insurance Fee, with HST, one per vehicle whose terms are set. Registry costs are never on it.</p>
+            <p className="small">First and last month&apos;s Insurance Fee, with HST, one invoice per vehicle whose terms are set. The Tracker Install Fee is a separate invoice, issued per vehicle when trackers arrive{d.trackers_available ? '' : ' (trackers are not available yet)'}. Registry costs are never billed.</p>
             <IssueInvoices ownerId={o.id} count={issuable} />
           </section>
           <section className="pt-card" aria-labelledby="ad-owner"><h2 className="d4" id="ad-owner">Owner</h2>

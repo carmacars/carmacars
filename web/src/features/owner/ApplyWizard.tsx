@@ -13,7 +13,7 @@ import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, 
 // pays directly), then review and submit. Every change autosaves (form_drafts); a link by email
 // continues on another device. Built for a phone first.
 export interface ProgramFacts {
-  install_fee_cents: number; hst_bps: number;
+  install_fee_cents: number; hst_bps: number; trackers_available: boolean;
   grid: Array<{ min_vehicles: number; max_vehicles: number | null; insurance_fee_cents: number; tracker_fee_cents: number; revenue_share_bps: number }>;
 }
 
@@ -361,8 +361,10 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
                     {v.management_mode === 'turo_only' ? <p>Turo-Only: no registry change, no Fees and no upfront invoice.</p> : <>
                       <dl className="pt-dl pt-dl--money">
                         <div><dt>Registry, inspection and appraisal estimate (you pay them directly)</dt><dd>{money(estimate)}{chosen?.plus_tax ? ' + tax' : ''}</dd></div>
-                        {tier && v.management_mode && <div><dt>CarmaCars upfront: Install Fee and first and last month&apos;s Insurance Fee, before HST</dt><dd>{money(facts.install_fee_cents + 2 * tier.insurance_fee_cents)}</dd></div>}
+                        {tier && v.management_mode && <div><dt>CarmaCars upfront: first and last month&apos;s Insurance Fee, before HST</dt><dd>{money(2 * tier.insurance_fee_cents)}</dd></div>}
+                        {facts.trackers_available && tier && <div><dt>Tracker Install Fee, its own invoice, before HST</dt><dd>{money(facts.install_fee_cents)}</dd></div>}
                       </dl>
+                      {!facts.trackers_available && <p className="small">A {money(facts.install_fee_cents)} Tracker Install Fee applies when trackers become available. We bill it then, on its own invoice.</p>}
                       <p className="small"><b>You pay registry fees, the safety inspection and the appraisal directly to ServiceOntario, the inspection station and the appraiser. CarmaCars does not collect them. Amounts are estimates and may vary.</b> Any tax is calculated on the appraised value at the registry counter. Safety repairs are extra.</p>
                     </>}
                   </div>
@@ -370,7 +372,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
               </div>
             );
           })}
-          {tier && <p className="small muted">Standard terms for {count} vehicle{count === 1 ? '' : 's'}: {money(tier.insurance_fee_cents)} Insurance Fee and {money(tier.tracker_fee_cents)} Tracker Fee a month per vehicle, plus HST; {pct(tier.revenue_share_bps)} Revenue Share on Managed vehicles. We confirm each vehicle&apos;s terms in its Vehicle Schedule.</p>}
+          {tier && <p className="small muted">Standard terms for {count} vehicle{count === 1 ? '' : 's'}: {money(tier.insurance_fee_cents)} Insurance Fee{facts.trackers_available ? ` and ${money(tier.tracker_fee_cents)} Tracker Fee` : ''} a month per vehicle, plus HST; {pct(tier.revenue_share_bps)} Revenue Share on Managed vehicles. We confirm each vehicle&apos;s terms in its Vehicle Schedule.</p>}
           <div className="ow-actions">
             <button className="btn btn--ghost" type="button" onClick={() => go(1)}>Back</button>
             <button className="btn btn--primary btn--lg" type="button" onClick={nextFromPlan}>Review</button>

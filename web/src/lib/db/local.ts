@@ -42,8 +42,10 @@ async function meta(fn: string): Promise<Meta> {
   return m;
 }
 
-function param(v: unknown): string | null {
+function param(v: unknown, type?: string): string | null {
   if (v === undefined || v === null) return null;
+  // a Postgres array argument (uuid[], text[]): PostgREST takes a JSON array; the driver needs an array literal
+  if (Array.isArray(v) && type?.endsWith('[]')) return `{${v.map((x) => `"${String(x).replace(/["\\]/g, '\\$&')}"`).join(',')}}`;
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 }
@@ -63,7 +65,7 @@ export function localBackend(): Backend {
                     set_config('request.jwt.claim.sub', $3, true), set_config('app.request_id', $4, true)`,
             [opts.role, claims, opts.userId ?? '', opts.requestId ?? '']
           );
-          const rows = await tx.unsafe(`select to_jsonb(r) as v from public.${fn}(${list}) r`, names.map((n) => param(args[n])));
+          const rows = await tx.unsafe(`select to_jsonb(r) as v from public.${fn}(${list}) r`, names.map((n) => param(args[n], m.args.get(n))));
           const values = rows.map((row) => row.v as unknown);
           return m.set ? values : (values[0] ?? null);
         }));

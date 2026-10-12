@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { approveVehicleTerms, issueUpfrontInvoices, recordOfflinePayment, sendOwnerLink, setVehicleTerms, type OfflineInput, type TermsInput } from '@/server/actions/admin';
+import { approveVehicleTerms, issueTrackerInvoices, recordTrackerInstalled, issueUpfrontInvoices, recordOfflinePayment, sendOwnerLink, setVehicleTerms, type OfflineInput, type TermsInput } from '@/server/actions/admin';
 
 // The admin forms of the owner billing flow. Terms start from the standard grid; anything off the
 // grid is the Admin's decision and is recorded as such by the database.
@@ -84,7 +84,7 @@ export function IssueInvoices({ ownerId, count }: { ownerId: string; count: numb
   const a = useAct<{ count: number }>();
   return (
     <div className="stack">
-      <button className="btn btn--primary" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })}>{a.pending ? 'Issuing' : count === 0 ? 'Nothing to issue now' : `Issue ${count} upfront invoice${count === 1 ? '' : 's'}`}</button>
+      <button className="btn btn--primary" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })}>{a.pending ? 'Issuing' : count === 0 ? 'Nothing to issue now' : `Issue ${count} insurance invoice${count === 1 ? '' : 's'}`}</button>
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>{a.res.data.count} invoice{a.res.data.count === 1 ? '' : 's'} issued. The owner is emailed each one.</span></p>}
     </div>
@@ -127,5 +127,20 @@ export function SendLinkForm({ kind, email: e0 = '', name: n0 = '' }: { kind: 'i
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Sent. The link: <span className="pt-mono">{a.res.data.url}</span></span></p>}
       <button className="btn btn--ghost btn--sm" type="submit" disabled={a.pending}>{a.pending ? 'Sending' : kind === 'invite' ? 'Send invitation' : 'Send a sign-in link to the owner portal'}</button>
     </form>
+  );
+}
+
+export function TrackerActions({ ownerId, vehicleId, label = 'Issue tracker install invoice', installed = true, canIssue = true }: { ownerId: string | null; vehicleId: string | null; label?: string; installed?: boolean; canIssue?: boolean }) {
+  const router = useRouter();
+  const a = useAct<{ count: number }>();
+  const b = useAct();
+  return (
+    <div className="row">
+      {canIssue && <button className="btn btn--ghost btn--sm" type="button" disabled={a.pending} data-testid={vehicleId ? `tracker-invoice-${vehicleId.slice(0, 8)}` : 'tracker-invoices-all'}
+        onClick={() => a.run(() => issueTrackerInvoices(ownerId, vehicleId ? [vehicleId] : null), (r) => { if (r.ok) router.refresh(); })}>{a.pending ? 'Issuing' : label}</button>}
+      {vehicleId && installed && <button className="btn btn--quiet btn--sm" type="button" disabled={b.pending} onClick={() => b.run(() => recordTrackerInstalled(ownerId ?? '', vehicleId), (r) => { if (r.ok) router.refresh(); })}>Record tracker installed today</button>}
+      <Problem a={a} /><Problem a={b} />
+      {a.res?.ok && <p className="small" role="status">{a.res.data.count} invoice{a.res.data.count === 1 ? '' : 's'} issued.</p>}
+    </div>
   );
 }

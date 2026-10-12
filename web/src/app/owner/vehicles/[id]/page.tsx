@@ -7,7 +7,7 @@ import { Back, Dl } from '@/features/portal/Blocks';
 import { Checklist, day, InvoiceRows } from '@/features/owner/Blocks';
 import { ExitNoticeForm } from '@/features/owner/OwnerForms';
 import { OwnerUpload } from '@/features/owner/OwnerUpload';
-import { MODE_LABEL, ONBOARDING_STATUS } from '@/features/owner/types';
+import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
 import { ownerBookings, requireOwner } from '@/server/owner/data';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +30,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
         <div className="stack-lg">
           {v.checklist && <section className="pt-card" aria-labelledby="ow-check"><h2 className="d4" id="ow-check">Onboarding</h2>
             {v.next && <p className="ow-car__next"><b>{v.next.item}</b>{v.next.action && <span>{v.next.action}</span>}</p>}
-            <Checklist items={v.checklist} />
+            <Checklist items={v.checklist} trackers={home.trackers_available} />
             {v.status === 'onboarding' && (
               <div className="pt-uploads">
                 <OwnerUpload vehicleId={id} kind="ownership_permit" title="Ownership permit" hint="Both sides, flat and readable. Photos or a PDF." done={v.checklist.some((c) => c.code === 'documents' && c.status === 'done')} />
@@ -49,7 +49,8 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="ow-terms"><h2 className="d4" id="ow-terms">Terms</h2>
-            <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set'], ['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : ''], ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : ''], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
+            <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set'], ...(home.trackers_available ? [['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : '']] as Array<[string, string]> : []), ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : ''], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
+            {!home.trackers_available && home.tracker_pending.includes(id) && <p className="small muted">{TRACKER_LATER}</p>}
           </section>
           <section className="pt-card" aria-labelledby="ow-exit"><h2 className="d4" id="ow-exit">Leaving</h2>
             {exit ? <p>Notice given. Exit Date <b>{day(exit.exit_date)}</b>. Transfer-back fees are paid by {exit.retransfer_fees_paid_by === 'carmacars' ? 'CarmaCars' : 'you'}.</p>

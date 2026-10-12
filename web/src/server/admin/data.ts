@@ -60,11 +60,14 @@ export interface AdminVehicle {
   options: Array<{ situation: string; method: string; label: string; recommended: boolean; estimate_cents: number }>;
   schedule: (Terms & { schedule_number: string; management_mode: string; onboarding_method: string; special_terms: string | null; signed_at: string | null }) | null;
   upfront_invoice: { id: string; invoice_number: string; status: string; total_cents: number; balance_cents: number } | null;
+  tracker_install_pending: boolean; tracker_installed_on: string | null;
+  tracker_invoice: { id: string; invoice_number: string; status: string; total_cents: number } | null;
 }
 export interface AdminOwnerDetail {
   owner: Record<string, unknown> & { id: string; legal_name: string; owner_type: string; email: string | null; phone: string | null; missing: string[]; user_email: string | null; private: { licence_number: string | null; licence_province: string | null; date_of_birth: string | null } | null };
   applications: Array<{ application_number: string; source: string; vehicle_count: number; created_at: string; note: string | null }>;
   signing: { needed: boolean; enrollment: string | null; title_holding: string | null; unsigned_schedules: number };
+  trackers_available: boolean;
   vehicles: AdminVehicle[];
   invoices: Array<import('@/features/owner/types').OwnerInvoice>;
 }
