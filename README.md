@@ -2,13 +2,14 @@
 
 The CarmaCars rental platform, Ontario: public booking site, renter portal, owner portal, admin portal, VA portal and field staff portal in one Next.js app, on Supabase (Postgres, sign-in, scheduler, Edge Functions) and Cloudflare (hosting, files), with Stripe, built-in signing and a GPS tracker with remote killswitch. It is one responsive website for phones and desktops, not a native app.
 
-**This repository holds the database, its rules, its permissions, its tests and the email templates.** The Next.js app is not scaffolded yet.
+**This repository holds the database, its rules, its permissions, its tests, the email templates and the web app.** The Next.js app is in `web/` (public site, request to book, sign-in); see `web/README.md` for running it, the local stack and deploying.
 
 ## What is here
 
 | Path | What |
 | --- | --- |
-| `supabase/migrations/` | 25 migrations: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
+| `supabase/migrations/` | 27 migrations (0027: what the website needs); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
 | `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
@@ -82,6 +83,7 @@ cd emails && node check.mjs
 | `11_owners_forms_listings.sql` | Owners, forms and listings (0022) | 200 |
 | `12_end_to_end.sql` | The newer flows end to end with the duplicate check across emitters, and the jobs of 0024 | 40 |
 | `13_owner_answers.sql` | The owner's answers (0025), one block per decision | 104 |
+| `14_web_app.sql` | What the website needs (0027): site facts, handover places, server wrappers | 29 |
 
 ## Rules for changes
 
