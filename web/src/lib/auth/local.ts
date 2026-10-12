@@ -45,6 +45,10 @@ export function localAuth(): AuthAdapter {
         return null;
       }
     },
+    async assurance() {
+      // the local stand-in has no second factor
+      return (await this.currentUser()) ? 'aal1' : null;
+    },
     async signUp(email, password) {
       const e = email.trim().toLowerCase();
       const exists = await sql`select 1 from local_auth.users where email = ${e}`;

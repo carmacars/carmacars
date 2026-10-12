@@ -3,6 +3,8 @@ export type AuthResult = { ok: true; user: SessionUser } | { ok: false; message:
 
 export interface AuthAdapter {
   currentUser(): Promise<SessionUser | null>;
+  /** The session's assurance level: aal2 after a second factor (two-step sign-in). */
+  assurance(): Promise<'aal1' | 'aal2' | null>;
   signUp(email: string, password: string, meta: { full_name: string }): Promise<AuthResult>;
   signIn(email: string, password: string): Promise<AuthResult>;
   signOut(): Promise<void>;
