@@ -75,7 +75,9 @@ select test.eq('drafts: the token loads it back, without the licence number',
   (select public.load_form_draft('booking_request', null, (select d ->> 'token' from wa_draft)) #>> '{data,step}'), 'trip');
 select test.ok('drafts: a licence number is removed on write',
   (select public.load_form_draft('booking_request', null, (select d ->> 'token' from wa_draft)) -> 'data' ? 'licence_number') is not true);
-select test.ok('origin: no coordinates until an Admin sets them', public.delivery_origin() is null);
+select test.ok('origin: the server reads the company coordinates from program_settings (none until an Admin sets them)',
+  public.delivery_origin() is not distinct from (select case when s.company_latitude is not null and s.company_longitude is not null
+    then jsonb_build_object('lat', s.company_latitude, 'lng', s.company_longitude) end from (select (app.settings()).*) s));
 select test.eq('accounts: a new sign-in account gets its users row and the renter role',
   public.register_account(test.id('wa_new_login'), 'WA.New@Example.test', 'Wa New') ->> 'created', 'true');
 select test.eq('accounts: a second call changes nothing',
