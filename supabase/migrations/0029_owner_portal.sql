@@ -158,7 +158,10 @@ language sql stable security definer set search_path = public, app as $$
     'payable', i.status in ('issued', 'failed', 'in_arrears', 'partially_deducted') and i.balance_cents > 0
                and not exists (select 1 from payments p where p.owner_invoice_id = i.id and p.status = 'pending'),
     'lines', (select coalesce(jsonb_agg(jsonb_build_object('kind', l.kind, 'description', l.description, 'amount_cents', l.amount_cents,
-                'hst_cents', l.hst_cents) order by l.created_at, l.id), '[]'::jsonb) from owner_invoice_lines l where l.owner_invoice_id = i.id),
+                'hst_cents', l.hst_cents)
+                order by array_position(array['install_fee', 'first_month_insurance', 'last_month_insurance', 'insurance_fee', 'tracker_fee',
+                                              'prepaid_credit', 'adjustment', 'late_fee'], l.kind), l.created_at, l.id), '[]'::jsonb)
+                from owner_invoice_lines l where l.owner_invoice_id = i.id),
     'payments', (select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'method', p.method, 'status', p.status, 'amount_cents', p.amount_cents,
                    'card_brand', p.card_brand, 'card_last4', p.card_last4, 'decline', p.last_decline_code, 'created_at', p.created_at,
                    'processed_at', p.processed_at,
@@ -188,7 +191,7 @@ language sql stable security definer set search_path = public, app as $$
                    'totals', to_jsonb(sv) - 'id' - 'owner_statement_id',
                    'lines', (select coalesce(jsonb_agg(app.statement_line_json(l) order by l.starts_on nulls last, l.line_type, l.id), '[]'::jsonb)
                                from owner_statement_lines l where l.owner_statement_id = s.id and l.vehicle_id = sv.vehicle_id))
-                   order by v.created_at), '[]'::jsonb)
+                   order by v.created_at, v.plate, v.id), '[]'::jsonb)
                    from owner_statement_vehicles sv join vehicles v on v.id = sv.vehicle_id where sv.owner_statement_id = s.id),
     'owner_lines', (select coalesce(jsonb_agg(app.statement_line_json(l) order by l.line_type, l.id), '[]'::jsonb)
                       from owner_statement_lines l where l.owner_statement_id = s.id and l.vehicle_id is null),
@@ -251,6 +254,38 @@ begin
   end if;
   perform app.save_application_owner(v_owner, p, p_by);
   return app.owner_portal_home(p_by) -> 'owner';
+end $$;
+
+-- The owner uploads a file for one of their vehicles: the ownership permit (both sides), the lender's
+-- or lessor's written permission, or proof of their own insurance. The server has already checked the
+-- real type and size and stored it privately; this records it (and the checklist reads it).
+create or replace function app.owner_register_document(p_by uuid, p_vehicle uuid, p_kind text, p_path text, p_sha256 text, p_mime text)
+returns uuid language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  v_id uuid;
+begin
+  select * into v from vehicles where id = p_vehicle;
+  if v.id is null or not app.user_owns_vehicle(p_by, p_vehicle) then
+    raise exception 'Not permitted: an owner uploads only for their own vehicle' using errcode = '42501';
+  end if;
+  if p_kind not in ('ownership_permit', 'finance_party_permission', 'owner_insurance_proof') then
+    raise exception 'Unknown document %', p_kind using errcode = '22023';
+  end if;
+  if coalesce(p_mime, '') not in ('image/jpeg', 'image/png', 'application/pdf') or coalesce(lower(p_sha256), '') !~ '^[0-9a-f]{64}$'
+     or nullif(btrim(coalesce(p_path, '')), '') is null then
+    raise exception 'An upload needs its file, its type and its SHA-256' using errcode = '22023';
+  end if;
+  if (select count(*) from documents d where d.vehicle_id = p_vehicle and d.uploaded_by = p_by and d.created_at > now() - interval '1 hour') >= 30 then
+    raise exception 'Too many uploads in the last hour. Try again later.' using errcode = '54000';
+  end if;
+  insert into documents (kind, title, storage_bucket, storage_path, mime_type, sha256, retention, uploaded_by, owner_id, vehicle_id)
+  values (p_kind::document_kind,
+          format('%s, %s', case p_kind when 'ownership_permit' then 'Ownership permit' when 'finance_party_permission' then 'Lender or lessor permission'
+                                       else 'Proof of insurance' end, app.vehicle_name(p_vehicle)),
+          'documents', p_path, p_mime, lower(p_sha256), 'records_7y', p_by, v.owner_id, p_vehicle)
+  returning id into v_id;
+  return v_id;
 end $$;
 
 -- ================================================================ owner agreements: the packet to sign
@@ -842,7 +877,7 @@ begin
                        from vehicle_schedules s where s.vehicle_id = v.id and s.superseded_by is null),
         'upfront_invoice', (select jsonb_build_object('id', i.id, 'invoice_number', i.invoice_number, 'status', i.status, 'total_cents', i.total_cents,
                               'balance_cents', i.balance_cents) from owner_invoices i where i.id = ob.upfront_invoice_id))
-        order by v.created_at), '[]'::jsonb)
+        order by v.created_at, v.plate, v.id), '[]'::jsonb)
         from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = o.id),
     'invoices', (select coalesce(jsonb_agg(app.owner_invoice_view(i.id) order by i.billing_date desc, i.invoice_number desc), '[]'::jsonb)
                    from owner_invoices i where i.owner_id = o.id and i.status <> 'draft'));
@@ -964,6 +999,8 @@ create or replace function public.owner_withdraw_exit_notice(p_by uuid, p_exit u
 language sql volatile security invoker set search_path = public, app as $$ select app.withdraw_exit_notice(p_exit, p_by) $$;
 create or replace function public.owner_book_own_vehicle(p_by uuid, p_vehicle uuid, p_pickup timestamptz, p_return timestamptz, p_note text default null) returns uuid
 language sql volatile security invoker set search_path = public, app as $$ select app.owner_book_own_vehicle(p_by, p_vehicle, p_pickup, p_return, p_note) $$;
+create or replace function public.owner_register_document(p_by uuid, p_vehicle uuid, p_kind text, p_path text, p_sha256 text, p_mime text) returns uuid
+language sql volatile security invoker set search_path = public, app as $$ select app.owner_register_document(p_by, p_vehicle, p_kind, p_path, p_sha256, p_mime) $$;
 create or replace function public.owner_id_for(p_by uuid) returns uuid
 language sql stable security invoker set search_path = public, app as $$ select app.portal_owner_id(p_by) $$;
 
@@ -1012,7 +1049,7 @@ begin
               'owner_program_facts', 'onboarding_options_json', 'vin_lookup', 'record_vin_decode', 'send_link_email',
               'owner_portal_home', 'owner_portal_invoices', 'owner_invoice_view', 'owner_portal_invoice', 'owner_portal_statement',
               'statement_line_json', 'owner_portal_document', 'owner_portal_forms', 'owner_portal_bookings_json', 'owner_save_profile',
-              'owner_signing_needed', 'owner_agreement_facts', 'owner_open_agreements', 'owner_sign_agreements', 'attach_owner_signed_copy',
+              'owner_register_document', 'owner_signing_needed', 'owner_agreement_facts', 'owner_open_agreements', 'owner_sign_agreements', 'attach_owner_signed_copy',
               'owner_invoice_payment_facts', 'owner_invoice_apply_payment', 'record_owner_invoice_payment', 'record_owner_offline_payment',
               'admin_gate', 'assert_admin', 'admin_owner_applications', 'admin_owner_detail', 'admin_owner_invoices',
               'admin_set_vehicle_terms', 'admin_approve_vehicle_terms', 'admin_issue_upfront_invoices']))
@@ -1021,7 +1058,7 @@ begin
               'server_draft_resume_link', 'server_resume_form_draft', 'server_send_link_email', 'server_submit_owner_application',
               'owner_portal_home', 'owner_portal_invoice', 'owner_portal_statement', 'owner_portal_documents', 'owner_portal_document',
               'owner_portal_forms', 'owner_portal_bookings', 'owner_save_profile', 'owner_submit_payout_account', 'owner_give_exit_notice',
-              'owner_withdraw_exit_notice', 'owner_book_own_vehicle', 'owner_id_for',
+              'owner_withdraw_exit_notice', 'owner_book_own_vehicle', 'owner_id_for', 'owner_register_document',
               'server_owner_agreement_facts', 'owner_open_agreements', 'owner_sign_agreements', 'server_attach_owner_signed_copy',
               'server_owner_invoice_payment_facts', 'server_owner_invoice_id', 'server_record_owner_invoice_payment',
               'admin_gate', 'admin_owner_applications', 'admin_owner_detail', 'admin_owner_invoices', 'admin_set_vehicle_terms',

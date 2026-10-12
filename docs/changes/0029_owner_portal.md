@@ -18,6 +18,7 @@ app. No table is added and no earlier function changes. Function bodies are chec
 | --- | --- |
 | `owner_program_facts`, `onboarding_options_json` | The grid, Install Fee, HST and method estimates; the methods open to one vehicle (0022's `onboarding_options`) for a visitor's wizard |
 | `vin_lookup`, `record_vin_decode` | A VIN cleaned and checked, "already with CarmaCars" without any detail, the newest decode on file; a decoder's answer stored as the listing worker stores it, so 0022's `add_owner_vehicle` fills empty fields from it |
+| `owner_register_document` | The owner records an upload for one of their vehicles (ownership permit, lender permission, proof of insurance) after the server checked its type and size; 30 an hour |
 | `send_link_email` | A draft's resume link, an invitation or a sign-in link, queued as the catalogue's `account_sign_in_link` to the address given |
 | `owner_portal_home`, `owner_portal_invoices`, `owner_portal_invoice`, `owner_invoice_view`, `owner_portal_statement`, `statement_line_json`, `owner_portal_document`, `owner_portal_forms`, `owner_portal_bookings_json`, `owner_save_profile` | The owner's reads, all through 0022's `portal_owner_id` (the caller must be an active owner): vehicles and checklists, invoices with "pending" and "payable", one invoice with lines and payments, an approved statement with every line and the booking or invoice behind it, a document's storage key only when 0022's `owner_portal_documents` lists it, the pre-filled government form data sheets, bookings (0022's rule on renter details), contact changes (never the legal name or corporation) |
 | `owner_signing_needed`, `owner_agreement_facts`, `owner_open_agreements`, `owner_sign_agreements`, `attach_owner_signed_copy` | Built-in signing for the Enrollment Agreement (with Schedule A), the Title-Holding and Lease Agreement and Additional Vehicle Schedules, like 0019's rental agreement: the server renders and stores the PDF, the database opens a signature request on its SHA-256, the owner signs once (drawn or typed, three initialled confirmations), CarmaCars countersigns automatically in the name of `program_settings.signing_officer_name`, schedules are signed, and each vehicle moves `terms_set` to `documents_sent` (on opening) and to `documents_signed` (on signature), then to `upfront_paid` when its upfront invoice is already paid |
@@ -45,4 +46,4 @@ Every function above is revoked from public, anon and authenticated and granted 
 ## Not done
 
 - The monthly debit on the 15th itself (charging the saved method off-session) and the debit-results job.
-- Form C and D upload and review, Forms A and B on screen, the ownership permit upload.
+- Form C and D upload and review by customer service, Forms A and B on screen.

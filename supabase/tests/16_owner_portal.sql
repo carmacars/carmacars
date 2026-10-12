@@ -190,6 +190,11 @@ select public.owner_submit_payout_account(test.id('op_olivia'), '{"method":"e_tr
 select test.eq('payout: new details wait for verification, with the security email queued',
   (select is_current::text from owner_payout_accounts where owner_id = test.opv('app') order by created_at desc limit 1)
   || '/' || (select count(*) from app_events where code = 'owner_bank_details_changed' and entity_id = test.opv('app')), 'false/3');
+select test.throws('uploads: another user cannot add a vehicle document',
+  $$select public.owner_register_document(test.id('op_other'), test.opv('v1'), 'ownership_permit', 'owners/x/p.jpg', repeat('a', 64), 'image/jpeg')$$, 'Not permitted');
+select public.owner_register_document(test.id('op_olivia'), test.opv('v1'), 'ownership_permit', 'owners/op/permit.jpg', repeat('a', 64), 'image/jpeg');
+select test.eq('uploads: the ownership permit ticks its checklist item',
+  (select status from app.onboarding_checklist(test.opv('v1')) where code = 'documents'), 'done');
 select test.eq('bookings: none yet', jsonb_array_length(public.owner_portal_bookings(test.id('op_olivia'))), 0);
 select test.eq('forms: the data sheets are the owner''s', (select count(*) > 0 from jsonb_array_elements(public.owner_portal_forms(test.id('op_olivia')))), true);
 select test.eq('admin: the detail lists the three paid upfront invoices',
