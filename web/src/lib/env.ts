@@ -28,7 +28,9 @@ const schema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET_PREFIX: z.string().default('carmacars-local-'),
   MAPS_PROVIDER: z.enum(['google', 'fake']).default('fake'),
-  GOOGLE_MAPS_API_KEY: z.string().optional()
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
+  VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
+  PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

@@ -1,0 +1,92 @@
+/* The owner portal, the owner application and the first admin screens. Same tokens as the site and
+   the renter portal (portal.css): hairline cards, a red rule for the next thing to do, black buttons. */
+
+/* money tiles on the owner home */
+.ow-tiles { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 64rem) { .ow-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ow-tile { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-4); display: grid; gap: 0.3rem; align-content: start; min-width: 0; }
+.ow-tile b { font-family: var(--font-display); font-size: var(--fs-d4); line-height: var(--lh-tight); overflow-wrap: anywhere; }
+.ow-tile span { font-size: var(--fs-xs); color: var(--text-2); }
+
+/* vehicle cards */
+.ow-cars { display: grid; gap: var(--s-4); list-style: none; margin: 0; padding: 0; }
+@media (min-width: 64rem) { .ow-cars { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ow-car { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-4); display: grid; gap: var(--s-3); align-content: start; min-width: 0; }
+.ow-car__head { display: flex; justify-content: space-between; align-items: start; gap: var(--s-3); flex-wrap: wrap; }
+.ow-car__name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: var(--lh-tight); margin: 0; overflow-wrap: anywhere; }
+.ow-car__next { padding: var(--s-3); background: var(--grey-100); border-left: 3px solid var(--red-600); font-size: var(--fs-sm); display: grid; gap: 0.2rem; }
+.ow-car__next.is-ours { border-left-color: var(--black); }
+.pt-steps li.is-na { color: var(--text-2); text-decoration: line-through; }
+.pt-steps li.is-na::before { border-style: dashed; }
+.pt-steps li small { display: block; color: var(--text-2); font-size: var(--fs-xs); }
+
+/* tables of invoices, statements, payouts: rows on a phone, a table from 48rem */
+.ow-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; background: var(--white); border: 1px solid var(--grey-200); }
+.ow-rows > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem var(--s-3); padding: var(--s-4); border-bottom: 1px solid var(--grey-200); align-items: center; }
+.ow-rows > li:last-child { border-bottom: 0; }
+.ow-rows a.ow-row-link { color: inherit; text-decoration: none; font-weight: 600; }
+.ow-rows a.ow-row-link:hover { text-decoration: underline; }
+.ow-rows .ow-meta { grid-column: 1 / -1; font-size: var(--fs-xs); color: var(--text-2); display: flex; flex-wrap: wrap; gap: 0.2rem var(--s-3); }
+.ow-amount { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+
+/* the pay page */
+.ow-methods { display: grid; gap: var(--s-3); }
+@media (min-width: 40rem) { .ow-methods { grid-template-columns: 1fr 1fr; } }
+.ow-mandate { border: 1px solid var(--grey-300); background: var(--grey-50); padding: var(--s-4); font-size: var(--fs-xs); display: grid; gap: var(--s-2); max-height: 16rem; overflow-y: auto; }
+.ow-mandate h3 { font-size: var(--fs-sm); margin: 0; }
+.ow-status { display: grid; gap: var(--s-2); padding: var(--s-5); background: var(--white); border: 1px solid var(--grey-200); border-top: 4px solid var(--black); }
+.ow-status--paid { border-top-color: var(--black); }
+.ow-status--pending { border-top-color: var(--grey-500); }
+
+/* the application wizard */
+.ow-apply { background: var(--grey-50); border-top: var(--bw) solid var(--black); }
+.ow-apply__inner { padding-block: var(--s-5) var(--section); display: grid; gap: var(--s-5); }
+.ow-apply__inner > * { min-width: 0; }
+.ow-progress { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); counter-reset: s; }
+.ow-progress li { counter-increment: s; display: grid; gap: 0.35rem; font-size: var(--fs-2xs); font-weight: 600; color: var(--text-2); }
+.ow-progress li::before { content: ""; height: 4px; background: var(--grey-300); }
+.ow-progress li.is-done::before { background: var(--black); }
+.ow-progress li.is-on { color: var(--text); }
+.ow-progress li.is-on::before { background: var(--red-600); }
+.ow-progress li span { display: none; }
+@media (min-width: 40rem) { .ow-progress li span { display: inline; } .ow-progress li { font-size: var(--fs-xs); } }
+.ow-saved { font-size: var(--fs-xs); color: var(--text-2); display: flex; align-items: center; gap: 0.4rem; min-height: 1.4em; }
+.ow-saved::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--grey-400); }
+.ow-saved.is-saved::before { background: var(--black); }
+.ow-actions { display: flex; gap: var(--s-3); flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.ow-actions .btn { flex: 1 1 10rem; }
+@media (min-width: 40rem) { .ow-actions .btn { flex: 0 0 auto; } }
+.ow-vlist { display: grid; gap: var(--s-2); list-style: none; margin: 0; padding: 0; }
+.ow-vlist li { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-3) var(--s-4); background: var(--white); border: 1px solid var(--grey-200); }
+.ow-vlist li.is-on { border-color: var(--black); box-shadow: inset 3px 0 0 var(--red-600); }
+.ow-compare { display: grid; gap: var(--s-3); }
+@media (min-width: 48rem) { .ow-compare { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ow-compare .option { align-content: start; }
+.ow-estimate { background: var(--black); color: var(--white); padding: var(--s-4); display: grid; gap: var(--s-2); font-size: var(--fs-sm); }
+.ow-estimate .pt-dl dt, .ow-estimate .muted { color: var(--grey-400); }
+.ow-estimate .pt-dl > div { border-bottom-color: var(--grey-700); }
+.ow-warn { padding: var(--s-3) var(--s-4); background: var(--red-50); border-left: 3px solid var(--red-600); font-size: var(--fs-sm); display: grid; gap: var(--s-2); }
+.ow-vin { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); align-items: start; }
+.ow-vin .btn { min-height: 50px; }
+
+/* admin */
+.ad-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); background: var(--white); }
+.ad-table th, .ad-table td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--grey-200); vertical-align: top; }
+.ad-table th { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); }
+.ad-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ad-grid { display: grid; gap: var(--s-4); }
+@media (min-width: 48rem) { .ad-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } .ad-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ad-tag { display: inline-block; font-size: var(--fs-2xs); font-weight: 600; padding: 0.15em 0.45em; background: var(--grey-200); margin: 0 0.25rem 0.25rem 0; }
+
+/* bookings calendar */
+.ow-cal { display: grid; gap: 2px; font-size: var(--fs-2xs); }
+.ow-cal__head, .ow-cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.ow-cal__head span { text-align: center; color: var(--text-2); font-weight: 600; padding-block: 0.3rem; }
+.ow-cal__day { min-height: 3.2rem; background: var(--grey-50); padding: 0.2rem; display: grid; align-content: start; gap: 2px; min-width: 0; }
+.ow-cal__day.is-blank { background: transparent; }
+.ow-cal__day.is-booked { background: var(--grey-100); }
+.ow-cal__n { font-weight: 600; }
+.ow-cal__b { display: block; background: var(--black); color: var(--white); padding: 1px 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.625rem; }
+.ow-cal__b.is-owner { background: var(--red-600); }
+/* on the owner home the vehicles share a column with money: one card per row */
+.pt-home .ow-cars { grid-template-columns: minmax(0, 1fr); }
