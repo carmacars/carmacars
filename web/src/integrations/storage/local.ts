@@ -8,11 +8,11 @@ import { signStorageUrl } from './sign';
 // private buckets live under .local-storage/<bucket>/ outside public/, and their links go through
 // /api/storage, which checks an HMAC and an expiry exactly like a presigned R2 link would.
 export function localDir(): string {
-  return process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage');
+  return process.env.LOCAL_STORAGE_DIR ?? path.join(/* turbopackIgnore: true */ process.cwd(), '.local-storage');
 }
 export function localPath(bucket: Bucket, key: string): string {
-  const root = path.join(localDir(), bucket);
-  const p = path.resolve(root, key);
+  const root = path.join(/* turbopackIgnore: true */ localDir(), bucket);
+  const p = path.resolve(/* turbopackIgnore: true */ root, key);
   if (!p.startsWith(root + path.sep)) throw new Error('Invalid storage key');
   return p;
 }

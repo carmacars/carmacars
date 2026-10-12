@@ -141,6 +141,6 @@
   .agreement .data--kv thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .agreement .data--kv tr { display: grid; padding-block: var(--s-2); border-bottom: 1px solid var(--grey-200); }
   .agreement .data--kv th, .agreement .data--kv td { display: block; width: auto; border: 0; padding: 0.1rem 0; }
-  .agreement .data--kv td { text-align: left; }
+  .agreement .data--kv td { text-align: left; overflow-wrap: anywhere; word-break: break-word; }
 }
 @media (max-width: 63.99rem) { .pt-first { order: -1; } }
