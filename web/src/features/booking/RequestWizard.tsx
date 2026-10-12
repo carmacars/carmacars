@@ -7,7 +7,7 @@ import { TimeSelect } from '@/features/calendar/TimeSelect';
 import { timeProblem } from '@/features/calendar/availability';
 import { useBlocks } from '@/features/car/CarBooking';
 import { AddressInput } from '@/features/forms/AddressInput';
-import { FAKE_TOKEN } from '@/features/forms/Turnstile';
+import { FAKE_TOKEN, Turnstile } from '@/features/forms/Turnstile';
 import { publicEnv } from '@/lib/public-env';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
@@ -133,7 +133,7 @@ export function RequestWizard(p: WizardProps) {
     e.preventDefault(); setFailure('');
     for (let n = 1; n <= 4; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
-    const token = publicEnv.turnstileMode === 'fake' ? FAKE_TOKEN : (form.current?.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? null);
+    const token = form.current?.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? (publicEnv.turnstileMode === 'fake' ? FAKE_TOKEN : null);
     const r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
     setSending(false);
     if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }
@@ -346,7 +346,7 @@ export function RequestWizard(p: WizardProps) {
               <p className="error" role="alert" id="rq-agree-err">{err('agree') ?? ''}</p>
             </div>
             <label className="check"><input type="checkbox" name="marketing" checked={d.marketing} onChange={(e) => set('marketing', e.target.checked)} /><span className="small">{p.marketingText}</span></label>
-            {publicEnv.turnstileMode === 'cloudflare' && <div className="cf-turnstile" data-sitekey={publicEnv.turnstileSiteKey} data-action="booking_request" data-size="flexible" data-appearance="interaction-only" />}
+            <Turnstile action="booking_request" />
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending}>{sending ? 'Sending' : 'Send request'}</button></div>
             <p className="small muted">No payment now. No card needed.</p>
           </section>

@@ -15,7 +15,7 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
   const { state, run, pending, errors: e, clear } = useForm(signInSchema, signIn);
   const n = next ?? sp.get('next') ?? '/account';
   return (
-    <form className="stack-lg" action={run} noValidate aria-label="Sign in">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Sign in">
       <Err s={state as never} />
       <input type="hidden" name="next" value={n} />
       <Field id={`${idPrefix}-email`} label="Email" error={e.email}><input className="input" id={`${idPrefix}-email`} name="email" type="email" autoComplete="username" aria-invalid={!!e.email || undefined} aria-describedby={describedBy(`${idPrefix}-email`, e.email)} onInput={() => clear('email')} /></Field>
@@ -29,7 +29,7 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
 export function SignUpForm({ minAge }: { minAge: string }) {
   const { state, run, pending, errors: e, clear } = useForm(signUpSchema, signUp, (fd) => ({ agree: fd.get('agree') === 'on' }));
   return (
-    <form className="stack-lg" action={run} noValidate aria-label="Create an account">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Create an account">
       <Err s={state as never} />
       <Field id="su-name" label="Full name" error={e.name}><input className="input" id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
       <Field id="su-email" label="Email" error={e.email}><input className="input" id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>
@@ -48,7 +48,7 @@ export function ResetForm() {
   const { state, run, pending, errors: e, clear } = useForm(resetSchema, requestReset);
   if (state?.ok) return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>If an account uses that address, we sent a link to choose a new password. It works for one hour.</span></div>;
   return (
-    <form className="stack-lg" action={run} noValidate aria-label="Reset your password">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Reset your password">
       <Err s={state as never} />
       <Field id="rp-email" label="Email" error={e.email}><input className="input" id="rp-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('rp-email', e.email)} onInput={() => clear('email')} /></Field>
       <Turnstile action="password_reset" />
@@ -61,7 +61,7 @@ export function NewPasswordForm() {
   const sp = useSearchParams();
   const { state, run, pending, errors: e, clear } = useForm(newPasswordSchema, updatePassword);
   return (
-    <form className="stack-lg" action={run} noValidate aria-label="Choose a new password">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Choose a new password">
       <Err s={state as never} />
       {sp.get('token') && <input type="hidden" name="token" value={sp.get('token')!} />}
       <Field id="np-pass" label="New password" error={e.password} hint="At least 8 characters."><input className="input" id="np-pass" name="password" type="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('np-pass', e.password, true)} onInput={() => clear('password')} /></Field>

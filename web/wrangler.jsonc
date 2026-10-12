@@ -9,6 +9,11 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
+  // The production Worker answers on carmacars.ca and www (Cloudflare creates the DNS records and certificate).
+  "routes": [
+    { "pattern": "carmacars.ca", "custom_domain": true },
+    { "pattern": "www.carmacars.ca", "custom_domain": true }
+  ],
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-prod" }],
   "r2_buckets": [
     { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-prod-opennext-cache" }
@@ -27,6 +32,7 @@
   "env": {
     "staging": {
       "name": "carmacars-staging",
+      "routes": [],
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-staging" }],
       "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-staging-opennext-cache" }],
       "d1_databases": [{ "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-staging-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }],

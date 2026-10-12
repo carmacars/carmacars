@@ -1,0 +1,8 @@
+/* Additions for states the static prototype never had to render. Same tokens, no new look. */
+.req__review td, .spec td, .estimate__lines th { overflow-wrap: anywhere; }
+.req__step fieldset.panel { border: 1px solid var(--line); padding: var(--s-5); border-radius: var(--r-2); }
+.req__step fieldset.panel > legend { padding: 0 var(--s-2); }
+/* The sign-in tabs are links between two pages; the current one wears the selected tab style. */
+.tabs a.tab { text-decoration: none; }
+.tabs a.tab[aria-current="page"] { color: var(--text); }
+.tabs a.tab[aria-current="page"]::after { transform: scaleX(1); }

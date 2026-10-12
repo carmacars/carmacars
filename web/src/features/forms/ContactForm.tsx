@@ -19,7 +19,7 @@ export function ContactForm({ reply }: { reply: string }) {
   }
   const e = errors;
   return (
-    <form className="stack-lg" action={run} noValidate aria-label="Send us a message">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Send us a message">
       <h2 className="d3">Send a message</h2>
       {state && !state.ok && state.code !== 'invalid' && <p className="alert alert--error" role="alert"><span>{state.message}</span></p>}
       <div className="field"><label className="label" htmlFor="ct-topic">What is it about?</label>

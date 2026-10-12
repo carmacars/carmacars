@@ -132,15 +132,18 @@ export function BookBar({ name, daily, slug }: { name: string; daily: number; sl
     return () => window.removeEventListener('cc:estimate', h);
   }, []);
   useEffect(() => {
-    const top = document.querySelector('.car-top'); const cta = document.querySelector('.booking__est [data-book]');
-    if (!top || !cta || !('IntersectionObserver' in window)) return;
-    let past = false; let ctaIn = false;
+    const top = document.querySelector('.car-top');
+    if (!top || !('IntersectionObserver' in window)) return;
+    let past = false; let ctaIn = false; let raf = 0; let tries = 0;
     const io = new IntersectionObserver((es) => {
       es.forEach((e) => { if (e.target === top) past = !e.isIntersecting && e.boundingClientRect.top < 0; else ctaIn = e.isIntersecting; });
       setOn(past && !ctaIn);
     }, { threshold: 0 });
-    io.observe(top); io.observe(cta);
-    return () => { io.disconnect(); document.documentElement.style.setProperty('--bar-h', '0px'); };
+    io.observe(top);
+    // the booking panel renders in the browser after this bar: watch its button once it exists
+    const findCta = () => { const cta = document.querySelector('.booking__est [data-book]'); if (cta) io.observe(cta); else if (tries++ < 600) raf = requestAnimationFrame(findCta); };
+    findCta();
+    return () => { cancelAnimationFrame(raf); io.disconnect(); document.documentElement.style.setProperty('--bar-h', '0px'); };
   }, []);
   useEffect(() => { document.documentElement.style.setProperty('--bar-h', on && bar.current ? bar.current.offsetHeight + 'px' : '0px'); }, [on]);
   const ready = state.total !== null && state.days !== null && state.from && state.to;

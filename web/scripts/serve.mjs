@@ -1,11 +1,13 @@
 // Local production server: `next start` behind a small proxy that does what the Worker entry
 // (custom-worker.ts) does on Cloudflare: security headers on every response, and on HTML a fresh
-// nonce on every <script> plus the matching content security policy. Tests run against this.
+// nonce on every <script> plus the matching content security policy, and compression like
+// Cloudflare's edge (brotli or gzip). Tests and Lighthouse run against this.
 //
 //   PORT=3000 node scripts/serve.mjs
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,16 +34,23 @@ http.createServer((req, res) => {
   const headers = { ...req.headers, 'accept-encoding': 'identity', 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http' };
   const up = http.request({ host: '127.0.0.1', port: INNER, method: req.method, path: req.url, headers }, (r) => {
     const h = { ...r.headers, ...security };
-    const html = String(r.headers['content-type'] || '').includes('text/html');
-    if (!html) { res.writeHead(r.statusCode, h); r.pipe(res); return; }
+    const type = String(r.headers['content-type'] || '');
+    const html = type.includes('text/html');
+    const accept = String(req.headers['accept-encoding'] || '');
+    const enc = /\b(text|javascript|json|xml|svg|css)\b/.test(type) && !r.headers['content-encoding'] ? (accept.includes('br') ? 'br' : accept.includes('gzip') ? 'gzip' : '') : '';
+    const squeeze = () => (enc === 'br' ? zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }) : zlib.createGzip());
+    if (enc) { h['content-encoding'] = enc; h.vary = [h.vary, 'Accept-Encoding'].filter(Boolean).join(', '); delete h['content-length']; }
+    if (!html) { res.writeHead(r.statusCode, h); if (enc) r.pipe(squeeze()).pipe(res); else r.pipe(res); return; }
     const chunks = [];
     r.on('data', (c) => chunks.push(c));
     r.on('end', () => {
       const nonce = randomBytes(16).toString('base64');
       const body = Buffer.from(Buffer.concat(chunks).toString('utf8').replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`));
       delete h['content-length']; delete h['transfer-encoding'];
-      h['content-security-policy'] = csp(nonce); h['content-length'] = body.length;
-      res.writeHead(r.statusCode, h); res.end(body);
+      h['content-security-policy'] = csp(nonce);
+      const out = enc === 'br' ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }) : enc === 'gzip' ? zlib.gzipSync(body) : body;
+      h['content-length'] = out.length;
+      res.writeHead(r.statusCode, h); res.end(out);
     });
   });
   up.on('error', () => { res.writeHead(502); res.end('Starting'); });

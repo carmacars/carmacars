@@ -16,7 +16,7 @@ export function OwnerForm({ ownersEmail, ownerReply }: { ownersEmail?: string; o
   }
   const inp = (id: string, name: string, extra: Record<string, unknown> = {}) => ({ className: 'input', id, name, 'aria-invalid': !!e[name] || undefined, 'aria-describedby': describedBy(id, e[name]), onInput: () => clear(name), ...extra });
   return (
-    <form className="panel stack-lg" action={run} noValidate aria-labelledby="oh-apply">
+    <form className="panel stack-lg" onSubmit={run} noValidate aria-labelledby="oh-apply">
       {state && !state.ok && state.code !== 'invalid' && <p className="alert alert--error" role="alert"><span>{state.message}</span></p>}
       <div className="field-row">
         <Field id="ow-name" label="Your name" error={e.name}><input {...inp('ow-name', 'name', { autoComplete: 'name' })} /></Field>

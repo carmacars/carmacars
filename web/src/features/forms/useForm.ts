@@ -1,5 +1,5 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { startTransition, useActionState, useState, type FormEvent } from 'react';
 import type { z } from 'zod';
 import { fieldErrors, type ActionResult, type FieldErrors } from './schemas';
 
@@ -20,5 +20,8 @@ export function useForm<T extends z.ZodTypeAny>(schema: T, action: (prev: unknow
   }, null as ActionResult<unknown> | null);
   const errors: FieldErrors = { ...(state && !state.ok ? state.fieldErrors ?? {} : {}), ...local };
   const clear = (k: string) => { if (local[k]) setLocal((l) => { const n = { ...l }; delete n[k]; return n; }); };
-  return { state, run, pending, errors, clear };
+  // Submitted from onSubmit (not the form's action attribute), so React does not reset the fields
+  // when the server sends back an error.
+  const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => run(fd)); };
+  return { state, run: submit, pending, errors, clear };
 }
