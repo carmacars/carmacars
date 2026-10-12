@@ -1,31 +1,46 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { signOut } from '@/server/actions/auth';
 import { pageMeta } from '@/features/seo/meta';
+import { getFleet } from '@/lib/site';
+import { group, nextStep, carName } from '@/features/portal/status';
+import { TripRow, StatusBadge } from '@/features/portal/Blocks';
+import { findBooking, myBookings, requireUser } from '@/server/portal/data';
 
-// The renter portal's front door. The portal itself (bookings, offers, signing, payment) is the next
-// stage of the build; this page proves the session and offers sign out.
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Your account', path: '/account', noindex: true, description: 'Your CarmaCars account.' });
+export const metadata = pageMeta({ title: 'Your trips', path: '/account', noindex: true, description: 'Your CarmaCars bookings, offers, agreements and payments.' });
 
+// The portal's front door: the one next thing to do, then upcoming, current and past trips (section 7.1).
 export default async function Account({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await (await auth()).currentUser();
-  if (!user) redirect('/sign-in?next=/account');
-  const sp = await searchParams;
+  const user = await requireUser('/account');
+  const [list, fleet, sp] = await Promise.all([myBookings(user), getFleet(), searchParams]);
+  const photo = (slug: string | null) => fleet.find((c) => c.slug === slug)?.cover ?? null;
+  const { current, upcoming, past, nearest } = group(list);
+  const full = nearest ? await findBooking(user, nearest.booking_number) : null;
+  const step = full ? nextStep(full) : null;
   return (
-    <section className="section">
-      <div className="wrap stack-lg" style={{ maxWidth: '40rem' }}>
-        {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
-        {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
-        <h1 className="d2">Your account</h1>
-        <p>Signed in as <b data-testid="account-email">{user.email}</b>.</p>
-        <p className="muted">Your requests, offers, agreements and statements will appear here. For now, we send everything about a request by email.</p>
-        <div className="row">
-          <Link className="btn btn--primary" href="/cars">Find a car</Link>
-          <form action={signOut}><button className="btn btn--ghost" type="submit">Sign out</button></form>
+    <>
+      {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
+      {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
+      <h1 className="d2">Your trips</h1>
+      {!list.length ? (
+        <div className="pt-empty"><p className="d4">No trips yet.</p><p className="muted">Pick a car and dates and send a request. Nothing is charged until you approve an offer.</p><Link className="btn btn--primary" href="/cars">Find a car</Link></div>
+      ) : (
+        <div className="pt-home">
+          {full && step && (
+            <section className="pt-card pt-card--next" aria-labelledby="pt-next" data-testid="next-step">
+              <div className="pt-card__head"><p className="pt-kicker">Next step · {full.booking_number}</p><StatusBadge s={full.status} /></div>
+              <h2 className="d3" id="pt-next">{step.title}</h2>
+              <p>{carName(full)}. {step.note}</p>
+              {step.href && <p><Link className={`btn ${step.urgent ? 'btn--primary' : 'btn--ghost'}`} href={step.href}>{step.cta}</Link></p>}
+            </section>
+          )}
+          {[['Current', current], ['Upcoming', upcoming], ['Past', past]].map(([title, items]) => (items as typeof list).length ? (
+            <section key={title as string} className="stack" aria-labelledby={`pt-${title}`}>
+              <h2 className="pt-section-title" id={`pt-${title}`}>{title as string}</h2>
+              <ul className="pt-list">{(items as typeof list).map((b) => <TripRow key={b.id} b={b} photo={photo(b.slug)} />)}</ul>
+            </section>
+          ) : null)}
         </div>
-      </div>
-    </section>
+      )}
+    </>
   );
 }

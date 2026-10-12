@@ -66,6 +66,33 @@ hours, social), `site_facts()` (policy numbers, fee catalogue, cancellation tier
 build. Server calls: `submit_booking_request()`, `submit_lead()`, `save_form_draft()`, `load_form_draft()`,
 `submit_form_draft()`, `register_account()`, `delivery_origin()`.
 
+## Renter portal (`/account`)
+
+Phone-first, same design system (`src/styles/portal.css`). Every page reads as the signed-in user through
+the invoker functions of migration 0028 (row-level security decides); every action is a server action
+(`src/server/actions/portal.ts`) that re-checks the booking is the renter's and calls a service-role wrapper
+that checks `p_by` again in the database.
+
+| Route | Does |
+| --- | --- |
+| `/account` | Next step for the nearest booking, then current, upcoming and past trips |
+| `/account/bookings/[number]` | Status, progress, trip and pickup details, questions from staff (`reply_booking_info`), drivers and their signing links, changes, documents, price and payments, actions |
+| `.../offer` | Current version, changes as before and after, price, countdown, "an offer does not hold the car"; approve (`renter_approve_offer` with the version; a stale one is refused), ask for a change, decline |
+| `.../sign` | Part A details (`renter_save_details`), the agreement (`src/features/agreement`, text from `../docs/source/v2_rental.md` via `npm run gen:agreement`) on screen and as PDF, four consents, drawn (canvas, touch) or typed signature (`renter_sign_agreement`, IP and browser from the server) |
+| `.../pay` | Payment Element (Stripe) or the fake card form; authorize, `server_record_booking_payment`, capture on confirmation or void on refusal; the signed copy is rendered and attached |
+| `.../verify` | Licence front, back, selfie per driver and coverage proof: browser re-encodes, presigned PUT, server checks magic bytes and size, `renter_register_upload` |
+| `.../cancel`, `.../extend`, `.../change` | Previews from the database, then cancel (type to confirm), request and pay an extension, ask for a date change |
+| `/account/documents`, `/account/documents/[id]` | Every readable document; a link is signed only after `my_document` passes row-level security (60 s for ID images, 5 min otherwise) |
+| `/account/notifications`, `/account/profile` | Notification centre and preferences, marketing consent; contact details, drivers, Card on File |
+| `/sign/driver/[token]` | An additional driver accepts without an account |
+| `POST /api/webhooks/stripe` | Signature checked on the raw body, `webhook_event_claim` / `webhook_event_finish`, settles authorized booking payments (the PaymentIntent is fetched again from Stripe) |
+| `/api/storage/...` | Local only: what a presigned R2 link does for the local storage adapter (`.local-storage/`) |
+
+Stripe needs `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET` (events:
+`payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.payment_failed`);
+R2 buckets need a CORS rule allowing `PUT` from the site for uploads. `npm run test:unit` runs the Stripe
+adapter's tests against a mocked fetch.
+
 ## Layout
 
 ```
