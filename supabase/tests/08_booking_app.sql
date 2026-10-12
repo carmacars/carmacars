@@ -189,7 +189,7 @@ select test.eq('S a signed-in session may also call the five read-only previews 
   (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute') and not has_function_privilege('anon', p.oid, 'execute')
       and (p.proname like 'my\_%' or p.proname like 'renter\_%' or p.proname = 'submit_booking_request')),
-  'my_booking_change_preview,my_booking_readiness,my_cancellation_preview,my_extension_preview,my_promo_code_problem');
+  'my_booking,my_booking_change_preview,my_booking_readiness,my_bookings,my_cancellation_preview,my_document,my_documents,my_extension_preview,my_notification_preferences,my_notifications,my_profile,my_promo_code_problem');
 select test.eq('S the server may call every wrapper',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and not has_function_privilege('service_role', p.oid, 'execute')
