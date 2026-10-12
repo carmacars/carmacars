@@ -49,7 +49,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     for (const k of ['code', 'audience', 'trigger', 'category', 'subject', 'preheader', 'variables', 'from']) if (e[k] === undefined || e[k] === '') p.push(`${e.code}: missing ${k}`);
     if (typeof e.digest !== 'boolean') p.push(`${e.code}: digest is not true or false`);
     if (!AUD.includes(e.audience)) p.push(`${e.code}: audience ${e.audience}`);
-    if (!/^CarmaCars <(bookings|owners|billing|hello)@mail\.carmacars\.ca>$/.test(e.from)) p.push(`${e.code}: from ${e.from}`);
+    if (!/^CarmaCars <(bookings|owners|billing|hello)@carmacars\.ca>$/.test(e.from)) p.push(`${e.code}: from ${e.from}`);
     // Reply-to: the alias of the desk that handles the email (docs/email-aliases.md).
     const A = cat.reply_to_aliases || {};
     if (!Object.values(A).includes(e.reply_to) || !/^[a-z]+@carmacars\.ca$/.test(e.reply_to)) p.push(`${e.code}: reply_to ${e.reply_to} is not a receiving alias`);

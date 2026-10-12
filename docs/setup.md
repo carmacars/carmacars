@@ -14,7 +14,7 @@ Open the accounts in this order. Each is in the name of 18122211 Canada Inc., wi
 | 2 | GitHub | Free | The code, the tests, the deploys, the nightly backup job, and the secrets |
 | 3 | Supabase (Canada Central) | Free | Database, sign-in, `pg_cron`, Edge Functions |
 | 4 | Cloudflare | Free | Workers (the app), R2 (files and backups), DNS for `carmacars.ca`, Turnstile (form protection) |
-| 5 | Resend | Free (3,000 emails a month, 100 a day) | Platform email, sent from `mail.carmacars.ca` |
+| 5 | Resend | Free (3,000 emails a month, 100 a day) | Platform email, sent from `carmacars.ca` |
 | 6 | Google Workspace | Paid, by choice | The staff mailbox `info@carmacars.ca`, with aliases such as `bookings@` and `owners@` |
 
 Also needed:
@@ -88,7 +88,7 @@ The free plan allows 10 ms of processing per request and 100,000 requests a day.
 
 | Service | Do |
 | --- | --- |
-| Resend | Add the sending domain `mail.carmacars.ca` and put the DNS records Resend shows (SPF, DKIM) on that subdomain in Cloudflare. Nothing changes on the root domain, so Google Workspace mail is not affected. Set `RESEND_API_KEY`, `EMAIL_FROM` (an address at `mail.carmacars.ca`) and `EMAIL_REPLY_TO` (for example `bookings@carmacars.ca`) |
+| Resend | Add the sending domain `carmacars.ca` and put the DNS records Resend shows (SPF, DKIM) on that subdomain in Cloudflare. Nothing changes on the root domain, so Google Workspace mail is not affected. Set `RESEND_API_KEY`, `EMAIL_FROM` (an address at `carmacars.ca`) and `EMAIL_REPLY_TO` (for example `bookings@carmacars.ca`) |
 | Google Workspace | Create the mailbox `info@carmacars.ca` and its aliases (`bookings@`, `owners@`). Staff read replies there. The platform does not sign in to this mailbox |
 | GPS tracker | Point its event callback at `https://<project-ref>.supabase.co/functions/v1/tracker-webhook`. Set `TRACKER_*`. Test lock, alarm and shut-off on a parked car in staging first |
 | Photo pipeline | Set `PHOTO_PIPELINE_*` |

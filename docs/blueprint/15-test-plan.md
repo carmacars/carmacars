@@ -269,7 +269,7 @@ Target: WCAG 2.2 level AA on every route.
 | 9 | `program_settings` filled: company address, phone, incident line, email, HST number or the accountant's written confirmation that none is needed yet, privacy officer, opening hours; Ontario holidays loaded | Admin | |
 | 10 | Lawyer-approved texts loaded as templates: Rental Agreement, Enrollment Agreement, Title Agreement and Forms A to E, website terms, privacy policy, cancellation policy, the four consent statements word for word, the debit agreement. No "[●]" anywhere | Admin, E | |
 | 11 | Government form templates loaded and their fixtures pass, or the data-sheet fallback is switched on for the forms not yet mapped | E | |
-| 12 | Email: `mail.carmacars.ca` verified in Resend with SPF, DKIM and DMARC; the four sender addresses work; replies reach `info@carmacars.ca`; Supabase Auth sends through it; Stripe's own receipt emails are off | F | |
+| 12 | Email: `carmacars.ca` verified in Resend with SPF, DKIM and DMARC; the four sender addresses work; replies reach `info@carmacars.ca`; Supabase Auth sends through it; Stripe's own receipt emails are off | F | |
 | 13 | At least the launch fleet published: each car with a rate card, 10 or more approved photos, a reviewed description, a baseline Condition Report, a reporting tracker | F, Fleet | |
 | 14 | Staff accounts created with the right functions and limits ($0 for the first month); field staff have tested the handover on their own phones | Admin | |
 | 15 | DNS: `carmacars.ca` and `www` to the production Worker; the image domain to the public bucket; `staging` behind authentication with `noindex` | A | |

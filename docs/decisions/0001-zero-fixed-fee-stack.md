@@ -23,7 +23,7 @@ Date: 2026-10-07. Decided by: Abbas. Supersedes any line in `architecture.md`, `
 
 1. Cloudflare's free plan allows 10 ms of processing per request and 100,000 requests a day. Pages are static or cached where possible; pricing, availability and money logic stay in SQL functions, which the plan does not count.
 2. The `storage` module gets an R2 adapter. The bucket layout in `architecture.md` section 6 is unchanged.
-3. Platform mail is sent from a subdomain (`mail.carmacars.ca`) so its DNS records do not collide with Google Workspace on the root domain.
+3. Platform mail is sent from carmacars.ca through Resend (changed October 12, 2026: the owner verified the root domain in Resend). Resend's records sit on `send.carmacars.ca` and `resend._domainkey`, so they do not collide with Google Workspace's MX on the root domain.
 4. Card deposit holds are re-placed every 7 days unless Stripe approves extended holds.
 
 ## When a fee starts

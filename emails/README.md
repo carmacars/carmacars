@@ -95,7 +95,7 @@ In the copy inside `src/emails/`, three shorthands are turned into HTML and text
 | `digest` | `true` when the notice is queued for the role's next digest in place of being sent by itself |
 | `digest_slot` | `next` (whichever digest comes first) or `morning` |
 | `source` | The message template (T1 to T26) the email replaces, where there is one |
-| `from` | `bookings@`, `owners@`, `billing@` or `hello@` at `mail.carmacars.ca`, display name CarmaCars |
+| `from` | `bookings@`, `owners@`, `billing@` or `hello@` at `carmacars.ca`, display name CarmaCars |
 | `reply_to` | The alias of the desk that handles it: `investors@` for investors, `contact@` for staff notices, `billing@` for emails sent from billing, `owners@` for owners, `bookings@` for renter booking emails, `contact@` for other renter emails (`privacy@` for the account security notice). All at carmacars.ca; the list and what each alias is for are in `docs/email-aliases.md`. `emails/check.mjs` enforces the rule. |
 | `subject`, `preheader` | With merge tags |
 | `sample_subject` | The subject filled with sample values |

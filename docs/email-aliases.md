@@ -2,20 +2,20 @@
 
 Every address the platform uses. Values live in `site_settings` and `email_aliases` (migration 0025), `prototype/tools/src/site.mjs` and `emails/src/brand.mjs`.
 
-## Sending addresses (mail.carmacars.ca)
+## Sending addresses (carmacars.ca)
 
-Sent by Resend from the `mail.carmacars.ca` subdomain. No mailbox is needed: nobody signs in to these, and replies go to the reply-to alias of each email, never to the sender. The display name is always "CarmaCars".
+Sent by Resend from the `carmacars.ca` subdomain. No mailbox is needed: nobody signs in to these, and replies go to the reply-to alias of each email, never to the sender. The display name is always "CarmaCars".
 
 | Address | Used for |
 | --- | --- |
-| `bookings@mail.carmacars.ca` | Renter booking emails: requests, offers, agreements, pickup, return, incidents |
-| `owners@mail.carmacars.ca` | Owner emails: application, agreements, vehicles, bookings on their cars |
-| `billing@mail.carmacars.ca` | Money emails: receipts, charges, refunds, invoices, statements, payouts, investor payments |
-| `hello@mail.carmacars.ca` | Account emails (sign-in, password, security), marketing (review requests, come-back offers) and general staff notices |
+| `bookings@carmacars.ca` | Renter booking emails: requests, offers, agreements, pickup, return, incidents |
+| `owners@carmacars.ca` | Owner emails: application, agreements, vehicles, bookings on their cars |
+| `billing@carmacars.ca` | Money emails: receipts, charges, refunds, invoices, statements, payouts, investor payments |
+| `hello@carmacars.ca` | Account emails (sign-in, password, security), marketing (review requests, come-back offers) and general staff notices |
 
 Staff notices go out from whichever of the four fits their subject (a payment failure from billing, a new request from bookings).
 
-Resend needs the domain verified (SPF, DKIM and a DMARC record on `mail.carmacars.ca`) before launch.
+Resend needs the domain verified (SPF, DKIM and a DMARC record on `carmacars.ca`) before launch.
 
 ## Receiving aliases (carmacars.ca)
 
@@ -29,5 +29,7 @@ Create each one in Google Workspace as an alias of `rent@carmacars.ca`, so every
 | `billing@carmacars.ca` | Replies about charges, receipts, refunds, invoices, statements and payouts |
 | `privacy@carmacars.ca` | Personal information requests to the Privacy Officer, and replies to account security notices |
 | `investors@carmacars.ca` | Replies to investor emails; questions from existing investors (shown only on the investor sign-in page) |
+
+Because the sending addresses are on carmacars.ca itself, also create `hello@carmacars.ca` as an alias of `rent@carmacars.ca` so a reply sent straight to a sender address still arrives (bookings@, owners@ and billing@ are already in the list above).
 
 `info@carmacars.ca` is retired and is used nowhere.

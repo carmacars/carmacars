@@ -6,11 +6,11 @@
 export const BRAND = {
   name: 'CarmaCars',
   site: 'https://carmacars.ca',
-  mailDomain: 'mail.carmacars.ca',
+  mailDomain: 'carmacars.ca',
 };
 
 // Receiving aliases, set up in Google Workspace (see docs/email-aliases.md).
-// Replies go to the desk that handles the email. Sending addresses are at mail.carmacars.ca (FROM below).
+// Replies go to the desk that handles the email. Sending addresses are at carmacars.ca (FROM below).
 export const ALIASES = {
   contact: 'contact@carmacars.ca',     // public address; account and marketing emails to renters; staff notices
   bookings: 'bookings@carmacars.ca',   // renter booking emails
@@ -56,10 +56,10 @@ export const FONT_WORDMARK = "'Heros Condensed', 'HelveticaNeue-CondensedBold', 
 
 // Sender addresses. Display name is always CarmaCars.
 export const FROM = {
-  bookings: 'CarmaCars <bookings@mail.carmacars.ca>',
-  owners: 'CarmaCars <owners@mail.carmacars.ca>',
-  billing: 'CarmaCars <billing@mail.carmacars.ca>',
-  hello: 'CarmaCars <hello@mail.carmacars.ca>',
+  bookings: 'CarmaCars <bookings@carmacars.ca>',
+  owners: 'CarmaCars <owners@carmacars.ca>',
+  billing: 'CarmaCars <billing@carmacars.ca>',
+  hello: 'CarmaCars <hello@carmacars.ca>',
 };
 
 // Values every email receives. The application sets these once, from program settings.

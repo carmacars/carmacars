@@ -21,7 +21,7 @@ CarmaCars is a car rental platform in Ontario. This document describes the found
                          ▼              ▼              ▼              ▼
                       Stripe        GPS tracker     Resend         photo pipeline
                   (cards, holds,   (location,      (email from
-                   bank debit)      killswitch)    mail.carmacars.ca)
+                   bank debit)      killswitch)    carmacars.ca)
 
  GitHub Actions: tests, deploy to Cloudflare and Supabase, nightly encrypted backup to R2
 ```
@@ -84,7 +84,7 @@ Rules that apply to the adapters:
 - **Payments.** Card numbers never reach the app or the database; only brand and last four digits are stored. Processor tokens sit in admin-only tables. Recurring owner fees are charged by the platform's own schedule (section 5) against the Owner's saved debit mandate, not by a Stripe subscription. A card hold lasts about 7 days: unless Stripe approves extended holds, the `deposit-holds` job renews a hold before it lapses.
 - **Signing.** The signer reviews the document in the portal and signs by typing their name or drawing on the screen. For each signer `signature_records` stores the name, role, time (`signed_at`), method (`typed` or `drawn`), IP address, browser (`user_agent`), a reference to the stored signature (`provider_signature`) and any initialled confirmations (`initials`). The signed PDF is stored in R2 as a `documents` row with its SHA-256 hash (`documents.sha256`), linked from `signature_requests.signed_document_id`; the request row carries `provider = 'builtin'`. Forms that need a witness (Form C, Form D and the Shareholder Agreement) are signed on paper, scanned and uploaded as `documents` rows.
 - **Identity.** A staff member compares the licence photo with the selfie and records the result (`identity_method = 'staff_review'` on the booking's driver). Switching on Stripe Identity is a setting in the `identity` module (`IDENTITY_PROVIDER=stripe`) and costs CA$2.00 per check; nothing else changes.
-- **Messaging.** Email only at launch. Platform email is sent through Resend from the subdomain `mail.carmacars.ca`, so its DNS records do not collide with Google Workspace on the root domain. Replies go to the staff mailbox `info@carmacars.ca` (Google Workspace, with aliases such as `bookings@` and `owners@`). The `messages` table already allows SMS and WhatsApp as channels; no provider is connected.
+- **Messaging.** Email only at launch. Platform email is sent through Resend from the subdomain `carmacars.ca`, so its DNS records do not collide with Google Workspace on the root domain. Replies go to the staff mailbox `info@carmacars.ca` (Google Workspace, with aliases such as `bookings@` and `owners@`). The `messages` table already allows SMS and WhatsApp as channels; no provider is connected.
 - **Storage.** Buckets are private. The server issues a short-lived signed link only after the `documents` row has passed row-level security for the person asking (section 6).
 - **Coverage (Option 3).** The provider is never named to a renter or in a message. The catalogue price is unset, so it cannot be sold until an admin sets it.
 - **Idempotency.** Every webhook handler and job is safe to run twice: webhooks key on the provider's event id, jobs on `job_runs (job_name, run_key)`.

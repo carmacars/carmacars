@@ -4,7 +4,7 @@ Owner: workstream F (`src/features/notifications/`, `supabase/functions/send-out
 
 The owner's requirement: every actionable customer event results in an email (account creation, request to book, confirmation or adjustment, receipt, booking reminder, pickup details, check-in, return details, review request, come-back discount after 1 week and after 1 month, and more). Owners get billing and monthly statement emails. Admins and staff get theirs.
 
-Constraints: email only, no SMS. Resend free plan: 100 emails a day and 3,000 a month, sent from `mail.carmacars.ca`, replies to `info@carmacars.ca`. So staff notices are digested and sending is rationed by priority.
+Constraints: email only, no SMS. Resend free plan: 100 emails a day and 3,000 a month, sent from `carmacars.ca`, replies to `info@carmacars.ca`. So staff notices are digested and sending is rationed by priority.
 
 **The event key is the catalogue code.** `emit('renter_offer_ready', payload)` sends the email whose `code` is `renter_offer_ready`. Section 3 maps every catalogue code to the action, database function or job in this blueprint that fires it. Section 4 lists where the catalogue and the database disagree, and the events this blueprint needs that have no template yet.
 
@@ -28,7 +28,7 @@ Constraints: email only, no SMS. Resend free plan: 100 emails a day and 3,000 a 
 | Digest queue | `staff_digest_items` **[new]**: `id, role, code, line, url, entity_table, entity_id, created_at, digest_outbox_id`. A staff notice whose catalogue entry has `digest: true` writes a row here instead of the outbox, unless its immediate exception applies (section 5) |
 | Dedupe | `dedupe_key` = code plus the entity id plus a version (for example `renter_offer_ready:{booking}:{offer_version}`). A retried action or a job run twice cannot send twice |
 | Log | Every sent email becomes a `messages` row (`direction = 'outbound'`, `channel = 'email'`, `template_code`, `subject`, `body` as rendered text, `to_address`, links to renter, owner, booking, vehicle, `provider = 'resend'`, `provider_ref`, `status`). `messages` cannot be deleted. `message_templates` gets one row per catalogue code so the foreign key holds |
-| From and reply-to | From the catalogue entry: `bookings@`, `owners@`, `billing@` or `hello@` at `mail.carmacars.ca`, display name CarmaCars; reply-to `info@carmacars.ca`. A reply reaches the staff mailbox; staff log important replies on the record (`messages`, `direction = 'inbound'`). A cancellation received by email is logged with its received time by CS (procedure 7) |
+| From and reply-to | From the catalogue entry: `bookings@`, `owners@`, `billing@` or `hello@` at `carmacars.ca`, display name CarmaCars; reply-to `info@carmacars.ca`. A reply reaches the staff mailbox; staff log important replies on the record (`messages`, `direction = 'inbound'`). A cancellation received by email is logged with its received time by CS (procedure 7) |
 | Documents | Where the copy links a record (`signed_agreement_url`, `receipt_url`, `statement_url`, `supporting_document_url`), the value is a signed file link valid for 7 days, as the templates' copy states. ID images are never linked or attached |
 | Links | Section 4.4 is the link contract: every path in `emails/src/links.mjs` must resolve. `verify_url`, `reset_url` and `sign_in_url` come from the sign-in service; `unsubscribe_url` is the one-click link per recipient |
 | Marketing headers | For a `marketing` email the sender also sets `List-Unsubscribe` and `List-Unsubscribe-Post` to the same `unsubscribe_url` |
@@ -355,7 +355,7 @@ Stored in `notification_preferences` **[new]** (`user_id, code_group, email bool
 | Coverage check | CI fails if a code is emitted in `src/` and is neither in the catalogue nor in the in-app-only list, and reports catalogue codes that nothing emits |
 | Staging | The messaging adapter in staging rewrites every recipient to a test inbox unless the address is on an allow-list. Production keys never exist in staging |
 | Previews | `/admin/messages` previews any template with a real record's payload, in phone and desktop widths, HTML and text, using the catalogue's `preheader` for the inbox line |
-| Deliverability | SPF and DKIM on `mail.carmacars.ca`, a DMARC record on the subdomain, the four sender addresses verified, plain-text parts, no link shorteners |
+| Deliverability | SPF and DKIM on `carmacars.ca`, a DMARC record on the subdomain, the four sender addresses verified, plain-text parts, no link shorteners |
 | Clock | All scheduled sends use Toronto time through `app.local_date()` and `app.local_hour()` |
 | Monitoring | A priority 1 or 2 outbox row older than 15 minutes raises `staff_job_failed`. A daily count by code is on `/admin/messages` |
 
