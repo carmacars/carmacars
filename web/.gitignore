@@ -12,3 +12,4 @@ public/_local/
 test-results/
 playwright-report/
 reports/
+.local-storage/

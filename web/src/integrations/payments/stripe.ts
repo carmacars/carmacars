@@ -1,40 +1,115 @@
-import 'server-only';
-import Stripe from 'stripe';
-import type { PaymentsAdapter } from './types';
+import type { Intent, IntentCard, PaymentsAdapter, WebhookEvent } from './types';
+import { verifyStripeSignature } from './signature.ts';
 
-// Stripe through its fetch client, so it runs on Cloudflare Workers. Card numbers never reach the
-// app: Checkout collects them, and only the processor's ids come back (docs/architecture.md section 4).
-export function stripeAdapter(secretKey: string): PaymentsAdapter {
-  const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient(), maxNetworkRetries: 2 });
+// Stripe's REST API through fetch (no SDK), so it runs unchanged in the Cloudflare Worker and can be
+// tested with a mocked fetch (stripe.test.ts). Test mode on staging, live keys in production.
+const API = 'https://api.stripe.com/v1';
+const VERSION = '2025-09-30.clover';
+
+type Params = Record<string, string | number | boolean | undefined | null | string[] | Record<string, string>>;
+
+/** Stripe's form encoding: nested objects as a[b]=c, lists as a[]=x. */
+export function formEncode(p: Params): string {
+  const out = new URLSearchParams();
+  for (const [k, v] of Object.entries(p)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) for (const x of v) out.append(`${k}[]`, x);
+    else if (typeof v === 'object') for (const [kk, vv] of Object.entries(v)) out.append(`${k}[${kk}]`, vv);
+    else out.append(k, String(v));
+  }
+  return out.toString();
+}
+
+type Obj = Record<string, unknown>;
+const str = (v: unknown) => (typeof v === 'string' ? v : null);
+const num = (v: unknown) => (typeof v === 'number' ? v : 0);
+const obj = (v: unknown): Obj | null => (v && typeof v === 'object' ? (v as Obj) : null);
+
+export function toIntent(pi: Obj): Intent {
+  const pm = obj(pi.payment_method);
+  const c = obj(pm?.card);
+  const charge = obj(pi.latest_charge);
+  const funding = str(c?.funding);
+  const card: IntentCard | null = c ? {
+    brand: str(c.brand) ?? 'card', last4: str(c.last4) ?? '', expMonth: num(c.exp_month), expYear: num(c.exp_year),
+    funding: funding === 'credit' || funding === 'debit' || funding === 'prepaid' ? funding : 'unknown',
+    name: str(obj(pm?.billing_details)?.name), fingerprint: str(c.fingerprint)
+  } : null;
+  return {
+    id: String(pi.id), status: pi.status as Intent['status'], amountCents: num(pi.amount), amountCapturableCents: num(pi.amount_capturable),
+    currency: str(pi.currency) ?? 'cad', clientSecret: str(pi.client_secret), metadata: (obj(pi.metadata) ?? {}) as Record<string, string>,
+    customerId: str(pi.customer) ?? str(obj(pi.customer)?.id), paymentMethodId: str(pi.payment_method) ?? str(pm?.id),
+    chargeId: str(pi.latest_charge) ?? str(charge?.id), card, lastError: str(obj(pi.last_payment_error)?.message)
+  };
+}
+
+export class StripeError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly declineCode: string | null;
+  constructor(message: string, status: number, code: string | null, declineCode: string | null) {
+    super(message);
+    this.name = 'StripeError';
+    this.status = status;
+    this.code = code;
+    this.declineCode = declineCode;
+  }
+}
+
+export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fetch(...a)): PaymentsAdapter {
+  async function call(method: 'GET' | 'POST', path: string, params: Params = {}, idempotencyKey?: string): Promise<Obj> {
+    const body = formEncode(params);
+    const url = method === 'GET' && body ? `${API}${path}?${body}` : `${API}${path}`;
+    const headers: Record<string, string> = { authorization: `Bearer ${secretKey}`, 'stripe-version': VERSION };
+    if (method === 'POST') headers['content-type'] = 'application/x-www-form-urlencoded';
+    if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
+    let res: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await f(url, { method, headers, body: method === 'POST' ? body : undefined });
+      // network-level retries only for Stripe's own transient answers; the idempotency key makes them safe
+      if (res.status !== 429 && res.status < 500) break;
+    }
+    const json = (await res!.json()) as Obj;
+    if (!res!.ok) {
+      const e = obj(json.error) ?? {};
+      throw new StripeError(str(e.message) ?? `Stripe error ${res!.status}`, res!.status, str(e.code), str(e.decline_code));
+    }
+    return json;
+  }
+  const expand = ['payment_method', 'latest_charge'];
   return {
     name: 'stripe',
-    async createCheckout(r) {
-      const s = await stripe.checkout.sessions.create({
-        mode: 'payment', customer_email: r.customerEmail, success_url: r.successUrl, cancel_url: r.cancelUrl,
-        payment_intent_data: { setup_future_usage: 'off_session', metadata: { booking_id: r.bookingId } },
-        line_items: [{ quantity: 1, price_data: { currency: r.currency, unit_amount: r.amountCents, product_data: { name: r.description } } }],
-        metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber }
-      }, { idempotencyKey: r.idempotencyKey });
-      return { id: s.id, status: s.status ?? 'open', url: s.url ?? undefined };
+    async createCustomer(r) {
+      const c = await call('POST', '/customers', { email: r.email, name: r.name, metadata: { renter_id: r.renterId } }, r.idempotencyKey);
+      return { id: String(c.id) };
     },
-    async placeHold(r) {
-      const pi = await stripe.paymentIntents.create({
-        amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method: r.paymentMethodId,
-        capture_method: 'manual', confirm: true, off_session: true, metadata: { booking_id: r.bookingId, kind: 'deposit' }
-      }, { idempotencyKey: r.idempotencyKey });
-      return { id: pi.id, status: pi.status };
+    async createBookingIntent(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: 'manual', setup_future_usage: 'off_session',
+        payment_method_types: ['card'], description: r.description,
+        metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, offer_version: String(r.offerVersion), purpose: 'booking_total' },
+        expand
+      }, r.idempotencyKey));
     },
-    async captureHold(id, amount, key) {
-      const pi = await stripe.paymentIntents.capture(id, { amount_to_capture: amount }, { idempotencyKey: key });
-      return { id: pi.id, status: pi.status };
+    async retrieveIntent(id) {
+      return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
     },
-    async releaseHold(id, key) {
-      const pi = await stripe.paymentIntents.cancel(id, {}, { idempotencyKey: key });
-      return { id: pi.id, status: pi.status };
+    async captureIntent(id, key) {
+      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/capture`, { expand }, key));
     },
-    async refund(id, amount, key) {
-      const rf = await stripe.refunds.create({ payment_intent: id, amount }, { idempotencyKey: key });
-      return { id: rf.id, status: rf.status ?? 'pending' };
+    async cancelIntent(id, key) {
+      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/cancel`, { cancellation_reason: 'abandoned', expand }, key));
+    },
+    async chargeOffSession(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method: r.paymentMethodId, off_session: true, confirm: true,
+        description: r.description, metadata: r.metadata, expand
+      }, r.idempotencyKey));
+    },
+    async verifyWebhook(rawBody, header, secret, now): Promise<WebhookEvent> {
+      await verifyStripeSignature(rawBody, header, secret, now);
+      const e = JSON.parse(rawBody) as Obj;
+      return { id: String(e.id), type: String(e.type), created: num(e.created), object: obj(obj(e.data)?.object) ?? {} };
     }
   };
 }

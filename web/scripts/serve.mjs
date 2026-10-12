@@ -17,9 +17,9 @@ const INNER = PORT + 100;
 
 // Same policy as src/lib/security/csp.ts (kept in step by tests/e2e/security.spec.ts).
 const csp = (nonce) => [
-  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com`, "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:", "font-src 'self'", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com",
-  'frame-src https://challenges.cloudflare.com', "frame-ancestors 'none'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
+  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com`, "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:", "font-src 'self'", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.r2.cloudflarestorage.com https://challenges.cloudflare.com",
+  'frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com', "frame-ancestors 'none'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
 ].join('; ');
 const security = {
   'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'strict-origin-when-cross-origin',

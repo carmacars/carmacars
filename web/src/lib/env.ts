@@ -18,6 +18,10 @@ const schema = z.object({
   TURNSTILE_SECRET_KEY: z.string().default('1x0000000000000000000000000000000AA'),
   PAYMENTS_PROVIDER: z.enum(['stripe', 'fake']).default('fake'),
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  /** Signs links that act without a session (additional drivers' signing links, upload tickets, local storage links). */
+  LINK_SIGNING_KEY: z.string().min(32).optional(),
   STORAGE_PROVIDER: z.enum(['r2', 'local']).default('local'),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
@@ -36,6 +40,8 @@ export function env(): ServerEnv {
   if (e.APP_ENV === 'production') {
     if (e.DATA_BACKEND !== 'supabase') throw new Error('Production runs on Supabase (DATA_BACKEND=supabase).');
     if (e.TURNSTILE_PROVIDER !== 'cloudflare') throw new Error('Production checks public forms with Cloudflare Turnstile.');
+    if (e.PAYMENTS_PROVIDER !== 'stripe') throw new Error('Production takes payments through Stripe (PAYMENTS_PROVIDER=stripe).');
+    if (!e.LINK_SIGNING_KEY) throw new Error('Production needs LINK_SIGNING_KEY.');
   }
   cached = e;
   return e;

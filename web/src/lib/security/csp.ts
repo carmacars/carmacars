@@ -11,6 +11,10 @@ export function newNonce(): string {
   return btoa(s);
 }
 
+// Stripe's Payment Element (its script and its card frame) and browser uploads straight to R2.
+const STRIPE_JS = 'https://js.stripe.com', STRIPE_HOOKS = 'https://hooks.stripe.com', STRIPE_API = 'https://api.stripe.com';
+const R2_UPLOADS = 'https://*.r2.cloudflarestorage.com';
+
 export interface CspOptions {
   turnstile?: boolean;
   /** Extra origins images may come from (the vehicle photo bucket). */
@@ -24,15 +28,15 @@ export interface CspOptions {
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const turnstile = o.turnstile ? ' https://challenges.cloudflare.com' : '';
   const img = ['\'self\'', 'data:', 'blob:', ...(o.imgOrigins ?? [])].join(' ');
-  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co'].join(' ');
+  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS].join(' ');
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'${turnstile}`,
+    `script-src 'self' 'nonce-${nonce}'${turnstile} ${STRIPE_JS}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src ${img} https:`,
     `font-src 'self'`,
     `connect-src ${connect}${turnstile}`,
-    `frame-src${turnstile || " 'none'"}`,
+    `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS}`,
     `frame-ancestors 'none'`,
     `form-action 'self'`,
     `base-uri 'none'`,
