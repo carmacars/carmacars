@@ -136,6 +136,28 @@ Shift resizes, Enter confirms, Esc cancels, `t` is today.
 | `/admin/tolls` (`/new`, `/import`, `/[id]`), `/admin/damages` (`/[id]`), `/admin/incidents` | Work queues by bucket and age, single entry, statement import with saved column mappings and the statement PDF attached, match review, charge, bill to owner, dispute; damage intake with before and after photos and the deductible routing; incidents and claims |
 | `/admin/tasks`, `/admin/owners`, `/admin/investors`, `/admin/reviews`, `/admin/messages`, `/admin/audit` | Every queue; owner records; investors and returns; review moderation and review-request decisions; outbox and suppressions; audit log |
 
+### Assistants (`/va`), field staff (`/field`), investors (`/investor`), two-step sign-in
+
+Migration 0031's door (`public.door`, `src/server/door.ts`): every staff and investor read and action carries the signed-in
+user and their session's assurance level; the database refuses a staff session without the second factor while
+`require_staff_two_step` is on. The admin portal goes through the same door. Change record: `../docs/changes/0031_staff_investor_portals.md`.
+
+| Route | Does |
+| --- | --- |
+| `/va`, `/va/today`, `/va/tasks/[id]` | The function's queue (Mine, Unassigned, Waiting; overdue, due today, escalated, type), today's digest, the task sheet (take, done, waiting, escalate, hand over, notes); each task opens its working screen |
+| `/va/requests`, `/va/bookings/[number]` | Customer service and Sales: the request inbox and the admin review-and-offer screen without price overrides (offers open 48 hours at most); changes and extensions; messages with quick replies; Finance: money and refund requests (above the Single Limit an Admin approval); Fleet: schedule a field job |
+| `/va/verify/[number]` | Identity and coverage review, only from an open review task; one-minute signed image links |
+| `/va/money`, `/va/tolls` | Finance: failed payments, deposits to take and due back, refunds to request, failed owner invoices, statements to prepare; toll and ticket matching and import |
+| `/va/fleet`, `/va/calendar`, `/va/listings`, `/va/vehicles/[id]` | Fleet: handovers and returns without a job, scheduling and assignment, expiry watch, vehicle documents; the master calendar; listing intake and review |
+| `/va/leads`, `/va/messages` | Owner leads and applications (Sales, customer service); renter messages |
+| `/field`, `/field/jobs/[id]` | Phone first: today and tomorrow, acknowledge, start, the handover and return checklists (ready check with the Deposit status, odometer, fuel, keys, the required photo set from the camera through an IndexedDB upload queue that retries when the connection returns, damage on a car diagram with close-ups, renter and staff signatures on screen), vehicle moves, damage found later. `POST /api/field/upload` checks the job and the bytes, stores the photo and registers it |
+| `/investor`, `/investor/statements`, `/investor/statements/[id]`, `/investor/profile` | A signed-in investor's own investments, statements and notices; election, bank and transfer requests become Admin tasks |
+| `/two-step/setup`, `/two-step` | Enrol an authenticator app (Supabase Auth TOTP; locally RFC 6238 in `local_auth.factors`) and the second step at sign-in |
+
+After the password, sign-in goes to the page asked for, or to the role's home (Admin, assistant, field, investor, owner,
+renter); a person with an authenticator app is asked for the code first, and staff without one are sent to enrol while
+the switch is on.
+
 Owner invoice payments: `src/server/owner/payment.ts`. The browser confirms in Stripe's form; the server fetches the
 PaymentIntent again and records it (`server_record_owner_invoice_payment`); the webhook does the same for
 `payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed` and `payment_intent.canceled`

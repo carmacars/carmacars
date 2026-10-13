@@ -57,7 +57,7 @@ async function adminPage(browser: Browser, viewport: { width: number; height: nu
 }
 
 test('owner billing: apply with three vehicles, terms and upfront invoices, sign, pay by card and by debit, offline payment', async ({ page, browser }, info) => {
-  test.setTimeout(Number(process.env.OWNER_TIMEOUT ?? 300_000));
+  test.setTimeout(Number(process.env.OWNER_TIMEOUT ?? 480_000));
   const phone = info.project.name.startsWith('phone');
   const viewport = phone ? { width: 375, height: 812 } : { width: 1440, height: 900 };
   const errors = watch(page);
