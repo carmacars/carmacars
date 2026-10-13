@@ -29,6 +29,7 @@ export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
   if (!r.ok) return { ok: false, code: 'auth', message: r.message };
   const reg = (await rpc('register_account', { p_user: r.user.id, p_email: p.data.email, p_full_name: p.data.name }, { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; message?: string };
   if (!reg.ok) return { ok: false, code: 'email_on_record', message: reg.message ?? 'We could not finish creating the account. Contact us.' };
+  if (r.needsConfirmation) return { ok: true, data: { confirm: true, email: p.data.email } };
   redirect('/account?welcome=1');
 }
 

@@ -28,6 +28,10 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
 
 export function SignUpForm({ minAge }: { minAge: string }) {
   const { state, run, pending, errors: e, clear } = useForm(signUpSchema, signUp, (fd) => ({ agree: fd.get('agree') === 'on' }));
+  if (state?.ok) {
+    const email = (state as { data?: { email?: string } }).data?.email;
+    return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>We sent a link to {email ?? 'your email address'}. Open it to confirm your account, then sign in. It can take a minute to arrive; check spam if you do not see it.</span></div>;
+  }
   return (
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Create an account">
       <Err s={state as never} />

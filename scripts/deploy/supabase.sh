@@ -5,6 +5,7 @@
 #   scripts/deploy/supabase.sh secrets   fetch the project's keys and the deploy_* vault secrets, mask them,
 #                                        export them to the next steps (GITHUB_ENV)
 #   scripts/deploy/supabase.sh migrate   apply only the migrations not yet applied, through the Management API
+#   scripts/deploy/supabase.sh templates load the email templates into the catalogue (the sender renders them)
 #   scripts/deploy/supabase.sh auth      redirect URLs and the invitation email link (Supabase Auth)
 #   scripts/deploy/supabase.sh outbox    deploy the send-outbox Edge Function and schedule it every minute
 #   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
@@ -89,14 +90,28 @@ migrate() {
     grep -qx "$v" <<<"$applied" && continue
     log "applying $name"
     # The file and its history row in one call: one implicit transaction, so a failure leaves nothing behind.
-    if ! sbq "$(cat "$f")
-;
-insert into supabase_migrations.schema_migrations (version, name) values ('$v', '$name');" > /dev/null; then
+    local tmp; tmp=$(mktemp)
+    { cat "$f"; printf '\n;\ninsert into supabase_migrations.schema_migrations (version, name) values (%s, %s);\n' "'$v'" "'$name'"; } > "$tmp"
+    if ! sbq_file "$tmp" > /dev/null; then
+      rm -f "$tmp"
       die "Migration $name failed and was rolled back; later migrations were not run"
     fi
+    rm -f "$tmp"
     count=$((count + 1))
   done
   notice "Migrations: $count new migration(s) applied; history has $(sbq "select count(*)::int as n from supabase_migrations.schema_migrations" | jq -r '.[0].n') rows"
+}
+
+# The email templates: migration 0018 stores only the file names; the sender renders the contents.
+# Rebuilds emails/ and loads every template's HTML and text into notification_catalogue.
+templates() {
+  local tmp out; tmp=$(mktemp)
+  (cd "$ROOT/emails" && node build.mjs > /dev/null)
+  node "$ROOT/scripts/deploy/email-templates-sql.mjs" > "$tmp"
+  out=$(sbq_file "$tmp") || { rm -f "$tmp"; die "Loading the email templates failed"; }
+  rm -f "$tmp"
+  [ "$(jq -r '.[0].still_paths' <<<"$out")" = "0" ] || die "Some email templates are still file names: $out"
+  notice "Email templates: $(jq -r '.[0].total' <<<"$out") loaded"
 }
 
 auth() {
@@ -108,17 +123,16 @@ auth() {
     tr ',' '\n' <<<"$want" | grep -qxF "$u" || want="${want:+$want,}$u"
   done
   patch=$(jq -n --arg l "$want" '{uri_allow_list: $l}')
-  # Invitations are created on the server (no PKCE verifier), so the email links to the callback with a token hash.
-  if ! jq -r '.mailer_templates_invite_content // ""' <<<"$cfg" | grep -q 'token_hash'; then
-    patch=$(jq --arg c '<h2>You are invited to CarmaCars</h2>
-<p>An account has been created for you at CarmaCars. Follow the link below to choose your password and sign in.</p>
-<p><a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite&next=/update-password">Choose your password</a></p>
-<p>The link works once. If it has expired, use "Forgot password" on the sign-in page.</p>' \
-      '. + {mailer_templates_invite_content: $c, mailer_subjects_invite: "Your CarmaCars account"}' <<<"$patch")
+  # Every Supabase Auth email links to /auth/callback with a token hash (scripts/deploy/auth-templates.mjs).
+  local tpl; tpl=$(node "$ROOT/scripts/deploy/auth-templates.mjs")
+  if [ "$(jq -r '.mailer_templates_confirmation_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_confirmation_content' <<<"$tpl")" ] \
+     || [ "$(jq -r '.mailer_templates_recovery_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_recovery_content' <<<"$tpl")" ] \
+     || [ "$(jq -r '.mailer_templates_invite_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_invite_content' <<<"$tpl")" ]; then
+    patch=$(jq -s '.[0] + .[1]' <(echo "$patch") <(echo "$tpl"))
   fi
-  if [ "$want" != "$list" ] || jq -e 'has("mailer_templates_invite_content")' <<<"$patch" > /dev/null; then
+  if [ "$want" != "$list" ] || jq -e 'has("mailer_templates_confirmation_content")' <<<"$patch" > /dev/null; then
     sbapi PATCH "/config/auth" "$patch" > /dev/null
-    notice "Auth: redirect allow list and invitation link updated"
+    notice "Auth: redirect allow list and email templates updated"
   else
     log "auth: already configured"
   fi

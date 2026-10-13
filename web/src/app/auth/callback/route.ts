@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const s = await supabaseServer();
     const { error } = await s.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(new URL(next, u.origin));
-  } else if (env().DATA_BACKEND === 'supabase' && tokenHash && (type === 'invite' || type === 'recovery' || type === 'email' || type === 'signup')) {
+  } else if (env().DATA_BACKEND === 'supabase' && tokenHash && (type === 'invite' || type === 'recovery' || type === 'email' || type === 'signup' || type === 'magiclink' || type === 'email_change')) {
     const s = await supabaseServer();
     const { error } = await s.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) return NextResponse.redirect(new URL(next, u.origin));

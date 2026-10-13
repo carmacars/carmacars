@@ -18,9 +18,15 @@ export function supabaseAuth(): AuthAdapter {
     },
     async signUp(email, password, meta) {
       const s = await supabaseServer();
-      const { data, error } = await s.auth.signUp({ email, password, options: { data: meta } });
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      const { data, error } = await s.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: `${base}/auth/callback?next=/account` } });
       if (error || !data.user) return { ok: false, message: plain(error?.message ?? 'We could not create the account.') };
-      return { ok: true, user: { id: data.user.id, email: data.user.email ?? email } };
+      // Supabase answers an existing address with a user that has no identities (it never says so outright).
+      if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return { ok: false, message: 'An account with this email already exists. Sign in, or use "Forgot password" to set a new password.' };
+      }
+      return { ok: true, user: { id: data.user.id, email: data.user.email ?? email }, needsConfirmation: !data.session };
     },
     async signIn(email, password) {
       const s = await supabaseServer();

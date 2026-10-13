@@ -34,6 +34,22 @@ sbq() {
   fi
   cat "$out"; rm -f "$out"
 }
+# Same as sbq, with the SQL read from a file: arguments are capped at 128 KB by the kernel, and large
+# migrations or the email templates (about 1.8 MB) exceed that.
+sbq_file() {
+  local body out code
+  body=$(mktemp)
+  jq -Rs '{query: .}' < "$1" > "$body"
+  out=$(mktemp)
+  code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/database/query" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @"$body")
+  rm -f "$body"
+  if [ "${code:0:1}" != "2" ]; then
+    echo "SQL failed ($code): $(head -c 1500 "$out")" >&2
+    rm -f "$out"; return 1
+  fi
+  cat "$out"; rm -f "$out"
+}
 sbapi() { # method path [json]
   local m="$1" p="$2" d="${3:-}" out code
   out=$(mktemp)

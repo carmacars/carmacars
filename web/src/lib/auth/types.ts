@@ -1,5 +1,5 @@
 export interface SessionUser { id: string; email: string }
-export type AuthResult = { ok: true; user: SessionUser } | { ok: false; message: string };
+export type AuthResult = { ok: true; user: SessionUser; needsConfirmation?: boolean } | { ok: false; message: string };
 
 export interface AuthAdapter {
   currentUser(): Promise<SessionUser | null>;
