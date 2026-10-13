@@ -143,6 +143,8 @@ if (process.argv.includes('--auth')) {
       const page = await ctx.newPage();
       page.on('pageerror', (e) => r.errors.push(String(e).slice(0, 300)));
       page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text())) r.errors.push(m.text().slice(0, 300)); });
+      // which resource failed, for a "Failed to load resource" console error
+      page.on('response', (x) => { if (x.status() >= 400 && !noise(x.url())) (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 200)}`); });
       try {
         await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
         const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
