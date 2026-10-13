@@ -61,7 +61,7 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
           <div className="cookie__in">
             <div className="cookie__text">
               <h2 className="d4" id="ck-t">{w.title}</h2>
-              <p className="small">{w.text} <Link className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
+              <p className="small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
             </div>
             <div className="cookie__btns">
               <button type="button" className="btn btn--quiet btn--sm" onClick={(e) => { opener.current = e.currentTarget; dialog.current?.showModal(); }}>{w.prefs}</button>

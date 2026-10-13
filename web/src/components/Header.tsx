@@ -21,7 +21,7 @@ export function Header({ s }: { s: SiteSettings }) {
           </nav>
           <div className="header-actions">
             <NavLink className="btn btn--quiet btn--sm header-signin" href="/sign-in">Sign in</NavLink>
-            <Link className="btn btn--primary btn--sm" href="/cars">Find a car</Link>
+            <Link prefetch={false} className="btn btn--primary btn--sm" href="/cars">Find a car</Link>
             <MenuButton />
           </div>
         </div>
@@ -31,7 +31,7 @@ export function Header({ s }: { s: SiteSettings }) {
           {NAV.map(([h, l, sub]) => <NavLink key={h} href={h}>{l}<span>{sub}</span></NavLink>)}
           <NavLink href="/contact">Contact<span>Talk to a person</span></NavLink>
         </nav>
-        <div className="row"><Link className="btn btn--light" href="/sign-in">Sign in</Link><Link className="btn btn--primary" href="/cars">Find a car</Link></div>
+        <div className="row"><Link prefetch={false} className="btn btn--light" href="/sign-in">Sign in</Link><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
       </div>
     </>
   );

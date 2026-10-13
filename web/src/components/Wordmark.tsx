@@ -16,6 +16,6 @@ function Mark({ s, dark }: { s: SiteSettings; dark: boolean }) {
 }
 
 export function Wordmark({ s, className = '', link = true, dark = true }: { s: SiteSettings; className?: string; link?: boolean; dark?: boolean }) {
-  if (link) return <Link className={`wordmark ${className}`} href="/" aria-label={`${s.brand_name} home`}><Mark s={s} dark={dark} /></Link>;
+  if (link) return <Link prefetch={false} className={`wordmark ${className}`} href="/" aria-label={`${s.brand_name} home`}><Mark s={s} dark={dark} /></Link>;
   return <span className={`wordmark ${className}`} aria-hidden="true"><Mark s={s} dark={dark} /></span>;
 }

@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 export function NavLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   const path = usePathname();
   const current = path === href || (href !== '/' && path.startsWith(href + '/'));
-  return <Link className={className} href={href} aria-current={current ? 'page' : undefined}>{children}</Link>;
+  return <Link prefetch={false} className={className} href={href} aria-current={current ? 'page' : undefined}>{children}</Link>;
 }
 
 // The phone menu: a button with aria-expanded; the panel is inert while closed; Escape closes.

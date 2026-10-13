@@ -9,7 +9,7 @@ export function PageHead({ trail, h1, lead }: { trail: Trail; h1: string; lead: 
 export function CtaBand({ h, p, btn = ['Find a car', '/cars'] }: { h: string; p: string; btn?: [string, string] }) {
   return (
     <section className="section--tight on-red cta-band">
-      <div className="wrap cta-band__in"><div><h2 className="d2">{h}</h2><p className="lead">{p}</p></div><Link className="btn btn--light btn--lg" href={btn[1]}>{btn[0]}</Link></div>
+      <div className="wrap cta-band__in"><div><h2 className="d2">{h}</h2><p className="lead">{p}</p></div><Link prefetch={false} className="btn btn--light btn--lg" href={btn[1]}>{btn[0]}</Link></div>
     </section>
   );
 }
