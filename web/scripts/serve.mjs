@@ -5,6 +5,7 @@
 //
 //   PORT=3000 node scripts/serve.mjs
 import http from 'node:http';
+import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import zlib from 'node:zlib';
@@ -30,7 +31,23 @@ const next = spawn(process.execPath, [path.join(WEB, 'node_modules/next/dist/bin
 process.on('SIGTERM', () => { next.kill('SIGTERM'); process.exit(0); });
 process.on('SIGINT', () => { next.kill('SIGINT'); process.exit(0); });
 
+// Files the app writes to the public photo bucket after the build (the listing pipeline's processed photos)
+// live in the local storage folder; served here under the bucket's address, as the Worker serves /media.
+const STORE = process.env.LOCAL_STORAGE_DIR ?? path.join(WEB, '.local-storage');
+const TYPES = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.avif': 'image/avif', '.svg': 'image/svg+xml' };
+function localPublic(req, res) {
+  const u = decodeURIComponent((req.url || '').split('?')[0]);
+  if (!u.startsWith('/_local/vehicle-public/') || (req.method !== 'GET' && req.method !== 'HEAD')) return false;
+  const root = path.join(STORE, 'vehicle-public');
+  const file = path.resolve(root, u.slice('/_local/vehicle-public/'.length));
+  if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) return false;
+  res.writeHead(200, { ...security, 'content-type': TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream', 'cache-control': 'public, max-age=60' });
+  if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
+  return true;
+}
+
 http.createServer((req, res) => {
+  if (localPublic(req, res)) return;
   const headers = { ...req.headers, 'accept-encoding': 'identity', 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http' };
   const up = http.request({ host: '127.0.0.1', port: INNER, method: req.method, path: req.url, headers }, (r) => {
     const h = { ...r.headers, ...security };

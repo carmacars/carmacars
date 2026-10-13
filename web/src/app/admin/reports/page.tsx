@@ -21,7 +21,9 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
   const m = month.slice(0, 7);
   const months = Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)).toISOString().slice(0, 7));
   const R = ['/admin/reports'];
-  const problems = (cs?.statement.tie_problems as string[] | null) ?? [];
+  // tie_problems is one text of problems joined by "; " (0021), or a list
+  const rawProblems = cs?.statement.tie_problems as string | string[] | null | undefined;
+  const problems = Array.isArray(rawProblems) ? rawProblems : typeof rawProblems === 'string' && rawProblems.trim() ? rawProblems.split(/;\s+/) : [];
   return (<>
     <PageHead title="Company statements" kicker={monthOf(month)}>
       <Act action="company_build" payload={{ month }} label={cs ? 'Rebuild' : 'Build the statement'} variant="primary" testId="company-build" refresh={R} />
