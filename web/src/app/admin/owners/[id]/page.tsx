@@ -6,6 +6,9 @@ import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, OfflinePaymentForm, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
+import { adminRead } from '@/server/admin/api';
+import { $, Card, Table, t as at } from '@/features/admin/ui';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -20,6 +23,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
   const [{ user }, { id }] = await Promise.all([requireAdmin('/admin/owners'), params]);
   const d = await adminOwner(user, id);
   if (!d) notFound();
+  const rec = await adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id });
   const o = d.owner;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
@@ -78,6 +82,9 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
           <section className="pt-card" aria-labelledby="ad-owner"><h2 className="d4" id="ad-owner">Owner</h2>
             <Dl rows={[['Address', [o.address_line1, o.city, o.province, o.postal_code].filter(Boolean).join(', ')], ['Corporation', o.corporation_name ? `${String(o.corporation_name)}, no. ${String(o.corporation_number ?? '')}` : ''], ['HST number', String(o.hst_number ?? '')], ['Licence', o.private?.licence_number ? `${o.private.licence_number} (${o.private.licence_province ?? 'ON'})` : ''], ['Date of birth', o.private?.date_of_birth ?? ''], ['Sign-in', o.user_email ?? 'No account'], ['Agreements', `Enrollment ${d.signing.enrollment ?? 'not prepared'}, title ${d.signing.title_holding ?? 'not prepared'}`], ['Still missing', o.missing.join(', ')]]} />
           </section>
+          <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
+            <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
+          <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card" aria-labelledby="ad-link"><h2 className="d4" id="ad-link">Send the owner a link</h2><SendLinkForm kind="portal" email={o.email ?? ''} name={o.legal_name} /></section>
         </aside>
       </div>

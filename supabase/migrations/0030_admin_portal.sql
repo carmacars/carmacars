@@ -677,7 +677,9 @@ begin
               'reports', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'kind', c.kind, 'performed_at', c.performed_at,
                               'booking_number', (select b.booking_number from bookings b where b.id = c.booking_id)) order by c.performed_at desc)
                               from condition_reports c where c.vehicle_id = d.vehicle_id and c.performed_at > d.found_at - interval '60 days'), '[]'::jsonb),
-              'threshold_cents', 250000)
+              'photos', coalesce((select jsonb_agg(jsonb_build_object('report_id', ph.condition_report_id, 'shot', ph.shot, 'path', ph.storage_path, 'bucket', ph.storage_bucket) order by ph.seq)
+                                  from condition_report_photos ph where ph.condition_report_id in (d.before_report_id, d.after_report_id)), '[]'::jsonb),
+              'threshold_cents', (app.settings()).deductible_cents)
               from damage_intakes d where d.id = v_id);
   when 'owner_statement' then
     return app.owner_statement_breakdown((p_ ->> 'id')::uuid, p_admin) || jsonb_build_object('row', (select app.admin_enrich(to_jsonb(s)) from owner_statements s where s.id = (p_ ->> 'id')::uuid));
