@@ -22,7 +22,7 @@ if [ "$rc" -ne 0 ]; then
   done
   # Playwright's page snapshot at the failure (what the page showed), first failures only
   for f in $(find . -path '*test-results*' -name error-context.md 2>/dev/null | head -n 3); do
-    ctx="$(grep -v '^\s*$' "$f" | head -n 60)"
+    ctx="$(grep -v '^\s*$' "$f" | grep -v -E '/url: /admin|listitem|link "' | head -n 120 | tail -n 70)"
     echo "::error title=${label} page at failure ($(basename "$(dirname "$f")"))::$(printf '%s' "$ctx" | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
   done
 fi

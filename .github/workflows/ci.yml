@@ -20,6 +20,10 @@ on:
         description: Run the database and web checks first (turn off only to re-run a deploy of a commit whose push run passed)
         type: boolean
         default: true
+      e2e_grep:
+        description: Only the end-to-end tests whose title matches (diagnosis; leave empty for all)
+        type: string
+        default: ''
       environment:
         description: Target
         type: choice
@@ -84,7 +88,7 @@ jobs:
       - name: Browsers
         run: npx playwright install --with-deps chromium
       - name: End to end, accessibility
-        run: ../.github/ci-run.sh "End to end" npx playwright test
+        run: ../.github/ci-run.sh "End to end" npx playwright test ${{ inputs.e2e_grep && format('--grep "{0}"', inputs.e2e_grep) || '' }}
       - name: Link check and copy lint
         run: |
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
