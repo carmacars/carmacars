@@ -80,6 +80,7 @@ jobs:
           bash scripts/local-db.sh up
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test:unit
       - run: npx tsc --noEmit -p tests/tsconfig.json
       - name: Types are generated from the schema
         run: npm run db:types && git diff --exit-code src/lib/db/types.ts
@@ -139,7 +140,7 @@ jobs:
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
       - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
-        run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns
+        run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns images
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox
       - name: Seed (content rows; the sample cars while the site has none)
@@ -166,8 +167,10 @@ jobs:
             echo "PAYMENTS_PROVIDER=stripe"
             echo "STORAGE_PROVIDER=$STORAGE_PROVIDER"
             echo "R2_BUCKET_PREFIX=carmacars-$([ "$DEPLOY_ENV" = staging ] && echo staging || echo prod)-"
-            echo "MAPS_PROVIDER=${{ vars.MAPS_PROVIDER || 'fake' }}"
+            echo "MAPS_PROVIDER=${MAPS_PROVIDER:-fake}"
             echo "VIN_DECODER=vpic"
+            echo "LLM_PROVIDER=workers-ai"
+            echo "PHOTO_PROVIDER=cloudflare"
           } > .env.production
           $RUN "Worker build" npx opennextjs-cloudflare build
       - name: Deploy the Worker (with its secrets)
@@ -178,7 +181,8 @@ jobs:
           jq -n '{SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY,
                   STRIPE_WEBHOOK_SECRET: env.STRIPE_WEBHOOK_SECRET, LINK_SIGNING_KEY: env.LINK_SIGNING_KEY,
                   PAYOUT_ENCRYPTION_KEY: env.PAYOUT_ENCRYPTION_KEY}
-                 + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)' > "$f"
+                 + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)
+                 + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)' > "$f"
           if [ "$DEPLOY_ENV" = staging ]; then
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --env staging --secrets-file "$f"
           else

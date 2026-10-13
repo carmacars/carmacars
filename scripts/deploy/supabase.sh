@@ -53,6 +53,15 @@ secrets() {
     mask "$val"
     export_env "$var" "$val"
   done
+  # optional: the Google Maps server key (Places API (New) and Routes); without it the site uses the fake adapter
+  val=$(jq -r '[.[] | select(.name == "deploy_google_maps_api_key")][0].v // empty' <<<"$rows")
+  if [ -n "$val" ]; then
+    mask "$val"; export_env GOOGLE_MAPS_API_KEY "$val"; export_env MAPS_PROVIDER google
+    notice "Maps: Google (deploy_google_maps_api_key is in the vault)"
+  else
+    export_env MAPS_PROVIDER fake
+    notice "Maps: the fake adapter (add deploy_google_maps_api_key to the vault for Google Places and Routes)"
+  fi
   # session pooler (IPv4) for the seed script
   local pool host user
   pool=$(sbapi GET "/config/database/pooler")
@@ -148,8 +157,11 @@ outbox() {
   mask "$token"
   : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"
   mask "$RESEND_API_KEY"
-  sbapi POST "/secrets" "$(jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" \
-    '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}]')" > /dev/null
+  : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"
+  mask "$LINK_SIGNING_KEY"
+  # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
+  sbapi POST "/secrets" "$(jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
+    '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]')" > /dev/null
   dir=$(mktemp -d)
   cp "$ROOT/supabase/functions/send-outbox/index.ts" "$dir/index.ts"
   cp "$ROOT/emails/src/engine.mjs" "$dir/engine.mjs"
@@ -201,8 +213,21 @@ storage() {
   done
 }
 
+# The listing pipeline's studio backdrop and shadow (web/src/features/listing/presets), under site/backdrop/.
+presets() {
+  service_key
+  local base="https://$REF.supabase.co/storage/v1/object" f
+  for f in brand_background_v1.png shadow_v1.png; do
+    curl -sS -f -o /dev/null -X POST "$base/vehicle-public/site/backdrop/$f" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+      -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: image/png' -H 'x-upsert: true' -H 'cache-control: max-age=31536000' \
+      --data-binary "@$ROOT/web/src/features/listing/presets/$f" || die "Could not upload the listing preset $f"
+  done
+  log "photos: listing backdrop presets uploaded"
+}
+
 photos() {
   service_key
+  presets
   local base="https://$REF.supabase.co/storage/v1/object" marker=".seeded/stand-in-photos-v1"
   if [ "$(curl -sS -o /dev/null -w '%{http_code}' "$base/public/vehicle-public/$marker")" = 200 ]; then
     log "photos: already uploaded"; return

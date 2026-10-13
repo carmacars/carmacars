@@ -11,6 +11,7 @@
 #   scripts/deploy/cloudflare.sh dns         frees carmacars.ca and www for the Worker's custom domains: only
 #                                            A, AAAA or CNAME records on those two names are removed (never
 #                                            MX, TXT or anything else, never another name)
+#   scripts/deploy/cloudflare.sh images      image transformations on the zone (listing photos), on when the token may
 #   scripts/deploy/cloudflare.sh photos      the stand-in photos into the R2 public bucket (once; a marker object
 #                                            records it); with Supabase Storage: supabase.sh photos
 #
@@ -167,8 +168,13 @@ dns() {
 }
 
 photos() {
-  local bucket="$P-vehicle-public" marker=".seeded/stand-in-photos-v1"
+  local bucket="$P-vehicle-public" marker=".seeded/stand-in-photos-v1" f
   cd "$ROOT/web"
+  # the listing pipeline's studio backdrop and shadow, always refreshed (two small files)
+  for f in brand_background_v1.png shadow_v1.png; do
+    npx wrangler r2 object put "$bucket/site/backdrop/$f" --file "src/features/listing/presets/$f" --content-type image/png --cache-control "public, max-age=31536000" --remote > /dev/null \
+      || die "Could not upload the listing preset $f"
+  done
   if npx wrangler r2 object get "$bucket/$marker" --remote --pipe > /dev/null 2>&1; then
     log "photos: already uploaded"; return
   fi
@@ -190,6 +196,20 @@ photos() {
   npx wrangler r2 object put "$bucket/$marker" --file "$list.marker" --content-type text/plain --remote > /dev/null
   notice "Photos: $(wc -l < "$list") stand-in photos uploaded to $bucket"
   rm -f "$list" "$list.marker"
+}
+
+# Image transformations on the zone (the listing photos: segment=foreground and draw). Turned on when the
+# token may; otherwise the worker keeps each original and flags it for staff (docs/changes/0032).
+images() {
+  local zone cur
+  zone=$(cfapi GET "/zones?name=$DOMAIN" | jq -r '.result[0].id // empty') || { warn "Images: the token cannot read the $DOMAIN zone"; return 0; }
+  cur=$(cfapi GET "/zones/$zone/settings/image_resizing" 2>/dev/null | jq -r '.result.value // empty') || cur=""
+  if [ "$cur" = "on" ] || [ "$cur" = "open" ]; then notice "Images: transformations are on for $DOMAIN ($cur)"; return 0; fi
+  if cfapi PATCH "/zones/$zone/settings/image_resizing" '{"value":"on"}' > /dev/null 2>&1; then
+    notice "Images: transformations turned on for $DOMAIN (free up to 5,000 unique transformations a month)"
+  else
+    warn "Images: transformations are ${cur:-not readable} on $DOMAIN and the token cannot turn them on (Zone > Zone Settings > Edit, or Images > Transformations in the dashboard). Listing photos keep their original background and are flagged for staff until then."
+  fi
 }
 
 for step in "$@"; do "$step"; done

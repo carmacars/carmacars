@@ -166,6 +166,19 @@ pre-authorized debits enabled on the account for `acss_debit`. Environment: `VIN
 production) and `PAYOUT_ENCRYPTION_KEY` (a Worker secret of 32+ characters; never changed without re-encrypting).
 `npm run gen:owner-agreements` rebuilds the owner agreement text from `../docs/source`.
 
+## Listing pipeline, documents and maps (migration 0032)
+
+| Piece | Where |
+| --- | --- |
+| Listing worker | `src/features/listing/worker.ts` (pure), `src/server/listing-worker.ts` (wiring), `POST /api/jobs/listing` (bearer: HMAC of a label with `LINK_SIGNING_KEY`), run by the Worker's cron trigger every five minutes (`custom-worker.ts` `scheduled`) and right after a submit or a retry |
+| Providers | `src/integrations/llm` (`LLM_PROVIDER`: `workers-ai` through the Worker's `AI` binding, or `fake`), `src/integrations/photos` (`PHOTO_PROVIDER`: `cloudflare` image transformations, or `fake`; `PHOTO_FAKE_MODE=not_enabled` exercises the fallback), `src/integrations/vin.ts` |
+| Screens | `src/features/listing/ListingCapture.tsx`, `ListingProgress.tsx`, `StartListing.tsx` on `/admin/listings/[id]`, `/va/listings/[id]`, `/owner/vehicles/[id]`; uploads through `POST /api/listing/upload` |
+| Documents | `src/features/documents/pdf.ts` (owner and renter statements, receipts, insurer invoices, investor statements and yearly summary), `src/server/files.ts`; `/files/<kind>/<record>` (signed in), `/d/<token>` (7-day email links), `/admin/documents/<id>` |
+| Money | `src/server/actions/ops.ts` (refund issuing through `payments().refund`, Deposit preview and settlement, toll notice, insurer email), `src/features/admin/DepositSettle.tsx`, `TollEntry.tsx` |
+| Maps | `src/integrations/maps/google.ts` (Places API (New), Routes) when `MAPS_PROVIDER=google` and `GOOGLE_MAPS_API_KEY` are set (the deploy sets both when the vault holds `deploy_google_maps_api_key`), else the fake |
+
+`npm run test:unit` runs the Stripe, Google Maps and listing worker tests. `node scripts/gen-backdrop.mjs` rebuilds the photo presets.
+
 ## Layout
 
 ```
@@ -255,8 +268,9 @@ Every step is idempotent; a failing step puts its last output lines into the run
 
 Files: `STORAGE_PROVIDER=r2-binding` uses the Worker's R2 bindings (no S3 keys). Private files go through
 `/api/storage` with HMAC-signed, expiring links; the public bucket is served by the Worker under `/media`
-(`NEXT_PUBLIC_VEHICLE_PHOTOS_URL=https://carmacars.ca/media`). Maps use the fake adapter until a Google key exists
-(repository variable `MAPS_PROVIDER=google` and a `GOOGLE_MAPS_API_KEY` Worker secret).
+(`NEXT_PUBLIC_VEHICLE_PHOTOS_URL=https://carmacars.ca/media`). Maps use the fake adapter until the vault holds `deploy_google_maps_api_key`; then the deploy sets
+`MAPS_PROVIDER=google` and the `GOOGLE_MAPS_API_KEY` Worker secret. The listing worker needs Workers AI (the `AI` binding,
+free daily neurons) and image transformations on the zone (the `images` step turns them on when the token may).
 
 Staging needs its own Supabase project and an environment `staging` with its own secrets (and the repository
 variable `STAGING_READY`) before `environment = staging` will run.
