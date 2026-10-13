@@ -87,6 +87,50 @@ if (doRequest && slug) {
   }
   await ctx.close();
 }
+// --auth: a real sign-in through the live form with a fixed renter test account (verify-signin@carmacars.ca,
+// renter role only, never staff). The account is created or its password reset through the Supabase admin
+// API on each run, so the check needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+if (process.argv.includes('--auth')) {
+  const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const email = 'verify-signin@carmacars.ca';
+  const password = `V${Math.random().toString(36).slice(2)}${Date.now()}!`;
+  const h = { apikey: key, Authorization: `Bearer ${key}`, 'content-type': 'application/json' };
+  const steps = [];
+  try {
+    const list = await (await fetch(`${url}/auth/v1/admin/users?per_page=1000`, { headers: h })).json();
+    let user = (list.users ?? []).find((u) => u.email === email);
+    if (!user) {
+      user = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { full_name: 'Sign-in Check' } }) })).json();
+      steps.push('created');
+    } else {
+      await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password, email_confirm: true }) });
+      steps.push('password reset');
+    }
+    const reg = await fetch(`${url}/rest/v1/rpc/register_account`, { method: 'POST', headers: h, body: JSON.stringify({ p_user: user.id, p_email: email, p_full_name: 'Sign-in Check' }) });
+    steps.push(`register_account ${reg.status}`);
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', (e) => errs.push(String(e).slice(0, 300)));
+    await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
+    const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
+    if (await cookie.isVisible().catch(() => false)) await cookie.click();
+    await page.locator('#si-email').fill(email);
+    await page.locator('#si-pass').fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL(/\/account/, { timeout: 30_000 }).catch(() => {});
+    const afterSignIn = page.url();
+    const alert = await page.locator('[role="alert"]').first().textContent().catch(() => null);
+    await page.screenshot({ path: path.join(out, 'auth-after-sign-in.png'), fullPage: true });
+    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
+    const adminUrl = page.url();
+    report.auth = { ok: /\/account/.test(afterSignIn), steps, afterSignIn, alert, adminForRenter: adminUrl, errors: errs };
+    await ctx.close();
+  } catch (e) {
+    report.auth = { ok: false, steps, error: String(e).slice(0, 800) };
+  }
+}
+
 await browser.close();
 fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));

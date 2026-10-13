@@ -11,6 +11,10 @@ on:
         description: Also send one request to book through the form
         type: boolean
         default: false
+      auth:
+        description: Also sign in through the live form with the renter test account
+        type: boolean
+        default: true
       slug:
         description: Car to open and request (default the first on /cars)
         type: string
@@ -38,7 +42,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Live checks
         run: |
-          node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} > /dev/null
+          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$K"
+          export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co"
+          node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} ${{ inputs.auth && '--auth' || '' }} > /dev/null
+          jq -r '"auth: \(.auth | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", "))' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
