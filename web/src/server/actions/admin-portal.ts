@@ -119,3 +119,25 @@ export async function uploadLogo(form: FormData): Promise<R<{ key: string }>> {
     return { ok: true, data: { key } };
   } catch (e) { return fail(e); }
 }
+
+/** A notice, receipt or estimate (PDF or image): stored in the private documents bucket and filed. */
+export async function uploadAdminDocument(form: FormData): Promise<R<{ id: string }>> {
+  try {
+    await assertAdmin();
+    const file = form.get('file');
+    const kind = String(form.get('kind') ?? 'other');
+    if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose a file.' };
+    if (file.size > 15_000_000) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
+    const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    if (!pdf && !jpg && !png) return { ok: false, code: 'invalid', message: 'Use a PDF, JPEG or PNG file.' };
+    const type = pdf ? 'application/pdf' : jpg ? 'image/jpeg' : 'image/png';
+    const { createHash } = await import('node:crypto');
+    const key = `admin/${kind}/${randomUUID()}.${pdf ? 'pdf' : jpg ? 'jpg' : 'png'}`;
+    const { storage } = await import('@/integrations/storage');
+    await (await storage()).put('documents', key, bytes, type);
+    return adminAct<{ id: string }>('document_register', { kind, title: String(form.get('title') ?? file.name).slice(0, 200), storage_path: key, mime_type: type, sha256: createHash('sha256').update(bytes).digest('hex') });
+  } catch (e) { return fail(e); }
+}

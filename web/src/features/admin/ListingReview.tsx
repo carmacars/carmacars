@@ -15,7 +15,7 @@ export type L = { id: string; vehicle_id: string; state: string; reason: string 
 
 export function ListingReview({ l }: { l: L }) {
   const router = useRouter();
-  const src = l.listing?.headline ? l.listing : l.draft;
+  const src = l.draft?.headline ? l.draft : l.listing;
   const [c, setC] = useState({ headline: src?.headline ?? '', description: src?.description ?? '', features: (src?.features ?? []).join('\n'), faq: (src?.faq ?? []).map((f) => `${f.question} | ${f.answer}`).join('\n'), seo_title: src?.seo_title ?? '', seo_description: src?.seo_description ?? '' });
   const [ph, setPh] = useState<Record<string, string>>({});
   const [cover, setCover] = useState<string | null>(l.photos.find((p) => p.is_cover)?.id ?? null);

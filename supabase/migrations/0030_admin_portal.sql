@@ -1003,6 +1003,17 @@ begin
   when 'reconcile_match' then
     return jsonb_build_object('status', app.match_payout_item((p_ ->> 'item')::uuid, p_admin, nullif(p_ ->> 'payment', '')::uuid, nullif(btrim(p_ ->> 'note'), '')));
 
+  -- ---------------------------------------------------------------- documents the server stored
+  when 'document_register' then
+    if coalesce(p_ ->> 'kind', '') not in ('toll_ticket_notice', 'receipt', 'repair_estimate', 'repair_invoice', 'police_report', 'incident_report', 'other') then
+      raise exception 'Not a document the admin portal files' using errcode = '22023';
+    end if;
+    insert into documents (kind, title, storage_bucket, storage_path, mime_type, sha256, uploaded_by, vehicle_id, booking_id)
+    values ((p_ ->> 'kind')::document_kind, p_ ->> 'title', 'documents', p_ ->> 'storage_path', p_ ->> 'mime_type', p_ ->> 'sha256', p_admin,
+            nullif(p_ ->> 'vehicle', '')::uuid, b.id)
+    returning id into v_id;
+    return jsonb_build_object('id', v_id);
+
   -- ---------------------------------------------------------------- tolls, tickets and damage
   when 'toll_log' then
     v_id := app.log_toll_ticket(p_ -> 'row', p_admin);

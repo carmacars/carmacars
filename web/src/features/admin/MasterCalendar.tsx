@@ -154,7 +154,6 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
   const pos = (s: number, e: number) => ({ left: Math.max(0, (s - from) * pxPerMs), width: Math.max(6, (Math.min(e, from + days * DAY) - Math.max(s, from)) * pxPerMs) });
   const dayList = Array.from({ length: days }, (_, i) => new Date(from + i * DAY));
   const width = `calc(11rem + ${days * dw}px)`;
-  const cols = `11rem repeat(${days}, ${dw}px)`;
 
   return (
     <div className="cal" data-testid="master-calendar">
@@ -193,10 +192,12 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
       ) : (
         <div className="cal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
           <div className="cal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
-            <div className="cal__head" style={{ gridTemplateColumns: cols }}>
+            <div className="cal__head" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
               <div className="cal__corner">{vehicles.length} vehicles</div>
-              {dayList.map((d) => { const td = isoDay(d) === isoDay(torontoMidnight(new Date(now))); const we = d.getDay() === 0 || d.getDay() === 6; return (
-                <div key={d.toISOString()} className={`cal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`}><b>{d.getDate()}</b>{new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: dw > 60 ? 'short' : undefined }).format(d)}</div>); })}
+              <div className="cal__days" style={{ width: days * dw }}>
+                {dayList.map((d, i) => { const td = isoDay(d) === isoDay(torontoMidnight(new Date(now))); const we = d.getDay() === 0 || d.getDay() === 6; return (
+                  <div key={d.toISOString()} className={`cal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }}><b>{d.getDate()}</b>{new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: dw > 60 ? 'short' : undefined }).format(d)}</div>); })}
+              </div>
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => (

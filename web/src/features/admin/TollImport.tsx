@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
-import { adminAct, adminPreview } from '@/server/actions/admin-portal';
+import { adminAct, adminPreview, uploadAdminDocument } from '@/server/actions/admin-portal';
 
 // Bulk import of a toll or ticket statement (10-tolls-tickets-damages.md section 3): the file is read
 // in the browser, its columns are mapped once per operator and header row (saved as a profile and
@@ -32,6 +32,7 @@ export function TollImport() {
   const [rows, setRows] = useState<string[][]>([]);
   const [map, setMap] = useState<Record<string, string>>({});
   const [profile, setProfile] = useState<string | null>(null);
+  const [doc, setDoc] = useState<{ id: string; name: string } | null>(null);
   const [res, setRes] = useState<Result | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -60,7 +61,7 @@ export function TollImport() {
   const saveProfile = () => start(async () => { const r = await adminAct<{ id: string }>('toll_profile_save', { profile: { operator, name: operator, header_signature: sig, mapping: map } }); if (r.ok) setProfile(r.data.id); else setErr(r.message); });
   const run = () => start(async () => {
     setErr(null);
-    const r = await adminAct<Result>('toll_import', { batch: { operator, kind, statement_number: statement || null, total_cents: total ? Math.round(Number(total) * 100) : null, profile_id: profile, rows: built(), confirm_difference: true } }, ['/admin/tolls']);
+    const r = await adminAct<Result>('toll_import', { batch: { operator, kind, statement_number: statement || null, total_cents: total ? Math.round(Number(total) * 100) : null, profile_id: profile, document_id: doc?.id ?? null, rows: built(), confirm_difference: true } }, ['/admin/tolls']);
     if (r.ok) { setRes(r.data); router.refresh(); } else setErr(r.message);
   });
   return (
@@ -71,6 +72,10 @@ export function TollImport() {
           <div className="field ad-field"><label className="label" htmlFor="ti-k">Kind</label><select className="select" id="ti-k" value={kind} onChange={(e) => setKind(e.target.value)}><option value="toll_invoice">Toll statement</option><option value="ticket">Tickets</option><option value="camera_offence">Camera offences</option><option value="parking">Parking</option></select></div>
           <div className="field ad-field"><label className="label" htmlFor="ti-sn">Statement number</label><input className="input" id="ti-sn" value={statement} onChange={(e) => setStatement(e.target.value)} /></div>
           <div className="field ad-field"><label className="label" htmlFor="ti-t">Statement total ($, to check)</label><input className="input" id="ti-t" inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} /></div>
+          <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ti-doc">The statement itself (PDF), attached to every notice so the renter can be charged</label>
+            <input className="input" id="ti-doc" type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const fd = new FormData(); fd.set('file', f); fd.set('kind', 'toll_ticket_notice'); fd.set('title', `${operator} statement ${statement}`.trim());
+              start(async () => { const r = await uploadAdminDocument(fd); if (r.ok) setDoc({ id: r.data.id, name: f.name }); else setErr(r.message); }); }} />
+            {doc && <span className="small" role="status">Attached: {doc.name}</span>}</div>
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ti-f">CSV file</label><input className="input" id="ti-f" type="file" accept=".csv,text/csv" onChange={async (e) => { const f = e.target.files?.[0]; if (f) await load(await f.text()); }} /></div>
         </div>
       </section>

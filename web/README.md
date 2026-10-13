@@ -114,6 +114,28 @@ database checks again (`p_by`, `p_admin`).
 | `/admin/owners`, `/admin/owners/[id]`, `/admin/invoices` | Admin only, and two-step sign-in when `require_staff_two_step` is on: applications, terms per vehicle (standard grid by default), issue upfront invoices, record an offline payment (e-Transfer, cheque or bank transfer with its reference, audited), invitation or sign-in links |
 | `POST /api/dev/fake-payments` | Local and tests only (fake payments, never production): settles a fake pre-authorized debit, as the bank does days later |
 
+### The admin portal (`/admin`)
+
+Desktop-first, usable on a phone (`src/styles/admin.css`, same tokens). Every page calls `requireAdmin` (Admin role, and
+two-step sign-in when `require_staff_two_step` is on); every read and action goes through migration 0030's door:
+`admin_list` (allow-listed tables and views), `admin_read` (screens), `admin_save` (settings) and `admin_do` (actions),
+from `src/server/admin/api.ts` and `src/server/actions/admin-portal.ts` (`adminAct`, `adminSaveRow`, `adminPreview`).
+Shared pieces in `src/features/admin/`: `ui.tsx` (tables, tabs, tiles), `Act.tsx` (one button or form per action, typed
+fields), `BookingReview.tsx`, `MasterCalendar.tsx`, `ListingReview.tsx`, `TollImport.tsx`, `BulkRates.tsx`. Keyboard: `g`
+then `t r b c v l m o k s` jumps to a section, `/` focuses search; on the calendar the arrows move a booking 30 minutes,
+Shift resizes, Enter confirms, Esc cancels, `t` is today.
+
+| Route | Does |
+| --- | --- |
+| `/admin` | Today: alerts (site setup problems, failed jobs), requests against the response target, offers out, pickups and returns, late now, tasks by queue, payments failed, deposits due, utilization and cash this month, approvals |
+| `/admin/requests`, `/admin/bookings`, `/admin/bookings/[number]` | Request queue with flags and age; every booking; one booking: review and adjust with live re-pricing (applied and rolled back in the database) and the offer as the renter sees it, send, withdraw, resend, approve by phone, ask, decline, reopen, calendar switch, cancel, swap; money, change requests and extensions, history (events, status history, emails), drivers and documents |
+| `/admin/calendar` | Master calendar (week, 2 weeks, month, agenda), filters and search, side panel, drag or resize with the database's preview and confirm, blocks; per vehicle at `/admin/vehicles/[id]?tab=calendar` |
+| `/admin/vehicles`, `/admin/vehicles/[id]`, `/admin/vehicles/bulk-rates`, `/admin/listings`, `/admin/listings/[id]` | Fleet; rates and rate history, fees and overrides, deposit, classes, coverage, listing, owner terms, tracker, documents; bulk rates with preview; listing review (copy, photos, cover), publish, unlist |
+| `/admin/settings/[section]` | Site settings and logo, content blocks, program settings (a new dated row), fee defaults, deposit tiers, km choices, classes, airports and delivery, coverage prices, email aliases and reply-to, staff (invite, limits, end access), insurers, promo codes, quick replies |
+| `/admin/money`, `/admin/insurer-invoices`, `/admin/invoices`, `/admin/statements`, `/admin/payouts`, `/admin/reports`, `/admin/expenses`, `/admin/reconciliation` | Payments, refunds with approval, deposits, disputes; insurer invoices; owner invoices and the monthly run; owner statements per vehicle (build, approve, issue, reissue); payouts; company statements with the ties and CSV (`/admin/reports/export`); expenses; processor payout reconciliation |
+| `/admin/tolls` (`/new`, `/import`, `/[id]`), `/admin/damages` (`/[id]`), `/admin/incidents` | Work queues by bucket and age, single entry, statement import with saved column mappings and the statement PDF attached, match review, charge, bill to owner, dispute; damage intake with before and after photos and the deductible routing; incidents and claims |
+| `/admin/tasks`, `/admin/owners`, `/admin/investors`, `/admin/reviews`, `/admin/messages`, `/admin/audit` | Every queue; owner records; investors and returns; review moderation and review-request decisions; outbox and suppressions; audit log |
+
 Owner invoice payments: `src/server/owner/payment.ts`. The browser confirms in Stripe's form; the server fetches the
 PaymentIntent again and records it (`server_record_owner_invoice_payment`); the webhook does the same for
 `payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed` and `payment_intent.canceled`

@@ -212,7 +212,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
 
       <section className="stack" aria-label="Price">
         <div className="pt-card ad-card" data-testid="review-price">
-          <div className="pt-card__head"><h2 className="d4">Price {preview ? <span className="ad-b ad-b--amber">re-priced, not saved</span> : null}</h2><span className="small muted">{shown.billable_days} days · {shown.rate_applied?.replace(/_/g, ' ')}</span></div>
+          <div className="pt-card__head"><h2 className="d4">Price {preview ? <span className="ad-b ad-b--amber">Re-priced, not saved</span> : null}</h2><span className="small muted">{shown.billable_days} days · {shown.rate_applied?.replace(/_/g, ' ')}</span></div>
           <dl className="pt-dl pt-dl--money">
             {shown.lines.filter((l) => l.stage === 'booking').map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
             <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
@@ -254,7 +254,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
           <div><dt><b>Total due at booking</b></dt><dd><b>{money(total, { cents: true })}</b></dd></div>
         </dl>
-        <p className="small muted">Open until {when(expiresAt())}.</p>
+        <p className="small muted">Open until {when(expiresAt())}</p>
       </aside>
     </div>
     </Ctx.Provider>

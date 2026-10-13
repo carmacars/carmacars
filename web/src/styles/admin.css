@@ -19,7 +19,8 @@
 @media (min-width: 64rem) {
   .ad__frame { grid-template-columns: 13.5rem minmax(0, 1fr); }
   .ad__rail { border-bottom: 0; border-right: 1px solid var(--grey-200); position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; }
-  .ad__who { flex-direction: column; align-items: start; }
+  .ad__who { flex-direction: column; align-items: start; padding-inline: var(--s-4); }
+  .ad__who form .btn { padding-inline: 0; }
   .ad-nav { display: grid; gap: 0; padding: 0 0 var(--s-5); overflow: visible; }
   .ad-nav h2 { display: block; font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin: var(--s-4) var(--s-4) var(--s-1); font-weight: 600; }
   .ad-nav ul { display: grid; }
@@ -75,7 +76,7 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-kv > div { padding-block: 0.4rem; font-size: var(--fs-sm); }
 
 /* badges */
-.ad-b { display: inline-flex; align-items: center; min-height: 1.4rem; padding: 0 0.45rem; font-size: var(--fs-2xs); font-weight: 700; text-transform: capitalize; border: 1px solid var(--grey-300); background: var(--white); color: var(--text); white-space: nowrap; }
+.ad-b { display: inline-flex; align-items: center; min-height: 1.4rem; padding: 0 0.45rem; font-size: var(--fs-2xs); font-weight: 700; border: 1px solid var(--grey-300); background: var(--white); color: var(--text); white-space: nowrap; }
 .ad-b--dark { background: var(--black); border-color: var(--black); color: var(--white); }
 .ad-b--red { background: var(--red-600); border-color: var(--red-600); color: var(--white); }
 .ad-b--amber { background: #fff4d6; border-color: #8a5a00; color: #5c3b00; }
@@ -107,7 +108,8 @@ a.ad-tile:hover { border-color: var(--black); }
 
 /* booking review */
 .ad-review { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
-@media (min-width: 72rem) { .ad-review { grid-template-columns: 18rem minmax(0, 1fr) 24rem; } }
+@media (min-width: 72rem) { .ad-review { grid-template-columns: minmax(24rem, 1.25fr) minmax(0, 1fr); } .ad-review > .ad-renter-view { grid-column: 2; } }
+@media (min-width: 100rem) { .ad-review { grid-template-columns: minmax(26rem, 1.2fr) minmax(0, 1fr) 24rem; } .ad-review > .ad-renter-view { grid-column: auto; } }
 .ad-review > * { min-width: 0; }
 .ad-diff { background: #fff4d6; outline: 2px solid #8a5a00; outline-offset: -2px; }
 .ad-sticky { position: sticky; top: var(--s-3); }
@@ -136,7 +138,8 @@ a.ad-tile:hover { border-color: var(--black); }
 .cal__head { position: sticky; top: 0; z-index: 3; background: var(--white); border-bottom: 1px solid var(--grey-300); }
 .cal__corner, .cal__name { position: sticky; left: 0; z-index: 2; background: var(--white); border-right: 1px solid var(--grey-300); }
 .cal__corner { z-index: 4; font-size: var(--fs-2xs); padding: 0.3rem 0.5rem; color: var(--text-2); }
-.cal__day { font-size: 0.6875rem; text-align: center; padding: 0.25rem 0; border-left: 1px solid var(--grey-200); color: var(--text-2); line-height: 1.2; }
+.cal__days { position: relative; height: 2.6rem; }
+.cal__day { position: absolute; top: 0; bottom: 0; box-sizing: border-box; font-size: 0.6875rem; text-align: center; padding: 0.25rem 0; border-left: 1px solid var(--grey-200); color: var(--text-2); line-height: 1.2; }
 .cal__day b { display: block; color: var(--text); font-size: var(--fs-xs); }
 .cal__day.is-today { background: var(--red-50); color: var(--red-700, #a1121a); }
 .cal__day.is-weekend { background: var(--grey-50); }
@@ -173,7 +176,7 @@ a.ad-tile:hover { border-color: var(--black); }
 .cal__legend { display: flex; flex-wrap: wrap; gap: var(--s-3); font-size: var(--fs-2xs); color: var(--text-2); }
 .cal__legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .cal__legend i { display: inline-block; width: 1.6rem; height: 0.8rem; border: 1px solid var(--black); position: static; }
-.cal__panel { position: fixed; inset: auto 0 0 0; max-height: 70vh; overflow-y: auto; background: var(--white); border-top: var(--bw) solid var(--black); padding: var(--s-4) var(--gutter); z-index: 50; display: grid; gap: var(--s-3); box-shadow: 0 -8px 24px rgb(0 0 0 / 0.15); }
+.cal__panel { position: fixed; inset: auto 0 0 0; max-height: 70vh; overflow-y: auto; background: var(--white); border-top: var(--bw) solid var(--black); padding: var(--s-4) var(--gutter); z-index: 50; display: grid; align-content: start; gap: var(--s-3); box-shadow: 0 -8px 24px rgb(0 0 0 / 0.15); }
 @media (min-width: 64rem) { .cal__panel { inset: 0 0 0 auto; width: 26rem; max-height: none; border-top: 0; border-left: var(--bw) solid var(--black); padding: var(--s-5); } }
 .cal__panel h2 { margin: 0; }
 .cal__agenda { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }

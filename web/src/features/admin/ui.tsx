@@ -47,7 +47,8 @@ const TONE: Record<string, string> = {
   pending_approval: 'ad-b--amber', published: 'ad-b--dark', needs_review: 'ad-b--amber', open: 'ad-b--wait', done: 'ad-b--light', hidden: 'ad-b--light'
 };
 export function Badge({ s, children }: { s: string; children?: ReactNode }) {
-  return <span className={`ad-b ${TONE[s] ?? ''}`} data-status={s}>{children ?? label(s)}</span>;
+  const text = label(s);
+  return <span className={`ad-b ${TONE[s] ?? ''}`} data-status={s}>{children ?? (text.charAt(0).toUpperCase() + text.slice(1))}</span>;
 }
 
 export function Tabs({ items, current, label: aria = 'Sections' }: { items: Array<[string, string, number?]>; current: string; label?: string }) {

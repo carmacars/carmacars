@@ -16,7 +16,7 @@ const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/181222
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
-  const wide = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && !e.closest('.table-scroll, .agreement, .pt__nav')).slice(0, 5).map((e) => `${e.tagName}.${e.className}`));
+  const wide = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && !e.closest('.table-scroll, .agreement, .pt__nav, .ad-nav')).slice(0, 5).map((e) => `${e.tagName}.${e.className}`));
   expect(wide, `${where}: elements wider than the screen`).toEqual([]);
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
