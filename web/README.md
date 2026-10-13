@@ -179,6 +179,44 @@ production) and `PAYOUT_ENCRYPTION_KEY` (a Worker secret of 32+ characters; neve
 
 `npm run test:unit` runs the Stripe, Google Maps and listing worker tests. `node scripts/gen-backdrop.mjs` rebuilds the photo presets.
 
+## The gaps closed (migration 0033)
+
+Change record: `../docs/changes/0033_gap_close.md`.
+
+| Route | Does |
+| --- | --- |
+| `/account/bookings/[number]#messages` | The booking's messages: what our team wrote (also emailed, `renter_staff_message`) and the renter's replies (a "Renter replied" task for customer service, `staff_renter_replied`) |
+| `/va/scorecard`, `/admin/staff/[id]/scorecard` | The weekly scorecard (own, read-only; any assistant for an Admin) |
+| `/va/reconciliation`, `/va/turo` | Finance: processor payouts against payments; Turo trips entered or imported from CSV |
+| `/va/checks`, `/va/reviews`, `/va/review/[number]` | Fleet: the opening and closing checks; the photo sets side by side with "Ask for a re-shoot" |
+| `/va/bookings/[number]` | Also the late-return panel (Fleet and customer service) and messages for Sales |
+| `/va/renters`, `/va/quotes/new` | Find a renter (logged; a reason to open a record outside the window); a quote from a phone, email or WhatsApp lead |
+| The rail's "Working as" | An assistant who covers more than one function (`staff_profiles.cover_functions`, set by an Admin under Staff) picks the one to work in |
+| `/field/jobs/[id]` | A checklist for every job kind: detail, photo shoot (the listing capture), tracker install and removal, registry run, recovery, other, and re-shoots |
+| `/field/report`, `/field/referrals`, `/field/profile` | The field report; the referral link (`/r/<code>`, kept in a cookie and sent with a request to book), QR code and kickbacks; details and sign-in |
+| `/field/manifest.webmanifest` | Add to Home Screen (icons in `public/field`, `node scripts/gen-field-icons.mjs`) |
+| `/investor/statements/year/[year]` | All of a year's statements as a ZIP (with the summary as CSV; `?format=csv` for the CSV alone) |
+| `POST /api/jobs/statements` | Hourly from the Worker's cron: owner statements on the 10th and investor statements on their date, each PDF stored before its email |
+
+Email links (`../emails/src/links.mjs`) that are sections of a page here redirect to that page (`next.config.ts`, `EMAIL_PATHS`).
+
+## Worker size
+
+The free plan takes a Worker of at most 3 MB compressed. The upload is minified (`"minify": true` in `wrangler.jsonc`) and
+the server-only packages that were compiled into each route layer's chunks are resolved from `node_modules` instead
+(`serverExternalPackages` in `next.config.ts`: pdf-lib, zod, supabase-js and supabase/ssr, jose, aws4fetch, postgres), so
+the bundle holds one copy of each. To measure: `npx opennextjs-cloudflare build`, then
+`npx wrangler deploy --dry-run --outdir /tmp/w` prints `Total Upload: ... / gzip: ...`;
+`.open-next/server-functions/default/handler.mjs.meta.json` (esbuild's metafile) shows what each input contributes.
+
+## Live verification
+
+The `verify` workflow (`scripts/verify-live.mjs`) checks the public pages, headers and nonce, and with `--auth` signs in
+through the live form with one test account per portal (`verify-signin@`, `verify-owner@`, `verify-investor@`,
+`verify-va-cs@`, `verify-field@carmacars.ca`; never an Admin). The accounts are created or reset through the Supabase admin
+API and given their role by `public.server_verify_accounts`, which puts every one on the email suppression list. Each home
+must load without errors and each account must be refused the other portals; the workflow fails otherwise.
+
 ## Layout
 
 ```

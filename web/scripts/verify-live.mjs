@@ -87,48 +87,106 @@ if (doRequest && slug) {
   }
   await ctx.close();
 }
-// --auth: a real sign-in through the live form with a fixed renter test account (verify-signin@carmacars.ca,
-// renter role only, never staff). The account is created or its password reset through the Supabase admin
-// API on each run, so the check needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+// --auth: real sign-ins through the live form with one test account per portal (a renter, an owner, an
+// investor, a customer service assistant, a field staff member; never an Admin). The accounts are created or
+// their passwords reset through the Supabase admin API on each run, any authenticator app left from an earlier
+// run is removed, and public.server_verify_accounts gives each its role and puts its address on the email
+// suppression list (no email is ever sent to them). Each home must load without errors, and each account must
+// be refused the other portals. Needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+const ACCOUNTS = [
+  { role: 'renter', email: 'verify-signin@carmacars.ca', name: 'Sign-in Check', home: '/account', width: 390 },
+  { role: 'owner', email: 'verify-owner@carmacars.ca', name: 'Verify Owner', home: '/owner', width: 1440 },
+  { role: 'investor', email: 'verify-investor@carmacars.ca', name: 'Verify Investor', home: '/investor', width: 390 },
+  { role: 'va_cs', email: 'verify-va-cs@carmacars.ca', name: 'Verify Assistant', home: '/va', width: 1440 },
+  { role: 'field', email: 'verify-field@carmacars.ca', name: 'Verify Field', home: '/field', width: 390 }
+];
+const PORTALS = ['/admin', '/owner', '/investor', '/va', '/field'];
+// RFC 6238, as an authenticator app computes it (only when staff two-step sign-in is switched on)
+async function totp(secret) {
+  const { createHmac } = await import('node:crypto');
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = '';
+  for (const c of secret.replace(/=+$/, '')) bits += A.indexOf(c).toString(2).padStart(5, '0');
+  const key = Buffer.from(bits.match(/.{8}/g).map((x) => parseInt(x, 2)));
+  const ctr = Buffer.alloc(8); ctr.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
+  const h = createHmac('sha1', key).update(ctr).digest(); const o = h[h.length - 1] & 0xf;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
+const noise = (t) => /cdn-cgi\/(rum|challenge)|favicon/.test(t);
 if (process.argv.includes('--auth')) {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const email = 'verify-signin@carmacars.ca';
-  const password = `V${Math.random().toString(36).slice(2)}${Date.now()}!`;
   const h = { apikey: key, Authorization: `Bearer ${key}`, 'content-type': 'application/json' };
-  const steps = [];
+  report.portals = [];
   try {
     const list = await (await fetch(`${url}/auth/v1/admin/users?per_page=1000`, { headers: h })).json();
-    let user = (list.users ?? []).find((u) => u.email === email);
-    if (!user) {
-      user = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { full_name: 'Sign-in Check' } }) })).json();
-      steps.push('created');
-    } else {
-      await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password, email_confirm: true }) });
-      steps.push('password reset');
+    for (const a of ACCOUNTS) {
+      a.password = `V${Math.random().toString(36).slice(2)}${Date.now()}!`;
+      let user = (list.users ?? []).find((u) => u.email === a.email);
+      if (!user) {
+        user = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ email: a.email, password: a.password, email_confirm: true, user_metadata: { full_name: a.name } }) })).json();
+        a.step = 'created';
+      } else {
+        await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password: a.password, email_confirm: true }) });
+        a.step = 'password reset';
+        for (const f of (user.factors ?? [])) await fetch(`${url}/auth/v1/admin/users/${user.id}/factors/${f.id}`, { method: 'DELETE', headers: h });
+      }
+      if (!user?.id) throw new Error(`could not create ${a.email}: ${JSON.stringify(user).slice(0, 200)}`);
+      a.id = user.id;
     }
-    const reg = await fetch(`${url}/rest/v1/rpc/register_account`, { method: 'POST', headers: h, body: JSON.stringify({ p_user: user.id, p_email: email, p_full_name: 'Sign-in Check' }) });
-    steps.push(`register_account ${reg.status}`);
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const page = await ctx.newPage();
-    const errs = [];
-    page.on('pageerror', (e) => errs.push(String(e).slice(0, 300)));
-    await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
-    const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
-    if (await cookie.isVisible().catch(() => false)) await cookie.click();
-    await page.locator('#si-email').fill(email);
-    await page.locator('#si-pass').fill(password);
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await page.waitForURL(/\/account/, { timeout: 30_000 }).catch(() => {});
-    const afterSignIn = page.url();
-    const alert = await page.locator('[role="alert"]').first().textContent().catch(() => null);
-    await page.screenshot({ path: path.join(out, 'auth-after-sign-in.png'), fullPage: true });
-    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
-    const adminUrl = page.url();
-    report.auth = { ok: /\/account/.test(afterSignIn), steps, afterSignIn, alert, adminForRenter: adminUrl, errors: errs };
-    await ctx.close();
+    const reg = await fetch(`${url}/rest/v1/rpc/server_verify_accounts`, { method: 'POST', headers: h,
+      body: JSON.stringify({ p: ACCOUNTS.map((a) => ({ user_id: a.id, email: a.email, role: a.role, name: a.name })) }) });
+    const regBody = await reg.text();
+    report.accounts = { status: reg.status, body: reg.ok ? JSON.parse(regBody).map((x) => `${x.role}:${x.roles?.va ?? ''}${x.roles?.owner ? 'owner' : ''}${x.roles?.investor ? 'investor' : ''}${x.roles?.field ? 'field' : ''}${x.roles?.admin ? 'ADMIN' : ''}`) : regBody.slice(0, 300) };
+    if (!reg.ok) throw new Error(`server_verify_accounts ${reg.status}: ${regBody.slice(0, 300)}`);
+    for (const a of ACCOUNTS) {
+      const r = { role: a.role, home: a.home, steps: [a.step], errors: [], refused: {} };
+      const ctx = await browser.newContext({ viewport: { width: a.width, height: 844 } });
+      const page = await ctx.newPage();
+      page.on('pageerror', (e) => r.errors.push(String(e).slice(0, 300)));
+      page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text())) r.errors.push(m.text().slice(0, 300)); });
+      try {
+        await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
+        const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
+        if (await cookie.isVisible().catch(() => false)) await cookie.click();
+        await page.locator('#si-email').fill(a.email);
+        await page.locator('#si-pass').fill(a.password);
+        await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+        await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 30_000 });
+        if (new URL(page.url()).pathname.startsWith('/two-step/setup')) {
+          // staff two-step sign-in is on: enrol an authenticator for this run, as a person would
+          await page.getByTestId('totp-start').click();
+          const secret = (await page.getByTestId('totp-secret').textContent({ timeout: 15_000 }))?.trim() ?? '';
+          await page.getByTestId('totp-code').fill(await totp(secret));
+          await page.getByTestId('totp-submit').click();
+          await page.waitForURL((u) => !u.pathname.startsWith('/two-step'), { timeout: 30_000 });
+          r.steps.push('two-step enrolled');
+        }
+        await page.waitForURL((u) => u.pathname.startsWith(a.home), { timeout: 30_000 }).catch(() => {});
+        await page.waitForLoadState('networkidle');
+        r.afterSignIn = page.url();
+        r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+        r.broken = /couldn.t load|Application error|Something went wrong/i.test(await page.locator('body').innerText().catch(() => ''));
+        await page.screenshot({ path: path.join(out, `portal-${a.role}.png`), fullPage: true });
+        for (const p of PORTALS.filter((x) => x !== a.home)) {
+          const resp = await page.goto(`${BASE}${p}`, { waitUntil: 'networkidle' });
+          const fin = new URL(page.url()).pathname;
+          // refused: sent to the portal's no-access page (or "not an owner"), never shown the portal's home
+          r.refused[p] = fin !== p && (/no-access|not-an-owner/.test(fin) || fin.startsWith('/sign-in')) ? fin : `SHOWN ${fin} ${resp?.status()}`;
+        }
+        r.ok = new URL(r.afterSignIn).pathname.startsWith(a.home) && !!r.h1 && !r.broken && r.errors.length === 0 && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN'));
+      } catch (e) {
+        r.ok = false; r.error = String(e).slice(0, 500);
+        await page.screenshot({ path: path.join(out, `portal-${a.role}-failed.png`), fullPage: true }).catch(() => {});
+      }
+      report.portals.push(r);
+      await ctx.close();
+    }
+    const renter = report.portals.find((x) => x.role === 'renter');
+    report.auth = { ok: !!renter?.ok, steps: renter?.steps, afterSignIn: renter?.afterSignIn, adminForRenter: renter?.refused?.['/admin'], errors: renter?.errors ?? [] };
   } catch (e) {
-    report.auth = { ok: false, steps, error: String(e).slice(0, 800) };
+    report.auth = { ok: false, error: String(e).slice(0, 800) };
   }
+  report.portals_ok = report.portals.length === ACCOUNTS.length && report.portals.every((x) => x.ok);
+  if (!report.portals_ok) process.exitCode = 1;
 }
 
 await browser.close();
