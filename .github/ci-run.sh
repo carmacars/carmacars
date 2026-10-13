@@ -20,6 +20,11 @@ if [ "$rc" -ne 0 ]; then
     msg="$(printf '%s' "$chunk" | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
     echo "::error title=${label} failed (${part}/3)::${msg}"
   done
+  # Playwright's page snapshot at the failure (what the page showed), first failures only
+  for f in $(find . -path '*test-results*' -name error-context.md 2>/dev/null | head -n 3); do
+    ctx="$(grep -v '^\s*$' "$f" | head -n 60)"
+    echo "::error title=${label} page at failure ($(basename "$(dirname "$f")"))::$(printf '%s' "$ctx" | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
+  done
 fi
 rm -f "$log" "$log.tail"
 exit "$rc"
