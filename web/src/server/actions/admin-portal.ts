@@ -2,8 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { env } from '@/lib/env';
-import { DbError, rpc } from '@/lib/db/repo';
-import type { Json } from '@/lib/db/types';
+import { DbError } from '@/lib/db/repo';
+import { door } from '@/server/door';
 import { auth } from '@/lib/auth';
 import type { ActionResult } from '@/features/forms/schemas';
 import { assertAdmin } from '@/server/admin/data';
@@ -12,7 +12,6 @@ import { adminRead } from '@/server/admin/api';
 // The admin portal's actions (migration 0030). One door for every action: the Admin is checked here
 // (and two-step sign-in when required), then the database checks the Admin again and runs the function
 // of the migration that owns the rule. The database's refusal is shown to the Admin as it is written.
-const SR = { role: 'service_role' as const };
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
 
@@ -42,7 +41,7 @@ function rebuild(paths: string[]) {
 export async function adminAct<T = Record<string, unknown>>(action: string, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
-    const data = (await rpc('admin_do', { p_admin: admin.id, p_action: action, p: p as unknown as Json }, SR)) as unknown as T;
+    const data = await door<T>(admin.id, 'admin_do', action, p);
     rebuild([...(PUBLIC[action] ?? []), ...refresh]);
     return { ok: true, data };
   } catch (e) { return fail(e); }
@@ -52,7 +51,7 @@ export async function adminAct<T = Record<string, unknown>>(action: string, p: R
 export async function adminSaveRow<T = Record<string, unknown>>(table: string, values: Record<string, unknown>, key?: string | null, extra: Record<string, unknown> = {}): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
-    const data = (await rpc('admin_save', { p_admin: admin.id, p_table: table, p: { key: key ?? null, values, ...extra } as unknown as Json }, SR)) as unknown as T;
+    const data = await door<T>(admin.id, 'admin_save', table, { key: key ?? null, values, ...extra });
     // settings and content reach every public page
     if (['site_settings', 'site_content_blocks', 'program_settings', 'fee_defaults', 'deposit_tiers', 'km_allowance_choices', 'vehicle_classes', 'airports', 'coverage_prices', 'fee_types'].includes(table)) revalidatePath('/', 'layout');
     revalidatePath('/admin/settings', 'layout');
@@ -82,8 +81,8 @@ export async function inviteStaff(i: { email: string; full_name: string; role: s
     const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
     const invited = a.invite ? await a.invite(email, i.full_name.trim(), `${base}/update-password`) : { ok: false as const, message: 'Invitations are not available.' };
     if (!invited.ok) return { ok: false, code: 'refused', message: invited.message };
-    await rpc('admin_do', { p_admin: admin.id, p_action: 'staff_add', p: { user_id: invited.user.id, email, full_name: i.full_name.trim(), role: i.role,
-      va_function: i.va_function || null, field_function: i.field_function || null } as unknown as Json }, SR);
+    await door(admin.id, 'admin_do', 'staff_add', { user_id: invited.user.id, email, full_name: i.full_name.trim(), role: i.role,
+      va_function: i.va_function || null, field_function: i.field_function || null });
     revalidatePath('/admin/settings/staff');
     return { ok: true, data: { user_id: invited.user.id } };
   } catch (e) { return fail(e); }

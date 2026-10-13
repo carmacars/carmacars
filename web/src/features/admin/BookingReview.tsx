@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useTra
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
-import { adminAct, adminPreview } from '@/server/actions/admin-portal';
+import { useDoor } from './door';
 import { toLocalInput } from './Act';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
@@ -57,6 +57,8 @@ const Place = ({ leg }: { leg: 'pickup' | 'return' }) => { const { v } = useCont
 ); };
 
 export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: { b: B; insurers: Array<{ id: string; name: string }>; kmChoices: number[]; offerHours: number; editable: boolean }) {
+  const { act: adminAct, preview: adminPreview, kind } = useDoor();
+  const va = kind === 'va';
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
   const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type));
@@ -73,7 +75,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
     message: '', expires_hours: String(offerHours), note: b.notes ?? ''
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [v, setV] = useState(start);
+  const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -123,7 +125,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
       setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available });
     }, 350);
     return () => clearTimeout(t);
-  }, [payload, dirty]);
+  }, [payload, dirty, adminPreview]);
 
   // the car picker: bookable cars with whether each is free for the dates
   useEffect(() => {
@@ -133,7 +135,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
       if (r.ok) setOpts(r.data);
     }, 300);
     return () => clearTimeout(t);
-  }, [v.pickup_at, v.return_at, b.id]);
+  }, [v.pickup_at, v.return_at, b.id, adminPreview]);
 
   const shown = preview?.booking ?? b;
   const lines = shown.lines.filter((l) => l.stage === 'booking' && l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
@@ -150,7 +152,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     setProblem(null);
     const body: Record<string, unknown> = { ...payload, internal_note: v.note };
     if (action === 'send_offer') { body.message = v.message; body.expires_at = expiresAt(); }
-    const r = await adminAct(action, body, [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
+    const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
     if (!r.ok) { setProblem(r.message); return; }
     setDone(action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved.');
     router.refresh();
@@ -179,17 +181,18 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Rates and fees</legend>
-          <F k="daily_rate_cents" l="Daily" money /><F k="weekend_rate_cents" l="Weekend" money />
+          {va && <p className="hint ad-field--wide">Rates, fees, discounts and the Deposit are set by an Admin. Escalate the task to ask for a change.</p>}
+          {!va && <><F k="daily_rate_cents" l="Daily" money /><F k="weekend_rate_cents" l="Weekend" money />
           <F k="weekly_rate_cents" l="Weekly" money /><F k="monthly_rate_cents" l="Monthly" money />
           <F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rates" />
-          <F k="deposit_cents" l="Deposit" money />
+          <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />
-          <F k="overage_cents_per_km" l="Overage per km" money />
+          {!va && <><F k="overage_cents_per_km" l="Overage per km" money />
           <F k="staff_discount_cents" l="Discount" money />
-          <F k="staff_discount_reason" l="Discount reason" />
+          <F k="staff_discount_reason" l="Discount reason" /></>}
           <F k="coverage" l="Coverage price" money hint={coverageLine ? undefined : 'Only when the renter chose our coverage'} />
           <F k="promo_code" l="Promo code" />
-          {feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={lineLabel(l)} money />)}
+          {!va && feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={lineLabel(l)} money />)}
           {(feeLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change" />}
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
@@ -203,7 +206,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
             <F k="insurer_authorized_until" l="Authorized until" type="date" />
             <div className="field ad-field"><label className="check"><input type="checkbox" checked={Boolean(v.dates_provisional)} onChange={(e) => set('dates_provisional')(e.target.checked)} /> <span>Dates are provisional</span></label></div>
           </>}
-          <div className={`field ad-field${changed('blocks_calendar') ? ' ad-diff' : ''}`}><label className="check"><input type="checkbox" checked={Boolean(v.blocks_calendar)} onChange={(e) => set('blocks_calendar')(e.target.checked)} /> <span>Blocks the calendar</span></label></div>
+          {!va && <div className={`field ad-field${changed('blocks_calendar') ? ' ad-diff' : ''}`}><label className="check"><input type="checkbox" checked={Boolean(v.blocks_calendar)} onChange={(e) => set('blocks_calendar')(e.target.checked)} /> <span>Blocks the calendar</span></label></div>}
           {changed('blocks_calendar') && <F k="blocks_reason" l="Reason for the calendar switch" />}
         </fieldset>
         <div className="field ad-field"><label className="label" htmlFor="rv-note">Internal note</label><textarea className="input ad-textarea" id="rv-note" value={String(v.note)} onChange={(e) => set('note')(e.target.value)} /></div>
@@ -230,7 +233,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
               <p className="hint" id="rv-msg-h">{diffs.length ? 'Say what changed from the request and why.' : 'Optional.'}</p></div>
             <div className="field ad-field"><label className="label" htmlFor="rv-exp">Offer open for</label>
               <select className="select" id="rv-exp" value={String(v.expires_hours)} onChange={(e) => set('expires_hours')(e.target.value)}>
-                {[...new Set([6, 12, 24, 48, 72, offerHours])].sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
+                {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             <button className="btn btn--primary" type="submit" disabled={pending} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>
         )}

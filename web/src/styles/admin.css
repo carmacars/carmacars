@@ -155,7 +155,7 @@ a.ad-tile:hover { border-color: var(--black); }
 .cal__item--low { top: 27px; }
 .cal__item.is-confirmed { background: var(--black); color: var(--white); }
 .cal__item.is-on_rent { background: var(--red-600); border-color: var(--red-600); color: var(--white); }
-.cal__item.is-returned { background: var(--grey-500); border-color: var(--grey-500); color: var(--white); }
+.cal__item.is-returned { background: var(--grey-700); border-color: var(--grey-700); color: var(--white); }
 .cal__item.is-closed { background: var(--grey-200); border-color: var(--grey-300); color: var(--text); }
 .cal__item.is-requested { background: repeating-linear-gradient(135deg, var(--grey-200) 0 4px, var(--white) 4px 8px); border: 1px dashed var(--grey-700); color: var(--text); }
 .cal__item.is-offered { background: repeating-linear-gradient(135deg, #f2c94c 0 4px, var(--white) 4px 8px); border-color: #8a5a00; color: var(--text); }
@@ -193,3 +193,4 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-tie { padding: var(--s-3) var(--s-4); font-size: var(--fs-sm); border-left: 4px solid var(--black); background: var(--white); }
 .ad-tie.is-bad { border-left-color: var(--red-600); background: var(--red-50); }
 .ad-mapping { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+.ad-idimg { display: block; max-width: 100%; height: auto; border: 1px solid var(--grey-200); }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter, useSearchParams } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
-import { adminAct, adminPreview } from '@/server/actions/admin-portal';
+import { useDoor } from './door';
 import { toLocalInput } from './Act';
 
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
@@ -47,6 +47,7 @@ const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
 export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { initial: CalData; vehicleId?: string; defaultView?: string }) {
+  const { act: adminAct, preview: adminPreview, base: doorBase } = useDoor();
   const router = useRouter();
   const sp = useSearchParams();
   const [data, setData] = useState(initial);
@@ -77,7 +78,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
     if (r.ok) { setData(r.data); setProblem(null); } else setProblem(r.message);
     const p = new URLSearchParams(sp.toString()); p.set('start', isoDay(f)); p.set('view', v);
     router.replace(`?${p.toString()}`, { scroll: false });
-  }), [view, vehicleId, router, sp]);
+  }), [view, vehicleId, router, sp, adminPreview]);
   const shift = (n: number) => load(new Date(from + n * DAY));
 
   const vehicles = useMemo(() => data.vehicles.filter((v) => {
@@ -202,7 +203,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => (
               <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
-                <div className="cal__name"><Link prefetch={false} href={`/admin/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link><span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
+                <div className="cal__name"><Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link><span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
                 <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
                   {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} />}
@@ -265,6 +266,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
 }
 
 function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; vehicle?: Veh; at?: number }; vehicles: Veh[]; onClose: () => void; onDone: () => void }) {
+  const { act: adminAct, base } = useDoor();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<Array<{ booking_number: string }> | null>(null);
@@ -292,7 +294,7 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
           {e.assignee && <div><dt>Assigned</dt><dd>{e.assignee}</dd></div>}
         </dl>
       )}
-      {e?.type === 'booking' && <Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/bookings/${e.booking_number}`}>Open the booking</Link>}
+      {e?.type === 'booking' && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/bookings/${e.booking_number}`}>Open the booking</Link>}
       {e?.type === 'block' && (
         <div className="stack">
           <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => run('block_end', { block: e.id })}>End now</button>

@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
-import { adminAct, adminPreview, uploadAdminDocument } from '@/server/actions/admin-portal';
+import { uploadAdminDocument } from '@/server/actions/admin-portal';
+import { useDoor } from './door';
 
 // Bulk import of a toll or ticket statement (10-tolls-tickets-damages.md section 3): the file is read
 // in the browser, its columns are mapped once per operator and header row (saved as a profile and
@@ -24,6 +25,7 @@ export function parseCsv(text: string): string[][] {
 }
 
 export function TollImport() {
+  const { act: adminAct, preview: adminPreview, base } = useDoor();
   const router = useRouter();
   const [operator, setOperator] = useState('407 ETR');
   const [kind, setKind] = useState('toll_invoice');
@@ -95,7 +97,7 @@ export function TollImport() {
           <p>{res.imported} imported, {res.duplicates} duplicates, {res.invalid} not imported. Rows total {money(res.rows_total_cents, { cents: true })}{res.difference_cents ? `, ${money(res.difference_cents, { cents: true })} different from the statement total` : ''}.</p>
           {res.matched && <p className="small">Matched: {Object.entries(res.matched).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`).join(', ')}.</p>}
           <ul className="small">{res.results.filter((r) => r.result !== 'imported').map((r) => <li key={r.row_no}>Row {r.row_no}: {r.result}{r.reason ? `, ${r.reason}` : ''}</li>)}</ul>
-          <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/tolls">Open the work queue</Link>
+          <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/tolls`}>Open the work queue</Link>
         </section>
       )}
     </div>
