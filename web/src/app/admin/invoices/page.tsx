@@ -5,6 +5,7 @@ import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus } from '@/features/owner/types';
 import { adminInvoices, requireAdmin } from '@/server/admin/data';
 import { TrackerActions } from '@/features/admin/AdminForms';
+import { Act } from '@/features/admin/Act';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner invoices', path: '/admin/invoices', noindex: true, description: 'Owner invoices.' });
@@ -18,6 +19,8 @@ export default async function AdminInvoices({ searchParams }: { searchParams: Pr
   return (
     <>
       <h1 className="d2">Owner invoices</h1>
+      <section className="pt-card" aria-label="Monthly run"><p className="small">The monthly run issues the invoices for the 15th (normally the scheduled job). Run it by hand for a missed month; an invoice already issued is never issued twice.</p>
+        <Act action="owner_invoices_run" label="Run the monthly invoices" fields={[{ name: 'month', label: 'Month (first day)', type: 'date', required: true, value: new Date().toISOString().slice(0, 8) + '01' }]} refresh={['/admin/invoices']} /></section>
       <section className="pt-card" aria-label="Trackers"><p className="small">When trackers arrive: one Tracker Install invoice for each vehicle waiting for its tracker.</p><TrackerActions ownerId={null} vehicleId={null} label="Issue all tracker invoices" /></section>
       <nav className="row" aria-label="Filter">{FILTERS.map(([k, l]) => <Link key={k} className={`btn btn--sm ${status === k ? 'btn--primary' : 'btn--ghost'}`} href={k ? `/admin/invoices?status=${k}` : '/admin/invoices'} aria-current={status === k ? 'page' : undefined}>{l}</Link>)}</nav>
       {rows.length ? <ul className="ow-rows" data-testid="admin-invoices">{rows.map((i) => { const s = invoiceStatus(i); return (
