@@ -135,7 +135,7 @@ jobs:
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
       - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
-        run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources turnstile dns
+        run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate auth stripe outbox
       - name: Seed (content rows; the sample cars while the site has none)

@@ -5,6 +5,7 @@
 #   scripts/deploy/cloudflare.sh resources   page cache and file storage by what the account offers (R2, KV, D1),
 #                                            the resources they need, and web/wrangler.jsonc and
 #                                            web/open-next.config.ts rewritten to match (CI workspace only)
+#   scripts/deploy/cloudflare.sh subdomain   the account's workers.dev subdomain (Wrangler needs one before a first upload)
 #   scripts/deploy/cloudflare.sh turnstile   the Turnstile widget for the site; exports the keys, or turns
 #                                            Turnstile off (TURNSTILE_PROVIDER=off) when the token cannot
 #   scripts/deploy/cloudflare.sh dns         frees carmacars.ca and www for the Worker's custom domains: only
@@ -93,6 +94,23 @@ resources() {
     export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "${APP_URL:-https://$DOMAIN}/media"
   fi
   notice "Cache and storage: page cache $cache, tag cache $tag, files $storage"
+}
+
+# Wrangler refuses to upload a Worker until the account has a workers.dev subdomain (code 10063), even
+# though this Worker answers only on its custom domains (workers_dev is false in wrangler.jsonc).
+subdomain() {
+  local cur
+  cur=$(cfapi GET "/accounts/$ACC/workers/subdomain" 2>/dev/null | jq -r '.result.subdomain // empty') || cur=""
+  if [ -n "$cur" ]; then log "workers.dev subdomain: $cur"; return; fi
+  local try out
+  for try in carmacars carmacars-ca "carmacars-$(openssl rand -hex 3)"; do
+    if out=$(cfapi PUT "/accounts/$ACC/workers/subdomain" "$(jq -n --arg s "$try" '{subdomain: $s}')" 2>&1); then
+      notice "Workers: account subdomain $try.workers.dev created (needed before the first upload; the site itself is not served there)"
+      return
+    fi
+    log "subdomain $try refused: $(grep -o '"message":"[^"]*"' <<<"$out" | head -1)"
+  done
+  die "The account has no workers.dev subdomain and the token cannot create one: open Workers & Pages once in the Cloudflare dashboard"
 }
 
 turnstile() {
