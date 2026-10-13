@@ -8,6 +8,8 @@
   "main": "custom-worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Minified on upload: the compressed Worker must stay under the free plan's 3 MB (web/README.md, Worker size).
+  "minify": true,
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
   // Served only on the custom domains below, never on workers.dev or preview URLs.

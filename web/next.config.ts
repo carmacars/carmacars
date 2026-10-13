@@ -12,7 +12,10 @@ const config: NextConfig = {
     NEXT_PUBLIC_DATA_BACKEND: process.env.DATA_BACKEND ?? 'local',
     NEXT_PUBLIC_TURNSTILE_PROVIDER: process.env.TURNSTILE_PROVIDER ?? 'fake'
   },
-  serverExternalPackages: ['postgres'],
+  // Server-only packages resolved from node_modules instead of being compiled into every route layer's
+  // chunks: the Worker bundle (OpenNext, then wrangler) then holds one copy of each instead of two or three
+  // (pdf-lib, zod and supabase-js were each bundled per layer; web/README.md, Worker size).
+  serverExternalPackages: ['postgres', 'pdf-lib', 'zod', '@supabase/supabase-js', '@supabase/ssr', 'jose', 'aws4fetch'],
   async headers() {
     const noindex = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
     return [
