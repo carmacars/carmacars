@@ -1,0 +1,39 @@
+/* The field portal (06-field.md section 1): phone first, one column, 56 px targets, the primary button at the
+   bottom within thumb reach, high contrast for outdoors. Centred at 480 px on a desktop. */
+.fd { background: var(--white); min-height: 100vh; }
+.fd__frame { max-width: 30rem; margin: 0 auto; padding: var(--s-4) var(--s-4) 7rem; }
+.fd__top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding-bottom: var(--s-3); border-bottom: 2px solid var(--black); margin-bottom: var(--s-4); }
+.fd .btn { min-height: 3.5rem; }
+.fd .btn--sm { min-height: 3rem; }
+.fd-wide { width: 100%; justify-content: center; }
+.fd-days { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); margin-bottom: var(--s-4); }
+.fd-days a { display: flex; align-items: center; justify-content: center; min-height: 3.5rem; border: 2px solid var(--black); color: var(--black); text-decoration: none; font-weight: 600; }
+.fd-days a[aria-current="page"] { background: var(--black); color: var(--white); }
+.fd-card { border: 2px solid var(--black); padding: var(--s-4); margin-bottom: var(--s-4); display: grid; gap: var(--s-2); }
+.fd-card h2 { margin: 0; }
+.fd-card.is-next { border-width: 4px; }
+.fd-big { font-size: 1.75rem; font-weight: 700; }
+.fd-num { font-size: 2rem; font-weight: 700; min-height: 4rem; letter-spacing: 0.05em; }
+.fd-range { width: 100%; min-height: 3.5rem; }
+.fd-screen { display: grid; gap: var(--s-4); }
+.fd-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--white); border-top: 2px solid var(--black); padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); display: flex; gap: var(--s-3); justify-content: center; z-index: 5; }
+.fd-bar .btn { flex: 1; max-width: 28rem; justify-content: center; }
+.fd-checks, .fd-shots { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.fd-line { display: flex; gap: var(--s-3); align-items: center; padding: var(--s-3); border: 2px solid currentColor; font-weight: 600; }
+.fd-line.is-ok { color: #0b5d1e; }
+.fd-line.is-bad { color: #9b0c16; }
+.fd-shots li { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); }
+.fd-shots li.is-done b::after { content: " \2713"; color: #0b5d1e; }
+.fd-cam { cursor: pointer; flex-shrink: 0; }
+.fd-yesno .row .btn { flex: 1; justify-content: center; }
+.fd-choices, .fd-form { border: 0; padding: 0; margin: 0; display: grid; gap: var(--s-2); }
+.fd-choice { display: flex; align-items: center; gap: var(--s-3); min-height: 3.5rem; padding: 0 var(--s-3); border: 2px solid var(--black); }
+.fd-choice input { width: 1.5rem; height: 1.5rem; }
+.fd-stepper { align-items: center; gap: var(--s-4); }
+.fd-stepper .btn { width: 3.5rem; font-size: 1.5rem; justify-content: center; }
+.fd-car { width: 100%; max-width: 14rem; display: block; margin: 0 auto; touch-action: manipulation; cursor: crosshair; }
+.fd-damage { border: 2px solid #9b0c16; padding: var(--s-3); }
+.fd-stop { background: #9b0c16 !important; border-color: #9b0c16 !important; }
+.fd-stopped h2 { color: #9b0c16; }
+.fd-act { display: grid; gap: var(--s-2); }
+.fd .sig-pad, .fd canvas { width: 100%; touch-action: none; }
