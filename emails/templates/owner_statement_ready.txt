@@ -37,6 +37,8 @@ Totals
 View the full statement:
 https://carmacars.ca/owner/statements/{{statement_number}}
 
+Download the statement (PDF) ({{statement_url}}). The download link works for {{link_expiry}}; the same statement is always in your account.
+
 Deductions are limited to unpaid fees and late fees, costs we paid for you, your share of a refund or chargeback, and amounts you agreed to in writing. If a line looks wrong, reply to this email and tell us which one.
 
 ----------------------------------------

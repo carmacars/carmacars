@@ -16,14 +16,14 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '124/1');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '126/1');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 59::bigint);
-select test.eq('A every email code says what emits it; only the three sign-in service emails are emitted by nobody',
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 60::bigint);
+select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
-  'account_password_reset,account_security_notice,account_sign_in_link');
+  'account_password_reset,account_security_notice');
 select test.eq('A no catalogue text names the numbered company',
   (select count(*) from notification_catalogue where concat(subject, preheader, trigger_text, variables::text) ~ '18122211|operated by'), 0::bigint);
 select test.eq('A priority classes: customer, owner and investor, staff, digests, marketing',
@@ -590,12 +590,21 @@ insert into test.nt_synth values
 insert into test.nt_synth select 'staff_digest_eod_' || r, 'job_run', gen_random_uuid(), jsonb_build_object('digest_date', 'Tue, Feb 4', 'digest_count', '0',
   'digest_summary', 'Nothing is waiting.', 'has_items', false, 'sections', '[]'::jsonb, 'stat_1', '0 new', 'stat_2', '0 open')
   from unnest(array['admin', 'va_finance', 'va_fleet', 'va_cs', 'va_sales']) r;
+-- the two message emails (0033): a staff reply and the renter's answer on the booking
+insert into messages (id, direction, channel, subject, body, renter_id, booking_id, status)
+values (test.id('msg:NT-2:out'), 'outbound', 'portal', 'Your booking NT-2', 'We added a child seat.', test.id('renter:nt_rita'), test.id('booking:NT-2'), 'delivered'),
+       (test.id('msg:NT-2:in'), 'inbound', 'portal', 'Reply about booking NT-2', 'Thank you.', test.id('renter:nt_rita'), test.id('booking:NT-2'), 'received');
+insert into test.nt_synth values
+  ('renter_staff_message', 'message', test.id('msg:NT-2:out'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
+  ('staff_renter_replied', 'message', test.id('msg:NT-2:in'), jsonb_build_object('booking_id', test.id('booking:NT-2'), '_immediate', true));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
 insert into insurer_invoices (id, booking_id, insurer_id, claim_number, period_start, period_end, amount_cents, hst_cents, lines)
 values (test.id('nt_ii'), test.id('booking:NT-3'), test.id('nt_ins'), 'CL-1', date '2031-05-10', date '2031-05-13', 30000, 3900, '[{"label": "Rental", "amount_cents": 30000}]');
 select app.send_insurer_invoice_email(test.id('nt_admin'), test.id('nt_ii'));
+-- the sign-in link email (0029's owner invitation and form resume links)
+select app.send_link_email('nt_link@example.test', 'Nt Link', 'https://carmacars.ca/list-your-car/apply?invite=nt', '7 days', 'nt-link');
 select test.flush();
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
   (select string_agg(distinct code || ':' || array_to_string(missing_variables, ','), '; ') from notification_outbox where missing_variables <> '{}'), null::text);

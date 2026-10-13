@@ -20,6 +20,7 @@ export const PATHS = {
 
   // Renter portal
   booking: '/account/bookings/{{booking_number}}',
+  booking_messages: '/account/bookings/{{booking_number}}#messages',
   booking_offer: '/account/bookings/{{booking_number}}/offer',
   booking_request: '/account/bookings/{{booking_number}}/request',
   booking_agreement: '/account/bookings/{{booking_number}}/agreement',

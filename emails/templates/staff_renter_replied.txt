@@ -1,0 +1,26 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Renter message]
+{{renter_first_name}} replied
+
+A new message on booking {{booking_number}} ({{vehicle_name}}, {{booking_status}}, pickup {{pickup_date}}).
+
+The message
+{{message_excerpt}}
+
+Open the booking:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+Answer from the booking's messages so the reply reaches the renter by email and in their account. The task closes when you reply.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{company_address}}
+https://carmacars.ca/

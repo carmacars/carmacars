@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>124 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>50</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>126 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>51</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>10</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (50)</h2>
+<h2 id="renter">Renter (51)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -319,6 +319,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is not sent automatically: it waits for a staff member to approve it (review_request_decision task, app.decide_review_request). Only an approval sends it, at once; a refusal means it is never sent. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_staff_message.html"><img loading="lazy" src="../shots/renter_staff_message.desktop.png" alt="Screenshot of renter_staff_message"></a><div class="b">
+<div class="code">renter_staff_message</div><div class="sub">A message about your booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.</div>
+<div class="ln"><a href="../dist/renter_staff_message.html">HTML</a><a href="../dist/renter_staff_message.txt">Text</a><a href="../shots/renter_staff_message.desktop.png">Desktop</a><a href="../shots/renter_staff_message.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_vehicle_disabled.html"><img loading="lazy" src="../shots/renter_vehicle_disabled.desktop.png" alt="Screenshot of renter_vehicle_disabled"></a><div class="b">
 <div class="code">renter_vehicle_disabled</div><div class="sub">Your rental has ended and the 2024 Honda Civic Sport will not restart</div>
@@ -684,7 +690,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_listing_ready_for_review.html">HTML</a><a href="../dist/staff_listing_ready_for_review.txt">Text</a><a href="../shots/staff_listing_ready_for_review.desktop.png">Desktop</a><a href="../shots/staff_listing_ready_for_review.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_cs">Staff: VA customer service (9)</h2>
+<h2 id="staff_va_cs">Staff: VA customer service (10)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_booking_request_new.html"><img loading="lazy" src="../shots/staff_booking_request_new.desktop.png" alt="Screenshot of staff_booking_request_new"></a><div class="b">
 <div class="code">staff_booking_request_new</div><div class="sub">New request CC-10482: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
@@ -727,6 +733,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">Booking status changes from pending_payment to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.</div>
 <div class="ln"><a href="../dist/staff_offer_approved_paid.html">HTML</a><a href="../dist/staff_offer_approved_paid.txt">Text</a><a href="../shots/staff_offer_approved_paid.desktop.png">Desktop</a><a href="../shots/staff_offer_approved_paid.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_renter_replied.html"><img loading="lazy" src="../shots/staff_renter_replied.desktop.png" alt="Screenshot of staff_renter_replied"></a><div class="b">
+<div class="code">staff_renter_replied</div><div class="sub">Maya replied about booking CC-10482</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A renter writes in the messages of their booking from their account. A &quot;Renter replied&quot; task opens in the customer service queue (one per booking while it is open). Queued for the next customer service digest; sent immediately instead when the car is out or the pickup is less than 48 hours away.</div>
+<div class="ln"><a href="../dist/staff_renter_replied.html">HTML</a><a href="../dist/staff_renter_replied.txt">Text</a><a href="../shots/staff_renter_replied.desktop.png">Desktop</a><a href="../shots/staff_renter_replied.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_request_waiting.html"><img loading="lazy" src="../shots/staff_request_waiting.desktop.png" alt="Screenshot of staff_request_waiting"></a><div class="b">
 <div class="code">staff_request_waiting</div><div class="sub">Waiting 2 hours 5 minutes: request CC-10482 has no offer</div>

@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 124,
+  "count": 126,
   "emails": [
     {
       "code": "account_password_reset",
@@ -5462,6 +5462,98 @@
       "template_text": "templates/renter_review_request.txt"
     },
     {
+      "code": "renter_staff_message",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "A message about your booking {{booking_number}}",
+      "preheader": "{{staff_name}} at CarmaCars wrote about your {{vehicle_name}} booking.",
+      "sample_subject": "A message about your booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "message_body",
+          "type": "string",
+          "sample": "Thanks for asking about a child seat. We have added one to your booking at no extra charge for this trip. Let us know if you need anything else before pickup."
+        },
+        {
+          "name": "message_subject",
+          "type": "string",
+          "sample": "Your booking CC-10482"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "sample": "Priya"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_staff_message.html",
+      "template_text": "templates/renter_staff_message.txt"
+    },
+    {
       "code": "renter_vehicle_disabled",
       "audience": "renter",
       "category": "transactional",
@@ -7784,6 +7876,12 @@
           "sample": "$0.00"
         },
         {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "7 days",
+          "note": "How long the one-time link stays valid."
+        },
+        {
           "name": "opening_hours",
           "type": "string",
           "sample": "Open 24 hours, every day",
@@ -7839,6 +7937,11 @@
           "name": "statement_number",
           "type": "string",
           "sample": "ST-2026-11-0031"
+        },
+        {
+          "name": "statement_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/d/sample-statement-link"
         },
         {
           "name": "statement_vehicles",
@@ -11601,6 +11704,62 @@
       ],
       "template_html": "templates/staff_offer_approved_paid.html",
       "template_text": "templates/staff_offer_approved_paid.txt"
+    },
+    {
+      "code": "staff_renter_replied",
+      "audience": "staff_va_cs",
+      "category": "transactional",
+      "trigger": "A renter writes in the messages of their booking from their account. A \"Renter replied\" task opens in the customer service queue (one per booking while it is open). Queued for the next customer service digest; sent immediately instead when the car is out or the pickup is less than 48 hours away.",
+      "timing": "Next digest. Immediate if the car is out or pickup is within 48 hours",
+      "digest": true,
+      "digest_slot": "next",
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{renter_first_name}} replied about booking {{booking_number}}",
+      "preheader": "{{message_excerpt}}",
+      "sample_subject": "Maya replied about booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "booking_status",
+          "type": "string",
+          "sample": "confirmed"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "message_excerpt",
+          "type": "string",
+          "sample": "Hi, can I pick up the car at 9:00 instead of 10:00? My flight lands earlier than planned."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "renter_first_name",
+          "type": "string",
+          "sample": "Maya"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_renter_replied.html",
+      "template_text": "templates/staff_renter_replied.txt"
     },
     {
       "code": "staff_request_waiting",

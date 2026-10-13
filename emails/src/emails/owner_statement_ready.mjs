@@ -40,6 +40,7 @@ export default {
       total: ['{{payout_label}}', '{{payout_amount}}'],
     }),
     button('View the full statement', '@owner_statement'),
+    p('[Download the statement (PDF)]({{statement_url}}). The download link works for {{link_expiry}}; the same statement is always in your account.'),
     small('Deductions are limited to unpaid fees and late fees, costs we paid for you, your share of a refund or chargeback, and amounts you agreed to in writing. If a line looks wrong, reply to this email and tell us which one.'),
   ],
   sample: {
@@ -51,5 +52,6 @@ export default {
     ],
     rentals_total: '$4,060.00', kickbacks_deducted: '-$200.00', owner_revenue_total: '$3,860.00', revenue_share_total: '-$1,351.00',
     deductions_total: '-$586.75', kickbacks_earned: '$0.00', has_payout_hst: false, payout_hst: '$0.00', has_balance_forward: false, balance_forward: '$0.00',
+    statement_url: 'https://carmacars.ca/d/sample-statement-link', link_expiry: '7 days',
   },
 };

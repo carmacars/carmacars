@@ -9,7 +9,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 27 migrations (0027: what the website needs); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/migrations/` | 33 migrations (0033: the gaps of the staff portals and documents closed); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
 | `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
@@ -67,6 +67,7 @@ cd emails && node check.mjs
 | `0025_owner_answers.sql` | The owner's answers: swap revenue by segment, expired offers closed and back to staff, 2-hour notice and turnaround, always open, several classes per car, Deposit and kilometre choices, no age or fee caps, additional driver at 25% of the daily rate, coverage sold through CarmaCars, delivery by distance and airports, review requests held on problem bookings, site defaults and reply-to aliases, cookie consent |
 | `0026` to `0031` | Reply-to alignment, the website, renter, owner, admin, staff and investor portals' doors (see `docs/changes/`) |
 | `0032_pipeline_documents.sql` | The listing pipeline's worker support (claims with budgets, results with units, retry, progress), generated documents and their access, signed links for emails, refunds through the payments module, the Deposit preview, the insurer invoice email (`docs/changes/0032_pipeline_documents.md`) |
+| `0033_gap_close.sql` | The gaps of 0031 and 0032: renter messages both ways and their emails, the monthly statement emails (PDF first, 7-day links), the assistant's function switcher and scorecard, Turo trips, daily checks, photo review and re-shoot, the late-return panel, find a renter, Sales quotes, field checklists for every job kind, the field report, referrals and profile, the live verification's accounts (`docs/changes/0033_gap_close.md`) |
 
 ## Test files
 
@@ -88,6 +89,7 @@ cd emails && node check.mjs
 | `14_web_app.sql` | What the website needs (0027): site facts, handover places, server wrappers | 29 |
 | `15_renter_portal.sql` to `18_staff_investor_portals.sql` | The portals' doors (0028 to 0031) | 177 |
 | `19_pipeline_documents.sql` | The listing worker, generated documents and links, refunds, Deposit preview, insurer email (0032) | 69 |
+| `20_gap_close.sql` | The gaps closed by 0033, and every catalogue code emitted by something | 102 |
 
 ## Rules for changes
 
