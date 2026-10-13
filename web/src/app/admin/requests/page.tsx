@@ -1,0 +1,42 @@
+import { pageMeta } from '@/features/seo/meta';
+import { page } from '@/server/admin/api';
+import { Act } from '@/features/admin/Act';
+import { $, ago, Badge, BookingLink, Filters, PageHead, Table, t } from '@/features/admin/ui';
+
+export const dynamic = 'force-dynamic';
+export const metadata = pageMeta({ title: 'Requests', path: '/admin/requests', noindex: true, description: 'Booking requests, oldest first.' });
+
+type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; pickup_at: string; return_at: string; days: number;
+  total_cents: number; waiting_minutes: number; offer_expires_at: string | null; drivers: string[]; flags: string[]; assigned: string | null };
+const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_on_renter', 'Waiting on the renter'], ['pushed_back', 'Pushed back'], ['offer_out', 'Offer out'], ['awaiting_payment', 'Signing and payment'], ['expired', 'Offer expired']];
+
+// The request inbox (03-admin.md section 3): oldest first until each is offered or declined.
+export default async function Requests({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ read }, sp] = await Promise.all([page('/admin/requests'), searchParams]);
+  const all = await read<Req[]>('requests');
+  const state = sp.state ?? '';
+  const rows = all.filter((r) => !state || r.state === state);
+  return (
+    <>
+      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting`} />
+      <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
+      <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting." cols={[
+        { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > 120 ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },
+        { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
+        { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> },
+        { key: 'vehicle', label: 'Car' },
+        { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) },
+        { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
+        { key: 'days', label: 'Days', num: true },
+        { key: 'renter', label: 'Renter', render: (r) => <>{r.renter} <span className="muted small">{r.returning ? 'returning' : 'new'}</span></> },
+        { key: 'drivers', label: 'Drivers', render: (r) => r.drivers.map((x) => x.replace(/_/g, ' ')).join(', ') },
+        { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
+        { key: 'flags', label: 'Flags', className: 'wrap', render: (r) => r.flags.map((f) => <span key={f} className={`ad-flag${['Conflict', 'Blocked renter', 'Under 21'].includes(f) ? ' ad-flag--red' : ''}`}>{f}</span>) },
+        { key: 'assigned', label: 'Assigned' },
+        { key: 'act', label: 'Actions', render: (r) => r.status === 'requested' ? <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
+            fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={['/admin/requests']} />
+          : r.status === 'expired' ? <Act action="reopen_expired" payload={{ booking: r.id }} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={['/admin/requests']} /> : null }
+      ]} />
+    </>
+  );
+}

@@ -36,6 +36,14 @@ export function supabaseAuth(): AuthAdapter {
       const s = await supabaseServer();
       await s.auth.resetPasswordForEmail(email, { redirectTo });
     },
+    async invite(email, fullName, redirectTo) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const { required } = await import('@/lib/env');
+      const admin = createClient(required('NEXT_PUBLIC_SUPABASE_URL'), required('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name: fullName } });
+      if (error || !data.user) return { ok: false, message: error?.message ?? 'We could not invite this person.' };
+      return { ok: true, user: { id: data.user.id, email: data.user.email ?? email } };
+    },
     async updatePassword(password) {
       const s = await supabaseServer();
       const { data, error } = await s.auth.updateUser({ password });

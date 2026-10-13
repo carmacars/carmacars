@@ -12,4 +12,6 @@ export interface AuthAdapter {
   requestPasswordReset(email: string, redirectTo: string): Promise<void>;
   /** With a token from the email (local), or with the session the reset link created (Supabase). */
   updatePassword(password: string, token?: string): Promise<AuthResult>;
+  /** Server only (an Admin inviting staff): creates the account and emails a link to choose a password. */
+  invite?(email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
 }

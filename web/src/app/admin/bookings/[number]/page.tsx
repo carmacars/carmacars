@@ -1,0 +1,130 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { pageMeta } from '@/features/seo/meta';
+import { page } from '@/server/admin/api';
+import { Act } from '@/features/admin/Act';
+import { BookingReview, type B } from '@/features/admin/BookingReview';
+import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
+
+export const dynamic = 'force-dynamic';
+export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
+
+type R = Record<string, unknown>;
+type Detail = B & R & {
+  renter: { id: string; legal_name: string; email: string; mobile: string | null; identity_status: string; is_blocked: boolean; bookings: number } | null;
+  offers: R[]; events: R[]; history: R[]; emails: R[]; payments: R[]; refunds: R[]; deposit: R | null; statements: R[]; documents: R[];
+  change_requests: R[]; extensions: R[]; info_requests: R[]; competing: R[]; tasks: R[]; drivers: R[]; available: boolean; readiness: R | null;
+  request_sent: R; current_offer_version: number | null; offer_expires_at: string | null; insurer_name: string | null; request_note: string | null;
+};
+
+// One booking for every status (03-admin.md section 4): the review-and-adjust screen while it is a
+// request, then money, changes and the full history.
+export default async function Booking({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ number }, sp] = await Promise.all([params, searchParams]);
+  const n = decodeURIComponent(number);
+  const { read, list } = await page(`/admin/bookings/${n}`);
+  const [b, ins, km, settings] = await Promise.all([
+    read<Detail | null>('booking', { number: n }), list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }),
+    list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }), read<{ program: { offer_expiry_hours: number } }>('settings')]);
+  if (!b) notFound();
+  const base = `/admin/bookings/${encodeURIComponent(n)}`;
+  const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status);
+  const tab = sp.tab ?? (arranging ? 'review' : 'overview');
+  const P = { booking: b.id };
+  const refresh = [base, '/admin/requests'];
+  const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
+  const pendingExt = b.extensions.filter((x) => x.status === 'requested');
+  return (
+    <>
+      <PageHead kicker={<><Link className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /> {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
+        {b.status === 'requested' && <Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />}
+        {b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} testId="decline" />}
+        {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw to edit" confirm="The renter's offer is withdrawn and they are told. Edit, then send the next version." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
+        {b.status === 'offered' && <Act action="resend_offer" payload={P} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
+        {b.status === 'offered' && <Act action="approve_offer_by_phone" payload={P} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
+        {b.status === 'expired' && <Act action="reopen_expired" payload={P} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
+        {['confirmed', 'on_rent', 'requested', 'offered', 'pending_payment'].includes(b.status) && <Act action="blocks_calendar" payload={{ ...P, blocks: !b.blocks_calendar }} label={b.blocks_calendar ? 'Stop blocking the calendar' : 'Block the calendar'} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
+        {['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={P} label="Cancel for the renter" variant="danger" fields={[
+          { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
+          { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
+        {['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'carmacars_cancelled', channel: 'email' }} label="Cancel by CarmaCars" variant="danger" fields={[{ name: 'note', label: 'Reason (no vehicle, driver not verifiable, pricing error, other)', type: 'text', required: true }]} refresh={refresh} />}
+        {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'New vehicle id', type: 'text', required: true }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
+        {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
+        {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
+      </PageHead>
+      <Tabs current={`${base}?tab=${tab}`} items={[
+        ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
+        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
+      {tab === 'review' && (
+        <>
+          <div className="ad-cols ad-cols--2">
+            <Card title="The request as sent">
+              <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
+                ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>],
+                ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet']]} />
+            </Card>
+            <Card title="Competing for these dates" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
+              {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
+            </Card>
+          </div>
+          <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={b.status === 'requested'} />
+        </>
+      )}
+      {tab === 'overview' && (
+        <div className="ad-cols ad-cols--2">
+          <Card title="Trip">
+            <Kv rows={[['Car', <Link key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
+              ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
+              ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
+              ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
+          </Card>
+          <Card title="Price">
+            <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
+              <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>
+          </Card>
+          <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
+        </div>
+      )}
+      {tab === 'money' && (
+        <div className="stack">
+          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' }]} /></Card>
+          <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
+            <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
+          </Card>
+          <Card title="Deposit" aside={b.deposit ? <Act action="settle_deposit" payload={P} label="Settle the deposit" fields={[{ name: 'plan', label: 'Plan (apply, hold back, release)', type: 'json', value: { release: true } }]} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
+            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', label(b.deposit.method)], ['Status', label(b.deposit.status)], ['Applied', $(b.deposit.applied_cents)], ['Held back', $(b.deposit.held_back_cents)], ['Released', $(b.deposit.released_cents)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
+          </Card>
+          <Card title="Statements"><Table rows={b.statements} empty="No statements." cols={[{ key: 'statement_number', label: 'Number' }, { key: 'kind', label: 'Kind' }, { key: 'issued_at', label: 'Issued', render: (r) => t(r.issued_at) }, { key: 'charges_cents', label: 'Charges', num: true, render: (r) => $(r.charges_cents) }, { key: 'charged_to_card_cents', label: 'To card', num: true, render: (r) => $(r.charged_to_card_cents) }]} /></Card>
+          <Card title="Offers"><Table rows={b.offers} empty="No offers." cols={[{ key: 'version', label: 'Version' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'expires_at', label: 'Expires', render: (r) => t(r.expires_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }, { key: 'message', label: 'Message', className: 'wrap' }]} /></Card>
+        </div>
+      )}
+      {tab === 'changes' && (
+        <div className="stack">
+          <Card title="Change requests"><Table rows={b.change_requests} empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
+            { key: 'changes', label: 'Changes', className: 'wrap' }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
+            { key: 'act', label: 'Decide', render: (r) => ['requested', 'proposed'].includes(String(r.status)) ? <span className="ad-actions"><Act action="approve_change" payload={{ request: r.id }} label="Approve" variant="primary" refresh={[base]} /><Act action="decline_change" payload={{ request: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /></span> : null }]} /></Card>
+          <Card title="Extensions"><Table rows={b.extensions} empty="No extensions." cols={[{ key: 'seq', label: 'No.' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'new_return_at', label: 'New return', render: (r) => t(r.new_return_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
+            { key: 'act', label: 'Decide', render: (r) => r.status === 'requested' ? <span className="ad-actions"><Act action="approve_extension" payload={{ extension: r.id }} label="Approve" variant="primary" refresh={[base]} /><Act action="decline_extension" payload={{ extension: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text' }]} refresh={[base]} /></span> : null }]} /></Card>
+          <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
+        </div>
+      )}
+      {tab === 'history' && (
+        <div className="ad-cols ad-cols--2">
+          <Card title="Timeline" testId="timeline">
+            <ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.from_status && e.to_status && e.from_status !== e.to_status ? ` ${label(e.from_status)} to ${label(e.to_status)}` : ''}{e.offer_version ? `, offer v${String(e.offer_version)}` : ''}{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol>
+          </Card>
+          <div className="stack">
+            <Card title="Status history"><ol className="ad-timeline">{b.history.map((h, i) => <li key={i}><time>{t(h.at)}</time><span>{label(h.from)} to <b>{label(h.to)}</b> <span className="muted small">{String(h.by ?? '')}</span></span></li>)}</ol></Card>
+            <Card title="Emails sent"><Table rows={b.emails} empty="No emails." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to', label: 'To' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} /></Card>
+          </div>
+        </div>
+      )}
+      {tab === 'documents' && (
+        <div className="ad-cols ad-cols--2">
+          <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) }]} /></Card>
+          <Card title="Documents"><Table rows={b.documents} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
+        </div>
+      )}
+    </>
+  );
+}

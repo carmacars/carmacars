@@ -6756,6 +6756,7 @@ export type Database = {
           delivery_max_cents: number | null;
           delivery_round_cents: number;
           trackers_available: boolean;
+          request_response_target_minutes: number;
         };
         Insert: {
           id?: string;
@@ -6927,6 +6928,7 @@ export type Database = {
           delivery_max_cents?: number | null;
           delivery_round_cents?: number;
           trackers_available?: boolean;
+          request_response_target_minutes?: number;
         };
         Update: {
           id?: string;
@@ -7098,6 +7100,7 @@ export type Database = {
           delivery_max_cents?: number | null;
           delivery_round_cents?: number;
           trackers_available?: boolean;
+          request_response_target_minutes?: number;
         };
         Relationships: [];
       };
@@ -11265,14 +11268,18 @@ export type Database = {
     };
     Functions: {
       admin_approve_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_approve?: boolean }; Returns: Json };
+      admin_do: { Args: { p_admin: string; p_action: string; p?: Json }; Returns: Json };
       admin_gate: { Args: { p_user: string }; Returns: Json };
       admin_issue_tracker_install_invoices: { Args: { p_admin: string; p_owner?: string; p_vehicles?: string[] }; Returns: Json };
       admin_issue_upfront_invoices: { Args: { p_owner: string; p_admin: string; p_vehicles?: string[] }; Returns: Json };
+      admin_list: { Args: { p_admin: string; p_rel: string; p?: Json }; Returns: Json };
       admin_owner_applications: { Args: { p_admin: string }; Returns: Json };
       admin_owner_detail: { Args: { p_admin: string; p_owner: string }; Returns: Json };
       admin_owner_invoices: { Args: { p_admin: string; p_status?: string }; Returns: Json };
+      admin_read: { Args: { p_admin: string; p_what: string; p?: Json }; Returns: Json };
       admin_record_owner_offline_payment: { Args: { p_invoice: string; p_admin: string; p: Json }; Returns: Json };
       admin_record_tracker_installed: { Args: { p_vehicle: string; p_admin: string; p_on?: string }; Returns: undefined };
+      admin_save: { Args: { p_admin: string; p_table: string; p: Json }; Returns: Json };
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
       calc_billable_days: { Args: { p_pickup: string; p_return: string; p_tz?: string }; Returns: number };
       calc_booking_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_eligible: boolean; p_company_share_bps: number; p_kickback_bps?: number }; Returns: { kickback_cents: number; owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };

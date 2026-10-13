@@ -81,6 +81,15 @@ export function localAuth(): AuthAdapter {
       const link = `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}token=${token}`;
       await sql`insert into local_auth.mailbox (to_email, subject, body, link) values (${e}, 'Reset your CarmaCars password', ${'Open this link to choose a new password: ' + link}, ${link})`;
     },
+    async invite(email, _fullName, redirectTo) {
+      const e = email.trim().toLowerCase();
+      const found = await sql`select id from local_auth.users where email = ${e}`;
+      const id = (found[0]?.id as string | undefined) ?? randomUUID();
+      // an unusable password until the invited person chooses one through the emailed link
+      if (!found[0]) await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${e}, ${'invited$' + randomBytes(16).toString('hex')})`;
+      await this.requestPasswordReset(e, redirectTo);
+      return { ok: true, user: { id, email: e } };
+    },
     async updatePassword(password, token) {
       if (!token) return { ok: false, message: 'The reset link has expired. Ask for a new one.' };
       const rows = await sql`
