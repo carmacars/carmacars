@@ -13,6 +13,83 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
+        description: Apply migrations to Supabase and deploy the web app to Cloudflare
+        type: boolean
+        default: false
+      environment:
+        description: Target
+        type: choice
+        options: [production, staging]
+        default: production
+
+# A deploy run never cancels (or is cancelled by) the push run of the same commit.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+jobs:
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+      - name: All migrations and tests
+        run: PATH="/usr/lib/postgresql/16/bin:$PATH" scripts/test.sh
+      - name: Text check
+        run: scripts/check-text.sh
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CARMACARS_LOCAL_DIR: /tmp/cc-local
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - name: Local stack (migrations, local auth, seed)
+        run: |
+          cp .env.example .env.local
+          bash scripts/local-db.sh up
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx tsc --noEmit -p tests/tsconfig.json
+      - name: Types are generated from the schema
+        run: npm run db:types && git diff --exit-code src/lib/db/types.ts
+      - name: Worker build (runs next build)
+        run: ../.github/ci-run.sh "Worker build" npx opennextjs-cloudflare build
+      - name: Browsers
+        run: npx playwright install --with-deps chromium
+      - name: End to end, accessibility
+        run: PLAYWRIGHT_BROWSERS_PATH=0 ../.github/ci-run.sh "End to end" npx playwright test --reporter=line
+      - name: Link check and copy lint
+        run: |
+          (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+          npm run check:links
+          npm run check:copy
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: web/test-results
+
+  deploy:
     if: github.event_name == 'workflow_dispatch' && inputs.deploy
     needs: [database, web]
     runs-on: ubuntu-24.04
