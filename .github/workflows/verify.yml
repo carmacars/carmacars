@@ -1,0 +1,52 @@
+name: verify
+
+# Checks the live site from a browser (web/scripts/verify-live.mjs) and leaves the report and the
+# screenshots in the Supabase project's private storage bucket deploy-reports, under the run id.
+# The summary is also written as annotations. `request` sends one real request to book (as Resend's
+# test inbox delivered@resend.dev); remove it afterwards.
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: Also send one request to book through the form
+        type: boolean
+        default: false
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      PLAYWRIGHT_BROWSERS_PATH: '0'
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Live checks
+        run: |
+          node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} > /dev/null
+          jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", "))' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
+          jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
+          jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
+      - name: Report and screenshots into Supabase Storage (deploy-reports)
+        if: always()
+        run: |
+          set -euo pipefail
+          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$K"
+          S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+          curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
+          for f in "$RUNNER_TEMP"/verify/*; do
+            ct=image/png; case "$f" in *.json) ct=application/json;; esac
+            curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/${{ github.run_id }}/$(basename "$f")" -H "Authorization: Bearer $K" -H "apikey: $K" -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$f"
+          done
+          echo "::notice title=verify::uploaded $(ls "$RUNNER_TEMP"/verify | wc -l) files to deploy-reports/${{ github.run_id }}"

@@ -199,7 +199,7 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
 
 test('admin: rates, site settings, listing review, tolls, statements', async ({ browser }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'desktop flows');
-  test.setTimeout(300_000);
+  test.setTimeout(600_000); // the longest scenario: about 2 minutes locally, near 5 on a 2-CPU CI runner
   const sql = db();
   const a = await mkAdmin(sql, 'flows');
   const ap = await adminCtx(browser, vp(false), a.email, '/admin/vehicles');
