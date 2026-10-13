@@ -25,6 +25,7 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
   return (
     <article className="stack" data-testid="statement">
       <h1 className="d2">Statement for {month}</h1>
+      <p><a className="btn btn--ghost btn--sm" href={`/files/investor_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p>
       <dl className="pt-dl">
         <div><dt>Investor</dt><dd>{s.legal_name}</dd></div><div><dt>Agreement</dt><dd>{s.agreement_number ?? ''}</dd></div>
         <div><dt>Invested Amount at the start of the month</dt><dd>{c(s.opening_invested_cents)}</dd></div>

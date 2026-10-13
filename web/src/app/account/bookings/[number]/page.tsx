@@ -12,6 +12,7 @@ import { InfoReply } from '@/features/portal/InfoReply';
 import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
 import { myBooking } from '@/server/portal/data';
+import { door } from '@/server/door';
 import { signToken } from '@/server/links';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,9 @@ const within = (iso: string, hours: number) => new Date(iso).getTime() - Date.no
 const KIND: Record<string, string> = { rental_agreement: 'Rental agreement', receipt: 'Receipt', renter_statement: 'Statement', condition_report: 'Condition Report', coverage_proof: 'Proof of coverage', id_front: 'Licence, front', id_back: 'Licence, back', face: 'Selfie' };
 
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
-  const { b } = await myBooking((await params).number);
+  const { b, user } = await myBooking((await params).number);
+  // receipts and statements, rendered on request and kept once final (migration 0032)
+  const files = await door<Array<{ kind: string; key: string; title: string; at: string }>>(user.id, 'ops_read', 'files', { for: 'booking', id: b.id }).catch(() => []);
   const [sp, s] = await Promise.all([searchParams, getSettings()]);
   const step = nextStep(b);
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
@@ -90,7 +93,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           <section className="pt-card" aria-labelledby="pt-docs"><h2 className="d4" id="pt-docs">Documents</h2>
             {b.documents.length ? <ul className="pt-list">{b.documents.filter((d) => !d.purged).map((d) => (
               <li key={d.id} className="pt-card__head"><span>{KIND[d.kind] ?? d.title}<span className="xs muted"> · {when(d.created_at, false)}</span></span><a className="link" href={`/account/documents/${d.id}`} data-testid={`doc-${d.kind}`}>Download</a></li>
-            ))}</ul> : <p className="muted small">Your agreement, receipts and statements appear here.</p>}
+            ))}</ul> : files.length ? null : <p className="muted small">Your agreement, receipts and statements appear here.</p>}
+            {files.length > 0 && <ul className="pt-list" data-testid="generated-files">{files.map((f) => (
+              <li key={`${f.kind}:${f.key}`} className="pt-card__head"><span>{f.title}<span className="xs muted"> · {when(f.at, false)}</span></span><a className="link" href={`/files/${f.kind}/${f.key}`} data-testid={`file-${f.kind}`}>Download PDF</a></li>
+            ))}</ul>}
           </section>
         </div>
         <aside className="pt-split__aside stack-lg">

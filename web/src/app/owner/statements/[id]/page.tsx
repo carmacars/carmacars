@@ -30,7 +30,8 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
   return (
     <>
       <Back href="/owner/statements">Statements</Back>
-      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the 15th.</p></header>
+      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the 15th.</p>
+        <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
         <div className="stack-lg">
           {s.vehicles.map((v) => (

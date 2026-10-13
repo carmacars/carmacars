@@ -12,7 +12,8 @@ type Row = { id: string; return_month: string; opening_invested_cents: number; d
 // One row per Return Month (07-investor.md section 2).
 export default async function Statements() {
   const { user } = await requireInvestor('/investor/statements');
-  const rows = await door<Row[]>(user.id, 'investor_read', 'statements');
+  const [rows, home] = await Promise.all([door<Row[]>(user.id, 'investor_read', 'statements'), door<{ investor: { id: string } }>(user.id, 'investor_read', 'home')]);
+  const years = await door<Array<{ key: string; title: string; year: number }>>(user.id, 'ops_read', 'files', { for: 'investor', id: home.investor.id });
   const month = (s: string) => new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${s}T12:00:00Z`));
   return (
     <div className="stack">
@@ -20,9 +21,11 @@ export default async function Statements() {
       {!rows.length ? <p className="pt-empty">No statements yet.</p> : (
         <div className="table-scroll" tabIndex={0} role="region" aria-label="Statements">
           <table className="pt-table" data-testid="statements"><thead><tr><th scope="col">Return Month</th><th scope="col">Invested Amount</th><th scope="col">Days</th><th scope="col" className="num">Return</th><th scope="col">Paid or reinvested</th><th scope="col">Payment Date</th><th scope="col">Status</th></tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.id}><td><Link className="link" href={`/investor/statements/${r.id}`}>{month(r.return_month)}</Link></td><td>{money(r.opening_invested_cents, { cents: true })}</td><td>{r.days_earning} of {r.days_in_month}</td>
+            <tbody>{rows.map((r) => <tr key={r.id}><td><Link className="link" href={`/investor/statements/${r.id}`}>{month(r.return_month)}</Link> <a className="link small" href={`/files/investor_statement/${r.id}`} aria-label={`PDF for ${month(r.return_month)}`}>PDF</a></td><td>{money(r.opening_invested_cents, { cents: true })}</td><td>{r.days_earning} of {r.days_in_month}</td>
               <td className="num">{money(r.return_cents, { cents: true })}</td><td>{r.disposition === 'reinvest' ? 'Reinvested' : 'Paid'}</td><td>{when(`${r.payment_date}T12:00:00Z`, false)}</td><td>{r.status.replace(/_/g, ' ')}</td></tr>)}</tbody></table>
         </div>)}
+      {years.length > 0 && <section className="stack" aria-labelledby="iv-years"><h2 className="d4" id="iv-years">Yearly summaries</h2>
+        <ul className="pt-links" data-testid="yearly">{years.map((y) => <li key={y.key}><a className="link" href={`/files/investor_year/${encodeURIComponent(y.key)}`}>{y.title} (PDF)</a></li>)}</ul></section>}
     </div>
   );
 }

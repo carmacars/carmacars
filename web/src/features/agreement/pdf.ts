@@ -22,6 +22,8 @@ export interface PdfExtras {
   /** The last page of a signed copy: who signed, when, how, from where. */
   record?: { heading: string; lines: string[][] };
   footer: string;
+  /** The CarmaCars wordmark at the top of every page (statements, receipts, invoices). */
+  brand?: boolean;
 }
 
 export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8Array> {
@@ -143,6 +145,12 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   const total = pages.length;
   pages.forEach((p, i) => {
     p.drawText(pdfSafe(`${x.footer}   Page ${i + 1} of ${total}`), { x: M, y: 30, size: 7.5, font: reg, color: GREY });
+    if (x.brand) {
+      const a = 'Carma', b = 'Cars', size = 13;
+      const wa = bold.widthOfTextAtSize(a, size), wb = bold.widthOfTextAtSize(b, size);
+      p.drawText(a, { x: W - M - wa - wb, y: H - 34, size, font: bold, color: INK });
+      p.drawText(b, { x: W - M - wb, y: H - 34, size, font: bold, color: RED });
+    }
   });
   return doc.save({ useObjectStreams: false });
 }
