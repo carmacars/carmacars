@@ -9,7 +9,7 @@ import { publicEnv } from '@/lib/public-env';
 export const FAKE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 
 export function Turnstile({ action }: { action: string }) {
-  if (publicEnv.turnstileMode === 'fake') return <input type="hidden" name="cf-turnstile-response" value={FAKE_TOKEN} />;
+  if (publicEnv.turnstileMode !== 'cloudflare') return <input type="hidden" name="cf-turnstile-response" value={FAKE_TOKEN} />;
   return (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="lazyOnload" />

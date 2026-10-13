@@ -14,8 +14,30 @@ class NonceAdder {
   }
 }
 
+interface PublicObject { body: ReadableStream; httpEtag: string; httpMetadata?: { contentType?: string } }
+interface PublicBucket { get(key: string): Promise<PublicObject | null> }
+
+// The public photo bucket (vehicle photos, site photos, logos) under /media when the site runs on
+// the R2 bindings (STORAGE_PROVIDER=r2-binding, NEXT_PUBLIC_VEHICLE_PHOTOS_URL ending in /media).
+async function media(request: Request, env: Env, path: string): Promise<Response> {
+  const bucket = env.R2_VEHICLE_PUBLIC as PublicBucket | undefined;
+  const key = decodeURIComponent(path.slice('/media/'.length));
+  if (!bucket || !key || key.includes('..') || (request.method !== 'GET' && request.method !== 'HEAD')) return new Response('Not found', { status: 404 });
+  const etag = request.headers.get('if-none-match');
+  const o = await bucket.get(key);
+  if (!o) return new Response('Not found', { status: 404, headers: { 'cache-control': 'public, max-age=60' } });
+  const headers = new Headers({ 'content-type': o.httpMetadata?.contentType ?? 'application/octet-stream', etag: o.httpEtag,
+    'cache-control': 'public, max-age=86400, stale-while-revalidate=604800', ...securityHeaders(),
+    // a file opened directly (an SVG especially) can never run script on this origin
+    'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" });
+  if (etag && etag === o.httpEtag) return new Response(null, { status: 304, headers });
+  return new Response(request.method === 'HEAD' ? null : o.body, { headers });
+}
+
 const worker = {
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+    const path = new URL(request.url).pathname;
+    if (path.startsWith('/media/')) return media(request, env, path);
     const response: Response = await handler.fetch(request, env, ctx);
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);

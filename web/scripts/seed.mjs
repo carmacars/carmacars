@@ -6,6 +6,12 @@
 //   sample   The 20 sample cars of prototype/tools/src/data.mjs with their rates, classes, photos,
 //            listings and the sample bookings that fill their calendars. Local and staging only.
 //
+// `--production` (the CI deploy job, at the owner's instruction until the real fleet is entered):
+// content rows are only added, never overwritten (an admin's edits stay); the 20 sample cars are added
+// only while the site has no listing at all, without sample bookings; the sample addresses are
+// suppressed so no email goes to them. Photos are uploaded to the public bucket by the deploy job
+// (scripts/deploy/cloudflare.sh photos), not copied. Safe to run on every deploy; it never deletes.
+//
 // Every row goes into the real tables, as the superuser, the way an import would. Photos are copied
 // from prototype/assets/photos into public/_local/vehicle-public, which the dev server serves.
 import fs from 'node:fs';
@@ -18,6 +24,7 @@ const ROOT = path.resolve(WEB, '..');
 const PROTO = path.join(ROOT, 'prototype');
 const url = process.env.DATABASE_URL || 'postgresql://postgres@127.0.0.1:54322/carmacars';
 const contentOnly = process.argv.includes('--content-only');
+const production = process.argv.includes('--production');
 const sql = postgres(url, { onnotice: () => {}, max: 1 });
 
 const content = JSON.parse(fs.readFileSync(path.join(WEB, 'scripts/content/site-content.json'), 'utf8'));
@@ -73,6 +80,12 @@ async function seedContent(tx) {
   ];
   let order = 0;
   for (const [key, page, kind, body, data] of blocks) {
+    if (production) {
+      await tx`insert into site_content_blocks (block_key, page, kind, body, data, sort_order)
+               values (${key}, ${page}, ${kind}, ${body}, ${tx.json(data)}, ${order++})
+               on conflict (block_key) do nothing`;
+      continue;
+    }
     await tx`insert into site_content_blocks (block_key, page, kind, body, data, sort_order)
              values (${key}, ${page}, ${kind}, ${body}, ${tx.json(data)}, ${order++})
              on conflict (block_key) do update set page = excluded.page, kind = excluded.kind, body = excluded.body,
@@ -114,6 +127,13 @@ async function seedSample(tx) {
   const shift = (iso) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + shiftDays); return d.toISOString().slice(0, 10); };
   void PROTO_TODAY;
 
+  if (production) {
+    for (const email of ['sample.owner@example.test', 'sample.renter@example.test']) {
+      await tx`insert into email_suppressions (email, scope, reason, detail)
+               select ${email}, 'all', 'manual', 'sample data address (seed)'
+                where not exists (select 1 from email_suppressions where email = ${email} and lifted_at is null)`;
+    }
+  }
   const ownerUser = id('sample-owner-user'); const owner = id('sample-owner'); const renterUser = id('sample-renter-user'); const renter = id('sample-renter');
   await tx`insert into users (id, email, full_name) values (${ownerUser}, 'sample.owner@example.test', 'Sample Owner') on conflict do nothing`;
   await tx`insert into user_roles (user_id, role) values (${ownerUser}, 'owner') on conflict do nothing`;
@@ -174,7 +194,7 @@ async function seedSample(tx) {
                        ${g.alt}, ${g.width}, ${g.height}, ${tx.json([])}, 'done', true, now())`;
     }
     // sample confirmed bookings: they fill the public calendar (with the 2 hour turnaround either side)
-    for (const [a, b] of c.booked) {
+    for (const [a, b] of production ? [] : c.booked) {
       bookingNo++;
       const pickup = `${shift(a)} 10:00`; const ret = `${shift(b)} 10:00`;
       await tx`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, booked_at, pickup_at, return_at,
@@ -205,7 +225,7 @@ try {
     if (already[0].n > 0) return { blocks, sample: 'skipped: cars exist' };
     return { blocks, ...(await seedSample(tx)) };
   });
-  if (!contentOnly) copyPhotos();
+  if (!contentOnly && !production) copyPhotos();
   console.log('seed:', JSON.stringify(result));
 } finally {
   await sql.end();

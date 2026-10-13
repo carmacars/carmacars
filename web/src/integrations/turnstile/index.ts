@@ -7,8 +7,9 @@ import { env } from '@/lib/env';
 export const TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 
 export async function verifyTurnstile(token: string | undefined | null, ip?: string | null): Promise<boolean> {
-  if (!token) return false;
   const e = env();
+  if (e.TURNSTILE_PROVIDER === 'off') return true;
+  if (!token) return false;
   if (e.TURNSTILE_PROVIDER === 'fake') return token === TEST_TOKEN;
   const body = new URLSearchParams({ secret: e.TURNSTILE_SECRET_KEY, response: token });
   if (ip) body.set('remoteip', ip);

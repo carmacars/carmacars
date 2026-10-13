@@ -1,7 +1,8 @@
 {
   // Cloudflare Worker for the CarmaCars site (docs/decisions/0001-zero-fixed-fee-stack.md).
   // Names follow docs/architecture.md section 2. Create the R2 bucket, the D1 database and
-  // the secrets before the first deploy (web/README.md, "Deploy").
+  // the secrets before the first deploy (web/README.md, "Deploy"). The CI deploy job creates the buckets and
+  // the D1 database and puts the database id in place of the zero id at deploy time.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "carmacars-prod",
   "main": "custom-worker.ts",
@@ -15,8 +16,16 @@
     { "pattern": "www.carmacars.ca", "custom_domain": true }
   ],
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-prod" }],
+  // The OpenNext page cache, then the file buckets of docs/architecture.md section 6 (STORAGE_PROVIDER=r2-binding;
+  // the deploy job creates them). Only vehicle-public is served publicly, by the Worker under /media.
   "r2_buckets": [
-    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-prod-opennext-cache" }
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-prod-opennext-cache" },
+    { "binding": "R2_VEHICLE_PUBLIC", "bucket_name": "carmacars-prod-vehicle-public" },
+    { "binding": "R2_VEHICLE_ORIGINALS", "bucket_name": "carmacars-prod-vehicle-originals" },
+    { "binding": "R2_DOCUMENTS", "bucket_name": "carmacars-prod-documents" },
+    { "binding": "R2_IDENTITY", "bucket_name": "carmacars-prod-identity" },
+    { "binding": "R2_CONDITION_PHOTOS", "bucket_name": "carmacars-prod-condition-photos" },
+    { "binding": "R2_AGREEMENTS", "bucket_name": "carmacars-prod-agreements" }
   ],
   "d1_databases": [
     { "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-prod-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }
@@ -34,7 +43,15 @@
       "name": "carmacars-staging",
       "routes": [],
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-staging" }],
-      "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-staging-opennext-cache" }],
+      "r2_buckets": [
+        { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "carmacars-staging-opennext-cache" },
+        { "binding": "R2_VEHICLE_PUBLIC", "bucket_name": "carmacars-staging-vehicle-public" },
+        { "binding": "R2_VEHICLE_ORIGINALS", "bucket_name": "carmacars-staging-vehicle-originals" },
+        { "binding": "R2_DOCUMENTS", "bucket_name": "carmacars-staging-documents" },
+        { "binding": "R2_IDENTITY", "bucket_name": "carmacars-staging-identity" },
+        { "binding": "R2_CONDITION_PHOTOS", "bucket_name": "carmacars-staging-condition-photos" },
+        { "binding": "R2_AGREEMENTS", "bucket_name": "carmacars-staging-agreements" }
+      ],
       "d1_databases": [{ "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-staging-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }],
       "durable_objects": { "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }] },
       "vars": { "APP_ENV": "staging", "DATA_BACKEND": "supabase" }

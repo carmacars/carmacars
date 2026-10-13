@@ -149,7 +149,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     if (!signedIn && password.length < 10) { setErrs({ password: 'Choose a password of at least 10 characters.' }); focusFirstError(); return; }
     setBusy(true);
     const token = new FormData(e.currentTarget).get('cf-turnstile-response');
-    const r = await submitApplication(s, password, typeof token === 'string' ? token : publicEnv.turnstileMode === 'fake' ? FAKE_TOKEN : null);
+    const r = await submitApplication(s, password, typeof token === 'string' ? token : publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
     setBusy(false);
     if (r.ok) { setDone(r.data); requestAnimationFrame(() => top.current?.focus()); return; }
     setProblem(r.message);

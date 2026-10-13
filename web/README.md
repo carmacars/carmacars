@@ -203,16 +203,38 @@ Turnstile). Public ones (`NEXT_PUBLIC_*`) are inlined at build time.
 - Turnstile is checked on the server before every public write (request to book, contact, owner application,
   sign-up, password reset). The database rate-limits requests and leads per address.
 
-## Deploy (once the accounts exist)
+## Deploy
 
-1. Supabase: create `carmacars-staging` and `carmacars-prod` (Canada Central); apply `../supabase/migrations` in order
-   (`supabase db push`); run `node scripts/seed.mjs --content-only` with `DATABASE_URL` set to the project's direct
-   connection. Turn on email confirmation and set the Site URL and redirect URL (`https://carmacars.ca/auth/callback`).
-2. Cloudflare: `wrangler r2 bucket create carmacars-prod-opennext-cache`, `wrangler d1 create carmacars-prod-tag-cache`
-   (put its id in `wrangler.jsonc`), and the same for staging. Create the Turnstile widget for carmacars.ca.
-3. Secrets: `wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (and `TURNSTILE_SECRET_KEY`, `STRIPE_SECRET_KEY`,
-   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `GOOGLE_MAPS_API_KEY`); public values as build-time environment
-   variables in CI (`NEXT_PUBLIC_*`, `DATA_BACKEND=supabase`, `TURNSTILE_PROVIDER=cloudflare`).
-4. `npm run cf:deploy` (staging: `npx opennextjs-cloudflare deploy -- --env staging`). Point carmacars.ca at the Worker.
-5. Regenerate types from the project after each migration (`supabase gen types typescript`), and run the e2e suite
-   against staging with `BASE_URL`.
+Production (https://carmacars.ca) is deployed by the `ci` workflow: Actions > ci > Run workflow, `deploy` = true
+(or `gh api -X POST repos/carmacars/carmacars/actions/workflows/ci.yml/dispatches -f ref=main -f 'inputs[deploy]=true'`).
+After the database and web checks pass, the `deploy` job runs `scripts/deploy/` with only five repository secrets
+(`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`).
+Every step is idempotent; a failing step puts its last output lines into the run's annotations.
+
+1. Secrets: the anon and service role keys from the Management API; `deploy_stripe_secret_key`,
+   `deploy_stripe_publishable_key`, `deploy_resend_api_key`, `deploy_link_signing_key`, `deploy_payout_encryption_key`
+   and `deploy_stripe_webhook_secret` from the project's vault. All are masked in the log.
+2. Cloudflare: R2 buckets `carmacars-prod-{opennext-cache, vehicle-public, vehicle-originals, documents, identity,
+   condition-photos, agreements}`, the D1 tag cache (its id replaces the zero id in `wrangler.jsonc` at deploy time),
+   the Turnstile widget (off, with `TURNSTILE_PROVIDER=off`, when the token cannot manage widgets: the database rate
+   limits still apply), and the DNS for the Worker's custom domains (only A/AAAA/CNAME on carmacars.ca and www).
+3. Supabase: migrations through the Management API query endpoint, each file and its row in
+   `supabase_migrations.schema_migrations` in one transaction, new files only (0001 to 0030 were applied before the
+   runner and are recorded as the baseline). Auth redirect URLs and the invitation email link
+   (`/auth/callback?token_hash=...&type=invite`). The Stripe webhook endpoint `/api/webhooks/stripe` (events below),
+   its signing secret kept in the vault. The `send-outbox` Edge Function (`supabase/functions/send-outbox`, with
+   `emails/src/engine.mjs` copied beside it) and the pg_cron job `carmacars-send-outbox` that calls it every minute
+   through pg_net with the vault's `outbox_job_token` (free plan: about 45,000 calls a month of the 500,000 included).
+4. Seed: `node scripts/seed.mjs --production` (content rows added, never overwritten; the 20 sample cars only while
+   there is no listing, without sample bookings, their addresses suppressed); the stand-in photos into
+   `carmacars-prod-vehicle-public` once.
+5. Build and deploy: public settings in `.env.production` (written by the job), `opennextjs-cloudflare build`, then
+   `opennextjs-cloudflare deploy -- --secrets-file` with the Worker secrets.
+
+Files: `STORAGE_PROVIDER=r2-binding` uses the Worker's R2 bindings (no S3 keys). Private files go through
+`/api/storage` with HMAC-signed, expiring links; the public bucket is served by the Worker under `/media`
+(`NEXT_PUBLIC_VEHICLE_PHOTOS_URL=https://carmacars.ca/media`). Maps use the fake adapter until a Google key exists
+(repository variable `MAPS_PROVIDER=google` and a `GOOGLE_MAPS_API_KEY` Worker secret).
+
+Staging needs its own Supabase project and an environment `staging` with its own secrets (and the repository
+variable `STAGING_READY`) before `environment = staging` will run.

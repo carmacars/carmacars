@@ -13,7 +13,8 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   NEXT_PUBLIC_VEHICLE_PHOTOS_URL: z.string().default('/_local/vehicle-public'),
-  TURNSTILE_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
+  /** off: no widget, no check (only until the Turnstile widget exists; the database rate limits still apply) */
+  TURNSTILE_PROVIDER: z.enum(['cloudflare', 'fake', 'off']).default('fake'),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().default('1x00000000000000000000AA'),
   TURNSTILE_SECRET_KEY: z.string().default('1x0000000000000000000000000000000AA'),
   PAYMENTS_PROVIDER: z.enum(['stripe', 'fake']).default('fake'),
@@ -22,7 +23,8 @@ const schema = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   /** Signs links that act without a session (additional drivers' signing links, upload tickets, local storage links). */
   LINK_SIGNING_KEY: z.string().min(32).optional(),
-  STORAGE_PROVIDER: z.enum(['r2', 'local']).default('local'),
+  /** r2: S3 API with R2_* keys; r2-binding: the Worker's R2 bindings (signed links through /api/storage) */
+  STORAGE_PROVIDER: z.enum(['r2', 'r2-binding', 'local']).default('local'),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
@@ -41,7 +43,7 @@ export function env(): ServerEnv {
   const e = schema.parse(process.env);
   if (e.APP_ENV === 'production') {
     if (e.DATA_BACKEND !== 'supabase') throw new Error('Production runs on Supabase (DATA_BACKEND=supabase).');
-    if (e.TURNSTILE_PROVIDER !== 'cloudflare') throw new Error('Production checks public forms with Cloudflare Turnstile.');
+    if (e.TURNSTILE_PROVIDER === 'fake') throw new Error('Production checks public forms with Cloudflare Turnstile (or has it off), never the fake.');
     if (e.PAYMENTS_PROVIDER !== 'stripe') throw new Error('Production takes payments through Stripe (PAYMENTS_PROVIDER=stripe).');
     if (!e.LINK_SIGNING_KEY) throw new Error('Production needs LINK_SIGNING_KEY.');
   }
