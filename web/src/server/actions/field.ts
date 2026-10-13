@@ -10,7 +10,8 @@ import { door, rolesOf, sessionAal } from '@/server/door';
 // checks the job is theirs and runs the function of 0020 that owns the step.
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
-const ACTIONS = ['acknowledge', 'start', 'save_report', 'complete_handover', 'complete_return', 'block_handover', 'move_start', 'move_end', 'late_damage'] as const;
+const ACTIONS = ['acknowledge', 'start', 'save_report', 'complete_handover', 'complete_return', 'block_handover', 'move_start', 'move_end', 'late_damage',
+  'checklist_save', 'complete_job', 'reshoot_photo', 'report', 'profile_save'] as const;
 
 export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIONS[number], p: Record<string, unknown>): Promise<R<T>> {
   try {

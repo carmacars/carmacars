@@ -24,6 +24,9 @@ export default async function Statements() {
             <tbody>{rows.map((r) => <tr key={r.id}><td><Link className="link" href={`/investor/statements/${r.id}`}>{month(r.return_month)}</Link> <a className="link small" href={`/files/investor_statement/${r.id}`} aria-label={`PDF for ${month(r.return_month)}`}>PDF</a></td><td>{money(r.opening_invested_cents, { cents: true })}</td><td>{r.days_earning} of {r.days_in_month}</td>
               <td className="num">{money(r.return_cents, { cents: true })}</td><td>{r.disposition === 'reinvest' ? 'Reinvested' : 'Paid'}</td><td>{when(`${r.payment_date}T12:00:00Z`, false)}</td><td>{r.status.replace(/_/g, ' ')}</td></tr>)}</tbody></table>
         </div>)}
+      {rows.length > 0 && <section className="stack" aria-labelledby="iv-all"><h2 className="d4" id="iv-all">Download a year</h2>
+        <ul className="pt-links" data-testid="year-downloads">{[...new Set(rows.map((r) => r.return_month.slice(0, 4)))].sort().reverse().map((y) => (
+          <li key={y}><a className="link" href={`/investor/statements/year/${y}`} data-testid={`year-zip-${y}`}>All {y} statements (ZIP)</a> · <a className="link" href={`/investor/statements/year/${y}?format=csv`}>{y} summary table (CSV)</a></li>))}</ul></section>}
       {years.length > 0 && <section className="stack" aria-labelledby="iv-years"><h2 className="d4" id="iv-years">Yearly summaries</h2>
         <ul className="pt-links" data-testid="yearly">{years.map((y) => <li key={y.key}><a className="link" href={`/files/investor_year/${encodeURIComponent(y.key)}`}>{y.title} (PDF)</a></li>)}</ul></section>}
     </div>

@@ -19,7 +19,14 @@ export interface FieldJob {
   baseline_damages: FieldDamage[];
   move: null | { id: string; started_at: string };
   now: string;
+  /** The checklist of a job of any other kind, or a re-shoot (migration 0033). */
+  checklist?: JobChecklistData | null;
 }
+export interface Step { key: string; type: 'tick' | 'rules' | 'choice' | 'text' | 'number' | 'serial' | 'photos' | 'shots' | 'listing' | 'reshoot'; label: string; help?: string; text?: string; required?: boolean; min?: number; stop?: boolean; options?: Array<[string, string]> }
+export interface Answer { v?: string; note?: string; photos?: string[] }
+export interface JobChecklistData { steps: Step[]; answers: Record<string, Answer>; missing: string[];
+  listing: { intake_id: string; state: string; submitted_at: string | null } | null;
+  reshoot: { report_id: string; kind: string; shots: Array<{ seq: number; shot: string; guide: string | null; done: boolean }> } | null }
 export interface FieldList {
   today: FieldCard[]; tomorrow: FieldCard[]; name: string | null;
   moves: Array<{ id: string; vehicle_id: string; vehicle_name: string; purpose: string; started_at: string; from_place: string | null }>;

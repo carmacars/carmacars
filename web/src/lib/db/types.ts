@@ -2956,6 +2956,9 @@ export type Database = {
           auto_created: boolean;
           cancel_reason: string | null;
           created_by: string | null;
+          checklist: Json;
+          reshoot_report_id: string | null;
+          reshoot_shots: string[] | null;
         };
         Insert: {
           id?: string;
@@ -2981,6 +2984,9 @@ export type Database = {
           auto_created?: boolean;
           cancel_reason?: string | null;
           created_by?: string | null;
+          checklist?: Json;
+          reshoot_report_id?: string | null;
+          reshoot_shots?: string[] | null;
         };
         Update: {
           id?: string;
@@ -3006,6 +3012,9 @@ export type Database = {
           auto_created?: boolean;
           cancel_reason?: string | null;
           created_by?: string | null;
+          checklist?: Json;
+          reshoot_report_id?: string | null;
+          reshoot_shots?: string[] | null;
         };
         Relationships: [];
       };
@@ -8184,6 +8193,7 @@ export type Database = {
           dual_approval_threshold_cents: number;
           created_at: string;
           updated_at: string;
+          cover_functions: Database["public"]["Enums"]["va_function"][];
         };
         Insert: {
           user_id: string;
@@ -8199,6 +8209,7 @@ export type Database = {
           dual_approval_threshold_cents?: number;
           created_at?: string;
           updated_at?: string;
+          cover_functions?: Database["public"]["Enums"]["va_function"][];
         };
         Update: {
           user_id?: string;
@@ -8214,6 +8225,7 @@ export type Database = {
           dual_approval_threshold_cents?: number;
           created_at?: string;
           updated_at?: string;
+          cover_functions?: Database["public"]["Enums"]["va_function"][];
         };
         Relationships: [];
       };
@@ -11364,6 +11376,7 @@ export type Database = {
       model_hubs: { Args: never; Returns: Json[] };
       my_booking: { Args: { p_number: string }; Returns: Json };
       my_booking_change_preview: { Args: { p_booking: string; p_changes: Json }; Returns: Json };
+      my_booking_messages: { Args: { p_number: string }; Returns: Json };
       my_booking_readiness: { Args: { p_booking: string }; Returns: Json };
       my_bookings: { Args: never; Returns: Json[] };
       my_cancellation_preview: { Args: { p_booking: string }; Returns: Json };
@@ -11406,6 +11419,7 @@ export type Database = {
       renter_request_extension: { Args: { p_booking: string; p_by: string; p_new_return: string; p_note?: string }; Returns: string };
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
       renter_save_details: { Args: { p_by: string; p_details: Json; p_booking?: string }; Returns: Json };
+      renter_send_message: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
       renter_set_marketing: { Args: { p_by: string; p_opt_in: boolean; p_text?: string; p_version?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
@@ -11440,7 +11454,10 @@ export type Database = {
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
+      server_statement_mail_due: { Args: never; Returns: Json };
+      server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
+      server_verify_accounts: { Args: { p: Json }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };

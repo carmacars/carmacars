@@ -7,6 +7,7 @@ import { DepositSettle } from '@/features/admin/DepositSettle';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { QuickReply } from '@/features/va/QuickReply';
+import { LatePanel, type Late } from '@/features/va/LatePanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/va', noindex: true, description: 'One booking, as the assistant works it.' });
@@ -35,13 +36,17 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const R = [base];
   const [km, replies, staff, messages] = await Promise.all([
     arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(() => ({ rows: [], count: 0 })) : Promise.resolve({ rows: [], count: 0 }),
-    fn === 'cs' && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
+    (fn === 'cs' || fn === 'sales') && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
     fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] }),
     fn === 'cs' && tab === 'messages' ? read<R[]>('messages', { booking: b.id }) : Promise.resolve([] as R[])]);
+  // the late-return panel (05-va.md section 3.4) for Fleet and customer service while the car is out past its time
+  const late = (fn === 'fleet' || fn === 'cs') && b.status === 'on_rent'
+    ? await read<Late | null>('late_panel', { booking: b.id }).catch(() => null) : null;
   const tabs: Array<[string, string, number?]> = [
     ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : []), [`${base}?tab=overview`, 'Overview'],
     ...(fn === 'finance' || fn === 'cs' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
     ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length], [`${base}?tab=messages`, 'Messages']] as Array<[string, string, number?]> : []),
+    ...(fn === 'sales' ? [[`${base}?tab=messages`, 'Messages']] as Array<[string, string]> : []),
     [`${base}?tab=history`, 'History']];
   return (
     <>
@@ -58,6 +63,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
           { name: 'place', label: 'Place', type: 'text', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
       </PageHead>
+      {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
+      {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/va/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
       {tab === 'review' && arranging && (
         <>
@@ -101,7 +108,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'messages' && fn === 'cs' && (
+      {tab === 'messages' && (fn === 'cs' || fn === 'sales') && (
         <div className="ad-cols ad-cols--2">
           <Card title="Messages"><ol className="ad-timeline" data-testid="messages">{messages.map((m) => <li key={String(m.id)}><time>{t(m.occurred_at)}</time><span><b>{m.direction === 'inbound' ? String(m.renter_first_name ?? 'Renter') : String(m.sent_by ?? 'CarmaCars')}</b> {String(m.body ?? m.subject ?? '')}</span></li>)}</ol>{!messages.length && <p className="small muted">No messages on this booking.</p>}</Card>
           <Card title="Reply"><QuickReply booking={b.id} replies={replies.rows} /></Card>

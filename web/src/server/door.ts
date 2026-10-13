@@ -1,4 +1,5 @@
 import 'server-only';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
@@ -11,19 +12,31 @@ import { currentUser } from '@/server/portal/data';
 // checks what each role may read and do.
 const SR = { role: 'service_role' as const };
 export type Call = 'roles' | 'admin_list' | 'admin_read' | 'admin_save' | 'admin_do' | 'va_list' | 'va_read' | 'va_do' | 'field_read' | 'field_do' | 'investor_read' | 'investor_do' | 'ops_read' | 'ops_do';
-export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null }
+export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; va_functions?: Array<'finance' | 'fleet' | 'cs' | 'sales'>; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
   return (await auth()).assurance();
 }
 
+/** The function an assistant who covers several chose to work in (the switcher; migration 0033). The
+ *  database accepts it only if it is one of theirs (app.va_active_fn). */
+export const VA_FN_COOKIE = 'cc-va-fn';
+async function chosenFunction(): Promise<string | null> {
+  try { return (await cookies()).get(VA_FN_COOKIE)?.value ?? null; } catch { return null; }
+}
+
 export async function door<T = Record<string, unknown>>(userId: string, call: Call, name: string | null, p: Record<string, unknown> = {}, aal?: 'aal1' | 'aal2' | null): Promise<T> {
   const level = aal === undefined ? await sessionAal() : aal;
-  return (await rpc('door', { p_user: userId, p_aal: level ?? '', p_call: call, p_name: name ?? '', p: p as unknown as Json }, SR)) as unknown as T;
+  let args = p;
+  if (call.startsWith('va_') && !('_va' in p)) { const fn = await chosenFunction(); if (fn) args = { ...p, _va: fn }; }
+  return (await rpc('door', { p_user: userId, p_aal: level ?? '', p_call: call, p_name: name ?? '', p: args as unknown as Json }, SR)) as unknown as T;
 }
 
 export async function rolesOf(userId: string): Promise<Roles> {
-  return (await rpc('my_roles', { p_user: userId }, SR)) as unknown as Roles;
+  const r = (await rpc('my_roles', { p_user: userId }, SR)) as unknown as Roles;
+  const fn = r.va ? await chosenFunction() : null;
+  if (fn && r.va_functions?.includes(fn as Roles['va'] & string)) r.va = fn as Roles['va'];
+  return r;
 }
 
 /** Where a signed-in user goes when no page was asked for. */

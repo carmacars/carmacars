@@ -1,0 +1,34 @@
+import Link from 'next/link';
+import { pageMeta } from '@/features/seo/meta';
+import { door, requireStaff } from '@/server/door';
+import { auth } from '@/lib/auth';
+import { signOut } from '@/server/actions/auth';
+import { FieldButton } from '@/features/field/FieldButton';
+
+export const dynamic = 'force-dynamic';
+export const metadata = pageMeta({ title: 'Profile', path: '/field/profile', noindex: true, description: 'Your details and sign-in.' });
+
+type P = { name: string; email: string; phone: string | null; field_function: string; started_on: string | null; referral_code: string | null };
+
+// /field/profile (06-field.md section 10): name, phone, password, two-step sign-in, sign out.
+export default async function Profile() {
+  const { user } = await requireStaff('field', '/field/profile');
+  const [p, factors] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => [])]);
+  const twoStep = factors.some((f) => f.verified);
+  return (
+    <div className="stack">
+      <h1 className="d3">Profile</h1>
+      <section className="fd-card" aria-labelledby="me-t"><h2 className="d4" id="me-t">{p.name}</h2>
+        <dl className="pt-dl"><div><dt>Email</dt><dd>{p.email}</dd></div><div><dt>Phone</dt><dd data-testid="profile-phone">{p.phone ?? 'not given'}</dd></div>
+          <div><dt>Work</dt><dd>{p.field_function.replace(/_/g, ' ')}</dd></div>{p.started_on && <div><dt>Since</dt><dd>{p.started_on}</dd></div>}</dl>
+        <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
+      </section>
+      <section className="fd-card" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
+        <p className="small">Two-step sign-in: {twoStep ? 'on, with your authenticator app.' : 'not set up.'}</p>
+        {!twoStep && <Link prefetch={false} className="btn btn--ghost fd-wide" href="/two-step/setup?next=/field/profile">Set up two-step sign-in</Link>}
+        <Link prefetch={false} className="btn btn--ghost fd-wide" href="/reset-password">Change my password</Link>
+        <form action={signOut}><button className="btn btn--ghost fd-wide" type="submit">Sign out</button></form>
+      </section>
+    </div>
+  );
+}

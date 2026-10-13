@@ -7,7 +7,7 @@ const BOOKING_REVIEW = ['booking_request', 'offer_change_requested', 'offer_chan
 const VERIFY = ['verify_renter', 'chase_verification'];
 const CHANGES = ['review_extension', 'booking_change_approval'];
 const MONEY = ['refund_cancellation', 'take_deposit', 'release_deposit', 'settle_holdback', 'price_findings', 'charge_question'];
-const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unacknowledged', 'review_photos', 'vehicle_swap', 'incident', 'breakdown'];
+const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unacknowledged', 'vehicle_swap', 'incident', 'breakdown'];
 
 export function taskHref(t: Task): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
@@ -15,9 +15,13 @@ export function taskHref(t: Task): string {
   if (n && VERIFY.includes(t.task_type)) return `/va/verify/${n}?task=${t.id}`;
   if (n && CHANGES.includes(t.task_type)) return `/va/bookings/${n}?tab=changes&task=${t.id}`;
   if (n && MONEY.includes(t.task_type)) return `/va/bookings/${n}?tab=money&task=${t.id}`;
+  if (n && t.task_type === 'review_photos') return `/va/review/${n}?task=${t.id}`;
+  if (t.task_type === 'renter_message' && n) return `/va/bookings/${n}?tab=messages&task=${t.id}`;
+  if (['opening_checks', 'closing_checks'].includes(t.task_type)) return `/va/checks?kind=${t.task_type === 'closing_checks' ? 'closing' : 'opening'}`;
   if (FLEET.includes(t.task_type)) return n ? `/va/bookings/${n}?task=${t.id}` : `/va/fleet?task=${t.id}`;
   if (t.task_type === 'match_toll') return '/va/tolls';
-  if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'reconcile', 'unmatched_payment', 'fleet_report'].includes(t.task_type)) return '/va/money';
+  if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/va/reconciliation';
+  if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/va/money';
   if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/va/listings';
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/va/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/va/fleet#expiry';

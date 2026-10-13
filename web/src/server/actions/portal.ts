@@ -422,3 +422,16 @@ export async function saveProfile(p: ProfileInput): Promise<R> {
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
+
+// ---------------------------------------------------------------- messages on the booking (migration 0033)
+/** The renter writes in the booking's messages: customer service gets a task and a notice. */
+export async function sendBookingMessage(number: string, body: string): Promise<R> {
+  const t = (body ?? '').trim();
+  if (t.length < 2 || t.length > 4000) return { ok: false, code: 'invalid', message: 'Write your message (up to 4,000 characters).', fieldErrors: { body: 'Write your message.' } };
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_send_message', { p_booking: b.id, p_by: userId, p_body: t }, SR);
+    refresh(number);
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}

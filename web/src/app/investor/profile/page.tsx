@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { door, requireInvestor } from '@/server/door';
 import { Requests } from '@/features/investor/Requests';
 import { money } from '@/lib/format';
+import { auth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile and notices', path: '/investor/profile', noindex: true, description: 'Contact details and notices.' });
@@ -14,7 +15,9 @@ type Home = { investor: { legal_name: string; email: string | null; phone: strin
 // investor may send, two-step sign-in.
 export default async function Profile() {
   const { user } = await requireInvestor('/investor/profile');
-  const [h, docs] = await Promise.all([door<Home>(user.id, 'investor_read', 'home'), door<Array<{ id: string; kind: string; title: string | null; created_at: string }>>(user.id, 'investor_read', 'documents')]);
+  const [h, docs, factors] = await Promise.all([door<Home>(user.id, 'investor_read', 'home'), door<Array<{ id: string; kind: string; title: string | null; created_at: string }>>(user.id, 'investor_read', 'documents'),
+    (await auth()).mfaFactors().catch(() => [])]);
+  const twoStep = factors.some((f) => f.verified);
   const eff = new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${h.election_effective_month}T12:00:00Z`));
   return (
     <div className="stack">
@@ -26,7 +29,9 @@ export default async function Profile() {
       </section>
       <Requests investments={h.investments.map((x) => ({ id: x.id, label: `${money(x.invested_amount_cents, { cents: true })} from ${x.investment_date}` }))} effective={eff} />
       <section className="pt-card" aria-labelledby="dc-t"><h2 className="d4" id="dc-t">Documents</h2>{docs.length ? <ul className="small">{docs.map((d) => <li key={d.id}>{d.title ?? d.kind.replace(/_/g, ' ')}</li>)}</ul> : <p className="small">No documents yet.</p>}</section>
-      <section className="pt-card" aria-labelledby="ts-t"><h2 className="d4" id="ts-t">Two-step sign-in</h2><p className="small">Add an authenticator app for a second step at sign-in.</p><Link className="btn btn--ghost btn--sm" href="/two-step/setup?next=/investor/profile">Set up two-step sign-in</Link></section>
+      <section className="pt-card" aria-labelledby="ts-t" data-testid="two-step-offer"><h2 className="d4" id="ts-t">Two-step sign-in</h2>
+        {twoStep ? <p className="small">On: you sign in with your password and a code from your authenticator app.</p>
+          : <><p className="small">Add an authenticator app for a second step at sign-in. We recommend it for your investment records.</p><Link className="btn btn--ghost btn--sm" href="/two-step/setup?next=/investor/profile">Set up two-step sign-in</Link></>}</section>
     </div>
   );
 }

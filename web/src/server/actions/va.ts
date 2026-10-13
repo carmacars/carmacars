@@ -1,9 +1,12 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { env } from '@/lib/env';
 import { DbError } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
-import { door, rolesOf, sessionAal } from '@/server/door';
+import { door, rolesOf, sessionAal, VA_FN_COOKIE } from '@/server/door';
 
 // The assistants' actions (migration 0031): the same shape as the Admin's (adminAct, adminPreview), through
 // the door with the assistant's id and session. The database checks the function's allow-list and then
@@ -36,4 +39,14 @@ export async function vaPreview<T = Record<string, unknown>>(what: 'booking_prev
     const { user, aal } = await assertVa();
     return { ok: true, data: await door<T>(user.id, 'va_read', what, p, aal) };
   } catch (e) { return fail(e); }
+}
+
+/** The switcher (05-va.md section 1): an assistant who covers more than one function picks the one to work in. */
+export async function switchFunction(fn: string): Promise<void> {
+  const user = await currentUser();
+  if (!user) redirect('/sign-in?next=/va');
+  const roles = await rolesOf(user.id);
+  if (!roles.va_functions?.includes(fn as never)) redirect('/va');
+  (await cookies()).set(VA_FN_COOKIE, fn, { httpOnly: true, sameSite: 'lax', path: '/', secure: env().NEXT_PUBLIC_APP_URL.startsWith('https:'), maxAge: 30 * 86400 });
+  redirect('/va');
 }

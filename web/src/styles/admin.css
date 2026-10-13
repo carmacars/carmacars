@@ -194,3 +194,28 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-tie.is-bad { border-left-color: var(--red-600); background: var(--red-50); }
 .ad-mapping { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
 .ad-idimg { display: block; max-width: 100%; height: auto; border: 1px solid var(--grey-200); }
+
+/* 0033: the function switcher, the photo review side by side, the late-return panel, the daily checks */
+.ad-fn { padding: 0 var(--gutter) var(--s-3); display: grid; gap: var(--s-1); }
+.ad-fn p { margin: 0; }
+.ad-fn__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-1); }
+@media (min-width: 64rem) { .ad-fn { padding-inline: var(--s-4); } }
+.ad-pr { display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+.ad-pr__row { display: grid; gap: var(--s-2); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-2); }
+.ad-pr__row h3 { grid-column: 1 / -1; margin: 0; font-size: var(--fs-sm); }
+.ad-pr__cell { display: grid; gap: var(--s-1); align-content: start; min-width: 0; }
+.ad-pr__cell img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; background: var(--grey-100); cursor: zoom-in; }
+.ad-pr__cell.is-missing { border: 2px dashed var(--red-600); min-height: 6rem; display: grid; place-items: center; color: var(--red-600); font-size: var(--fs-xs); font-weight: 600; }
+.ad-pr__zoom { position: fixed; inset: 0; background: rgb(0 0 0 / 0.86); display: grid; place-items: center; z-index: 60; padding: var(--s-4); border: 0; width: 100%; }
+.ad-pr__zoom img { max-width: 100%; max-height: 90vh; }
+.ad-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.ad-steps li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--s-2); align-items: baseline; font-size: var(--fs-sm); }
+.ad-steps li.is-done { color: var(--text-2); }
+.ad-steps li.is-due b { color: var(--red-600); }
+.ad-check { display: grid; gap: var(--s-3); }
+.ad-check__line { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-3); display: grid; gap: var(--s-2); }
+.ad-check__line.is-problem { border-color: var(--red-600); }
+.ad-check__line p { margin: 0; }
+.ad-check__choice { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.ad-score { font-variant-numeric: tabular-nums; }
+.ad-score--low { color: var(--red-600); font-weight: 700; }

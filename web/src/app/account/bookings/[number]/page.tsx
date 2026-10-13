@@ -9,6 +9,8 @@ import { Back, Dl, PriceBreakdown, StatusBadge, placeText } from '@/features/por
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
 import { CopyLink } from '@/features/portal/CopyLink';
 import { InfoReply } from '@/features/portal/InfoReply';
+import { Messages, type Msg } from '@/features/portal/Messages';
+import { rpc } from '@/lib/db/repo';
 import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
 import { myBooking } from '@/server/portal/data';
@@ -28,7 +30,10 @@ const KIND: Record<string, string> = { rental_agreement: 'Rental agreement', rec
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { b, user } = await myBooking((await params).number);
   // receipts and statements, rendered on request and kept once final (migration 0032)
-  const files = await door<Array<{ kind: string; key: string; title: string; at: string }>>(user.id, 'ops_read', 'files', { for: 'booking', id: b.id }).catch(() => []);
+  const [files, thread] = await Promise.all([
+    door<Array<{ kind: string; key: string; title: string; at: string }>>(user.id, 'ops_read', 'files', { for: 'booking', id: b.id }).catch(() => []),
+    // the booking's messages, read as the signed-in renter (migration 0033)
+    rpc('my_booking_messages', { p_number: b.booking_number }, { role: 'authenticated', userId: user.id }).then((x) => (x ?? []) as unknown as Msg[]).catch(() => [] as Msg[])]);
   const [sp, s] = await Promise.all([searchParams, getSettings()]);
   const step = nextStep(b);
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
@@ -90,6 +95,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
             </section>
           )}
+          <Messages number={b.booking_number} thread={thread} />
           <section className="pt-card" aria-labelledby="pt-docs"><h2 className="d4" id="pt-docs">Documents</h2>
             {b.documents.length ? <ul className="pt-list">{b.documents.filter((d) => !d.purged).map((d) => (
               <li key={d.id} className="pt-card__head"><span>{KIND[d.kind] ?? d.title}<span className="xs muted"> · {when(d.created_at, false)}</span></span><a className="link" href={`/account/documents/${d.id}`} data-testid={`doc-${d.kind}`}>Download</a></li>

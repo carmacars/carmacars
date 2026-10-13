@@ -37,3 +37,14 @@
 .fd-stopped h2 { color: #9b0c16; }
 .fd-act { display: grid; gap: var(--s-2); }
 .fd .sig-pad, .fd canvas { width: 100%; touch-action: none; }
+
+/* 0033: the checklists of the other job kinds, the report, referrals and profile */
+.fd-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.fd-pick--stack { grid-template-columns: minmax(0, 1fr); }
+.fd-pick .btn { min-height: 56px; justify-content: center; }
+.fd-sticky { position: sticky; bottom: var(--s-3); z-index: 2; }
+.fd-nav { display: flex; gap: var(--s-3); flex-wrap: wrap; font-size: var(--fs-sm); font-weight: 600; }
+.fd-nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--text); }
+.fd-nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; text-decoration-color: var(--red-600); }
+.fd-911 { background: var(--red-600); color: var(--white); padding: var(--s-3) var(--s-4); font-weight: 700; font-size: var(--fs-lg); }
+.fd-qr { width: 12rem; height: 12rem; background: var(--white); padding: var(--s-2); border: 1px solid var(--grey-200); }

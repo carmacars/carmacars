@@ -4,6 +4,9 @@ import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { Checklist } from '@/features/field/Checklist';
 import { FieldButton } from '@/features/field/FieldButton';
+import { JobChecklist } from '@/features/field/JobChecklist';
+import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
+import { StartListing } from '@/features/listing/StartListing';
 import type { FieldJob } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 
@@ -21,8 +24,13 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   const j = await door<FieldJob | null>(user.id, 'field_read', 'job', { id }).catch(() => null);
   if (!j) notFound();
   const b = j.booking;
-  const checklist = j.report_kind === 'pickup' || j.report_kind === 'return';
+  const checklist = !j.checklist && (j.report_kind === 'pickup' || j.report_kind === 'return');
   const done = j.job.status === 'done';
+  // a photo shoot (procedure 17): the listing capture of the car, as owners and Fleet use it (migration 0032)
+  const cap = j.job.kind === 'photo_shoot' && j.checklist?.listing && j.job.status === 'in_progress'
+    ? await door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: j.checklist.listing.intake_id }).catch(() => null) : null;
+  const listing = j.job.kind !== 'photo_shoot' ? null : cap ? <ListingCapture initial={cap} refresh={[`/field/jobs/${id}`]} />
+    : j.checklist?.listing?.submitted_at ? <p className="fd-line is-ok">Submitted for listing.</p> : <StartListing vehicleId={j.vehicle.id} label="Start the listing photos" />;
   return (
     <div className="stack">
       <p><Link prefetch={false} className="link" href="/field">My jobs</Link></p>
@@ -42,7 +50,7 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
       {j.job.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" />}
       {j.job.status === 'acknowledged' && <FieldButton action="start" payload={{ job: id }} label="Start" primary testId="start" />}
       {j.job.status === 'in_progress' && checklist && <Checklist j={j} />}
-      {j.job.status === 'in_progress' && !checklist && <p className="pt-note small">This job has no checklist in the app yet: Fleet completes it from the job record.</p>}
+      {j.job.status === 'in_progress' && j.checklist && <JobChecklist j={j} listing={listing} />}
       {done && <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>}
       {done && j.report_kind === 'return' && (
         <section className="fd-card" aria-labelledby="late-t">

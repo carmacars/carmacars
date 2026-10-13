@@ -41,6 +41,11 @@ function rebuild(paths: string[]) {
 export async function adminAct<T = Record<string, unknown>>(action: string, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
+    // an owner statement is emailed with a 7-day link to its PDF: the PDF is rendered and stored first
+    if (action === 'statement_issue' && typeof p.id === 'string') {
+      const { generatedFile } = await import('@/server/files');
+      if (!(await generatedFile('owner_statement', p.id, admin.id))) throw new Error('The statement PDF could not be made.');
+    }
     const data = await door<T>(admin.id, 'admin_do', action, p);
     rebuild([...(PUBLIC[action] ?? []), ...refresh]);
     return { ok: true, data };

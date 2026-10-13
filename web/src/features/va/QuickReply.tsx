@@ -13,7 +13,7 @@ export function QuickReply({ booking, replies }: { booking: string; replies: Arr
   return (
     <form className="ad-form ad-form--narrow" data-testid="quick-reply" onSubmit={(e) => { e.preventDefault(); start(async () => {
       const r = await vaAct('send_message', { booking, body });
-      setMsg(r.ok ? { ok: true, text: 'Sent. The renter sees it in their account.' } : { ok: false, text: r.message });
+      setMsg(r.ok ? { ok: true, text: 'Sent. The renter gets it by email and in their account.' } : { ok: false, text: r.message });
       if (r.ok) { setBody(''); router.refresh(); }
     }); }}>
       <div className="field"><label className="label" htmlFor="qr-pick">Quick reply</label>

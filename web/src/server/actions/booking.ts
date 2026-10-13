@@ -1,4 +1,5 @@
 'use server';
+import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
 import { torontoInstant, torontoMinutesNow, torontoToday } from '@/lib/dates';
@@ -55,6 +56,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const far = (k: string) => k === 'delivery' || k === 'airport';
   const lic = v.licClass === 'other' ? 'OTHER' : v.licClass;
   const user = await (await auth()).currentUser();
+  const cookieRef = (await cookies()).get('cc-ref')?.value?.toUpperCase() ?? null;
 
   const request = {
     request_key: input.requestKey,
@@ -78,6 +80,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       privacy: { accepted: v.agree, version: consent.privacy.version, text: consent.agreeLine(r.minAge) },
       marketing: { opted_in: v.marketing, version: consent.marketing.version, text: consent.marketing.text }
     },
+    // a referral link (/r/<code>: a field staff member's or an owner's) kept for 30 days
+    referred_by_code: (() => { const c = cookieRef; return c && /^[A-Z0-9]{4,12}$/.test(c) ? c : null; })(),
     details: { referrer_name: v.referrer || null, pickup_place_id: v.pickupAddress.placeId || null, return_place_id: returnAddress.placeId || null, source: 'web' }
   };
 

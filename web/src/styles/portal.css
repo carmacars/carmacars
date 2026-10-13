@@ -164,3 +164,9 @@
 .lp__err { word-break: break-word; }
 .lp__flags { margin: var(--s-3) 0 0; padding-left: var(--s-4); }
 .lp-cell { white-space: nowrap; }
+
+/* 0033: the booking's messages */
+.pt-thread { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.pt-thread .pt-msg p { margin: 0; }
+.pt-msg--me { background: var(--white); border: 1px solid var(--grey-200); }
+.pt-msg__body { white-space: pre-wrap; overflow-wrap: anywhere; }

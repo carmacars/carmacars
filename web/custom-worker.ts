@@ -44,13 +44,18 @@ async function workerToken(secret: string): Promise<string> {
 
 const worker = {
   // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every five minutes): the listing pipeline's
-  // sweep, through the app's own protected route so it runs with the app's code and bindings.
+  // sweep and, hourly, the statement emails, through the app's own protected routes so they run with the
+  // app's code and bindings.
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
     if (!secret) return;
     const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
-    const req = new Request(`${base.replace(/\/$/, '')}/api/jobs/listing`, { method: 'POST', headers: { authorization: `Bearer ${await workerToken(secret)}` } });
-    ctx.waitUntil(handler.fetch(req, env, ctx).then((r: Response) => r.text()).catch(() => undefined));
+    const auth = { authorization: `Bearer ${await workerToken(secret)}` };
+    const run = (path: string) => ctx.waitUntil(handler.fetch(new Request(`${base.replace(/\/$/, '')}${path}`, { method: 'POST', headers: auth }), env, ctx)
+      .then((r: Response) => r.text()).catch(() => undefined));
+    run('/api/jobs/listing');
+    // the monthly statement emails (PDF first), once an hour: the first tick of each hour
+    if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
