@@ -209,6 +209,7 @@ function reason(email) {
   if (STAFF(email.audience)) return 'Internal CarmaCars notice. It may contain customer information. Do not forward it.';
   if (email.audience === 'investor') return 'This is a servicing notice for an existing investor. It is not an offer or a solicitation.';
   if (email.audience === 'owner') return 'You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.';
+  if (email.audience === 'insurer') return 'You are receiving this because you are the billing contact for a claim with a replacement rental from CarmaCars.';
   return 'You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.';
 }
 

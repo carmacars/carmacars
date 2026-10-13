@@ -5,7 +5,8 @@
 // (copied next to this file at deploy time as engine.mjs), sends it through Resend and reports back with
 // app.outbox_mark_sent() or app.outbox_mark_failed().
 //
-// Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL.
+// Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL,
+// LINK_SIGNING_KEY (the site's key: the 7-day file links are opened by the site at /d/<token>).
 // SUPABASE_DB_URL is provided by Supabase.
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
@@ -13,6 +14,8 @@ import { render, renderText } from './engine.mjs';
 const TOKEN = Deno.env.get('OUTBOX_JOB_TOKEN') ?? '';
 const RESEND = Deno.env.get('RESEND_API_KEY') ?? '';
 const APP_URL = (Deno.env.get('APP_URL') ?? 'https://carmacars.ca').replace(/\/$/, '');
+const LINK_KEY = Deno.env.get('LINK_SIGNING_KEY') ?? '';
+const LINK_TTL = 7 * 24 * 3600;
 const BATCH = 20;
 
 const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { max: 1, prepare: false, idle_timeout: 20, onnotice: () => {} });
@@ -23,17 +26,32 @@ interface Row {
   template_html: string | null; template_text: string | null;
 }
 
-// The values only a sender can produce (catalogue `sender_supplied`). Signed 7-day file links and
-// sign-in service links are not issued here yet: the email links to the portal page that holds the
-// file (behind sign-in) or to the sign-in pages instead. A value already in the payload always wins.
-function senderValues(r: Row): Record<string, unknown> {
-  const portal = r.code.startsWith('owner_') ? `${APP_URL}/owner` : r.code.startsWith('investor_') ? `${APP_URL}/sign-in` : `${APP_URL}/account`;
-  return {
+// The values only a sender can produce (catalogue `sender_supplied`). A document the email promises is a
+// signed link valid 7 days (app.outbox_file_refs says which record each link opens; the token has the same
+// form as the site's signToken in web/src/server/links.ts, purpose "doc"). Without a record yet, or without
+// the key, the link goes to the portal page behind sign-in. Sign-in service links go to the sign-in pages.
+// A value already in the payload always wins.
+const enc = new TextEncoder();
+const b64url = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function signDoc(k: string, key: string): Promise<string> {
+  const body = b64url(enc.encode(JSON.stringify({ k, key, p: 'doc', exp: Math.floor(Date.now() / 1000) + LINK_TTL })));
+  const hk = await crypto.subtle.importKey('raw', enc.encode(LINK_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return `${APP_URL}/d/${body}.${b64url(new Uint8Array(await crypto.subtle.sign('HMAC', hk, enc.encode(body))))}`;
+}
+
+async function senderValues(r: Row): Promise<Record<string, unknown>> {
+  const portal = r.code.startsWith('owner_') ? `${APP_URL}/owner` : r.code.startsWith('investor_') ? `${APP_URL}/investor/statements` : `${APP_URL}/account`;
+  const out: Record<string, unknown> = {
     link_expiry: '7 days',
     verify_url: `${APP_URL}/sign-in`, sign_in_url: `${APP_URL}/sign-in`, reset_url: `${APP_URL}/reset-password`,
-    signed_agreement_url: portal, receipt_url: portal, statement_url: portal, supporting_document_url: portal,
+    signed_agreement_url: portal, receipt_url: portal, statement_url: portal, supporting_document_url: portal, invoice_url: `${APP_URL}/contact`,
     security_device: 'Not recorded', security_event: 'Account change', security_event_at: 'Recently', security_place: 'Not recorded'
   };
+  if (LINK_KEY) {
+    const [{ refs }] = (await sql`select app.outbox_file_refs(${r.id}::uuid) as refs`) as unknown as [{ refs: Record<string, { k: string; key: string }> }];
+    for (const [name, ref] of Object.entries(refs ?? {})) out[name] = await signDoc(ref.k, ref.key);
+  }
+  return out;
 }
 
 const fromHeader = (a: string | null) => {
@@ -44,7 +62,7 @@ const fromHeader = (a: string | null) => {
 async function sendOne(r: Row): Promise<'sent' | 'failed'> {
   try {
     if (!r.template_html || !r.template_text) throw Object.assign(new Error('The catalogue has no template for ' + r.code), { permanent: true });
-    const values = { ...senderValues(r), ...r.payload };
+    const values = { ...(await senderValues(r)), ...r.payload };
     let html: string, text: string;
     try {
       html = render(r.template_html, values);

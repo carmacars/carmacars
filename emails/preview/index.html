@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>123 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>50</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>124 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>50</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>9</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (50)</h2>
 <div class="grid">
@@ -787,6 +787,15 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Scheduled digest for field staff: every day at 18:00 Toronto time, one email to each field staff member who has at least one job assigned for the next day (pickup handovers, returns, tracker installs, details, photo shoots). Skipped for a person with no jobs. Jobs assigned or changed after it is sent go out at once with staff_field_job_assigned or staff_field_job_changed.</div>
 <div class="ln"><a href="../dist/staff_field_jobs_tomorrow.html">HTML</a><a href="../dist/staff_field_jobs_tomorrow.txt">Text</a><a href="../shots/staff_field_jobs_tomorrow.desktop.png">Desktop</a><a href="../shots/staff_field_jobs_tomorrow.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="insurer">Insurer (billing contact) (1)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/insurer_invoice.html"><img loading="lazy" src="../shots/insurer_invoice.desktop.png" alt="Screenshot of insurer_invoice"></a><div class="b">
+<div class="code">insurer_invoice</div><div class="sub">Invoice INS-1004 for Maya Chen: $339.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An insurer invoice is sent from the admin portal (Send by email): the invoice for a replacement rental billed to an insurer, with a 7-day link to the PDF. Sending again sends a new email.</div>
+<div class="ln"><a href="../dist/insurer_invoice.html">HTML</a><a href="../dist/insurer_invoice.txt">Text</a><a href="../shots/insurer_invoice.desktop.png">Desktop</a><a href="../shots/insurer_invoice.phone.png">Phone</a></div>
 </div></div>
 </div>
 </main></body></html>

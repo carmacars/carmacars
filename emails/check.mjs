@@ -44,7 +44,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
 // 2. Required catalogue fields.
 {
   const p = [];
-  const AUD = ['renter', 'owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field'];
+  const AUD = ['renter', 'owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field', 'insurer'];
   for (const e of cat.emails) {
     for (const k of ['code', 'audience', 'trigger', 'category', 'subject', 'preheader', 'variables', 'from']) if (e[k] === undefined || e[k] === '') p.push(`${e.code}: missing ${k}`);
     if (typeof e.digest !== 'boolean') p.push(`${e.code}: digest is not true or false`);

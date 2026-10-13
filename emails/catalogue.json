@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 123,
+  "count": 124,
   "emails": [
     {
       "code": "account_password_reset",
@@ -12388,6 +12388,142 @@
       ],
       "template_html": "templates/staff_field_jobs_tomorrow.html",
       "template_text": "templates/staff_field_jobs_tomorrow.txt"
+    },
+    {
+      "code": "insurer_invoice",
+      "audience": "insurer",
+      "category": "transactional",
+      "trigger": "An insurer invoice is sent from the admin portal (Send by email): the invoice for a replacement rental billed to an insurer, with a 7-day link to the PDF. Sending again sends a new email.",
+      "timing": "When Finance or an Admin sends the invoice",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Invoice {{invoice_number}} for {{renter_name}}: {{invoice_total}}",
+      "preheader": "Rental of a {{vehicle_name}}, {{period}}. Claim {{claim_number}}.",
+      "sample_subject": "Invoice INS-1004 for Maya Chen: $339.00",
+      "variables": [
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-2026-77812"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Clara",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "insurer_name",
+          "type": "string",
+          "sample": "Northbridge Mutual"
+        },
+        {
+          "name": "invoice_amount",
+          "type": "string",
+          "sample": "$300.00"
+        },
+        {
+          "name": "invoice_hst",
+          "type": "string",
+          "sample": "$39.00"
+        },
+        {
+          "name": "invoice_lines",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Rental, 3 days at $100.00",
+              "amount": "$300.00"
+            }
+          ],
+          "fields": [
+            "label",
+            "amount"
+          ]
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INS-1004"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$339.00"
+        },
+        {
+          "name": "invoice_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/d/sample-invoice-link"
+        },
+        {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "7 days",
+          "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "period",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026 to Mon, Oct 26, 2026"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Chen"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/insurer_invoice.html",
+      "template_text": "templates/insurer_invoice.txt"
     }
   ]
 }

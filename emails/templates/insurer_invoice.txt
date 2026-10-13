@@ -1,0 +1,47 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Invoice]
+Invoice {{invoice_number}}
+
+Hello {{first_name}}. Here is our invoice to {{insurer_name}} for the replacement rental below.
+
+Total due: {{invoice_total}}
+Including HST. Please quote the invoice number with your payment.
+
+Invoice: {{invoice_number}}
+Claim number: {{claim_number}}
+Renter: {{renter_name}}
+Vehicle: {{vehicle_name}}
+Rental period: {{period}}
+
+Charges
+------------------------
+
+{{#each invoice_lines}}
+  Item: {{label}} | Amount: {{amount}}
+{{/each}}
+
+  Amount before HST: {{invoice_amount}}
+  HST: {{invoice_hst}}
+  Total due: {{invoice_total}}
+
+Download the invoice (PDF):
+{{invoice_url}}
+
+The download link works for {{link_expiry}}. To pay by bank transfer or ask about a line, reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you are the billing contact for a claim with a replacement rental from CarmaCars.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{company_address}}
+https://carmacars.ca/
+Instagram: {{instagram_url}}
+TikTok: {{tiktok_url}}
