@@ -9,7 +9,7 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 public/_local/
-test-results/
+/test-results/
 playwright-report/
-reports/
+/reports/
 .local-storage/
