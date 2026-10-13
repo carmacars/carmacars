@@ -10,6 +10,10 @@ set +e
 rc=${PIPESTATUS[0]}
 if [ "$rc" -ne 0 ]; then
   sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r//g' "$log" | grep -v '^\s*$' | tail -n 90 > "$log.tail"
+  first="$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -m 12 -iE -A2 'error|failed|exception' | head -n 30)"
+  if [ -n "$first" ]; then
+    echo "::error title=${label} first errors::$(printf '%s' "$first" | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
+  fi
   for part in 1 2 3; do
     chunk="$(sed -n "$(( (part - 1) * 30 + 1 )),$(( part * 30 ))p" "$log.tail")"
     [ -n "$chunk" ] || continue

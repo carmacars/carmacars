@@ -16,6 +16,10 @@ on:
         description: Apply migrations to Supabase and deploy the web app to Cloudflare
         type: boolean
         default: false
+      checks:
+        description: Run the database and web checks first (turn off only to re-run a deploy of a commit whose push run passed)
+        type: boolean
+        default: true
       environment:
         description: Target
         type: choice
@@ -29,6 +33,7 @@ concurrency:
 
 jobs:
   database:
+    if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +47,7 @@ jobs:
         run: scripts/check-text.sh
 
   web:
+    if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -49,6 +55,8 @@ jobs:
     env:
       CARMACARS_LOCAL_DIR: /tmp/cc-local
       NEXT_TELEMETRY_DISABLED: '1'
+      # browsers inside node_modules, for the install step and the test step alike
+      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -76,7 +84,7 @@ jobs:
       - name: Browsers
         run: npx playwright install --with-deps chromium
       - name: End to end, accessibility
-        run: PLAYWRIGHT_BROWSERS_PATH=0 ../.github/ci-run.sh "End to end" npx playwright test --reporter=line
+        run: ../.github/ci-run.sh "End to end" npx playwright test
       - name: Link check and copy lint
         run: |
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
@@ -90,7 +98,10 @@ jobs:
           path: web/test-results
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch' && inputs.deploy
+      && needs.database.result != 'failure' && needs.web.result != 'failure'
+      && (inputs.checks == false || (needs.database.result == 'success' && needs.web.result == 'success'))
     needs: [database, web]
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
