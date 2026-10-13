@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '123/1');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '124/1');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -591,6 +591,11 @@ insert into test.nt_synth select 'staff_digest_eod_' || r, 'job_run', gen_random
   'digest_summary', 'Nothing is waiting.', 'has_items', false, 'sections', '[]'::jsonb, 'stat_1', '0 new', 'stat_2', '0 open')
   from unnest(array['admin', 'va_finance', 'va_fleet', 'va_cs', 'va_sales']) r;
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
+-- the insurer invoice email (0032), sent from the admin portal
+insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
+insert into insurer_invoices (id, booking_id, insurer_id, claim_number, period_start, period_end, amount_cents, hst_cents, lines)
+values (test.id('nt_ii'), test.id('booking:NT-3'), test.id('nt_ins'), 'CL-1', date '2031-05-10', date '2031-05-13', 30000, 3900, '[{"label": "Rental", "amount_cents": 30000}]');
+select app.send_insurer_invoice_email(test.id('nt_admin'), test.id('nt_ii'));
 select test.flush();
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
   (select string_agg(distinct code || ':' || array_to_string(missing_variables, ','), '; ') from notification_outbox where missing_variables <> '{}'), null::text);
@@ -601,7 +606,7 @@ select test.eq('G every wired email code has been built at least once in these t
   null::text);
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),
-  'link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url,verify_url');
+  'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url,verify_url');
 select test.eq('G no payload names the numbered company', (select count(*) from notification_outbox where payload::text ~ '18122211|operated by'), 0::bigint);
 select test.eq('G the mailing address and phone in the emails come from the site settings',
   (select string_agg(distinct (payload ->> 'company_address') || ' / ' || coalesce(payload ->> 'support_phone', '647-555-0100'), ', ') from notification_outbox

@@ -65,6 +65,8 @@ cd emails && node check.mjs
 | `0023_notification_wiring.sql` | The full merge payload, the triggers that emit events from the tables of 0019 to 0022, the reminder and daily notification jobs |
 | `0024_gap_fixes.sql` | Schedules for the remaining SQL jobs, timed listing publishing, the email for a charge line added by hand, one flow for changing a confirmed booking (calendar and change requests), a fixed order in the owner portal |
 | `0025_owner_answers.sql` | The owner's answers: swap revenue by segment, expired offers closed and back to staff, 2-hour notice and turnaround, always open, several classes per car, Deposit and kilometre choices, no age or fee caps, additional driver at 25% of the daily rate, coverage sold through CarmaCars, delivery by distance and airports, review requests held on problem bookings, site defaults and reply-to aliases, cookie consent |
+| `0026` to `0031` | Reply-to alignment, the website, renter, owner, admin, staff and investor portals' doors (see `docs/changes/`) |
+| `0032_pipeline_documents.sql` | The listing pipeline's worker support (claims with budgets, results with units, retry, progress), generated documents and their access, signed links for emails, refunds through the payments module, the Deposit preview, the insurer invoice email (`docs/changes/0032_pipeline_documents.md`) |
 
 ## Test files
 
@@ -84,6 +86,8 @@ cd emails && node check.mjs
 | `12_end_to_end.sql` | The newer flows end to end with the duplicate check across emitters, and the jobs of 0024 | 40 |
 | `13_owner_answers.sql` | The owner's answers (0025), one block per decision | 104 |
 | `14_web_app.sql` | What the website needs (0027): site facts, handover places, server wrappers | 29 |
+| `15_renter_portal.sql` to `18_staff_investor_portals.sql` | The portals' doors (0028 to 0031) | 177 |
+| `19_pipeline_documents.sql` | The listing worker, generated documents and links, refunds, Deposit preview, insurer email (0032) | 69 |
 
 ## Rules for changes
 
