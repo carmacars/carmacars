@@ -22,7 +22,7 @@ const html = await r0.text();
 const nonce = /'nonce-([^']+)'/.exec(report.headers['content-security-policy'] ?? '')?.[1];
 const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
 report.nonce = { inPolicy: Boolean(nonce), scripts: scripts.length, withNonce: scripts.filter((s) => nonce && s.includes(`nonce="${nonce}"`)).length };
-const slug = /href="\/cars\/([a-z0-9-]+)"/.exec(await (await fetch(BASE + '/cars')).text())?.[1] ?? null;
+const slug = process.env.SLUG || (/\/cars\/([a-z0-9]+(?:-[a-z0-9]+)+)/.exec(await (await fetch(BASE + '/cars')).text())?.[1] ?? null);
 if (slug) PAGES.splice(2, 0, `/cars/${slug}`);
 for (const p of PAGES) {
   const t = Date.now();

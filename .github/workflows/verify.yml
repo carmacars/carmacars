@@ -11,6 +11,10 @@ on:
         description: Also send one request to book through the form
         type: boolean
         default: false
+      slug:
+        description: Car to open and request (default the first on /cars)
+        type: string
+        default: ''
 
 jobs:
   live:
@@ -19,6 +23,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       PLAYWRIGHT_BROWSERS_PATH: '0'
+      SLUG: ${{ inputs.slug }}
     defaults:
       run:
         working-directory: web
