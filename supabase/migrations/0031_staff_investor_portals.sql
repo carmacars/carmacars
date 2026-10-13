@@ -89,6 +89,7 @@ declare
   v_staff boolean;
 begin
   if p_user is null then raise exception 'Sign in first' using errcode = '42501'; end if;
+  p_aal := nullif(btrim(p_aal), '');
   if p_aal is not null and p_aal not in ('aal1', 'aal2') then raise exception 'Unknown assurance level %', p_aal using errcode = '22023'; end if;
   perform set_config('request.jwt.claim.sub', p_user::text, true);
   perform set_config('request.jwt.claim.aal', coalesce(p_aal, ''), true);
@@ -144,8 +145,8 @@ declare
     when 'fleet' then array['tasks', 'bookings', 'field_jobs', 'vehicles', 'vehicle_calendar_blocks', 'listing_intakes', 'vehicle_listings', 'condition_reports',
                             'incidents', 'rate_cards', 'quick_replies', 'staff_directory', 'turo_trips']
     when 'cs' then array['tasks', 'bookings', 'booking_change_requests', 'booking_extensions', 'booking_info_requests', 'messages', 'leads', 'reviews',
-                         'listing_intakes', 'vehicle_listings', 'vehicles', 'quick_replies', 'staff_directory', 'field_jobs', 'booking_offers']
-    when 'sales' then array['tasks', 'bookings', 'booking_offers', 'leads', 'quick_replies', 'vehicles']
+                         'listing_intakes', 'vehicle_listings', 'vehicles', 'quick_replies', 'staff_directory', 'field_jobs', 'booking_offers', 'km_allowance_choices']
+    when 'sales' then array['tasks', 'bookings', 'booking_offers', 'leads', 'quick_replies', 'vehicles', 'km_allowance_choices', 'staff_directory']
   end;
 begin
   if not (p_rel = any (v_allowed)) then
@@ -272,7 +273,7 @@ begin
     perform app.va_delegate(p_user);
     v := app.admin_read(p_user, 'vehicle', p_);
     -- owner terms and money stay with the Admin
-    return v - 'schedule' - 'fee_history' - 'owner_terms' - 'revenue_share';
+    return v - 'schedule' - 'terms' - 'owner' - 'fee_overrides' - 'fee_types' - 'bookings' - 'coverage_prices' - 'rate_history' - 'transitions';
   when 'finance_board' then
     if v_fn <> 'finance' then raise exception 'Not permitted' using errcode = '42501'; end if;
     return jsonb_build_object(

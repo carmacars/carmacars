@@ -21,7 +21,7 @@ export async function requireAdmin(next = '/admin'): Promise<{ user: SessionUser
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   const gate = await adminGate(user);
   if (!gate.admin) redirect('/admin/no-access');
-  if (gate.two_step_required && (await (await auth()).assurance()) !== 'aal2') redirect('/admin/two-step');
+  if (gate.two_step_required && (await (await auth()).assurance()) !== 'aal2') redirect(`/two-step?next=${encodeURIComponent(next)}`);
   return { user, gate };
 }
 

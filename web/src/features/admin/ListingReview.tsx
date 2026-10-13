@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
-import { adminAct } from '@/server/actions/admin-portal';
+import { useDoor } from './door';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy draft (edit in place), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
@@ -14,6 +14,7 @@ export type L = { id: string; vehicle_id: string; state: string; reason: string 
   photos: Photo[]; jobs: Array<Record<string, unknown>>; problems: { copy: string[] | null; photos: string[] | null; specs: string[] | null; missing_shots: string[] | null } };
 
 export function ListingReview({ l }: { l: L }) {
+  const { act: adminAct } = useDoor();
   const router = useRouter();
   const src = l.draft?.headline ? l.draft : l.listing;
   const [c, setC] = useState({ headline: src?.headline ?? '', description: src?.description ?? '', features: (src?.features ?? []).join('\n'), faq: (src?.faq ?? []).map((f) => `${f.question} | ${f.answer}`).join('\n'), seo_title: src?.seo_title ?? '', seo_description: src?.seo_description ?? '' });

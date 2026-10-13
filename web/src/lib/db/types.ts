@@ -6757,6 +6757,7 @@ export type Database = {
           delivery_round_cents: number;
           trackers_available: boolean;
           request_response_target_minutes: number;
+          staff_blocked_terms: string[];
         };
         Insert: {
           id?: string;
@@ -6929,6 +6930,7 @@ export type Database = {
           delivery_round_cents?: number;
           trackers_available?: boolean;
           request_response_target_minutes?: number;
+          staff_blocked_terms?: string[];
         };
         Update: {
           id?: string;
@@ -7101,6 +7103,7 @@ export type Database = {
           delivery_round_cents?: number;
           trackers_available?: boolean;
           request_response_target_minutes?: number;
+          staff_blocked_terms?: string[];
         };
         Relationships: [];
       };
@@ -11312,6 +11315,7 @@ export type Database = {
       car_page: { Args: { p_slug: string }; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
       delivery_origin: { Args: never; Returns: Json };
+      door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
       driver_signing: { Args: { p_signer: string }; Returns: Json };
       effective_fee: { Args: { p_fee: string; p_vehicle: string; p_on?: string }; Returns: { amount_cents: number; cap_cents: number; percent_bps: number; source: string }[] };
@@ -11334,6 +11338,7 @@ export type Database = {
       my_notifications: { Args: { p_limit?: number; p_unread_only?: boolean }; Returns: Json[] };
       my_profile: { Args: never; Returns: Json };
       my_promo_code_problem: { Args: { p_code: string; p_booking: string }; Returns: string };
+      my_roles: { Args: { p_user: string }; Returns: Json };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
       owner_give_exit_notice: { Args: { p_by: string; p_vehicle: string; p?: Json }; Returns: Json };
       owner_id_for: { Args: { p_by: string }; Returns: string };

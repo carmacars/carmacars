@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminAct, adminSaveRow } from '@/server/actions/admin-portal';
+import { adminSaveRow } from '@/server/actions/admin-portal';
+import { useDoor } from './door';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -97,6 +98,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   action: string; payload?: Record<string, unknown>; fields?: Field[]; label: string; confirm?: string; variant?: 'primary' | 'ghost' | 'quiet' | 'danger';
   title?: string; go?: string; done?: string; refresh?: string[]; nest?: string; testId?: string; disabled?: boolean; inline?: boolean; submitLabel?: string;
 }) {
+  const { act: adminAct } = useDoor();
   const router = useRouter();
   const idp = useId().replace(/:/g, '');
   const [pending, start] = useTransition();
