@@ -20,7 +20,7 @@ export default async function OwnerSign() {
     return (
       <>
         <Back href="/owner">Owner portal</Back>
-        <div className="pt-empty"><h1 className="d3">Nothing to sign</h1><p className="muted">{home.vehicles.some((v) => v.onboarding_status === 'intake') ? 'We are preparing the terms for your vehicles. We email you when your agreements are ready.' : 'Your signed agreements are in Documents.'}</p><Link className="btn btn--primary" href="/owner/documents">Documents</Link></div>
+        <div className="pt-empty"><h1 className="d3">Nothing to sign</h1><p className="muted">{home.vehicles.some((v) => v.onboarding_status === 'intake') ? 'We are preparing the terms for your vehicles. We email you when your agreements are ready.' : 'Your signed agreements are in Documents.'}</p><Link prefetch={false} className="btn btn--primary" href="/owner/documents">Documents</Link></div>
       </>
     );
   }

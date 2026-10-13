@@ -60,7 +60,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
               <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} button="Sign and continue to payment" />
-              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars when you pay. <Link className="link" href="/privacy">Privacy</Link></p>
+              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars when you pay. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>
         </div>

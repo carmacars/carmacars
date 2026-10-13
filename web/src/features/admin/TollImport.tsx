@@ -95,7 +95,7 @@ export function TollImport() {
           <p>{res.imported} imported, {res.duplicates} duplicates, {res.invalid} not imported. Rows total {money(res.rows_total_cents, { cents: true })}{res.difference_cents ? `, ${money(res.difference_cents, { cents: true })} different from the statement total` : ''}.</p>
           {res.matched && <p className="small">Matched: {Object.entries(res.matched).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`).join(', ')}.</p>}
           <ul className="small">{res.results.filter((r) => r.result !== 'imported').map((r) => <li key={r.row_no}>Row {r.row_no}: {r.result}{r.reason ? `, ${r.reason}` : ''}</li>)}</ul>
-          <Link className="btn btn--primary btn--sm" href="/admin/tolls">Open the work queue</Link>
+          <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/tolls">Open the work queue</Link>
         </section>
       )}
     </div>

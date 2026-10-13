@@ -21,14 +21,14 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
     <>
       <PageHead title="Vehicles" kicker={`${rows.length} of ${all.length}`}>
         <Search action="/admin/vehicles" value={sp.q} placeholder="Plate, model, owner" />
-        <Link className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Filters base="/admin/vehicles" name="status" value={sp.status ?? ''} options={[['', 'All'], ...statuses.map((x) => [x, x.replace(/_/g, ' ')] as [string, string])]} sp={sp} />
       <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
       <Table<V> testId="vehicles" caption="Vehicles" rows={rows} empty="No vehicles yet." cols={[
         { key: 'fleet_number', label: 'No.' },
-        { key: 'name', label: 'Vehicle', render: (v) => <Link className="link" href={`/admin/vehicles/${v.id}`}>{v.name}</Link> },
+        { key: 'name', label: 'Vehicle', render: (v) => <Link prefetch={false} className="link" href={`/admin/vehicles/${v.id}`}>{v.name}</Link> },
         { key: 'plate', label: 'Plate' }, { key: 'class', label: 'Class' }, { key: 'owner_name', label: 'Owner' },
         { key: 'management_mode', label: 'Mode', render: (v) => v.management_mode.replace(/_/g, ' ') },
         { key: 'status', label: 'Status', render: (v) => <Badge s={v.status} /> },

@@ -51,7 +51,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       <div className="pt-split">
         <div className="stack-lg">
           {step.href && step.href !== bookingPath(b.booking_number) && (
-            <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>
+            <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link prefetch={false} className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>
           )}
           {openQ.length > 0 && (
             <section className="pt-card pt-card--next" id="questions" aria-labelledby="pt-q"><h2 className="d4" id="pt-q">A question from our team</h2>
@@ -59,7 +59,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             </section>
           )}
           <section className="pt-card" aria-labelledby="pt-prog"><h2 className="d4" id="pt-prog">Progress</h2>
-            <ol className="pt-steps">{progress(b).map((p) => <li key={p.label} className={p.done ? 'is-done' : ''}>{p.href && !p.done ? <Link className="link" href={p.href}>{p.label}</Link> : p.label}<span className="vh">{p.done ? ', done' : ', to do'}</span></li>)}</ol>
+            <ol className="pt-steps">{progress(b).map((p) => <li key={p.label} className={p.done ? 'is-done' : ''}>{p.href && !p.done ? <Link prefetch={false} className="link" href={p.href}>{p.label}</Link> : p.label}<span className="vh">{p.done ? ', done' : ', to do'}</span></li>)}</ol>
           </section>
           <section className="pt-card" aria-labelledby="pt-trip"><h2 className="d4" id="pt-trip">{pickupSoon ? 'Pickup details' : 'Trip'}</h2>
             <Dl rows={[
@@ -84,7 +84,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           {(b.change_requests.length > 0 || b.extensions.length > 0) && (
             <section className="pt-card" aria-labelledby="pt-changes"><h2 className="d4" id="pt-changes">Changes and extensions</h2>
               {b.change_requests.map((c) => <div key={c.id} className="pt-msg"><p><b>Date change:</b> {c.status}{c.decline_reason ? `. ${c.decline_reason}` : ''}</p><ChangeRequestActions number={b.booking_number} id={c.id} status={c.status} /></div>)}
-              {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
+              {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
             </section>
           )}
           <section className="pt-card" aria-labelledby="pt-docs"><h2 className="d4" id="pt-docs">Documents</h2>
@@ -100,12 +100,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           </section>
           <section className="pt-card" aria-labelledby="pt-act"><h2 className="d4" id="pt-act">Need something else?</h2>
             <div className="pt-actions">
-              {b.status === 'offered' && <Link className="btn btn--primary" href={bookingPath(b.booking_number, 'offer')}>Review the offer</Link>}
-              {b.status === 'pending_payment' && <Link className="btn btn--primary" href={bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign')}>{b.agreement?.renter_signed_at ? 'Pay now' : 'Sign the agreement'}</Link>}
-              {['confirmed', 'pending_payment'].includes(b.status) && <Link className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>Licence and coverage</Link>}
-              {b.status === 'confirmed' && <Link className="btn btn--ghost" href={bookingPath(b.booking_number, 'change')}>Ask to change dates</Link>}
-              {b.status === 'confirmed' && <Link className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
-              {(b.status === 'on_rent' || b.status === 'confirmed') && <Link className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}
+              {b.status === 'offered' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'offer')}>Review the offer</Link>}
+              {b.status === 'pending_payment' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign')}>{b.agreement?.renter_signed_at ? 'Pay now' : 'Sign the agreement'}</Link>}
+              {['confirmed', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>Licence and coverage</Link>}
+              {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'change')}>Ask to change dates</Link>}
+              {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
+              {(b.status === 'on_rent' || b.status === 'confirmed') && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}
               {['requested', 'pending_payment'].includes(b.status) && <Withdraw number={b.booking_number} />}
               {phone && <a className="btn btn--quiet" href={`tel:${s.phone ?? phone}`}>Call us {phone}</a>}
             </div>

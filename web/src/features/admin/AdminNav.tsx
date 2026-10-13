@@ -38,7 +38,7 @@ export function AdminNav({ counts }: { counts: Record<string, number> }) {
         <div key={group} style={{ display: 'contents' }}>
           <h2>{group}</h2>
           <ul>{links.map(([href, text]) => (
-            <li key={href} style={{ display: 'contents' }}><Link href={href} aria-current={active(href) ? 'page' : undefined}>{text}{counts[href] ? <span className="pt__count">{counts[href]}</span> : null}</Link></li>
+            <li key={href} style={{ display: 'contents' }}><Link prefetch={false} href={href} aria-current={active(href) ? 'page' : undefined}>{text}{counts[href] ? <span className="pt__count">{counts[href]}</span> : null}</Link></li>
           ))}</ul>
         </div>
       ))}

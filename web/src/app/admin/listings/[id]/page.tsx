@@ -17,7 +17,7 @@ export default async function Listing({ params }: { params: Promise<{ id: string
   if (!l) notFound();
   return (
     <>
-      <PageHead kicker={<><Link className="link" href="/admin/listings">Listings</Link> · <Link className="link" href={`/admin/vehicles/${l.vehicle_id}`}>{l.vehicle.plate}</Link></>} title={<>{l.vehicle.name} <Badge s={l.state} /></>}>
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/listings">Listings</Link> · <Link prefetch={false} className="link" href={`/admin/vehicles/${l.vehicle_id}`}>{l.vehicle.plate}</Link></>} title={<>{l.vehicle.name} <Badge s={l.state} /></>}>
         {['failed'].includes(l.state) && <Act action="listing_retry" payload={{ intake: l.id }} label="Retry" />}
         {l.listing?.status === 'published' && <Act action="listing_unlist" payload={{ vehicle: l.vehicle_id }} label="Unlist" variant="danger" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
       </PageHead>

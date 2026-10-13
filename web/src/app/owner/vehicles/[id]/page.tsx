@@ -43,13 +43,13 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <li key={b.booking_id}><span>{b.booking_number}{b.booking_type === 'owner' ? ' · Your booking' : ''}</span><span className="ow-amount">{money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
               : <p className="muted small">No bookings yet.</p>}
-            <p><Link className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
+            <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>
           <section className="pt-card" aria-labelledby="ow-inv"><h2 className="d4" id="ow-inv">Invoices</h2><InvoiceRows items={home.invoices.filter((i) => i.vehicle_id === id)} /></section>
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="ow-terms"><h2 className="d4" id="ow-terms">Terms</h2>
-            <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set'], ...(home.trackers_available ? [['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : '']] as Array<[string, string]> : []), ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : ''], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
+            <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set'], ...(home.trackers_available ? [['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : '']] as Array<[string, string]> : []), ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : ''], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link prefetch={false} key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
             {!home.trackers_available && home.tracker_pending.includes(id) && <p className="small muted">{TRACKER_LATER}</p>}
           </section>
           <section className="pt-card" aria-labelledby="ow-exit"><h2 className="d4" id="ow-exit">Leaving</h2>

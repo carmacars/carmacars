@@ -37,7 +37,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
               <h2 className="d3" id="ow-paid">{sp.paid ? 'Thank you. Payment received.' : 'Paid'}</h2>
               <p>{money(i.total_cents, { cents: true })} paid{i.paid_at ? ` on ${day(i.paid_at)}` : ''}{paid ? ` by ${PAY_METHOD_LABEL[paid.method] ?? paid.method}${paid.card_last4 ? ` ending ${paid.card_last4}` : ''}${paid.reference ? `, reference ${paid.reference}` : ''}` : ''}. A receipt is on its way to {i.owner_email ?? 'your email'}.</p>
               {i.kind === 'upfront' && <p className="small muted">Your first and last month&apos;s Insurance Fee are now held for this vehicle. The first pays the month it is enrolled; the last pays the month it leaves.</p>}
-              <p><Link className="btn btn--ghost" href="/owner">Back to the owner portal</Link></p>
+              <p><Link prefetch={false} className="btn btn--ghost" href="/owner">Back to the owner portal</Link></p>
             </section>
           ) : pending ? (
             <section className="ow-status ow-status--pending" data-testid="invoice-pending" aria-labelledby="ow-pending">

@@ -30,7 +30,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
         <div className="pt-card pt-card--next" role="alert" data-testid="pay-pushed-back">
           <h2 className="d4">{pushedBack ? 'This car was just taken' : 'Nothing to pay'}</h2>
           <p>{pushedBack ? PUSH_BACK : 'This booking is not waiting for payment.'}</p>
-          <p><Link className="btn btn--primary" href={bookingPath(b.booking_number)}>Back to the booking</Link></p>
+          <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number)}>Back to the booking</Link></p>
         </div>
       ) : (
         <div className="pt-split">

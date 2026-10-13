@@ -18,7 +18,7 @@ export default async function OwnerDocuments() {
       <div className="pt-split">
         <section className="stack" aria-labelledby="ow-docs"><h2 className="pt-section-title" id="ow-docs">Agreements and files</h2>
           {docs.length ? <ul className="ow-rows" data-testid="owner-docs">{docs.map((d) => <li key={d.id}><a className="ow-row-link" href={`/owner/documents/${d.id}`}>{d.title ?? KIND[d.kind] ?? d.kind}</a><span className="small muted">PDF</span><span className="ow-meta"><span>{KIND[d.kind] ?? d.kind.replace(/_/g, ' ')}</span>{name(d.vehicle_id) && <span>{name(d.vehicle_id)}</span>}<span>{day(d.created_at)}</span></span></li>)}</ul>
-            : <p className="pt-empty muted">Your agreements appear here once they are ready to sign. {home.signing.needed && <Link href="/owner/sign">Sign them now</Link>}</p>}
+            : <p className="pt-empty muted">Your agreements appear here once they are ready to sign. {home.signing.needed && <Link prefetch={false} href="/owner/sign">Sign them now</Link>}</p>}
         </section>
         <aside className="pt-split__aside">
           <section className="pt-card" aria-labelledby="ow-forms"><h2 className="d4" id="ow-forms">Government forms</h2>

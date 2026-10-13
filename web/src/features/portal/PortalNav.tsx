@@ -14,7 +14,7 @@ export function PortalNav({ unread }: { unread: number }) {
   return (
     <nav className="pt__nav" aria-label="Your account">
       {LINKS.map((l) => (
-        <Link key={l.href} href={l.href} aria-current={l.match(path) ? 'page' : undefined}>
+        <Link prefetch={false} key={l.href} href={l.href} aria-current={l.match(path) ? 'page' : undefined}>
           {l.label}
           {l.label === 'Notifications' && unread > 0 && <span className="pt__count" aria-label={`${unread} unread`}>{unread}</span>}
         </Link>

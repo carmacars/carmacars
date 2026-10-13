@@ -19,7 +19,7 @@ export default async function Listings() {
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress." cols={[
-        { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link className="link" href={`/admin/listings/${r.id}`}>{r.vehicle_name}</Link> },
+        { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/admin/listings/${r.id}`}>{r.vehicle_name}</Link> },
         { key: 'plate', label: 'Plate' }, { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> },
         { key: 'photos', label: 'Photos', num: true }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
         { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },

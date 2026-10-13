@@ -29,7 +29,7 @@ export default async function Damage({ params }: { params: Promise<{ id: string 
         <img src={p.url} alt={`${which} photo: ${label(p.shot)}`} width={300} height={200} loading="lazy" /><span>{label(p.shot)}</span></li>)}</ul> : <p className="small muted">No photos.</p>}</> : <p className="small muted">No report chosen.</p>}</Card>;
   };
   return (<>
-    <PageHead kicker={<Link className="link" href="/admin/damages">Damage</Link>} title={<>{String(x.intake_number)} <Badge s={String(x.status)} /></>}>
+    <PageHead kicker={<Link prefetch={false} className="link" href="/admin/damages">Damage</Link>} title={<>{String(x.intake_number)} <Badge s={String(x.status)} /></>}>
       <Act action="damage_confirm" payload={{ id }} label="Confirm the suggestion" refresh={R} />
       <Act action="damage_bill" payload={{ id }} label="Bill the damage" variant="primary" confirm={over ? `The cost is ${$(x.cost_cents)}, at or over the ${$(x.threshold_cents)} deductible: billing opens a fleet policy claim and bills the renter the deductible and the fee.` : `The cost is under the ${$(x.threshold_cents)} deductible: the renter is billed the repair at cost and the fee.`} fields={[{ name: 'override_reason', label: 'Reason, if reporting after 48 hours' }]} refresh={R} />
     </PageHead>

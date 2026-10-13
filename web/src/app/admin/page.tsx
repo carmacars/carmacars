@@ -32,10 +32,10 @@ export default async function AdminToday() {
   const over = d.requests.filter((r) => !r.awaiting_renter && r.waiting_minutes > d.target_minutes).length;
   return (
     <>
-      <PageHead title="Today" kicker={t(d.now)}><Link className="btn btn--primary btn--sm" href="/admin/requests">Work the requests</Link><Link className="btn btn--ghost btn--sm" href="/admin/calendar">Calendar</Link></PageHead>
+      <PageHead title="Today" kicker={t(d.now)}><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/requests">Work the requests</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/calendar">Calendar</Link></PageHead>
       {d.alerts.length > 0 && (
         <Card title="Alerts" tone="warn" testId="dash-alerts">
-          <ul className="ad-list">{d.alerts.map((a, i) => <li key={i}><span>{a.message}{a.blocks ? <span className="muted"> (blocks {label(a.blocks)})</span> : null}</span>{a.field !== 'job' && <Link className="link small" href="/admin/settings/site">Fix in settings</Link>}</li>)}</ul>
+          <ul className="ad-list">{d.alerts.map((a, i) => <li key={i}><span>{a.message}{a.blocks ? <span className="muted"> (blocks {label(a.blocks)})</span> : null}</span>{a.field !== 'job' && <Link prefetch={false} className="link small" href="/admin/settings/site">Fix in settings</Link>}</li>)}</ul>
         </Card>
       )}
       <Tiles items={[
@@ -58,7 +58,7 @@ export default async function AdminToday() {
             {d.offers.length ? <ul className="ad-list">{d.offers.map((r) => <li key={r.booking_number}><span><BookingLink n={r.booking_number} /> {r.renter}</span><span className="small">{r.status === 'pending_payment' ? 'signing and payment' : r.expires_at ? `until ${t(r.expires_at)}` : ''}</span></li>)}</ul> : <p className="small muted">No offers out.</p>}
           </Card>
           <Card title="Escalations">
-            {d.escalations.length ? <ul className="ad-list">{d.escalations.map((e) => <li key={e.id}><span>{e.title}</span>{e.booking_number ? <BookingLink n={e.booking_number} /> : <Link className="link small" href="/admin/tasks">Tasks</Link>}<span className="ad-sub">{e.reason}</span></li>)}</ul> : <p className="small muted">Nothing escalated.</p>}
+            {d.escalations.length ? <ul className="ad-list">{d.escalations.map((e) => <li key={e.id}><span>{e.title}</span>{e.booking_number ? <BookingLink n={e.booking_number} /> : <Link prefetch={false} className="link small" href="/admin/tasks">Tasks</Link>}<span className="ad-sub">{e.reason}</span></li>)}</ul> : <p className="small muted">Nothing escalated.</p>}
           </Card>
         </div>
         <div className="stack">
@@ -74,7 +74,7 @@ export default async function AdminToday() {
             {d.late.length ? <ul className="ad-list">{d.late.map((r) => <li key={r.booking_number}><span><BookingLink n={r.booking_number} /> {r.renter}</span><span className="ad-late">{ago(r.minutes_late)} late</span></li>)}</ul> : <p className="small muted">No car is late.</p>}
           </Card>
           <Card title="Tasks by queue">
-            {d.tasks.length ? <ul className="ad-list">{d.tasks.map((q) => <li key={q.queue}><Link className="link" href={`/admin/tasks?queue=${q.queue}`}>{label(q.queue)}</Link><span className="small">{q.open} open{q.overdue ? `, ${q.overdue} overdue` : ''}{q.escalated ? `, ${q.escalated} escalated` : ''}</span></li>)}</ul> : <p className="small muted">No open tasks.</p>}
+            {d.tasks.length ? <ul className="ad-list">{d.tasks.map((q) => <li key={q.queue}><Link prefetch={false} className="link" href={`/admin/tasks?queue=${q.queue}`}>{label(q.queue)}</Link><span className="small">{q.open} open{q.overdue ? `, ${q.overdue} overdue` : ''}{q.escalated ? `, ${q.escalated} escalated` : ''}</span></li>)}</ul> : <p className="small muted">No open tasks.</p>}
           </Card>
         </div>
         <div className="stack">
@@ -95,11 +95,11 @@ export default async function AdminToday() {
           </Card>
           <Card title="Waiting for approval">
             <ul className="ad-list">
-              <li><Link className="link" href="/admin/money?tab=refunds">Refunds</Link><span>{d.approvals.refunds}</span></li>
-              <li><Link className="link" href="/admin/payouts">Payouts</Link><span>{d.approvals.payouts}</span></li>
-              <li><Link className="link" href="/admin/statements">Owner statements</Link><span>{d.approvals.statements}</span></li>
-              <li><Link className="link" href="/admin/listings">Listings</Link><span>{d.approvals.listings}</span></li>
-              <li><Link className="link" href="/admin/tolls">Tolls to match</Link><span>{d.approvals.tolls}</span></li>
+              <li><Link prefetch={false} className="link" href="/admin/money?tab=refunds">Refunds</Link><span>{d.approvals.refunds}</span></li>
+              <li><Link prefetch={false} className="link" href="/admin/payouts">Payouts</Link><span>{d.approvals.payouts}</span></li>
+              <li><Link prefetch={false} className="link" href="/admin/statements">Owner statements</Link><span>{d.approvals.statements}</span></li>
+              <li><Link prefetch={false} className="link" href="/admin/listings">Listings</Link><span>{d.approvals.listings}</span></li>
+              <li><Link prefetch={false} className="link" href="/admin/tolls">Tolls to match</Link><span>{d.approvals.tolls}</span></li>
             </ul>
             <p className="small muted">Email sent today: {d.email_today} of {d.email_cap ?? 100}.</p>
           </Card>

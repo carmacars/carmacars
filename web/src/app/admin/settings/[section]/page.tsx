@@ -40,7 +40,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
   if (!meta) notFound();
   const { read, user } = await page(`/admin/settings/${section}`);
   const s = await read<S>('settings');
-  const back = <Link className="link" href="/admin/settings">Settings</Link>;
+  const back = <Link prefetch={false} className="link" href="/admin/settings">Settings</Link>;
   const head = <PageHead kicker={back} title={meta[1]} />;
   const classOpts = (s.classes as Array<{ code: string; label: string }>).map((c) => [c.code, c.label] as [string, string]);
 
@@ -113,7 +113,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
       <Card title="Where replies go"><Table rows={s.reply_to} cols={[{ key: 'audience', label: 'Audience', render: (r) => r.audience ? String(r.audience) : 'any' }, { key: 'code', label: 'Email', render: (r) => r.code ? String(r.code) : 'any' }, { key: 'reply_to', label: 'Reply to' }, { key: 'note', label: 'Note' }]} />
         {s.reply_to.map((r) => <details key={String(r.id)}><summary className="link">Change {String(r.audience ?? 'any')} / {String(r.code ?? 'any')}</summary><SaveForm table="email_reply_to" rowKey={String(r.id)} compact fields={[{ name: 'reply_to', label: 'Reply to', type: 'email', value: r.reply_to }, { name: 'note', label: 'Note', value: r.note }]} /></details>)}
         <SaveForm table="email_reply_to" label="Add a rule" fields={[{ name: 'audience', label: 'Audience', type: 'select', options: [['renter', 'Renter'], ['owner', 'Owner'], ['staff', 'Staff'], ['insurer', 'Insurer']] }, { name: 'code', label: 'Email code (empty: any)' }, { name: 'reply_to', label: 'Reply to', type: 'email', required: true }]} /></Card>
-      <p className="small"><Link className="link" href="/admin/messages">Outbox and suppressions</Link></p>
+      <p className="small"><Link prefetch={false} className="link" href="/admin/messages">Outbox and suppressions</Link></p>
     </>);
   case 'staff':
     return (<>{head}

@@ -22,7 +22,7 @@ export default async function Toll({ params }: { params: Promise<{ id: string }>
   const cands = n.candidates?.candidates ?? [];
   const status = String(n.status);
   return (<>
-    <PageHead kicker={<Link className="link" href="/admin/tolls">Tolls and tickets</Link>} title={<>{label(n.kind)} {String(n.notice_number ?? '')} <Badge s={status} /></>}>
+    <PageHead kicker={<Link prefetch={false} className="link" href="/admin/tolls">Tolls and tickets</Link>} title={<>{label(n.kind)} {String(n.notice_number ?? '')} <Badge s={status} /></>}>
       <Act action="toll_rematch" payload={P} label="Match again" refresh={R} />
       {n.matched_to === 'renter' && !!n.booking_id && !n.charged_at && <Act action="toll_charge" payload={{ ids: [id] }} label="Charge the renter" variant="primary" testId="toll-charge" confirm="Charge this notice and its administration fee on a later-charge statement." refresh={R} />}
       {n.matched_to === 'owner' && !n.owner_deduction_id ? ( <Act action="toll_bill_owner" payload={P} label="Bill to the owner" refresh={R} />) : null}

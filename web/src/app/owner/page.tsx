@@ -25,7 +25,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
       {sp.applied && <p className="alert alert--ok" role="status"><span className="alert__title">Application received</span><span>We reply within 1 business day with the terms for each vehicle.</span></p>}
       <header className="stack"><p className="pt-kicker">Owner portal</p><h1 className="d2">Hello, {home.owner.first_name}</h1></header>
       {!home.vehicles.length ? (
-        <div className="pt-empty"><p className="d4">Add your first vehicle</p><p className="muted">Apply once and add every vehicle you want to enrol.</p><Link className="btn btn--primary" href="/list-your-car/apply">Add a vehicle</Link></div>
+        <div className="pt-empty"><p className="d4">Add your first vehicle</p><p className="muted">Apply once and add every vehicle you want to enrol.</p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add a vehicle</Link></div>
       ) : (
         <div className="pt-home">
           {next ? (
@@ -33,13 +33,13 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
               <p className="pt-kicker">Next step</p>
               <h2 className="d3" id="ow-next">{next.title}</h2>
               <p>{next.note}</p>
-              <p><Link className="btn btn--primary" href={next.href}>{next.cta}</Link></p>
+              <p><Link prefetch={false} className="btn btn--primary" href={next.href}>{next.cta}</Link></p>
             </section>
           ) : pending.length ? (
             <section className="pt-card pt-card--next" aria-labelledby="ow-next" data-testid="owner-next-step"><p className="pt-kicker">In progress</p><h2 className="d3" id="ow-next">Your payment is processing</h2><p>A pre-authorized debit takes 3 to 5 business days to clear. We email you when it does.</p></section>
           ) : null}
           <section className="stack" aria-labelledby="ow-cars">
-            <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-cars">Your vehicles</h2><Link className="btn btn--ghost btn--sm" href="/list-your-car/apply">Add a vehicle</Link></div>
+            <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-cars">Your vehicles</h2><Link prefetch={false} className="btn btn--ghost btn--sm" href="/list-your-car/apply">Add a vehicle</Link></div>
             <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} />)}</ul>
           </section>
           <section className="stack" aria-labelledby="ow-money">
@@ -51,9 +51,9 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
               <div className="ow-tile"><span>Next payout date</span><b>{day(home.next_payout_date)}</b></div>
             </div>
             <InvoiceRows items={home.invoices.slice(0, 5)} />
-            {home.invoices.length > 5 && <p><Link href="/owner/invoices">All invoices</Link></p>}
+            {home.invoices.length > 5 && <p><Link prefetch={false} href="/owner/invoices">All invoices</Link></p>}
             {!home.trackers_available && home.tracker_pending.length > 0 && <p className="small muted">{TRACKER_LATER}</p>}
-            {!home.payout_accounts.length && <p className="pt-note">Add the bank account we pay you into: <Link href="/owner/banking">Banking</Link>.</p>}
+            {!home.payout_accounts.length && <p className="pt-note">Add the bank account we pay you into: <Link prefetch={false} href="/owner/banking">Banking</Link>.</p>}
           </section>
         </div>
       )}

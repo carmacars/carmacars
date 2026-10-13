@@ -18,7 +18,7 @@ export default async function AdminOwners() {
         <section className="stack" aria-labelledby="ad-list"><h2 className="pt-section-title" id="ad-list">{rows.length} owners</h2>
           {rows.length ? <ul className="ow-rows" data-testid="admin-owners">{rows.map((o) => (
             <li key={o.owner_id}>
-              <Link className="ow-row-link" href={`/admin/owners/${o.owner_id}`}>{o.legal_name}</Link>
+              <Link prefetch={false} className="ow-row-link" href={`/admin/owners/${o.owner_id}`}>{o.legal_name}</Link>
               <span className="small">{o.vehicles} vehicle{o.vehicles === 1 ? '' : 's'}</span>
               <span className="ow-meta"><span>{o.applications.join(', ')}</span><span>{day(o.last_at)}</span><span>{o.email}</span>
                 {Object.entries(o.statuses ?? {}).map(([s, n]) => <span key={s} className="ad-tag">{n} {ONBOARDING_STATUS[s] ?? s}</span>)}

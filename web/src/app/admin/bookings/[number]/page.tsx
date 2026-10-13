@@ -36,7 +36,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
   return (
     <>
-      <PageHead kicker={<><Link className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /> {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /> {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
         {b.status === 'requested' && <Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />}
         {b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} testId="decline" />}
         {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw to edit" confirm="The renter's offer is withdrawn and they are told. Edit, then send the next version." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
@@ -64,7 +64,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
                 ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet']]} />
             </Card>
             <Card title="Competing for these dates" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
-              {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
+              {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
             </Card>
           </div>
           <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={b.status === 'requested'} />
@@ -73,7 +73,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
-            <Kv rows={[['Car', <Link key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
+            <Kv rows={[['Car', <Link prefetch={false} key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
               ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
               ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />

@@ -55,7 +55,7 @@ export function Tabs({ items, current, label: aria = 'Sections' }: { items: Arra
   return (
     <nav className="ad-tabs" aria-label={aria}>
       {items.map(([href, text, n]) => (
-        <Link key={href} href={href} aria-current={href === current ? 'page' : undefined}>{text}{n ? <span className="pt__count">{n}</span> : null}</Link>
+        <Link prefetch={false} key={href} href={href} aria-current={href === current ? 'page' : undefined}>{text}{n ? <span className="pt__count">{n}</span> : null}</Link>
       ))}
     </nav>
   );
@@ -66,7 +66,7 @@ export function Tiles({ items }: { items: Array<{ k: string; v: ReactNode; sub?:
     <div className="ad-tiles">
       {items.map((i) => {
         const body = <><span className="ad-tile__k">{i.k}</span><b className="ad-tile__v">{i.v}</b>{i.sub ? <span className="ad-tile__s">{i.sub}</span> : null}</>;
-        return i.href ? <Link key={i.k} href={i.href} className={`ad-tile${i.warn ? ' is-warn' : ''}`}>{body}</Link> : <div key={i.k} className={`ad-tile${i.warn ? ' is-warn' : ''}`}>{body}</div>;
+        return i.href ? <Link prefetch={false} key={i.k} href={i.href} className={`ad-tile${i.warn ? ' is-warn' : ''}`}>{body}</Link> : <div key={i.k} className={`ad-tile${i.warn ? ' is-warn' : ''}`}>{body}</div>;
       })}
     </div>
   );
@@ -97,7 +97,7 @@ export function Kv({ rows }: { rows: Array<[string, ReactNode]> }) {
 
 export const bookingHref = (n: unknown) => `/admin/bookings/${encodeURIComponent(String(n))}`;
 export function BookingLink({ n }: { n: unknown }) {
-  return n ? <Link className="link" href={bookingHref(n)}>{String(n)}</Link> : <span className="muted">none</span>;
+  return n ? <Link prefetch={false} className="link" href={bookingHref(n)}>{String(n)}</Link> : <span className="muted">none</span>;
 }
 
 /** Filter links that keep the rest of the query string. */
@@ -110,7 +110,7 @@ export function Filters({ base, name, value, options, sp }: { base: string; name
   };
   return (
     <nav className="ad-filters" aria-label={`Filter by ${name.replace(/_/g, ' ')}`}>
-      {options.map(([v, l]) => <Link key={v || 'all'} href={href(v)} aria-current={value === v ? 'page' : undefined}>{l}</Link>)}
+      {options.map(([v, l]) => <Link prefetch={false} key={v || 'all'} href={href(v)} aria-current={value === v ? 'page' : undefined}>{l}</Link>)}
     </nav>
   );
 }

@@ -25,6 +25,6 @@ export default async function Incidents({ searchParams }: { searchParams: Promis
         {!r.settled_at && <Act action="claim_settle" payload={{ id: r.id }} label="Settle" confirm="Settle the claim: the result is split between the Owner and CarmaCars; a shareholder vehicle needs a second Admin." fields={[{ name: 'second_admin', label: 'Second Admin (user id, shareholder vehicles)' }]} refresh={['/admin/incidents']} />}</span> }]} /></Card></>);
   }
   const { rows } = await list('incidents', { limit: 200 });
-  return (<>{head}<Card title="Incidents"><Table<R> testId="incidents" rows={rows} empty="No incidents." cols={[{ key: 'incident_number', label: 'Incident', render: (r) => <Link className="link" href={`/admin/incidents/${String(r.id)}`}>{String(r.incident_number)}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) },
+  return (<>{head}<Card title="Incidents"><Table<R> testId="incidents" rows={rows} empty="No incidents." cols={[{ key: 'incident_number', label: 'Incident', render: (r) => <Link prefetch={false} className="link" href={`/admin/incidents/${String(r.id)}`}>{String(r.incident_number)}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) },
     { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'vehicle_name', label: 'Vehicle' }, { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'occurred_at', label: 'Happened', render: (r) => t(r.occurred_at) }, { key: 'drivable', label: 'Drivable' }]} /></Card></>);
 }

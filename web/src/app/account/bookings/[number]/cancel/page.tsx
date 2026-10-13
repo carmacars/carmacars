@@ -30,7 +30,7 @@ export default async function CancelPage({ params }: { params: Promise<{ number:
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
       <div className="pt-ok" role="status"><h1 className="d3">Booking cancelled</h1>
         <p>{b.cancellation?.refund_cents ? `Your refund of ${money(b.cancellation.refund_cents, { cents: true })} is sent to your card within 10 business days.` : 'No refund applies to this cancellation.'}</p>
-        <p><Link className="btn btn--primary" href="/account">Your trips</Link></p></div>
+        <p><Link prefetch={false} className="btn btn--primary" href="/account">Your trips</Link></p></div>
     </>
   );
   if (b.status !== 'confirmed') redirect(bookingPath(b.booking_number));
@@ -53,7 +53,7 @@ export default async function CancelPage({ params }: { params: Promise<{ number:
             ['Kept by CarmaCars', money(p.retained_cents, { cents: true })],
             ['Refund sent by', p.refund_due_by ? when(`${p.refund_due_by}T12:00:00Z`, false) : '']
           ]} />
-          <p className="small muted">The deposit is taken at pickup, so none is held now. <Link className="link" href="/cancellation-policy">Cancellation policy</Link></p>
+          <p className="small muted">The deposit is taken at pickup, so none is held now. <Link prefetch={false} className="link" href="/cancellation-policy">Cancellation policy</Link></p>
         </section>
         <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="pt-confirm"><h2 className="d4" id="pt-confirm">Confirm</h2>
           {p.can_cancel ? <CancelForm number={b.booking_number} /> : <p>{p.message ?? 'This booking cannot be cancelled online. Call us.'}</p>}

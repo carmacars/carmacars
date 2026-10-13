@@ -15,7 +15,7 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
   const i = await read<(R & { investments: R[]; returns: R[]; documents: R[]; payouts: R[] }) | null>('investor', { id });
   if (!i) notFound();
   return (<>
-    <PageHead kicker={<Link className="link" href="/admin/investors">Investors</Link>} title={<>{String(i.legal_name)} <Badge s={String(i.status)} /></>} />
+    <PageHead kicker={<Link prefetch={false} className="link" href="/admin/investors">Investors</Link>} title={<>{String(i.legal_name)} <Badge s={String(i.status)} /></>} />
     <div className="ad-cols ad-cols--2">
       <Card title="Record"><Kv rows={[['Type', String(i.investor_type ?? '')], ['Email', String(i.email ?? '')], ['Phone', String(i.phone ?? '')], ['Address', String(i.address ?? '')], ['Tax resident in Canada', i.tax_resident_canada ? 'Yes' : 'No'], ['Identity verified', t(i.identification_verified_at)]]} /></Card>
       <Card title="Investments"><Table rows={i.investments} empty="None." cols={[{ key: 'investment_date', label: 'Date', render: (r) => d(r.investment_date) }, { key: 'principal_cents', label: 'Principal', num: true, render: (r) => $(r.principal_cents) }, { key: 'yearly_bps', label: 'Yearly', num: true, render: (r) => `${Number(r.yearly_bps) / 100}%` }, { key: 'lockup_end_date', label: 'Lock-up ends', render: (r) => d(r.lockup_end_date) }, { key: 'status', label: 'Status' }]} /></Card>

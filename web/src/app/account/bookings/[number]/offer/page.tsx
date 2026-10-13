@@ -39,7 +39,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
           <p>{b.status === 'expired' || last?.status === 'expired' ? 'The offer was not approved in time. Call or message us and we will send it again.'
             : taken ? 'Someone else confirmed this car for these dates first, or we changed the terms. Nothing was charged. We will send you a new offer.'
             : b.status === 'requested' ? 'We are preparing your offer. It arrives by email and here.' : 'This booking has moved on from the offer.'}</p>
-          <p><Link className="btn btn--primary" href={bookingPath(b.booking_number)}>Back to the booking</Link></p>
+          <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number)}>Back to the booking</Link></p>
         </div>
       </>
     );
@@ -77,7 +77,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
           </section>
           <section className="pt-card" aria-labelledby="pt-cancel"><h2 className="d4" id="pt-cancel">If you cancel</h2>
             {b.booking_type === 'non_refundable' ? <p>This booking is non-refundable once confirmed.</p>
-              : <><ul>{tiers.map((t) => <li key={t}>{t}</li>)}</ul><p className="small"><Link className="link" href="/cancellation-policy">Cancellation policy</Link></p></>}
+              : <><ul>{tiers.map((t) => <li key={t}>{t}</li>)}</ul><p className="small"><Link prefetch={false} className="link" href="/cancellation-policy">Cancellation policy</Link></p></>}
           </section>
         </div>
         <aside className="pt-split__aside stack-lg">

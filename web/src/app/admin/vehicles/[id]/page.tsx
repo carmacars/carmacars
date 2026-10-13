@@ -35,9 +35,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
   return (
     <>
-      <PageHead kicker={<><Link className="link" href="/admin/vehicles">Vehicles</Link> · {v.fleet_number ?? ''} {v.plate} · {v.owner ? <Link className="link" href={`/admin/owners/${v.owner.id}`}>{v.owner.legal_name}</Link> : 'no owner'}</>}
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/vehicles">Vehicles</Link> · {v.fleet_number ?? ''} {v.plate} · {v.owner ? <Link prefetch={false} className="link" href={`/admin/owners/${v.owner.id}`}>{v.owner.legal_name}</Link> : 'no owner'}</>}
         title={<>{v.name} <Badge s={v.status} /></>}>
-        {slug && v.listing?.status === 'published' && <Link className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
+        {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and coverage'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
       {tab === 'overview' && (
@@ -87,16 +87,16 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
                 {r.default?.source === 'vehicle' && <Act action="fee_override_end" payload={{ ...P, fee: r.code }} label="Back to default" refresh={refresh} />}</span> }]} />
           </Card>
           <Card title="Coverage prices (car or class)"><Table rows={v.coverage_prices} empty="The class table applies; set prices in Settings, Coverage." cols={[{ key: 'age_band', label: 'Age band' }, { key: 'amount_cents', label: 'Price', num: true, render: (r) => $(r.amount_cents) }, { key: 'per_day', label: 'Per day' }, { key: 'class_code', label: 'Class' }, { key: 'effective_from', label: 'From' }]} />
-            <p className="small"><Link className="link" href="/admin/settings/coverage">Edit the coverage price table</Link></p></Card>
+            <p className="small"><Link prefetch={false} className="link" href="/admin/settings/coverage">Edit the coverage price table</Link></p></Card>
         </div>
       )}
       {tab === 'calendar' && cal && <Suspense><MasterCalendar initial={cal} vehicleId={id} defaultView="month" /></Suspense>}
       {tab === 'listing' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Listing">
-            {v.listing ? <Kv rows={[['Status', <Badge key="s" s={String(v.listing.status)} />], ['Address', slug ? <Link key="l" className="link" href={`/cars/${slug}`}>/cars/{slug}</Link> : ''], ['Headline', String(v.listing.headline ?? '')], ['Published', t(v.listing.published_at)], ['Unpublished', `${t(v.listing.unpublished_at)} ${String(v.listing.unpublished_reason ?? '')}`]]} /> : <p className="small muted">No listing yet.</p>}
+            {v.listing ? <Kv rows={[['Status', <Badge key="s" s={String(v.listing.status)} />], ['Address', slug ? <Link prefetch={false} key="l" className="link" href={`/cars/${slug}`}>/cars/{slug}</Link> : ''], ['Headline', String(v.listing.headline ?? '')], ['Published', t(v.listing.published_at)], ['Unpublished', `${t(v.listing.unpublished_at)} ${String(v.listing.unpublished_reason ?? '')}`]]} /> : <p className="small muted">No listing yet.</p>}
             <div className="ad-actions">
-              {v.intake && <Link className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
+              {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
               {!v.intake && <Act action="listing_start" payload={{ vehicle_id: id }} label="Start a listing" go="/admin/listings/{intake_id}" />}
               {v.listing && v.listing.status !== 'published' && <Act action="listing_publish" payload={P} label="Publish" variant="primary" refresh={refresh} />}
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}

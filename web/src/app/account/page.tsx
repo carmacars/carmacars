@@ -22,7 +22,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
       <h1 className="d2">Your trips</h1>
       {!list.length ? (
-        <div className="pt-empty"><p className="d4">No trips yet.</p><p className="muted">Pick a car and dates and send a request. Nothing is charged until you approve an offer.</p><Link className="btn btn--primary" href="/cars">Find a car</Link></div>
+        <div className="pt-empty"><p className="d4">No trips yet.</p><p className="muted">Pick a car and dates and send a request. Nothing is charged until you approve an offer.</p><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
       ) : (
         <div className="pt-home">
           {full && step && (
@@ -30,7 +30,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
               <div className="pt-card__head"><p className="pt-kicker">Next step · {full.booking_number}</p><StatusBadge s={full.status} /></div>
               <h2 className="d3" id="pt-next">{step.title}</h2>
               <p>{carName(full)}. {step.note}</p>
-              {step.href && <p><Link className={`btn ${step.urgent ? 'btn--primary' : 'btn--ghost'}`} href={step.href}>{step.cta}</Link></p>}
+              {step.href && <p><Link prefetch={false} className={`btn ${step.urgent ? 'btn--primary' : 'btn--ghost'}`} href={step.href}>{step.cta}</Link></p>}
             </section>
           )}
           {[['Current', current], ['Upcoming', upcoming], ['Past', past]].map(([title, items]) => (items as typeof list).length ? (
