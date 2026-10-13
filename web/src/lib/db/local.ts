@@ -1,5 +1,6 @@
 import 'server-only';
 import postgres from 'postgres';
+import { jwtVerify } from 'jose';
 import { required } from '@/lib/env';
 import { DbError, type Backend } from './repo';
 
@@ -50,9 +51,22 @@ function param(v: unknown, type?: string): string | null {
   return String(v);
 }
 
+// As PostgREST does: the authenticated role and its subject come from the user's access token (the local
+// session JWT, signed with LOCAL_AUTH_SECRET), never from what the caller says; without a valid token the
+// call runs as anon. So a call that forgot the token fails here exactly as it would on Supabase.
+async function tokenSubject(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  try { return (await jwtVerify(token, new TextEncoder().encode(required('LOCAL_AUTH_SECRET')))).payload.sub ?? null; } catch { return null; }
+}
+
 export function localBackend(): Backend {
   return {
-    async call(fn, args, opts) {
+    async call(fn, args, o) {
+      let opts = o;
+      if (o.role === 'authenticated') {
+        const sub = await tokenSubject(o.accessToken);
+        opts = sub ? { ...o, userId: sub } : { ...o, role: 'anon', userId: undefined };
+      }
       const m = await meta(fn);
       const names = Object.keys(args).filter((k) => args[k] !== undefined);
       for (const n of names) if (!m.args.has(n)) throw new DbError(`public.${fn} has no argument ${n}`, '42883');

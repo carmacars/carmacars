@@ -46,6 +46,9 @@ export function localAuth(): AuthAdapter {
         return null;
       }
     },
+    async accessToken() {
+      return (await cookies()).get(COOKIE)?.value ?? null;
+    },
     async assurance() {
       const t = (await cookies()).get(COOKIE)?.value;
       if (!t) return null;

@@ -48,7 +48,15 @@ async function getBackend(): Promise<Backend> {
 export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOptions = {}): Promise<ReturnsOf<F>> {
   const b = await getBackend();
   const role = opts.role ?? (opts.userId ? 'authenticated' : 'anon');
-  return (await b.call(fn, (args ?? {}) as Record<string, unknown>, { ...opts, role })) as ReturnsOf<F>;
+  let accessToken = opts.accessToken;
+  // The database API decides who the caller is from the session's access token, never from a user id
+  // the server passes along: a call as the signed-in user carries their token (on Supabase a call without
+  // it runs as anon and every row-level-security read is refused: React error #441 on /account).
+  if (role === 'authenticated' && !accessToken) {
+    accessToken = (await (await (await import('@/lib/auth')).auth()).accessToken()) ?? undefined;
+    if (!accessToken) throw new DbError('Sign in first', '42501');
+  }
+  return (await b.call(fn, (args ?? {}) as Record<string, unknown>, { ...opts, role, accessToken })) as ReturnsOf<F>;
 }
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */

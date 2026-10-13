@@ -3,6 +3,8 @@ export type AuthResult = { ok: true; user: SessionUser; needsConfirmation?: bool
 
 export interface AuthAdapter {
   currentUser(): Promise<SessionUser | null>;
+  /** The session's access token (the JWT the database API checks), or null when signed out. */
+  accessToken(): Promise<string | null>;
   /** The session's assurance level: aal2 after a second factor (two-step sign-in). */
   assurance(): Promise<'aal1' | 'aal2' | null>;
   signUp(email: string, password: string, meta: { full_name: string }): Promise<AuthResult>;

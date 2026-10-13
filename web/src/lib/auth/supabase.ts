@@ -11,6 +11,11 @@ export function supabaseAuth(): AuthAdapter {
       const { data } = await s.auth.getUser();
       return data.user ? { id: data.user.id, email: data.user.email ?? '' } : null;
     },
+    async accessToken() {
+      const s = await supabaseServer();
+      const { data } = await s.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
     async assurance() {
       const s = await supabaseServer();
       const { data } = await s.auth.mfa.getAuthenticatorAssuranceLevel();
