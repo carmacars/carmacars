@@ -40,7 +40,8 @@ let cached: ServerEnv | undefined;
 
 export function env(): ServerEnv {
   if (cached) return cached;
-  const e = schema.parse(process.env);
+  // an empty value (KEY= in an env file) counts as not set
+  const e = schema.parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== '')));
   if (e.APP_ENV === 'production') {
     if (e.DATA_BACKEND !== 'supabase') throw new Error('Production runs on Supabase (DATA_BACKEND=supabase).');
     if (e.TURNSTILE_PROVIDER === 'fake') throw new Error('Production checks public forms with Cloudflare Turnstile (or has it off), never the fake.');
