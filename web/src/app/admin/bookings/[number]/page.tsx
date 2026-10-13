@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
+import { DepositSettle } from '@/features/admin/DepositSettle';
+import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 
@@ -91,9 +93,10 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
             <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
           </Card>
-          <Card title="Deposit" aside={b.deposit ? <Act action="settle_deposit" payload={P} label="Settle the deposit" fields={[{ name: 'plan', label: 'Plan (apply, hold back, release)', type: 'json', value: { release: true } }]} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
+          <Card title="Deposit" aside={b.deposit ? <DepositSettle bookingId={b.id} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
             {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', label(b.deposit.method)], ['Status', label(b.deposit.status)], ['Applied', $(b.deposit.applied_cents)], ['Held back', $(b.deposit.held_back_cents)], ['Released', $(b.deposit.released_cents)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
           </Card>
+          <Card title="Documents"><GeneratedFiles bookingId={b.id} /></Card>
           <Card title="Statements"><Table rows={b.statements} empty="No statements." cols={[{ key: 'statement_number', label: 'Number' }, { key: 'kind', label: 'Kind' }, { key: 'issued_at', label: 'Issued', render: (r) => t(r.issued_at) }, { key: 'charges_cents', label: 'Charges', num: true, render: (r) => $(r.charges_cents) }, { key: 'charged_to_card_cents', label: 'To card', num: true, render: (r) => $(r.charged_to_card_cents) }]} /></Card>
           <Card title="Offers"><Table rows={b.offers} empty="No offers." cols={[{ key: 'version', label: 'Version' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'expires_at', label: 'Expires', render: (r) => t(r.expires_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }, { key: 'message', label: 'Message', className: 'wrap' }]} /></Card>
         </div>

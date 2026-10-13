@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
+import { DepositSettle } from '@/features/admin/DepositSettle';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { QuickReply } from '@/features/va/QuickReply';
@@ -85,7 +86,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
             <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
               { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />
           </Card>
-          <Card title="Deposit" aside={fn === 'finance' && b.deposit ? <Act action="settle_deposit" payload={P} label="Settle the deposit" fields={[{ name: 'plan', label: 'Plan (apply, hold back, release)', type: 'json', value: { release: true } }]} refresh={R} /> : null}>
+          <Card title="Deposit" aside={fn === 'finance' && b.deposit ? <DepositSettle bookingId={b.id} refresh={R} /> : null}>
             {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', label(b.deposit.method)], ['Status', label(b.deposit.status)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
           </Card>
           {fn === 'finance' && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={R} /></Card>}

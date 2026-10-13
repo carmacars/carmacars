@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminSaveRow } from '@/server/actions/admin-portal';
+import { opsAct } from '@/server/actions/ops';
 import { useDoor } from './door';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
@@ -94,11 +95,14 @@ function useForm(fields: Field[]) {
 const fill = (tpl: string, data: unknown) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(String((data as Record<string, unknown> | null)?.[k] ?? '')));
 
 /** A button that runs one action, optionally after a dialog with fields or a confirmation. */
-export function Act({ action, payload = {}, fields = [], label, confirm, variant = 'ghost', title, go, done = 'Done.', refresh = [], nest, testId, disabled, inline, submitLabel }: {
+export function Act({ action, payload = {}, fields = [], label, confirm, variant = 'ghost', title, go, done = 'Done.', refresh = [], nest, testId, disabled, inline, submitLabel, ops }: {
   action: string; payload?: Record<string, unknown>; fields?: Field[]; label: string; confirm?: string; variant?: 'primary' | 'ghost' | 'quiet' | 'danger';
   title?: string; go?: string; done?: string; refresh?: string[]; nest?: string; testId?: string; disabled?: boolean; inline?: boolean; submitLabel?: string;
+  /** The action is one of migration 0032's (the door's ops_do), the same for an Admin and an assistant. */
+  ops?: boolean;
 }) {
-  const { act: adminAct } = useDoor();
+  const door = useDoor();
+  const adminAct = ops ? opsAct : door.act;
   const router = useRouter();
   const idp = useId().replace(/:/g, '');
   const [pending, start] = useTransition();

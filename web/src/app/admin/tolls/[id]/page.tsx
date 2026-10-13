@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
+import { TollAttach } from '@/features/admin/TollEntry';
 import { $, Badge, BookingLink, Card, Kv, PageHead, t, d, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,8 @@ export default async function Toll({ params }: { params: Promise<{ id: string }>
         </Card>
       </div>
       <Card title="Notice"><Kv rows={[['Issued by', String(n.authority ?? '')], ['Plate', String(n.plate ?? '')], ['Vehicle', String(n.vehicle_name ?? '')], ['Found by', label(n.vehicle_found_by)], ['When', `${t(n.occurred_at)}${n.time_unknown ? ' (time not stated)' : ''}`], ['Place', String(n.place ?? '')],
-        ['Amount', $(n.amount_cents)], ['Administration fee', $(n.admin_fee_cents)], ['Received', d(n.received_on)], ['Charge by', d(n.charge_by)], ['Matched to', `${label(n.matched_to)} ${String(n.booking_number ?? '')}`], ['Confidence', String(n.match_confidence ?? '')], ['How', label(n.matched_how)], ['Charged', t(n.charged_at)], ['Disputed', String(n.dispute_reason ?? '')]]} /></Card>
+        ['Amount', $(n.amount_cents)], ['Administration fee', $(n.admin_fee_cents)], ['Received', d(n.received_on)], ['Charge by', d(n.charge_by)], ['Matched to', `${label(n.matched_to)} ${String(n.booking_number ?? '')}`], ['Confidence', String(n.match_confidence ?? '')], ['How', label(n.matched_how)], ['Charged', t(n.charged_at)], ['Disputed', String(n.dispute_reason ?? '')]]} />
+        {n.document_id ? <p><a className="link" href={`/admin/documents/${String(n.document_id)}`} data-testid="toll-notice">Open the notice</a></p> : <TollAttach tollId={String(n.id)} />}</Card>
     </div>
   </>);
 }
