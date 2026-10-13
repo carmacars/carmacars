@@ -13,7 +13,7 @@ const Err = ({ s }: { s: { ok: boolean; code?: string; message?: string } | null
 export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?: string }) {
   const sp = useSearchParams();
   const { state, run, pending, errors: e, clear } = useForm(signInSchema, signIn);
-  const n = next ?? sp.get('next') ?? '/account';
+  const n = next ?? sp.get('next') ?? '';
   return (
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Sign in">
       <Err s={state as never} />

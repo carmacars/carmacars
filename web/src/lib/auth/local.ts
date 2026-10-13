@@ -6,6 +6,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { required } from '@/lib/env';
 import { localSql } from '@/lib/db/local';
 import type { AuthAdapter, SessionUser } from './types';
+import { checkCode, newSecret, otpauthUri } from './totp';
 
 // LOCAL ONLY. A stand-in for Supabase Auth on the local stack (local/local_auth.sql):
 // scrypt password hashes, an HS256 session cookie with the same claims Supabase issues
@@ -26,8 +27,8 @@ async function checkPassword(pw: string, stored: string) {
   const want = Buffer.from(hash, 'base64');
   return got.length === want.length && timingSafeEqual(got, want);
 }
-async function setSession(u: SessionUser) {
-  const jwt = await new SignJWT({ email: u.email, role: 'authenticated' }).setProtectedHeader({ alg: 'HS256' })
+async function setSession(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1') {
+  const jwt = await new SignJWT({ email: u.email, role: 'authenticated', aal }).setProtectedHeader({ alg: 'HS256' })
     .setSubject(u.id).setIssuedAt().setExpirationTime('7d').sign(key());
   (await cookies()).set(COOKIE, jwt, { httpOnly: true, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 });
 }
@@ -46,8 +47,29 @@ export function localAuth(): AuthAdapter {
       }
     },
     async assurance() {
-      // the local stand-in has no second factor
-      return (await this.currentUser()) ? 'aal1' : null;
+      const t = (await cookies()).get(COOKIE)?.value;
+      if (!t) return null;
+      try { const { payload } = await jwtVerify(t, key()); return payload.aal === 'aal2' ? 'aal2' : 'aal1'; } catch { return null; }
+    },
+    async mfaFactors() {
+      const u = await this.currentUser(); if (!u) return [];
+      const rows = await sql`select id, verified_at from local_auth.factors where user_id = ${u.id}`;
+      return rows.map((r) => ({ id: r.id as string, verified: r.verified_at !== null }));
+    },
+    async mfaEnroll() {
+      const u = await this.currentUser(); if (!u) return { ok: false as const, message: 'Sign in first.' };
+      await sql`delete from local_auth.factors where user_id = ${u.id} and verified_at is null`;
+      const id = randomUUID(); const secret = newSecret();
+      await sql`insert into local_auth.factors (id, user_id, secret) values (${id}, ${u.id}, ${secret})`;
+      return { ok: true as const, factorId: id, secret, uri: otpauthUri(secret, u.email), qr: null };
+    },
+    async mfaVerify(factorId, code) {
+      const u = await this.currentUser(); if (!u) return { ok: false as const, message: 'Sign in first.' };
+      const rows = await sql`select secret from local_auth.factors where id = ${factorId} and user_id = ${u.id}`;
+      if (!rows[0] || !checkCode(rows[0].secret as string, code)) return { ok: false as const, message: 'That code did not match. Enter the newest code from the app.' };
+      await sql`update local_auth.factors set verified_at = coalesce(verified_at, now()) where id = ${factorId}`;
+      await setSession(u, 'aal2');
+      return { ok: true as const };
     },
     async signUp(email, password) {
       const e = email.trim().toLowerCase();

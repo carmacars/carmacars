@@ -55,6 +55,25 @@ export function supabaseAuth(): AuthAdapter {
       const { data, error } = await s.auth.updateUser({ password });
       if (error || !data.user) return { ok: false, message: error?.message ?? 'The reset link has expired. Ask for a new one.' };
       return { ok: true, user: { id: data.user.id, email: data.user.email ?? '' } };
+    },
+    async mfaFactors() {
+      const s = await supabaseServer();
+      const { data } = await s.auth.mfa.listFactors();
+      return (data?.all ?? []).filter((f) => f.factor_type === 'totp').map((f) => ({ id: f.id, verified: f.status === 'verified' }));
+    },
+    async mfaEnroll() {
+      const s = await supabaseServer();
+      // an enrolment started and never finished is removed first (Supabase refuses a second one by name)
+      const { data: list } = await s.auth.mfa.listFactors();
+      for (const f of list?.all ?? []) if (f.factor_type === 'totp' && f.status !== 'verified') await s.auth.mfa.unenroll({ factorId: f.id });
+      const { data, error } = await s.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}` });
+      if (error || !data) return { ok: false as const, message: error?.message ?? 'We could not start two-step sign-in.' };
+      return { ok: true as const, factorId: data.id, secret: data.totp.secret, uri: data.totp.uri, qr: data.totp.qr_code ?? null };
+    },
+    async mfaVerify(factorId, code) {
+      const s = await supabaseServer();
+      const { error } = await s.auth.mfa.challengeAndVerify({ factorId, code: code.replace(/\s/g, '') });
+      return error ? { ok: false as const, message: /invalid|expired/i.test(error.message) ? 'That code did not match. Enter the newest code from the app.' : error.message } : { ok: true as const };
     }
   };
 }

@@ -28,3 +28,12 @@ create table if not exists local_auth.mailbox (
   link       text,
   created_at timestamptz not null default now()
 );
+
+-- Two-step sign-in: TOTP factors (Supabase Auth keeps these in auth.mfa_factors).
+create table if not exists local_auth.factors (
+  id          uuid primary key,
+  user_id     uuid not null references local_auth.users (id) on delete cascade,
+  secret      text not null,
+  verified_at timestamptz,
+  created_at  timestamptz not null default now()
+);

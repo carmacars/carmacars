@@ -19,6 +19,7 @@ const config: NextConfig = {
       { source: '/account/:path*', headers: noindex },
       { source: '/book/:path*', headers: noindex },
       { source: '/api/:path*', headers: noindex },
+      ...['/admin', '/owner', '/va', '/field', '/investor', '/two-step'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
       ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : [])
     ];
   },

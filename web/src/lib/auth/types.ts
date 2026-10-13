@@ -14,4 +14,10 @@ export interface AuthAdapter {
   updatePassword(password: string, token?: string): Promise<AuthResult>;
   /** Server only (an Admin inviting staff): creates the account and emails a link to choose a password. */
   invite?(email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
+  /** Two-step sign-in (TOTP): the signed-in user's verified authenticator factors. */
+  mfaFactors(): Promise<Array<{ id: string; verified: boolean }>>;
+  /** Starts enrolment: a new factor with its secret and otpauth link (and a QR code image on Supabase). */
+  mfaEnroll(): Promise<{ ok: true; factorId: string; secret: string; uri: string; qr: string | null } | { ok: false; message: string }>;
+  /** Checks a code for a factor (enrolment or sign-in); on success the session is aal2. */
+  mfaVerify(factorId: string, code: string): Promise<{ ok: true } | { ok: false; message: string }>;
 }
