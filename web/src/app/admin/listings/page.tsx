@@ -3,6 +3,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, PageHead, Table, t } from '@/features/admin/ui';
+import { door } from '@/server/door';
+import { ProgressCell, type Progress } from '@/features/listing/ListingProgress';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listings', path: '/admin/listings', noindex: true, description: 'Listing intake and review.' });
@@ -11,8 +13,9 @@ type I = { id: string; vehicle_id: string; vehicle_name: string; plate: string |
 
 // The listing pipeline's queue (09-listing-pipeline.md): drafts waiting for review first, then failures.
 export default async function Listings() {
-  const { read } = await page('/admin/listings');
+  const { read, user } = await page('/admin/listings');
   const rows = await read<I[]>('listings');
+  const prog = rows.length ? await door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intakes: rows.map((r) => r.id) }) : {};
   return (
     <>
       <PageHead title="Listings" kicker={`${rows.filter((r) => r.state === 'needs_review').length} waiting for review`}>
@@ -21,7 +24,7 @@ export default async function Listings() {
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress." cols={[
         { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/admin/listings/${r.id}`}>{r.vehicle_name}</Link> },
         { key: 'plate', label: 'Plate' }, { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> },
-        { key: 'photos', label: 'Photos', num: true }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
+        { key: 'photos', label: 'Photos', num: true }, { key: 'progress', label: 'Pipeline', render: (r) => <ProgressCell p={prog[r.id]} /> }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
         { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />

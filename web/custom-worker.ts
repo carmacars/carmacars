@@ -34,7 +34,25 @@ async function media(request: Request, env: Env, path: string): Promise<Response
   return new Response(request.method === 'HEAD' ? null : o.body, { headers });
 }
 
+// The listing worker's token: the same HMAC as src/server/listing-worker.ts (LINK_SIGNING_KEY, a fixed label).
+async function workerToken(secret: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode('carmacars-listing-worker-v1')));
+  return Array.from(mac, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 const worker = {
+  // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every five minutes): the listing pipeline's
+  // sweep, through the app's own protected route so it runs with the app's code and bindings.
+  async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+    const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
+    if (!secret) return;
+    const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
+    const req = new Request(`${base.replace(/\/$/, '')}/api/jobs/listing`, { method: 'POST', headers: { authorization: `Bearer ${await workerToken(secret)}` } });
+    ctx.waitUntil(handler.fetch(req, env, ctx).then((r: Response) => r.text()).catch(() => undefined));
+  },
+
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/media/')) return media(request, env, path);

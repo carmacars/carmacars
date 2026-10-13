@@ -33,6 +33,10 @@ const schema = z.object({
   MAPS_PROVIDER: z.enum(['google', 'fake']).default('fake'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
+  /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
+  LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
+  PHOTO_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
+  PHOTO_FAKE_MODE: z.enum(['ok', 'not_enabled']).default('ok'),
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional()
 });
 

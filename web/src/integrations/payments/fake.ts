@@ -1,4 +1,4 @@
-import type { Intent, IntentCard, PaymentsAdapter } from './types';
+import type { Intent, IntentCard, PaymentsAdapter, Refund } from './types';
 import { verifyStripeSignature } from './signature';
 
 // For local work and tests: a PaymentIntent ledger that behaves like Stripe's for the paths the app
@@ -14,7 +14,7 @@ export const FAKE_CARDS: Record<string, { brand: string; funding: IntentCard['fu
   '4000000000009995': { brand: 'visa', funding: 'credit', decline: 'Your card has insufficient funds.' }
 };
 
-interface Ledger { intents: Map<string, Intent>; keys: Map<string, string>; customers: Map<string, string>; auto: Set<string>; seq: number }
+interface Ledger { intents: Map<string, Intent>; keys: Map<string, string>; customers: Map<string, string>; auto: Set<string>; seq: number; refunds?: Map<string, Refund> }
 const g = globalThis as unknown as { __ccFakePayments?: Ledger };
 const ledger = (): Ledger => {
   const l = (g.__ccFakePayments ??= { intents: new Map(), keys: new Map(), customers: new Map(), auto: new Set(), seq: 0 });
@@ -131,6 +131,19 @@ export function fakePayments(): FakePayments {
         i.paymentMethodId = r.paymentMethodId; i.chargeId = `ch_fake_${i.id.slice(8)}`; i.status = 'succeeded';
         return i;
       });
+    },
+    async refund(r) {
+      // a refund of a known intent checks the amount; an intent this process never saw (seeded data) is accepted
+      const l = ledger();
+      l.refunds ??= new Map();
+      const hit = l.refunds.get(r.idempotencyKey);
+      if (hit) return { ...hit };
+      const i = r.paymentIntentId ? l.intents.get(r.paymentIntentId) : undefined;
+      if (i && i.status !== 'succeeded') throw new Error(`This PaymentIntent cannot be refunded because it has a status of ${i.status}.`);
+      if (i && r.amountCents > i.amountCents) throw new Error('Refund amount is greater than the charge.');
+      const out: Refund = { id: `re_fake_${++l.seq}_${Math.random().toString(36).slice(2, 8)}`, status: 'succeeded', amountCents: r.amountCents, failureReason: null };
+      l.refunds.set(r.idempotencyKey, out);
+      return { ...out };
     },
     async verifyWebhook(rawBody, header, secret, now) {
       await verifyStripeSignature(rawBody, header, secret, now);

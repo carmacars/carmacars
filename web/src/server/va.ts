@@ -14,7 +14,7 @@ export async function vaPage(next: string, only?: Fn[]) {
   if (only && !only.includes(fn)) notFound();
   const aal = await sessionAal();
   return {
-    user, roles, fn,
+    user, roles, fn, aal,
     list: async <T = Row>(rel: string, q: ListQuery = {}) => (await door<{ rows: T[]; count: number }>(user.id, 'va_list', rel, q as Record<string, unknown>, aal)) ?? { rows: [], count: 0 },
     read: <T = Row>(what: string, p: Record<string, unknown> = {}) => door<T>(user.id, 'va_read', what, p, aal)
   };

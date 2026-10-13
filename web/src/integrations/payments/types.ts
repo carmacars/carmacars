@@ -80,6 +80,22 @@ export interface WebhookEvent {
   object: Record<string, unknown>;
 }
 
+/** A refund of a card payment (all or part), sent once whatever happens: the idempotency key is the refund's. */
+export interface RefundRequest {
+  paymentIntentId: string | null;
+  chargeId: string | null;
+  amountCents: number;
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
+export interface Refund {
+  id: string;
+  /** succeeded, pending (the bank has not confirmed yet), failed or canceled */
+  status: 'succeeded' | 'pending' | 'failed' | 'canceled' | 'requires_action';
+  amountCents: number;
+  failureReason: string | null;
+}
+
 export interface PaymentsAdapter {
   readonly name: 'stripe' | 'fake';
   /** The renter as a processor customer, so the card can be saved for later charges. */
@@ -94,6 +110,8 @@ export interface PaymentsAdapter {
   cancelIntent(id: string, idempotencyKey: string): Promise<Intent>;
   /** Charges the saved Card on File (extensions, later charges). */
   chargeOffSession(r: OffSessionChargeRequest): Promise<Intent>;
+  /** Refunds a card payment; a repeated call with the same key returns the same refund. */
+  refund(r: RefundRequest): Promise<Refund>;
   /** Checks the signature header against the raw body; throws when it does not match or is stale. */
   verifyWebhook(rawBody: string, signatureHeader: string | null, secret: string, nowSeconds?: number): Promise<WebhookEvent>;
 }

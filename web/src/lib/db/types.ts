@@ -3204,6 +3204,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      generated_documents: {
+        Row: {
+          kind: string;
+          entity_key: string;
+          document_id: string;
+          sha256: string;
+          created_at: string;
+        };
+        Insert: {
+          kind: string;
+          entity_key: string;
+          document_id: string;
+          sha256: string;
+          created_at?: string;
+        };
+        Update: {
+          kind?: string;
+          entity_key?: string;
+          document_id?: string;
+          sha256?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       gl_account_map: {
         Row: {
           source: string;
@@ -6758,6 +6782,8 @@ export type Database = {
           trackers_available: boolean;
           request_response_target_minutes: number;
           staff_blocked_terms: string[];
+          listing_ai_daily_neurons: number;
+          images_free_monthly_transformations: number;
         };
         Insert: {
           id?: string;
@@ -6931,6 +6957,8 @@ export type Database = {
           trackers_available?: boolean;
           request_response_target_minutes?: number;
           staff_blocked_terms?: string[];
+          listing_ai_daily_neurons?: number;
+          images_free_monthly_transformations?: number;
         };
         Update: {
           id?: string;
@@ -7104,6 +7132,8 @@ export type Database = {
           trackers_available?: boolean;
           request_response_target_minutes?: number;
           staff_blocked_terms?: string[];
+          listing_ai_daily_neurons?: number;
+          images_free_monthly_transformations?: number;
         };
         Relationships: [];
       };
@@ -7210,6 +7240,8 @@ export type Database = {
           duration_ms: number | null;
           cost_microusd: number;
           created_at: string;
+          units: number | null;
+          unit: string | null;
         };
         Insert: {
           id?: string;
@@ -7223,6 +7255,8 @@ export type Database = {
           duration_ms?: number | null;
           cost_microusd?: number;
           created_at?: string;
+          units?: number | null;
+          unit?: string | null;
         };
         Update: {
           id?: string;
@@ -7236,6 +7270,8 @@ export type Database = {
           duration_ms?: number | null;
           cost_microusd?: number;
           created_at?: string;
+          units?: number | null;
+          unit?: string | null;
         };
         Relationships: [];
       };
@@ -11383,13 +11419,21 @@ export type Database = {
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_document_file: { Args: { p_document: string }; Returns: Json };
       server_draft_resume_link: { Args: { p_draft: string; p_email: string; p_user?: string; p_token?: string }; Returns: string };
       server_extension_payment_facts: { Args: { p_extension: string; p_by: string }; Returns: Json };
+      server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
+      server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
+      server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_listing_budget: { Args: never; Returns: Json };
+      server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
+      server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };
       server_owner_invoice_payment_facts: { Args: { p_invoice: string; p_by: string }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
+      server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
@@ -11417,7 +11461,7 @@ export type Database = {
       booking_status: "requested" | "offered" | "tentative" | "pending_payment" | "confirmed" | "on_rent" | "returned" | "closed" | "cancelled" | "no_show" | "expired" | "declined";
       booking_type: "standard" | "non_refundable" | "owner";
       charge_stage: "booking" | "pickup" | "extension" | "check_in" | "after_return" | "on_decline" | "monthly" | "split";
-      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other";
+      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice";
       field_function: "driver" | "detailer" | "driver_detailer";
       finance_permission: "not_applicable" | "attached" | "not_obtained";
       fuel_type: "gasoline" | "diesel" | "hybrid" | "plug_in_hybrid" | "electric";

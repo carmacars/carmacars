@@ -9,6 +9,10 @@ import { ExitNoticeForm } from '@/features/owner/OwnerForms';
 import { OwnerUpload } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
 import { ownerBookings, requireOwner } from '@/server/owner/data';
+import { door } from '@/server/door';
+import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
+import { ListingProgress, type Progress } from '@/features/listing/ListingProgress';
+import { StartListing } from '@/features/listing/StartListing';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -21,6 +25,12 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   if (!v) notFound();
   const bookings = (await ownerBookings(user)).filter((b) => b.vehicle_id === id);
   const exit = home.exits.find((x) => x.vehicle_id === id && x.status === 'notice');
+  // the car's listing: photos and progress while one is open (an owner's listing is reviewed by staff)
+  const listable = !['exited', 'total_loss', 'declined'].includes(v.status) && v.management_mode !== 'turo_only';
+  const current = listable ? await door<{ intake_id: string; state: string; open: boolean } | null>(user.id, 'ops_read', 'listing_current', { vehicle: id }).catch(() => null) : null;
+  const [cap, prog] = current?.open
+    ? await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: current.intake_id }), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: current.intake_id })])
+    : [null, null];
   return (
     <>
       <Back href="/owner/vehicles">Vehicles</Back>
@@ -40,6 +50,12 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             )}
             {v.estimate_cents !== null && <p className="small muted">Registry and inspection estimate: about {money(v.estimate_cents)}, which you pay directly to ServiceOntario and the inspection station, not to CarmaCars. Amounts may vary.</p>}
           </section>}
+          {listable && !current?.open && <section className="pt-card" aria-labelledby="ow-list"><h2 className="d4" id="ow-list">Listing photos</h2>
+            <p className="small">{v.listing_path ? 'Your car is on the website. New photos replace the current ones once our team approves them.' : 'Take the photos for the website: 13 set angles and the odometer. We write the details, edit the backgrounds and publish the car after a review.'}</p>
+            <StartListing vehicleId={id} label={v.listing_path ? 'Take new photos' : 'Add listing photos'} />
+          </section>}
+          {cap && prog?.[cap.intake_id] && <ListingProgress initial={prog[cap.intake_id]!} refresh={[`/owner/vehicles/${id}`]} />}
+          {cap && <ListingCapture initial={cap} refresh={[`/owner/vehicles/${id}`]} />}
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <li key={b.booking_id}><span>{b.booking_number}{b.booking_type === 'owner' ? ' · Your booking' : ''}</span><span className="ow-amount">{money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
               : <p className="muted small">No bookings yet.</p>}

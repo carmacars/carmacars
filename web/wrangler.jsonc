@@ -37,9 +37,14 @@
     "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],
+  // Workers AI for the listing copy drafts (free daily neurons), and the cron trigger that runs the listing
+  // pipeline's worker every five minutes (custom-worker.ts scheduled -> /api/jobs/listing).
+  "ai": { "binding": "AI" },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "vars": {
     "APP_ENV": "production",
-    "DATA_BACKEND": "supabase"
+    "DATA_BACKEND": "supabase",
+    "NEXT_PUBLIC_APP_URL": "https://carmacars.ca"
   },
   "env": {
     "staging": {
@@ -57,6 +62,8 @@
       ],
       "d1_databases": [{ "binding": "NEXT_TAG_CACHE_D1", "database_name": "carmacars-staging-tag-cache", "database_id": "00000000-0000-0000-0000-000000000000" }],
       "durable_objects": { "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }] },
+      "ai": { "binding": "AI" },
+      "triggers": { "crons": [] },
       "vars": { "APP_ENV": "staging", "DATA_BACKEND": "supabase" }
     }
   }

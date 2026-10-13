@@ -144,3 +144,23 @@
   .agreement .data--kv td { text-align: left; overflow-wrap: anywhere; word-break: break-word; }
 }
 @media (max-width: 63.99rem) { .pt-first { order: -1; } }
+
+/* listing pipeline: capture and progress (0032) */
+.lc__grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); list-style: none; margin: 0 0 var(--s-4); padding: 0; }
+.lc__shot { display: grid; gap: var(--s-1); align-content: start; padding: var(--s-3); border: 1px solid var(--grey-200); background: var(--white); }
+.lc__shot.is-done { border-left: 4px solid var(--black); }
+.lc__pick { position: relative; justify-self: start; cursor: pointer; }
+.lc__pick:focus-within { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.lp__state { margin: 0 0 var(--s-2); }
+.lp__bar { display: block; height: 0.5rem; background: var(--grey-100); border: 1px solid var(--grey-200); overflow: hidden; }
+.lp__bar > span { display: block; height: 100%; background: var(--black); }
+.lp__bar--sm { width: 5rem; height: 0.375rem; display: inline-block; vertical-align: middle; margin-right: var(--s-2); }
+.lp__steps, .lp__problems { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: var(--s-2); }
+.lp__steps li { display: flex; justify-content: space-between; gap: var(--s-3); font-size: var(--fs-xs); border-bottom: 1px solid var(--grey-200); padding-bottom: var(--s-1); }
+.lp__steps li.is-done span:last-child { font-weight: 700; }
+.lp__steps li.is-bad span:last-child { color: var(--red-700, #a1121a); font-weight: 700; }
+.lp__problems li { display: grid; gap: var(--s-1); padding: var(--s-3); background: var(--red-50); border-left: 4px solid var(--red-600); }
+.lp__problems .btn { justify-self: start; }
+.lp__err { word-break: break-word; }
+.lp__flags { margin: var(--s-3) 0 0; padding-left: var(--s-4); }
+.lp-cell { white-space: nowrap; }

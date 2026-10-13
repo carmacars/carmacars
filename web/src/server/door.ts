@@ -10,7 +10,7 @@ import { currentUser } from '@/server/portal/data';
 // user, refuses a staff session without the second factor while require_staff_two_step is on, and
 // checks what each role may read and do.
 const SR = { role: 'service_role' as const };
-export type Call = 'roles' | 'admin_list' | 'admin_read' | 'admin_save' | 'admin_do' | 'va_list' | 'va_read' | 'va_do' | 'field_read' | 'field_do' | 'investor_read' | 'investor_do';
+export type Call = 'roles' | 'admin_list' | 'admin_read' | 'admin_save' | 'admin_do' | 'va_list' | 'va_read' | 'va_do' | 'field_read' | 'field_do' | 'investor_read' | 'investor_do' | 'ops_read' | 'ops_do';
 export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {

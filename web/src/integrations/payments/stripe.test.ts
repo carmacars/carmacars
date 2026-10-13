@@ -134,3 +134,28 @@ test('a settled debit reads the bank and the mandate from the charge', () => {
   assert.equal(i.mandateId, 'mandate_1');
   assert.equal(i.card, null);
 });
+
+test('a refund goes to /v1/refunds against the PaymentIntent, with the refund\'s own idempotency key', async () => {
+  const { f, calls } = mock([{ body: { id: 're_1', object: 'refund', status: 'succeeded', amount: 2500, failure_reason: null } }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  const r = await s.refund({ paymentIntentId: 'pi_123', chargeId: 'ch_1', amountCents: 2500, idempotencyKey: 'refund:r1', metadata: { refund_id: 'r1' } });
+  assert.deepEqual(r, { id: 're_1', status: 'succeeded', amountCents: 2500, failureReason: null });
+  const c = calls[0]!;
+  assert.equal(c.url, 'https://api.stripe.com/v1/refunds');
+  const body = decodeURIComponent(String(c.init.body));
+  assert.match(body, /payment_intent=pi_123/);
+  assert.doesNotMatch(body, /charge=/);
+  assert.match(body, /amount=2500/);
+  assert.match(body, /metadata\[refund_id\]=r1/);
+  assert.equal((c.init.headers as Record<string, string>)['idempotency-key'], 'refund:r1');
+});
+
+test('a refund of a charge without an intent uses the charge; a refusal is a StripeError with the message', async () => {
+  const { f, calls } = mock([{ body: { id: 're_2', status: 'pending', amount: 100 } }, { status: 400, body: { error: { message: 'Charge ch_9 has been charged back.', code: 'charge_disputed' } } }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  const r = await s.refund({ paymentIntentId: null, chargeId: 'ch_2', amountCents: 100, idempotencyKey: 'refund:r2', metadata: {} });
+  assert.equal(r.status, 'pending');
+  assert.match(decodeURIComponent(String(calls[0]!.init.body)), /charge=ch_2/);
+  await assert.rejects(s.refund({ paymentIntentId: null, chargeId: 'ch_9', amountCents: 100, idempotencyKey: 'refund:r3', metadata: {} }),
+    (e: unknown) => e instanceof StripeError && e.code === 'charge_disputed' && /charged back/.test(e.message));
+});

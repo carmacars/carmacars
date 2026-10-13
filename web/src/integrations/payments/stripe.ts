@@ -1,4 +1,4 @@
-import type { Intent, IntentCard, PaymentsAdapter, WebhookEvent } from './types';
+import type { Intent, IntentCard, PaymentsAdapter, Refund, WebhookEvent } from './types';
 import { verifyStripeSignature } from './signature.ts';
 
 // Stripe's REST API through fetch (no SDK), so it runs unchanged in the Cloudflare Worker and can be
@@ -60,6 +60,12 @@ export class StripeError extends Error {
     this.code = code;
     this.declineCode = declineCode;
   }
+}
+
+export function toRefund(r: Obj): Refund {
+  const st = str(r.status);
+  const status: Refund['status'] = st === 'succeeded' || st === 'pending' || st === 'failed' || st === 'canceled' || st === 'requires_action' ? st : 'pending';
+  return { id: String(r.id), status, amountCents: num(r.amount), failureReason: str(r.failure_reason) };
 }
 
 export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fetch(...a)): PaymentsAdapter {
@@ -130,6 +136,12 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
         amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method: r.paymentMethodId, off_session: true, confirm: true,
         description: r.description, metadata: r.metadata, expand
       }, r.idempotencyKey));
+    },
+    async refund(r) {
+      if (!r.paymentIntentId && !r.chargeId) throw new StripeError('The payment has no processor reference', 400, 'missing_reference', null);
+      const p: Params = { amount: r.amountCents, metadata: r.metadata, reason: 'requested_by_customer' };
+      if (r.paymentIntentId) p.payment_intent = r.paymentIntentId; else p.charge = r.chargeId;
+      return toRefund(await call('POST', '/refunds', p, r.idempotencyKey));
     },
     async verifyWebhook(rawBody, header, secret, now): Promise<WebhookEvent> {
       await verifyStripeSignature(rawBody, header, secret, now);
