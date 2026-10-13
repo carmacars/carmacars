@@ -23,8 +23,9 @@ const schema = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   /** Signs links that act without a session (additional drivers' signing links, upload tickets, local storage links). */
   LINK_SIGNING_KEY: z.string().min(32).optional(),
-  /** r2: S3 API with R2_* keys; r2-binding: the Worker's R2 bindings (signed links through /api/storage) */
-  STORAGE_PROVIDER: z.enum(['r2', 'r2-binding', 'local']).default('local'),
+  /** r2: S3 API with R2_* keys; r2-binding: the Worker's R2 bindings (signed links through /api/storage);
+   *  supabase: Supabase Storage (for a Cloudflare account without R2) */
+  STORAGE_PROVIDER: z.enum(['r2', 'r2-binding', 'supabase', 'local']).default('local'),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),

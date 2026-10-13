@@ -7,7 +7,10 @@ let cached: StorageAdapter | undefined;
 export async function storage(): Promise<StorageAdapter> {
   if (cached) return cached;
   const e = env();
-  if (e.STORAGE_PROVIDER === 'r2-binding') {
+  if (e.STORAGE_PROVIDER === 'supabase') {
+    const { supabaseStorage } = await import('./supabase');
+    cached = supabaseStorage({ url: required('NEXT_PUBLIC_SUPABASE_URL'), serviceKey: required('SUPABASE_SERVICE_ROLE_KEY'), publicBase: e.NEXT_PUBLIC_VEHICLE_PHOTOS_URL });
+  } else if (e.STORAGE_PROVIDER === 'r2-binding') {
     const { r2BindingStorage } = await import('./r2-binding');
     cached = r2BindingStorage(e.NEXT_PUBLIC_VEHICLE_PHOTOS_URL, linkSecret());
   } else if (e.STORAGE_PROVIDER === 'r2') {

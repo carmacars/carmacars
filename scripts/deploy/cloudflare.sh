@@ -2,14 +2,16 @@
 # Cloudflare side of the deploy (ci workflow, deploy job). Idempotent.
 #
 #   scripts/deploy/cloudflare.sh token       check the API token and report what it may do
-#   scripts/deploy/cloudflare.sh resources   R2 buckets and the D1 tag cache (its id into web/wrangler.jsonc)
+#   scripts/deploy/cloudflare.sh resources   page cache and file storage by what the account offers (R2, KV, D1),
+#                                            the resources they need, and web/wrangler.jsonc and
+#                                            web/open-next.config.ts rewritten to match (CI workspace only)
 #   scripts/deploy/cloudflare.sh turnstile   the Turnstile widget for the site; exports the keys, or turns
 #                                            Turnstile off (TURNSTILE_PROVIDER=off) when the token cannot
 #   scripts/deploy/cloudflare.sh dns         frees carmacars.ca and www for the Worker's custom domains: only
 #                                            A, AAAA or CNAME records on those two names are removed (never
 #                                            MX, TXT or anything else, never another name)
-#   scripts/deploy/cloudflare.sh photos      the stand-in photos into the public bucket (once; a marker object
-#                                            records it)
+#   scripts/deploy/cloudflare.sh photos      the stand-in photos into the R2 public bucket (once; a marker object
+#                                            records it); with Supabase Storage: supabase.sh photos
 #
 # Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID; DEPLOY_ENV (production | staging), DOMAIN (carmacars.ca).
 set -euo pipefail
@@ -23,43 +25,74 @@ DOMAIN="${DOMAIN:-carmacars.ca}"
 P=$([ "$DEPLOY_ENV" = staging ] && echo carmacars-staging || echo carmacars-prod)
 BUCKETS=(opennext-cache vehicle-public vehicle-originals documents identity condition-photos agreements)
 
+probe() { # label method path -> prints yes, or NO and the reason
+  local out
+  if out=$(cfapi GET "$2" 2>&1 >/dev/null); then echo "yes"; else echo "NO ($(grep -o '"message":"[^"]*"' <<<"$out" | head -1 | cut -d'"' -f4))"; fi
+}
+
 token() {
   local v
   v=$(cfapi GET "/accounts/$ACC/tokens/verify" 2>/dev/null || cfapi GET "/user/tokens/verify") || die "The Cloudflare API token does not verify"
   log "token: $(jq -c '.result | {status, expires_on}' <<<"$v")"
-  local probes=()
-  cfapi GET "/accounts/$ACC/workers/scripts" > /dev/null 2>&1 && probes+=("workers:yes") || probes+=("workers:NO")
-  cfapi GET "/accounts/$ACC/r2/buckets" > /dev/null 2>&1 && probes+=("r2:yes") || probes+=("r2:NO")
-  cfapi GET "/accounts/$ACC/d1/database" > /dev/null 2>&1 && probes+=("d1:yes") || probes+=("d1:NO")
-  cfapi GET "/accounts/$ACC/challenges/widgets" > /dev/null 2>&1 && probes+=("turnstile:yes") || probes+=("turnstile:NO")
-  cfapi GET "/zones?name=$DOMAIN" > /dev/null 2>&1 && probes+=("zone:yes") || probes+=("zone:NO")
-  notice "Cloudflare token read access: ${probes[*]}"
+  CF_R2=$(probe r2 "/accounts/$ACC/r2/buckets")
+  CF_KV=$(probe kv "/accounts/$ACC/storage/kv/namespaces?per_page=5")
+  CF_D1=$(probe d1 "/accounts/$ACC/d1/database")
+  notice "Cloudflare account and token: workers $(probe w "/accounts/$ACC/workers/scripts") | R2 $CF_R2 | KV $CF_KV | D1 $CF_D1 | Turnstile $(probe t "/accounts/$ACC/challenges/widgets") | zone $(probe z "/zones?name=$DOMAIN")"
+  export CF_R2 CF_KV CF_D1
 }
 
+# What the account offers decides the page cache and the file storage:
+#   R2 on:          R2 page cache (+ D1 tags when allowed), files on the Worker's R2 bindings
+#   R2 off, KV on:  KV page cache and tags, files on Supabase Storage
+#   neither:        pages served as built from the static assets, files on Supabase Storage
 resources() {
-  local b name
-  for b in "${BUCKETS[@]}"; do
-    name="$P-$b"
-    if cfapi GET "/accounts/$ACC/r2/buckets/$name" > /dev/null 2>&1; then
-      log "r2: $name exists"
-    else
-      cfapi POST "/accounts/$ACC/r2/buckets" "$(jq -n --arg n "$name" '{name: $n, locationHint: "enam"}')" > /dev/null \
-        || die "Could not create the R2 bucket $name (the token needs Workers R2 Storage Edit)"
+  [ -n "${CF_R2:-}" ] || token
+  local cache tag storage kv_id="" d1_id=""
+  if [ "$CF_R2" = yes ]; then cache=r2; storage=r2-binding; else storage=supabase; [ "${CF_KV:0:3}" = yes ] && cache=kv || cache=assets; fi
+  tag=none
+  [ "$cache" = r2 ] && [ "$CF_D1" = yes ] && tag=d1
+  [ "$cache" = kv ] && tag=kv
+
+  if [ "$cache" = r2 ] || [ "$storage" = r2-binding ]; then
+    local b name
+    for b in "${BUCKETS[@]}"; do
+      name="$P-$b"
+      if cfapi GET "/accounts/$ACC/r2/buckets/$name" > /dev/null 2>&1; then log "r2: $name exists"; continue; fi
+      cfapi POST "/accounts/$ACC/r2/buckets" "$(jq -n --arg n "$name" '{name: $n, locationHint: "enam"}')" > /dev/null || die "Could not create the R2 bucket $name"
       notice "R2: bucket $name created"
-    fi
-  done
-  local db="$P-tag-cache" id
-  id=$(cfapi GET "/accounts/$ACC/d1/database?name=$db" | jq -r --arg n "$db" '[.result[]? | select(.name == $n)][0].uuid // empty') || id=""
-  if [ -z "$id" ]; then
-    id=$(cfapi POST "/accounts/$ACC/d1/database" "$(jq -n --arg n "$db" '{name: $n, primary_location_hint: "enam"}')" | jq -r '.result.uuid // empty') \
-      || die "Could not create the D1 database $db (the token needs D1 Edit)"
-    [ -n "$id" ] || die "Could not create the D1 database $db"
-    notice "D1: database $db created"
+    done
   fi
-  # the database id goes on the line naming this database (the file keeps the zero id in git)
-  sed -i -E "/\"database_name\": \"$db\"/ s/\"database_id\": \"[0-9a-f-]+\"/\"database_id\": \"$id\"/" "$ROOT/web/wrangler.jsonc"
-  grep -q "$id" "$ROOT/web/wrangler.jsonc" || die "Could not put the D1 id into wrangler.jsonc"
-  log "d1: $db = $id"
+  if [ "$tag" = d1 ]; then
+    local db="$P-tag-cache"
+    d1_id=$(cfapi GET "/accounts/$ACC/d1/database?name=$db" | jq -r --arg n "$db" '[.result[]? | select(.name == $n)][0].uuid // empty')
+    if [ -z "$d1_id" ]; then
+      d1_id=$(cfapi POST "/accounts/$ACC/d1/database" "$(jq -n --arg n "$db" '{name: $n, primary_location_hint: "enam"}')" | jq -r '.result.uuid // empty') || true
+      [ -n "$d1_id" ] && notice "D1: database $db created" || { warn "D1 database could not be created; no tag cache"; tag=none; }
+    fi
+  fi
+  if [ "$cache" = kv ]; then
+    local title="$P-cache"
+    kv_id=$(cfapi GET "/accounts/$ACC/storage/kv/namespaces?per_page=100" | jq -r --arg t "$title" '[.result[]? | select(.title == $t)][0].id // empty')
+    if [ -z "$kv_id" ]; then
+      kv_id=$(cfapi POST "/accounts/$ACC/storage/kv/namespaces" "$(jq -n --arg t "$title" '{title: $t}')" | jq -r '.result.id // empty') || true
+      if [ -n "$kv_id" ]; then notice "KV: namespace $title created"; else warn "KV namespace could not be created; pages are served as built"; cache=assets; tag=none; fi
+    fi
+  fi
+
+  case "$cache" in
+    kv) cp "$HERE/open-next/kv.config.ts" "$ROOT/web/open-next.config.ts" ;;
+    assets) cp "$HERE/open-next/assets.config.ts" "$ROOT/web/open-next.config.ts" ;;
+    r2) [ "$tag" = d1 ] || sed -i '/tagCache: d1NextTagCache,/d; /d1-next-tag-cache/d' "$ROOT/web/open-next.config.ts" ;;
+  esac
+  node "$ROOT/scripts/deploy/wrangler-config.mjs" --cache "$cache" --tag "$tag" --storage "$storage" ${kv_id:+--kv-id "$kv_id"} ${d1_id:+--d1-id "$d1_id"}
+  export_env STORAGE_PROVIDER "$storage"
+  export_env OPEN_NEXT_CACHE "$cache"
+  if [ "$storage" = supabase ]; then
+    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/vehicle-public"
+  else
+    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "${APP_URL:-https://$DOMAIN}/media"
+  fi
+  notice "Cache and storage: page cache $cache, tag cache $tag, files $storage"
 }
 
 turnstile() {

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 const MAX = 15 * 1024 * 1024;
 
 async function target(params: Promise<{ key: string[] }>) {
-  if (env().STORAGE_PROVIDER === 'r2') return null;
+  if (env().STORAGE_PROVIDER !== 'local' && env().STORAGE_PROVIDER !== 'r2-binding') return null;
   const [bucket, ...rest] = (await params).key.map(decodeURIComponent);
   if (!bucket || !PRIVATE_BUCKETS.includes(bucket as Bucket) || !rest.length) return null;
   return { bucket: bucket as Bucket, key: rest.join('/') };

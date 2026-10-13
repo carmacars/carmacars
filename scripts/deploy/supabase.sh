@@ -7,6 +7,9 @@
 #   scripts/deploy/supabase.sh migrate   apply only the migrations not yet applied, through the Management API
 #   scripts/deploy/supabase.sh auth      redirect URLs and the invitation email link (Supabase Auth)
 #   scripts/deploy/supabase.sh outbox    deploy the send-outbox Edge Function and schedule it every minute
+#   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
+#                                        has no R2: STORAGE_PROVIDER=supabase); vehicle-public is public
+#   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
 #   scripts/deploy/supabase.sh stripe    the Stripe webhook endpoint (test or live, by the secret key) and its
 #                                        signing secret in the vault (deploy_stripe_webhook_secret)
 #
@@ -159,6 +162,55 @@ outbox() {
   [ "$code" = "200" ] && notice "Outbox sender: Edge Function send-outbox answers ($(cat "$dir.json")), pg_cron job carmacars-send-outbox every minute" \
     || warn "send-outbox with the token answered $code: $(head -c 300 "$dir.json")"
   rm -f "$dir.json"
+}
+
+service_key() {
+  if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+    SUPABASE_SERVICE_ROLE_KEY=$(sbapi GET "/api-keys?reveal=true" | jq -r '[.[] | select(.name == "service_role")][0].api_key')
+    mask "$SUPABASE_SERVICE_ROLE_KEY"
+  fi
+}
+
+storage() {
+  service_key
+  local b pub code
+  for b in vehicle-public vehicle-originals documents identity condition-photos agreements; do
+    pub=false; [ "$b" = vehicle-public ] && pub=true
+    code=$(curl -sS -o /dev/null -w '%{http_code}' "https://$REF.supabase.co/storage/v1/bucket/$b" \
+      -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY")
+    if [ "$code" = 200 ]; then log "storage: bucket $b exists"; continue; fi
+    code=$(curl -sS -o /tmp/sb-bucket.json -w '%{http_code}' -X POST "https://$REF.supabase.co/storage/v1/bucket" \
+      -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: application/json' \
+      --data "$(jq -n --arg b "$b" --argjson p "$pub" '{id: $b, name: $b, public: $p, file_size_limit: 15728640}')")
+    [ "${code:0:1}" = 2 ] || die "Could not create the storage bucket $b ($code): $(head -c 300 /tmp/sb-bucket.json)"
+    notice "Storage: bucket $b created (public: $pub)"
+  done
+}
+
+photos() {
+  service_key
+  local base="https://$REF.supabase.co/storage/v1/object" marker=".seeded/stand-in-photos-v1"
+  if [ "$(curl -sS -o /dev/null -w '%{http_code}' "$base/public/vehicle-public/$marker")" = 200 ]; then
+    log "photos: already uploaded"; return
+  fi
+  local list
+  list=$(mktemp)
+  node -e '
+    const fs = require("fs"), path = require("path");
+    const dir = path.join(process.argv[1], "prototype/assets/photos");
+    const cars = Object.keys(JSON.parse(fs.readFileSync(path.join(process.argv[1], "prototype/assets/photos.json"), "utf8")).cars);
+    for (const f of fs.readdirSync(dir)) console.log((cars.some((s) => f.startsWith(s + "-")) ? "vehicles/" : "site/") + f + "\t" + path.join(dir, f));
+  ' "$ROOT" > "$list"
+  export SUPABASE_SERVICE_ROLE_KEY base
+  # shellcheck disable=SC2016
+  tr '\t' '\n' < "$list" | xargs -n 2 -P 8 sh -c 'ct=image/jpeg; case "$0" in *.svg) ct=image/svg+xml;; *.webp) ct=image/webp;; *.png) ct=image/png;; esac
+    code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$base/vehicle-public/$0" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+      -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "content-type: $ct" -H "x-upsert: true" -H "cache-control: max-age=31536000" --data-binary "@$1")
+    case "$code" in 2*) ;; *) echo "upload failed ($code): $0" >&2; exit 255;; esac'
+  date -u +%FT%TZ | curl -sS -f -o /dev/null -X POST "$base/vehicle-public/$marker" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: text/plain' -H 'x-upsert: true' --data-binary @-
+  notice "Photos: $(wc -l < "$list") stand-in photos uploaded to Supabase Storage vehicle-public"
+  rm -f "$list"
 }
 
 stripe() {

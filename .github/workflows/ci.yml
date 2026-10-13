@@ -134,15 +134,17 @@ jobs:
         working-directory: web
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
-      - name: Cloudflare token, R2 buckets, D1, Turnstile, DNS for the custom domains
+      - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
         run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources turnstile dns
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate auth stripe outbox
       - name: Seed (content rows; the sample cars while the site has none)
         working-directory: web
         run: $RUN "Seed" node scripts/seed.mjs --production
-      - name: Stand-in photos into the public bucket
-        run: $RUN "Photos" scripts/deploy/cloudflare.sh photos
+      - name: File buckets and the stand-in photos (R2, or Supabase Storage when the account has no R2)
+        run: |
+          if [ "$STORAGE_PROVIDER" = supabase ]; then $RUN "Photos" scripts/deploy/supabase.sh storage photos
+          else $RUN "Photos" scripts/deploy/cloudflare.sh photos; fi
       - name: Build the Worker
         working-directory: web
         run: |
@@ -153,12 +155,12 @@ jobs:
             echo "NEXT_PUBLIC_APP_URL=$APP_URL"
             echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL"
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY"
-            echo "NEXT_PUBLIC_VEHICLE_PHOTOS_URL=$APP_URL/media"
+            echo "NEXT_PUBLIC_VEHICLE_PHOTOS_URL=$NEXT_PUBLIC_VEHICLE_PHOTOS_URL"
             echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
             echo "TURNSTILE_PROVIDER=$TURNSTILE_PROVIDER"
             echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY"
             echo "PAYMENTS_PROVIDER=stripe"
-            echo "STORAGE_PROVIDER=r2-binding"
+            echo "STORAGE_PROVIDER=$STORAGE_PROVIDER"
             echo "R2_BUCKET_PREFIX=carmacars-$([ "$DEPLOY_ENV" = staging ] && echo staging || echo prod)-"
             echo "MAPS_PROVIDER=${{ vars.MAPS_PROVIDER || 'fake' }}"
             echo "VIN_DECODER=vpic"
@@ -186,4 +188,4 @@ jobs:
             code=$(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/ || true)
             [ "$code" = 200 ] && break; sleep 10
           done
-          echo "::notice title=deploy::https://carmacars.ca answered $code; /cars $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/cars); /media $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/media/.seeded/stand-in-photos-v1)"
+          echo "::notice title=deploy::https://carmacars.ca answered $code; /cars $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/cars); photos $(curl -s -o /dev/null -w '%{http_code}' "$NEXT_PUBLIC_VEHICLE_PHOTOS_URL/.seeded/stand-in-photos-v1")"
