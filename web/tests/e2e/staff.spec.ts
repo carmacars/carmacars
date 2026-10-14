@@ -50,12 +50,15 @@ async function mkUser(sql: Sql, tag: string, role: 'admin' | 'va' | 'field' | 'r
   if (role === 'field') await sql`insert into staff_profiles (user_id, staff_type, field_function) values (${id}, 'field', 'driver')`;
   return { id, email };
 }
-async function freeCar(sql: Sql, start: number, days: number) {
+// `past`: the car must also be free that many days back (a test that later moves its booking into the past;
+// the exclusion constraint bookings_no_double_booking refuses the move onto another booking of the car)
+async function freeCar(sql: Sql, start: number, days: number, past = 0) {
   const from = new Date(Date.now() + start * 86_400_000); const to = new Date(from.getTime() + days * 86_400_000);
+  const since = new Date(Math.min(from.getTime(), Date.now() - past * 86_400_000));
   const rows = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
     where l.status = 'published' and app.vehicle_bookable(v.id)
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
-                        and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${from.toISOString()}::timestamptz, ${to.toISOString()}::timestamptz))
+                        and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${since.toISOString()}::timestamptz, ${to.toISOString()}::timestamptz))
       and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${to.toISOString()}::timestamptz and (k.ends_at is null or k.ends_at > ${from.toISOString()}::timestamptz))
       and not exists (select 1 from field_jobs j where j.vehicle_id = v.id and j.status not in ('cancelled', 'done') and j.scheduled_at between ${from.toISOString()}::timestamptz - interval '3 days' and ${to.toISOString()}::timestamptz)
     order by random() limit 1`;
@@ -232,7 +235,7 @@ test('field: a full handover with every photo and the renter signature, then a l
   const admin = await mkUser(sql, 'fh', 'admin');
   const field = await mkUser(sql, 'fh', 'field');
   const renter = await mkUser(sql, 'rh', 'renter');
-  const car = await freeCar(sql, 1, 2);
+  const car = await freeCar(sql, 1, 2, 4);
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
   const [bk] = await sql`select pickup_at, deposit_cents::int dep, billable_days d from bookings where id = ${req.booking_id}`;

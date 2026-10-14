@@ -16,7 +16,7 @@ export default async function Investors() {
       <AuthShell side="Investor sign in" sideText={`For people who already invest with ${t.brand}.`}>
         <h1 className="d2">Sign in to the investor portal</h1>
         <p>Investor information is available to signed-in investors only. Nothing about investing with {t.brand} is published on this site.</p>
-        <Suspense fallback={null}><SignInForm idPrefix="iv" next="/account" /></Suspense>
+        <Suspense fallback={null}><SignInForm idPrefix="iv" next="/investor" /></Suspense>
         {f.email_aliases.investors && <p className="small muted">Existing investors with a question can email <a className="link" href={`mailto:${f.email_aliases.investors}`}>{f.email_aliases.investors}</a>.</p>}
       </AuthShell>
     </div>

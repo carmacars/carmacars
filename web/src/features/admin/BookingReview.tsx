@@ -257,7 +257,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
           <div><dt><b>Total due at booking</b></dt><dd><b>{money(total, { cents: true })}</b></dd></div>
         </dl>
-        <p className="small muted">Open until {when(expiresAt())}</p>
+        {/* from the clock: the server and the browser can be a minute apart, so the text may differ on hydration */}
+        <p className="small muted" suppressHydrationWarning>Open until {when(expiresAt())}</p>
       </aside>
     </div>
     </Ctx.Provider>
