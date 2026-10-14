@@ -27,9 +27,14 @@ export async function listItems<T>(key: string): Promise<T[]> {
 export async function slotPhoto(key: string): Promise<SlotPhoto | null> {
   return ((await block(`photo.${key}`))?.data as unknown as SlotPhoto | undefined) ?? null;
 }
+// The site frame (root layout) reads only the small "global" page of content blocks, not every block: it runs on
+// every page, portal pages included, and each server-rendered request has 10 ms of CPU on the Workers Free plan.
+const getGlobalBlocks = cache(async () => (await rpc('site_content', { p_page: 'global' })) as unknown as ContentBlock[]);
 export async function cookieWording(): Promise<CookieWording | null> {
-  return ((await block('cookies.banner'))?.data as unknown as CookieWording | undefined) ?? null;
+  return ((await getGlobalBlocks()).find((b) => b.key === 'cookies.banner')?.data as unknown as CookieWording | undefined) ?? null;
 }
+/** "We reply within 2 hours", from site settings (the {{reply}} token, without loading every token). */
+export const replyText = (s: SiteSettings) => (s.reply_wording ? `We reply ${s.reply_wording}` : '');
 
 export { photoUrl } from '@/lib/photo';
 export const siteUrl = () => env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
@@ -53,7 +58,7 @@ export const getTokens = cache(async (): Promise<Tokens> => {
   const late = fee('late_return_fee');
   return {
     brand: s.brand_name, tagline: s.tagline ?? '', carma, city: s.city, region: s.region, serviceArea: s.service_area,
-    email: s.public_email ?? '', reply: s.reply_wording ? `We reply ${s.reply_wording}` : '', replyShort: s.reply_wording ?? '',
+    email: s.public_email ?? '', reply: replyText(s), replyShort: s.reply_wording ?? '',
     hours: s.opening_hours_text ?? '', phone: s.phone_display ?? '', roadside: s.roadside_phone_display ?? '',
     hst: pct(f.hst_bps), maxDays: String(f.max_rental_days), maxDaysLess1: String(f.max_rental_days - 1),
     weekFrom: String(f.weekly_from_days), weekFromLess1: String(f.weekly_from_days - 1),

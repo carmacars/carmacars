@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import type { SiteSettings } from '@/lib/types';
-import type { Tokens } from '@/lib/site';
 import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
-export function Footer({ s, t }: { s: SiteSettings; t: Tokens }) {
+export function Footer({ s, reply }: { s: SiteSettings; reply: string }) {
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
   return (
     <footer className="site-footer on-dark">
@@ -27,7 +26,7 @@ export function Footer({ s, t }: { s: SiteSettings; t: Tokens }) {
             {s.phone && <li><a href={`tel:${s.phone}`}>{s.phone_display}</a><span>Phone and 24-hour roadside line</span></li>}
             {s.whatsapp && <li><a href={waLink(s.whatsapp)} rel="noopener">WhatsApp</a></li>}
             {s.public_email && <li><a href={`mailto:${s.public_email}`}>{s.public_email}</a></li>}
-            <li><span>{[s.opening_hours_text, t.reply].filter(Boolean).join('. ')}.</span></li>
+            <li><span>{[s.opening_hours_text, reply].filter(Boolean).join('. ')}.</span></li>
             {s.street_address && <li><span>{s.street_address}</span></li>}
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>

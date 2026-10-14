@@ -8,7 +8,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
-import { cookieWording, getSettings, getTokens, photoUrl, siteUrl } from '@/lib/site';
+import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
@@ -26,14 +26,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = { themeColor: '#000000', width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [s, t, w] = await Promise.all([getSettings(), getTokens(), cookieWording()]);
+  // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
+  const [s, w] = await Promise.all([getSettings(), cookieWording()]);
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`}>
       <body>
         <CookieBanner w={w} />
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>
-        <Footer s={s} t={t} />
+        <Footer s={s} reply={replyText(s)} />
         <Effects />
       </body>
     </html>
