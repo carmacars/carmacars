@@ -14,7 +14,7 @@ import type { CarRow } from '@/lib/types';
 // car's address points to when that car leaves the fleet.
 export const revalidate = 3600;
 export const dynamicParams = true;
-type Hub = { make: string; model: string; path: string; min_daily_rate_cents: number; cars: CarRow[] };
+type Hub = { make: string; model: string; path: string; min_daily_rate_cents: number; indexable?: boolean; cars: CarRow[] };
 type Params = { params: Promise<{ hub: string }> };
 
 export async function generateStaticParams() {
@@ -29,7 +29,8 @@ async function load(hub: string) {
 export async function generateMetadata({ params }: Params) {
   const h = await load((await params).hub);
   const t = await getTokens();
-  return seoMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path,
+  // a model page of sample cars only (vehicles.is_sample, 0035) stays out of search until a real car joins it
+  return seoMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path, noindex: h.indexable === false,
     description: fill(`${h.make} ${h.model} for rent in {{city}} from ${money(h.min_daily_rate_cents)} a day. Pickup or delivery, drivers {{minAge}} and up, request to book with no payment up front.`, t) });
 }
 

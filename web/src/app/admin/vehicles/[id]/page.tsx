@@ -13,7 +13,7 @@ export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', no
 
 type R = Record<string, unknown>;
 type V = R & { id: string; name: string; plate: string | null; vin: string; status: string; management_mode: string; class: string | null; colour: string | null; odometer_km: number | null;
-  fleet_number: string | null; allows_18_to_20: boolean; bookings_enabled: boolean; home_location: string | null; enrollment_date: string | null; exit_date: string | null;
+  fleet_number: string | null; allows_18_to_20: boolean; bookings_enabled: boolean; is_sample: boolean; home_location: string | null; enrollment_date: string | null; exit_date: string | null;
   owner: { id: string; legal_name: string } | null; listing: R | null; rate_card: R | null; rate_history: R[]; fee_overrides: R[]; classes: string[];
   fee_types: Array<{ code: string; label: string; unit: string; default: { amount_cents: number | null; percent_bps: number | null; source: string } | null }>;
   coverage_prices: R[]; schedule: R | null; terms: R | null; documents: R[]; tracker: { device: R; status: R | null } | null; bookings: R[]; transitions: string[]; intake: R | null };
@@ -94,11 +94,12 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       {tab === 'listing' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Listing">
-            {v.listing ? <Kv rows={[['Status', <Badge key="s" s={String(v.listing.status)} />], ['Address', slug ? <Link prefetch={false} key="l" className="link" href={`/cars/${slug}`}>/cars/{slug}</Link> : ''], ['Headline', String(v.listing.headline ?? '')], ['Published', t(v.listing.published_at)], ['Unpublished', `${t(v.listing.unpublished_at)} ${String(v.listing.unpublished_reason ?? '')}`]]} /> : <p className="small muted">No listing yet.</p>}
+            {v.listing ? <Kv rows={[['Status', <Badge key="s" s={String(v.listing.status)} />], ['Address', slug ? <Link prefetch={false} key="l" className="link" href={`/cars/${slug}`}>/cars/{slug}</Link> : ''], ['Headline', String(v.listing.headline ?? '')], ['Published', t(v.listing.published_at)], ['Unpublished', `${t(v.listing.unpublished_at)} ${String(v.listing.unpublished_reason ?? '')}`], ['Sample car', v.is_sample ? 'Yes: a placeholder, hidden from search engines' : 'No']]} /> : <p className="small muted">No listing yet.</p>}
             <div className="ad-actions">
               {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
               {!v.intake && <Act action="listing_start" payload={{ vehicle_id: id }} label="Start a listing" go="/admin/listings/{intake_id}" />}
               {v.listing && v.listing.status !== 'published' && <Act action="listing_publish" payload={P} label="Publish" variant="primary" refresh={refresh} />}
+              {v.is_sample && <Act action="vehicle_sample" payload={{ ...P, is_sample: false }} label="Not a sample" confirm="This car is real: its page goes into search results and the sitemap." refresh={refresh} testId="vehicle-sample-clear" />}
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
             </div>
           </Card>

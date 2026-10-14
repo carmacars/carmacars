@@ -10194,6 +10194,7 @@ export type Database = {
           owner_pickup_longitude: number | null;
           tracker_install_pending: boolean;
           tracker_installed_on: string | null;
+          is_sample: boolean;
         };
         Insert: {
           id?: string;
@@ -10236,6 +10237,7 @@ export type Database = {
           owner_pickup_longitude?: number | null;
           tracker_install_pending?: boolean;
           tracker_installed_on?: string | null;
+          is_sample?: boolean;
         };
         Update: {
           id?: string;
@@ -10278,6 +10280,7 @@ export type Database = {
           owner_pickup_longitude?: number | null;
           tracker_install_pending?: boolean;
           tracker_installed_on?: string | null;
+          is_sample?: boolean;
         };
         Relationships: [];
       };

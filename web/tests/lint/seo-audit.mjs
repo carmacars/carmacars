@@ -39,11 +39,16 @@ for (const u of smUrls) if (!u.startsWith(SITE)) bad('sitemap', `${u} is not on 
 if (new Set(paths).size !== paths.length) bad('sitemap', 'duplicate entries');
 
 // ------------------------------------------------------------------ pages
-const cars = new Set(paths.filter((p) => /^\/cars\/[^/]+$/.test(p)));
-const hubs = new Set(paths.filter((p) => /^\/rent\/[^/]+$/.test(p)));
+// Car and model pages: those in the sitemap and every one the fleet page links to. A sample car (vehicles.is_sample,
+// 0035) and a model page of samples only are noindex and out of the sitemap; their content is checked all the same.
+const fleetHtml = (await get('/cars')).body;
+const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"/g)].map((m) => m[1]);
+const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p)));
+const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
+report.noindex = [];
 const titles = new Map(); const descs = new Map();
 const extra = ['/investors'];
-for (const p of [...new Set([...paths, ...extra])]) {
+for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs])]) {
   const r = await get(p);
   const rec = { status: r.status };
   report.pages[p] = rec;
@@ -55,10 +60,15 @@ for (const p of [...new Set([...paths, ...extra])]) {
   const robotsMeta = meta(h, 'robots');
   Object.assign(rec, { title, desc, canon, robots: robotsMeta });
   const indexable = !/noindex/.test(robotsMeta ?? '');
-  if (!indexable) { if (paths.includes(p)) bad(p, 'in the sitemap but noindex'); continue; }
+  if (!indexable) {
+    if (paths.includes(p)) bad(p, 'in the sitemap but noindex');
+    if (canon) bad(p, 'noindex page with a canonical link');
+    report.noindex.push(p);
+    if (!cars.has(p) && !hubs.has(p)) continue;
+  }
   if (!title) bad(p, 'no title'); else { if (title.length > 70) bad(p, `title ${title.length} characters (over 70): ${title}`); titles.set(title, [...(titles.get(title) ?? []), p]); }
   if (!desc) bad(p, 'no meta description'); else { if (desc.length < 70 || desc.length > 170) bad(p, `description ${desc.length} characters (70 to 170)`); descs.set(desc, [...(descs.get(desc) ?? []), p]); }
-  if (canon !== SITE + (p === '/' ? '' : p) && canon !== SITE + p) bad(p, `canonical ${canon} (want ${SITE}${p === '/' ? '' : p})`);
+  if (indexable && canon !== SITE + (p === '/' ? '' : p) && canon !== SITE + p) bad(p, `canonical ${canon} (want ${SITE}${p === '/' ? '' : p})`);
   for (const k of ['og:title', 'og:description', 'og:url', 'og:image', 'og:site_name', 'twitter:card', 'twitter:image', 'twitter:title']) if (!meta(h, k)) bad(p, `no ${k}`);
   const og = meta(h, 'og:image');
   if (og && !/^https?:\/\//.test(og)) bad(p, `og:image is not absolute: ${og}`);
@@ -101,7 +111,12 @@ for (const hb of hubs) {
 }
 // pages linked from public pages that are not in the sitemap but should be
 for (const pg of Object.values(report.pages)) for (const l of pg.links ?? []) {
-  if (/^\/(cars|rent)\/[^/]+$/.test(l) && !paths.includes(l)) { const r = report.pages[l] ?? { status: (await get(l)).status }; if (r.status === 200) bad('sitemap', `${l} is linked but missing`); }
+  if (/^\/(cars|rent)\/[^/]+$/.test(l) && !paths.includes(l) && !report.noindex.includes(l)) {
+    const r = await get(l);
+    if (r.status !== 200) continue;
+    if (/noindex/.test(meta(r.body, 'robots') ?? '')) { report.noindex.push(l); if (/<link rel="canonical"/.test(r.body)) bad(l, 'noindex page with a canonical link'); continue; }
+    bad('sitemap', `${l} is linked but missing`);
+  }
 }
 
 // ------------------------------------------------------------------ 404 and removed cars
@@ -131,6 +146,6 @@ for (const [src, want] of moved) {
 report.problems = problems;
 fs.mkdirSync('reports', { recursive: true });
 fs.writeFileSync('reports/seo.json', JSON.stringify(report, null, 2));
-console.log(`seo: ${Object.keys(report.pages).length} pages (${cars.size} cars, ${hubs.size} model hubs), sitemap ${paths.length} entries`);
+console.log(`seo: ${Object.keys(report.pages).length} pages (${cars.size} cars, ${hubs.size} model hubs), sitemap ${paths.length} entries, ${report.noindex.length} noindex (sample cars and their model pages)`);
 if (problems.length) { console.log(problems.join('\n')); console.log(`seo: FAILED, ${problems.length} problems`); process.exit(1); }
 console.log('seo: 0 problems');

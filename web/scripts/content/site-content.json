@@ -32,7 +32,7 @@
   "owner_faq": [
     {
       "question": "What does it cost me?",
-      "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a tracker install fee. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
+      "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not; the tracker fee starts the day the car’s tracker is installed. Before the car goes live you pay the first and last month’s insurance fee. The tracker install fee is a separate invoice, sent once the tracker is installed. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
     },
     {
       "question": "How do I get paid?",
@@ -347,7 +347,7 @@
       "items": [
         {
           "question": "What does it cost me?",
-          "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not. Before the car goes live you pay the first and last month’s insurance fee and a tracker install fee. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
+          "answer": "Two monthly fees for each car: an insurance fee and a tracker fee. They are due every month whether the car is rented or not; the tracker fee starts the day the car’s tracker is installed. Before the car goes live you pay the first and last month’s insurance fee. The tracker install fee is a separate invoice, sent once the tracker is installed. The amounts depend on how many cars you have with us and are confirmed on a call. There is no security deposit."
         },
         {
           "question": "How do I get paid?",

@@ -9,7 +9,8 @@
 // `--production` (the CI deploy job, at the owner's instruction until the real fleet is entered):
 // content rows are only added, never overwritten (an admin's edits stay); the 20 sample cars are added
 // only while the site has no listing at all, without sample bookings; the sample addresses are
-// suppressed so no email goes to them. Photos are uploaded to the public bucket by the deploy job
+// suppressed so no email goes to them. Every sample car is marked vehicles.is_sample (0035): noindex and out of the
+// sitemap until an Admin clears it or unlists the car. Photos are uploaded to the public bucket by the deploy job
 // (scripts/deploy/cloudflare.sh photos), not copied. Safe to run on every deploy; it never deletes.
 //
 // Every row goes into the real tables, as the superuser, the way an import would. Photos are copied
@@ -155,10 +156,10 @@ async function seedSample(tx) {
     const vin = ('SAMPLE' + String(i + 1).padStart(2, '0') + 'X'.repeat(17)).slice(0, 17);
     await tx`insert into vehicles (id, owner_id, fleet_number, year, make, model, trim, colour, fuel, vin, plate, class, status,
                                    management_mode, onboarding_method, on_fleet_policy, fleet_policy_added_on, enrollment_date, body_type,
-                                   owner_pickup_address)
+                                   owner_pickup_address, is_sample)
              values (${v}, ${owner}, ${c.code}, ${c.year}, ${c.make}, ${c.model}, ${c.trim}, ${c.colour}, ${FUEL[c.fuel] || 'gasoline'}, ${vin},
                      ${'SMPL' + String(i + 1).padStart(3, '0')}, ${pricing}, 'available', 'managed', 'transfer', true, '2026-09-01', '2026-09-01', ${c.body},
-                     ${c.ownerPickup ? 'Sample owner address, Toronto, ON' : null})`;
+                     ${c.ownerPickup ? 'Sample owner address, Toronto, ON' : null}, true)`;
     const sched = id('schedule:' + c.slug);
     await tx`insert into vehicle_schedules (id, vehicle_id, owner_agreement_id, schedule_number, vehicle_number, held_by, title_status,
                management_mode, onboarding_method, insurance_fee_cents, tracker_fee_cents, install_fee_cents, revenue_share_bps,

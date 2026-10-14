@@ -74,8 +74,8 @@ export default async function Owners() {
             <table className="spec"><tbody>
               <tr><th scope="row">You earn</th><td>The rental charge and mileage overage fees on your car, less our revenue share</td></tr>
               <tr><th scope="row">{s.brand_name} keeps</th><td>Its revenue share, plus delivery, fuel, cleaning, late return and young driver fees</td></tr>
-              <tr><th scope="row">You pay monthly</th><td>{F('An insurance fee and a tracker fee for each car, billed on the {{billDay}}, rented or not')}</td></tr>
-              <tr><th scope="row">You pay once</th><td>First and last month’s insurance fee and a tracker install fee. Registry costs go to ServiceOntario, not us.</td></tr>
+              <tr><th scope="row">You pay monthly</th><td>{F('An insurance fee for each car, billed on the {{billDay}}, rented or not, and a tracker fee from the day its tracker is installed')}</td></tr>
+              <tr><th scope="row">You pay once</th><td>First and last month’s insurance fee. The tracker install fee is a separate invoice, sent once the tracker is installed. Registry costs go to ServiceOntario, not us.</td></tr>
               <tr><th scope="row">You are paid</th><td>{F('On the {{payoutDay}}, for the month before, with a statement per car')}</td></tr>
               <tr><th scope="row">Referrals</th><td>{F('Send us a new renter and earn {{referralPct}} of the rental charge on their first rental. Not on your own car.')}</td></tr>
             </tbody></table>

@@ -24,6 +24,7 @@ const PUBLIC: Record<string, string[]> = {
   listing_review: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
   listing_publish: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
   listing_unlist: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
+  vehicle_sample: ['/cars/[slug]', '/rent/[hub]', '/sitemap.xml'],
   review_publish: ['/cars/[slug]', '/'], review_hide: ['/cars/[slug]', '/'],
   block_create: ['/cars/[slug]'], block_remove: ['/cars/[slug]'], block_end: ['/cars/[slug]'], block_update: ['/cars/[slug]'],
   vehicle_status: ['/cars/[slug]', '/cars', '/']
