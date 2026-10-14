@@ -11,3 +11,6 @@ the environment. Nothing outside these folders imports a provider's SDK or calls
 | maps | Google Maps Platform: Places Autocomplete (New), Place Details, Routes | sample Toronto landmarks, straight-line distance | `MAPS_PROVIDER` |
 | email | Resend (used by the `send-outbox` Edge Function; the app only writes the outbox) | records messages | `EMAIL_PROVIDER` |
 | turnstile | Cloudflare Turnstile siteverify | accepts Cloudflare's documented test token only | `TURNSTILE_PROVIDER` |
+| llm | Workers AI text model (listing copy) | writes a plain draft from the facts | `LLM_PROVIDER` |
+| vision | Workers AI vision model through the Worker's AI binding: scanned toll notices, plate boxes (model and fallback in Program settings; the Llama 3.2 licence is accepted on first use) | a fixed parking notice and a plate box | `LLM_PROVIDER` (and the binding) |
+| tracker | none yet: the vendor's documentation is needed. `none` answers every call (locate, immobilize request, mileage) with "not connected" | none | `tracker()` |

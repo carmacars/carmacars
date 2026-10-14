@@ -17,7 +17,7 @@ export default async function Tolls({ searchParams }: { searchParams: Promise<Re
   const ids = (b: string) => data.queue.filter((q) => q.bucket === b).map((q) => q.id);
   return (<>
     <PageHead title="Tolls and tickets">
-      <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/tolls/new">Log one</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/tolls/import">Import a statement</Link>
+      <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/tolls/read" data-testid="tolls-read-link">Read a notice</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/tolls/new">Log one</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/tolls/import">Import a CSV</Link>
       {ids('needs_review').length > 0 && <Act action="toll_bulk_confirm" payload={{ ids: ids('needs_review') }} label="Bulk confirm high-confidence" refresh={['/admin/tolls']} />}
       {ids('matched_not_charged').length > 0 && <Act action="toll_charge" payload={{ ids: ids('matched_not_charged') }} label={`Charge ${ids('matched_not_charged').length} matched`} confirm="Charge every matched notice to its renter: one administration fee per statement and booking." refresh={['/admin/tolls']} />}
     </PageHead>

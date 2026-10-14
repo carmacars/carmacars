@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
@@ -19,6 +20,7 @@ export default async function VaTolls({ searchParams }: { searchParams: Promise<
   return (
     <>
       <PageHead title="Tolls and tickets">
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/va/tolls/read">Read a notice</Link>
         {ids('needs_review').length > 0 && <Act action="toll_bulk_confirm" payload={{ ids: ids('needs_review') }} label="Bulk confirm high-confidence" refresh={R} />}
         {ids('matched_not_charged').length > 0 && <Act action="toll_charge" payload={{ ids: ids('matched_not_charged') }} label={`Charge ${ids('matched_not_charged').length} matched`} confirm="Charge every matched notice to its renter." refresh={R} />}
       </PageHead>

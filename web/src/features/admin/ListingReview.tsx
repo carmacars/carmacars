@@ -2,18 +2,23 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
+import { staffDo } from '@/server/actions/staff-tools';
+import { PlateEditor } from '@/features/listing/PlateEditor';
 import { useDoor } from './door';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy draft (edit in place), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
-type Photo = { id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null };
+type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null;
+  plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null };
+export type Plates = { required: boolean; unchecked: string[]; private_shots: string[] };
+const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
   listing: { status: string; slug: string | null; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null } | null;
   draft: { id: string; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null; lint_problems: string[] | null; proposed_classes: string[] | null } | null;
   photos: Photo[]; jobs: Array<Record<string, unknown>>; problems: { copy: string[] | null; photos: string[] | null; specs: string[] | null; missing_shots: string[] | null } };
 
-export function ListingReview({ l }: { l: L }) {
+export function ListingReview({ l, plates }: { l: L; plates?: Plates | null }) {
   const { act: adminAct } = useDoor();
   const router = useRouter();
   const src = l.draft?.headline ? l.draft : l.listing;
@@ -23,6 +28,10 @@ export function ListingReview({ l }: { l: L }) {
   const [note, setNote] = useState('');
   const [res, setRes] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [sure, setSure] = useState(false);
+  const plateCheck = (p: Photo) => !!plates && !plates.private_shots.includes(p.shot_type) && !!p.processed_path && ['processed', 'approved'].includes(p.status) && (ph[p.id] ?? '') !== 'reject';
+  const toCheck = l.photos.filter((p) => plateCheck(p) && p.plate_status === 'unchecked');
   const reviewable = ['needs_review', 'approved'].includes(l.state);
   const edits = (publish: boolean) => ({
     listing: { headline: c.headline, description: c.description, features: c.features.split('\n').map((x) => x.trim()).filter(Boolean),
@@ -37,7 +46,12 @@ export function ListingReview({ l }: { l: L }) {
     <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`lr-${k}`}>{label}</label>
       {rows > 1 ? <textarea className="input ad-textarea" id={`lr-${k}`} rows={rows} value={c[k]} disabled={!reviewable} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
         : <input className="input" id={`lr-${k}`} value={c[k]} disabled={!reviewable} onChange={(e) => setC({ ...c, [k]: e.target.value })} />}</div>);
-  const problems = [...(l.problems.copy ?? []), ...(l.problems.photos ?? []), ...(l.problems.specs ?? []), ...(l.problems.missing_shots ?? []).map((s) => `missing photo: ${s.replace(/_/g, ' ')}`)];
+  const problems = [...(l.problems.copy ?? []), ...(l.problems.photos ?? []), ...(l.problems.specs ?? []), ...(l.problems.missing_shots ?? []).map((s) => `missing photo: ${s.replace(/_/g, ' ')}`),
+    ...(plates?.required && toCheck.length ? [`licence plate not covered or marked "no plate visible": ${toCheck.map((p) => p.shot_label ?? p.shot_type).join(', ')}`] : [])];
+  const noneVisible = () => start(async () => {
+    for (const p of toCheck) { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (!r.ok) { setRes({ ok: false, text: r.message }); return; } }
+    setRes({ ok: true, text: 'Marked: no plate visible.' }); router.refresh();
+  });
   return (
     <div className="ad-cols ad-cols--main" data-testid="listing-review">
       <div className="stack">
@@ -46,6 +60,12 @@ export function ListingReview({ l }: { l: L }) {
           {l.draft?.lint_problems?.length ? <p className="small muted">Draft notes: {l.draft.lint_problems.join('; ')}</p> : null}
         </section>
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
+          {plates && <p className="small muted">Every photo that goes on the website needs its licence plate covered, or a check that no plate can be read{plates.required ? ' before the listing is published' : ''}. The photo as it was is kept privately.</p>}
+          {plates && toCheck.length > 1 && <p className="row">{!sure
+            ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="plates-none-visible" onClick={() => setSure(true)}>No plate visible on the {toCheck.length} photos left</button>
+            : <><span className="small">No plate can be read on any of these {toCheck.length} photos?</span>
+              <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="plates-none-visible-yes" onClick={() => { setSure(false); noneVisible(); }}>Yes, none visible</button>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></>}</p>}
           <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
               {/* eslint-disable-next-line @next/next/no-img-element -- photos come pre-sized from the pipeline */}
@@ -55,7 +75,14 @@ export function ListingReview({ l }: { l: L }) {
               <select className="select" id={`ph-${p.id}`} value={ph[p.id] ?? ''} disabled={!reviewable} onChange={(e) => setPh({ ...ph, [p.id]: e.target.value })}>
                 <option value="">Keep as is</option><option value="approve">Approve</option><option value="use_original">Use the original</option><option value="reject">Reject</option></select>
               <label className="check"><input type="radio" name="cover" checked={cover === p.id} disabled={!reviewable} onChange={() => setCover(p.id)} /> <span>Cover</span></label>
+              {plates && plateCheck(p) && <span className="lr-plate" data-testid={`plate-${p.shot_type}`} data-plate={p.plate_status}>
+                <span className={`ad-b ${p.plate_status === 'unchecked' ? 'ad-b--amber' : 'ad-b--light'}`}>{PLATE[p.plate_status]}</span>
+                <button className="btn btn--ghost btn--sm" type="button" onClick={() => setEditing(editing === p.id ? null : p.id)} aria-expanded={editing === p.id} data-testid={`plate-edit-${p.shot_type}`}>{p.plate_status === 'covered' ? 'Cover again' : 'Cover the plate'}</button>
+                {p.plate_status === 'unchecked' && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-none-${p.shot_type}`}
+                  onClick={() => start(async () => { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (r.ok) router.refresh(); else setRes({ ok: false, text: r.message }); })}>No plate visible</button>}
+              </span>}
             </li>); })}</ul>
+          {editing && (() => { const p = l.photos.find((x) => x.id === editing); return p ? <PlateEditor key={p.id} photo={{ ...p, vehicle_id: l.vehicle_id }} onClose={() => setEditing(null)} /> : null; })()}
           {!l.photos.length && <p className="small muted">No photos uploaded yet.</p>}
         </section>
       </div>

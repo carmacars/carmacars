@@ -71,7 +71,7 @@ export interface OwnerStatement {
   payout: { amount_cents: number; status: string; method: string; paid_at: string | null; reference: string | null; scheduled_for: string } | null;
 }
 export interface OwnerDoc { id: string; kind: string; title: string | null; vehicle_id: string | null; created_at: string }
-export interface OwnerForm { id: string; form_code: string; title: string | null; vehicle_id: string; vehicle_name: string; mode: string; status: string; missing: string[]; data_sheet: Array<{ label: string; value: string | null; section?: string }>; has_pdf: boolean; generated_at: string }
+export interface OwnerForm { id: string; form_code: string; title: string | null; vehicle_id: string; vehicle_name: string; mode: string; status: string; missing: string[]; data_sheet: Array<{ label: string; value: string | null; section?: string }>; has_pdf: boolean; generated_at: string; official?: boolean; signed_document_id?: string | null }
 
 export const INVOICE_STATUS: Record<string, { label: string; badge: string }> = {
   issued: { label: 'Due', badge: 'badge--outline' },

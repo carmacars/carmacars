@@ -8,6 +8,8 @@ import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
 import { rangeFrom } from '@/features/admin/range';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } from '@/features/admin/ui';
 
+import { TRACKER_SOON } from '@/integrations/tracker/types';
+
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', noindex: true, description: 'One vehicle: rates, fees, calendar, listing.' });
 
@@ -90,8 +92,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <p className="small"><Link prefetch={false} className="link" href="/admin/settings/coverage">Edit the coverage price table</Link></p></Card>
         </div>
       )}
-      {tab === 'calendar' && <div className="small" data-testid="vehicle-turnaround">Cleaning time after each trip: <b>{v.turnaround_block_minutes == null ? 'Program settings' : `${String(v.turnaround_block_minutes)} minutes`}</b>{' '}
-        <Act action="vehicle_turnaround" payload={{ vehicle: id }} label="Change" title="Cleaning time after each trip" fields={[{ name: 'minutes', label: 'Minutes (empty: Program settings)', type: 'number', value: v.turnaround_block_minutes ?? '', hint: 'A cleaning block of this length follows every confirmed trip on this car.' }]} done="Saved." testId="turnaround-change" /></div>}
+      {tab === 'calendar' && <div className="small" data-testid="vehicle-turnaround">Turnaround between trips on this car: <b>{v.turnaround_block_minutes == null ? 'as in Program settings' : `${String(v.turnaround_block_minutes)} minutes`}</b>{' '}
+        <Act action="vehicle_turnaround" payload={{ vehicle: id }} label="Change" title="Turnaround between trips on this car" fields={[{ name: 'minutes', label: 'Minutes (empty: Program settings)', type: 'number', value: v.turnaround_block_minutes ?? '', hint: 'The time held between two trips on this car: the cleaning block after each trip, and the gap before the next pickup. It is not added twice.' }]} done="Saved." testId="turnaround-change" /></div>}
       {tab === 'calendar' && cal && <Suspense><MasterCalendar initial={cal} vehicleId={id} defaultView="month" /></Suspense>}
       {tab === 'listing' && (
         <div className="ad-cols ad-cols--2">
@@ -111,7 +113,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         <div className="ad-cols ad-cols--2">
           <Card title="Owner terms"><Kv rows={[['Owner', v.owner?.legal_name ?? ''], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Revenue Share', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} />
             {v.terms && <Act action="fee_change_notice" payload={P} label="Fee change notice" fields={[{ name: 'insurance_fee_cents', label: 'New Insurance Fee', type: 'money', required: true, value: v.terms.insurance_fee_cents }, { name: 'tracker_fee_cents', label: 'New Tracker Fee', type: 'money', required: true, value: v.terms.tracker_fee_cents }, { name: 'effective_from', label: 'Effective (30 days or more ahead)', type: 'date', required: true }, { name: 'reason', label: 'Reason', type: 'text' }]} refresh={refresh} />}</Card>
-          <Card title="Tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last seen', t(v.tracker.device.last_seen_at)], ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''], ['Locked', v.tracker.status ? String(v.tracker.status.locked) : '']]} /> : <p className="small muted">No tracker installed.</p>}</Card>
+          <Card title="Tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last seen', t(v.tracker.device.last_seen_at)], ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''], ['Locked', v.tracker.status ? String(v.tracker.status.locked) : '']]} /> : <p className="small muted">No tracker installed.</p>}
+            <p className="small" data-testid="tracker-coming-soon"><b>Coming soon:</b> {TRACKER_SOON}</p></Card>
           <Card title="Documents"><Table rows={v.documents} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
         </div>
       )}

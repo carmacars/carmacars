@@ -9,6 +9,8 @@ import { InviteForm, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { SECTIONS } from '../sections';
+import { door } from '@/server/door';
+import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -31,7 +33,8 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Owners and fleet', (k) => /^(notice_period|free_retransfer|owner_|retransfer|total_loss|min_fleet|fleet_warning|safety_|fee_change|trackers_available|tracker_|plate_renewal|turo_|provisional_)/.test(k)],
   ['Tolls and damage', (k) => /^(toll_|damage_|incident_)/.test(k)],
-  ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_')],
+  ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
+  ['Vision model', (k) => k.startsWith('ai_vision')],
   ['Email and notifications', (k) => k.startsWith('notify_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
@@ -65,11 +68,15 @@ export default async function Section({ params }: { params: Promise<{ section: s
           </details>))}</Card>))}
       <Card title="Add a block"><SaveForm table="site_content_blocks" label="Add" fields={[{ name: 'block_key', label: 'Key', required: true }, { name: 'page', label: 'Page', required: true }, { name: 'kind', label: 'Kind', type: 'select', options: [['text', 'Text'], ['rich_text', 'Rich text'], ['faq', 'FAQ'], ['list', 'List']], required: true, value: 'text' }, { name: 'body', label: 'Text', type: 'textarea' }, { name: 'is_published', label: 'Published', type: 'bool', value: true }]} /></Card>
     </>);
+  case 'forms':
+    return (<>{head}<OfficialForms d={await door<FormsData>(user.id, 'ops_read', 'form_templates')} /></>);
   case 'program': {
-    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at'].includes(k));
+    // turnaround_block_minutes always equals the turnaround (0042): one setting is shown
+    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes'].includes(k));
     const used = new Set<string>();
     return (<>{head}
       <p className="small muted">Saving writes a new dated row from today; the rows before it stay as they were. In force since {d(s.program.effective_from)}; {s.program_rows.length} dated rows.</p>
+      <Card title="Turnaround between trips" testId="turnaround-help"><p className="small">One time between trips, {String(s.program.turnaround_buffer_minutes)} minutes now (the owner&apos;s 2 hours by default). No trip may start sooner after another one ends, and a trip must end that long before the next one starts. After each trip the same time shows on the calendars as the cleaning block; it is not added on top. Removing a cleaning block frees that time for a new booking. A car can have its own turnaround under Vehicles, the car, Calendar. Change it under Booking requests and offers.</p></Card>
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}

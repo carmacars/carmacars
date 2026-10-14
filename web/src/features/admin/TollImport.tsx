@@ -68,6 +68,7 @@ export function TollImport() {
   });
   return (
     <div className="stack" data-testid="toll-import">
+      <p className="small muted">To check each row beside the file before it is imported, use <Link prefetch={false} className="link" href={`${base}/tolls/read`}>Read a notice</Link>: it takes a CSV, a PDF or a scan.</p>
       <section className="pt-card ad-card ad-form" aria-labelledby="ti-1"><h2 className="d4" id="ti-1">1. The statement</h2>
         <div className="ad-fields">
           <div className="field ad-field"><label className="label" htmlFor="ti-op">Operator</label><input className="input" id="ti-op" value={operator} onChange={(e) => setOperator(e.target.value)} /></div>

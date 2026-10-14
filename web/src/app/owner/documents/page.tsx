@@ -31,7 +31,7 @@ export default async function OwnerDocuments() {
         </div>
         <aside className="pt-split__aside">
           <section className="pt-card" aria-labelledby="ow-forms"><h2 className="d4" id="ow-forms">Government forms</h2>
-            {forms.length ? <ul className="ow-rows">{forms.map((f) => <li key={f.id}><a className="ow-row-link" href={`/owner/documents/forms/${f.id}`}>{f.form_code}</a><span className="small muted">{f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span className="ow-meta"><span>{f.vehicle_name}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</span></li>)}</ul>
+            {forms.length ? <ul className="ow-rows" data-testid="owner-gov-forms">{forms.map((f) => <li key={f.id}><a className="ow-row-link" href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`}>{f.form_code}</a><span className="small muted">{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span className="ow-meta"><span>{f.vehicle_name}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</span></li>)}</ul>
               : <p className="small muted">Prepared for each vehicle once its onboarding method is set.</p>}
             <p className="small muted">You pay ServiceOntario, the inspection station and the appraiser directly. CarmaCars does not collect these amounts.</p>
           </section>

@@ -493,6 +493,24 @@ begin
   return (select to_jsonb(x) || jsonb_build_object('vehicle_name', app.vehicle_name(x.vehicle_id)) from toll_notice_read_lines x where x.id = l.id);
 end $$;
 
+-- A line typed by staff (the notice could not be read, or the reading missed one).
+create or replace function app.toll_read_line_add(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r toll_notice_reads;
+  v_id uuid;
+begin
+  if not app.user_runs_finance(p_by) then raise exception 'Finance or an Admin reads notices' using errcode = '42501'; end if;
+  select * into r from toll_notice_reads where id = (p ->> 'read')::uuid for update;
+  if r.id is null then raise exception 'That read is not there' using errcode = 'P0002'; end if;
+  if r.status = 'discarded' then raise exception 'This read was discarded' using errcode = '23514'; end if;
+  insert into toll_notice_read_lines (read_id, line_no, kind, authority, confidence, edited, due_on)
+  values (r.id, coalesce((select max(line_no) from toll_notice_read_lines where read_id = r.id), 0) + 1, r.kind, r.authority, 100, true, r.due_on)
+  returning id into v_id;
+  perform app.toll_read_line_refresh(v_id);
+  return (select to_jsonb(x) from toll_notice_read_lines x where x.id = v_id);
+end $$;
+
 -- Import the given lines of a read through 0021's import, one batch per issuer and kind; record each line's
 -- result; charge renters matched with high confidence when asked. Returns the summary.
 create or replace function app.toll_read_import_lines(p_by uuid, p_read uuid, p_lines uuid[], p_charge boolean) returns jsonb
@@ -736,7 +754,7 @@ begin
             'is_public_shot', coalesce(st.is_public, true), 'processed_path', ph.processed_path, 'original_path', ph.original_path,
             'variants', ph.variants, 'width', ph.width, 'height', ph.height, 'status', ph.status, 'plate_status', ph.plate_status,
             'plate_boxes', ph.plate_boxes, 'plate_style', ph.plate_style, 'plate_suggestion', ph.plate_suggestion,
-            'replaced', ph.replaced_at is not null,
+            'replaced', ph.replaced_at is not null, 'uncovered_path', ph.uncovered_path,
             'cover_text', coalesce(nullif(btrim(ps.plate_cover_text), ''), (select s.brand_name from site_settings s limit 1), 'CarmaCars'),
             'default_style', ps.plate_cover_style, 'detect', ps.plate_detect_enabled and ps.ai_vision_enabled)
     from vehicle_photos ph left join listing_shot_types st on st.code = ph.shot_type cross join app.settings() ps
@@ -807,6 +825,18 @@ language sql stable security definer set search_path = public, app as $$
    where ph.vehicle_id = p_vehicle and ph.replaced_at is null and ph.status in ('processed', 'approved') and st.is_public
      and ph.processed_path is not null and ph.plate_status = 'unchecked'
 $$;
+
+-- For the listing review screen: whether the check is on, the photos still to check, the shots never public.
+create or replace function app.listing_plates(p_by uuid, p_vehicle uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if not (app.user_is_admin(p_by) or app.user_va_has(p_by, 'fleet', 'cs')) then
+    raise exception 'Fleet, customer service or an Admin edits listing photos' using errcode = '42501';
+  end if;
+  return jsonb_build_object('required', (app.settings()).listing_plate_check_required, 'unchecked', to_jsonb(app.listing_plate_problems(p_vehicle)),
+    'private_shots', coalesce((select jsonb_agg(code) from listing_shot_types where not is_public), '[]'::jsonb),
+    'style', (app.settings()).plate_cover_style, 'detect', (app.settings()).plate_detect_enabled and (app.settings()).ai_vision_enabled);
+end $$;
 
 -- The plate check comes last, after every check of 0022 and 0040 passed: the publish runs, and if a photo it made
 -- public has no plate decision the whole publish is undone with the list of photos (the caller's transaction, or the
@@ -1019,7 +1049,7 @@ begin
   if v_owner is null then raise exception 'This account is not an owner account' using errcode = '42501'; end if;
   return (select jsonb_build_object('id', g.id, 'form_code', g.form_code, 'title', t.title, 'vehicle_id', g.vehicle_id, 'vehicle_name', app.vehicle_name(g.vehicle_id),
             'status', g.status, 'missing', to_jsonb(g.missing), 'file_key', t.file_key, 'field_values', g.field_values, 'field_map', t.field_map,
-            'signed_document_id', g.document_id, 'owner_name', (select o.legal_name from owners o where o.id = g.owner_id))
+            'signed_document_id', g.document_id, 'owner_id', g.owner_id, 'owner_name', (select o.legal_name from owners o where o.id = g.owner_id))
     from government_form_fills g join pdf_templates t on t.id = g.pdf_template_id
    where g.id = p_fill and g.owner_id = v_owner and g.superseded_at is null and g.mode = 'pdf' and t.file_key is not null);
 end $$;
@@ -1191,6 +1221,7 @@ begin
     if not app.user_runs_finance(p_user) then raise exception 'Not permitted' using errcode = '42501'; end if;
     return (select app.document_file(r.document_id) from toll_notice_reads r where r.id = (p ->> 'id')::uuid);
   when 'toll_read_line' then return app.toll_read_line_save(p_user, p);
+  when 'toll_read_line_add' then return app.toll_read_line_add(p_user, p);
   when 'toll_read_confirm' then return app.toll_read_confirm(p_user, p);
   when 'toll_read_line_import' then return app.toll_read_line_import(p_user, p);
   when 'toll_read_discard' then return app.toll_read_discard(p_user, p);
@@ -1204,6 +1235,7 @@ begin
   when 'photo_plate_context' then return app.photo_plate_context(p_user, (p ->> 'photo')::uuid);
   when 'photo_plate_record' then return app.photo_plate_record(p_user, p);
   when 'photo_plate_suggestion' then return app.photo_plate_suggestion(p_user, p);
+  when 'listing_plates' then return app.listing_plates(p_user, (p ->> 'vehicle')::uuid);
   -- official forms
   when 'form_templates' then return app.form_templates(p_user);
   when 'form_template_upload' then return app.form_template_upload(p_user, p);
@@ -1219,14 +1251,14 @@ create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name
 language plpgsql security definer set search_path = public, app as $$
 begin
   if p_call in ('ops_read', 'ops_do')
-     and p_name in ('toll_read_context', 'toll_read_document', 'toll_read_save', 'toll_read', 'toll_read_file', 'toll_read_line', 'toll_read_confirm',
+     and p_name in ('toll_read_context', 'toll_read_document', 'toll_read_save', 'toll_read', 'toll_read_file', 'toll_read_line', 'toll_read_line_add', 'toll_read_confirm',
                     'toll_read_line_import', 'toll_read_discard', 'toll_read_queue', 'toll_profiles', 'toll_profile_upsert', 'ai_vision_gate', 'ai_call_record',
-                    'photo_plate_context', 'photo_plate_record', 'photo_plate_suggestion', 'form_templates', 'form_template_upload', 'form_template_map',
+                    'photo_plate_context', 'photo_plate_record', 'photo_plate_suggestion', 'listing_plates', 'form_templates', 'form_template_upload', 'form_template_map',
                     'form_template_preview') then
     perform app.door_begin(p_user, p_aal);
     -- reads never change anything
     if p_call = 'ops_read' and p_name not in ('toll_read_context', 'toll_read', 'toll_read_file', 'toll_read_queue', 'toll_profiles', 'ai_vision_gate',
-                                              'photo_plate_context', 'form_templates', 'form_template_preview') then
+                                              'photo_plate_context', 'listing_plates', 'form_templates', 'form_template_preview') then
       raise exception 'Unknown read %', p_name using errcode = '22023';
     end if;
     return app.ops42(p_user, p_call, p_name, coalesce(p, '{}'::jsonb) - '_va');
@@ -1260,9 +1292,9 @@ begin
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where (n.nspname = 'app' and p.proname = any (array[
               'program_settings_one_turnaround', 'program_settings_turnaround_resync', 'sync_turnaround_block', 'ai_vision_budget', 'ai_call_record', 'ai_vision_gate',
-              'toll_read_context', 'toll_read_document', 'toll_read_line_refresh', 'toll_read_save', 'toll_read_get', 'toll_read_line_save',
+              'toll_read_context', 'toll_read_document', 'toll_read_line_refresh', 'toll_read_save', 'toll_read_get', 'toll_read_line_save', 'toll_read_line_add',
               'toll_read_import_lines', 'toll_read_confirm', 'toll_read_line_import', 'toll_read_discard', 'toll_read_queue', 'toll_profiles',
-              'toll_profile_upsert', 'photo_plate_context', 'photo_plate_record', 'photo_plate_suggestion', 'listing_plate_problems',
+              'toll_profile_upsert', 'photo_plate_context', 'photo_plate_record', 'photo_plate_suggestion', 'listing_plate_problems', 'listing_plates',
               'form_field_values', 'form_templates', 'form_template_upload', 'form_template_map', 'form_template_preview',
               'owner_form_official', 'owner_form_signed', 'ops42']))
         or (n.nspname = 'public' and p.proname = any (array['owner_form_official', 'owner_form_signed']))

@@ -267,6 +267,10 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await ap.getByLabel('Headline', { exact: true }).fill(headline);
   const marker = `reviewed${Date.now() % 100000}`;
   await ap.getByLabel('Description', { exact: true }).fill(`${words} ${marker}`);
+  // every public photo needs a plate decision before publishing (0042): the sample photos show no plate
+  await ap.getByTestId('plates-none-visible').click();
+  await ap.getByTestId('plates-none-visible-yes').click();
+  await expect(ap.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
   await ap.getByTestId('listing-approve').click();
   await expect(ap.getByText('Approved and published.')).toBeVisible({ timeout: 15_000 });
   expect((await sql`select state from listing_intakes where id = ${ik!.id}`)[0]!.state).toBe('published');

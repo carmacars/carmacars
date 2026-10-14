@@ -240,6 +240,13 @@ if (process.argv.includes('--auth')) {
           await page.screenshot({ path: path.join(out, 'admin-similar-cars.png'), fullPage: true });
           await load(`${BASE}/admin/owner-forms`);
           r.ownerFormsPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+          // tolls, plates and forms (0042): the notice reader, the official forms, and the vision model on the live Worker
+          await load(`${BASE}/admin/tolls/read`);
+          r.tollReadPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+          await page.screenshot({ path: path.join(out, 'admin-tolls-read.png'), fullPage: true });
+          await load(`${BASE}/admin/settings/forms`);
+          r.formsPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+          r.vision = await visionProbes(page);
         }
         if (a.role === 'renter') {
           // sign out: back to the home page, and the portal asks for a sign-in again
@@ -252,7 +259,7 @@ if (process.argv.includes('--auth')) {
         r.ok = new URL(r.afterSignIn).pathname === a.home && !!r.h1 && !r.broken && r.errors.length === 0
           && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN') && !String(v).includes('not named'))
           && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out')
-          && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements' && r.similarPage === 'Similar cars' && r.ownerFormsPage === 'Owner forms'))
+          && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements' && r.similarPage === 'Similar cars' && r.ownerFormsPage === 'Owner forms' && r.tollReadPage === 'Read a notice' && r.formsPage === 'Forms'))
           && (a.role !== 'admin' || (r.viewAs?.every((v) => v.ok) && r.writeRefused?.ok && r.audit?.ok && r.exit?.ok && r.invite?.ok));
         if (r.ok) break;
       } catch (e) {
@@ -268,6 +275,54 @@ if (process.argv.includes('--auth')) {
     report.auth = { ok: !!renter?.ok, steps: renter?.steps, afterSignIn: renter?.afterSignIn, adminForRenter: renter?.refused?.['/admin'], errors: renter?.errors ?? [] };
   } catch (e) {
     report.auth = { ok: false, error: String(e).slice(0, 800) };
+  }
+
+  // The vision model through the live route, as the reader and the plate editor call it: a parking notice drawn in
+  // the browser and photographed, and a car with a plate at a known place. Each call is recorded by the site with its
+  // neurons (a few hundred of the free daily allowance).
+  async function visionProbes(page) {
+    const shot = async (html, w, h) => {
+      const p = await page.context().newPage();
+      await p.setViewportSize({ width: w, height: h });
+      await p.setContent(html);
+      const b = await p.screenshot({ type: 'jpeg', quality: 85 });
+      await p.close();
+      return `data:image/jpeg;base64,${b.toString('base64')}`;
+    };
+    const ask = async (purpose, image) => {
+      const t0 = Date.now();
+      for (let i = 0; i < 3; i++) {
+        const resp = await page.request.post(`${BASE}/api/staff/vision`, { data: { purpose, image }, timeout: 90_000 }).catch((e) => ({ status: () => 0, text: async () => String(e) }));
+        const text = await resp.text();
+        if (resp.status() >= 500 && /1102|exceeded/i.test(text)) { report.worker_limits = (report.worker_limits ?? 0) + 1; continue; }
+        try { return { status: resp.status(), ms: Date.now() - t0, ...JSON.parse(text) }; } catch { return { status: resp.status(), ms: Date.now() - t0, error: text.slice(0, 200) }; }
+      }
+      return { status: 1102, error: 'Error 1102 three times' };
+    };
+    const out = {};
+    try {
+      const notice = await shot(`<body style="margin:0;background:#fff;font:22px Arial;color:#111"><div style="padding:36px;width:760px">
+        <h1 style="font-size:30px">City of Toronto</h1><p><b>Penalty Notice</b></p><p>Penalty Notice Number: PN 4410-2291</p><p>Licence Plate Number: VRFY 123 &nbsp; Province: ON</p>
+        <p>Date of Infraction: 2026-09-23 &nbsp; Time of Infraction: 2:32 PM</p><p>Location: 100 Queen St W</p><p>Penalty Amount: $50.00</p><p>Due Date: 2026-10-23</p></div></body>`, 840, 560);
+      const t = await ask('toll_read', notice);
+      const l = t.data?.lines?.[0] ?? null;
+      out.toll = { status: t.status, ok: t.ok, model: t.model, neurons: t.neurons, ms: t.ms, message: t.message ?? t.error, lines: t.data?.lines?.length ?? 0,
+        plate: l?.plate ?? null, date: l?.date ?? null, time: l?.time ?? null, amount: l?.amount ?? null, notice: l?.notice_number ?? t.data?.notice_number ?? null, issuer: t.data?.issuer ?? null };
+      out.toll.read_right = /VRFY\s*123/i.test(String(out.toll.plate ?? '')) && Number(String(out.toll.amount ?? '').replace(/[$,]/g, '')) === 50;
+      // a plate at 43% to 57% across and 70% to 78% down
+      const car = await shot(`<body style="margin:0"><div style="width:1000px;height:640px;background:linear-gradient(#bcd,#eee);position:relative">
+        <div style="position:absolute;left:220px;top:250px;width:560px;height:250px;background:#2b2b2b;border-radius:50px 50px 20px 20px"></div>
+        <div style="position:absolute;left:300px;top:300px;width:400px;height:90px;background:#9ab;border-radius:10px"></div>
+        <div style="position:absolute;left:430px;top:448px;width:140px;height:50px;background:#fff;border:3px solid #124;font:bold 30px Arial;line-height:50px;text-align:center;color:#124">ABCD 123</div>
+        <div style="position:absolute;left:250px;top:480px;width:60px;height:60px;border-radius:50%;background:#111"></div><div style="position:absolute;left:690px;top:480px;width:60px;height:60px;border-radius:50%;background:#111"></div></div></body>`, 1000, 640);
+      const pl = await ask('plate_detect', car);
+      const boxes = Array.isArray(pl.data?.plates) ? pl.data.plates : [];
+      const iou = (b) => { const ax = 0.43, ay = 0.7, aw = 0.14, ah = 0.078; const x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
+        if (![x, y, w, h].every(Number.isFinite)) return 0; const ix = Math.max(0, Math.min(ax + aw, x + w) - Math.max(ax, x)), iy = Math.max(0, Math.min(ay + ah, y + h) - Math.max(ay, y));
+        const i = ix * iy; return i / (aw * ah + w * h - i); };
+      out.plate = { status: pl.status, ok: pl.ok, model: pl.model, neurons: pl.neurons, ms: pl.ms, message: pl.message ?? pl.error, boxes: boxes.slice(0, 3), best_overlap: boxes.length ? Math.max(...boxes.map(iou)).toFixed(2) : null };
+    } catch (e) { out.error = String(e).slice(0, 300); }
+    return out;
   }
 
   // As the verification Admin: every portal through "view as", a write refused, the audit log, Exit, and an

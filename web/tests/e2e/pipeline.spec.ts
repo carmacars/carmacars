@@ -158,6 +158,10 @@ test('listing: an owner lists a car on a phone; the pipeline drafts and edits; a
     await desk.goto(`/admin/listings/${intake!.id}`);
     await expect(desk.getByTestId('listing-progress')).toContainText('Ready for review');
     await check(desk, 'admin listing review 1440');
+    // every public photo needs a plate decision before publishing (0042): none of the test photos shows a plate
+    await desk.getByTestId('plates-none-visible').click();
+    await desk.getByTestId('plates-none-visible-yes').click();
+    await expect(desk.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
     await desk.getByTestId('listing-approve').click();
     await expect(desk.getByRole('status').filter({ hasText: 'Approved and published' })).toBeVisible({ timeout: 20_000 });
     const [l] = await sql`select status, slug, headline from vehicle_listings where vehicle_id = ${car}`;
