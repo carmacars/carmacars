@@ -394,7 +394,9 @@ if (process.argv.includes('--auth')) {
           r.saved = await page.getByText('Password saved').count();
           r.ok = r.ok && r.chosen.startsWith(l.choose) && r.saved > 0;
           // the same link again: spent, so a friendly page that sends a new one
-          await page.goto(link, { waitUntil: 'networkidle' });
+          // (not networkidle: the page carries the bot check widget, which keeps the network busy)
+          await page.goto(link, { waitUntil: 'load' });
+          await page.getByRole('button', { name: 'Send me a new link' }).waitFor({ timeout: 15_000 }).catch(() => {});
           r.reused = new URL(page.url()).pathname;
           r.offersNew = await page.getByRole('button', { name: 'Send me a new link' }).count();
           r.ok = r.ok && r.reused === '/link-expired' && r.offersNew > 0;
@@ -402,10 +404,37 @@ if (process.argv.includes('--auth')) {
         }
         await ctx.close();
         if (l.remove && uid) r.removed = (await fetch(`${url}/auth/v1/admin/users/${uid}`, { method: 'DELETE', headers: h })).status;
-      } catch (e) { r.error = String(e).slice(0, 300); }
+      } catch (e) { r.ok = false; r.error = String(e).slice(0, 300); }
       report.auth_links.push(r);
     }
   } catch (e) { report.auth_links.push({ error: String(e).slice(0, 300) }); }
+  // The reset form itself, as the owner will use it (/reset-password, then Supabase sends the email): a throwaway account
+  // at Resend's test inbox asks for a link; Supabase must record the email as sent. Removed again. Informational when
+  // the bot check (Turnstile) does not let a headless browser through.
+  try {
+    const email = `delivered+reset-${Date.now()}@resend.dev`;
+    const made = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ email, password: randomPassword(), email_confirm: true }) })).json();
+    const r = { email, ok: false };
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/reset-password`, { waitUntil: 'load' });
+    await page.locator('#rp-email').fill(email);
+    await page.waitForTimeout(3000);
+    await page.getByRole('button', { name: 'Send the link' }).click();
+    r.said = await page.locator('.alert').first().textContent({ timeout: 30_000 }).catch(() => null);
+    for (let i = 0; i < 10 && made?.id; i++) {
+      const u = await (await fetch(`${url}/auth/v1/admin/users/${made.id}`, { headers: h })).json();
+      r.recovery_sent_at = u.recovery_sent_at ?? null;
+      if (r.recovery_sent_at) break;
+      await new Promise((x) => setTimeout(x, 1500));
+    }
+    r.ok = /Check your email/.test(r.said ?? '') && !!r.recovery_sent_at;
+    r.botCheck = /not a bot/.test(r.said ?? '');
+    await page.screenshot({ path: path.join(out, 'reset-form.png'), fullPage: true });
+    await ctx.close();
+    if (made?.id) r.removed = (await fetch(`${url}/auth/v1/admin/users/${made.id}`, { method: 'DELETE', headers: h })).status;
+    report.reset_form = r;
+  } catch (e) { report.reset_form = { ok: false, error: String(e).slice(0, 300) }; }
   // the verification Admin cannot be used between runs: its password is scrambled again
   try { if (admin?.id) await fetch(`${url}/auth/v1/admin/users/${admin.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password: randomPassword() + randomPassword() }) }); report.admin_password_scrambled = true; } catch { report.admin_password_scrambled = false; }
   report.auth_links_ok = report.auth_links.length === 3 && report.auth_links.every((x) => x.ok);

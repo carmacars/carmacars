@@ -47,18 +47,26 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co"
           status=0
           node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} ${{ inputs.auth && '--auth' || '' }} > /dev/null || status=$?
-          jq -r '"auth: \(.auth | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '"accounts: \(.accounts | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '(.portals // [])[] | "portal \(.role): ok \(.ok); home \(.afterSignIn // .error) \"\(.h1 // "")\"; errors \(.errors | length) \(.errors[:2] | tostring) \(.responses // [] | .[:4] | tostring); retried \(.retried // [] | tostring); refused \(.refused | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | (.viewAs // [])[] | "view as \(.portal): ok \(.ok); \"\(.banner // .error // "")\"; h1 \"\(.h1 // "")\""' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=view as::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | "write refused \(.writeRefused | tostring); audit \(.audit | tostring); exit \(.exit | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=view as::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | "invite \(.invite | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=invite::/'
-          jq -r '(.portals // [])[] | select(.role == "renter") | "sign out: \(.signOut // "not checked")"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '(.auth_links // [])[] | "auth link \(.type): ok \(.ok); landed \(.final // .error) \"\(.h1 // "")\"; chosen \(.chosen // "-"); used again \(.reused // "-"); template \(.template); subject \(.subject); overflow \(.overflow // [] | tostring); removed \(.removed // "-")"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$RUNNER_TEMP/verify/report.json"
-          jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", "))' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
-          jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
+          R="$RUNNER_TEMP/verify/report.json"
+          # GitHub shows at most 10 notices per step: the results in a few lines here, every detail in the run summary
+          jq -r '"sign-in: " + ([(.portals // [])[] | "\(.role) \(if .ok then "ok" else "FAILED" end) \(.afterSignIn // .error // "" | sub("https://[^/]+"; ""))\(if .fn then " (\(.fn))" else "" end)"] | join("; ")) + "; refused elsewhere: " + ([(.portals // [])[] | .refused // {} | to_entries[] | select(.value | test("^SHOWN|not named"))] | if length == 0 then "all, each page naming the account" else tostring end)' "$R" | sed 's/^/::notice title=verify::/'
+          jq -r '(.portals // [])[] | select(.role == "admin") | "view as: " + ([(.viewAs // [])[] | "\(.portal) \(if .ok then "ok" else "FAILED \(.error // .banner)" end)"] | join(", ")) + "; write refused \(.writeRefused.ok) (save -> \(.writeRefused.save), POST \(.writeRefused.post), unchanged \(.writeRefused.unchanged)); audit log \(.audit.view_as_starts) starts; exit \(.exit.ok)"' "$R" | sed 's/^/::notice title=view as::/'
+          jq -r '(.portals // [])[] | select(.role == "admin") | .invite | "invite from Admin > Portals: ok \(.ok); \"\(.said // .error // "")\"; link -> \(.landed) for \(.for); password -> \(.portal) \(.who // "" | gsub("Sign out"; ""))"' "$R" | sed 's/^/::notice title=invite::/'
+          jq -r '"email links: " + ([(.auth_links // [])[] | "\(.type) \(if .ok then "ok" else "FAILED" end) -> \(.final // .error // "")\(if .chosen then " -> \(.chosen)" else "" end)\(if .reused then ", used again -> \(.reused)" else "" end)"] | join("; ")) + "; sign-out: " + ([(.portals // [])[] | select(.role == "renter") | .signOut // "not checked"] | join("")) + "; reset form: \(.reset_form | if . == null then "not run" elif .ok then "ok, Supabase sent the email" elif .botCheck then "stopped by the bot check (headless browser)" else "FAILED \(.said // .error // "")" end)"' "$R" | sed 's/^/::notice title=verify::/'
+          jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$R"
+          jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", ")) + "; nonce \(.nonce | tostring); console errors \(.console | length)"' "$R" | sed 's/^/::notice title=verify::/'
+          {
+            echo "## Live sign-in checks"; echo
+            echo "| Account | Result | Landed | Function | Refused | Errors | Retried |"; echo "| --- | --- | --- | --- | --- | --- | --- |"
+            jq -r '(.portals // [])[] | "| \(.role) | \(if .ok then "ok" else "FAILED \(.error // "")" end) | \(.afterSignIn // "" | sub("https://[^/]+"; "")) | \(.fn // "") | \(.refused | to_entries | map("\(.key) -> \(.value)") | join(", ")) | \(.errors | length) | \(.retried // [] | join(", ")) |"' "$R"
+            echo; echo "## View as (the verification Admin)"; echo
+            echo "| Portal | Result | Banner | Heading |"; echo "| --- | --- | --- | --- |"
+            jq -r '(.portals // [])[] | select(.role == "admin") | (.viewAs // [])[] | "| \(.portal) | \(if .ok then "ok" else "FAILED \(.error // "")" end) | \(.banner // "") | \(.h1 // "") |"' "$R"
+            echo; jq -r '(.portals // [])[] | select(.role == "admin") | "- Write refused: \(.writeRefused | tostring)\n- Audit log: \(.audit | tostring)\n- Exit: \(.exit | tostring)\n- Invitation: \(.invite | del(.id) | tostring)"' "$R"
+            echo; echo "## Email links"; echo
+            jq -r '(.auth_links // [])[] | "- \(.type): \(del(.overflow) | tostring)"' "$R"
+            jq -r '"- reset form: \(.reset_form | tostring)"' "$R"
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite and auth link notices)"; exit "$status"; fi
       - name: SEO of the live site (seo-audit.mjs against carmacars.ca)
         if: always()
@@ -88,6 +96,7 @@ jobs:
           f="$RUNNER_TEMP/verify/worker-24h.json"
           jq -r '.http | if .unavailable then "24h 5xx by path unavailable: \(.unavailable)" else "24h: \(.requests) requests, \(.errors_5xx) answered 5xx: \(.by_path[:12] | map("\(.path) x\(.count)") | join(", "))" end' "$f" | sed 's/^/::notice title=worker::/'
           jq -r '.cpu_by_path | if .unavailable then "CPU by path unavailable: \(.unavailable)" else "CPU by path (\(.grouped_by)): \(.rows[:15] | map("\(.path) n\(.requests) p50 \(.p50) p99 \(.p99)") | join("; "))" end' "$f" | sed 's/^/::notice title=worker::/'
+          { echo "## The Worker on Cloudflare"; echo; for w in 24h 1h; do echo "### Last $w"; echo '```json'; jq '.' "$RUNNER_TEMP/verify/worker-$w.json"; echo '```'; done; } >> "$GITHUB_STEP_SUMMARY"
           n=$(jq -r '.invocations.exceeded_resources // 0' "$f")
           if [ "${n:-0}" != 0 ]; then echo "::warning title=worker::Cloudflare stopped $n request(s) in the last 24 hours with Error 1102 (the plan's CPU limit). Workers Paid removes the 10 ms limit."; fi
       - name: Report and screenshots into Supabase Storage (deploy-reports)
