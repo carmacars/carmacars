@@ -26,7 +26,10 @@
     "check:lighthouse": "node tests/lint/lighthouse.mjs",
     "test:unit": "node --test --experimental-strip-types --no-warnings 'src/**/*.test.ts'",
     "gen:agreement": "node scripts/gen-agreement.mjs",
-    "gen:owner-agreements": "node scripts/gen-owner-agreements.mjs"
+    "gen:owner-agreements": "node scripts/gen-owner-agreements.mjs",
+    "check:crawl": "node tests/lint/crawl-roles.mjs",
+    "check:seo": "node tests/lint/seo-audit.mjs",
+    "check:emails": "node tests/lint/emails-db.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

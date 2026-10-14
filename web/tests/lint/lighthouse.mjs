@@ -1,4 +1,4 @@
-// Lighthouse on home, fleet and a car page with mobile settings (Lighthouse's default mobile
+// Lighthouse on home, fleet, a car page and a model hub with mobile settings (Lighthouse's default mobile
 // emulation and throttling), with the installed Chromium. Writes reports/lighthouse.json.
 //   BASE_URL=http://localhost:3000 node tests/lint/lighthouse.mjs
 import fs from 'node:fs';
@@ -7,7 +7,7 @@ import * as chromeLauncher from 'chrome-launcher';
 
 const base = process.env.BASE_URL || 'http://localhost:3000';
 const chromePath = process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-const pages = (process.env.PAGES || '/,/cars,/cars/mercedes-benz-c300').split(',');
+const pages = (process.env.PAGES || '/,/cars,/cars/mercedes-benz-c300,/rent/toyota-corolla').split(',');
 const chrome = await chromeLauncher.launch({ chromePath, chromeFlags: ['--headless=new', '--no-sandbox', '--no-proxy-server', '--disable-gpu'] });
 const out = {};
 try {

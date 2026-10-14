@@ -84,6 +84,8 @@ that checks `p_by` again in the database.
 | `.../cancel`, `.../extend`, `.../change` | Previews from the database, then cancel (type to confirm), request and pay an extension, ask for a date change |
 | `/account/documents`, `/account/documents/[id]` | Every readable document; a link is signed only after `my_document` passes row-level security (60 s for ID images, 5 min otherwise) |
 | `/account/notifications`, `/account/profile` | Notification centre and preferences, marketing consent; contact details, drivers, Card on File |
+| `/account/bookings/[number]/review` | A closed booking's review (stars, title, text, consent to publish; `renter_submit_review` of 0034), linked from the booking and from the review request email |
+| `/unsubscribe`, `POST /api/unsubscribe` | The marketing emails' unsubscribe link (opening it changes nothing; the button does) and the RFC 8058 one-click request mail apps send (`List-Unsubscribe-Post`); `/email/unsubscribe` redirects here |
 | `/sign/driver/[token]` | An additional driver accepts without an account |
 | `POST /api/webhooks/stripe` | Signature checked on the raw body, `webhook_event_claim` / `webhook_event_finish`, settles authorized booking payments (the PaymentIntent is fetched again from Stripe) |
 | `/api/storage/...` | Local only: what a presigned R2 link does for the local storage adapter (`.local-storage/`) |
@@ -233,7 +235,7 @@ src/server/                 server actions and request metadata
 src/styles/                 tokens.css, core.css, pages.css (the prototype's, unchanged) and app.css (additions)
 scripts/                    local-db.sh, seed.mjs, gen-types.mjs, serve.mjs
 tests/e2e/                  Playwright at 375 and 1440, axe
-tests/lint/                 link checker, copy lint, Lighthouse
+tests/lint/                 link checker, copy lint, Lighthouse, role crawl, SEO audit, email audit
 ```
 
 ## Scripts
@@ -250,6 +252,9 @@ tests/lint/                 link checker, copy lint, Lighthouse
 | `npm run cf:deploy` | Build and deploy to Cloudflare |
 | `npm run test:e2e` | Playwright (needs `npm run build` and the local stack) |
 | `npm run check:links`, `check:copy`, `check:lighthouse` | Against a running server (`BASE_URL`, default `http://localhost:3000`) |
+| `npm run check:crawl` | Crawls every page anonymous and signed in as each role (renter, owner, investor, admin, each assistant function, field): no 404 or 5xx, no button without a handler, no toggle that does nothing or throws, no console error or failed request, no overflow at 375 and 1440, the copy rules. Local stack (it gives the accounts a known password; `--fresh` makes bare ones). `--per-shape 1` samples one page per shape (CI) |
+| `npm run check:seo` | Every public page and car page: titles and descriptions (unique, lengths), canonical, Open Graph and Twitter cards, JSON-LD (business, car, breadcrumbs, no ratings), headings, alt text, sitemap and robots, links from home and the fleet, 404, redirects of removed cars |
+| `npm run check:emails` | Every catalogue email rendered with the payload the database built (latest outbox row; `--test-db` adds the kept database of `scripts/test.sh`; `--samples` the catalogue samples): variables, links (signed ones verify), images, plain text, from and reply-to, 375 and 640 screenshots in `reports/emails/`, then unsubscribe end to end |
 
 ## Environment variables
 

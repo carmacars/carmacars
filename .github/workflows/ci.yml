@@ -102,12 +102,69 @@ jobs:
           name: playwright
           path: web/test-results
 
+  # The handover audit's checks (docs/audit/2026-10-13-audit.md), beside the web job: every page and link
+  # anonymous and as each role with no 404, 500, dead button, console error or overflow at 375 and 1440
+  # (tests/lint/crawl-roles.mjs); SEO of every public page and car page (seo-audit.mjs); every catalogue
+  # email rendered with database values, its links and the unsubscribe flow (emails-db.mjs); Lighthouse
+  # mobile scores (recorded, not gated: shared runners vary).
+  audit:
+    if: github.event_name != 'workflow_dispatch' || inputs.checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CARMACARS_LOCAL_DIR: /tmp/cc-local
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_BROWSERS_PATH: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - name: Local stack (migrations, local auth, seed)
+        run: |
+          cp .env.example .env.local
+          bash scripts/local-db.sh up
+      - name: Build
+        run: ../.github/ci-run.sh "Build" npm run build
+      - name: Browsers
+        run: npx playwright install --with-deps chromium
+      - name: Server
+        run: |
+          (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+      - name: Crawl as every role
+        run: ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --out reports/crawl.json
+      - name: SEO
+        run: ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs
+      - name: Emails with database values
+        run: ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots
+      - name: Lighthouse (mobile; recorded)
+        continue-on-error: true
+        run: |
+          CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" node tests/lint/lighthouse.mjs
+          jq -r 'to_entries[] | "::notice title=lighthouse::\(.key) performance \(.value.performance), accessibility \(.value.accessibility), best practices \(.value.bestPractices), SEO \(.value.seo); LCP \(.value.lcp), CLS \(.value.cls), TBT \(.value.tbt)"' reports/lighthouse.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-reports
+          path: web/reports
+
   deploy:
     if: >-
       !cancelled() && github.event_name == 'workflow_dispatch' && inputs.deploy
-      && needs.database.result != 'failure' && needs.web.result != 'failure'
-      && (inputs.checks == false || (needs.database.result == 'success' && needs.web.result == 'success'))
-    needs: [database, web]
+      && needs.database.result != 'failure' && needs.web.result != 'failure' && needs.audit.result != 'failure'
+      && (inputs.checks == false || (needs.database.result == 'success' && needs.web.result == 'success' && needs.audit.result == 'success'))
+    needs: [database, web, audit]
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
     env:
