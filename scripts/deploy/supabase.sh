@@ -134,9 +134,8 @@ auth() {
   patch=$(jq -n --arg l "$want" '{uri_allow_list: $l}')
   # Every Supabase Auth email links to /auth/callback with a token hash (scripts/deploy/auth-templates.mjs).
   local tpl; tpl=$(node "$ROOT/scripts/deploy/auth-templates.mjs")
-  if [ "$(jq -r '.mailer_templates_confirmation_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_confirmation_content' <<<"$tpl")" ] \
-     || [ "$(jq -r '.mailer_templates_recovery_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_recovery_content' <<<"$tpl")" ] \
-     || [ "$(jq -r '.mailer_templates_invite_content // ""' <<<"$cfg")" != "$(jq -r '.mailer_templates_invite_content' <<<"$tpl")" ]; then
+  # any subject or template that differs from the file (all of them, not only the first three)
+  if [ "$(jq -n --argjson c "$cfg" --argjson t "$tpl" '[$t | to_entries[] | select($c[.key] != .value)] | length')" != 0 ]; then
     patch=$(jq -s '.[0] + .[1]' <(echo "$patch") <(echo "$tpl"))
   fi
   if [ "$want" != "$list" ] || jq -e 'has("mailer_templates_confirmation_content")' <<<"$patch" > /dev/null; then
