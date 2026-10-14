@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
@@ -25,15 +26,26 @@ async function chosenFunction(): Promise<string | null> {
   try { return (await cookies()).get(VA_FN_COOKIE)?.value ?? null; } catch { return null; }
 }
 
+// A read asked twice in one render (the frame's counts and the page, both reading the dashboard) goes to the
+// database once: React's cache() for the request, keyed by the call as text. Writes are never cached.
+const READS = new Set<Call>(['roles', 'admin_list', 'admin_read', 'va_list', 'va_read', 'field_read', 'investor_read', 'ops_read']);
+const cachedRead = cache(async (key: string): Promise<unknown> => {
+  const a = JSON.parse(key) as { p_user: string; p_aal: string; p_call: string; p_name: string; p: Json };
+  return rpc('door', a, SR);
+});
+
 export async function door<T = Record<string, unknown>>(userId: string, call: Call, name: string | null, p: Record<string, unknown> = {}, aal?: 'aal1' | 'aal2' | null): Promise<T> {
   const level = aal === undefined ? await sessionAal() : aal;
   let args = p;
   if (call.startsWith('va_') && !('_va' in p)) { const fn = await chosenFunction(); if (fn) args = { ...p, _va: fn }; }
-  return (await rpc('door', { p_user: userId, p_aal: level ?? '', p_call: call, p_name: name ?? '', p: args as unknown as Json }, SR)) as unknown as T;
+  const a = { p_user: userId, p_aal: level ?? '', p_call: call, p_name: name ?? '', p: args as unknown as Json };
+  if (READS.has(call)) return (await cachedRead(JSON.stringify(a))) as T;
+  return (await rpc('door', a, SR)) as unknown as T;
 }
 
+const myRoles = cache(async (userId: string) => (await rpc('my_roles', { p_user: userId }, SR)) as unknown as Roles);
 export async function rolesOf(userId: string): Promise<Roles> {
-  const r = (await rpc('my_roles', { p_user: userId }, SR)) as unknown as Roles;
+  const r = { ...(await myRoles(userId)) };
   const fn = r.va ? await chosenFunction() : null;
   if (fn && r.va_functions?.includes(fn as Roles['va'] & string)) r.va = fn as Roles['va'];
   return r;

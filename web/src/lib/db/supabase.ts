@@ -1,31 +1,25 @@
 import 'server-only';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { required } from '@/lib/env';
+import { postgrestRpc, RpcError } from './postgrest';
 import { DbError, type Backend } from './repo';
-import type { Database } from './types';
 
-// Supabase backend: PostgREST through supabase-js. The service role key never leaves the server
-// (this module is server-only), and the anon and user clients carry no cookies of their own.
-let anon: SupabaseClient<Database> | undefined;
-let service: SupabaseClient<Database> | undefined;
-const opts = { auth: { persistSession: false, autoRefreshToken: false } } as const;
-
-function client(role: string, accessToken?: string): SupabaseClient<Database> {
-  const url = required('NEXT_PUBLIC_SUPABASE_URL');
-  if (role === 'service_role') return (service ??= createClient<Database>(url, required('SUPABASE_SERVICE_ROLE_KEY'), opts));
-  if (role === 'authenticated' && accessToken) {
-    return createClient<Database>(url, required('NEXT_PUBLIC_SUPABASE_ANON_KEY'), { ...opts, global: { headers: { Authorization: `Bearer ${accessToken}` } } });
-  }
-  return (anon ??= createClient<Database>(url, required('NEXT_PUBLIC_SUPABASE_ANON_KEY'), opts));
-}
-
+// Supabase backend: one POST to PostgREST per call (postgrest.ts), the request supabase-js's rpc() makes,
+// without building a supabase-js client (auth, realtime, storage and functions clients) for every call as
+// the signed-in user: that construction was a measurable part of the Worker's CPU time per portal page
+// (Cloudflare's Workers Free plan allows 10 ms; docs/audit/2026-10-13-launch-audit.md). The service role key
+// never leaves the server (this module is server-only).
 export function supabaseBackend(): Backend {
   return {
     async call(fn, args, o) {
-      const c = client(o.role, o.accessToken) as unknown as { rpc(fn: string, args: object): PromiseLike<{ data: unknown; error: { message: string; code?: string; hint?: string } | null }> };
-      const { data, error } = await c.rpc(fn, args);
-      if (error) throw new DbError(error.message, error.code, error.hint);
-      return data;
+      try {
+        return await postgrestRpc(fetch, {
+          url: required('NEXT_PUBLIC_SUPABASE_URL'), anonKey: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+          serviceKey: o.role === 'service_role' ? required('SUPABASE_SERVICE_ROLE_KEY') : undefined
+        }, fn, args, o);
+      } catch (e) {
+        if (e instanceof RpcError) throw new DbError(e.message, e.code, e.hint);
+        throw e;
+      }
     }
   };
 }

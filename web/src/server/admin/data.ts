@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
@@ -11,8 +12,10 @@ const SR = { role: 'service_role' as const };
 
 export interface AdminGate { admin: boolean; staff: boolean; two_step_required: boolean; name: string | null }
 
+// asked by the frame and by the page in the same render: once per request (React's cache)
+const gateOf = cache(async (userId: string) => (await rpc('admin_gate', { p_user: userId }, SR)) as unknown as AdminGate);
 export async function adminGate(u: SessionUser): Promise<AdminGate> {
-  return (await rpc('admin_gate', { p_user: u.id }, SR)) as unknown as AdminGate;
+  return gateOf(u.id);
 }
 
 /** For pages: redirects to sign in, to the refusal page, or to two-step sign-in. */

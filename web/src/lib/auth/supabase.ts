@@ -1,26 +1,36 @@
 import 'server-only';
-import { supabaseServer } from '@/lib/supabase/server';
-import type { AuthAdapter } from './types';
+import { cache } from 'react';
+import { supabaseServer as makeServer } from '@/lib/supabase/server';
+import type { AuthAdapter, SessionUser } from './types';
+
+// One Supabase Auth client and one answer to "who is signed in" per server render: a portal page asks in its
+// layout, its page and every database call (the access token), and each ask built a client and, for the user,
+// made a round trip to Supabase Auth. React's cache() keeps them for the one request (outside a render, in a
+// server action or a route handler, it does not cache and every call asks again).
+const supabaseServer = cache(makeServer);
+const cachedUser = cache(async (): Promise<SessionUser | null> => {
+  const s = await supabaseServer();
+  const { data } = await s.auth.getUser();
+  return data.user ? { id: data.user.id, email: data.user.email ?? '' } : null;
+});
+const cachedToken = cache(async (): Promise<string | null> => {
+  const s = await supabaseServer();
+  const { data } = await s.auth.getSession();
+  return data.session?.access_token ?? null;
+});
+const cachedAal = cache(async (): Promise<'aal1' | 'aal2' | null> => {
+  const s = await supabaseServer();
+  const { data } = await s.auth.mfa.getAuthenticatorAssuranceLevel();
+  return data?.currentLevel === 'aal2' ? 'aal2' : data?.currentLevel === 'aal1' ? 'aal1' : null;
+});
 
 const plain = (m: string) => (/invalid login/i.test(m) ? 'That email and password do not match an account.' : m);
 
 export function supabaseAuth(): AuthAdapter {
   return {
-    async currentUser() {
-      const s = await supabaseServer();
-      const { data } = await s.auth.getUser();
-      return data.user ? { id: data.user.id, email: data.user.email ?? '' } : null;
-    },
-    async accessToken() {
-      const s = await supabaseServer();
-      const { data } = await s.auth.getSession();
-      return data.session?.access_token ?? null;
-    },
-    async assurance() {
-      const s = await supabaseServer();
-      const { data } = await s.auth.mfa.getAuthenticatorAssuranceLevel();
-      return data?.currentLevel === 'aal2' ? 'aal2' : data?.currentLevel === 'aal1' ? 'aal1' : null;
-    },
+    currentUser: cachedUser,
+    accessToken: cachedToken,
+    assurance: cachedAal,
     async signUp(email, password, meta) {
       const s = await supabaseServer();
       const { env } = await import('@/lib/env');

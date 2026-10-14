@@ -56,6 +56,20 @@ jobs:
           jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           if [ "$status" != 0 ]; then echo "::error title=verify::a portal check failed (see the portal notices)"; exit "$status"; fi
+      - name: Worker CPU time per request (Cloudflare analytics, the last hour; the Free plan allows 10 ms)
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"; now=$(date -u +%Y-%m-%dT%H:%M:%SZ); from=$(date -u -d '-60 min' +%Y-%m-%dT%H:%M:%SZ)
+          q='query($a:String!,$s:Time!,$e:Time!){viewer{accounts(filter:{accountTag:$a}){workersInvocationsAdaptive(limit:20,filter:{datetime_geq:$s,datetime_leq:$e,scriptName:"carmacars-prod"},orderBy:[sum_requests_DESC]){sum{requests errors}quantiles{cpuTimeP50 cpuTimeP90 cpuTimeP99 cpuTimeP999}dimensions{status}}}}}'
+          body=$(jq -n --arg q "$q" --arg a "$CLOUDFLARE_ACCOUNT_ID" --arg s "$from" --arg e "$now" '{query:$q,variables:{a:$a,s:$s,e:$e}}')
+          out=$(curl -sS https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'content-type: application/json' --data "$body")
+          echo "$out" > "$RUNNER_TEMP/verify/worker-cpu.json"
+          if [ "$(echo "$out" | jq -r '.errors // [] | length')" != 0 ]; then echo "::warning title=verify::worker CPU analytics: $(echo "$out" | jq -c '.errors' | head -c 400)"; exit 0; fi
+          echo "$out" | jq -r '.data.viewer.accounts[0].workersInvocationsAdaptive[] | "::notice title=worker cpu::status \(.dimensions.status): \(.sum.requests) requests, \(.sum.errors) errors; CPU ms p50 \(.quantiles.cpuTimeP50/1000) p90 \(.quantiles.cpuTimeP90/1000) p99 \(.quantiles.cpuTimeP99/1000) p99.9 \(.quantiles.cpuTimeP999/1000)"'
       - name: Report and screenshots into Supabase Storage (deploy-reports)
         if: always()
         run: |
