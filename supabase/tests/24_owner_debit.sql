@@ -356,3 +356,26 @@ select test.eq('privileges: row-level security on the three new tables',
   (select count(*) from pg_class where relname in ('owner_debit_runs', 'owner_debit_notices', 'owner_debit_attempts') and relrowsecurity), 3::bigint);
 select test.eq('privileges: each new table is audited',
   (select count(*) from pg_trigger where tgname in ('audit_owner_debit_runs', 'audit_owner_debit_notices', 'audit_owner_debit_attempts')), 3::bigint);
+
+-- ---------------------------------------------------------------- 13. 0038: a run of test owners only stays with the verification accounts
+insert into owner_debit_runs (id, run_on, kind, submitted) values (test.id('od_test_run'), date '2027-07-15', 'debit', 1);
+update owner_debit_attempts set run_id = test.id('od_test_run') where id = test.od_att('iC');
+select app.ntf_emit('staff_owner_debit_run', 'owner_debit_run', test.id('od_test_run'), 'summary', '{}'::jsonb);
+select app.process_events(100000);
+select test.eq('0038: the summary of a run of test owners only goes to the verification Admin',
+  (select string_agg(distinct to_address, ',') from notification_outbox where code = 'staff_owner_debit_run' and entity_id = test.id('od_test_run')), 'verify-admin@carmacars.ca');
+select test.eq('0038: a run with a real owner goes to every Admin',
+  (select count(distinct to_address) > 1 from notification_outbox o join owner_debit_runs r on r.id = o.entity_id where o.code = 'staff_owner_debit_run' and r.run_on = '2027-06-15'), true);
+select test.eq('0038: a debit accepted after a passing error no longer shows that error',
+  (select coalesce(failure_message, 'none') from owner_debit_attempts where processor_intent_id = 'pi_od_X1'), 'none');
+-- a webhook before the run recorded the PaymentIntent (0038)
+select app.owner_debit_schedule(test.id('owner:od_olga'), date '2027-08-15', null, null, date '2027-08-01');
+select app.record_owner_payment_method(test.id('owner:od_olga'), null, jsonb_build_object('kind', 'pre_authorized_debit', 'last4', '2222',
+  'processor_customer_id', 'cus_od_olga', 'processor_method_id', 'pm_od_olga3', 'processor_mandate_id', 'mandate_od_olga3'));
+select app.owner_debit_schedule(test.id('owner:od_olga'), date '2027-08-15', null, null, date '2027-08-01');
+create table test.od_race as select (x ->> 'attempt_id')::uuid as a from jsonb_array_elements(app.owner_debit_claim(test.od_at('2027-08-15 07:00'), 100)) x
+  where (x #>> '{metadata,owner_id}')::uuid = test.id('owner:od_olga') limit 1;
+select test.eq('0038: a succeeded webhook that arrives before the run recorded the PaymentIntent settles the debit',
+  app.owner_debit_result('pi_od_race', jsonb_build_object('status', 'succeeded', 'attempt_id', (select a from test.od_race))) ->> 'status', 'succeeded');
+select test.eq('0038: the run''s own record afterwards is a replay',
+  app.owner_debit_submitted((select a from test.od_race), '{"intent_id":"pi_od_race","status":"processing"}') ->> 'repeat', 'true');
