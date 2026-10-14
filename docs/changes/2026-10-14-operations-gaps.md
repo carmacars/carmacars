@@ -166,10 +166,18 @@ and Submit. Each upload records its SHA-256; a photo already on another listed c
 | Text and emails | `scripts/check-text.sh` passed; `emails/check.mjs` 15 checks passed (142 emails); `0040_gen_catalogue.mjs --check` up to date |
 | End to end (local, fake Stripe), 375 and 1440 | `ops.spec.ts` 6 of 6: Admin proposes a day longer, the renter signs the amendment by typed name, the difference is charged once, the booking moves, the signed PDF downloads and is under Your documents, renter and owner emails; a second proposal declined; the cleaning block follows and is removed from the car's calendar; renter and customer service send new driver links, the older link says expired; a guest request attached after sign-in with the notice; a VIN one character from a real VIN cleared; Form D downloaded, uploaded, sent back, uploaded again, approved, with the emails; a field photo shoot captured with the camera inputs and submitted. axe, overflow and the copy rules on every page. The whole suite: 135 passed before the last fixes; the four tests that failed then (the cleaning block in `admin.spec.ts` master calendar, a hydration error from a form inside a paragraph on the car's calendar tab, the decline landing, a run-order flake in `gaps.spec.ts` messages) pass on a rerun |
 
-LIVE
+| Push CI | 38607103856 failed on `ops.spec.ts` only (the date fields are in the browser's time zone and CI runs in UTC; fixed in the spec); 38610232865 (the fix) and 38616669000 (0041) green: database, web with every end-to-end test, audit (crawl as every role, SEO, emails) |
+| Deploys | 38612763011 applied 0040 and then failed at the Worker upload: Cloudflare's free KV write quota for the day was used up (code 10048). 38615227619 (page cache assets) stopped at a flaky overflow in `audit.spec.ts` (the review page, 4 px at 375, passes in every other run). 38617790953 green: 0041 applied, 41 migrations, 143 templates, `carmacars-booking-changes` scheduled, the 20 sample-car flags gone |
+| Live database | 0040 and 0041 applied; `listing_similarity_flags` empty after 0041; no confirmed booking on the live database, so no cleaning block yet |
+| Verify | 38620769315, 38622418663, 38624453153: every check passed in at least one run, and each failure was Cloudflare Error 1102 or a page that did not load in time (the plan's CPU limit, with the page cache on static assets for the rest of the day): run 1 Admin and Finance sign-in checks (Admin > Company statements, Similar cars and Owner forms answered 1102), run 2 the sign-up confirmation link (1102 at `/auth/callback`; it passed in runs 1 and 3), run 3 the customer service sign-in page load. Admin > Similar cars and Owner forms loaded in runs 2 and 3 |
+
+No live test data was made: the end-to-end tests run on the local stack, and the verification uses its own `verify-*` accounts.
 
 ## 14. For the owner
 
+- **Error 1102**: the free Workers plan's 10 ms CPU limit stops some requests (184 in the last 24 hours, more while
+  the page cache is on static assets only). Deploy again after 00:00 UTC with the default page cache, and consider
+  Workers Paid, which removes the limit.
 - **Read the new legal text**: the booking amendment (`web/src/features/agreement/amendment.ts`) and the Form C and D
   wording (`scripts/gen-owner-agreements.mjs`) should be read by the lawyer.
 - **Cleaning time**: `turnaround_block_minutes` is 120 by default, the same as the 2-hour turnaround buffer in
