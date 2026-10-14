@@ -95,7 +95,8 @@ export async function runOwnerDebits(sql: Sql, stripeKey: string, opts: { limit?
           payment_method_types: ['acss_debit'], mandate: d.mandate_id, confirm: true, off_session: true,
           description: d.description, metadata: d.metadata, expand: ['latest_charge']
         }, d.idempotency_key);
-        await sql`select app.owner_debit_submitted(${d.attempt_id}::uuid, ${JSON.stringify(intentFacts(pi))}::jsonb)`;
+        // (the facts go as text: postgres.js would encode a string sent as jsonb a second time)
+        await sql`select app.owner_debit_submitted(${d.attempt_id}::uuid, ${JSON.stringify(intentFacts(pi))}::text::jsonb)`;
         out.submitted++; progressed++;
       } catch (e) {
         const err = e instanceof StripeCallError ? e : new StripeCallError(e instanceof Error ? e.message : String(e), 0, null);
@@ -111,7 +112,7 @@ export async function runOwnerDebits(sql: Sql, stripeKey: string, opts: { limit?
   for (const p of poll ?? []) {
     try {
       const pi = await stripe('GET', `/payment_intents/${encodeURIComponent(p.intent_id)}`, { expand: ['latest_charge'] });
-      const r = one<{ status: string }>(await sql`select app.owner_debit_result(${p.intent_id}, ${JSON.stringify(intentFacts(pi))}::jsonb) as r`, 'r');
+      const r = one<{ status: string }>(await sql`select app.owner_debit_result(${p.intent_id}, ${JSON.stringify(intentFacts(pi))}::text::jsonb) as r`, 'r');
       out.polled++;
       if (r?.status && r.status !== 'processing') out.settled++;
     } catch (e) {
