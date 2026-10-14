@@ -9,7 +9,7 @@ These are the confirmed details for handing back the {{vehicle_name}}, {{first_n
 
 When: {{return_date}}, {{return_time}}
 Where: {{return_place}}
-Who: {{field_staff_name}} from CarmaCars
+Who: {{field_staff_name}}, CarmaCars
 {{#if meeting_note}}
 Meeting note: {{meeting_note}}
 {{/if}}
@@ -35,7 +35,7 @@ You are receiving this because you have an account or a booking with CarmaCars. 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
-{{company_address}}
-https://carmacars.ca/
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}
 {{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

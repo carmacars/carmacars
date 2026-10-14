@@ -18,7 +18,7 @@ export default {
     facts(
       ['When', '{{return_date}}, {{return_time}}'],
       ['Where', '{{return_place}}'],
-      ['Who', '{{field_staff_name}} from CarmaCars'],
+      ['Who', '{{field_staff_name}}, CarmaCars'],
       { label: 'Meeting note', value: '{{meeting_note}}', when: 'meeting_note' },
     ),
     steps(

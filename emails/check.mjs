@@ -176,7 +176,8 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     const h = read('templates', e.code + '.html'); const t = read('templates', e.code + '.txt');
     for (const [kind, s] of [['html', h], ['txt', t]]) {
       if (!s.includes('{{company_address}}')) p.push(`${e.code}.${kind}: no mailing address`);
-      if (!s.includes(kind === 'html' ? 'CarmaCars<br>{{company_address}}' : 'CarmaCars\n{{company_address}}')) p.push(`${e.code}.${kind}: no sender name above the mailing address`);
+      // the address line is left out while the address is empty (marketing emails wait for it: migration 0035)
+      if (!s.includes(kind === 'html' ? 'CarmaCars{{#if company_address}}<br>{{company_address}}' : 'CarmaCars\n{{#if company_address}}{{company_address}}')) p.push(`${e.code}.${kind}: no sender name above the mailing address`);
       if (/18122211|operated by/i.test(s)) p.push(`${e.code}.${kind}: names the numbered company`);
       if (e.category === 'marketing' && !s.includes('{{unsubscribe_url}}')) p.push(`${e.code}.${kind}: marketing without unsubscribe`);
       if (e.category !== 'marketing' && s.includes('unsubscribe_url')) p.push(`${e.code}.${kind}: transactional with unsubscribe`);

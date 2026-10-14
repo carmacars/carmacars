@@ -22,5 +22,5 @@ If this notice looks wrong, tell an admin.
 Internal CarmaCars notice. It may contain customer information. Do not forward it.
 
 CarmaCars
-{{company_address}}
-https://carmacars.ca/
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

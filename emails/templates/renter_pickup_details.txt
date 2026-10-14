@@ -12,7 +12,7 @@ Plate {{vehicle_plate}}
 
 When: {{pickup_date}}, {{pickup_time}}
 Where: {{pickup_place}}
-Who: {{field_staff_name}} from CarmaCars
+Who: {{field_staff_name}}, CarmaCars
 {{#if meeting_note}}
 Meeting note: {{meeting_note}}
 {{/if}}
@@ -25,12 +25,12 @@ How the handover works
 2. We take the deposit
    {{deposit_amount}} on that card, before the keys change hands.
 3. We walk around the car together
-   We record the odometer, fuel and any marks, with photos. You and {{field_staff_name}} both sign the condition report.
+   We record the odometer, fuel and any marks, with photos. You both sign the condition report.
 
 Open pickup details:
 https://carmacars.ca/account/bookings/{{booking_number}}/pickup
 
-If you are running late, call {{support_phone}} so {{field_staff_name}} knows.
+If you are running late, call {{support_phone}} so we can tell the person meeting you.
 
 ----------------------------------------
 
@@ -41,7 +41,7 @@ You are receiving this because you have an account or a booking with CarmaCars. 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
-{{company_address}}
-https://carmacars.ca/
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}
 {{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

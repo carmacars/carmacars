@@ -33,7 +33,7 @@ You are receiving this because you have an owner account with CarmaCars. Notices
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
-{{company_address}}
-https://carmacars.ca/
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}
 {{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

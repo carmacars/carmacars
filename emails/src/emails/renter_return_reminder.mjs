@@ -22,7 +22,7 @@ export default {
     ),
     h('Before you hand it back'),
     list(
-      'Bring the fuel or charge back to the pickup level: **{{fuel_out}}**.',
+      'Bring the fuel or charge back to where it was at pickup (at pickup: **{{fuel_out}}**).',
       'Bring **all keys** and anything that came with the car.',
       'Take your belongings and leave the car reasonably clean.',
       'You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.',

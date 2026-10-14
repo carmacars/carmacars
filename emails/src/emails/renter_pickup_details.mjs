@@ -19,17 +19,17 @@ export default {
     facts(
       ['When', '{{pickup_date}}, {{pickup_time}}'],
       ['Where', '{{pickup_place}}'],
-      ['Who', '{{field_staff_name}} from CarmaCars'],
+      ['Who', '{{field_staff_name}}, CarmaCars'],
       { label: 'Meeting note', value: '{{meeting_note}}', when: 'meeting_note' },
     ),
     h('How the handover works'),
     steps(
       ['We check your licence and card', 'Bring your original licence and the physical card ending {{card_last4}}. We can only hand over to you in person.'],
       ['We take the deposit', '{{deposit_amount}} on that card, before the keys change hands.'],
-      ['We walk around the car together', 'We record the odometer, fuel and any marks, with photos. You and {{field_staff_name}} both sign the condition report.'],
+      ['We walk around the car together', 'We record the odometer, fuel and any marks, with photos. You both sign the condition report.'],
     ),
     button('Open pickup details', '@booking_pickup'),
-    small('If you are running late, call {{support_phone}} so {{field_staff_name}} knows.'),
+    small('If you are running late, call {{support_phone}} so we can tell the person meeting you.'),
   ],
   sample: { meeting_note: 'Meet at the taxi stand on the Front Street side.' },
 };

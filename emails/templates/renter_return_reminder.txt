@@ -13,7 +13,7 @@ Where: {{return_place}}
 Before you hand it back
 ------------------------
 
-- Bring the fuel or charge back to the pickup level: {{fuel_out}}.
+- Bring the fuel or charge back to where it was at pickup (at pickup: {{fuel_out}}).
 - Bring all keys and anything that came with the car.
 - Take your belongings and leave the car reasonably clean.
 - You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.
@@ -35,7 +35,7 @@ You are receiving this because you have an account or a booking with CarmaCars. 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
 CarmaCars
-{{company_address}}
-https://carmacars.ca/
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}
 {{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

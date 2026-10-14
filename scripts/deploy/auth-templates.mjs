@@ -12,7 +12,7 @@ const wrap = (title, body, cta, href, after) => `<!doctype html><html><body styl
 <tr><td style="padding:32px">
 <h1 style="font-size:24px;line-height:1.25;margin:0 0 16px">${title}</h1>
 <p style="font-size:16px;line-height:1.5;margin:0 0 24px">${body}</p>
-<p style="margin:0 0 24px"><a href="${href}" style="display:inline-block;background:${red};color:#FFFFFF;text-decoration:none;font-weight:700;font-size:16px;padding:14px 24px;border-radius:6px">${cta}</a></p>
+<p style="margin:0 0 24px">${href ? `<a href="${href}" style="display:inline-block;background:${red};color:#FFFFFF;text-decoration:none;font-weight:700;font-size:16px;padding:14px 24px;border-radius:6px">${cta}</a>` : `<span style="display:inline-block;border:2px solid ${red};font-weight:800;font-size:28px;letter-spacing:6px;padding:12px 24px">${cta}</span>`}</p>
 <p style="font-size:14px;line-height:1.5;color:#5C5C5C;margin:0">${after}</p>
 </td></tr>
 <tr><td style="background:#F5F5F5;padding:20px 32px;font-size:13px;color:#5C5C5C">CarmaCars, Toronto. Questions: contact@carmacars.ca</td></tr>
@@ -30,6 +30,9 @@ const patch = {
   mailer_subjects_magic_link: 'Your CarmaCars sign-in link',
   mailer_templates_magic_link_content: wrap('Sign in to CarmaCars', 'Tap the button to sign in. No password needed.', 'Sign in', cb('magiclink', '/account'), 'The link works once and expires in one hour.'),
   mailer_subjects_email_change: 'Confirm your new CarmaCars email',
+  // not sent while reauthentication is off (security_update_password_require_reauthentication), branded all the same
+  mailer_subjects_reauthentication: 'Your CarmaCars verification code',
+  mailer_templates_reauthentication_content: wrap('Your verification code', 'Enter this code on CarmaCars to confirm it is you:', '{{ .Token }}', null, 'The code expires shortly. If you did not ask for it, change your password.'),
   mailer_templates_email_change_content: wrap('Confirm your new email address', 'Confirm this address to use it for your CarmaCars account.', 'Confirm new email', cb('email_change', '/account'), 'If you did not ask for this change, contact us at privacy@carmacars.ca.')
 };
 process.stdout.write(JSON.stringify(patch));
