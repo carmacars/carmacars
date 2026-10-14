@@ -134,7 +134,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>
             <Act action="staff_cover" payload={{ user: r.id }} label="Covers" testId={`cover-${String(r.id)}`} refresh={['/admin/settings/staff']} fields={[{ name: 'functions', label: 'Also covers (finance, fleet, cs, sales; comma separated)', type: 'list',
               value: ((r.profile as R).cover_functions as string[] | null) ?? [] }]} /></> : null}
-          {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? They are signed out of every session.`} refresh={['/admin/settings/staff']} />
+          {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
             : <Act action="staff_restore" payload={{ user: r.id }} label="Restore" refresh={['/admin/settings/staff']} />}</span> }]} /></Card>
     </>);
   }
