@@ -379,3 +379,10 @@ select test.eq('0038: a succeeded webhook that arrives before the run recorded t
   app.owner_debit_result('pi_od_race', jsonb_build_object('status', 'succeeded', 'attempt_id', (select a from test.od_race))) ->> 'status', 'succeeded');
 select test.eq('0038: the run''s own record afterwards is a replay',
   app.owner_debit_submitted((select a from test.od_race), '{"intent_id":"pi_od_race","status":"processing"}') ->> 'repeat', 'true');
+
+-- ---------------------------------------------------------------- 14. 0039: the PDF of an owner without a sign-in
+insert into owners (id, owner_type, legal_name, status, email) values (test.id('owner:od_nosign'), 'individual', 'Od Nosign', 'active', 'od_nosign@example.test');
+insert into owner_statements (id, owner_id, statement_month, payout_date, status, approved_by) values (test.id('od_nosign_st'), test.id('owner:od_nosign'), date '2027-01-01', date '2027-02-10', 'approved', test.id('od_admin'));
+select test.eq('0039: the server reads an approved statement of an owner with no sign-in for its PDF',
+  app.pdf_facts('owner_statement', test.id('od_nosign_st')::text) ->> 'statement_number', (select statement_number from owner_statements where id = test.id('od_nosign_st')));
+select test.throws('0039: a signed-in stranger still cannot', format('select app.pdf_facts(%L, %L, %L)', 'owner_statement', test.id('od_nosign_st'), test.id('od_olga')::text), 'not available');

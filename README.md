@@ -9,7 +9,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 38 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/migrations/` | 39 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
 | `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
@@ -74,6 +74,7 @@ cd emails && node check.mjs
 | `0036_sign_in.sql` | Sign-in for every portal: view as (an Admin opens any portal read only, recorded in the audit log), Admin > Portals, invitations into any role, password links from Admin, the verification Admin and one assistant per function, lighter portal frames (`docs/changes/0036_sign_in.md`, `docs/changes/2026-10-14-sign-in.md`) |
 | `0037_owner_debit.sql` | The automatic monthly owner debit (pre-debit notice, one PaymentIntent per invoice, results, retries, arrears, pauses, run log), statement emails with their PDFs on set days, the missing sections of the company statement (`docs/changes/2026-10-14-owner-debit.md`) |
 | `0038_debit_run_test_owners.sql` | Fixes from 0037's live run: a debit run of test owners only stays with the verification accounts, a webhook before the run's record is not lost, a failed invoice whose retry could not be sent is noticed again |
+| `0039_statement_pdf_without_sign_in.sql` | The PDF of an approved owner statement for an owner with no sign-in yet (the statement email of such an owner never went) |
 
 ## Test files
 
@@ -99,7 +100,7 @@ cd emails && node check.mjs
 | `21_audit_fixes.sql` | The audit fixes of 0034 | 29 |
 | `22_launch_audit.sql` | The launch audit changes of 0035 | 28 |
 | `23_sign_in.sql` | Sign-in for every portal (0036) | 52 |
-| `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037, 0038) | 116 |
+| `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037 to 0039) | 118 |
 
 ## Rules for changes
 
