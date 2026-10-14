@@ -40,6 +40,7 @@ export const PATHS = {
   owner_application: '/owner/application',
   owner_agreements: '/owner/agreements',
   owner_billing: '/owner/billing',
+  owner_banking: '/owner/banking',
   owner_documents: '/owner/documents',
   owner_vehicle: '/owner/vehicles/{{vehicle_id}}',
   owner_vehicle_onboarding: '/owner/vehicles/{{vehicle_id}}/onboarding',
@@ -60,6 +61,8 @@ export const PATHS = {
   admin_fleet: '/admin/fleet',
   admin_jobs: '/admin/jobs',
   admin_weekly: '/admin/reports/weekly',
+  admin_reports: '/admin/reports',
+  admin_debits: '/admin/debits',
 
   // VA portal
   va_cs: '/va/cs',

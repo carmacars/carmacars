@@ -1,0 +1,35 @@
+CarmaCars  |  Month end
+
+========================================
+
+[Company statements]
+Your {{statement_month}} statements
+
+The company total, the statement by owner and the statement by vehicle are attached as PDFs, {{first_name}}.
+
+Contribution before costs not in the platform: {{company_net}}
+{{statement_status}}. {{ties_text}}.
+
+Rental revenue: {{rental_revenue}}
+Revenue Share kept: {{revenue_share}}
+Renter fees kept: {{company_fees}}
+Owner fees billed: {{owner_fees}}
+Owners: {{owner_count}}
+Vehicles: {{vehicle_count}}
+
+Open company statements:
+https://carmacars.ca/admin/reports
+
+Download the company statement (PDF) ({{statement_url}}). The link works for {{link_expiry}}; the statements are always in Admin.
+
+A draft can still change until it is finalized; a final month never changes, and later corrections show under Adjustments to earlier months.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

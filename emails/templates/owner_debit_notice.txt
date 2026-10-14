@@ -1,0 +1,38 @@
+CarmaCars  |  Debit on {{debit_date}}
+
+========================================
+
+[Upcoming debit]
+We will debit {{debit_total}} on {{debit_date}}
+
+This is your notice of the fees below, {{first_name}}. If your bank account is up to date, there is nothing to do.
+
+{{#each debit_items}}
+  Invoice: {{invoice_number}} | Vehicle: {{vehicle}} | Covers: {{covers}} | Amount: {{amount}}
+{{/each}}
+
+Debit date: {{debit_date}}
+From: Your account ending {{bank_last4}}
+Total: {{debit_total}}
+
+Prefer to pay another way?
+Pay any of these invoices by card from its page before {{debit_date}} and we will not debit it.
+
+View my invoices:
+https://carmacars.ca/owner/billing
+
+A debit can take up to 5 business days to clear. If your bank returns it, a {{late_fee}} late fee applies and {{retry_text}}. To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

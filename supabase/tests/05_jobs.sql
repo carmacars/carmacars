@@ -135,6 +135,6 @@ select test.eq('J no job function is executable from a browser session',
 select test.eq('J the server may run every job function',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and p.proname like 'job\_%' and not has_function_privilege('service_role', p.oid, 'execute')), 0::bigint);
-select test.ok('J without pg_cron the migrations schedule nothing; with it, the five jobs of 0015, offers-expire of 0016, notify-events of 0018, the four of 0020, the two of 0021, the two of 0023 and the five of 0024',
+select test.ok('J without pg_cron the migrations schedule nothing; with it, the five jobs of 0015, offers-expire of 0016, notify-events of 0018, the four of 0020, the two of 0021, the two of 0023, the five of 0024 and the owner debit notices of 0037',
   to_regclass('cron.job') is null
-  or (select (xpath('/row/n/text()', query_to_xml($q$select count(*) as n from cron.job where jobname like 'carmacars-%'$q$, false, true, '')))[1]::text = '20'));
+  or (select (xpath('/row/n/text()', query_to_xml($q$select count(*) as n from cron.job where jobname like 'carmacars-%'$q$, false, true, '')))[1]::text = '21'));

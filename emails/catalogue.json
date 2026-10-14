@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 126,
+  "count": 131,
   "emails": [
     {
       "code": "account_password_reset",
@@ -6314,6 +6314,233 @@
       "template_text": "templates/owner_booking_confirmed.txt"
     },
     {
+      "code": "owner_debit_notice",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner debit notice job, on the notice day (the debit day less the notice days in Program settings, 10 by default): the owner has issued invoices that will be debited automatically on the debit day from their pre-authorized debit account. One email per owner, listing every invoice in the debit. Required notice under the pre-authorized debit agreement.",
+      "timing": "The notice days before the debit day (the 5th for the 15th by default)",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Pre-authorized debit on {{debit_date}}: {{debit_total}}",
+      "preheader": "{{debit_count_text}} from your account ending {{bank_last4}}. Nothing to do if your account is up to date.",
+      "sample_subject": "Pre-authorized debit on Sun, Nov 15, 2026: $1,073.50",
+      "variables": [
+        {
+          "name": "bank_last4",
+          "type": "string",
+          "sample": "6621"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "debit_count_text",
+          "type": "string",
+          "sample": "2 invoices"
+        },
+        {
+          "name": "debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "debit_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-1042",
+              "vehicle": "2023 Toyota RAV4 XLE",
+              "covers": "November 2026",
+              "amount": "$536.75"
+            },
+            {
+              "invoice_number": "INV-1043",
+              "vehicle": "2022 Hyundai Elantra Preferred",
+              "covers": "November 2026",
+              "amount": "$536.75"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "vehicle",
+            "covers",
+            "amount"
+          ]
+        },
+        {
+          "name": "debit_total",
+          "type": "string",
+          "sample": "$1,073.50"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "late_fee",
+          "type": "string",
+          "sample": "$50.00"
+        },
+        {
+          "name": "notice_days",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "retry_text",
+          "type": "string",
+          "sample": "we try again from the 18th"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_debit_notice.html",
+      "template_text": "templates/owner_debit_notice.txt"
+    },
+    {
+      "code": "owner_debit_setup_needed",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner debit notice job (or the debit run itself): the owner has invoices due for the automatic debit but no active pre-authorized debit agreement on file, or it was cancelled at the bank. Nothing is debited. One email per owner per debit date. An Admin gets the exception at the same time.",
+      "timing": "The notice day, or the debit day when the agreement was cancelled since the notice",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Set up your bank debit for {{debit_total}} due {{debit_date}}",
+      "preheader": "We have no pre-authorized debit for your account, so nothing was scheduled. It takes two minutes.",
+      "sample_subject": "Set up your bank debit for $536.75 due Sun, Nov 15, 2026",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "debit_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-1042",
+              "vehicle": "2023 Toyota RAV4 XLE",
+              "covers": "November 2026",
+              "amount": "$536.75"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "vehicle",
+            "covers",
+            "amount"
+          ]
+        },
+        {
+          "name": "debit_total",
+          "type": "string",
+          "sample": "$536.75"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "late_fee",
+          "type": "string",
+          "sample": "$50.00"
+        },
+        {
+          "name": "notice_days",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_debit_setup_needed.html",
+      "template_text": "templates/owner_debit_setup_needed.txt"
+    },
+    {
       "code": "owner_document_due",
       "audience": "owner",
       "category": "transactional",
@@ -9309,6 +9536,96 @@
       "template_text": "templates/staff_job_failed.txt"
     },
     {
+      "code": "staff_monthly_statements_pdfs",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Statement emails job, on the company statement email day in Program settings (the 10th by default): the company statement for last month exists (draft or final). One email to each Admin with three PDFs attached: the company total with every section, the statement by owner and the statement by vehicle. An Admin can also send it to themselves from Company statements.",
+      "timing": "The company statement email day (the 10th by default)",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{statement_month}} company statements: net {{company_net}}",
+      "preheader": "{{statement_status}}. {{ties_text}}. Three PDFs attached.",
+      "sample_subject": "November 2026 company statements: net $14,802.10",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "company_fees",
+          "type": "string",
+          "sample": "$2,140.00"
+        },
+        {
+          "name": "company_net",
+          "type": "string",
+          "sample": "$14,802.10"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "7 days",
+          "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "owner_count",
+          "type": "string",
+          "sample": "14"
+        },
+        {
+          "name": "owner_fees",
+          "type": "string",
+          "sample": "$6,300.00"
+        },
+        {
+          "name": "rental_revenue",
+          "type": "string",
+          "sample": "$34,910.00"
+        },
+        {
+          "name": "revenue_share",
+          "type": "string",
+          "sample": "$11,204.50"
+        },
+        {
+          "name": "statement_month",
+          "type": "string",
+          "sample": "November 2026"
+        },
+        {
+          "name": "statement_status",
+          "type": "string",
+          "sample": "Final"
+        },
+        {
+          "name": "statement_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/d/sample-company-statement"
+        },
+        {
+          "name": "ties_text",
+          "type": "string",
+          "sample": "All checks tie out"
+        },
+        {
+          "name": "vehicle_count",
+          "type": "string",
+          "sample": "22"
+        }
+      ],
+      "template_html": "templates/staff_monthly_statements_pdfs.html",
+      "template_text": "templates/staff_monthly_statements_pdfs.txt"
+    },
+    {
       "code": "staff_monthly_statements_ready",
       "audience": "staff_admin",
       "category": "transactional",
@@ -9376,6 +9693,152 @@
       ],
       "template_html": "templates/staff_monthly_statements_ready.html",
       "template_text": "templates/staff_monthly_statements_ready.txt"
+    },
+    {
+      "code": "staff_owner_debit_exception",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "An owner's automatic debit cannot go ahead: no active pre-authorized debit on file at the notice or on the debit day, the agreement was cancelled at the bank (Stripe mandate inactive), the balance grew after the notice, or the invoice is blocked for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Owner debit exception: {{owner_name}}, {{exception_title}}",
+      "preheader": "{{debit_count_text}}, {{debit_total}}, due {{debit_date}}.",
+      "sample_subject": "Owner debit exception: Daniel Rossi, No pre-authorized debit on file",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "debit_count_text",
+          "type": "string",
+          "sample": "1 invoice"
+        },
+        {
+          "name": "debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "debit_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-1042",
+              "vehicle": "2023 Toyota RAV4 XLE",
+              "amount": "$536.75"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "vehicle",
+            "amount"
+          ]
+        },
+        {
+          "name": "debit_total",
+          "type": "string",
+          "sample": "$536.75"
+        },
+        {
+          "name": "exception_detail",
+          "type": "string",
+          "sample": "The owner has no active pre-authorized debit. They were emailed a link to set it up in Banking. Nothing is debited until they do; they can also pay from each invoice page."
+        },
+        {
+          "name": "exception_title",
+          "type": "string",
+          "sample": "No pre-authorized debit on file"
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "sample": "Daniel Rossi"
+        }
+      ],
+      "template_html": "templates/staff_owner_debit_exception.html",
+      "template_text": "templates/staff_owner_debit_exception.txt"
+    },
+    {
+      "code": "staff_owner_debit_run",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "The owner-debit run of a day is done (every scheduled debit due that day was sent, skipped or cancelled): one summary to the Admins with each debit and its status. Results that come back days later are in Owner debits; a returned debit also sends the owner invoice failure notice to finance.",
+      "timing": "The debit day (the 15th by default), after the run",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Owner debits sent {{run_date}}: {{submitted_count}} for {{submitted_total}}",
+      "preheader": "{{skipped_count}} not sent, {{failed_count}} refused at once. Bank results follow over the next days.",
+      "sample_subject": "Owner debits sent Sun, Nov 15, 2026: 12 for $6,441.00",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "failed_count",
+          "type": "string",
+          "sample": "0"
+        },
+        {
+          "name": "no_mandate_count",
+          "type": "string",
+          "sample": "1"
+        },
+        {
+          "name": "run_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "run_items",
+          "type": "list",
+          "sample": [
+            {
+              "owner": "Daniel Rossi",
+              "invoice_number": "INV-1042",
+              "amount": "$536.75",
+              "status": "Sent, processing"
+            },
+            {
+              "owner": "Lena Park",
+              "invoice_number": "INV-1044",
+              "amount": "$536.75",
+              "status": "Not sent: no pre-authorized debit mandate"
+            }
+          ],
+          "fields": [
+            "owner",
+            "invoice_number",
+            "amount",
+            "status"
+          ]
+        },
+        {
+          "name": "skipped_count",
+          "type": "string",
+          "sample": "1"
+        },
+        {
+          "name": "submitted_count",
+          "type": "string",
+          "sample": "12"
+        },
+        {
+          "name": "submitted_total",
+          "type": "string",
+          "sample": "$6,441.00"
+        }
+      ],
+      "template_html": "templates/staff_owner_debit_run.html",
+      "template_text": "templates/staff_owner_debit_run.txt"
     },
     {
       "code": "staff_payouts_due",

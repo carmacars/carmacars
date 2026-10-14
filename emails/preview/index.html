@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>126 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>51</span></a><a href="#owner">Owner <span>26</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>12</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>10</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>131 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>51</span></a><a href="#owner">Owner <span>28</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>10</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (51)</h2>
 <div class="grid">
@@ -333,7 +333,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (26)</h2>
+<h2 id="owner">Owner (28)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Confirm your email to open your CarmaCars owner account</div>
@@ -376,6 +376,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A booking of type owner (an Owner Booking: the owner driving their own vehicle) changes to confirmed, after the owner signs the Owner Rental agreement and staff confirm the licence is valid.</div>
 <div class="ln"><a href="../dist/owner_booking_confirmed.html">HTML</a><a href="../dist/owner_booking_confirmed.txt">Text</a><a href="../shots/owner_booking_confirmed.desktop.png">Desktop</a><a href="../shots/owner_booking_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_debit_notice.html"><img loading="lazy" src="../shots/owner_debit_notice.desktop.png" alt="Screenshot of owner_debit_notice"></a><div class="b">
+<div class="code">owner_debit_notice</div><div class="sub">Pre-authorized debit on Sun, Nov 15, 2026: $1,073.50</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Owner debit notice job, on the notice day (the debit day less the notice days in Program settings, 10 by default): the owner has issued invoices that will be debited automatically on the debit day from their pre-authorized debit account. One email per owner, listing every invoice in the debit. Required notice under the pre-authorized debit agreement.</div>
+<div class="ln"><a href="../dist/owner_debit_notice.html">HTML</a><a href="../dist/owner_debit_notice.txt">Text</a><a href="../shots/owner_debit_notice.desktop.png">Desktop</a><a href="../shots/owner_debit_notice.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_debit_setup_needed.html"><img loading="lazy" src="../shots/owner_debit_setup_needed.desktop.png" alt="Screenshot of owner_debit_setup_needed"></a><div class="b">
+<div class="code">owner_debit_setup_needed</div><div class="sub">Set up your bank debit for $536.75 due Sun, Nov 15, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Owner debit notice job (or the debit run itself): the owner has invoices due for the automatic debit but no active pre-authorized debit agreement on file, or it was cancelled at the bank. Nothing is debited. One email per owner per debit date. An Admin gets the exception at the same time.</div>
+<div class="ln"><a href="../dist/owner_debit_setup_needed.html">HTML</a><a href="../dist/owner_debit_setup_needed.txt">Text</a><a href="../shots/owner_debit_setup_needed.desktop.png">Desktop</a><a href="../shots/owner_debit_setup_needed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_document_due.html"><img loading="lazy" src="../shots/owner_document_due.desktop.png" alt="Screenshot of owner_document_due"></a><div class="b">
 <div class="code">owner_document_due</div><div class="sub">Insurance proof for your 2023 Toyota RAV4 XLE is due Sat, Nov 21, 2026</div>
@@ -513,7 +525,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (12)</h2>
+<h2 id="staff_admin">Staff: admin (15)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
@@ -563,11 +575,29 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A scheduled job run is marked failed in job_runs (which also raises one urgent admin task). Sent to both admins once per job per day. Immediate.</div>
 <div class="ln"><a href="../dist/staff_job_failed.html">HTML</a><a href="../dist/staff_job_failed.txt">Text</a><a href="../shots/staff_job_failed.desktop.png">Desktop</a><a href="../shots/staff_job_failed.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/staff_monthly_statements_pdfs.html"><img loading="lazy" src="../shots/staff_monthly_statements_pdfs.desktop.png" alt="Screenshot of staff_monthly_statements_pdfs"></a><div class="b">
+<div class="code">staff_monthly_statements_pdfs</div><div class="sub">November 2026 company statements: net $14,802.10</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Statement emails job, on the company statement email day in Program settings (the 10th by default): the company statement for last month exists (draft or final). One email to each Admin with three PDFs attached: the company total with every section, the statement by owner and the statement by vehicle. An Admin can also send it to themselves from Company statements.</div>
+<div class="ln"><a href="../dist/staff_monthly_statements_pdfs.html">HTML</a><a href="../dist/staff_monthly_statements_pdfs.txt">Text</a><a href="../shots/staff_monthly_statements_pdfs.desktop.png">Desktop</a><a href="../shots/staff_monthly_statements_pdfs.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/staff_monthly_statements_ready.html"><img loading="lazy" src="../shots/staff_monthly_statements_ready.desktop.png" alt="Screenshot of staff_monthly_statements_ready"></a><div class="b">
 <div class="code">staff_monthly_statements_ready</div><div class="sub">November statements are drafted and need your review</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The company statement for a month is finalized (company statement status becomes final): the company statement and the owner statements for that month are drafted and need an admin's review before the owner statements are approved and issued. One email to each admin.</div>
 <div class="ln"><a href="../dist/staff_monthly_statements_ready.html">HTML</a><a href="../dist/staff_monthly_statements_ready.txt">Text</a><a href="../shots/staff_monthly_statements_ready.desktop.png">Desktop</a><a href="../shots/staff_monthly_statements_ready.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_debit_exception.html"><img loading="lazy" src="../shots/staff_owner_debit_exception.desktop.png" alt="Screenshot of staff_owner_debit_exception"></a><div class="b">
+<div class="code">staff_owner_debit_exception</div><div class="sub">Owner debit exception: Daniel Rossi, No pre-authorized debit on file</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An owner's automatic debit cannot go ahead: no active pre-authorized debit on file at the notice or on the debit day, the agreement was cancelled at the bank (Stripe mandate inactive), the balance grew after the notice, or the invoice is blocked for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.</div>
+<div class="ln"><a href="../dist/staff_owner_debit_exception.html">HTML</a><a href="../dist/staff_owner_debit_exception.txt">Text</a><a href="../shots/staff_owner_debit_exception.desktop.png">Desktop</a><a href="../shots/staff_owner_debit_exception.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_debit_run.html"><img loading="lazy" src="../shots/staff_owner_debit_run.desktop.png" alt="Screenshot of staff_owner_debit_run"></a><div class="b">
+<div class="code">staff_owner_debit_run</div><div class="sub">Owner debits sent Sun, Nov 15, 2026: 12 for $6,441.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The owner-debit run of a day is done (every scheduled debit due that day was sent, skipped or cancelled): one summary to the Admins with each debit and its status. Results that come back days later are in Owner debits; a returned debit also sends the owner invoice failure notice to finance.</div>
+<div class="ln"><a href="../dist/staff_owner_debit_run.html">HTML</a><a href="../dist/staff_owner_debit_run.txt">Text</a><a href="../shots/staff_owner_debit_run.desktop.png">Desktop</a><a href="../shots/staff_owner_debit_run.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_payouts_due.html"><img loading="lazy" src="../shots/staff_payouts_due.desktop.png" alt="Screenshot of staff_payouts_due"></a><div class="b">
 <div class="code">staff_payouts_due</div><div class="sub">Payouts due today: 14 transfers, $21,480.60</div>

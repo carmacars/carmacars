@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '126/1');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '131/1');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 60::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 63::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -597,6 +597,15 @@ values (test.id('msg:NT-2:out'), 'outbound', 'portal', 'Your booking NT-2', 'We 
 insert into test.nt_synth values
   ('renter_staff_message', 'message', test.id('msg:NT-2:out'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
   ('staff_renter_replied', 'message', test.id('msg:NT-2:in'), jsonb_build_object('booking_id', test.id('booking:NT-2'), '_immediate', true));
+-- the owner debit and company statement emails (0037): a run of the day, an exception, a statement with its PDFs
+insert into owner_debit_runs (id, run_on, kind, submitted, submitted_cents) values (test.id('nt_debit_run'), date '2031-06-15', 'debit', 1, 53675);
+select app.build_company_statement(date '2031-06-01', null);
+insert into test.nt_synth values
+  ('owner_debit_notice', 'owner', test.id('owner:nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('owner_debit_setup_needed', 'owner', test.id('owner:nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('staff_owner_debit_exception', 'owner', test.id('owner:nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'exception', 'no_mandate')),
+  ('staff_owner_debit_run', 'owner_debit_run', test.id('nt_debit_run'), '{}'::jsonb),
+  ('staff_monthly_statements_pdfs', 'company_statement', (select id from company_statements where statement_month = '2031-06-01'), '{}'::jsonb);
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
