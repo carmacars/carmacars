@@ -45,6 +45,11 @@ jobs:
           K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
           echo "::add-mask::$K"
           export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co"
+          # the site's link key: the statement emails job is called once, as the Worker's cron calls it (web/scripts/verify-live.mjs)
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          echo "::add-mask::$L"
+          export LINK_SIGNING_KEY="$L"
           status=0
           node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} ${{ inputs.auth && '--auth' || '' }} > /dev/null || status=$?
           R="$RUNNER_TEMP/verify/report.json"
@@ -55,6 +60,7 @@ jobs:
           jq -r '"email links: " + ([(.auth_links // [])[] | "\(.type) \(if .ok then "ok" else "FAILED" end) -> \(.final // .error // "")\(if .chosen then " -> \(.chosen)" else "" end)\(if .reused then ", used again -> \(.reused)" else "" end)"] | join("; ")) + "; sign-out: " + ([(.portals // [])[] | select(.role == "renter") | .signOut // "not checked"] | join("")) + "; reset form: \(.reset_form | if . == null then "not run" elif .ok then "ok, Supabase sent the email" elif .botCheck then "stopped by the bot check (headless browser)" else "FAILED \(.said // .error // "")" end)"' "$R" | sed 's/^/::notice title=verify::/'
           jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$R"
           jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", ")) + "; nonce \(.nonce | tostring); console errors \(.console | length)"' "$R" | sed 's/^/::notice title=verify::/'
+          jq -r '"owner debit: owner Banking \"\([(.portals // [])[] | select(.role == "owner") | .autoDebit // "MISSING"] | join(""))\"; Admin > Owner debits \([(.portals // [])[] | select(.role == "admin") | if .debitsPage then "ok" else "MISSING" end] | join("")); statement emails job \(.statement_job | tostring)"' "$R" | sed 's/^/::notice title=owner debit::/'
           {
             echo "## Live sign-in checks"; echo
             echo "| Account | Result | Landed | Function | Refused | Errors | Retried |"; echo "| --- | --- | --- | --- | --- | --- | --- |"

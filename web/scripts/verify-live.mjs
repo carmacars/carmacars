@@ -31,6 +31,16 @@ for (const p of PAGES) {
   report.pages.push({ path: p, status: r.status, ms: Date.now() - t, title: /<title>([^<]*)<\/title>/.exec(body)?.[1] ?? null, location: r.headers.get('location') });
 }
 
+// The statement emails job (the Worker's hourly cron, POST /api/jobs/statements with the listing worker's token):
+// called once so a run shows what it renders and sends (owner, investor and company statements with their PDFs).
+if (process.env.LINK_SIGNING_KEY) {
+  try {
+    const { createHmac } = await import('node:crypto');
+    const tok = createHmac('sha256', process.env.LINK_SIGNING_KEY).update('carmacars-listing-worker-v1').digest('hex');
+    const r = await fetch(`${BASE}/api/jobs/statements`, { method: 'POST', headers: { authorization: `Bearer ${tok}` } });
+    report.statement_job = { status: r.status, body: (await r.text()).slice(0, 400) };
+  } catch (e) { report.statement_job = { error: String(e).slice(0, 200) }; }
+}
 const browser = await chromium.launch();
 for (const [name, viewport] of [['phone-375', { width: 375, height: 812 }], ['desktop-1440', { width: 1440, height: 900 }]]) {
   const ctx = await browser.newContext({ viewport });
