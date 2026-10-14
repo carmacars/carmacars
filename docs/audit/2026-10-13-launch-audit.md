@@ -23,13 +23,13 @@ values); `verify` is the live verification workflow against carmacars.ca (sectio
 | Check | Result |
 | --- | --- |
 | Database suite | 22 files, 2,671 assertions, 0 failed (0035 adds `22_launch_audit.sql`, 28 assertions) |
-| Role crawl, production build | 10 roles (anonymous, renter, owner, investor, Admin, customer service, Finance, Fleet, Sales, field), 659 pages rendered, 1,917 links requested, 1,820 forms and buttons checked, at 375 and 1440: 1 problem found (a hydration error on the assistant's offer screen), fixed; re-crawl of the affected roles 0 problems |
+| Role crawl, production build | 10 roles (anonymous, renter, owner, investor, Admin, customer service, Finance, Fleet, Sales, field), 659 pages rendered, 1,917 links requested, 1,820 forms and buttons checked, at 375 and 1440: 1 problem found (a hydration error on the assistant's offer screen), fixed; after the last change a full re-crawl (one page of each shape: 517 pages, 1,739 links) 0 problems |
 | SEO, production build | 32 pages checked in full (home, fleet, the information and legal pages, 20 car pages), 20 model pages, sitemap 11 entries (no car while every car is a sample), 41 noindex pages (20 sample cars, 20 model pages of samples, `/investors`), 0 problems |
 | Emails | 126 catalogue codes rendered with database values (31 from the app database, 93 from the test database, 2 from samples: the two Supabase Auth sends itself), 157 links checked, 0 problems; 40 looked at by eye at 375 and 640 (every renter booking life-cycle email and every owner billing email); 6 wording defects fixed |
-| Real sends | 34 emails through the Resend API to `delivered+<code>@resend.dev`, every audience and every renter life-cycle email (section 4.3) |
+| Real sends | 34 emails through the Resend API to `delivered+<code>@resend.dev`, all 10 audiences and every renter life-cycle email: 34 of 34 "delivered" (section 4.3) |
 | Lighthouse, mobile, local production build | Home 79, fleet 91, car page 79, model page 93 for performance; accessibility 100 on all four (section 5.4) |
 | Copy | 81 pages and 126 emails: no long dashes, no numbered company name, no misspelled CarmaCars, no placeholder text (`copylint.mjs`, `check-text.sh`, `emails/check.mjs` 15 checks, `emails-db`) |
-| Live scheduled jobs | 21 pg_cron jobs active; the last 24 hours: 4,148 runs succeeded, 0 failed; 360 calls of `send-outbox` answered 200 |
+| Live scheduled jobs | 21 pg_cron jobs active; the last 24 hours: 4,622 runs succeeded, 0 failed; the last 360 calls of `send-outbox` all answered 200 |
 | Live outbox | 17 rows: 9 sent, 8 suppressed on purpose (sample and test addresses), 0 failed, 0 waiting |
 
 ## 2. The owner's standard
@@ -91,7 +91,22 @@ are in S1; all fixed.
 
 ### 4.3 Real sends through Resend
 
-See section 9.3 for the list and Resend's delivery status of each.
+The rendered HTML and text of each email (database values, as `send-outbox` renders them) sent through the Resend
+API from its catalogue sender and reply-to to `delivered+<code>@resend.dev`, then read back from Resend: 34 sent, 34
+"delivered".
+
+| Audience | Codes |
+| --- | --- |
+| Renter (21) | account created, request received, request needs info, offer ready, offer reminder, agreement ready, agreement signed, booking confirmed, payment receipt, identity needed, booking reminder, pickup details, rental started, return reminder, return details, return complete, final statement, deposit released, review request, come-back 1 week, come-back 1 month |
+| Owner (4) | upfront invoice, monthly fee invoice, statement ready, payout sent |
+| Investor (1) | return paid |
+| Admin (1) | morning digest |
+| Customer service (2) | request waiting, new booking request |
+| Finance (1) | cancellation received |
+| Fleet (1) | breakdown reported |
+| Sales (1) | end-of-day digest |
+| Field (1) | field job assigned |
+| Insurer (1) | insurer invoice |
 
 ### 4.4 Live outbox, digests, Auth emails
 
@@ -222,7 +237,7 @@ file names and `/sign-up` redirect permanently.
 | Item | Status | Evidence |
 | --- | --- | --- |
 | Deploy job and verify | see section 9 | |
-| Scheduled jobs | works | 21 pg_cron jobs active, every one ran in the last hour; 24 hours: 4,148 succeeded, 0 failed (`cron.job_run_details`); `send-outbox` 360 HTTP calls, all 200 |
+| Scheduled jobs | works | 21 pg_cron jobs active, every one ran in the last hour; 24 hours: 4,622 succeeded, 0 failed (`cron.job_run_details`); `send-outbox` the last 360 HTTP calls, all 200 |
 | Outbox | works | 0 failed, 0 queued; 9 sent, 8 suppressed (sample and verification addresses) |
 | Stripe webhook | works (test mode) | Endpoint `https://carmacars.ca/api/webhooks/stripe` enabled for the three PaymentIntent events; recent events have 0 pending deliveries. Live keys are the owner's |
 | Supabase Auth emails | works | Branded token-hash templates for confirmation, invitation, recovery, magic link, email change; reauthentication now branded; verify opens each live |
@@ -241,7 +256,13 @@ What this audit changed to cut CPU per request: every database call is now one p
 new supabase-js client per call as the signed-in user (a client builds its Auth, Realtime, Storage and Functions
 sub-clients); the Supabase Auth client, the signed-in user (and its round trip to Supabase Auth), the access token,
 the assurance level, the roles, the Admin gate and every repeated portal read are asked once per render instead of
-two to six times (the frame and the page both asked). Measured after the deploy: section 9.2.
+two to six times (the frame and the page both asked); and the site frame (root layout), which runs on every page,
+reads the site settings and the small "global" content blocks only, instead of every content block (39 KB), the
+whole fleet and the policy facts. Measured after the deploys, from the same analytics: success p50 12.8 ms, p90
+364.8 ms (from 445.7), p99 1,127 ms over the hour. The final verify run, with every portal signed in, had no 1102
+answer and needed no retry (the hour's 29 exceeded-resources answers all came from the runs before the frame change:
+the count did not move during the final run). Requests that Cloudflare stopped show CPU p50 10 ms: the free limit is
+enforced on some requests, not all.
 
 **Plain answer: yes, the Workers Paid plan (US$5 a month) is still needed for reliable portals.** The changes lower
 the work per request, but a dynamic React server render with a cold isolate does not fit in 10 ms; only the Paid plan
@@ -249,8 +270,50 @@ the work per request, but a dynamic React server render with a cold isolate does
 
 ## 10. Live results
 
-Filled in from the deploy and verify runs of this audit.
+| Run | Result |
+| --- | --- |
+| Push CI on the audit's commits | green (database, web with every e2e test at 375 and 1440, audit: crawl, SEO, emails, Lighthouse) |
+| Deploy (`ci` with `deploy`), twice | green; migrations 0034 and 0035 applied (history 35 rows), 127 email templates loaded, Auth templates patched, `send-outbox` answering |
+| Verify before the audit's changes (38510043692) | green; CPU p50 12.0 ms, p90 445.7 ms |
+| Verify right after the first deploy (38513556410, 38514185326) | failed on cold isolates: Cloudflare answered 16 and 5 requests with 1102 (refusal pages `/va/no-access`, `/investor/no-access`, `/field`), each loaded again; the renter's refusal check gave up |
+| Verify after the frame change (38517204349) | green: every portal signed in through the live form (renter, owner, investor, customer service, field), each refused the others, 0 console errors, 0 retries, no 1102; the three Supabase Auth links land signed in; the live SEO audit 0 problems (32 pages, sitemap 11 entries, 41 noindex) |
+| Final verify | see the final report |
 
 ## 11. What only the owner can do, in order
 
-See the final report of this audit, repeated here once the live results are in.
+1. **Answer the waiting request CC-10002** (a real visitor, October 13 at 6:33 pm, on a sample car): Admin > Requests
+   > CC-10002 > Decline (or call the renter and offer a real car).
+2. **Decide on the Workers Paid plan** (US$5 a month): Cloudflare dashboard > Workers & Pages > Plans > Workers Paid.
+   Nothing in the code changes. Without it some portal page loads will keep failing with Error 1102.
+3. **Enter the mailing address and the street address**: Admin > Settings > Site. Marketing emails (come-backs,
+   review requests) wait until the mailing address is in, and every email footer shows it.
+4. **Confirm the phone number**: the site shows 647-575-3377; check it is the CarmaCars line (Admin > Settings > Site).
+5. **Replace the sample cars with the real fleet**: for each real car, the owner application or Admin > Fleet, then
+   Listing > Start a listing with 8 photos > Publish; unlist each sample (Admin > Fleet > the car > Listing > Unlist).
+   A real car is indexed automatically; a sample shows "Not a sample" only if it is in fact real.
+6. **Logo, favicon and sharing image**: Admin > Settings > Site (logo light and dark, favicon, a 1200 by 630 sharing image).
+7. **Google Search Console**: add a Domain property for `carmacars.ca`, put its TXT record in Cloudflare DNS, then
+   submit `https://carmacars.ca/sitemap.xml`. Bing Webmaster Tools the same way.
+8. **Google Business Profile**: create or claim it as a service-area business, then put its place id in Admin >
+   Settings > Site (it fills the review link and the business markup).
+9. **Stripe live mode**: in the Supabase vault set `deploy_stripe_secret_key` and `deploy_stripe_publishable_key` to the
+   live keys, run the deploy (it creates the live webhook and stores its secret), and turn on Canadian pre-authorized
+   debits in Stripe. Until then no real card is charged.
+10. **Cloudflare**: enable R2 (Dashboard > R2) and image transformations on the zone (Dashboard > carmacars.ca >
+    Images > Transformations > Enable), or give the deploy token Zone Settings edit. Needed for consistent photo
+    backgrounds.
+11. **Google Maps key**: add `deploy_google_maps_api_key` to the Supabase vault and deploy (address lookup, delivery by
+    distance).
+12. **Delivery and coverage prices**: Admin > Settings: delivery rate per km and the starting point, airport
+    surcharges, coverage default prices.
+13. **HST number**: Admin > Settings > Program settings `company_hst_number` once registered (receipts, invoices).
+14. **Decide who pays a CarmaCars promo code**: today the owner shares it (and bears it all on a Self-Managed car).
+    Before the first come-back code, decide whether CarmaCars absorbs its own promotions (a database change).
+15. **Staff two-step sign-in**: once every staff member has an authenticator app, Admin > Settings > Program settings
+    `require_staff_two_step` on.
+16. **The official ServiceOntario PDFs** (SR-LV-006, SR-LV-012, ON00453, 013-0169, 013-1155) and **one real toll
+    statement file**: send them to finish government form pre-fill and map bulk toll import.
+17. **Legal**: the rental, enrollment and title agreements and the website policies are drafts until the lawyer
+    approves them; the lawyer's approval of the automatic countersignature (99-traceability question 4).
+18. **The monthly owner debit on the 15th** is not automated: until it is built, owners pay each monthly invoice from
+    its page, and staff watch Admin > Invoices.
