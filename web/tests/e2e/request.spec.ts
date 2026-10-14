@@ -122,9 +122,11 @@ test('car page: calendar shows the turnaround, estimate comes from the database,
   await sql.end();
   await page.goto('/cars/mercedes-benz-c300');
   await acceptCookies(page);
+  // the cookie choice refreshes the page: wait for it to settle before working the calendar
+  await page.waitForLoadState('networkidle');
   // the day a booking ends is free from 2 hours after its return (the turnaround)
   const day = page.locator(`.cal [data-date="${bk!.d}"]`);
-  await page.locator('#dates').scrollIntoViewIfNeeded();
+  await expect(async () => { await page.locator('#dates').scrollIntoViewIfNeeded({ timeout: 2_000 }); }).toPass({ timeout: 15_000 });
   for (let i = 0; i < 4 && !(await day.count()); i++) await page.getByRole('button', { name: 'Next month' }).first().click();
   await expect(day).toHaveClass(/is-part/);
   await expect(day).toHaveAttribute('aria-label', /partly available, free from 12:00 p.m./);
