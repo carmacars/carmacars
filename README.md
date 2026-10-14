@@ -9,8 +9,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 39 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 42 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | 26 test files (3,050 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -77,6 +77,7 @@ cd emails && node check.mjs
 | `0039_statement_pdf_without_sign_in.sql` | The PDF of an approved owner statement for an owner with no sign-in yet (the statement email of such an owner never went) |
 | `0040_operations_gaps.sql` | The operations gaps: staff proposals to change a confirmed booking (email, deadline, reminder, accept or decline, the difference charged or refunded, the owner told), the signed booking amendment, the cleaning block after each trip, the listing similarity check, earlier requests attached after a verified sign-in, expiring and renewable driver links, Forms C and D upload and review, the photo fingerprints of a field photo shoot (`docs/changes/2026-10-14-operations-gaps.md`) |
 | `0041_sample_cars_not_compared.sql` | The similarity check leaves the sample cars out (their placeholder VINs were flagged on the live database) |
+| `0042_tolls_plates_forms.sql` | Reading toll notices and statements (reads and lines checked beside the file, reading profiles editable in Admin, confirm through 0021's import with charging and exceptions), licence plates covered on listing photos (the decision per photo, the publish check), official ServiceOntario PDFs mapped field by field and filled for owners, one turnaround between trips (block or buffer, never both), the vision model's calls and daily cap (`docs/changes/2026-10-14-tolls-plates-forms.md`) |
 
 ## Test files
 
@@ -104,6 +105,7 @@ cd emails && node check.mjs
 | `23_sign_in.sql` | Sign-in for every portal (0036) | 52 |
 | `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037 to 0039) | 118 |
 | `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
+| `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
 
 ## Rules for changes
 

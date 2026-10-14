@@ -72,7 +72,8 @@ Each lives in `src/integrations/<name>/` behind a small TypeScript interface, wi
 | `payments` | Stripe, pay per transaction. No Stripe Billing, no Stripe Invoicing | create checkout for a booking; save card; place, capture and release a hold; charge the Card on File; refund; create a debit mandate; debit an owner invoice; handle dispute | `payments`, `payment_processor_details`, `payment_attempts`, `deposits`, `refunds`, `disputes`, `owner_invoices` |
 | `identity` | Staff review of the licence photo and selfie (the default). Stripe Identity is a second adapter, off by default | start a check for a driver; read the result | `identity_verifications`, `documents` |
 | `signing` | Built into the platform; no outside service | open a document for signature in signer order; record each signature; produce and store the signed copy | `signature_requests`, `signature_records`, `documents` |
-| `tracker` | The custom GPS tracker | read status; send lock, unlock, alarm, engine disable, engine enable; set owner access | `tracker_status`, `tracker_commands`, `tracker_access_blocks` |
+| `tracker` | The custom GPS tracker. Not connected yet (0042): the interface is `locate`, `requestImmobilize` and `mileage` (`web/src/integrations/tracker/`), and the only adapter, `none`, answers "not connected"; the Admin vehicle page says "Coming soon" | read status; send lock, unlock, alarm, engine disable, engine enable; set owner access | `tracker_status`, `tracker_commands`, `tracker_access_blocks` |
+| `vision` | Cloudflare Workers AI vision model through the Worker's AI binding (0042) | read a scanned toll notice page into JSON lines; suggest the licence plate box on a listing photo. Each call is recorded in `provider_calls` with its neurons and capped by `ai_vision_daily_neurons` | `provider_calls` (the answer itself goes back to the browser for a person to check) |
 | `messaging` | Resend, email only at launch | send template T1 to T26 with values; record a reply | `messages` |
 | `storage` | Cloudflare R2 | upload; signed download link | `documents`, `condition_report_photos`, `vehicle_photos` |
 | `photos` | The vehicle photo pipeline | enqueue a photo job; receive processed images | `photo_jobs`, `vehicle_photos` |
@@ -180,7 +181,7 @@ Tracker position history stays with the tracker service for 12 months; only the 
 | Payroll | Field staff kickbacks are listed for payroll, not paid by the platform |
 | Native mobile apps | One responsive website (section 8); the field portal is a phone-first web app |
 | Dynamic pricing, promotions, loyalty | Rates are the four per-vehicle rates; the only discount is the fixed 10% non-refundable one |
-| Automatic toll and ticket feeds | Notices are entered by Finance and matched by `app.match_toll_ticket()` |
+| Automatic toll and ticket feeds | Finance uploads each notice or statement; it is read in the browser (CSV, PDF text with the issuer's reading profile, or the vision model for a scan), checked line by line beside the file, then imported and matched by `app.match_toll_ticket()` (0042) |
 | Renter-to-renter or owner-to-renter chat | Messages go through CarmaCars and are logged |
 | Markets outside Ontario, currencies other than CAD | One tax (HST 13%), one time zone (America/Toronto) |
 | Automatic disabling of a car | Every disable is a person's decision, approved by an admin |
