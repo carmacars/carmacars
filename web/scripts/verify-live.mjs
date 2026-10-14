@@ -207,6 +207,53 @@ if (process.argv.includes('--auth')) {
   } catch (e) {
     report.auth = { ok: false, error: String(e).slice(0, 800) };
   }
+  // The Supabase Auth email links end to end: a recovery link for the renter test account, an invitation and a
+  // sign-up confirmation for throwaway addresses at Resend's test inbox (removed again). Each link is made by the
+  // admin API exactly as the email would carry it (generate_link sends nothing), opened at the site's
+  // /auth/callback as the templates of scripts/deploy/auth-templates.mjs link it, and must land signed in on its
+  // page. The templates stored in the project are checked to link the same way, and rendered for the report.
+  report.auth_links = [];
+  try {
+    const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
+    let cfg = null;
+    if (ref && mt) cfg = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json();
+    const stamp = Date.now();
+    const LINKS = [
+      { type: 'recovery', email: 'verify-signin@carmacars.ca', next: '/update-password', tpl: 'recovery' },
+      { type: 'invite', email: `delivered+invite-${stamp}@resend.dev`, next: '/update-password', tpl: 'invite', remove: true },
+      { type: 'signup', email: `delivered+signup-${stamp}@resend.dev`, next: '/account', tpl: 'confirmation', remove: true, password: `S${stamp}x!aA` }
+    ];
+    for (const l of LINKS) {
+      const r = { type: l.type, ok: false };
+      const tplBody = cfg?.[`mailer_templates_${l.tpl}_content`] ?? '';
+      r.template = tplBody ? (tplBody.includes(`/auth/callback?token_hash={{ .TokenHash }}&type=${l.type}`) ? 'links to /auth/callback' : 'DOES NOT link to /auth/callback') : 'not read';
+      r.subject = cfg?.[`mailer_subjects_${l.tpl}`] ?? null;
+      try {
+        const g = await (await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: h, body: JSON.stringify({ type: l.type, email: l.email, ...(l.password ? { password: l.password } : {}) }) })).json();
+        const hashed = g.properties?.hashed_token ?? g.hashed_token; const uid = g.user?.id ?? g.id;
+        if (!hashed) throw new Error('generate_link: ' + JSON.stringify(g).slice(0, 200));
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+        const page = await ctx.newPage();
+        if (tplBody) {
+          for (const w of [375, 640]) {
+            await page.setViewportSize({ width: w, height: 900 });
+            await page.setContent(tplBody.replaceAll('{{ .SiteURL }}', BASE).replaceAll('{{ .TokenHash }}', 'sample'));
+            await page.screenshot({ path: path.join(out, `auth-${l.tpl}-${w}.png`), fullPage: true });
+            if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) r.overflow = (r.overflow ?? []).concat(w);
+          }
+        }
+        await page.goto(`${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}&next=${l.next}`, { waitUntil: 'networkidle' });
+        r.final = new URL(page.url()).pathname + new URL(page.url()).search;
+        r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+        r.ok = r.final.startsWith(l.next) && !/error=link/.test(r.final) && !/couldn.t load|Application error|Error 1102/i.test(await page.locator('body').innerText().catch(() => ''));
+        await page.screenshot({ path: path.join(out, `auth-link-${l.type}.png`), fullPage: true });
+        await ctx.close();
+        if (l.remove && uid) r.removed = (await fetch(`${url}/auth/v1/admin/users/${uid}`, { method: 'DELETE', headers: h })).status;
+      } catch (e) { r.error = String(e).slice(0, 300); }
+      report.auth_links.push(r);
+    }
+  } catch (e) { report.auth_links.push({ error: String(e).slice(0, 300) }); }
+  report.auth_links_ok = report.auth_links.length === 3 && report.auth_links.every((x) => x.ok);
   report.portals_ok = report.portals.length === ACCOUNTS.length && report.portals.every((x) => x.ok);
   // Cloudflare's 1102 ("Worker exceeded resource limits": the plan's CPU or memory limit) per run
   report.worker_limits = report.portals.flatMap((x) => (x.responses ?? []).filter((y) => /exceeded resource limits|Error 1102/i.test(y))).length;
