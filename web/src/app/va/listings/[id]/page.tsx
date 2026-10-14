@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
+import { withOriginalUrls } from '@/server/listing-photos';
 import { ListingReview } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
@@ -26,7 +27,7 @@ export default async function VaListing({ params }: { params: Promise<{ id: stri
       {l.reason && <p className="pt-note small">{l.reason}</p>}
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/va/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/va/listings/${id}`]} />}
-      <ListingReview l={l} />
+      <ListingReview l={await withOriginalUrls(l)} />
     </>
   );
 }

@@ -46,7 +46,7 @@ const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g
   : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'signing and payment' : e.booking_number ?? ''}${e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
-export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { initial: CalData; vehicleId?: string; defaultView?: string }) {
+export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicleLinks = true }: { initial: CalData; vehicleId?: string; defaultView?: string; vehicleLinks?: boolean }) {
   const { act: adminAct, preview: adminPreview, base: doorBase } = useDoor();
   const router = useRouter();
   const sp = useSearchParams();
@@ -203,7 +203,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two' }: { in
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => (
               <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
-                <div className="cal__name"><Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link><span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
+                <div className="cal__name">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link> : <b>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</b>}<span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
                 <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
                   {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} />}

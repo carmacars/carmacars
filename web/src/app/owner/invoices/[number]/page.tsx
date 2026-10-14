@@ -6,6 +6,7 @@ import { day, monthOf } from '@/features/owner/Blocks';
 import { OwnerPayForm } from '@/features/owner/OwnerPayForm';
 import { invoiceStatus, invoiceTitle, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { ownerInvoice, requireOwner } from '@/server/owner/data';
+import { getFacts } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Invoice', path: '/owner/invoices', noindex: true, description: 'An owner invoice and how to pay it.' });
@@ -16,7 +17,8 @@ const LINE_HST = (cents: number) => (cents ? money(cents, { cents: true }) : '')
 // pre-authorized debit. The same page serves the upfront invoice and the monthly fee invoices.
 export default async function OwnerInvoicePage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user, home }, p, sp] = await Promise.all([requireOwner('/owner/invoices'), params, searchParams]);
-  const i = await ownerInvoice(user, decodeURIComponent(p.number));
+  const [i, facts] = await Promise.all([ownerInvoice(user, decodeURIComponent(p.number)), getFacts()]);
+  const billing = facts.email_aliases.billing ?? facts.email_aliases.contact ?? '';
   const s = invoiceStatus(i);
   const paid = i.payments.find((x) => x.status === 'succeeded');
   const pending = i.payments.find((x) => x.status === 'pending');
@@ -54,7 +56,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
             <section className="pt-card"><h2 className="d4">Nothing to pay online</h2><p>This invoice is {s.label.toLowerCase()}. Questions: call or message us.</p></section>
           )}
           <section className="pt-card" aria-labelledby="ow-other"><h2 className="d4" id="ow-other">Paying by e-Transfer instead</h2>
-            <p className="small">Send {money(i.balance_cents || i.total_cents, { cents: true })} by Interac e-Transfer to billing@carmacars.ca with <b>{i.invoice_number}</b> in the message. We mark the invoice paid when it arrives, usually the same business day.</p>
+            <p className="small">Send {money(i.balance_cents || i.total_cents, { cents: true })} by Interac e-Transfer to {billing} with <b>{i.invoice_number}</b> in the message. We mark the invoice paid when it arrives, usually the same business day.</p>
           </section>
         </div>
         <aside className="pt-split__aside pt-first">

@@ -139,7 +139,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   if (inline) return <div className="ad-inline">{form}{res?.ok && done ? <p className="small" role="status">{done}</p> : null}</div>;
   return (
     <>
-      <button className={cls} type="button" disabled={pending || disabled} data-testid={testId}
+      <button className={cls} type="button" disabled={pending || disabled} data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
         onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }}>{pending ? 'Working' : label}</button>
       {!needsDialog && res && !res.ok && <span className="ad-err" role="alert">{res.message}</span>}
       {needsDialog && (

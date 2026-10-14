@@ -16,6 +16,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!d || !d.path || d.purged) return new Response('Not found', { status: 404 });
   const identity = d.bucket === 'identity';
   const ext = d.path.split('.').pop() ?? 'pdf';
-  const url = await (await storage()).signedDownloadUrl(d.bucket as Bucket, d.path, identity ? 60 : 300, identity ? undefined : `${d.title.replace(/[^\w.-]+/g, '-')}.${ext}`);
+  const url = await (await storage()).signedDownloadUrl(d.bucket as Bucket, d.path, identity ? 60 : 300, identity ? undefined : `${(d.title ?? d.kind ?? 'document').replace(/[^\w.-]+/g, '-')}.${ext}`);
   return new Response(null, { status: 302, headers: { location: new URL(url, req.url).toString(), 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } });
 }

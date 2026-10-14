@@ -9,11 +9,16 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Incident', path: '/admin/incidents', noindex: true, description: 'One incident.' });
 
 export default async function Incident({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const { list } = await page(`/admin/incidents/${id}`);
-  const [inc, claims] = await Promise.all([list('incidents', { eq: { id } }), list('claims', { eq: { incident_id: id } })]);
+  const { id: raw } = await params;
+  const key = decodeURIComponent(raw);
+  // by id, or by the incident number the emails link to (/admin/incidents/IN-1001)
+  const byId = /^[0-9a-f-]{36}$/.test(key);
+  if (!byId && !/^[A-Z]{1,4}-[0-9A-Z]{1,12}$/.test(key)) notFound();
+  const { list } = await page(`/admin/incidents/${encodeURIComponent(key)}`);
+  const inc = await list('incidents', { eq: byId ? { id: key } : { incident_number: key } });
   const i = inc.rows[0]; if (!i) notFound();
+  const id = String(i.id);
+  const claims = await list('claims', { eq: { incident_id: id } });
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/incidents">Incidents and claims</Link>} title={<>{String(i.incident_number)} <Badge s={String(i.status)} /></>}>
       {!claims.rows.length && <Act action="claim_open" payload={{ incident: id }} label="Open the claim" variant="primary" confirm="Open the claim from the costed damage; the path follows the deductible rule." refresh={[`/admin/incidents/${id}`]} />}

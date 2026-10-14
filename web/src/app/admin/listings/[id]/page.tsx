@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
+import { withOriginalUrls } from '@/server/listing-photos';
 import { ListingReview, type L } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
@@ -28,7 +29,7 @@ export default async function Listing({ params }: { params: Promise<{ id: string
       {l.reason && <p className="pt-note small">{l.reason}</p>}
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/admin/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/admin/listings/${id}`]} />}
-      <ListingReview l={l} />
+      <ListingReview l={await withOriginalUrls(l)} />
     </>
   );
 }

@@ -40,8 +40,16 @@ export async function ownerInvoice(u: SessionUser, number: string): Promise<Owne
   return i;
 }
 
-export async function ownerStatement(u: SessionUser, id: string): Promise<OwnerStatement> {
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+export async function ownerStatement(u: SessionUser, key: string): Promise<OwnerStatement> {
+  let id = decodeURIComponent(key);
+  // the statement emails link by number (/owner/statements/ST-1029): the owner's own list says which id it is
+  if (!/^[0-9a-f-]{36}$/.test(id)) {
+    if (!/^[A-Z]{1,4}-[0-9A-Z-]{1,24}$/.test(id)) notFound();
+    const home = await ownerHome(u);
+    const hit = home?.statements.find((x) => x.statement_number === id);
+    if (!hit) notFound();
+    id = hit.id;
+  }
   const s = (await rpc('owner_portal_statement', { p_by: u.id, p_statement: id }, SR)) as unknown as OwnerStatement | null;
   if (!s) notFound();
   return s;

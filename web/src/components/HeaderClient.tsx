@@ -9,6 +9,13 @@ export function NavLink({ href, className, children }: { href: string; className
   return <Link prefetch={false} className={className} href={href} aria-current={current ? 'page' : undefined}>{children}</Link>;
 }
 
+// "Sign in" on the public pages; inside a portal (signed in by then) the same place goes back to that portal's home.
+const PORTAL = /^\/(account|owner|admin|va|field|investor)(\/|$)/;
+export function AccountLink({ className }: { className?: string }) {
+  const portal = PORTAL.exec(usePathname())?.[1];
+  return <Link prefetch={false} className={className} href={portal ? `/${portal}` : '/sign-in'}>{portal ? 'Your portal' : 'Sign in'}</Link>;
+}
+
 // The phone menu: a button with aria-expanded; the panel is inert while closed; Escape closes.
 export function MenuButton() {
   const path = usePathname();

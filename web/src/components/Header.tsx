@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
-import { MenuButton, NavLink } from './HeaderClient';
+import { AccountLink, MenuButton, NavLink } from './HeaderClient';
 
 export const NAV: [string, string, string][] = [
   ['/cars', 'Fleet', 'Every car, with dates and prices'], ['/how-it-works', 'How it works', 'Request to book'],
@@ -20,7 +20,7 @@ export function Header({ s }: { s: SiteSettings }) {
             {NAV.map(([h, l]) => <NavLink key={h} className="nav__link" href={h}>{l}</NavLink>)}
           </nav>
           <div className="header-actions">
-            <NavLink className="btn btn--quiet btn--sm header-signin" href="/sign-in">Sign in</NavLink>
+            <AccountLink className="btn btn--quiet btn--sm header-signin" />
             <Link prefetch={false} className="btn btn--primary btn--sm" href="/cars">Find a car</Link>
             <MenuButton />
           </div>
@@ -31,7 +31,7 @@ export function Header({ s }: { s: SiteSettings }) {
           {NAV.map(([h, l, sub]) => <NavLink key={h} href={h}>{l}<span>{sub}</span></NavLink>)}
           <NavLink href="/contact">Contact<span>Talk to a person</span></NavLink>
         </nav>
-        <div className="row"><Link prefetch={false} className="btn btn--light" href="/sign-in">Sign in</Link><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
+        <div className="row"><AccountLink className="btn btn--light" /><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
       </div>
     </>
   );

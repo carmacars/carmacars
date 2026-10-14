@@ -7,7 +7,7 @@ import { useDoor } from './door';
 // Review a listing (09-listing-pipeline.md section 6): the copy draft (edit in place), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
-type Photo = { id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; status: string; is_cover: boolean; alt_text: string | null };
+type Photo = { id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
   listing: { status: string; slug: string | null; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null } | null;
   draft: { id: string; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null; lint_problems: string[] | null; proposed_classes: string[] | null } | null;
@@ -46,10 +46,10 @@ export function ListingReview({ l }: { l: L }) {
           {l.draft?.lint_problems?.length ? <p className="small muted">Draft notes: {l.draft.lint_problems.join('; ')}</p> : null}
         </section>
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
-          <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path ?? p.original_path; return (
+          <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
               {/* eslint-disable-next-line @next/next/no-img-element -- photos come pre-sized from the pipeline */}
-              {path ? <img src={photoUrl(path)} alt={p.alt_text ?? p.shot_label ?? p.shot_type} loading="lazy" width={300} height={200} /> : <span className="muted">no file</span>}
+              {path ? <img src={path} alt={p.alt_text ?? p.shot_label ?? p.shot_type} loading="lazy" width={300} height={200} /> : <span className="muted">no file</span>}
               <span><b>{p.shot_label ?? p.shot_type}</b> · {p.status}</span>
               <label className="vh" htmlFor={`ph-${p.id}`}>Decision for {p.shot_label ?? p.shot_type}</label>
               <select className="select" id={`ph-${p.id}`} value={ph[p.id] ?? ''} disabled={!reviewable} onChange={(e) => setPh({ ...ph, [p.id]: e.target.value })}>

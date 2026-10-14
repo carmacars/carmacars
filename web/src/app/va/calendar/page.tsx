@@ -17,7 +17,8 @@ export default async function VaCalendar({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHead title="Calendar" kicker={fn === 'fleet' ? 'Double-click a row for a new block' : 'Read only'} />
-      <Suspense><MasterCalendar initial={data} /></Suspense>
+      {/* the vehicle page is open to Fleet and customer service only (vaPage of /va/vehicles/[id]) */}
+      <Suspense><MasterCalendar initial={data} vehicleLinks={fn === 'fleet' || fn === 'cs'} /></Suspense>
     </>
   );
 }
