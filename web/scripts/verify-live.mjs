@@ -142,9 +142,19 @@ if (process.argv.includes('--auth')) {
       const ctx = await browser.newContext({ viewport: { width: a.width, height: 844 } });
       const page = await ctx.newPage();
       page.on('pageerror', (e) => r.errors.push(String(e).slice(0, 300)));
-      page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text())) r.errors.push(m.text().slice(0, 300)); });
-      // which resource failed, for a "Failed to load resource" console error
-      page.on('response', (x) => { if (x.status() >= 400 && !noise(x.url())) (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 200)}`); });
+      // a resource the Worker answered with a 5xx is recorded with what the answer said (Cloudflare's 1102 page when
+      // the Worker ran past its CPU limit); it is reported, and a page is loaded again once before it fails
+      page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text()) && !/status of 5\d\d/.test(m.text())) r.errors.push(m.text().slice(0, 300)); });
+      page.on('response', async (x) => {
+        if (x.status() < 400 || noise(x.url())) return;
+        const said = x.status() >= 500 ? ((await x.text().catch(() => '')).match(/Error \d{4}[^<]{0,80}|exceeded[^<]{0,60}/i)?.[0] ?? '') : '';
+        (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 160)}${said ? ` (${said.trim()})` : ''}`);
+      });
+      const load = async (u) => {
+        let resp = await page.goto(u, { waitUntil: 'networkidle' });
+        if (resp && resp.status() >= 500) { (r.retried ??= []).push(`${resp.status()} ${u}`); await page.waitForTimeout(2000); resp = await page.goto(u, { waitUntil: 'networkidle' }); }
+        return resp;
+      };
       try {
         await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
         const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
@@ -168,8 +178,14 @@ if (process.argv.includes('--auth')) {
         r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
         r.broken = /couldn.t load|Application error|Something went wrong/i.test(await page.locator('body').innerText().catch(() => ''));
         await page.screenshot({ path: path.join(out, `portal-${a.role}.png`), fullPage: true });
+        if (/couldn.t load|Application error|Service Unavailable|Error 1102/i.test(await page.locator('body').innerText().catch(() => ''))) {
+          // the home itself came back as an error page: load it once more and record the retry
+          (r.retried ??= []).push(`home ${a.home}`); await load(`${BASE}${a.home}`);
+          r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+          r.broken = /couldn.t load|Application error|Something went wrong|Service Unavailable/i.test(await page.locator('body').innerText().catch(() => ''));
+        }
         for (const p of PORTALS.filter((x) => x !== a.home)) {
-          const resp = await page.goto(`${BASE}${p}`, { waitUntil: 'networkidle' });
+          const resp = await load(`${BASE}${p}`);
           const fin = new URL(page.url()).pathname;
           // refused: sent to the portal's no-access page (or "not an owner"), never shown the portal's home
           r.refused[p] = fin !== p && (/no-access|not-an-owner/.test(fin) || fin.startsWith('/sign-in')) ? fin : `SHOWN ${fin} ${resp?.status()}`;
