@@ -8,6 +8,8 @@
 #   scripts/deploy/supabase.sh templates load the email templates into the catalogue (the sender renders them)
 #   scripts/deploy/supabase.sh auth      redirect URLs and the invitation email link (Supabase Auth)
 #   scripts/deploy/supabase.sh outbox    deploy the send-outbox Edge Function and schedule it every minute
+#   scripts/deploy/supabase.sh debit     deploy the owner-debit Edge Function (the automatic monthly owner debit) and
+#                                        schedule it hourly
 #   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
 #                                        has no R2: STORAGE_PROVIDER=supabase); vehicle-public is public
 #   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
@@ -195,6 +197,45 @@ outbox() {
   rm -f "$dir.json"
 }
 
+# The automatic monthly owner debit (docs/changes/2026-10-14-owner-debit.md): the owner-debit Edge Function, its
+# secrets (a job token in the vault, the Stripe key) and the hourly pg_cron call. The function decides itself whether
+# anything is due (the debit day and hour are Program settings), so an hourly call is safe.
+debit() {
+  local token dir out code
+  token=$(vault_get debit_job_token)
+  if [ -z "$token" ]; then
+    token=$(openssl rand -hex 32)
+    vault_set debit_job_token "$token" "Bearer token pg_cron sends to the owner-debit Edge Function"
+  fi
+  mask "$token"
+  : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"
+  mask "$STRIPE_SECRET_KEY"
+  sbapi POST "/secrets" "$(jq -n --arg t "$token" --arg s "$STRIPE_SECRET_KEY" '[{name: "DEBIT_JOB_TOKEN", value: $t}, {name: "STRIPE_SECRET_KEY", value: $s}]')" > /dev/null
+  dir=$(mktemp -d)
+  cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$dir/"
+  out=$(mktemp)
+  code=$(cd "$dir" && curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/functions/deploy?slug=owner-debit" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+    -F 'metadata={"entrypoint_path":"index.ts","name":"owner-debit","verify_jwt":false};type=application/json' \
+    -F 'file=@index.ts;type=application/typescript' -F 'file=@run.ts;type=application/typescript')
+  [ "${code:0:1}" = "2" ] || die "owner-debit deploy failed ($code): $(head -c 800 "$out")"
+  log "owner-debit deployed: $(jq -c '{slug, version, status}' "$out")"
+  rm -rf "$dir" "$out"
+  sbq "select cron.schedule('carmacars-owner-debit', '28 * * * *', \$c\$
+         select net.http_post(
+           url := 'https://$REF.supabase.co/functions/v1/owner-debit',
+           headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
+                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'debit_job_token')),
+           body := '{}'::jsonb, timeout_milliseconds := 60000)
+       \$c\$)" > /dev/null
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/owner-debit")
+  [ "$code" = "403" ] || warn "owner-debit without a token answered $code (expected 403)"
+  code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/owner-debit" -H "Authorization: Bearer $token")
+  [ "$code" = "200" ] && notice "Owner debit: Edge Function owner-debit answers ($(head -c 300 "$dir.json")), pg_cron job carmacars-owner-debit hourly" \
+    || warn "owner-debit with the token answered $code: $(head -c 300 "$dir.json")"
+  rm -f "$dir.json"
+}
+
 service_key() {
   if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
     SUPABASE_SERVICE_ROLE_KEY=$(sbapi GET "/api-keys?reveal=true" | jq -r '[.[] | select(.name == "service_role")][0].api_key')
@@ -261,7 +302,10 @@ stripe() {
   : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"
   mask "$STRIPE_SECRET_KEY"
   local url="$APP_URL/api/webhooks/stripe" list id secret
-  local events=(payment_intent.amount_capturable_updated payment_intent.succeeded payment_intent.payment_failed)
+  # the PaymentIntent events of bookings and owner invoices, the debit settling days later (processing, canceled),
+  # a pre-authorized debit agreement set up from Banking (setup_intent) and one cancelled at the bank (mandate.updated)
+  local events=(payment_intent.amount_capturable_updated payment_intent.succeeded payment_intent.payment_failed
+                payment_intent.processing payment_intent.canceled setup_intent.succeeded setup_intent.setup_failed mandate.updated)
   list=$(curl -sS -G https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" -d limit=100)
   id=$(jq -r --arg u "$url" '[.data[]? | select(.url == $u)][0].id // empty' <<<"$list")
   secret=$(vault_get deploy_stripe_webhook_secret)

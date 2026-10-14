@@ -7,7 +7,7 @@
 //
 // Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL,
 // LINK_SIGNING_KEY (the site's key: the 7-day file links are opened by the site at /d/<token>).
-// SUPABASE_DB_URL is provided by Supabase.
+// SUPABASE_DB_URL is provided by Supabase. Statement emails carry their PDFs as attachments (app.outbox_attachments).
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
 
@@ -54,6 +54,28 @@ async function senderValues(r: Row): Promise<Record<string, unknown>> {
   return out;
 }
 
+// The files an email carries as attachments (app.outbox_attachments: the statement PDFs). Each is fetched through
+// the site's signed link, as the reader would open it, so the PDF is the stored copy (rendered and stored first
+// when it is not yet). A file that cannot be fetched holds the email back for a retry; from the third attempt the
+// email goes without it (its 7-day link still opens the file).
+const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+async function attachments(r: Row): Promise<Array<{ filename: string; content: string }>> {
+  if (!LINK_KEY) return [];
+  const [{ list }] = (await sql`select app.outbox_attachments(${r.id}::uuid) as list`) as unknown as [{ list: Array<{ k: string; key: string; filename: string }> }];
+  const out: Array<{ filename: string; content: string }> = [];
+  for (const a of list ?? []) {
+    try {
+      const res = await fetch(await signDoc(a.k, a.key), { headers: { 'user-agent': 'carmacars-send-outbox' } });
+      const type = res.headers.get('content-type') ?? '';
+      if (!res.ok || !type.includes('pdf')) throw new Error(`the file answered ${res.status} ${type}`);
+      out.push({ filename: a.filename, content: b64(new Uint8Array(await res.arrayBuffer())) });
+    } catch (e) {
+      if (r.attempts < 3) throw new Error(`Attachment ${a.filename}: ${(e as Error).message}`);
+    }
+  }
+  return out;
+}
+
 const fromHeader = (a: string | null) => {
   const addr = a || 'hello@carmacars.ca';
   return addr.includes('<') ? addr : `CarmaCars <${addr}>`;
@@ -79,11 +101,12 @@ async function sendOne(r: Row): Promise<'sent' | 'failed'> {
       headers['List-Unsubscribe'] = `<${APP_URL}/api/unsubscribe?token=${encodeURIComponent(token)}>`;
       headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
     }
+    const files = await attachments(r);
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND}`, 'content-type': 'application/json', 'Idempotency-Key': `outbox-${r.id}-${r.attempts}` },
       body: JSON.stringify({ from: fromHeader(r.from_address), to: [r.to_address], reply_to: r.reply_to || undefined, subject: r.subject, html, text,
-        headers: Object.keys(headers).length ? headers : undefined })
+        headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined })
     });
     if (!res.ok) {
       const body = (await res.text()).slice(0, 500);
