@@ -56,6 +56,16 @@ jobs:
           jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           if [ "$status" != 0 ]; then echo "::error title=verify::a portal check failed (see the portal notices)"; exit "$status"; fi
+      - name: SEO of the live site (seo-audit.mjs against carmacars.ca)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"
+          status=0; BASE_URL=https://carmacars.ca NO_DB=1 node tests/lint/seo-audit.mjs > "$RUNNER_TEMP/seo.txt" 2>&1 || status=$?
+          cp reports/seo.json "$RUNNER_TEMP/verify/seo.json" 2>/dev/null || true
+          head -1 "$RUNNER_TEMP/seo.txt" | sed 's/^/::notice title=seo::/'
+          tail -n 12 "$RUNNER_TEMP/seo.txt" | sed 's/^/::notice title=seo::/'
+          if [ "$status" != 0 ]; then echo "::warning title=seo::the live SEO audit found problems (see the notices)"; fi
       - name: Worker CPU time per request (Cloudflare analytics, the last hour; the Free plan allows 10 ms)
         if: always()
         continue-on-error: true
