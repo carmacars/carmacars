@@ -87,18 +87,26 @@ if (doRequest && slug) {
   }
   await ctx.close();
 }
-// --auth: real sign-ins through the live form with one test account per portal (a renter, an owner, an
-// investor, a customer service assistant, a field staff member; never an Admin). The accounts are created or
-// their passwords reset through the Supabase admin API on each run, any authenticator app left from an earlier
-// run is removed, and public.server_verify_accounts gives each its role and puts its address on the email
-// suppression list (no email is ever sent to them). Each home must load without errors, and each account must
-// be refused the other portals. Needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+// --auth: real sign-ins through the live form with one test account per portal: a renter, an owner, an investor,
+// one assistant per function (customer service, Finance, Fleet, Sales), a field staff member and one Admin
+// (verify-admin@carmacars.ca, the only verification address the database lets be an Admin). The accounts are
+// created or their passwords reset through the Supabase admin API on each run (the Admin's is scrambled again at
+// the end), any authenticator app left from an earlier run is removed, and public.server_verify_accounts gives each
+// its role and puts its address on the email suppression list (no email is ever sent to them). Each must land on
+// its own portal, load it without errors and be refused the others with a page that names the account. Then, as the
+// Admin: "view as" for every portal (red banner, the person's own data, a write refused, the audit log), an
+// invitation from Admin > Portals through to the password and the portal, and sign-out. Needs SUPABASE_URL and
+// SUPABASE_SERVICE_ROLE_KEY (and SUPABASE_ACCESS_TOKEN with SUPABASE_PROJECT_REF to tidy the invitation up).
 const ACCOUNTS = [
   { role: 'renter', email: 'verify-signin@carmacars.ca', name: 'Sign-in Check', home: '/account', width: 390 },
   { role: 'owner', email: 'verify-owner@carmacars.ca', name: 'Verify Owner', home: '/owner', width: 1440 },
   { role: 'investor', email: 'verify-investor@carmacars.ca', name: 'Verify Investor', home: '/investor', width: 390 },
-  { role: 'va_cs', email: 'verify-va-cs@carmacars.ca', name: 'Verify Assistant', home: '/va', width: 1440 },
-  { role: 'field', email: 'verify-field@carmacars.ca', name: 'Verify Field', home: '/field', width: 390 }
+  { role: 'va_cs', email: 'verify-va-cs@carmacars.ca', name: 'Verify Assistant', home: '/va', width: 1440, fn: 'Customer service' },
+  { role: 'va_finance', email: 'verify-va-finance@carmacars.ca', name: 'Verify Finance', home: '/va', width: 1440, fn: 'Finance' },
+  { role: 'va_fleet', email: 'verify-va-fleet@carmacars.ca', name: 'Verify Fleet', home: '/va', width: 390, fn: 'Fleet' },
+  { role: 'va_sales', email: 'verify-va-sales@carmacars.ca', name: 'Verify Sales', home: '/va', width: 1440, fn: 'Sales' },
+  { role: 'field', email: 'verify-field@carmacars.ca', name: 'Verify Field', home: '/field', width: 390 },
+  { role: 'admin', email: 'verify-admin@carmacars.ca', name: 'Verify Admin', home: '/admin', width: 1440 }
 ];
 const PORTALS = ['/admin', '/owner', '/investor', '/va', '/field'];
 // RFC 6238, as an authenticator app computes it (only when staff two-step sign-in is switched on)
@@ -112,14 +120,44 @@ async function totp(secret) {
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
 const noise = (t) => /cdn-cgi\/(rum|challenge)|favicon/.test(t);
+const BROKEN = /couldn.t load|Application error|Something went wrong|Service Unavailable|Error 1102/i;
+const randomPassword = () => `V${Math.random().toString(36).slice(2)}${Date.now()}!${Math.random().toString(36).slice(2, 8)}`;
 if (process.argv.includes('--auth')) {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const h = { apikey: key, Authorization: `Bearer ${key}`, 'content-type': 'application/json' };
+  const rest = async (q) => (await fetch(`${url}/rest/v1/${q}`, { headers: h })).json();
+  const runStart = new Date().toISOString();
   report.portals = [];
+  const admin = ACCOUNTS.find((a) => a.role === 'admin');
+  // one page per account: sign in through the form, land on its portal, be refused the others
+  const watchPage = (page, r) => {
+    page.on('pageerror', (e) => r.errors.push(String(e).slice(0, 300)));
+    page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text()) && !/status of (5\d\d|403)/.test(m.text())) r.errors.push(m.text().slice(0, 300)); });
+    page.on('response', async (x) => {
+      if (x.status() < 400 || noise(x.url())) return;
+      const said = x.status() >= 500 ? ((await x.text().catch(() => '')).match(/Error \d{4}[^<]{0,80}|exceeded[^<]{0,60}/i)?.[0] ?? '') : '';
+      (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 160)}${said ? ` (${said.trim()})` : ''}`);
+    });
+  };
+  const loader = (page, r) => async (u) => {
+    let resp = await page.goto(u, { waitUntil: 'networkidle' });
+    for (let i = 1; i <= 2 && resp && resp.status() >= 500; i++) { (r.retried ??= []).push(`${resp.status()} ${u}`); await page.waitForTimeout(2000 * i); resp = await page.goto(u, { waitUntil: 'networkidle' }); }
+    return resp;
+  };
+  const bodyText = (page) => page.locator('body').innerText().catch(() => '');
+  async function signInForm(page, email, password) {
+    await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
+    const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
+    if (await cookie.isVisible().catch(() => false)) await cookie.click();
+    await page.locator('#si-email').fill(email);
+    await page.locator('#si-pass').fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 30_000 });
+  }
   try {
     const list = await (await fetch(`${url}/auth/v1/admin/users?per_page=1000`, { headers: h })).json();
     for (const a of ACCOUNTS) {
-      a.password = `V${Math.random().toString(36).slice(2)}${Date.now()}!`;
+      a.password = randomPassword();
       let user = (list.users ?? []).find((u) => u.email === a.email);
       if (!user) {
         user = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ email: a.email, password: a.password, email_confirm: true, user_metadata: { full_name: a.name } }) })).json();
@@ -135,35 +173,17 @@ if (process.argv.includes('--auth')) {
     const reg = await fetch(`${url}/rest/v1/rpc/server_verify_accounts`, { method: 'POST', headers: h,
       body: JSON.stringify({ p: ACCOUNTS.map((a) => ({ user_id: a.id, email: a.email, role: a.role, name: a.name })) }) });
     const regBody = await reg.text();
-    report.accounts = { status: reg.status, body: reg.ok ? JSON.parse(regBody).map((x) => `${x.role}:${x.roles?.va ?? ''}${x.roles?.owner ? 'owner' : ''}${x.roles?.investor ? 'investor' : ''}${x.roles?.field ? 'field' : ''}${x.roles?.admin ? 'ADMIN' : ''}`) : regBody.slice(0, 300) };
+    report.accounts = { status: reg.status, body: reg.ok ? JSON.parse(regBody).map((x) => `${x.role}:${x.roles?.va ?? ''}${x.roles?.owner ? 'owner' : ''}${x.roles?.investor ? 'investor' : ''}${x.roles?.field ? 'field' : ''}${x.roles?.admin ? 'admin' : ''}`) : regBody.slice(0, 300) };
     if (!reg.ok) throw new Error(`server_verify_accounts ${reg.status}: ${regBody.slice(0, 300)}`);
     for (const a of ACCOUNTS) {
       const r = { role: a.role, home: a.home, steps: [a.step], errors: [], refused: {} };
       const ctx = await browser.newContext({ viewport: { width: a.width, height: 844 } });
       const page = await ctx.newPage();
-      page.on('pageerror', (e) => r.errors.push(String(e).slice(0, 300)));
-      // a resource the Worker answered with a 5xx is recorded with what the answer said (Cloudflare's 1102 page when
-      // the Worker ran past its CPU limit); it is reported, and a page is loaded again once before it fails
-      page.on('console', (m) => { if (m.type() === 'error' && !noise(m.text()) && !/status of 5\d\d/.test(m.text())) r.errors.push(m.text().slice(0, 300)); });
-      page.on('response', async (x) => {
-        if (x.status() < 400 || noise(x.url())) return;
-        const said = x.status() >= 500 ? ((await x.text().catch(() => '')).match(/Error \d{4}[^<]{0,80}|exceeded[^<]{0,60}/i)?.[0] ?? '') : '';
-        (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 160)}${said ? ` (${said.trim()})` : ''}`);
-      });
-      const load = async (u) => {
-        let resp = await page.goto(u, { waitUntil: 'networkidle' });
-        for (let i = 1; i <= 2 && resp && resp.status() >= 500; i++) { (r.retried ??= []).push(`${resp.status()} ${u}`); await page.waitForTimeout(2000 * i); resp = await page.goto(u, { waitUntil: 'networkidle' }); }
-        return resp;
-      };
+      watchPage(page, r);
+      const load = loader(page, r);
       for (let attempt = 1; attempt <= 2; attempt++) try {
         if (attempt === 2) { r.errors = []; r.refused = {}; delete r.error; }
-        await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
-        const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
-        if (await cookie.isVisible().catch(() => false)) await cookie.click();
-        await page.locator('#si-email').fill(a.email);
-        await page.locator('#si-pass').fill(a.password);
-        await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-        await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 30_000 });
+        await signInForm(page, a.email, a.password);
         if (new URL(page.url()).pathname.startsWith('/two-step/setup')) {
           // staff two-step sign-in is on: enrol an authenticator for this run, as a person would
           await page.getByTestId('totp-start').click();
@@ -173,25 +193,37 @@ if (process.argv.includes('--auth')) {
           await page.waitForURL((u) => !u.pathname.startsWith('/two-step'), { timeout: 30_000 });
           r.steps.push('two-step enrolled');
         }
-        await page.waitForURL((u) => u.pathname.startsWith(a.home), { timeout: 30_000 }).catch(() => {});
+        await page.waitForURL((u) => u.pathname === a.home, { timeout: 30_000 }).catch(() => {});
         await page.waitForLoadState('networkidle');
         r.afterSignIn = page.url();
-        r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
-        r.broken = /couldn.t load|Application error|Something went wrong/i.test(await page.locator('body').innerText().catch(() => ''));
-        await page.screenshot({ path: path.join(out, `portal-${a.role}.png`), fullPage: true });
-        if (/couldn.t load|Application error|Service Unavailable|Error 1102/i.test(await page.locator('body').innerText().catch(() => ''))) {
+        if (BROKEN.test(await bodyText(page))) {
           // the home itself came back as an error page: load it once more and record the retry
           (r.retried ??= []).push(`home ${a.home}`); await load(`${BASE}${a.home}`);
-          r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
-          r.broken = /couldn.t load|Application error|Something went wrong|Service Unavailable/i.test(await page.locator('body').innerText().catch(() => ''));
         }
+        r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+        r.broken = BROKEN.test(await bodyText(page));
+        if (a.fn) r.fn = (await page.locator('.ad__who').first().textContent().catch(() => '')).includes(a.fn) ? a.fn : `NOT ${a.fn}`;
+        await page.screenshot({ path: path.join(out, `portal-${a.role}.png`), fullPage: true });
         for (const p of PORTALS.filter((x) => x !== a.home)) {
           const resp = await load(`${BASE}${p}`);
           const fin = new URL(page.url()).pathname;
-          // refused: sent to the portal's no-access page (or "not an owner"), never shown the portal's home
-          r.refused[p] = fin !== p && (/no-access|not-an-owner/.test(fin) || fin.startsWith('/sign-in')) ? fin : `SHOWN ${fin} ${resp?.status()}`;
+          // refused: the portal's no-access page (or "not an owner"), which names the account signed in
+          const named = (await page.getByTestId('no-access-email').textContent({ timeout: 3_000 }).catch(() => null)) === a.email;
+          r.refused[p] = fin !== p && /no-access|not-an-owner/.test(fin) ? `${fin}${named ? '' : ' (account not named)'}` : `SHOWN ${fin} ${resp?.status()}`;
         }
-        r.ok = new URL(r.afterSignIn).pathname.startsWith(a.home) && !!r.h1 && !r.broken && r.errors.length === 0 && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN'));
+        if (a.role === 'admin') await adminChecks(page, r, load);
+        if (a.role === 'renter') {
+          // sign out: back to the home page, and the portal asks for a sign-in again
+          await load(`${BASE}/account`);
+          await page.getByRole('button', { name: 'Sign out' }).first().click();
+          await page.waitForURL((u) => u.pathname === '/', { timeout: 20_000 });
+          await load(`${BASE}/account`);
+          r.signOut = new URL(page.url()).pathname.startsWith('/sign-in') ? 'signed out' : `STILL SIGNED IN ${page.url()}`;
+        }
+        r.ok = new URL(r.afterSignIn).pathname === a.home && !!r.h1 && !r.broken && r.errors.length === 0
+          && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN') && !String(v).includes('not named'))
+          && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out')
+          && (a.role !== 'admin' || (r.viewAs?.every((v) => v.ok) && r.writeRefused?.ok && r.audit?.ok && r.exit?.ok && r.invite?.ok));
         if (r.ok) break;
       } catch (e) {
         r.ok = false; r.error = String(e).slice(0, 500);
@@ -207,11 +239,116 @@ if (process.argv.includes('--auth')) {
   } catch (e) {
     report.auth = { ok: false, error: String(e).slice(0, 800) };
   }
-  // The Supabase Auth email links end to end: a recovery link for the renter test account, an invitation and a
-  // sign-up confirmation for throwaway addresses at Resend's test inbox (removed again). Each link is made by the
-  // admin API exactly as the email would carry it (generate_link sends nothing), opened at the site's
-  // /auth/callback as the templates of scripts/deploy/auth-templates.mjs link it, and must land signed in on its
-  // page. The templates stored in the project are checked to link the same way, and rendered for the report.
+
+  // As the verification Admin: every portal through "view as", a write refused, the audit log, Exit, and an
+  // invitation from Admin > Portals through to the password and the portal.
+  async function adminChecks(page, r, load) {
+    const target = (role) => ACCOUNTS.find((x) => x.role === role);
+    const VIEWS = [['owner', 'owner', '/owner'], ['va-cs', 'va_cs', '/va'], ['va-finance', 'va_finance', '/va'], ['va-fleet', 'va_fleet', '/va'],
+      ['va-sales', 'va_sales', '/va'], ['field', 'field', '/field'], ['investor', 'investor', '/investor'], ['account', 'renter', '/account']];
+    r.viewAs = [];
+    for (const [section, role, home] of VIEWS) {
+      const t = target(role); const v = { portal: section, as: t.email };
+      try {
+        await load(`${BASE}/admin/portals?q=${encodeURIComponent(t.email)}`);
+        const form = page.getByTestId(`open-as-${section}`);
+        await form.locator('select').selectOption(t.id);
+        await form.getByRole('button', { name: 'Open as this person' }).click();
+        await page.waitForURL((u) => u.pathname === home, { timeout: 30_000 });
+        await page.waitForLoadState('networkidle');
+        if (BROKEN.test(await bodyText(page))) { (r.retried ??= []).push(`view as ${section}`); await load(`${BASE}${home}`); }
+        v.banner = (await page.getByTestId('view-as-banner').textContent({ timeout: 10_000 }).catch(() => '')).replace('Exit', '').trim();
+        v.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+        v.who = await page.getByTestId('account-email').first().textContent({ timeout: 3_000 }).catch(() => null);
+        v.broken = BROKEN.test(await bodyText(page));
+        v.ok = v.banner.includes(`Viewing as ${t.name} (${t.email}), read only`) && !!v.h1 && !v.broken && (!v.who || v.who === t.email || v.who === t.name);
+        await page.screenshot({ path: path.join(out, `view-as-${section}.png`), fullPage: true });
+      } catch (e) { v.ok = false; v.error = String(e).slice(0, 300); }
+      r.viewAs.push(v);
+    }
+    // a write while viewing as the owner: the Save goes to the read-only page, a direct POST is refused, nothing changes
+    try {
+      const owner = target('owner');
+      await load(`${BASE}/admin/portals?q=${encodeURIComponent(owner.email)}`);
+      const form = page.getByTestId('open-as-owner');
+      await form.locator('select').selectOption(owner.id);
+      await form.getByRole('button', { name: 'Open as this person' }).click();
+      await page.waitForURL((u) => u.pathname === '/owner', { timeout: 30_000 });
+      const before = (await rest(`owners?user_id=eq.${owner.id}&select=phone`))[0]?.phone ?? null;
+      await load(`${BASE}/owner/profile`);
+      await page.locator('#ow-pr-phone').fill('416-555-0142');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await page.waitForURL((u) => u.pathname === '/read-only', { timeout: 20_000 });
+      const post = await page.request.post(`${BASE}/owner/profile`, { data: 'x', headers: { 'content-type': 'text/plain' } });
+      const after = (await rest(`owners?user_id=eq.${owner.id}&select=phone`))[0]?.phone ?? null;
+      r.writeRefused = { save: new URL(page.url()).pathname, post: post.status(), unchanged: before === after, ok: post.status() === 403 && before === after && new URL(page.url()).pathname === '/read-only' };
+      await page.screenshot({ path: path.join(out, 'view-as-write-refused.png'), fullPage: true });
+    } catch (e) { r.writeRefused = { ok: false, error: String(e).slice(0, 300) }; }
+    try {
+      const rows = await rest(`audit_log?actor_user_id=eq.${admin.id}&action=eq.view_as_start&at=gte.${encodeURIComponent(runStart)}&select=entity_id,after`);
+      r.audit = { view_as_starts: Array.isArray(rows) ? rows.length : rows, ok: Array.isArray(rows) && rows.length >= VIEWS.length + 1 };
+    } catch (e) { r.audit = { ok: false, error: String(e).slice(0, 200) }; }
+    try {
+      await load(`${BASE}/owner`);
+      await page.getByTestId('view-as-exit').click();
+      await page.waitForURL((u) => u.pathname === '/admin/portals', { timeout: 20_000 });
+      const banner = await page.getByTestId('view-as-banner').count();
+      await load(`${BASE}/owner`);
+      r.exit = { banner, after: new URL(page.url()).pathname, ok: banner === 0 && /not-an-owner/.test(new URL(page.url()).pathname) };
+    } catch (e) { r.exit = { ok: false, error: String(e).slice(0, 300) }; }
+    // an invitation from Admin > Portals: the branded email goes to Resend's test inbox; the link it carries is made
+    // again by the admin API (the inbox cannot be read here), opened, a password chosen, and the portal opens
+    const inv = { email: `delivered+verify-invite-${Date.now()}@resend.dev` };
+    try {
+      await load(`${BASE}/admin/portals`);
+      const f = page.getByTestId('invite-form');
+      await f.getByLabel('Role').selectOption('va');
+      await f.getByLabel('Name').fill('Verify Invitation');
+      await f.getByLabel('Email').fill(inv.email);
+      await f.getByLabel('Main function').selectOption('sales');
+      await f.getByRole('button', { name: 'Invite' }).click();
+      inv.said = await f.getByRole('status').textContent({ timeout: 30_000 }).catch(() => null);
+      const g = await (await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: h, body: JSON.stringify({ type: 'invite', email: inv.email }) })).json();
+      let hashed = g.properties?.hashed_token ?? g.hashed_token, type = 'invite';
+      if (!hashed) {
+        const g2 = await (await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: h, body: JSON.stringify({ type: 'recovery', email: inv.email }) })).json();
+        hashed = g2.properties?.hashed_token ?? g2.hashed_token; type = 'recovery'; inv.note = `invite link: ${JSON.stringify(g).slice(0, 120)}`;
+      }
+      inv.id = g.user?.id ?? g.id;
+      const c2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const p2 = await c2.newPage();
+      await p2.goto(`${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${type}&next=/update-password`, { waitUntil: 'networkidle' });
+      inv.landed = new URL(p2.url()).pathname;
+      inv.for = await p2.getByTestId('password-for').textContent({ timeout: 5_000 }).catch(() => null);
+      await p2.locator('#np-pass').fill(randomPassword());
+      await p2.getByRole('button', { name: 'Save the new password' }).click();
+      await p2.waitForURL((u) => u.pathname === '/va', { timeout: 30_000 });
+      inv.portal = new URL(p2.url()).pathname;
+      inv.who = await p2.locator('.ad__who').first().textContent().catch(() => null);
+      await p2.screenshot({ path: path.join(out, 'invite-landed.png'), fullPage: true });
+      await c2.close();
+      inv.ok = /Invitation sent/.test(inv.said ?? '') && inv.landed === '/update-password' && inv.for === inv.email && inv.portal === '/va' && /Sales/.test(inv.who ?? '');
+    } catch (e) { inv.ok = false; inv.error = String(e).slice(0, 300); }
+    // tidy up: the sign-in, and the staff record the invitation made
+    try {
+      const uid = inv.id ?? (await rest(`users?email=eq.${encodeURIComponent(inv.email)}&select=id`))[0]?.id;
+      if (uid) {
+        inv.removed = (await fetch(`${url}/auth/v1/admin/users/${uid}`, { method: 'DELETE', headers: h })).status;
+        const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
+        if (ref && mt) {
+          const q = `delete from public.staff_profiles where user_id = '${uid}'; delete from public.user_roles where user_id = '${uid}'; delete from public.users where id = '${uid}' and email like 'delivered+verify-invite-%@resend.dev';`;
+          inv.tidied = (await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mt}`, 'content-type': 'application/json' }, body: JSON.stringify({ query: q }) })).status;
+        }
+      }
+    } catch (e) { inv.tidy_error = String(e).slice(0, 200); }
+    r.invite = inv;
+  }
+
+  // The Supabase Auth email links end to end: a recovery link for the renter test account (through to a new password
+  // and the renter portal), an invitation and a sign-up confirmation for throwaway addresses at Resend's test inbox
+  // (removed again), and a used link (it must offer a new one). Each link is made by the admin API exactly as the email
+  // would carry it (generate_link sends nothing) and opened at the site's /auth/callback as the templates of
+  // scripts/deploy/auth-templates.mjs link it. The templates stored in the project are checked to link the same way.
   report.auth_links = [];
   try {
     const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
@@ -219,7 +356,7 @@ if (process.argv.includes('--auth')) {
     if (ref && mt) cfg = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json();
     const stamp = Date.now();
     const LINKS = [
-      { type: 'recovery', email: 'verify-signin@carmacars.ca', next: '/update-password', tpl: 'recovery' },
+      { type: 'recovery', email: 'verify-signin@carmacars.ca', next: '/update-password', tpl: 'recovery', choose: '/account' },
       { type: 'invite', email: `delivered+invite-${stamp}@resend.dev`, next: '/update-password', tpl: 'invite', remove: true },
       { type: 'signup', email: `delivered+signup-${stamp}@resend.dev`, next: '/account', tpl: 'confirmation', remove: true, password: `S${stamp}x!aA` }
     ];
@@ -242,22 +379,40 @@ if (process.argv.includes('--auth')) {
             if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) r.overflow = (r.overflow ?? []).concat(w);
           }
         }
-        await page.goto(`${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}&next=${l.next}`, { waitUntil: 'networkidle' });
+        const link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}&next=${l.next}`;
+        await page.goto(link, { waitUntil: 'networkidle' });
         r.final = new URL(page.url()).pathname + new URL(page.url()).search;
         r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
-        r.ok = r.final.startsWith(l.next) && !/error=link/.test(r.final) && !/couldn.t load|Application error|Error 1102/i.test(await page.locator('body').innerText().catch(() => ''));
+        r.ok = r.final.startsWith(l.next) && !/error=link|link-expired/.test(r.final) && !BROKEN.test(await bodyText(page));
         await page.screenshot({ path: path.join(out, `auth-link-${l.type}.png`), fullPage: true });
+        if (l.choose) {
+          // the reset through to the end: a new password, then the person's portal
+          await page.locator('#np-pass').fill(randomPassword());
+          await page.getByRole('button', { name: 'Save the new password' }).click();
+          await page.waitForURL((u) => u.pathname === l.choose, { timeout: 30_000 }).catch(() => {});
+          r.chosen = new URL(page.url()).pathname + new URL(page.url()).search;
+          r.saved = await page.getByText('Password saved').count();
+          r.ok = r.ok && r.chosen.startsWith(l.choose) && r.saved > 0;
+          // the same link again: spent, so a friendly page that sends a new one
+          await page.goto(link, { waitUntil: 'networkidle' });
+          r.reused = new URL(page.url()).pathname;
+          r.offersNew = await page.getByRole('button', { name: 'Send me a new link' }).count();
+          r.ok = r.ok && r.reused === '/link-expired' && r.offersNew > 0;
+          await page.screenshot({ path: path.join(out, 'auth-link-reused.png'), fullPage: true });
+        }
         await ctx.close();
         if (l.remove && uid) r.removed = (await fetch(`${url}/auth/v1/admin/users/${uid}`, { method: 'DELETE', headers: h })).status;
       } catch (e) { r.error = String(e).slice(0, 300); }
       report.auth_links.push(r);
     }
   } catch (e) { report.auth_links.push({ error: String(e).slice(0, 300) }); }
+  // the verification Admin cannot be used between runs: its password is scrambled again
+  try { if (admin?.id) await fetch(`${url}/auth/v1/admin/users/${admin.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password: randomPassword() + randomPassword() }) }); report.admin_password_scrambled = true; } catch { report.admin_password_scrambled = false; }
   report.auth_links_ok = report.auth_links.length === 3 && report.auth_links.every((x) => x.ok);
   report.portals_ok = report.portals.length === ACCOUNTS.length && report.portals.every((x) => x.ok);
   // Cloudflare's 1102 ("Worker exceeded resource limits": the plan's CPU or memory limit) per run
   report.worker_limits = report.portals.flatMap((x) => (x.responses ?? []).filter((y) => /exceeded resource limits|Error 1102/i.test(y))).length;
-  if (!report.portals_ok) process.exitCode = 1;
+  if (!report.portals_ok || !report.auth_links_ok) process.exitCode = 1;
 }
 
 await browser.close();
