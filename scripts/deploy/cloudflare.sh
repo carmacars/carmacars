@@ -51,6 +51,9 @@ resources() {
   [ -n "${CF_R2:-}" ] || token
   local cache tag storage kv_id="" d1_id=""
   if [ "$CF_R2" = yes ]; then cache=r2; storage=r2-binding; else storage=supabase; [ "${CF_KV:0:3}" = yes ] && cache=kv || cache=assets; fi
+  # PAGE_CACHE=assets (the workflow's page_cache input): serve pages as built, for a day the KV free write quota
+  # (1,000 a day) is used up by earlier deploys and the cache cannot be filled
+  if [ "${PAGE_CACHE:-auto}" = assets ] && [ "$cache" = kv ]; then cache=assets; notice "Page cache: assets for this deploy (PAGE_CACHE=assets)"; fi
   tag=none
   [ "$cache" = r2 ] && [ "$CF_D1" = yes ] && tag=d1
   [ "$cache" = kv ] && tag=kv

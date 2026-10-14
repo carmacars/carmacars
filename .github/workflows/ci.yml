@@ -24,6 +24,11 @@ on:
         description: Only the end-to-end tests whose title matches (diagnosis; leave empty for all)
         type: string
         default: ''
+      page_cache:
+        description: Page cache (auto; assets when the Cloudflare KV daily write quota is used up)
+        type: choice
+        options: [auto, assets]
+        default: auto
       environment:
         description: Target
         type: choice
@@ -174,6 +179,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DEPLOY_ENV: ${{ inputs.environment }}
+      PAGE_CACHE: ${{ inputs.page_cache || 'auto' }}
       APP_URL: https://carmacars.ca
       DOMAIN: carmacars.ca
       NEXT_TELEMETRY_DISABLED: '1'
