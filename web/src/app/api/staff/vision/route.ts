@@ -13,6 +13,15 @@ export const dynamic = 'force-dynamic';
 const MAX = 4_500_000;
 
 export async function POST(req: Request) {
+  try { return await handle(req); } catch (e) {
+    // an unexpected failure is answered in words (the reader then lets staff type the lines)
+    const message = e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 300) : 'The vision request failed.';
+    console.error('vision route', message);
+    return NextResponse.json({ ok: false, reason: 'unavailable', message }, { status: 500 });
+  }
+}
+
+async function handle(req: Request): Promise<Response> {
   const origin = req.headers.get('origin');
   if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
