@@ -59,16 +59,16 @@ async function senderValues(r: Row): Promise<Record<string, unknown>> {
 // when it is not yet). A file that cannot be fetched holds the email back for a retry; from the third attempt the
 // email goes without it (its 7-day link still opens the file).
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
-async function attachments(r: Row): Promise<Array<{ filename: string; content: string }>> {
+async function attachments(r: Row): Promise<Array<{ filename: string; content: string; content_type: string }>> {
   if (!LINK_KEY) return [];
   const [{ list }] = (await sql`select app.outbox_attachments(${r.id}::uuid) as list`) as unknown as [{ list: Array<{ k: string; key: string; filename: string }> }];
-  const out: Array<{ filename: string; content: string }> = [];
+  const out: Array<{ filename: string; content: string; content_type: string }> = [];
   for (const a of list ?? []) {
     try {
       const res = await fetch(await signDoc(a.k, a.key), { headers: { 'user-agent': 'carmacars-send-outbox' } });
       const type = res.headers.get('content-type') ?? '';
       if (!res.ok || !type.includes('pdf')) throw new Error(`the file answered ${res.status} ${type}`);
-      out.push({ filename: a.filename, content: b64(new Uint8Array(await res.arrayBuffer())) });
+      out.push({ filename: a.filename, content: b64(new Uint8Array(await res.arrayBuffer())), content_type: 'application/pdf' });
     } catch (e) {
       if (r.attempts < 3) throw new Error(`Attachment ${a.filename}: ${(e as Error).message}`);
     }
