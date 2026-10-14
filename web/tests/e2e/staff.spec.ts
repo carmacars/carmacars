@@ -54,7 +54,7 @@ async function mkUser(sql: Sql, tag: string, role: 'admin' | 'va' | 'field' | 'r
 // the exclusion constraint bookings_no_double_booking refuses the move onto another booking of the car)
 async function freeCar(sql: Sql, start: number, days: number, past = 0) {
   const from = new Date(Date.now() + start * 86_400_000); const to = new Date(from.getTime() + days * 86_400_000);
-  const since = new Date(Math.min(from.getTime(), Date.now() - past * 86_400_000));
+  const since = past > 0 ? new Date(Math.min(from.getTime(), Date.now() - past * 86_400_000)) : from;
   const rows = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
     where l.status = 'published' and app.vehicle_bookable(v.id)
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')

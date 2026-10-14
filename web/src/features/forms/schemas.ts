@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@/lib/zod';
 
 // One schema per form, used in the browser (field errors as you go) and again in the server action
 // (docs/blueprint/08-forms.md section 2). Messages say how to fix the problem.

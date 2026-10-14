@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@/lib/zod';
 import { email, phone } from '@/features/forms/schemas';
 
 // The booking request: one schema for the browser and the server action (docs/blueprint/08-forms.md
