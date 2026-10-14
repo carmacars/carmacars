@@ -1,0 +1,38 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Booking updated]
+Your booking has the new details
+
+Thanks, {{first_name}}. Here is what changed.
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Payment: {{money_text}}
+Amendment: {{amendment_number}}
+
+{{#if has_amendment_pdf}}
+Your signed amendment is kept with your booking: open the PDF ({{signed_agreement_url}}).
+{{/if}}
+
+View your booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Everything else in your rental agreement stays the same. The file link works for {{link_expiry}}; the amendment is always in your account under Documents.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

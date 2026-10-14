@@ -336,7 +336,7 @@ select test.eq('E the five forms are seeded, all unverified', (select count(*) |
 -- ------------------------------------------------------------------ F. the onboarding checklist
 select test.eq('F the checklist says what is done, who it waits on and the next action',
   (select string_agg(code || ':' || status || coalesce(':' || waits_on, ''), ' ' order by sort_order) from app.onboarding_checklist(test.ofl_v(1))),
-  'owner_details:done documents:open:owner government_forms:done signatures:done upfront_payment:open:owner registry_visit:open:carmacars tracker_install:open:carmacars insurer_confirmation:open:carmacars photos:open:carmacars listing:open:carmacars');
+  'owner_details:done documents:open:owner government_forms:done signatures:done witnessed_forms:open:owner upfront_payment:open:owner registry_visit:open:carmacars tracker_install:open:carmacars insurer_confirmation:open:carmacars photos:open:carmacars listing:open:carmacars');
 select test.eq('F the next action for the owner is plain words from the editable item table',
   (select next_action from app.onboarding_checklist(test.ofl_v(1)) where code = 'documents'), 'Upload a photo of both sides of the ownership permit');
 update onboarding_checklist_items set owner_action = 'Send us a photo of your ownership permit' where code = 'documents';

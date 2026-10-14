@@ -1,0 +1,40 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change suggested]
+A change to your booking
+
+{{change_reason}}
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+{{#if has_difference}}
+{{difference_label}}: {{difference_amount}}
+HST included. New booking total: {{total_amount}}.
+{{else}}
+The price stays the same: {{total_amount}}.
+{{/if}}
+
+Review and answer:
+https://carmacars.ca/account/bookings/{{booking_number}}/change
+
+Answer by {{accept_by}}. To accept, you sign a short amendment to your rental agreement on the same page{{#if has_difference}} and the difference is settled on your card on file{{/if}}. If you decline, or do not answer in time, your booking stays exactly as it is.
+
+Questions about this change? Reply to this email or call us.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

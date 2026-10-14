@@ -570,7 +570,7 @@ select test.eq('I a breakdown is an urgent Fleet task due in 15 minutes, and not
   (select string_agg(queue || ':' || task_type || ':' || priority || ':' || sla_minutes, ' ') from tasks where related_id = test.b('incW')), 'fleet:breakdown:urgent:15');
 select test.eq('I a car that cannot be driven goes out of service and its calendar is blocked for repair, open-ended',
   (select status::text from vehicles where id = test.id('vehicle:OP6')) || '/'
-  || (select reason || ':' || (ends_at is null) || ':' || (starts_at = test.at('2031-07-11 09:00')) from vehicle_calendar_blocks where vehicle_id = test.id('vehicle:OP6') and removed_at is null),
+  || (select reason || ':' || (ends_at is null) || ':' || (starts_at = test.at('2031-07-11 09:00')) from vehicle_calendar_blocks where vehicle_id = test.id('vehicle:OP6') and removed_at is null and source = 'staff'),
   'out_of_service/repair:true:true');
 select test.eq('I the amounts named in the steps come from the settings and fee defaults, not from the code',
   (select instruction from incident_steps where incident_id = test.b('incW') and step_code = 'cause') like '%call-out cost plus $50', true);
@@ -653,16 +653,16 @@ select test.login(test.id('op_admin'));
 select test.eq('K the master calendar shows a booking, its field jobs and the staff moves on one car',
   (select string_agg(entry_type || ':' || coalesce(detail, '-') || ':' || status, ' ' order by starts_at, entry_type)
      from app.master_calendar(test.at('2031-05-01 00:00'), test.at('2031-05-06 00:00')) where vehicle_id = test.id('vehicle:OP2')),
-  'vehicle_move:delivery:done booking:-:closed field_job:delivery:done field_job:pickup_from_renter:done vehicle_move:pickup_from_renter:done');
+  'vehicle_move:delivery:done booking:-:closed field_job:delivery:done block:-:blocked field_job:pickup_from_renter:done vehicle_move:pickup_from_renter:done');
 select test.eq('K a job or move entry is not "the booking''s entry": booking_id is empty and related_booking_id carries the link, with who has it',
   (select count(*) filter (where booking_id is not null) || '/' || bool_and(related_booking_id = test.b('opB')) || '/' || min(assignee_name) || '/' || bool_or(is_blocking)
-     from app.master_calendar(test.at('2031-05-01 00:00'), test.at('2031-05-06 00:00')) where vehicle_id = test.id('vehicle:OP2') and entry_type <> 'booking'), '0/true/Op Field/false');
+     from app.master_calendar(test.at('2031-05-01 00:00'), test.at('2031-05-06 00:00')) where vehicle_id = test.id('vehicle:OP2') and entry_type not in ('booking', 'block')), '0/true/Op Field/false');
 select test.eq('K a Turo trip is an entry on its car',
   (select entry_type || '/' || calendar_state || '/' || detail || '/' || is_blocking from app.master_calendar(test.at('2031-05-01 00:00'), test.at('2031-05-06 00:00'))
     where vehicle_id = test.id('vehicle:OPT')), 'turo_trip/turo/TURO-OP-1/false');
 select test.eq('K the vehicle calendar has everything for one car: bookings, jobs, moves, the Owner''s control block, incidents',
   (select string_agg(distinct entry_type, ',' order by entry_type) from app.vehicle_calendar(test.id('vehicle:OP2'), test.at('2031-01-01 00:00'), test.at('2032-01-01 00:00'))),
-  'booking,field_job,incident,owner_controls_blocked,vehicle_move');
+  'block,booking,field_job,incident,owner_controls_blocked,vehicle_move');
 select test.eq('K and on the broken-down car: the repair block and the swap''s end of the control block',
   (select string_agg(entry_type || ':' || status, ' ' order by entry_type, status) from app.vehicle_calendar(test.id('vehicle:OP6'), test.at('2031-07-01 00:00'), test.at('2031-08-01 00:00'))
     where entry_type in ('block', 'owner_controls_blocked', 'incident')), 'block:blocked incident:open owner_controls_blocked:ended');
@@ -1059,7 +1059,7 @@ select test.throws('fleet: cannot tick a step in someone else''s name',
   format($$update incident_steps set done_at = now(), done_by = %L where incident_id = %L and step_code = 'cause'$$, test.id('op_admin'), test.b('incW')), 'your own approval');
 select test.eq('fleet: no payout reconciliation', test.visible('select * from payout_reconciliations') + test.visible('select * from payout_reconciliation_items'), 0::bigint);
 select test.eq('fleet: field jobs and staff moves are on the calendar', (select string_agg(distinct entry_type, ',' order by entry_type) from calendar_entries where vehicle_id = test.id('vehicle:OP2')),
-  'booking,field_job,vehicle_move');
+  'block,booking,field_job,vehicle_move');
 select test.eq('fleet: may preview a calendar change', (select app.calendar_preview_change(test.b('opF'), jsonb_build_object('return_at', test.at('2031-11-09 10:00'))) ->> 'action'), 'renter_approval');
 select test.throws('fleet: but cannot apply one from the browser', format($$select app.calendar_apply_change(%L, %L, '{}', 'x')$$, test.b('opF'), test.id('op_fleet')), 'permission denied');
 select test.logout();
@@ -1093,7 +1093,7 @@ select test.eq('cs: cannot add or change a quick reply', test.affected($$update 
 select test.throws('cs: nor insert one', $$insert into quick_replies (title, body) values ('x', 'y')$$, 'row-level security');
 select test.eq('cs: the customer service queue only', (test.visible('select * from va_cs_queue') > 0) || '/' || (test.visible('select * from va_finance_queue') + test.visible('select * from va_fleet_queue') + test.visible('select * from admin_queue')), 'true/0');
 select test.eq('cs: field jobs are on the calendar, staff moves are not',
-  (select string_agg(distinct entry_type, ',' order by entry_type) from calendar_entries where vehicle_id = test.id('vehicle:OP2')), 'booking,field_job');
+  (select string_agg(distinct entry_type, ',' order by entry_type) from calendar_entries where vehicle_id = test.id('vehicle:OP2')), 'block,booking,field_job');
 select test.logout();
 
 -- Sales

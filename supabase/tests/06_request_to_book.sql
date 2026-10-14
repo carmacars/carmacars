@@ -785,7 +785,7 @@ select test.eq('MC with what a calendar needs: vehicle label, plate, renter name
   '2023 Mercedes-Benz C 300 RQ2/true/Amy Anderson/true/renter/standard/true/true/available');
 select test.eq('MC calendar blocks, with their reason and note; a removed block is gone',
   (select string_agg(entry_type || ':' || status || ':' || block_reason || ':' || note || ':' || is_blocking, ' ')
-     from app.master_calendar(test.at('2029-06-01 00:00'), test.at('2029-06-30 00:00')) where vehicle_id = test.id('vehicle:RQ2') and entry_type = 'block'),
+     from app.master_calendar(test.at('2029-06-01 00:00'), test.at('2029-06-30 00:00')) where vehicle_id = test.id('vehicle:RQ2') and entry_type = 'block' and block_reason <> 'cleaning'),
   'block:blocked:service:oil change, shop: Main St:true');
 select test.eq('MC an insurer booking shows who is billed, and an Owner Booking shows as one',
   (select bill_to || ':' || insurer_name || ':' || dates_provisional from app.master_calendar(test.at('2029-10-01 00:00'), test.at('2029-10-31 00:00')) where booking_id = test.b('i1'))
@@ -844,7 +844,7 @@ select test.eq('owner: on his calendar a renter is a first name; no insurer, no 
 select test.eq('owner: the calendar has no contact, licence or renter id column',
   (select count(*) from information_schema.columns where table_name = 'calendar_entries' and column_name ~ '(email|mobile|phone|address|licence|birth|renter_id|card)'), 0::bigint);
 select test.eq('owner: sees a block on his car, without the staff note',
-  (select block_reason || '/' || coalesce(note, '-') from calendar_entries where entry_type = 'block' and vehicle_id = test.id('vehicle:RQ2')), 'service/-');
+  (select block_reason || '/' || coalesce(note, '-') from calendar_entries where entry_type = 'block' and block_reason <> 'cleaning' and vehicle_id = test.id('vehicle:RQ2')), 'service/-');
 select test.eq('owner: the master calendar function gives him the same, his vehicles only',
   (select bool_and(app.owns_vehicle(vehicle_id)) || '/' || count(distinct vehicle_id) from app.master_calendar(test.at('2029-01-01 00:00'), test.at('2030-01-01 00:00'))), 'true/5');
 select test.eq('owner: his bookings view lists confirmed bookings, and no request or offer',

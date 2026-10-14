@@ -81,6 +81,8 @@ export const PATHS = {
   va_fleet_vehicle: '/va/fleet/vehicles/{{vehicle_id}}',
   va_sales: '/va/sales',
   va_sales_application: '/va/sales/applications/{{application_id}}',
+  va_similar_cars: '/va/similar-cars',
+  va_owner_forms: '/va/owner-forms',
 
   // Field portal
   field: '/field',

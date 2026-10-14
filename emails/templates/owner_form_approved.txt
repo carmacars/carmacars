@@ -1,0 +1,27 @@
+CarmaCars  |  Owner documents
+
+========================================
+
+[Form approved]
+Your form is approved
+
+Thanks, {{first_name}}. {{form_title}} is on file. {{vehicle_line}}.
+
+View your documents:
+https://carmacars.ca/owner/documents
+
+Keep the paper original with your car records.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

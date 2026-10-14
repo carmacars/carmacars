@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Additional driver]
+Accept the rental agreement
+
+Hi {{first_name}}, {{renter_name}} added you as a driver on a CarmaCars booking. You need to accept the agreement before you drive.
+
+Car: {{vehicle_name}}
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Read and accept:
+{{sign_url}}
+
+No account is needed. The link works until {{link_expires}}. If it has expired, ask {{renter_name}} to send a new one from their booking.
+
+Bring your driver's licence at pickup. We check it against the details on the booking.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

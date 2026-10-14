@@ -1,0 +1,28 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change answered]
+The renter {{outcome_title}} the change
+
+{{outcome_detail}}
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Renter: {{renter_name}}
+Vehicle: {{vehicle_name}}
+
+Open the booking:
+https://carmacars.ca/va/cs/bookings/{{booking_number}}
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

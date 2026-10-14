@@ -208,8 +208,8 @@ select test.eq('X the renter of the first booking: one email per action, from re
   || 'renter_request_received=1 renter_return_complete=1');
 select test.eq('X the renter of the second booking: the calendar change and their own request each give one email per step, never two',
   test.e2_mail(test.ba('e2:2')),
-  'renter_agreement_signed=1 renter_booking_confirmed=1 renter_change_request_approved=1 renter_change_request_received=1 '
-  || 'renter_offer_ready=1 renter_payment_receipt=1 renter_request_received=1');
+  'renter_agreement_signed=1 renter_booking_confirmed=1 renter_change_applied=2 renter_change_proposed=1 renter_change_request_approved=1 '
+  || 'renter_change_request_received=1 renter_offer_ready=1 renter_payment_receipt=1 renter_request_received=1');
 select test.eq('X the toll: one email to the renter, with the statement',
   test.e2_mail(test.id('booking:E2T1')), 'renter_extra_charge=1');
 select test.eq('X the hand-added charge emails carry the line, its HST and the total',

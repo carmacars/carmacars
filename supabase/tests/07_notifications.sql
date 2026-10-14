@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '131/1');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '142/1');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 63::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 65::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -502,8 +502,8 @@ insert into vehicle_onboardings (id, vehicle_id, status) values (test.id('onb:NT
 create table test.nt_synth (code text, entity text, id uuid, payload jsonb);
 insert into test.nt_synth values
   -- emitted by 0019 to 0022 (the payload as their functions build it)
-  ('renter_agreement_ready', 'rental_agreement', gen_random_uuid(), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'signer_role', 'additional_driver',
-     'signer_name', 'Ada Driver', 'signer_email', 'ada@example.test')),
+  ('renter_agreement_ready', 'rental_agreement', gen_random_uuid(), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'signer_role', 'renter',
+     'signer_name', 'Nt Rita', 'signer_email', 'nt_rita@example.test')),
   ('renter_agreement_signed', 'rental_agreement', gen_random_uuid(), jsonb_build_object('booking_id', test.id('booking:NT-2'),
      'signers', jsonb_build_array(jsonb_build_object('signer_role', 'renter', 'signer_name', 'Nt Rita', 'signer_email', 'nt_rita@example.test'),
                                   jsonb_build_object('signer_role', 'carmacars', 'signer_name', 'Staff', 'signer_email', 'staff@example.test')))),
@@ -606,6 +606,31 @@ insert into test.nt_synth values
   ('staff_owner_debit_exception', 'owner', test.id('owner:nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'exception', 'no_mandate')),
   ('staff_owner_debit_run', 'owner_debit_run', test.id('nt_debit_run'), '{}'::jsonb),
   ('staff_monthly_statements_pdfs', 'company_statement', (select id from company_statements where statement_month = '2031-06-01'), '{}'::jsonb);
+-- the operations gaps emails (0040): a change staff proposed, a driver's link, a possible duplicate, a witnessed form
+insert into booking_change_requests (id, booking_id, requested_by_role, status, note, changes, before, after, total_difference_cents, accept_by)
+select test.id('nt_cr'), b.id, 'staff', 'cancelled', 'The car needs a service; one more day at the same rate.', jsonb_build_object('return_at', b.return_at + interval '1 day'),
+       jsonb_build_object('vehicle_id', b.vehicle_id, 'pickup_at', b.pickup_at, 'return_at', b.return_at, 'rental_charge_cents', b.rental_charge_cents, 'total_cents', b.total_due_at_booking_cents),
+       jsonb_build_object('vehicle_id', b.vehicle_id, 'pickup_at', b.pickup_at, 'return_at', b.return_at + interval '1 day', 'rental_charge_cents', b.rental_charge_cents + 10000,
+                          'total_cents', b.total_due_at_booking_cents + 11300), 11300, now() + interval '1 day'
+  from bookings b where b.id = test.id('booking:NT-2');
+insert into listing_similarity_flags (id, vehicle_id, other_vehicle_id, kind, score_bps, blocking, detail)
+select test.id('nt_flag'), test.id('vehicle:NT1'), (select v.id from vehicles v where v.id <> test.id('vehicle:NT1') order by v.created_at limit 1), 'plate', 10000, true, 'Same plate as another car'
+on conflict do nothing;
+insert into owner_agreement_forms (id, owner_id, form_code, status, witness_1_name, witness_2_name, reject_reason, reviewed_by, reviewed_at)
+values (test.id('nt_form'), test.id('owner:nt_olga'), 'D1', 'rejected', 'Wendy Witness', 'Will Witness', 'Page 2 is missing.', test.id('nt_admin'), now());
+insert into test.nt_synth values
+  ('renter_change_proposed', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
+  ('renter_change_proposal_reminder', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
+  ('renter_change_proposal_expired', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
+  ('renter_change_applied', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
+  ('owner_booking_changed', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'owner_id', test.id('owner:nt_olga'), 'owner_side', 'same')),
+  ('staff_change_proposal_answered', 'booking_change_request', test.id('nt_cr'), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'outcome', 'declined', '_immediate', true)),
+  ('renter_driver_link', 'rental_agreement_signer', gen_random_uuid(), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'signer_email', 'nt_driver@example.test',
+     'signer_name', 'Nt Driver', 'sign_url', 'https://carmacars.ca/sign/driver/eyJzIjoibnQifQ.c2ln', 'link_expires', 'Mon, Feb 10, 2031 at 10:00 am')),
+  ('staff_listing_similarity', 'listing_similarity_flag', test.id('nt_flag'), jsonb_build_object('vehicle_id', test.id('vehicle:NT1'), '_immediate', true)),
+  ('staff_owner_form_uploaded', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), '_immediate', true)),
+  ('owner_form_approved', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('owner_form_rejected', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
@@ -615,6 +640,8 @@ select app.send_insurer_invoice_email(test.id('nt_admin'), test.id('nt_ii'));
 -- the sign-in link email (0029's owner invitation and form resume links)
 select app.send_link_email('nt_link@example.test', 'Nt Link', 'https://carmacars.ca/list-your-car/apply?invite=nt', '7 days', 'nt-link');
 select test.flush();
+-- the change request made for the emails above is not left for the later files' counts
+delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
   (select string_agg(distinct code || ':' || array_to_string(missing_variables, ','), '; ') from notification_outbox where missing_variables <> '{}'), null::text);
 select test.eq('G every wired email code has been built at least once in these tests, digests included',

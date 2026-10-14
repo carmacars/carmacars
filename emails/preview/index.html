@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>131 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>51</span></a><a href="#owner">Owner <span>28</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>7</span></a><a href="#staff_va_cs">Staff: VA customer service <span>10</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>142 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>56</span></a><a href="#owner">Owner <span>31</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (51)</h2>
+<h2 id="renter">Renter (56)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -104,6 +104,30 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">An incident of type breakdown on an on_rent booking has roadside dispatched (dispatched_at is set by Fleet). (Message template T18.)</div>
 <div class="ln"><a href="../dist/renter_breakdown_help.html">HTML</a><a href="../dist/renter_breakdown_help.txt">Text</a><a href="../shots/renter_breakdown_help.desktop.png">Desktop</a><a href="../shots/renter_breakdown_help.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_change_applied.html"><img loading="lazy" src="../shots/renter_change_applied.desktop.png" alt="Screenshot of renter_change_applied"></a><div class="b">
+<div class="code">renter_change_applied</div><div class="sub">Booking CC-10482 is updated</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A change to a confirmed booking is applied: the renter accepted online (signed the amendment and any difference was charged), or an Admin recorded the renter's agreement by phone. Carries what changed, the money, and the signed amendment when there is one.</div>
+<div class="ln"><a href="../dist/renter_change_applied.html">HTML</a><a href="../dist/renter_change_applied.txt">Text</a><a href="../shots/renter_change_applied.desktop.png">Desktop</a><a href="../shots/renter_change_applied.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_proposal_expired.html"><img loading="lazy" src="../shots/renter_change_proposal_expired.desktop.png" alt="Screenshot of renter_change_proposal_expired"></a><div class="b">
+<div class="code">renter_change_proposal_expired</div><div class="sub">Booking CC-10482 stays as it was</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking change job: a change waiting for the renter passed its deadline without being accepted. The change is closed as expired; the booking keeps its dates, car and price. Customer service is told at the same time.</div>
+<div class="ln"><a href="../dist/renter_change_proposal_expired.html">HTML</a><a href="../dist/renter_change_proposal_expired.txt">Text</a><a href="../shots/renter_change_proposal_expired.desktop.png">Desktop</a><a href="../shots/renter_change_proposal_expired.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_proposal_reminder.html"><img loading="lazy" src="../shots/renter_change_proposal_reminder.desktop.png" alt="Screenshot of renter_change_proposal_reminder"></a><div class="b">
+<div class="code">renter_change_proposal_reminder</div><div class="sub">Reminder: answer the change to booking CC-10482 by Sat, Apr 3 at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking change job (every 15 minutes): a change staff proposed (or a change the renter asked for and staff approved) has not been accepted, and its deadline is within booking_change_reminder_hours (Program settings, 12 by default). Sent once per change, and not when the change was made inside that window.</div>
+<div class="ln"><a href="../dist/renter_change_proposal_reminder.html">HTML</a><a href="../dist/renter_change_proposal_reminder.txt">Text</a><a href="../shots/renter_change_proposal_reminder.desktop.png">Desktop</a><a href="../shots/renter_change_proposal_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_change_proposed.html"><img loading="lazy" src="../shots/renter_change_proposed.desktop.png" alt="Screenshot of renter_change_proposed"></a><div class="b">
+<div class="code">renter_change_proposed</div><div class="sub">We suggest a change to booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff (customer service, Fleet or an Admin) propose a change to a confirmed booking: new pickup or return times, another car, or a new rental charge. Sent once the proposal is saved, unless the change was agreed by phone and applied at once. The booking stays as it is until the renter accepts by the deadline (Program settings: booking_change_accept_hours, never later than the pickup less booking_change_lead_hours).</div>
+<div class="ln"><a href="../dist/renter_change_proposed.html">HTML</a><a href="../dist/renter_change_proposed.txt">Text</a><a href="../shots/renter_change_proposed.desktop.png">Desktop</a><a href="../shots/renter_change_proposed.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_change_request_approved.html"><img loading="lazy" src="../shots/renter_change_request_approved.desktop.png" alt="Screenshot of renter_change_request_approved"></a><div class="b">
 <div class="code">renter_change_request_approved</div><div class="sub">Your change to booking CC-10482 is ready to accept</div>
 <div class="tags"><span>Transactional</span></div>
@@ -151,6 +175,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-in.</div>
 <div class="ln"><a href="../dist/renter_deposit_released.html">HTML</a><a href="../dist/renter_deposit_released.txt">Text</a><a href="../shots/renter_deposit_released.desktop.png">Desktop</a><a href="../shots/renter_deposit_released.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_driver_link.html"><img loading="lazy" src="../shots/renter_driver_link.desktop.png" alt="Screenshot of renter_driver_link"></a><div class="b">
+<div class="code">renter_driver_link</div><div class="sub">Maya Okafor added you as a driver on booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">The signing link of an additional driver is sent: when the renter's agreement is opened, or when the renter or customer service sends a new link from the booking. Sent to the additional driver's own email address. The link is valid for booking_driver_link_hours (Program settings, 72 by default); a newer link replaces it.</div>
+<div class="ln"><a href="../dist/renter_driver_link.html">HTML</a><a href="../dist/renter_driver_link.txt">Text</a><a href="../shots/renter_driver_link.desktop.png">Desktop</a><a href="../shots/renter_driver_link.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_extension_approved.html"><img loading="lazy" src="../shots/renter_extension_approved.desktop.png" alt="Screenshot of renter_extension_approved"></a><div class="b">
 <div class="code">renter_extension_approved</div><div class="sub">Extension available. Pay $226.00 by 10:00 am to confirm</div>
@@ -333,7 +363,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (28)</h2>
+<h2 id="owner">Owner (31)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Confirm your email to open your CarmaCars owner account</div>
@@ -370,6 +400,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An owner's payout account, pre-authorized debit authorization or card on file is added, changed or removed, by the owner or by staff. Sent to the owner's email address on file before the change, and never batched. Security notice.</div>
 <div class="ln"><a href="../dist/owner_bank_details_changed.html">HTML</a><a href="../dist/owner_bank_details_changed.txt">Text</a><a href="../shots/owner_bank_details_changed.desktop.png">Desktop</a><a href="../shots/owner_bank_details_changed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_booking_changed.html"><img loading="lazy" src="../shots/owner_booking_changed.desktop.png" alt="Screenshot of owner_booking_changed"></a><div class="b">
+<div class="code">owner_booking_changed</div><div class="sub">Booking CC-10482 changed</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A change to a confirmed booking on the owner's car is applied (new dates, another car, or a new rental charge). One email to each owner whose car or income the change touches: the owner of the car it left and, if different, the owner of the car it moved to. Not sent for Owner Bookings.</div>
+<div class="ln"><a href="../dist/owner_booking_changed.html">HTML</a><a href="../dist/owner_booking_changed.txt">Text</a><a href="../shots/owner_booking_changed.desktop.png">Desktop</a><a href="../shots/owner_booking_changed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_booking_confirmed.html"><img loading="lazy" src="../shots/owner_booking_confirmed.desktop.png" alt="Screenshot of owner_booking_confirmed"></a><div class="b">
 <div class="code">owner_booking_confirmed</div><div class="sub">Confirmed: your own booking of the 2023 Toyota RAV4 XLE, Fri, Oct 23, 2026</div>
@@ -418,6 +454,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Owner-billing job on the 15th: a monthly owner invoice for a vehicle is issued and its pre-authorized debit is submitted. One invoice and one email per vehicle. Not sent for Turo-Only vehicles or vehicles owned personally by the two principals. (Message template T24.)</div>
 <div class="ln"><a href="../dist/owner_fee_invoice.html">HTML</a><a href="../dist/owner_fee_invoice.txt">Text</a><a href="../shots/owner_fee_invoice.desktop.png">Desktop</a><a href="../shots/owner_fee_invoice.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_form_approved.html"><img loading="lazy" src="../shots/owner_form_approved.desktop.png" alt="Screenshot of owner_form_approved"></a><div class="b">
+<div class="code">owner_form_approved</div><div class="sub">Form D, limited power of attorney approved</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Customer service or an Admin approves a Form C or Form D the owner uploaded.</div>
+<div class="ln"><a href="../dist/owner_form_approved.html">HTML</a><a href="../dist/owner_form_approved.txt">Text</a><a href="../shots/owner_form_approved.desktop.png">Desktop</a><a href="../shots/owner_form_approved.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_form_rejected.html"><img loading="lazy" src="../shots/owner_form_rejected.desktop.png" alt="Screenshot of owner_form_rejected"></a><div class="b">
+<div class="code">owner_form_rejected</div><div class="sub">Please upload Form C, lender or lessor permission acknowledgment again</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Customer service or an Admin sends back a Form C or Form D the owner uploaded, with the reason. The owner uploads it again from the owner portal.</div>
+<div class="ln"><a href="../dist/owner_form_rejected.html">HTML</a><a href="../dist/owner_form_rejected.txt">Text</a><a href="../shots/owner_form_rejected.desktop.png">Desktop</a><a href="../shots/owner_form_rejected.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_in_arrears.html"><img loading="lazy" src="../shots/owner_in_arrears.desktop.png" alt="Screenshot of owner_in_arrears"></a><div class="b">
 <div class="code">owner_in_arrears</div><div class="sub">In arrears: $586.75 owing on your 2023 Toyota RAV4 XLE</div>
@@ -675,7 +723,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_toll_ticket_unmatched.html">HTML</a><a href="../dist/staff_toll_ticket_unmatched.txt">Text</a><a href="../shots/staff_toll_ticket_unmatched.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_unmatched.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_fleet">Staff: VA fleet (7)</h2>
+<h2 id="staff_va_fleet">Staff: VA fleet (8)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_breakdown_reported.html"><img loading="lazy" src="../shots/staff_breakdown_reported.desktop.png" alt="Screenshot of staff_breakdown_reported"></a><div class="b">
 <div class="code">staff_breakdown_reported</div><div class="sub">BREAKDOWN: 2024 Honda Civic Sport, booking CC-10482</div>
@@ -719,14 +767,26 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">The AI drafting step finishes for a vehicle listing (photos processed, description and details drafted) and the vehicle status becomes ready_to_list. Queued for the next Fleet digest. Nothing is published until a person approves.</div>
 <div class="ln"><a href="../dist/staff_listing_ready_for_review.html">HTML</a><a href="../dist/staff_listing_ready_for_review.txt">Text</a><a href="../shots/staff_listing_ready_for_review.desktop.png">Desktop</a><a href="../shots/staff_listing_ready_for_review.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/staff_listing_similarity.html"><img loading="lazy" src="../shots/staff_listing_similarity.desktop.png" alt="Screenshot of staff_listing_similarity"></a><div class="b">
+<div class="code">staff_listing_similarity</div><div class="sub">Possible duplicate: 2022 Toyota Corolla LE</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">The listing similarity check finds a likely duplicate that stops publishing: a VIN one character from another car, the same plate, the same listing photo as a listed car, listing text very like a listed car (listing_similarity_copy_bps in Program settings), Queued for the next Fleet digest; a Fleet task is raised with it.</div>
+<div class="ln"><a href="../dist/staff_listing_similarity.html">HTML</a><a href="../dist/staff_listing_similarity.txt">Text</a><a href="../shots/staff_listing_similarity.desktop.png">Desktop</a><a href="../shots/staff_listing_similarity.phone.png">Phone</a></div>
+</div></div>
 </div>
-<h2 id="staff_va_cs">Staff: VA customer service (10)</h2>
+<h2 id="staff_va_cs">Staff: VA customer service (12)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_booking_request_new.html"><img loading="lazy" src="../shots/staff_booking_request_new.desktop.png" alt="Screenshot of staff_booking_request_new"></a><div class="b">
 <div class="code">staff_booking_request_new</div><div class="sub">New request CC-10482: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A booking row is created with status requested (booking event requested). Sent to every active customer service VA. Immediate, never batched.</div>
 <div class="ln"><a href="../dist/staff_booking_request_new.html">HTML</a><a href="../dist/staff_booking_request_new.txt">Text</a><a href="../shots/staff_booking_request_new.desktop.png">Desktop</a><a href="../shots/staff_booking_request_new.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_change_proposal_answered.html"><img loading="lazy" src="../shots/staff_change_proposal_answered.desktop.png" alt="Screenshot of staff_change_proposal_answered"></a><div class="b">
+<div class="code">staff_change_proposal_answered</div><div class="sub">CC-10482: the renter accepted the change</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">A change staff proposed to a confirmed booking ends: the renter accepted it online (amendment signed, difference settled, booking updated), declined it, or did not answer by the deadline. Queued for the next customer service digest. Staff notices about a test owner's car go only to the verification accounts.</div>
+<div class="ln"><a href="../dist/staff_change_proposal_answered.html">HTML</a><a href="../dist/staff_change_proposal_answered.txt">Text</a><a href="../shots/staff_change_proposal_answered.desktop.png">Desktop</a><a href="../shots/staff_change_proposal_answered.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_change_request_received.html"><img loading="lazy" src="../shots/staff_change_request_received.desktop.png" alt="Screenshot of staff_change_request_received"></a><div class="b">
 <div class="code">staff_change_request_received</div><div class="sub">Change request on CC-10482: return one day later</div>
@@ -763,6 +823,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">Booking status changes from pending_payment to confirmed (offer approved, agreement signed, total paid). Queued for the next digest of customer service and fleet. Sent immediately instead when the pickup is less than 24 hours away.</div>
 <div class="ln"><a href="../dist/staff_offer_approved_paid.html">HTML</a><a href="../dist/staff_offer_approved_paid.txt">Text</a><a href="../shots/staff_offer_approved_paid.desktop.png">Desktop</a><a href="../shots/staff_offer_approved_paid.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_form_uploaded.html"><img loading="lazy" src="../shots/staff_owner_form_uploaded.desktop.png" alt="Screenshot of staff_owner_form_uploaded"></a><div class="b">
+<div class="code">staff_owner_form_uploaded</div><div class="sub">Review Form C, lender or lessor permission acknowledgment from Daniel Rossi</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">An owner uploads a signed and witnessed Form C (lender or lessor permission acknowledgment, per financed or leased car) or Form D (limited power of attorney). Queued for the next customer service digest; a review task is raised with it.</div>
+<div class="ln"><a href="../dist/staff_owner_form_uploaded.html">HTML</a><a href="../dist/staff_owner_form_uploaded.txt">Text</a><a href="../shots/staff_owner_form_uploaded.desktop.png">Desktop</a><a href="../shots/staff_owner_form_uploaded.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_renter_replied.html"><img loading="lazy" src="../shots/staff_renter_replied.desktop.png" alt="Screenshot of staff_renter_replied"></a><div class="b">
 <div class="code">staff_renter_replied</div><div class="sub">Maya replied about booking CC-10482</div>

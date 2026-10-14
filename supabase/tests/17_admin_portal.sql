@@ -66,7 +66,7 @@ select test.throws('actions: an unknown action is refused', format($$select publ
 select test.eq('actions: a block over a confirmed booking lists the conflict first',
   (select jsonb_array_length(public.admin_do(test.id('ap_admin'), 'block_create', jsonb_build_object('vehicle', test.id('vehicle:apV'), 'reason', 'service',
      'starts_at', '2027-04-02 08:00', 'ends_at', '2027-04-05 08:00')) -> 'conflicts')), 1);
-select test.eq('actions: nothing was created until confirmed', (select count(*) from vehicle_calendar_blocks where vehicle_id = test.id('vehicle:apV')), 0::bigint);
+select test.eq('actions: nothing was created until confirmed', (select count(*) from vehicle_calendar_blocks where vehicle_id = test.id('vehicle:apV') and source = 'staff'), 0::bigint);
 create temp table ap_blk as select (public.admin_do(test.id('ap_admin'), 'block_create', jsonb_build_object('vehicle', test.id('vehicle:apV'), 'reason', 'service',
   'starts_at', '2027-05-02 08:00', 'ends_at', '2027-05-05 08:00')) ->> 'id')::uuid as id;
 select test.eq('actions: a free block is created by the Admin', (select created_by from vehicle_calendar_blocks where id = (select id from ap_blk)), test.id('ap_admin'));

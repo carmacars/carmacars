@@ -1,0 +1,39 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Booking changed]
+A booking on your car changed
+
+{{owner_change_text}}
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Your share before: {{income_before}}
+Your share now: {{income_after}}
+
+{{#if income_changed}}
+Your earnings changed
+These are estimates from the rental charge and your Revenue Share. Your monthly statement shows the final figures.
+{{/if}}
+
+View the booking:
+https://carmacars.ca/owner/bookings/{{booking_number}}
+
+The calendar of your car already shows the new dates.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -1,0 +1,25 @@
+CarmaCars  |  {{owner_name}}
+
+========================================
+
+[Form uploaded]
+{{owner_name}} uploaded a signed form
+
+{{form_title}}. {{vehicle_line}}.
+
+Witnesses: {{witness_names}}
+
+Review the form:
+https://carmacars.ca/va/owner-forms
+
+Check every part is filled, initialled where asked, signed and witnessed. Approve it, or send it back with what to fix.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[No change]
+Your booking stays as it was
+
+The time to accept the change we suggested has passed, {{first_name}}. Nothing on your booking changed.
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+View your booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Still want the change? Reply to this email or call us and we will check if the car is free.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

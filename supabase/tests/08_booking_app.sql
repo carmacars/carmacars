@@ -1242,7 +1242,7 @@ select test.eq('CH dates on which the car is not free are refused in the preview
 insert into test.ba_ids values ('ch:6', app.request_booking_change(test.ba('ch'), test.id('ba_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:BA4')), 'BA8 is going in for service'));
 select test.eq('CH staff propose another car of the same Owner, at the booking''s own rates: "proposed", for the renter to agree to',
   (select status || '/' || requested_by_role || '/' || total_difference_cents || '/' || coalesce(renter_agreed_at::text, 'not agreed') from booking_change_requests where id = test.ba('ch:6'))
-  || '/' || (select count(*) from app_events where entity_id = test.ba('ch:6')), 'proposed/staff/0/not agreed/0');
+  || '/' || (select count(*) from app_events where entity_id = test.ba('ch:6')), 'proposed/staff/0/not agreed/1');
 select test.throws('CH a proposal is not applied before the renter agrees', $$select app.apply_booking_change(test.ba('ch:6'), test.id('ba_cs'))$$, 'applied once approved');
 select app.agree_booking_change(test.ba('ch:6'), test.ba_user('wes.west@example.test'));
 select app.apply_booking_change(test.ba('ch:6'), test.id('ba_cs'));

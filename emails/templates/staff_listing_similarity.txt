@@ -1,0 +1,26 @@
+CarmaCars  |  {{vehicle_name}}
+
+========================================
+
+[Possible duplicate]
+{{flag_kind}}
+
+{{flag_detail}}
+
+New car: {{vehicle_name}}
+Looks like: {{other_vehicle_name}}
+
+Review similar cars:
+https://carmacars.ca/va/similar-cars
+
+The car is not published while the flag is open. Compare the permit, the plate and the photos; clear the flag with a note if they are different cars.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
