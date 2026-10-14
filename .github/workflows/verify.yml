@@ -50,6 +50,7 @@ jobs:
           jq -r '"auth: \(.auth | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"accounts: \(.accounts | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '(.portals // [])[] | "portal \(.role): ok \(.ok); home \(.afterSignIn // .error) \"\(.h1 // "")\"; errors \(.errors | length) \(.errors[:2] | tostring) \(.responses // [] | .[:4] | tostring); retried \(.retried // [] | tostring); refused \(.refused | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
+          jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$RUNNER_TEMP/verify/report.json"
           jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", "))' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"nonce \(.nonce | tostring); admin \(.admin | tostring); request \(.request | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'
           jq -r '"console errors: \(.console | length) \(.console[:6] | tostring)"' "$RUNNER_TEMP/verify/report.json" | sed 's/^/::notice title=verify::/'

@@ -152,10 +152,11 @@ if (process.argv.includes('--auth')) {
       });
       const load = async (u) => {
         let resp = await page.goto(u, { waitUntil: 'networkidle' });
-        if (resp && resp.status() >= 500) { (r.retried ??= []).push(`${resp.status()} ${u}`); await page.waitForTimeout(2000); resp = await page.goto(u, { waitUntil: 'networkidle' }); }
+        for (let i = 1; i <= 2 && resp && resp.status() >= 500; i++) { (r.retried ??= []).push(`${resp.status()} ${u}`); await page.waitForTimeout(2000 * i); resp = await page.goto(u, { waitUntil: 'networkidle' }); }
         return resp;
       };
-      try {
+      for (let attempt = 1; attempt <= 2; attempt++) try {
+        if (attempt === 2) { r.errors = []; r.refused = {}; delete r.error; }
         await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
         const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
         if (await cookie.isVisible().catch(() => false)) await cookie.click();
@@ -191,9 +192,12 @@ if (process.argv.includes('--auth')) {
           r.refused[p] = fin !== p && (/no-access|not-an-owner/.test(fin) || fin.startsWith('/sign-in')) ? fin : `SHOWN ${fin} ${resp?.status()}`;
         }
         r.ok = new URL(r.afterSignIn).pathname.startsWith(a.home) && !!r.h1 && !r.broken && r.errors.length === 0 && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN'));
+        if (r.ok) break;
       } catch (e) {
         r.ok = false; r.error = String(e).slice(0, 500);
         await page.screenshot({ path: path.join(out, `portal-${a.role}-failed.png`), fullPage: true }).catch(() => {});
+        // a sign-in that never arrived (the Worker refused the request) is tried once more with a fresh page
+        if (attempt === 1) { (r.retried ??= []).push(`sign-in: ${r.error.slice(0, 120)}`); await ctx.clearCookies(); }
       }
       report.portals.push(r);
       await ctx.close();
@@ -204,6 +208,8 @@ if (process.argv.includes('--auth')) {
     report.auth = { ok: false, error: String(e).slice(0, 800) };
   }
   report.portals_ok = report.portals.length === ACCOUNTS.length && report.portals.every((x) => x.ok);
+  // Cloudflare's 1102 ("Worker exceeded resource limits": the plan's CPU or memory limit) per run
+  report.worker_limits = report.portals.flatMap((x) => (x.responses ?? []).filter((y) => /exceeded resource limits|Error 1102/i.test(y))).length;
   if (!report.portals_ok) process.exitCode = 1;
 }
 
