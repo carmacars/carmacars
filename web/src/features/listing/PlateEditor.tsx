@@ -69,7 +69,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     c.width = Math.round((img.current.naturalWidth || 1024) * k); c.height = Math.round((img.current.naturalHeight || 683) * k);
     c.getContext('2d')!.drawImage(img.current, 0, 0, c.width, c.height);
     const { askVision } = await import('@/features/tolls/pdf');
-    const r = await askVision('plate_detect', c.toDataURL('image/jpeg', 0.85), { photo: photo.id, vehicle: photo.vehicle_id });
+    const r = await askVision('plate_detect', c.toDataURL('image/jpeg', 0.85), { photo: photo.id, vehicle: photo.vehicle_id, width: c.width, height: c.height });
     if (!r.ok) { setNote(`No suggestion: ${r.message} Draw the box yourself.`); return; }
     const found = normalizePlateBoxes(r.data, { width: c.width, height: c.height });
     if (!found.length) { setNote('No plate was found. Draw a box over the plate, or mark the photo "no plate visible" if there is none.'); return; }

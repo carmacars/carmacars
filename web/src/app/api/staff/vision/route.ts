@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { visionModel } from '@/integrations/vision';
-import { PLATE_PROMPT, PLATE_SCHEMA, PLATE_SYSTEM, TOLL_PROMPT, TOLL_SCHEMA, TOLL_SYSTEM } from '@/features/tolls/vision-schema';
+import { PLATE_SCHEMA, PLATE_SYSTEM, TOLL_PROMPT, TOLL_SCHEMA, TOLL_SYSTEM, platePrompt } from '@/features/tolls/vision-schema';
 
 // One image to the vision model (migration 0042): a page of a scanned toll notice (Finance, Admins) or a listing
 // photo for the plate box (Fleet, customer service, Admins). The browser made the image small; the database
@@ -27,7 +27,7 @@ async function handle(req: Request): Promise<Response> {
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const aal = await sessionAal();
-  const body = (await req.json().catch(() => null)) as { purpose?: string; image?: string; photo?: string; vehicle?: string } | null;
+  const body = (await req.json().catch(() => null)) as { purpose?: string; image?: string; photo?: string; vehicle?: string; width?: number; height?: number } | null;
   const purpose = body?.purpose === 'plate_detect' ? 'plate_detect' : body?.purpose === 'toll_read' ? 'toll_read' : null;
   const image = typeof body?.image === 'string' ? body.image : '';
   if (!purpose) return NextResponse.json({ ok: false, message: 'Unknown request.' }, { status: 400 });
@@ -41,7 +41,7 @@ async function handle(req: Request): Promise<Response> {
   const t0 = Date.now();
   const r = await (await visionModel()).read({
     purpose, imageDataUrl: image,
-    system: purpose === 'toll_read' ? TOLL_SYSTEM : PLATE_SYSTEM, prompt: purpose === 'toll_read' ? TOLL_PROMPT : PLATE_PROMPT,
+    system: purpose === 'toll_read' ? TOLL_SYSTEM : PLATE_SYSTEM, prompt: purpose === 'toll_read' ? TOLL_PROMPT : platePrompt(Number.isFinite(body?.width) && Number.isFinite(body?.height) ? { width: Number(body!.width), height: Number(body!.height) } : null),
     schema: (purpose === 'toll_read' ? TOLL_SCHEMA : PLATE_SCHEMA) as unknown as Record<string, unknown>, maxOutputTokens: purpose === 'toll_read' ? 2000 : 300
   }, [gate.model, gate.fallback_model ?? ''].filter(Boolean));
   const model = r.model ?? r.tried[r.tried.length - 1] ?? gate.model;

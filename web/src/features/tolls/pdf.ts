@@ -97,7 +97,7 @@ export async function imageJpeg(src: Blob | string, longSide = 1600): Promise<{ 
 }
 
 /** Ask the vision model about one image (the server checks who may, and the day's allowance). */
-export async function askVision(purpose: 'toll_read' | 'plate_detect', image: string, extra: { photo?: string; vehicle?: string } = {}): Promise<{ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }> {
+export async function askVision(purpose: 'toll_read' | 'plate_detect', image: string, extra: { photo?: string; vehicle?: string; width?: number; height?: number } = {}): Promise<{ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }> {
   try {
     const r = await fetch('/api/staff/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ purpose, image, ...extra }) });
     const j = (await r.json().catch(() => null)) as ({ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }) | null;

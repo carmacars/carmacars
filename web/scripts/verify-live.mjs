@@ -289,10 +289,10 @@ if (process.argv.includes('--auth')) {
       await p.close();
       return `data:image/jpeg;base64,${b.toString('base64')}`;
     };
-    const ask = async (purpose, image) => {
+    const ask = async (purpose, image, size = {}) => {
       const t0 = Date.now();
       for (let i = 0; i < 3; i++) {
-        const resp = await page.request.post(`${BASE}/api/staff/vision`, { data: { purpose, image }, timeout: 90_000 }).catch((e) => ({ status: () => 0, text: async () => String(e) }));
+        const resp = await page.request.post(`${BASE}/api/staff/vision`, { data: { purpose, image, ...size }, timeout: 90_000 }).catch((e) => ({ status: () => 0, text: async () => String(e) }));
         const text = await resp.text();
         if (resp.status() >= 500 && /1102|exceeded/i.test(text)) { report.worker_limits = (report.worker_limits ?? 0) + 1; continue; }
         try { return { status: resp.status(), ms: Date.now() - t0, ...JSON.parse(text) }; } catch { return { status: resp.status(), ms: Date.now() - t0, error: text.slice(0, 200) }; }
@@ -315,9 +315,12 @@ if (process.argv.includes('--auth')) {
         <div style="position:absolute;left:300px;top:300px;width:400px;height:90px;background:#9ab;border-radius:10px"></div>
         <div style="position:absolute;left:430px;top:448px;width:140px;height:50px;background:#fff;border:3px solid #124;font:bold 30px Arial;line-height:50px;text-align:center;color:#124">ABCD 123</div>
         <div style="position:absolute;left:250px;top:480px;width:60px;height:60px;border-radius:50%;background:#111"></div><div style="position:absolute;left:690px;top:480px;width:60px;height:60px;border-radius:50%;background:#111"></div></div></body>`, 1000, 640);
-      const pl = await ask('plate_detect', car);
+      const pl = await ask('plate_detect', car, { width: 1000, height: 640 });
       const boxes = Array.isArray(pl.data?.plates) ? pl.data.plates : [];
-      const iou = (b) => { const ax = 0.43, ay = 0.7, aw = 0.14, ah = 0.078; const x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
+      // as the plate editor reads it: corners in pixels of the 1000 x 640 image, or fractions
+      const frac = (b) => (['x1', 'y1', 'x2', 'y2'].every((k) => Number.isFinite(Number(b[k]))) ? { x: b.x1 / 1000, y: b.y1 / 640, w: (b.x2 - b.x1) / 1000, h: (b.y2 - b.y1) / 640 }
+        : Number(b.x) > 1 || Number(b.y) > 1 ? { x: b.x / 1000, y: b.y / 640, w: b.w / 1000, h: b.h / 640 } : b);
+      const iou = (raw) => { const b = frac(raw); const ax = 0.43, ay = 0.7, aw = 0.14, ah = 0.078; const x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
         if (![x, y, w, h].every(Number.isFinite)) return 0; const ix = Math.max(0, Math.min(ax + aw, x + w) - Math.max(ax, x)), iy = Math.max(0, Math.min(ay + ah, y + h) - Math.max(ay, y));
         const i = ix * iy; return i / (aw * ah + w * h - i); };
       out.plate = { status: pl.status, ok: pl.ok, model: pl.model, neurons: pl.neurons, ms: pl.ms, message: pl.message ?? pl.error, boxes: boxes.slice(0, 3), raw: pl.data ? JSON.stringify(pl.data).slice(0, 400) : null, best_overlap: boxes.length ? Math.max(...boxes.map(iou)).toFixed(2) : null };

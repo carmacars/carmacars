@@ -23,6 +23,10 @@ export const TOLL_SCHEMA = {
 
 export const PLATE_SYSTEM = 'You find licence plates in photos of cars. Answer with JSON only, in the shape asked.';
 export const PLATE_PROMPT = 'Find every licence plate visible in this photo (the front or rear plate of any car). Answer with one JSON object: {"plates": [{"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0, "confidence": 0}]}, one entry per plate, every key present. x and y are the left and top edges of the plate and w and h its width and height, each as a fraction of the image width or height (numbers from 0 to 1). confidence is 0 to 100. Answer {"plates": []} when no plate can be seen.';
+/** With the image's size known, the corners in pixels: in live tests (0042) the model placed a fractional box below the plate. */
+export const platePrompt = (size?: { width: number; height: number } | null) => (size && size.width > 0 && size.height > 0
+  ? `This photo is ${Math.round(size.width)} pixels wide and ${Math.round(size.height)} pixels high. Find every licence plate visible in it (the front or rear plate of any car). Answer with one JSON object: {"plates": [{"x1": 0, "y1": 0, "x2": 0, "y2": 0, "confidence": 0}]}, one entry per plate, every key present: x1 and y1 are the pixel position of the plate's top left corner, x2 and y2 of its bottom right corner (x from the left edge, y from the top edge). confidence is 0 to 100. Answer {"plates": []} when no plate can be seen.`
+  : PLATE_PROMPT);
 export const PLATE_SCHEMA = {
   type: 'object',
   properties: { plates: { type: 'array', items: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' }, confidence: { type: ['number', 'null'] } } } } },
