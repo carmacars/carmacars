@@ -10,6 +10,19 @@ export interface OwnerInvoiceRow {
   id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install'; period_month: string | null;
   billing_date: string; retry_on: string | null; status: string; fees_cents: number; hst_cents: number; late_fee_cents: number; total_cents: number;
   balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean;
+  /** The automatic pre-authorized debit of this invoice (migration 0037). */
+  debit?: InvoiceDebit | null;
+}
+export interface InvoiceDebit {
+  debit_on: string | null; paused: boolean; paused_reason: string | null; blocked: string | null; attempts: number;
+  attempt: { attempt_no: number; status: 'scheduled' | 'submitting' | 'processing' | 'succeeded' | 'failed' | 'skipped' | 'canceled'; debit_on: string; amount_cents: number;
+    bank_last4: string | null; failure_message: string | null; skip_reason: string | null; submitted_at: string | null; settled_at: string | null } | null;
+}
+export interface DebitTerms { debit_day: number; retry_day: number; notice_days: number; max_attempts: number; retry_gap_days: number; late_fee_cents: number; late_fee: string; debit_day_text: string; retry_day_text: string; interval_description: string }
+export interface AutoDebit {
+  enabled: boolean; mandate: boolean; bank: string | null; bank_last4: string | null; pending_setup: boolean; paused: boolean; paused_reason: string | null;
+  next_debit_on: string | null; next_debit_cents: number; next_debit_invoices: string[]; processing_cents: number; next_notice_on: string; next_cycle_on: string;
+  notice_days: number; terms: DebitTerms;
 }
 export interface OwnerInvoice extends OwnerInvoiceRow {
   owner_id: string; plate: string | null; days_billed: number | null; days_in_month: number | null; paid_cents: number; deducted_cents: number; issued_at: string | null;
@@ -36,6 +49,7 @@ export interface OwnerHome {
   exits: Array<{ id: string; vehicle_id: string; status: string; exit_date: string; notice_ends_on: string; retransfer_fees_paid_by: string }>;
   next_payout_date: string; next_billing_date: string;
   trackers_available: boolean; tracker_pending: string[];
+  auto_debit: AutoDebit;
 }
 export interface OwnerBooking {
   booking_id: string; booking_number: string; booking_type: string; status: string; vehicle_id: string; vehicle_name: string;
@@ -64,13 +78,26 @@ export const INVOICE_STATUS: Record<string, { label: string; badge: string }> = 
   processing: { label: 'Processing', badge: 'badge--grey' },
   retry_processing: { label: 'Retrying', badge: 'badge--grey' },
   paid: { label: 'Paid', badge: '' },
-  failed: { label: 'Failed, retry on the 18th', badge: 'badge--red' },
+  failed: { label: 'Payment failed', badge: 'badge--red' },
   in_arrears: { label: 'In arrears', badge: 'badge--red' },
   partially_deducted: { label: 'Part deducted from payout', badge: 'badge--outline' },
   deducted: { label: 'Deducted from payout', badge: '' },
   void: { label: 'Void', badge: '' },
   draft: { label: 'Draft', badge: '' }
 };
+/** The debit of an invoice in a few words, or null when there is nothing to say. */
+export function debitLine(d: InvoiceDebit | null | undefined, day: (iso: string | null) => string, money: (c: number) => string): string | null {
+  const a = d?.attempt;
+  if (!a) return null;
+  switch (a.status) {
+    case 'scheduled': return `${money(a.amount_cents)} will be debited on ${day(a.debit_on)}${a.bank_last4 ? ` from the account ending ${a.bank_last4}` : ''}${a.attempt_no > 1 ? ' (retry)' : ''}`;
+    case 'submitting': case 'processing': return `Debit of ${money(a.amount_cents)} sent on ${day(a.submitted_at ?? a.debit_on)}; it takes up to 5 business days to clear`;
+    case 'succeeded': return `Paid by pre-authorized debit on ${day(a.settled_at ?? a.debit_on)}`;
+    case 'failed': return `The debit of ${day(a.debit_on)} was returned${a.failure_message ? `: ${a.failure_message}` : ''}`;
+    case 'skipped': return d?.paused ? 'Automatic debit paused' : null;
+    default: return null;
+  }
+}
 export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'>) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
 
 export const invoiceTitle = (i: { kind: string; period_month: string | null }, month: (iso: string | null) => string) =>

@@ -159,3 +159,31 @@ test('a refund of a charge without an intent uses the charge; a refusal is a Str
   await assert.rejects(s.refund({ paymentIntentId: null, chargeId: 'ch_9', amountCents: 100, idempotencyKey: 'refund:r3', metadata: {} }),
     (e: unknown) => e instanceof StripeError && e.code === 'charge_disputed' && /charged back/.test(e.message));
 });
+
+test('a pre-authorized debit set up without a payment: a SetupIntent with the mandate schedule from settings', async () => {
+  const { f, calls } = mock([{ body: { id: 'seti_1', status: 'requires_payment_method', client_secret: 'seti_1_secret', customer: 'cus_1', payment_method: null, mandate: null, metadata: { owner_id: 'o1', purpose: 'owner_debit_setup' } } }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  const r = await s.createDebitSetup({ ownerId: 'o1', customerId: 'cus_1', transactionType: 'business', intervalDescription: 'On the 20th of each month', idempotencyKey: 'owner-debit-setup:o1:x' });
+  const body = decodeURIComponent(String(calls[0]!.init.body));
+  assert.equal(calls[0]!.url, 'https://api.stripe.com/v1/setup_intents');
+  assert.match(body, /usage=off_session/);
+  assert.match(body, /payment_method_types\[\]=acss_debit/);
+  assert.match(body.replace(/\+/g, ' '), /interval_description\]=On the 20th of each month/);
+  assert.match(body, /payment_method_options\[acss_debit\]\[mandate_options\]\[transaction_type\]=business/);
+  assert.match(body, /metadata\[purpose\]=owner_debit_setup/);
+  assert.equal(r.clientSecret, 'seti_1_secret');
+});
+
+test('a verified debit setup reads the method, the mandate and the bank', async () => {
+  const { f } = mock([{ body: { id: 'seti_1', status: 'succeeded', customer: 'cus_1', mandate: 'mandate_1', metadata: { owner_id: 'o1' },
+    payment_method: { id: 'pm_1', acss_debit: { bank_name: 'TD', last4: '6789' } } } }]);
+  const r = await stripeAdapter('sk_test_abc', f).retrieveDebitSetup('seti_1');
+  assert.deepEqual([r.status, r.paymentMethodId, r.mandateId, r.bank?.last4, r.metadata.owner_id], ['succeeded', 'pm_1', 'mandate_1', '6789', 'o1']);
+});
+
+test('the invoice mandate uses the schedule in words from settings', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method', payment_method: null, latest_charge: null }) }]);
+  await stripeAdapter('sk_test_abc', f).createInvoiceIntent({ invoiceId: 'i1', invoiceNumber: 'INV-1', ownerId: 'o1', amountCents: 100, customerId: 'cus_1', method: 'acss_debit',
+    transactionType: 'personal', intervalDescription: 'On the 15th of each month, notice 10 days before', description: 'x', idempotencyKey: 'k' });
+  assert.match(decodeURIComponent(String(calls[0]!.init.body)).replace(/\+/g, ' '), /interval_description\]=On the 15th of each month, notice 10 days before/);
+});

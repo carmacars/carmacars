@@ -4,7 +4,7 @@ import { money } from '@/lib/format';
 import { Back } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { OwnerPayForm } from '@/features/owner/OwnerPayForm';
-import { invoiceStatus, invoiceTitle, PAY_METHOD_LABEL } from '@/features/owner/types';
+import { debitLine, invoiceStatus, invoiceTitle, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { ownerInvoice, requireOwner } from '@/server/owner/data';
 import { getFacts } from '@/lib/site';
 
@@ -23,6 +23,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
   const paid = i.payments.find((x) => x.status === 'succeeded');
   const pending = i.payments.find((x) => x.status === 'pending');
   const failed = i.payments.find((x) => x.status === 'failed');
+  const debit = i.status !== 'paid' ? debitLine(i.debit, day, (c) => money(c, { cents: true })) : null;
   return (
     <>
       <Back href="/owner/invoices">Invoices</Back>
@@ -31,6 +32,8 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
         <h1 className="d2">{invoiceTitle(i, monthOf)}</h1>
         <p className="muted">{i.vehicle_name}{i.plate ? `, plate ${i.plate}` : ''}. Issued {day(i.issued_at ?? i.billing_date)}.</p>
         <p><span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span></p>
+        {debit && <p className="pt-note" data-testid="invoice-debit">{debit}.{i.debit?.attempt?.status === 'scheduled' ? ' You can still pay it now by card; we then do not debit it.' : ''}</p>}
+        {i.debit?.paused && i.status !== 'paid' && <p className="pt-note" data-testid="invoice-debit-paused">The automatic debit of this invoice is paused. Pay it from this page, or call us.</p>}
       </header>
       <div className="pt-split">
         <div className="stack-lg">
@@ -50,7 +53,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
             <section className="pt-card" aria-labelledby="ow-pay">
               <h2 className="d4" id="ow-pay">Pay {money(i.balance_cents, { cents: true })}</h2>
               {failed && <p className="alert alert--error" role="alert"><span className="alert__title">The last payment did not go through</span><span>{failed.decline ?? 'Please try again or use another method.'}</span></p>}
-              <OwnerPayForm number={i.invoice_number} amountCents={i.balance_cents} ownerType={home.owner.owner_type} hasDebit={i.saved_methods.some((m) => m.kind === 'pre_authorized_debit')} />
+              <OwnerPayForm number={i.invoice_number} amountCents={i.balance_cents} ownerType={home.owner.owner_type} hasDebit={i.saved_methods.some((m) => m.kind === 'pre_authorized_debit')} terms={home.auto_debit.terms} />
             </section>
           ) : (
             <section className="pt-card"><h2 className="d4">Nothing to pay online</h2><p>This invoice is {s.label.toLowerCase()}. Questions: call or message us.</p></section>

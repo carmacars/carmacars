@@ -1,4 +1,4 @@
-import type { Intent, IntentCard, PaymentsAdapter, Refund } from './types';
+import type { DebitSetup, Intent, IntentCard, PaymentsAdapter, Refund } from './types';
 import { verifyStripeSignature } from './signature';
 
 // For local work and tests: a PaymentIntent ledger that behaves like Stripe's for the paths the app
@@ -14,7 +14,7 @@ export const FAKE_CARDS: Record<string, { brand: string; funding: IntentCard['fu
   '4000000000009995': { brand: 'visa', funding: 'credit', decline: 'Your card has insufficient funds.' }
 };
 
-interface Ledger { intents: Map<string, Intent>; keys: Map<string, string>; customers: Map<string, string>; auto: Set<string>; seq: number; refunds?: Map<string, Refund> }
+interface Ledger { intents: Map<string, Intent>; keys: Map<string, string>; customers: Map<string, string>; auto: Set<string>; seq: number; refunds?: Map<string, Refund>; setups?: Map<string, DebitSetup> }
 const g = globalThis as unknown as { __ccFakePayments?: Ledger };
 const ledger = (): Ledger => {
   const l = (g.__ccFakePayments ??= { intents: new Map(), keys: new Map(), customers: new Map(), auto: new Set(), seq: 0 });
@@ -36,7 +36,11 @@ export interface FakePayments extends PaymentsAdapter {
   confirmDebit(id: string, bank: { name: string; institution: string; transit: string; account: string }): Promise<Intent>;
   /** What the bank answers days later. Account numbers ending 0000 are returned (insufficient funds). */
   settleDebit(id: string, ok?: boolean): Promise<Intent>;
+  /** What Stripe's bank form does for a debit setup: the mandate is accepted and verified (succeeded). */
+  confirmDebitSetup(id: string, bank: { name: string; institution: string; transit: string; account: string }): Promise<DebitSetup>;
   intents(): Intent[];
+  /** Tests only: an intent made outside this process (the owner-debit Edge Function), so the webhook can read it. */
+  register(i: Pick<Intent, 'id' | 'amountCents' | 'metadata'> & Partial<Intent>): Intent;
 }
 
 export function fakePayments(): FakePayments {
@@ -61,6 +65,32 @@ export function fakePayments(): FakePayments {
       const id = l.customers.get(r.idempotencyKey) ?? `cus_fake_${(r.renterId ?? r.ownerId ?? 'x').slice(0, 8)}`;
       l.customers.set(r.idempotencyKey, id);
       return { id };
+    },
+    async createDebitSetup(r) {
+      const l = ledger();
+      l.setups ??= new Map();
+      const hit = l.keys.get(r.idempotencyKey);
+      if (hit && l.setups.has(hit)) return { ...l.setups.get(hit)! };
+      const id = `seti_fake_${++l.seq}_${Math.random().toString(36).slice(2, 8)}`;
+      const x: DebitSetup = { id, status: 'requires_payment_method', clientSecret: `${id}_secret_fake`, customerId: r.customerId, paymentMethodId: null,
+        mandateId: null, bank: null, metadata: { owner_id: r.ownerId, purpose: 'owner_debit_setup' }, lastError: null };
+      l.setups.set(id, x); l.keys.set(r.idempotencyKey, id);
+      return { ...x };
+    },
+    async retrieveDebitSetup(id) {
+      const x = ledger().setups?.get(id);
+      if (!x) throw new Error(`No such setup_intent: '${id}'`);
+      return { ...x };
+    },
+    async confirmDebitSetup(id, b) {
+      const x = ledger().setups?.get(id);
+      if (!x) throw new Error(`No such setup_intent: '${id}'`);
+      if (!/^\d{3}$/.test(b.institution) || !/^\d{5}$/.test(b.transit) || !/^\d{7,12}$/.test(b.account)) { x.lastError = 'Check the institution, transit and account numbers.'; return { ...x }; }
+      x.bank = { name: 'Test Bank', last4: b.account.slice(-4) };
+      x.paymentMethodId = `pm_fake_acss_${id.slice(10)}`;
+      x.mandateId = `mandate_fake_${id.slice(10)}`;
+      x.status = 'succeeded'; x.lastError = null;
+      return { ...x };
     },
     async createBookingIntent(r) {
       return once(r.idempotencyKey, () => blank(r.amountCents,
@@ -150,6 +180,13 @@ export function fakePayments(): FakePayments {
       const e = JSON.parse(rawBody) as { id: string; type: string; created: number; data?: { object?: Record<string, unknown> } };
       return { id: e.id, type: e.type, created: e.created, object: e.data?.object ?? {} };
     },
-    intents: () => [...ledger().intents.values()]
+    intents: () => [...ledger().intents.values()],
+    register(x) {
+      const l = ledger();
+      const i: Intent = { status: 'processing', amountCapturableCents: 0, currency: 'cad', clientSecret: null, customerId: null, paymentMethodId: null,
+        chargeId: `py_fake_${x.id.slice(-8)}`, card: null, lastError: null, methodType: 'acss_debit', bank: { name: 'Test Bank', last4: '6789' }, mandateId: null, ...x };
+      l.intents.set(i.id, i);
+      return { ...i };
+    }
   };
 }

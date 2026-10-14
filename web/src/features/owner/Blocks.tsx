@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
-import { invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerInvoiceRow, type OwnerVehicle } from './types';
+import { debitLine, invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerInvoiceRow, type OwnerVehicle } from './types';
 
 // Server-rendered pieces of the owner portal. Money is shown exactly as the database stored it.
 export const day = (iso: string | null | undefined) => (iso ? when(`${iso.slice(0, 10)}T12:00:00Z`, false) : '');
@@ -58,6 +58,7 @@ export function InvoiceRows({ items, empty = 'No invoices yet.' }: { items: Owne
             <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
             <span className="ow-meta"><span>{i.vehicle_name}</span><span>Issued {day(i.billing_date)}</span><span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span>
               {i.payable && <Link className="btn btn--primary btn--sm" href={invoicePath(i.invoice_number)}>Pay now</Link>}</span>
+            {debitLine(i.debit, day, (c) => money(c, { cents: true })) && <span className="ow-meta small" data-testid="invoice-debit">{debitLine(i.debit, day, (c) => money(c, { cents: true }))}</span>}
           </li>
         );
       })}

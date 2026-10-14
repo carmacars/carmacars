@@ -1,4 +1,4 @@
-import type { Intent, IntentCard, PaymentsAdapter, Refund, WebhookEvent } from './types';
+import type { DebitSetup, Intent, IntentCard, PaymentsAdapter, Refund, WebhookEvent } from './types';
 import { verifyStripeSignature } from './signature.ts';
 
 // Stripe's REST API through fetch (no SDK), so it runs unchanged in the Cloudflare Worker and can be
@@ -46,6 +46,17 @@ export function toIntent(pi: Obj): Intent {
     methodType: type === 'card' || type === 'acss_debit' ? type : null,
     bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
     mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)
+  };
+}
+
+export function toSetup(si: Obj): DebitSetup {
+  const pm = obj(si.payment_method);
+  const acss = obj(pm?.acss_debit);
+  return {
+    id: String(si.id), status: str(si.status) ?? 'requires_payment_method', clientSecret: str(si.client_secret),
+    customerId: str(si.customer) ?? str(obj(si.customer)?.id), paymentMethodId: str(si.payment_method) ?? str(pm?.id),
+    mandateId: str(si.mandate) ?? str(obj(si.mandate)?.id), bank: acss ? { name: str(acss.bank_name), last4: str(acss.last4) ?? '' } : null,
+    metadata: (obj(si.metadata) ?? {}) as Record<string, string>, lastError: str(obj(si.last_setup_error)?.message)
   };
 }
 
@@ -108,11 +119,25 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       if (r.method === 'acss_debit') {
         // the debit agreement: variable amounts on a schedule (the 15th, retried on the 18th), confirmed by the owner in Stripe's form
         p['payment_method_options[acss_debit][mandate_options][payment_schedule]'] = 'interval';
-        p['payment_method_options[acss_debit][mandate_options][interval_description]'] = 'On the 15th of each month for the vehicle fees on your invoice, and on the 18th when a debit is retried';
+        p['payment_method_options[acss_debit][mandate_options][interval_description]'] = r.intervalDescription ?? 'On the 15th of each month for the fees on your CarmaCars invoices';
         p['payment_method_options[acss_debit][mandate_options][transaction_type]'] = r.transactionType;
         p['payment_method_options[acss_debit][verification_method]'] = 'automatic';
       }
       return toIntent(await call('POST', '/payment_intents', p, r.idempotencyKey));
+    },
+    async createDebitSetup(r) {
+      return toSetup(await call('POST', '/setup_intents', {
+        customer: r.customerId, usage: 'off_session', payment_method_types: ['acss_debit'],
+        'payment_method_options[acss_debit][currency]': 'cad',
+        'payment_method_options[acss_debit][mandate_options][payment_schedule]': 'interval',
+        'payment_method_options[acss_debit][mandate_options][interval_description]': r.intervalDescription,
+        'payment_method_options[acss_debit][mandate_options][transaction_type]': r.transactionType,
+        'payment_method_options[acss_debit][verification_method]': 'automatic',
+        metadata: { owner_id: r.ownerId, purpose: 'owner_debit_setup' }, expand: ['payment_method']
+      }, r.idempotencyKey));
+    },
+    async retrieveDebitSetup(id) {
+      return toSetup(await call('GET', `/setup_intents/${encodeURIComponent(id)}`, { expand: ['payment_method'] }));
     },
     async createBookingIntent(r) {
       return toIntent(await call('POST', '/payment_intents', {

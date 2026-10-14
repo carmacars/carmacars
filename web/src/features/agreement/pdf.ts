@@ -6,7 +6,9 @@ import type { Block, SignatureRow } from './model';
 // blocks and date give the same bytes, so the SHA-256 recorded at opening identifies the document.
 // The standard fonts use WinAnsi, so characters outside it are mapped to plain equivalents.
 const W = 612, H = 792, M = 54;           // US Letter, 0.75 inch margins
-const INK = rgb(0, 0, 0), GREY = rgb(0.37, 0.37, 0.37), LINE = rgb(0.85, 0.85, 0.85), RED = rgb(0.816, 0.067, 0.106);
+const INK = rgb(0, 0, 0), GREY = rgb(0.37, 0.37, 0.37), LINE = rgb(0.85, 0.85, 0.85), RED = rgb(0.816, 0.067, 0.106), WHITE = rgb(1, 1, 1), ZEBRA = rgb(0.965, 0.965, 0.965);
+// a cell that is an amount (or a percentage, or a count with its unit) is right-aligned in a branded table
+const NUMERIC = /^\**(-?\$[\d,]+\.\d{2}|-?[\d,.]+%|-?[\d,]+(\.\d+)?( days| hours)?)\**$/;
 
 const MAP: Record<string, string> = { '−': '-', '–': '-', '—': '-', '☐': '[ ]', '☑': '[x]', '●': '-', '“': '"', '”': '"', '‘': "'", '’': "'", '…': '...', '\u202f': ' ', '\u2009': ' ' };
 export const pdfSafe = (s: string) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, (c) => MAP[c] ?? '');
@@ -24,6 +26,8 @@ export interface PdfExtras {
   footer: string;
   /** The CarmaCars wordmark at the top of every page (statements, receipts, invoices). */
   brand?: boolean;
+  /** The logo from Admin > Settings > Site (PNG or JPEG) in place of the wordmark, on branded documents. */
+  logo?: Uint8Array | null;
 }
 
 export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8Array> {
@@ -32,13 +36,20 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   doc.setCreationDate(x.createdAt); doc.setModificationDate(x.createdAt);
   const reg = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  // only branded documents embed the italic face: an agreement's bytes (and so its SHA-256) stay as they were
+  const boldItalic = x.brand ? await doc.embedFont(StandardFonts.HelveticaBoldOblique) : bold;
+  let logo: PDFImage | null = null;
+  if (x.brand && x.logo && x.logo.length > 8) {
+    try { logo = x.logo[0] === 0x89 ? await doc.embedPng(x.logo) : x.logo[0] === 0xff ? await doc.embedJpg(x.logo) : null; } catch { logo = null; }
+  }
   const images = new Map<number, PDFImage>();
   for (const [i, bytes] of x.images ?? []) images.set(i, await doc.embedPng(bytes));
 
+  const TOP = x.brand ? H - M - 14 : H - M;
   let page: PDFPage = doc.addPage([W, H]);
-  let y = H - M;
+  let y = TOP;
   const pages: PDFPage[] = [page];
-  const newPage = () => { page = doc.addPage([W, H]); pages.push(page); y = H - M; };
+  const newPage = () => { page = doc.addPage([W, H]); pages.push(page); y = TOP; };
   const need = (h: number) => { if (y - h < M + 18) newPage(); };
 
   // word wrap with bold runs; returns lines of runs
@@ -75,15 +86,29 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   const table = (head: string[], rows: string[][], kv: boolean) => {
     const size = 8.5, pad = 4, lead = size * 1.35;
     const full = W - 2 * M;
-    const widths = kv ? [full * 0.3, full * 0.7] : head.length === 3 ? [full * 0.3, full * 0.42, full * 0.28] : head.map(() => full / head.length);
+    const widths = kv ? (x.brand ? [full * 0.62, full * 0.38] : [full * 0.3, full * 0.7])
+      : head.length === 3 ? (x.brand ? [full * 0.56, full * 0.16, full * 0.28] : [full * 0.3, full * 0.42, full * 0.28])
+      : x.brand && head.length > 3 ? head.map((_, i) => (i === 0 ? full * 0.3 : (full * 0.7) / (head.length - 1)))
+      : head.map(() => full / head.length);
+    let n = 0;
     const row = (cells: string[], isHead: boolean) => {
       const wrapped = cells.map((c, i) => wrap(c, size, widths[i]! - 2 * pad, isHead || (kv && i === 0)));
       const h = Math.max(...wrapped.map((w) => w.length)) * lead + 2 * pad;
       need(h);
-      if (isHead) page.drawRectangle({ x: M, y: y - h, width: full, height: h, color: rgb(0.94, 0.94, 0.94) });
+      const total = !isHead && x.brand && cells.some((c) => /^\*\*.*\*\*$/.test(c));
+      if (isHead) page.drawRectangle({ x: M, y: y - h, width: full, height: h, color: x.brand ? INK : rgb(0.94, 0.94, 0.94) });
+      else if (x.brand && n++ % 2 === 1) page.drawRectangle({ x: M, y: y - h, width: full, height: h, color: ZEBRA });
+      if (total) page.drawLine({ start: { x: M, y }, end: { x: M + full, y }, thickness: 1.2, color: RED });
       let xx = M;
-      wrapped.forEach((ls, i) => { ls.forEach((l, k) => drawLine(l, xx + pad, y - pad - (k + 1) * lead + 2.5, size)); xx += widths[i]!; });
-      page.drawLine({ start: { x: M, y: y - h }, end: { x: M + full, y: y - h }, thickness: 0.5, color: LINE });
+      wrapped.forEach((ls, i) => {
+        const right = x.brand && i > 0 && (isHead ? rows.some((r) => NUMERIC.test((r[i] ?? '').trim())) && !kv : NUMERIC.test((cells[i] ?? '').trim()));
+        ls.forEach((l, k) => {
+          const tw = l.reduce((a, sg) => a + (sg.bold ? bold : reg).widthOfTextAtSize(sg.text, size), 0);
+          drawLine(l, right ? xx + widths[i]! - pad - tw : xx + pad, y - pad - (k + 1) * lead + 2.5, size, isHead && x.brand ? WHITE : INK);
+        });
+        xx += widths[i]!;
+      });
+      if (!isHead || !x.brand) page.drawLine({ start: { x: M, y: y - h }, end: { x: M + full, y: y - h }, thickness: 0.5, color: LINE });
       y -= h;
     };
     y -= 4;
@@ -120,7 +145,9 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
       case 'title':
         need(40); y -= 22; page.drawText(pdfSafe(b.text), { x: M, y, size: 18, font: bold, color: INK });
         page.drawRectangle({ x: M, y: y - 8, width: 36, height: 3, color: RED }); y -= 14; break;
-      case 'h2': y -= 10; need(30); para(b.text, 13, 0, 1.4, true); y -= 2; break;
+      case 'h2':
+        if (x.brand) { y -= 12; need(44); page.drawRectangle({ x: M, y: y - 15, width: 3, height: 13, color: RED }); y -= 1; para(b.text, 12, 9, 1.3, true); y -= 3; break; }
+        y -= 10; need(30); para(b.text, 13, 0, 1.4, true); y -= 2; break;
       case 'h3': y -= 4; need(24); para(b.text, 10.5, 0, 1.4, true); break;
       case 'p': para(b.text); y -= 4; break;
       case 'ul': case 'ol':
@@ -146,10 +173,18 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   pages.forEach((p, i) => {
     p.drawText(pdfSafe(`${x.footer}   Page ${i + 1} of ${total}`), { x: M, y: 30, size: 7.5, font: reg, color: GREY });
     if (x.brand) {
-      const a = 'Carma', b = 'Cars', size = 13;
-      const wa = bold.widthOfTextAtSize(a, size), wb = bold.widthOfTextAtSize(b, size);
-      p.drawText(a, { x: W - M - wa - wb, y: H - 34, size, font: bold, color: INK });
-      p.drawText(b, { x: W - M - wb, y: H - 34, size, font: bold, color: RED });
+      // the header: the logo (or the CarmaCars wordmark) on the left, the document's title on the right, a red rule
+      if (logo) {
+        const sc = Math.min(120 / logo.width, 24 / logo.height);
+        p.drawImage(logo, { x: M, y: H - 44, width: logo.width * sc, height: logo.height * sc });
+      } else {
+        const a = 'Carma', b = 'Cars', size = 16;
+        p.drawText(a, { x: M, y: H - 40, size, font: boldItalic, color: INK });
+        p.drawText(b, { x: M + boldItalic.widthOfTextAtSize(a, size), y: H - 40, size, font: boldItalic, color: RED });
+      }
+      const tt = pdfSafe(x.title), ts = 8.5;
+      p.drawText(tt, { x: W - M - reg.widthOfTextAtSize(tt, ts), y: H - 38, size: ts, font: reg, color: GREY });
+      p.drawRectangle({ x: M, y: H - 52, width: W - 2 * M, height: 1.5, color: RED });
     }
   });
   return doc.save({ useObjectStreams: false });

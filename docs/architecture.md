@@ -122,6 +122,7 @@ Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 | `carmacars-lapse-extensions` | Every 15 minutes | `app.job_lapse_extensions()` | An extension not paid by the current return time lapses | 0024 |
 | `carmacars-listing-sweep` | Every 10 minutes | `app.job_listing_sweep()` | A listing job a worker claimed and did not finish goes back to the queue (or fails after its attempts); counts what is due | 0024 |
 | `carmacars-listings-publish` | Every 5 minutes | `app.job_publish_listings()` | Publishes listings whose `publish_at` has come, in the scheduler's name; a refusal is kept in `publish_error` with a Fleet task | 0024 |
+| `carmacars-owner-debit-notices` | The debit day less `owner_debit_notice_days`, from `owner_debit_run_hour` | `app.job_owner_debit_notices()` | Issues the month's fee invoices, emails each owner the pre-debit notice and schedules one debit per invoice (no mandate: the owner is asked to set one up, an Admin gets the exception) | 0037 |
 
 These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.sql`, `09_operations.sql`, `10_tolls_statements.sql` and `12_end_to_end.sql`, by calling each wrapper with chosen instants.
 
@@ -138,8 +139,8 @@ These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.s
 | `reconcile` (fetch step) | Daily before 18:00 | Read processor payouts, then `app.record_processor_payout()`; the SQL matching runs in `carmacars-reconcile` | Stripe |
 | `month-open` | 1st | Send the fleet report; interest on overdue charges | Email, Stripe |
 | `payouts` | 10th | After admin approval: pay by bank transfer, list field staff kickbacks for payroll | Bank, email |
-| `owner-billing` | 15th | Submit the debits for the invoices; pay investor returns | Stripe |
-| `debit-results`, `debit-retry` | 15th to 25th; 18th | Failed debit and its retry | Stripe |
+| `owner-debit` (built, 0037) | Hourly (`carmacars-owner-debit`); acts on the debit day and on retry days | `app.owner_debit_claim()`, one off-session PaymentIntent per invoice and attempt, `app.owner_debit_submitted()`; asks Stripe again about debits processing too long; results also arrive through the Stripe webhook (`app.owner_debit_result()`) | Stripe |
+| `owner-billing` (investor part) | 15th | Pay investor returns | Bank |
 
 The 1st and the 15th each have the SQL step at 06:00 (`returns-accrue`, `owner-invoices`) and the step that needs Stripe or email after it (`month-open`, `owner-billing`). `statements-draft` runs 5 days before the payout date, which leaves the admins until the 9th to approve.
 

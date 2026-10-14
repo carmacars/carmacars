@@ -7,11 +7,13 @@ import type { Block } from '@/features/agreement/model';
 // summary. The facts come from the database (app.pdf_facts, migration 0032); this lays them out with the
 // same pdf-lib renderer as the agreements, with the CarmaCars wordmark on every page. Deterministic: the
 // same facts give the same bytes, so a stored copy is identified by its SHA-256.
-export type DocKind = 'owner_statement' | 'renter_statement' | 'receipt' | 'insurer_invoice' | 'investor_statement' | 'investor_year';
-export const DOC_KINDS: readonly DocKind[] = ['owner_statement', 'renter_statement', 'receipt', 'insurer_invoice', 'investor_statement', 'investor_year'];
+export type DocKind = 'owner_statement' | 'renter_statement' | 'receipt' | 'insurer_invoice' | 'investor_statement' | 'investor_year'
+  | 'company_statement' | 'company_owners' | 'company_vehicles';
+export const DOC_KINDS: readonly DocKind[] = ['owner_statement', 'renter_statement', 'receipt', 'insurer_invoice', 'investor_statement', 'investor_year',
+  'company_statement', 'company_owners', 'company_vehicles'];
 
 type F = Record<string, unknown> & { title: string; file_name: string; final: boolean; company: Company };
-interface Company { brand: string; legal_name: string; address: string; hst_number: string | null; phone: string; email: string; site: string }
+interface Company { brand: string; legal_name: string; address: string; hst_number: string | null; phone: string; email: string; site: string; logo_key?: string | null }
 type Row = Record<string, unknown>;
 
 const n = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'string' && v !== '' ? Number(v) : 0);
@@ -142,6 +144,83 @@ function investorYear(f: F): Block[] {
   return blocks;
 }
 
+// ---------------------------------------------------------------- CarmaCars' own monthly statements (migration 0037)
+type SectionRow = { label: string; cents?: number; count?: number; unit?: string; bps?: number; text?: string; account?: string; strong?: boolean };
+const sectionValue = (r: SectionRow) => r.text ?? (r.cents !== undefined ? dollars(r.cents) : r.bps !== undefined ? pct(r.bps) : r.count !== undefined ? `${n(r.count).toLocaleString('en-CA')}${r.unit ? ` ${r.unit}` : ''}` : '');
+const bold = (v: string, on?: boolean) => (on ? `**${v}**` : v);
+const nice = (k: string) => { const t = k.replace(/_cents$/, '').replace(/_bps$/, '').replace(/_/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+function companyHead(f: F, extra: Array<[string, string]> = []): Block[] {
+  const c = f.company;
+  return [
+    { t: 'title', text: f.title },
+    { t: 'table', head: ['Statement', ''], kv: true, rows: [
+      ['Month', month(f.statement_month)], ['Status', !f.draft ? 'Final' : `Draft, version ${s(f.version)}`],
+      ['Built', day(f.built_at)], ...(f.finalized_at ? [['Finalized', day(f.finalized_at)] as [string, string]] : []),
+      ['Checks', f.ties_ok ? 'Every check ties' : `Not every check ties${f.tie_problems ? `: ${s(f.tie_problems)}` : ''}`], ...extra,
+      ['Company', `${c.legal_name} (operating as ${c.brand})`], ...(c.hst_number ? [['HST number', c.hst_number] as [string, string]] : [])] }
+  ];
+}
+const MONEY_COLS = ['rental_revenue_cents', 'mileage_cents', 'kickbacks_cents', 'owner_revenue_cents', 'revenue_share_cents', 'owner_share_out_cents',
+  'discounts_cents', 'company_fees_cents', 'turo_gross_cents', 'turo_revenue_share_cents', 'turo_extras_cents', 'insurance_fees_cents', 'tracker_fees_cents',
+  'install_fees_cents', 'other_owner_fees_cents', 'late_fees_cents', 'owner_fees_hst_cents', 'owner_fees_collected_cents', 'owner_fees_outstanding_cents',
+  'insurer_billed_cents', 'refunds_cents', 'chargebacks_cents', 'pass_through_in_cents', 'pass_through_out_cents', 'claim_surplus_cents', 'hst_collected_cents',
+  'processing_fees_cents', 'expenses_cents', 'owner_payout_cents', 'owner_deductions_cents', 'kickbacks_earned_cents', 'cash_collected_cents', 'company_net_cents'];
+function companyStatement(f: F): Block[] {
+  const t = (f.total ?? {}) as Row;
+  const blocks = companyHead(f);
+  blocks.push({ t: 'h2', text: 'The month at a glance' });
+  blocks.push({ t: 'table', head: ['Measure', 'Amount'], kv: true, rows: [
+    ['Rental revenue', dollars(t.rental_revenue_cents)], ['Revenue Share kept', dollars(n(t.revenue_share_cents) + n(t.turo_revenue_share_cents))],
+    ['Renter fees kept', dollars(t.company_fees_cents)], ['Owner fees billed', dollars(n(t.insurance_fees_cents) + n(t.tracker_fees_cents) + n(t.install_fees_cents) + n(t.other_owner_fees_cents))],
+    ['Utilization', pct(t.utilization_bps)], ['Rentals ended', s(n(t.rentals_ended))],
+    ['**Contribution before costs not in the platform**', `**${dollars(t.company_net_cents)}**`]] });
+  for (const sec of (f.sections ?? []) as Array<{ key: string; title: string; note?: string | null; rows: SectionRow[] }>) {
+    blocks.push({ t: 'h2', text: sec.title });
+    const withAccount = sec.rows.some((r) => r.account);
+    blocks.push(sec.rows.length
+      ? (withAccount
+        ? { t: 'table', head: ['Line', 'Account', 'Amount'], rows: sec.rows.map((r) => [bold(r.label, r.strong), r.account ?? '', bold(sectionValue(r), r.strong)]) }
+        : { t: 'table', head: ['Line', 'Value'], kv: true, rows: sec.rows.map((r) => [bold(r.label, r.strong), bold(sectionValue(r), r.strong)]) })
+      : { t: 'p', text: 'Nothing this month.' });
+    if (sec.note) blocks.push({ t: 'p', text: sec.note });
+  }
+  blocks.push({ t: 'p', text: 'Earned basis: rentals count in the month they end and owner fees in the month they cover; cash lines count by the day the money moved. The statement by owner and by vehicle are separate PDFs.' });
+  return blocks;
+}
+function companyOwners(f: F): Block[] {
+  const os = (f.owners ?? []) as Row[];
+  const blocks = companyHead(f, [['Owners', s(os.length)]]);
+  blocks.push({ t: 'h2', text: 'All owners' });
+  blocks.push({ t: 'table', head: ['Owner', 'Owner Revenue', 'Revenue Share', 'Owner fees', 'Payout', 'Contribution'],
+    rows: os.length ? [...os.map((o) => [s(o.owner_name), dollars(o.owner_revenue_cents), dollars(o.revenue_share_cents),
+      dollars(n(o.insurance_fees_cents) + n(o.tracker_fees_cents) + n(o.install_fees_cents) + n(o.other_owner_fees_cents)), dollars(o.owner_payout_cents), dollars(o.company_net_cents)]),
+      ['**Total**', `**${dollars(os.reduce((a, o) => a + n(o.owner_revenue_cents), 0))}**`, `**${dollars(os.reduce((a, o) => a + n(o.revenue_share_cents), 0))}**`,
+       `**${dollars(os.reduce((a, o) => a + n(o.insurance_fees_cents) + n(o.tracker_fees_cents) + n(o.install_fees_cents) + n(o.other_owner_fees_cents), 0))}**`,
+       `**${dollars(os.reduce((a, o) => a + n(o.owner_payout_cents), 0))}**`, `**${dollars(os.reduce((a, o) => a + n(o.company_net_cents), 0))}**`]]
+      : [['No owner this month', '', '', '', '', '']] });
+  for (const o of os) {
+    blocks.push({ t: 'h2', text: s(o.owner_name) });
+    const rows = MONEY_COLS.filter((k) => n(o[k]) !== 0).map((k) => [nice(k), dollars(o[k])] as [string, string]);
+    blocks.push({ t: 'table', head: ['Line', 'Amount'], kv: true, rows: rows.length ? rows : [['Nothing this month', dollars(0)]] });
+  }
+  return blocks;
+}
+function companyVehicles(f: F): Block[] {
+  const vs = (f.vehicles ?? []) as Row[];
+  const blocks = companyHead(f, [['Vehicles', s(vs.length)]]);
+  for (const v of vs) {
+    blocks.push({ t: 'h2', text: `${s(v.vehicle_name)}${v.plate ? `, ${s(v.plate)}` : ''}` });
+    blocks.push({ t: 'table', head: ['Fleet', 'Value'], kv: true, rows: [
+      ['Owner', s(v.owner_name)], ['Mode', label(v.management_mode)], ['Days in the program', s(n(v.days_in_program))], ['Days available', s(n(v.days_available))],
+      ['Days rented', s(n(v.days_rented))], ['Utilization', pct(v.utilization_bps)], ['Rentals ended', s(n(v.rentals_ended))],
+      ['Average daily rate', dollars(v.avg_daily_rate_cents)], ['Revenue per available day', dollars(v.revpad_cents)]] });
+    const rows = MONEY_COLS.filter((k) => n(v[k]) !== 0).map((k) => [k === 'company_net_cents' ? '**Contribution from this vehicle**' : nice(k), k === 'company_net_cents' ? `**${dollars(v[k])}**` : dollars(v[k])] as [string, string]);
+    blocks.push({ t: 'table', head: ['Money', 'Amount'], kv: true, rows: rows.length ? rows : [['Nothing this month', dollars(0)]] });
+  }
+  if (!vs.length) blocks.push({ t: 'p', text: 'No vehicle this month.' });
+  return blocks;
+}
+
 export function documentBlocks(kind: DocKind, f: F): Block[] {
   switch (kind) {
     case 'owner_statement': return ownerStatement(f);
@@ -150,15 +229,18 @@ export function documentBlocks(kind: DocKind, f: F): Block[] {
     case 'insurer_invoice': return insurerInvoice(f);
     case 'investor_statement': return investorStatement(f);
     case 'investor_year': return investorYear(f);
+    case 'company_statement': return companyStatement(f);
+    case 'company_owners': return companyOwners(f);
+    case 'company_vehicles': return companyVehicles(f);
   }
 }
 
-export async function renderDocument(kind: DocKind, facts: Record<string, unknown>): Promise<Uint8Array> {
+export async function renderDocument(kind: DocKind, facts: Record<string, unknown>, logo: Uint8Array | null = null): Promise<Uint8Array> {
   const f = facts as F;
   const stamp = String(f.issued_at ?? f.paid_at ?? f.sent_at ?? f.created_at ?? f.statement_month ?? f.return_month ?? `${s(f.year)}-12-31`);
   const created = new Date(/^\d{4}-\d{2}-\d{2}$/.test(stamp) ? `${stamp}T12:00:00Z` : stamp);
   return agreementPdf(documentBlocks(kind, f), {
-    title: f.title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true,
-    footer: `${f.company.brand}. ${f.title}.${f.final ? '' : ' Preview: this record can still change.'}`
+    title: f.title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo,
+    footer: `${f.company.brand}. ${f.title}.${f.final && !f.draft ? '' : f.draft ? ' Draft: this statement can still change until it is finalized.' : ' Preview: this record can still change.'}`
   });
 }

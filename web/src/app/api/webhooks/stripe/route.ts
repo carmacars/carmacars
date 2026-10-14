@@ -2,7 +2,7 @@ import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { payments } from '@/integrations/payments';
 import { settleIntent } from '@/server/portal/payment';
-import { settleInvoiceIntent } from '@/server/owner/payment';
+import { settleDebitIntent, settleInvoiceIntent, verifyDebitSetup } from '@/server/owner/payment';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
 // Supabase Edge Function: the settlement code, the payments module and the signed-copy renderer live
@@ -37,6 +37,16 @@ export async function POST(req: Request): Promise<Response> {
       } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
         result = { noted: event.type };
       }
+    } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'owner_invoice' && obj.metadata?.debit_attempt_id) {
+      // the automatic monthly debit (migration 0037): the attempt settles, fails (late fee, retry or arrears) or is canceled
+      if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
+        result = await settleDebitIntent(obj.id);
+      }
+    } else if (obj.object === 'mandate' && obj.id && event.type === 'mandate.updated') {
+      // a pre-authorized debit agreement cancelled at the bank or by Stripe
+      if ((obj as { status?: string }).status === 'inactive') result = await rpc('server_owner_mandate_inactive', { p_mandate: obj.id }, SR);
+    } else if (obj.object === 'setup_intent' && obj.id && obj.metadata?.purpose === 'owner_debit_setup') {
+      if (event.type === 'setup_intent.succeeded') result = await verifyDebitSetup(obj.id);
     } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'owner_invoice') {
       // an owner invoice: a card charge, or a pre-authorized debit submitted (processing) and settled days later
       if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {

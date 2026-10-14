@@ -2,7 +2,7 @@ import 'server-only';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { payments, type Intent } from '@/integrations/payments';
-import type { OwnerInvoice } from '@/features/owner/types';
+import type { DebitTerms, OwnerInvoice } from '@/features/owner/types';
 
 // Paying an owner invoice (owner billing specification sections 1 and 4): the upfront invoice
 // (Install Fee and first and last month's Insurance Fee) and the monthly fee invoices. Card or
@@ -33,15 +33,65 @@ export async function invoiceIntent(f: InvoiceFacts, method: 'card' | 'acss_debi
   const customerId = f.customer_id ?? f.saved.find((s) => s.customer_id)?.customer_id
     ?? (await p.createCustomer({ email: f.owner_email ?? '', name: f.owner_name, ownerId: f.owner_id, idempotencyKey: `owner-customer:${f.owner_id}` })).id;
   const attempt = f.payments.filter((x) => x.status === 'failed').length;
+  const terms = (await debitTerms());
   return p.createInvoiceIntent({
     invoiceId: f.id, invoiceNumber: f.invoice_number, ownerId: f.owner_id, amountCents: f.balance_cents, customerId, method,
-    transactionType: ownerType === 'corporation' ? 'business' : 'personal',
+    transactionType: ownerType === 'corporation' ? 'business' : 'personal', intervalDescription: terms.interval_description,
     description: `CarmaCars invoice ${f.invoice_number}, ${f.vehicle_name}`,
     idempotencyKey: `owner-invoice:${f.id}:${method}:${f.balance_cents}:${attempt}`
   });
 }
 
 export const publishableKey = () => env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null;
+
+/** The debit agreement's schedule from Program settings (app.owner_debit_terms). */
+export async function debitTerms(): Promise<DebitTerms> {
+  return (await rpc('server_owner_debit_terms', {}, SR)) as unknown as DebitTerms;
+}
+
+// ---------------------------------------------------------------- the automatic monthly debit (migration 0037)
+/** Records what Stripe says about a PaymentIntent of the automatic debit (the webhook; the Edge Function polls too). */
+export async function settleDebitIntent(intentId: string): Promise<unknown> {
+  const i = await (await payments()).retrieveIntent(intentId);
+  return rpc('server_owner_debit_result', { p_intent: intentId, p: {
+    intent_id: i.id, status: i.status, charge_id: i.chargeId, mandate_id: i.mandateId,
+    bank: i.bank ? { name: i.bank.name, last4: i.bank.last4 } : null, error_code: null, error_message: i.lastError
+  } as never }, SR);
+}
+
+export interface StartedDebitSetup { provider: 'stripe' | 'fake'; setupId: string; clientSecret: string; publishableKey: string | null; ownerName: string; ownerEmail: string }
+interface SetupFacts { owner_id: string; owner_type: 'individual' | 'corporation'; name: string; email: string | null; customer_id: string | null; terms: DebitTerms }
+
+/** Banking > Set up pre-authorized debit: a SetupIntent for the owner's customer (made once). */
+export async function startDebitSetup(userId: string): Promise<StartedDebitSetup> {
+  const f = (await rpc('server_owner_debit_setup_facts', { p_by: userId }, SR)) as unknown as SetupFacts | null;
+  if (!f) throw new Error('This account is not an owner account.');
+  const p = await payments();
+  const customerId = f.customer_id ?? (await p.createCustomer({ email: f.email ?? '', name: f.name, ownerId: f.owner_id, idempotencyKey: `owner-customer:${f.owner_id}` })).id;
+  const s = await p.createDebitSetup({ ownerId: f.owner_id, customerId, transactionType: f.owner_type === 'corporation' ? 'business' : 'personal',
+    intervalDescription: f.terms.interval_description, idempotencyKey: `owner-debit-setup:${f.owner_id}:${new Date().toISOString().slice(0, 13)}` });
+  return { provider: p.name, setupId: s.id, clientSecret: s.clientSecret ?? '', publishableKey: publishableKey(), ownerName: f.name, ownerEmail: f.email ?? '' };
+}
+
+/** After Stripe's form: the SetupIntent is read again from Stripe and the method saved (pending until verified). */
+export async function finishDebitSetup(userId: string, setupId: string): Promise<{ ok: boolean; active: boolean; message?: string }> {
+  const f = (await rpc('server_owner_debit_setup_facts', { p_by: userId }, SR)) as unknown as SetupFacts | null;
+  const s = await (await payments()).retrieveDebitSetup(setupId);
+  if (!f || s.metadata.owner_id !== f.owner_id) return { ok: false, active: false, message: 'This bank setup is not yours.' };
+  if (!['succeeded', 'processing', 'requires_action'].includes(s.status) || !s.paymentMethodId || !s.mandateId) {
+    return { ok: false, active: false, message: s.lastError ?? 'The bank setup did not finish. Nothing was saved.' };
+  }
+  const r = (await rpc('server_owner_record_debit_setup', { p_by: userId, p: { status: s.status, customer_id: s.customerId, method_id: s.paymentMethodId,
+    mandate_id: s.mandateId, bank: s.bank } as never }, SR)) as unknown as { ok: boolean; active: boolean };
+  return { ok: true, active: r.active };
+}
+
+/** setup_intent.succeeded (micro-deposits verified later): the pending method becomes the debit method. */
+export async function verifyDebitSetup(setupId: string): Promise<unknown> {
+  const s = await (await payments()).retrieveDebitSetup(setupId);
+  if (s.status !== 'succeeded' || !s.paymentMethodId) return { ignored: s.status };
+  return rpc('server_owner_debit_setup_verified', { p_method: s.paymentMethodId, p_mandate: s.mandateId ?? '' }, SR);
+}
 
 export type InvoiceSettle = { ok: true; status: 'succeeded' | 'pending' | 'failed'; invoiceStatus: string; message?: string } | { ok: false; reason: string; message: string };
 

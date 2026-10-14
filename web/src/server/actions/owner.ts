@@ -11,7 +11,7 @@ import { readToken, sha256Hex, signToken } from '@/server/links';
 import { encryptField, PAYOUT_KEY_VERSION } from '@/server/crypto';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
 import { attachOwnerSignedCopies, openOwnerPacket, type SignedResult } from '@/server/owner/agreements';
-import { invoiceFacts, invoiceIdFor, invoiceIntent, publishableKey, settleInvoiceIntent, type InvoiceSettle, type StartedInvoicePayment } from '@/server/owner/payment';
+import { finishDebitSetup, invoiceFacts, invoiceIdFor, invoiceIntent, publishableKey, settleInvoiceIntent, startDebitSetup, type InvoiceSettle, type StartedDebitSetup, type StartedInvoicePayment } from '@/server/owner/payment';
 
 // Every owner action: a server action run for the signed-in user. The database checks again that
 // the user is the owner of what is touched (p_by); nothing is taken from the browser on trust.
@@ -88,6 +88,36 @@ export async function finalizeInvoicePayment(number: string, intentId: string): 
     const r = await settleInvoiceIntent(intentId, user.id);
     revalidatePath(`/owner/invoices/${number}`); revalidatePath('/owner/invoices'); revalidatePath('/owner');
     return { ok: true, data: r };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+// ---------------------------------------------------------------- the pre-authorized debit for the monthly fees (0037)
+/** Banking > Set up pre-authorized debit: a SetupIntent the browser confirms in Stripe's bank form. */
+export async function beginDebitSetup(): Promise<R<StartedDebitSetup>> {
+  try {
+    const { user } = await owner();
+    return { ok: true, data: await startDebitSetup(user.id) };
+  } catch (e) { return fail(dbMessage(e, 'The bank form did not load. Reload the page.')); }
+}
+
+/** Fake adapter only: what Stripe's bank form does for a debit setup. */
+export async function fakeConfirmDebitSetup(setupId: string, bank: { name: string; institution: string; transit: string; account: string }): Promise<R<{ status: string; error: string | null }>> {
+  const fake = await fakeOnly();
+  if (!fake) return fail('Not available.');
+  try {
+    await owner();
+    const r = await fake.confirmDebitSetup(setupId, { name: bank.name, institution: bank.institution.trim(), transit: bank.transit.trim(), account: bank.account.replace(/\s/g, '') });
+    return { ok: true, data: { status: r.status, error: r.lastError } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** After the bank form: the setup is read again from Stripe and saved as the owner's debit method. */
+export async function completeDebitSetup(setupId: string): Promise<R<{ active: boolean }>> {
+  try {
+    const { user } = await owner();
+    const r = await finishDebitSetup(user.id, setupId);
+    revalidatePath('/owner/banking'); revalidatePath('/owner');
+    return r.ok ? { ok: true, data: { active: r.active } } : fail(r.message ?? 'The bank setup did not finish.');
   } catch (e) { return fail(dbMessage(e)); }
 }
 

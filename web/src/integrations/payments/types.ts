@@ -50,8 +50,31 @@ export interface InvoiceIntentRequest {
   method: 'card' | 'acss_debit';
   /** acss_debit: personal (an individual) or business (a corporation). */
   transactionType: 'personal' | 'business';
+  /** The debit schedule in words, from Program settings (app.owner_debit_terms). */
+  intervalDescription?: string;
   description: string;
   idempotencyKey: string;
+}
+
+/** A pre-authorized debit set up without a payment (Banking > Set up pre-authorized debit): a SetupIntent. */
+export interface DebitSetupRequest {
+  ownerId: string;
+  customerId: string;
+  transactionType: 'personal' | 'business';
+  intervalDescription: string;
+  idempotencyKey: string;
+}
+export interface DebitSetup {
+  id: string;
+  /** succeeded (verified), processing, requires_action (micro-deposits to confirm), requires_payment_method, canceled */
+  status: string;
+  clientSecret: string | null;
+  customerId: string | null;
+  paymentMethodId: string | null;
+  mandateId: string | null;
+  bank: { name: string | null; last4: string } | null;
+  metadata: Record<string, string>;
+  lastError: string | null;
 }
 
 export interface BookingIntentRequest {
@@ -102,6 +125,9 @@ export interface PaymentsAdapter {
   createCustomer(r: { email: string; name: string; renterId?: string; ownerId?: string; idempotencyKey: string }): Promise<{ id: string }>;
   /** An owner invoice: card or Canadian pre-authorized debit (with its mandate), saved for later debits. */
   createInvoiceIntent(r: InvoiceIntentRequest): Promise<Intent>;
+  /** A SetupIntent for a pre-authorized debit mandate, with no payment. */
+  createDebitSetup(r: DebitSetupRequest): Promise<DebitSetup>;
+  retrieveDebitSetup(id: string): Promise<DebitSetup>;
   /** A card-only PaymentIntent with manual capture that saves the card for off-session use. */
   createBookingIntent(r: BookingIntentRequest): Promise<Intent>;
   retrieveIntent(id: string): Promise<Intent>;

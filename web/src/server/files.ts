@@ -27,8 +27,13 @@ export async function generatedFile(kind: DocKind, key: string, userId: string |
   }
   const facts = (await rpc('server_pdf_facts', { p_kind: kind, p_key: key, p_user: userId ?? undefined }, SR)) as unknown as (Record<string, unknown> & { final: boolean; title: string; file_name: string }) | null;
   if (!facts) return null;
-  const bytes = await renderDocument(kind, facts);
-  if (facts.final) {
+  // the logo from Admin > Settings > Site, when one is uploaded (PNG or JPEG; otherwise the wordmark)
+  const logoKey = (facts as { company?: { logo_key?: string | null } }).company?.logo_key ?? null;
+  const logo = logoKey && /\.(png|jpe?g)$/i.test(logoKey) ? await s.get('vehicle-public', logoKey).catch(() => null) : null;
+  const bytes = await renderDocument(kind, facts, logo);
+  // a final record is stored once; a company statement is stored under its version (the key) even as a draft, and
+  // its current version (the key without one) is rendered each time and not stored
+  if ((facts as { store?: boolean }).store ?? facts.final) {
     const sha = await sha256Hex(bytes);
     const path = `generated/${kind}/${key.replace(':', '-')}/${facts.file_name}`;
     await s.put('documents', path, bytes, 'application/pdf');

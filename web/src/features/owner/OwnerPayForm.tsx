@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { fakeConfirmInvoiceCard, fakeConfirmInvoiceDebit, finalizeInvoicePayment, startInvoicePayment } from '@/server/actions/owner';
 import type { StartedInvoicePayment } from '@/server/owner/payment';
+import type { DebitTerms } from './types';
 
 // Paying an owner invoice: by card, or by Canadian pre-authorized debit. Card numbers and bank
 // details go into Stripe's own forms (the Payment Element, and Stripe's bank and mandate form for
@@ -27,15 +28,17 @@ function loadStripe(key: string): Promise<StripeJs> {
   });
 }
 
-export const mandateText = (kind: 'personal' | 'business') => [
-  'You authorize CarmaCars to debit the bank account you give for this invoice now, and for the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule) on the 15th of each month. If a debit is returned, we try again on the 18th with the $50 Late Fee your Enrollment Agreement sets.',
-  'The amount can change from month to month with your vehicles and their fees. Each debit is shown on an invoice in your owner portal and emailed to you.',
+// The agreement's schedule comes from Program settings (app.owner_debit_terms): the debit day, the notice days, the
+// retry day and the Late Fee.
+export const mandateText = (kind: 'personal' | 'business', t: DebitTerms, withInvoice = true) => [
+  `You authorize CarmaCars to debit the bank account you give${withInvoice ? ' for this invoice now, and' : ''} for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month's Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the ${t.debit_day_text} of each month. If a debit is returned, we try again from the ${t.retry_day_text} with the ${t.late_fee} Late Fee your Enrollment Agreement sets.`,
+  `The amount can change from month to month with your vehicles and their fees. We email you a notice listing every invoice and the total ${t.notice_days} days before each debit, and each invoice is in your owner portal.`,
   `This authorization is for ${kind} purposes and stays in effect until you cancel it. You may cancel it at any time by writing to billing@carmacars.ca; cancelling it does not end your agreement or the fees you owe. You have certain recourse rights if a debit does not comply with this agreement: for example, the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca.`
 ];
 
 type Method = 'card' | 'acss_debit';
 
-export function OwnerPayForm({ number, amountCents, ownerType, hasDebit }: { number: string; amountCents: number; ownerType: 'individual' | 'corporation'; hasDebit: boolean }) {
+export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }: { number: string; amountCents: number; ownerType: 'individual' | 'corporation'; hasDebit: boolean; terms: DebitTerms }) {
   const router = useRouter();
   const [method, setMethod] = useState<Method | null>(null);
   const [p, setP] = useState<StartedInvoicePayment | null>(null);
@@ -134,7 +137,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit }: { num
         <legend className="label">How would you like to pay?</legend>
         <div className="ow-methods">
           <label className="option"><input type="radio" name="method" value="card" checked={method === 'card'} onChange={() => setMethod('card')} /><span className="option__title">Card</span><span className="option__body">Visa, Mastercard or American Express. Paid at once.</span></label>
-          <label className="option"><input type="radio" name="method" value="acss_debit" checked={method === 'acss_debit'} onChange={() => setMethod('acss_debit')} /><span className="option__title">Pre-authorized debit</span><span className="option__body">From a Canadian bank account. Clears in 3 to 5 business days{hasDebit ? '' : ', and sets up your monthly fees on the 15th'}.</span></label>
+          <label className="option"><input type="radio" name="method" value="acss_debit" checked={method === 'acss_debit'} onChange={() => setMethod('acss_debit')} /><span className="option__title">Pre-authorized debit</span><span className="option__body">From a Canadian bank account. Clears in 3 to 5 business days{hasDebit ? '' : `, and sets up your fees by debit on the ${terms.debit_day_text}`}.</span></label>
         </div>
       </fieldset>
       {method && !p && !msg && <div className="skeleton sk-line" aria-hidden="true" />}
@@ -164,7 +167,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit }: { num
           ) : <p className="small">When you continue, Stripe, our payment processor, asks for your bank and shows this agreement again to confirm. Your bank details go to Stripe, not to us.</p>}
           <section className="ow-mandate" aria-labelledby="ow-mandate-h" tabIndex={0}>
             <h3 id="ow-mandate-h">Pre-authorized debit agreement ({ownerType === 'corporation' ? 'business' : 'personal'})</h3>
-            {mandateText(ownerType === 'corporation' ? 'business' : 'personal').map((t, i) => <p key={i}>{t}</p>)}
+            {mandateText(ownerType === 'corporation' ? 'business' : 'personal', terms).map((t, i) => <p key={i}>{t}</p>)}
           </section>
           <div className={`field${errors.agree ? ' has-error' : ''}`}>
             <label className="check"><input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); setErrors((x) => ({ ...x, agree: '' })); }} aria-invalid={!!errors.agree || undefined} aria-describedby="ow-agree-err" /><span>I accept the pre-authorized debit agreement above.</span></label>

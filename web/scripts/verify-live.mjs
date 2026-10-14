@@ -212,6 +212,19 @@ if (process.argv.includes('--auth')) {
           r.refused[p] = fin !== p && /no-access|not-an-owner/.test(fin) ? `${fin}${named ? '' : ' (account not named)'}` : `SHOWN ${fin} ${resp?.status()}`;
         }
         if (a.role === 'admin') await adminChecks(page, r, load);
+        // the automatic monthly owner debit (0037): the owner's Banking block, Admin > Owner debits and the company statements
+        if (a.role === 'owner') {
+          await load(`${BASE}/owner/banking`);
+          r.autoDebit = (await page.getByTestId('owner-auto-debit').textContent({ timeout: 10_000 }).catch(() => null))?.slice(0, 160) ?? null;
+          await page.screenshot({ path: path.join(out, 'owner-banking.png'), fullPage: true });
+        }
+        if (a.role === 'admin') {
+          await load(`${BASE}/admin/debits`);
+          r.debitsPage = (await page.getByTestId('debit-policy').textContent({ timeout: 10_000 }).catch(() => null))?.slice(0, 200) ?? null;
+          await page.screenshot({ path: path.join(out, 'admin-debits.png'), fullPage: true });
+          await load(`${BASE}/admin/reports`);
+          r.reportsPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+        }
         if (a.role === 'renter') {
           // sign out: back to the home page, and the portal asks for a sign-in again
           await load(`${BASE}/account`);
@@ -223,6 +236,7 @@ if (process.argv.includes('--auth')) {
         r.ok = new URL(r.afterSignIn).pathname === a.home && !!r.h1 && !r.broken && r.errors.length === 0
           && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN') && !String(v).includes('not named'))
           && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out')
+          && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements'))
           && (a.role !== 'admin' || (r.viewAs?.every((v) => v.ok) && r.writeRefused?.ok && r.audit?.ok && r.exit?.ok && r.invite?.ok));
         if (r.ok) break;
       } catch (e) {

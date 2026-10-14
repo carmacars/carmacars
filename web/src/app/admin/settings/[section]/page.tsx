@@ -26,6 +26,7 @@ const SITE_GROUPS: Array<[string, string[]]> = [
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'timezone', 'hst_bps'].includes(k)],
   ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_)/.test(k)],
+  ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Owners and fleet', (k) => /^(notice_period|free_retransfer|owner_|retransfer|total_loss|min_fleet|fleet_warning|safety_|fee_change|trackers_available|tracker_|plate_renewal|turo_|provisional_)/.test(k)],

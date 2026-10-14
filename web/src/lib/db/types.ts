@@ -1797,6 +1797,9 @@ export type Database = {
           finalized_by: string | null;
           finalized_at: string | null;
           document_id: string | null;
+          sections: Json;
+          emailed_at: string | null;
+          emailed_version: number | null;
         };
         Insert: {
           id?: string;
@@ -1812,6 +1815,9 @@ export type Database = {
           finalized_by?: string | null;
           finalized_at?: string | null;
           document_id?: string | null;
+          sections?: Json;
+          emailed_at?: string | null;
+          emailed_version?: number | null;
         };
         Update: {
           id?: string;
@@ -1827,6 +1833,9 @@ export type Database = {
           finalized_by?: string | null;
           finalized_at?: string | null;
           document_id?: string | null;
+          sections?: Json;
+          emailed_at?: string | null;
+          emailed_version?: number | null;
         };
         Relationships: [];
       };
@@ -5376,6 +5385,186 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_debit_attempts: {
+        Row: {
+          id: string;
+          owner_invoice_id: string;
+          owner_id: string;
+          notice_id: string | null;
+          run_id: string | null;
+          attempt_no: number;
+          debit_on: string;
+          amount_cents: number;
+          status: string;
+          skip_reason: string | null;
+          idempotency_key: string;
+          processor_intent_id: string | null;
+          processor_customer_id: string | null;
+          processor_method_id: string | null;
+          processor_mandate_id: string | null;
+          bank_last4: string | null;
+          payment_id: string | null;
+          failure_code: string | null;
+          failure_message: string | null;
+          submitted_at: string | null;
+          settled_at: string | null;
+          last_checked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_invoice_id: string;
+          owner_id: string;
+          notice_id?: string | null;
+          run_id?: string | null;
+          attempt_no: number;
+          debit_on: string;
+          amount_cents: number;
+          status?: string;
+          skip_reason?: string | null;
+          idempotency_key: string;
+          processor_intent_id?: string | null;
+          processor_customer_id?: string | null;
+          processor_method_id?: string | null;
+          processor_mandate_id?: string | null;
+          bank_last4?: string | null;
+          payment_id?: string | null;
+          failure_code?: string | null;
+          failure_message?: string | null;
+          submitted_at?: string | null;
+          settled_at?: string | null;
+          last_checked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_invoice_id?: string;
+          owner_id?: string;
+          notice_id?: string | null;
+          run_id?: string | null;
+          attempt_no?: number;
+          debit_on?: string;
+          amount_cents?: number;
+          status?: string;
+          skip_reason?: string | null;
+          idempotency_key?: string;
+          processor_intent_id?: string | null;
+          processor_customer_id?: string | null;
+          processor_method_id?: string | null;
+          processor_mandate_id?: string | null;
+          bank_last4?: string | null;
+          payment_id?: string | null;
+          failure_code?: string | null;
+          failure_message?: string | null;
+          submitted_at?: string | null;
+          settled_at?: string | null;
+          last_checked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_debit_notices: {
+        Row: {
+          id: string;
+          owner_id: string;
+          debit_on: string;
+          run_id: string | null;
+          invoice_ids: string[];
+          total_cents: number;
+          bank_last4: string | null;
+          mandate_missing: boolean;
+          sent_at: string;
+          sent_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          debit_on: string;
+          run_id?: string | null;
+          invoice_ids: string[];
+          total_cents: number;
+          bank_last4?: string | null;
+          mandate_missing?: boolean;
+          sent_at?: string;
+          sent_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          debit_on?: string;
+          run_id?: string | null;
+          invoice_ids?: string[];
+          total_cents?: number;
+          bank_last4?: string | null;
+          mandate_missing?: boolean;
+          sent_at?: string;
+          sent_by?: string | null;
+        };
+        Relationships: [];
+      };
+      owner_debit_runs: {
+        Row: {
+          id: string;
+          run_on: string;
+          kind: string;
+          status: string;
+          started_at: string;
+          finished_at: string | null;
+          notices_sent: number;
+          no_mandate: number;
+          scheduled: number;
+          submitted: number;
+          succeeded: number;
+          failed: number;
+          skipped: number;
+          submitted_cents: number;
+          summary: Json;
+          error: string | null;
+          summary_sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          run_on: string;
+          kind: string;
+          status?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          notices_sent?: number;
+          no_mandate?: number;
+          scheduled?: number;
+          submitted?: number;
+          succeeded?: number;
+          failed?: number;
+          skipped?: number;
+          submitted_cents?: number;
+          summary?: Json;
+          error?: string | null;
+          summary_sent_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          run_on?: string;
+          kind?: string;
+          status?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          notices_sent?: number;
+          no_mandate?: number;
+          scheduled?: number;
+          submitted?: number;
+          succeeded?: number;
+          failed?: number;
+          skipped?: number;
+          submitted_cents?: number;
+          summary?: Json;
+          error?: string | null;
+          summary_sent_at?: string | null;
+        };
+        Relationships: [];
+      };
       owner_deductions: {
         Row: {
           id: string;
@@ -5527,6 +5716,11 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          auto_debit_paused: boolean;
+          auto_debit_paused_reason: string | null;
+          auto_debit_paused_at: string | null;
+          auto_debit_paused_by: string | null;
+          debit_on: string | null;
         };
         Insert: {
           id?: string;
@@ -5558,6 +5752,11 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          auto_debit_paused?: boolean;
+          auto_debit_paused_reason?: string | null;
+          auto_debit_paused_at?: string | null;
+          auto_debit_paused_by?: string | null;
+          debit_on?: string | null;
         };
         Update: {
           id?: string;
@@ -5589,6 +5788,11 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          auto_debit_paused?: boolean;
+          auto_debit_paused_reason?: string | null;
+          auto_debit_paused_at?: string | null;
+          auto_debit_paused_by?: string | null;
+          debit_on?: string | null;
         };
         Relationships: [];
       };
@@ -6016,6 +6220,11 @@ export type Database = {
           mailing_city: string | null;
           mailing_province: string | null;
           mailing_postal_code: string | null;
+          auto_debit_paused: boolean;
+          auto_debit_paused_reason: string | null;
+          auto_debit_paused_at: string | null;
+          auto_debit_paused_by: string | null;
+          is_test: boolean;
         };
         Insert: {
           id?: string;
@@ -6053,6 +6262,11 @@ export type Database = {
           mailing_city?: string | null;
           mailing_province?: string | null;
           mailing_postal_code?: string | null;
+          auto_debit_paused?: boolean;
+          auto_debit_paused_reason?: string | null;
+          auto_debit_paused_at?: string | null;
+          auto_debit_paused_by?: string | null;
+          is_test?: boolean;
         };
         Update: {
           id?: string;
@@ -6090,6 +6304,11 @@ export type Database = {
           mailing_city?: string | null;
           mailing_province?: string | null;
           mailing_postal_code?: string | null;
+          auto_debit_paused?: boolean;
+          auto_debit_paused_reason?: string | null;
+          auto_debit_paused_at?: string | null;
+          auto_debit_paused_by?: string | null;
+          is_test?: boolean;
         };
         Relationships: [];
       };
@@ -6793,6 +7012,15 @@ export type Database = {
           staff_blocked_terms: string[];
           listing_ai_daily_neurons: number;
           images_free_monthly_transformations: number;
+          owner_debit_enabled: boolean;
+          owner_debit_notice_days: number;
+          owner_debit_max_attempts: number;
+          owner_debit_retry_gap_days: number;
+          owner_debit_run_hour: number;
+          owner_debit_poll_hours: number;
+          owner_debit_kinds: string[];
+          owner_statement_email_day: number;
+          company_statement_email_day: number;
         };
         Insert: {
           id?: string;
@@ -6968,6 +7196,15 @@ export type Database = {
           staff_blocked_terms?: string[];
           listing_ai_daily_neurons?: number;
           images_free_monthly_transformations?: number;
+          owner_debit_enabled?: boolean;
+          owner_debit_notice_days?: number;
+          owner_debit_max_attempts?: number;
+          owner_debit_retry_gap_days?: number;
+          owner_debit_run_hour?: number;
+          owner_debit_poll_hours?: number;
+          owner_debit_kinds?: string[];
+          owner_statement_email_day?: number;
+          company_statement_email_day?: number;
         };
         Update: {
           id?: string;
@@ -7143,6 +7380,15 @@ export type Database = {
           staff_blocked_terms?: string[];
           listing_ai_daily_neurons?: number;
           images_free_monthly_transformations?: number;
+          owner_debit_enabled?: boolean;
+          owner_debit_notice_days?: number;
+          owner_debit_max_attempts?: number;
+          owner_debit_retry_gap_days?: number;
+          owner_debit_run_hour?: number;
+          owner_debit_poll_hours?: number;
+          owner_debit_kinds?: string[];
+          owner_statement_email_day?: number;
+          company_statement_email_day?: number;
         };
         Relationships: [];
       };
@@ -11455,9 +11701,15 @@ export type Database = {
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
+      server_owner_debit_result: { Args: { p_intent: string; p: Json }; Returns: Json };
+      server_owner_debit_setup_facts: { Args: { p_by: string }; Returns: Json };
+      server_owner_debit_setup_verified: { Args: { p_method: string; p_mandate: string }; Returns: Json };
+      server_owner_debit_terms: { Args: never; Returns: Json };
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };
       server_owner_invoice_payment_facts: { Args: { p_invoice: string; p_by: string }; Returns: Json };
+      server_owner_mandate_inactive: { Args: { p_mandate: string }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
+      server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
@@ -11493,7 +11745,7 @@ export type Database = {
       booking_status: "requested" | "offered" | "tentative" | "pending_payment" | "confirmed" | "on_rent" | "returned" | "closed" | "cancelled" | "no_show" | "expired" | "declined";
       booking_type: "standard" | "non_refundable" | "owner";
       charge_stage: "booking" | "pickup" | "extension" | "check_in" | "after_return" | "on_decline" | "monthly" | "split";
-      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice";
+      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement";
       field_function: "driver" | "detailer" | "driver_detailer";
       finance_permission: "not_applicable" | "attached" | "not_obtained";
       fuel_type: "gasoline" | "diesel" | "hybrid" | "plug_in_hybrid" | "electric";

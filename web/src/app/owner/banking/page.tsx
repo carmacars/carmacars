@@ -2,6 +2,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { Dl } from '@/features/portal/Blocks';
 import { day } from '@/features/owner/Blocks';
 import { PayoutForm } from '@/features/owner/OwnerForms';
+import { DebitSetupForm } from '@/features/owner/DebitSetupForm';
+import { money } from '@/lib/format';
 import { requireOwner } from '@/server/owner/data';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +13,7 @@ export default async function OwnerBanking() {
   const { home } = await requireOwner('/owner/banking');
   const current = home.payout_accounts.find((a) => a.is_current);
   const waiting = home.payout_accounts.filter((a) => !a.verified_at);
+  const d = home.auto_debit;
   const label = (a: (typeof home.payout_accounts)[number]) => (a.method === 'e_transfer' ? `e-Transfer to ${a.e_transfer_email}` : `Bank account ending ${a.account_last4}`);
   return (
     <>
@@ -22,10 +25,23 @@ export default async function OwnerBanking() {
           <PayoutForm />
         </section>
         <aside className="pt-split__aside">
-          <section className="pt-card" aria-labelledby="ow-pm"><h2 className="d4" id="ow-pm">How your fees are paid</h2>
-            {home.payment_methods.length ? <Dl rows={home.payment_methods.map((m) => [m.kind === 'card' ? 'Card' : 'Pre-authorized debit', `${m.brand_or_bank ?? ''} ending ${m.last4 ?? ''}${m.is_default ? ', default' : ''}`.trim()])} />
-              : <p className="small muted">Set up when you pay your first invoice by card or pre-authorized debit.</p>}
-            <p className="small muted">Fees are charged on the 15th of each month by pre-authorized debit. To change the account, pay your next invoice with the new one, or call us.</p>
+          <section className="pt-card" aria-labelledby="ow-debit" data-testid="owner-auto-debit"><h2 className="d4" id="ow-debit">Automatic debit of your fees</h2>
+            {d.mandate ? (
+              <Dl rows={[['Bank account', `${d.bank ?? 'Account'} ending ${d.bank_last4 ?? ''}`.trim()],
+                ['Next debit', d.next_debit_on ? `${money(d.next_debit_cents, { cents: true })} on ${day(d.next_debit_on)}` : `None scheduled. Notices go out on ${day(d.next_notice_on)} for the ${day(d.next_cycle_on)} debit.`],
+                ...(d.processing_cents > 0 ? [['Processing', money(d.processing_cents, { cents: true })] as [string, string]] : []),
+                ...(d.paused ? [['Status', 'Paused by CarmaCars. Pay your invoices from their page.'] as [string, string]] : [])]} />
+            ) : d.pending_setup ? (
+              <p className="pt-note" data-testid="debit-pending">Your bank account is being confirmed by Stripe with two small deposits. Follow the email from Stripe to finish; until then, pay your invoices from their page.</p>
+            ) : (
+              <p className="small" data-testid="debit-missing">Your fees are paid by pre-authorized debit on the {d.terms.debit_day_text} of each month. Set it up once and we debit each invoice on that day, with a notice {d.notice_days} days before.</p>
+            )}
+            {d.enabled && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} />}
+          </section>
+          <section className="pt-card" aria-labelledby="ow-pm"><h2 className="d4" id="ow-pm">Saved payment methods</h2>
+            {home.payment_methods.length ? <Dl rows={home.payment_methods.map((m) => [m.kind === 'card' ? 'Card' : 'Pre-authorized debit', `${m.brand_or_bank ?? ''} ending ${m.last4 ?? ''}${m.is_default ? ', default' : ''}${m.status === 'pending' ? ', being confirmed' : ''}`.trim()])} />
+              : <p className="small muted">None yet.</p>}
+            <p className="small muted">A returned debit adds the {d.terms.late_fee} Late Fee and is tried again from the {d.terms.retry_day_text}. You can always pay an invoice by card from its page before its debit day.</p>
           </section>
         </aside>
       </div>

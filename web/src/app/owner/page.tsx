@@ -47,13 +47,14 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
             <div className="ow-tiles">
               <div className="ow-tile"><span>Due now</span><b data-testid="owner-due">{money(due.reduce((s, i) => s + i.balance_cents, 0), { cents: true })}</b></div>
               <div className="ow-tile"><span>Fees each month, before HST</span><b>{money(fees)}</b></div>
-              <div className="ow-tile"><span>Next billing date</span><b>{day(home.next_billing_date)}</b></div>
+              <div className="ow-tile" data-testid="owner-next-debit"><span>{home.auto_debit.next_debit_on ? 'Next debit' : 'Next billing date'}</span><b>{home.auto_debit.next_debit_on ? `${money(home.auto_debit.next_debit_cents, { cents: true })} on ${day(home.auto_debit.next_debit_on)}` : day(home.next_billing_date)}</b></div>
               <div className="ow-tile"><span>Next payout date</span><b>{day(home.next_payout_date)}</b></div>
             </div>
             <InvoiceRows items={home.invoices.slice(0, 5)} />
             {home.invoices.length > 5 && <p><Link prefetch={false} href="/owner/invoices">All invoices</Link></p>}
             {!home.trackers_available && home.tracker_pending.length > 0 && <p className="small muted">{TRACKER_LATER}</p>}
             {!home.payout_accounts.length && <p className="pt-note">Add the bank account we pay you into: <Link prefetch={false} href="/owner/banking">Banking</Link>.</p>}
+            {home.auto_debit.enabled && !home.auto_debit.mandate && !home.auto_debit.pending_setup && home.invoices.some((i) => i.payable) && <p className="pt-note" data-testid="owner-debit-missing">Your fees are debited automatically once you set up a pre-authorized debit: <Link prefetch={false} href="/owner/banking">Banking</Link>.</p>}
           </section>
         </div>
       )}
