@@ -64,6 +64,7 @@ Statement PDFs exist (0032). Added: "All [year] statements (ZIP)" and the year's
 6. A staff quote records no consent for the lead: the renter accepts the terms when signing the agreement.
 
 ## 8. Not done
+- **The plan's CPU limit.** In 2 of 8 live verification runs Cloudflare answered some portal requests (dynamic, server-rendered pages: `/va`, `/investor`, `/field`, a refusal redirect, an RSC prefetch) with Error 1102, "Worker exceeded resource limits": the Workers Free plan allows 10 ms of CPU per request, and a server-rendered Next.js page is near or over it on a cold isolate. A second load succeeded each time; the cached public pages were never affected. The verify run retries and warns with the count. The fix is the Workers Paid plan (30 seconds of CPU per request, US$5 a month), which goes against decision record 0001 (no fixed monthly fees): an owner's decision.
 
 - Realtime subscriptions: the queue is read again every 30 seconds (as allowed).
 - Tracker test commands (locate, lock, unlock, alarm, shut-off) are confirmed by the installer's tick; the Tracker provider's command API is not integrated.

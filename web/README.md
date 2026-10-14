@@ -209,6 +209,10 @@ the bundle holds one copy of each. To measure: `npx opennextjs-cloudflare build`
 `npx wrangler deploy --dry-run --outdir /tmp/w` prints `Total Upload: ... / gzip: ...`;
 `.open-next/server-functions/default/handler.mjs.meta.json` (esbuild's metafile) shows what each input contributes.
 
+The free plan also allows 10 ms of CPU per request. Cached public pages stay well inside it; a server-rendered portal page
+on a cold isolate sometimes does not, and Cloudflare answers Error 1102 ("Worker exceeded resource limits"; a reload
+works). The live verification counts these. The Workers Paid plan (30 seconds per request) removes the limit.
+
 ## Live verification
 
 The `verify` workflow (`scripts/verify-live.mjs`) checks the public pages, headers and nonce, and with `--auth` signs in
