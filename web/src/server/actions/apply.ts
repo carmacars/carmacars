@@ -9,6 +9,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { cleanVin, DRAFT_COOKIE, ownerErrors, planErrors, vehicleErrors, vehiclePayload, type ApplyState } from '@/features/owner/apply-schema';
 import { currentUser } from '@/server/portal/data';
 import { requestMeta } from '@/server/request';
+import { passwordLinkTarget } from '@/server/auth-links';
 
 // The owner application wizard (04-owner.md section 3; 08-forms.md section 3). Every step autosaves
 // to form_drafts: by account when signed in, otherwise by a device token kept in an httpOnly cookie.
@@ -81,7 +82,7 @@ export async function methodOptions(heldBy: string, titleStatus: string, mode: s
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number }
+export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number; checkEmail?: boolean }
 
 export async function submitApplication(state: ApplyState, password: string, turnstileToken: string | null): Promise<R<SubmitResult>> {
   const o = state.owner;
@@ -89,6 +90,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
   if (!state.vehicles.length) return fail('Add at least one vehicle.');
   state.vehicles.forEach((v, i) => { for (const [k, m] of Object.entries({ ...vehicleErrors(v, o.owner_type), ...planErrors(v) })) fe[`v${i}.${k}`] = m; });
   let user = await currentUser();
+  let onRecord = false;
   if (!user && (password ?? '').length < 10) fe.password = 'Choose a password of at least 10 characters.';
   if (Object.keys(fe).length) return { ok: false, code: 'invalid', message: 'Some answers need a look. The first one is highlighted.', fieldErrors: fe };
   const meta = await requestMeta();
@@ -103,7 +105,18 @@ export async function submitApplication(state: ApplyState, password: string, tur
       if (!r.ok) return { ok: false, code: 'account', message: r.message, fieldErrors: { password: r.message } };
       user = r.user;
       const reg = (await rpc('register_account', { p_user: user.id, p_email: user.email, p_full_name: name, p_phone: phone }, SR)) as unknown as { ok?: boolean; error?: string };
-      if (reg && reg.ok === false && reg.error !== 'email_on_record') return fail('We could not open your account. Call us and we will finish your application.');
+      if (reg && reg.ok === false && reg.error === 'email_on_record' && a.createForRecord && a.deleteAccount) {
+        // The address is on file from an earlier booking request, without a sign-in (migration 0040): the sign-in just
+        // made is removed, the application goes on that record, and the record gets a sign-in with a link to the address
+        // to choose the password. Opening it proves the address; the earlier requests and the owner portal are then theirs.
+        await a.signOut().catch(() => undefined);
+        await a.deleteAccount(user.id);
+        const id = (await rpc('server_user_by_email', { p_email: o.email.trim().toLowerCase() }, SR)) as unknown as string | null;
+        const made = id ? await a.createForRecord(id, o.email.trim().toLowerCase(), name, passwordLinkTarget()) : null;
+        if (!id || !made?.ok) return fail('We already have a booking request with this email. Call us and we will finish your application.');
+        user = { id, email: o.email.trim().toLowerCase() };
+        onRecord = true;
+      } else if (reg && reg.ok === false) return fail('We could not open your account. Call us and we will finish your application.');
     }
     const token = (await cookies()).get(DRAFT_COOKIE)?.value;
     const draft = (await rpc('load_form_draft', { p_form_code: FORM, p_user: user.id }, SR).catch(() => null)) as unknown as { draft_id: string } | null
@@ -122,6 +135,6 @@ export async function submitApplication(state: ApplyState, password: string, tur
       vehicles: state.vehicles.map(vehiclePayload)
     }, p_by: user.id }, SR)) as unknown as { application_number: string; vehicles: Array<{ declined: boolean }> };
     (await cookies()).delete(DRAFT_COOKIE);
-    return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length } };
+    return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}) } };
   } catch (e) { return fail(dbMessage(e)); }
 }

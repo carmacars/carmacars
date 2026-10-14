@@ -90,6 +90,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <p className="small"><Link prefetch={false} className="link" href="/admin/settings/coverage">Edit the coverage price table</Link></p></Card>
         </div>
       )}
+      {tab === 'calendar' && <div className="small" data-testid="vehicle-turnaround">Cleaning time after each trip: <b>{v.turnaround_block_minutes == null ? 'Program settings' : `${String(v.turnaround_block_minutes)} minutes`}</b>{' '}
+        <Act action="vehicle_turnaround" payload={{ vehicle: id }} label="Change" title="Cleaning time after each trip" fields={[{ name: 'minutes', label: 'Minutes (empty: Program settings)', type: 'number', value: v.turnaround_block_minutes ?? '', hint: 'A cleaning block of this length follows every confirmed trip on this car.' }]} done="Saved." testId="turnaround-change" /></div>}
       {tab === 'calendar' && cal && <Suspense><MasterCalendar initial={cal} vehicleId={id} defaultView="month" /></Suspense>}
       {tab === 'listing' && (
         <div className="ad-cols ad-cols--2">

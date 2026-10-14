@@ -15,6 +15,9 @@ import { findBooking, requireUser } from '@/server/portal/data';
 import { openAgreement } from '@/server/portal/agreement';
 import { bookingIntent, paymentFacts, reasonMessage, settleIntent, type SettleResult } from '@/server/portal/payment';
 import { consentTexts } from '@/server/booking-data';
+import { attachSignedAmendment, changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
+import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
+import { driverLinkUrl } from '@/server/portal/driver-links';
 
 // Every renter action: a server action (POST with a same-origin check by Next.js), run for the
 // signed-in user, re-checking that the booking is theirs (public.my_booking under row-level security)
@@ -165,8 +168,8 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
 
 /** An additional driver's own link: no account, the signed token names their signer row. */
 export async function signAsDriver(token: string, input: SignInput): Promise<R> {
-  const t = await readToken<{ s: string }>('driver-sign', token);
-  if (!t) return fail('This link has expired. Ask the renter to send a new one.', 'expired');
+  const t = await readToken<{ s: string; v?: number }>('driver-sign', token);
+  if (!t || (await rpc('server_driver_link_valid', { p_signer: t.s, p_version: t.v ?? 1 }, SR)) !== true) return fail('This link has expired. Ask the renter to send a new one.', 'expired');
   const all = consents().filter((c) => c.n <= 3);
   const ticked = new Set(input.consents ?? []);
   if (!all.every((c) => ticked.has(c.code))) return { ok: false, code: 'invalid', message: 'Tick the three statements to accept.', fieldErrors: { consents: 'Tick the three statements.' } };
@@ -309,13 +312,94 @@ export async function withdrawChange(number: string, requestId: string): Promise
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export async function agreeChange(number: string, requestId: string): Promise<R> {
+// ---------------------------------------------------------------- a change staff proposed (or approved): accept or decline (migration 0040)
+export interface AcceptInput { typedName?: string; drawn?: string; agree: boolean; stamp: string }
+
+/** Accept a change: the amendment is opened (rendered and stored), signed, any extra amount is charged to the card on
+ *  file, the change is applied, and the signed copy is attached. A card refused leaves the amendment signed and the
+ *  booking as it was; "Pay and apply" tries again with the same key. */
+export async function acceptChange(number: string, requestId: string, input: AcceptInput): Promise<R<{ applied: boolean }>> {
+  if (!input?.agree) return { ok: false, code: 'invalid', message: 'Tick the statement to sign.', fieldErrors: { consents: 'Tick the statement.' } };
+  let target = '';
   try {
     const { userId, b } = await mine(number);
     if (!b.change_requests.some((c) => c.id === requestId)) return fail('Not found');
+    const f = await changeFacts(requestId, userId);
+    if (!f.open) return fail('This change is no longer waiting for your answer.', 'stale');
+    if (`${f.change.total_difference_cents ?? 0}:${f.change.accept_by ?? ''}:${(f.change.after?.total_cents as number | undefined) ?? ''}` !== input.stamp) return fail('This change was updated. Review it again before you sign.', 'stale');
+    let drawnPath: string | null = null;
+    if (input.drawn) {
+      const png = pngBytes(input.drawn);
+      if (!png) return { ok: false, code: 'invalid', message: 'Please sign your name in the box.', fieldErrors: { signature: 'Please sign your name.' } };
+      drawnPath = `bookings/${b.id}/signatures/amendment-${crypto.randomUUID()}.png`;
+      await (await storage()).put('agreements', drawnPath, png, 'image/png');
+    } else if (!(input.typedName ?? '').trim()) {
+      return { ok: false, code: 'invalid', message: 'Sign by drawing or by typing your full legal name.', fieldErrors: { signature: 'Sign by drawing or typing your name.' } };
+    }
+    const a = await openAmendment(f, userId);
     const meta = await requestMeta();
-    await rpc('renter_agree_booking_change', { p_request: requestId, p_by: userId, p_ip: (meta.ip ?? null) as string, p_user_agent: meta.userAgent }, SR);
+    await rpc('renter_sign_amendment', { p_amendment: a.id, p_by: userId, p_consent_text: AMENDMENT_STATEMENT, p_document_sha256: a.sha,
+      p_typed_name: input.typedName?.trim() || undefined, p_drawn_signature: drawnPath ?? undefined, p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent }, SR);
+    const paid = await payAndApply(await changeFacts(requestId, userId), userId);
+    if (!paid.ok) { refresh(number); return fail(`Your amendment is signed, but the change is not applied yet. ${paid.message}`, 'payment'); }
+    await attachSignedAmendment(a.id, requestId, userId).catch((e) => console.error('signed amendment copy', e));
+    refresh(number); revalidatePath(bookingPath(number, 'change'));
+    target = `${bookingPath(number)}?changed=1`;
+  } catch (e) { return fail(dbMessage(e)); }
+  redirect(target);
+}
+
+/** The amendment is signed but the card was refused: try the payment again (the same key: never charged twice). */
+export async function retryChangePayment(number: string, requestId: string): Promise<R> {
+  let target = '';
+  try {
+    const { userId, b } = await mine(number);
+    if (!b.change_requests.some((c) => c.id === requestId)) return fail('Not found');
+    const f = await changeFacts(requestId, userId);
+    if (!f.open || f.amendment?.status !== 'signed') return fail('There is nothing to pay for this change.', 'stale');
+    const paid = await payAndApply(f, userId);
+    if (!paid.ok) return fail(paid.message, 'payment');
+    await attachSignedAmendment(f.amendment.id, requestId, userId).catch((e) => console.error('signed amendment copy', e));
+    refresh(number); revalidatePath(bookingPath(number, 'change'));
+    target = `${bookingPath(number)}?changed=1`;
+  } catch (e) { return fail(dbMessage(e)); }
+  redirect(target);
+}
+
+export async function declineChangeProposal(number: string, requestId: string, reason: string): Promise<R> {
+  const r = (reason ?? '').trim();
+  if (r.length > 500) return { ok: false, code: 'invalid', message: 'Keep it under 500 characters.', fieldErrors: { reason: 'Up to 500 characters.' } };
+  try {
+    const { userId, b } = await mine(number);
+    if (!b.change_requests.some((c) => c.id === requestId)) return fail('Not found');
+    await rpc('renter_decline_booking_change', { p_request: requestId, p_by: userId, p_reason: r || undefined }, SR);
+    refresh(number); revalidatePath(bookingPath(number, 'change'));
+  } catch (e) { return fail(dbMessage(e)); }
+  // the change page has nothing to answer any more: back to the booking, which says so
+  redirect(`${bookingPath(number)}?declined=1`);
+}
+
+// ---------------------------------------------------------------- an additional driver's link (migration 0040)
+/** "Send a new link": the version goes up (every earlier link stops working), the link is valid for the hours in
+ *  Program settings, and it is emailed to the driver when we have their address. Returns the link to copy. */
+export async function resendDriverLink(number: string, signerId: string): Promise<R<{ url: string; emailed: string | null; expiresAt: string }>> {
+  try {
+    const { userId } = await mine(number);
+    const n = (await rpc('server_driver_link_renew', { p_signer: signerId, p_by: userId }, SR)) as unknown as { version: number; expires_at: string; email: string | null };
+    const url = await driverLinkUrl(signerId, n.version, n.expires_at);
+    let emailed: string | null = null;
+    if (n.email) { await rpc('server_driver_link_send', { p_signer: signerId, p_by: userId, p_version: n.version, p_url: url }, SR); emailed = n.email; }
     refresh(number);
+    return { ok: true, data: { url, emailed, expiresAt: n.expires_at } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+// ---------------------------------------------------------------- earlier requests added to the account (migration 0040)
+export async function dismissLinkedNotice(): Promise<R> {
+  try {
+    const user = await requireUser('/account');
+    await rpc('server_seen_account_links', { p_user: user.id }, SR);
+    revalidatePath('/account');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }

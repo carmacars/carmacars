@@ -9,7 +9,7 @@ import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/Account
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
-import { $, Card, Table, t as at } from '@/features/admin/ui';
+import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,10 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
   const [{ user }, { id }] = await Promise.all([requireAdmin('/admin/owners'), params]);
   const d = await adminOwner(user, id);
   if (!d) notFound();
-  const rec = await adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id });
+  const [rec, witnessed] = await Promise.all([
+    adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id }),
+    // Forms C and D signed with witnesses (migration 0040)
+    adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
   const o = d.owner;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
@@ -86,6 +89,8 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
           </section>
           <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
+          <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>
+            <Table rows={witnessed} testId="owner-witnessed" empty="No witnessed form is needed yet." cols={[{ key: 'title', label: 'Form', render: (r) => <>{String(r.title)}{r.vehicle_name ? <><br /><span className="small">{String(r.vehicle_name)}</span></> : null}</> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'reject_reason', label: 'Note', className: 'wrap' }, { key: 'uploaded_at', label: 'Uploaded', render: (r) => at(r.uploaded_at) }]} /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
             {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>

@@ -12,11 +12,12 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Accept the rental agreement', path: '/sign/driver', noindex: true, description: 'Additional driver: read and accept the rental agreement.' });
 
 // Additional driver acceptance (02 section 5): no account needed, the signed link names the driver's
-// signer row (72 hours). They read the same agreement, tick consents 1 to 3 and sign.
+// signer row and a version, valid until its expiry (Program settings). They read the same agreement, tick consents 1 to 3 and sign.
 export default async function DriverSign({ params }: { params: Promise<{ token: string }> }) {
-  const t = await readToken<{ s: string }>('driver-sign', (await params).token);
-  if (!t) return (
-    <section className="section"><div className="wrap stack" style={{ maxWidth: '40rem' }}><h1 className="d2">This link has expired</h1><p>Ask the renter to copy a new signing link from their booking, or call us.</p></div></section>
+  const t = await readToken<{ s: string; v?: number }>('driver-sign', (await params).token);
+  // a link is valid until its expiry and while it is the newest one made (migration 0040)
+  if (!t || (await rpc('server_driver_link_valid', { p_signer: t.s, p_version: t.v ?? 1 }, { role: 'service_role' })) !== true) return (
+    <section className="section"><div className="wrap stack" style={{ maxWidth: '40rem' }} data-testid="driver-link-expired"><h1 className="d2">This link has expired</h1><p>Signing links work for a few days, and a newer link replaces an older one. Ask the renter to send you a new link from their booking, or call us.</p></div></section>
   );
   const s = (await rpc('driver_signing', { p_signer: t.s }, { role: 'service_role' })) as unknown as { signer_name: string; signed_at: string | null; signer_role: string; agreement_status: string; booking_id: string; booking_number: string; booking_status: string; document_sha256: string } | null;
   if (!s || s.signer_role !== 'additional_driver') notFound();

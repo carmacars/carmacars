@@ -5,6 +5,7 @@ import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
+import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { QuickReply } from '@/features/va/QuickReply';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
@@ -39,6 +40,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
     (fn === 'cs' || fn === 'sales') && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
     fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] }),
     fn === 'cs' && tab === 'messages' ? read<R[]>('messages', { booking: b.id }) : Promise.resolve([] as R[])]);
+  // the additional drivers' signing links (migration 0040), for customer service
+  const driverLinks = fn === 'cs' && tab === 'overview' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   // the late-return panel (05-va.md section 3.4) for Fleet and customer service while the car is out past its time
   const late = (fn === 'fleet' || fn === 'cs') && b.status === 'on_rent'
     ? await read<Late | null>('late_panel', { booking: b.id }).catch(() => null) : null;
@@ -84,6 +87,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           </Card>
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }]} /></Card>
+          {fn === 'cs' && <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={R} /></Card>}
         </div>
       )}
       {tab === 'money' && b.payments && (
@@ -101,8 +105,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       )}
       {tab === 'changes' && fn === 'cs' && (
         <div className="stack">
-          <Card title="Change requests"><Table rows={b.change_requests} empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
-            { key: 'act', label: 'Decide', render: (r) => ['requested', 'proposed'].includes(String(r.status)) ? <span className="ad-actions"><Act action="approve_change" payload={{ request: r.id }} label="Approve" variant="primary" refresh={R} /><Act action="decline_change" payload={{ request: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={R} /></span> : null }]} /></Card>
+          {b.status === 'confirmed' && b.bill_to === 'renter' && <Card title="Propose a change" testId="propose-card"><ProposeChange booking={b.id} number={b.booking_number} pickupAt={b.pickup_at} returnAt={b.return_at} vehicleId={b.vehicle_id} rentalCents={Number(b.rental_charge_cents ?? 0)} refresh={R} /></Card>}
+          <Card title="Change requests"><Table rows={b.change_requests} testId="change-requests" empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'note', label: 'Reason', className: 'wrap' }, { key: 'accept_by', label: 'Answer by', render: (r) => t(r.accept_by) }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
+            { key: 'act', label: 'Decide', render: (r) => r.status === 'requested' ? <span className="ad-actions"><Act action="approve_change" payload={{ request: r.id }} label="Approve" variant="primary" refresh={R} /><Act action="decline_change" payload={{ request: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={R} /></span>
+              : r.status === 'proposed' ? <Act action="change_withdraw" payload={{ request: r.id }} label="Withdraw" confirm="The renter can no longer accept this change. The booking stays as it is." refresh={R} testId="change-withdraw" /> : null }]} /></Card>
           <Card title="Extensions"><Table rows={b.extensions} empty="No extensions." cols={[{ key: 'seq', label: 'No.' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'new_return_at', label: 'New return', render: (r) => t(r.new_return_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
             { key: 'act', label: 'Decide', render: (r) => r.status === 'requested' ? <span className="ad-actions"><Act action="approve_extension" payload={{ extension: r.id }} label="Approve and send the pay link" variant="primary" refresh={R} /><Act action="decline_extension" payload={{ extension: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text' }]} refresh={R} /></span> : null }]} /></Card>
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>

@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import { seoMeta } from '@/features/seo/meta';
-import { env } from '@/lib/env';
 import { money } from '@/lib/format';
 import { getSettings } from '@/lib/site';
 import { when } from '@/features/agreement/model';
 import { STATUS, bookingPath, carName, nextStep, progress } from '@/features/portal/status';
 import { Back, Dl, PriceBreakdown, StatusBadge, placeText } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
-import { CopyLink } from '@/features/portal/CopyLink';
 import { InfoReply } from '@/features/portal/InfoReply';
 import { Messages, type Msg } from '@/features/portal/Messages';
 import { rpc } from '@/lib/db/repo';
@@ -15,7 +13,8 @@ import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
 import { myBooking } from '@/server/portal/data';
 import { door } from '@/server/door';
-import { signToken } from '@/server/links';
+import { bookingDriverLinks } from '@/server/portal/driver-links';
+import { DriverLink } from '@/features/portal/DriverLink';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -23,9 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
   return seoMeta({ title: `Booking ${n}`, path: `/account/bookings/${n}`, noindex: true, description: 'Your booking: status, next step, price, drivers and documents.' });
 }
 
+const CHANGE: Record<string, string> = { requested: 'asked for, waiting for our answer', proposed: 'suggested by us, waiting for your answer', approved: 'approved, waiting for your signature',
+  applied: 'done', declined: 'declined', cancelled: 'withdrawn', expired: 'not accepted in time' };
 const within = (iso: string, hours: number) => new Date(iso).getTime() - Date.now() < hours * 3600e3;
 
-const KIND: Record<string, string> = { rental_agreement: 'Rental agreement', receipt: 'Receipt', renter_statement: 'Statement', condition_report: 'Condition Report', coverage_proof: 'Proof of coverage', id_front: 'Licence, front', id_back: 'Licence, back', face: 'Selfie' };
+const KIND: Record<string, string> = { rental_amendment: 'Booking amendment', rental_agreement: 'Rental agreement', receipt: 'Receipt', renter_statement: 'Statement', condition_report: 'Condition Report', coverage_proof: 'Proof of coverage', id_front: 'Licence, front', id_back: 'Licence, back', face: 'Selfie' };
 
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { b, user } = await myBooking((await params).number);
@@ -38,9 +39,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const step = nextStep(b);
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
   const openQ = b.info_requests.filter((q) => q.status === 'open');
-  const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
-  const driverLinks = new Map<string, string>();
-  for (const g of b.agreement?.signers ?? []) if (g.role === 'additional_driver' && !g.signed_at && g.booking_driver_id) driverLinks.set(g.booking_driver_id, `${base}/sign/driver/${await signToken('driver-sign', { s: g.id }, 72 * 3600)}`);
+  // each additional driver's own signing link (migration 0040: versioned, expiring, renewed here)
+  const links = b.agreement && b.drivers.some((d) => d.role === 'additional') ? await bookingDriverLinks(b.id, user.id) : [];
+  const waiting = b.change_requests.find((c) => ['proposed', 'approved'].includes(c.status));
   const live = ['confirmed', 'on_rent'].includes(b.status);
   const pickupSoon = live && within(b.pickup_at, 24);
   const ext = b.extensions[b.extensions.length - 1];
@@ -48,6 +49,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   return (
     <>
       <Back href="/account">Your trips</Back>
+      {sp.changed && <div className="pt-ok" role="status" data-testid="changed-panel"><h2 className="d3">Booking updated</h2><p>Your booking has the new details. The signed amendment is under Documents, and we emailed you a copy.</p></div>}
+      {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
       <header className="stack">
         <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} /><span className="small muted" data-testid="booking-number">{b.booking_number}</span></div>
@@ -60,6 +63,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         <div className="stack-lg">
           {step.href && step.href !== bookingPath(b.booking_number) && (
             <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link prefetch={false} className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>
+          )}
+          {waiting && (
+            <section className="pt-card pt-card--next" aria-labelledby="pt-chg" data-testid="change-waiting"><h2 className="d4" id="pt-chg">{waiting.status === 'proposed' ? 'We suggest a change to your booking' : 'Your change is approved'}</h2>
+              <p>{waiting.note ?? 'Review the new details and answer.'}</p>
+              <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'change')}>Review and answer</Link></p>
+            </section>
           )}
           {openQ.length > 0 && (
             <section className="pt-card pt-card--next" id="questions" aria-labelledby="pt-q"><h2 className="d4" id="pt-q">A question from our team</h2>
@@ -85,20 +94,22 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               <li key={d.id} className="stack" style={{ gap: 'var(--s-2)' }}>
                 <div className="pt-card__head"><b>{d.full_name}</b><span className="small muted">{d.role === 'renter' ? 'Renter' : 'Additional driver'}</span></div>
                 <p className="small">{d.identity_verified_on ? 'Verified' : 'Not verified yet'}{d.role === 'additional' ? `. ${d.accepted_at ? 'Accepted the agreement' : `Waiting for ${d.full_name} to accept`}` : ''}</p>
-                {driverLinks.get(d.id) && <div><CopyLink url={driverLinks.get(d.id)!} label="Copy their signing link" /></div>}
+                {(() => { const l = links.find((x) => x.booking_driver_id === d.id && !x.signed_at); return l && !d.accepted_at ? (
+                  <DriverLink number={b.booking_number} signerId={l.signer_id} name={d.full_name} url={l.url} expired={l.expired} expiresText={when(l.expires_at)}
+                    sentText={l.sent_at ? `Last emailed ${when(l.sent_at)}.` : null} />) : null; })()}
               </li>
             ))}</ul>
           </section>
           {(b.change_requests.length > 0 || b.extensions.length > 0) && (
             <section className="pt-card" aria-labelledby="pt-changes"><h2 className="d4" id="pt-changes">Changes and extensions</h2>
-              {b.change_requests.map((c) => <div key={c.id} className="pt-msg"><p><b>Date change:</b> {c.status}{c.decline_reason ? `. ${c.decline_reason}` : ''}</p><ChangeRequestActions number={b.booking_number} id={c.id} status={c.status} /></div>)}
+              {b.change_requests.map((c) => <div key={c.id} className="pt-msg"><p><b>Change:</b> {CHANGE[c.status] ?? c.status.replace(/_/g, ' ')}{c.decline_reason ? `. ${c.decline_reason}` : ''}</p><ChangeRequestActions number={b.booking_number} id={c.id} status={c.status} /></div>)}
               {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
             </section>
           )}
           <Messages number={b.booking_number} thread={thread} />
           <section className="pt-card" aria-labelledby="pt-docs"><h2 className="d4" id="pt-docs">Documents</h2>
             {b.documents.length ? <ul className="pt-list">{b.documents.filter((d) => !d.purged).map((d) => (
-              <li key={d.id} className="pt-card__head"><span>{KIND[d.kind] ?? d.title}<span className="xs muted"> · {when(d.created_at, false)}</span></span><a className="link" href={`/account/documents/${d.id}`} data-testid={`doc-${d.kind}`}>Download</a></li>
+              <li key={d.id} className="pt-card__head"><span>{d.kind === 'rental_amendment' && d.title ? d.title : KIND[d.kind] ?? d.title}<span className="xs muted"> · {when(d.created_at, false)}</span></span><a className="link" href={`/account/documents/${d.id}`} data-testid={`doc-${d.kind}`}>Download</a></li>
             ))}</ul> : files.length ? null : <p className="muted small">Your agreement, receipts and statements appear here.</p>}
             {files.length > 0 && <ul className="pt-list" data-testid="generated-files">{files.map((f) => (
               <li key={`${f.kind}:${f.key}`} className="pt-card__head"><span>{f.title}<span className="xs muted"> · {when(f.at, false)}</span></span><a className="link" href={`/files/${f.kind}/${f.key}`} data-testid={`file-${f.kind}`}>Download PDF</a></li>

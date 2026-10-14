@@ -296,3 +296,39 @@ export async function confirmOwnerUpload(ticket: string): Promise<R> {
     return { ok: true, data: null };
   } catch (e) { await s.remove('documents', t.key); return fail(dbMessage(e)); }
 }
+
+// ---------------------------------------------------------------- Forms C and D, signed on paper with witnesses (migration 0040)
+export async function createFormUpload(code: 'C' | 'D1', vehicleId: string | null, witnesses: { w1: string; w2: string }, contentType: string, size: number): Promise<R<{ url: string; headers: Record<string, string>; ticket: string }>> {
+  const w1 = (witnesses?.w1 ?? '').trim().slice(0, 120), w2 = (witnesses?.w2 ?? '').trim().slice(0, 120);
+  const fe: Record<string, string> = {};
+  if (!w1) fe.w1 = 'Enter the witness\'s name.';
+  if (code === 'D1' && !w2) fe.w2 = 'Enter the second witness\'s name.';
+  if (Object.keys(fe).length) return invalid(fe);
+  try {
+    const { user, home } = await owner();
+    if (!['C', 'D1'].includes(code)) return fail('Unknown form.');
+    if (vehicleId && !home.vehicles.some((v) => v.vehicle_id === vehicleId)) return fail('Vehicle not found');
+    if (!TYPES[contentType]) return fail('Upload a PDF or a photo.');
+    if (!(size > 0 && size <= MAX_BYTES)) return fail('The file must be under 10 MB.');
+    const key = `owners/${home.owner.id}/forms/${code}-${vehicleId ?? 'owner'}-${crypto.randomUUID()}.${TYPES[contentType]}`;
+    const up = await (await storage()).signedUploadUrl('documents', key, contentType, 300);
+    const ticket = await signToken('owner-form', { c: code, v: vehicleId, w1, w2, key, ct: contentType, u: user.id }, 300);
+    return { ok: true, data: { ...up, ticket } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+export async function confirmFormUpload(ticket: string): Promise<R> {
+  const t = await readToken<{ c: 'C' | 'D1'; v: string | null; w1: string; w2: string; key: string; ct: string; u: string }>('owner-form', ticket);
+  if (!t) return fail('The upload link expired. Choose the file again.', 'expired');
+  const user = await requireOwnerUser();
+  if (user.id !== t.u) return fail('Not permitted');
+  const s = await storage();
+  const bytes = await s.get('documents', t.key);
+  if (!bytes) return fail('The file did not arrive. Try again.');
+  if (bytes.byteLength > MAX_BYTES || !magicOk(bytes, t.ct)) { await s.remove('documents', t.key); return fail('That file is not a photo or PDF we can read. Try another.'); }
+  try {
+    await rpc('owner_upload_witnessed_form', { p_by: user.id, p: { code: t.c, vehicle_id: t.v, witness_1_name: t.w1, witness_2_name: t.w2 || null, path: t.key, sha256: await sha256Hex(bytes), mime: t.ct } }, SR);
+    revalidatePath('/owner/documents'); revalidatePath('/owner');
+    return { ok: true, data: null };
+  } catch (e) { await s.remove('documents', t.key); return fail(dbMessage(e)); }
+}

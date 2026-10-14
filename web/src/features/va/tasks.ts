@@ -23,6 +23,9 @@ export function taskHref(t: Task): string {
   if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/va/reconciliation';
   if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/va/money';
   if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/va/listings';
+  if (t.task_type === 'listing_similarity') return '/va/similar-cars';
+  if (t.task_type === 'owner_form_review') return '/va/owner-forms';
+  if (t.task_type === 'account_link_review') return '/va/renters';
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/va/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/va/fleet#expiry';
   return `/va/tasks/${t.id}`;

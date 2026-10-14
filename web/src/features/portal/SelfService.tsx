@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { cancelBooking, payExtension, previewChange, previewExtension, requestChange, requestExtension, withdrawChange, agreeChange } from '@/server/actions/portal';
+import { cancelBooking, payExtension, previewChange, previewExtension, requestChange, requestExtension, withdrawChange } from '@/server/actions/portal';
 import { clock, timeSlots, torontoInstant } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -113,8 +113,8 @@ export function ChangeRequestActions({ number, id, status }: { number: string; i
   const done = (r: { ok: boolean }) => { if (r.ok) router.refresh(); };
   return (
     <div className="row">
-      {status === 'proposed' || status === 'approved' ? <button className="btn btn--primary btn--sm" type="button" disabled={a.pending} onClick={() => a.run(() => agreeChange(number, id), done)}>Agree to the change</button> : null}
-      {['requested', 'proposed', 'approved'].includes(status) && <button className="btn btn--quiet btn--sm" type="button" disabled={a.pending} onClick={() => a.run(() => withdrawChange(number, id), done)}>Withdraw</button>}
+      {status === 'proposed' || status === 'approved' ? <a className="btn btn--primary btn--sm" href={`/account/bookings/${encodeURIComponent(number)}/change`}>Review and answer</a> : null}
+      {status === 'requested' && <button className="btn btn--quiet btn--sm" type="button" disabled={a.pending} onClick={() => a.run(() => withdrawChange(number, id), done)}>Withdraw</button>}
       {a.res && !a.res.ok && <p className="error" role="alert">{a.res.message}</p>}
     </div>
   );

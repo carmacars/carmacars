@@ -41,7 +41,11 @@ export async function openAgreement(bookingId: string, by: string): Promise<stri
   const sha = await sha256Hex(pdf);
   const key = `bookings/${bookingId}/agreement-v${f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
   await (await storage()).put('agreements', key, pdf, 'application/pdf');
-  return (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
+  const id = (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
+  // each additional driver with an email address gets their own signing link (migration 0040)
+  const { sendFirstDriverLinks } = await import('@/server/portal/driver-links');
+  await sendFirstDriverLinks(bookingId, by).catch(() => undefined);
+  return id;
 }
 
 interface SigningRecord {

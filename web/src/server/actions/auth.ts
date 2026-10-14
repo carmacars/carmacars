@@ -35,6 +35,8 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   if (!r.ok) return { ok: false, code: r.code ?? 'auth', message: r.message };
   // a view-as left from an earlier session never carries over to a new sign-in
   await clearSessionCookies(false);
+  // the sign-in service lets only confirmed addresses sign in: earlier requests with it are attached (migration 0040)
+  await rpc('server_account_email_verified', { p_user: r.user.id, p_email: r.user.email }, { role: 'service_role' }).catch(() => undefined);
   redirect(await afterPassword(r.user.id, safeNext(fd.get('next'))));
 }
 
@@ -123,6 +125,8 @@ export async function updatePassword(_: unknown, fd: FormData): Promise<ActionRe
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
   const r = await (await auth()).updatePassword(p.data.password, p.data.token);
   if (!r.ok) return { ok: false, code: 'expired', message: r.message };
+  // the link that let them choose a password proved the address (migration 0040)
+  await rpc('server_account_email_verified', { p_user: r.user.id, p_email: r.user.email }, { role: 'service_role' }).catch(() => undefined);
   // invited staff, owners and investors go to their portal (or choose one), renters to their trips
   const to = await afterPassword(r.user.id, null);
   redirect(to === '/account' ? '/account?password=1' : to.includes('?') ? to : `${to}?password=1`);

@@ -151,6 +151,10 @@
 .lc__shot.is-done { border-left: 4px solid var(--black); }
 .lc__pick { position: relative; justify-self: start; cursor: pointer; }
 .lc__pick:focus-within { outline: 3px solid var(--red-600); outline-offset: 2px; }
+/* 0040: the shoot's progress, the camera and the library side by side on a phone */
+.lc__progress { height: 0.5rem; margin: 0 0 var(--s-3); background: var(--grey-100); border: 1px solid var(--grey-200); overflow: hidden; }
+.lc__progress > span { display: block; height: 100%; background: var(--red-600); transition: width .2s; }
+.lc__picks { gap: var(--s-2); flex-wrap: wrap; }
 .lp__state { margin: 0 0 var(--s-2); }
 .lp__bar { display: block; height: 0.5rem; background: var(--grey-100); border: 1px solid var(--grey-200); overflow: hidden; }
 .lp__bar > span { display: block; height: 100%; background: var(--black); }

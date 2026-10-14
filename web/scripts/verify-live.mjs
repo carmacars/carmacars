@@ -234,6 +234,12 @@ if (process.argv.includes('--auth')) {
           await page.screenshot({ path: path.join(out, 'admin-debits.png'), fullPage: true });
           await load(`${BASE}/admin/reports`);
           r.reportsPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+          // the operations gaps (0040): possible duplicates and the owners' witnessed forms
+          await load(`${BASE}/admin/similar-cars`);
+          r.similarPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
+          await page.screenshot({ path: path.join(out, 'admin-similar-cars.png'), fullPage: true });
+          await load(`${BASE}/admin/owner-forms`);
+          r.ownerFormsPage = (await page.locator('h1').first().textContent({ timeout: 10_000 }).catch(() => null)) ?? null;
         }
         if (a.role === 'renter') {
           // sign out: back to the home page, and the portal asks for a sign-in again
@@ -246,7 +252,7 @@ if (process.argv.includes('--auth')) {
         r.ok = new URL(r.afterSignIn).pathname === a.home && !!r.h1 && !r.broken && r.errors.length === 0
           && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN') && !String(v).includes('not named'))
           && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out')
-          && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements'))
+          && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements' && r.similarPage === 'Similar cars' && r.ownerFormsPage === 'Owner forms'))
           && (a.role !== 'admin' || (r.viewAs?.every((v) => v.ok) && r.writeRefused?.ok && r.audit?.ok && r.exit?.ok && r.invite?.ok));
         if (r.ok) break;
       } catch (e) {

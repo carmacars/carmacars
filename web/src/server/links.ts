@@ -25,6 +25,13 @@ export async function signToken(purpose: string, payload: Record<string, unknown
   return `${body}.${await mac(body)}`;
 }
 
+/** A token valid until a set instant (an additional driver's link: the expiry is kept in the database, so the same
+ *  link can be shown again until then). */
+export async function signTokenUntil(purpose: string, payload: Record<string, unknown>, expiresAt: Date): Promise<string> {
+  const body = b64url(enc.encode(JSON.stringify({ ...payload, p: purpose, exp: Math.floor(expiresAt.getTime() / 1000) })));
+  return `${body}.${await mac(body)}`;
+}
+
 export async function readToken<T extends Record<string, unknown>>(purpose: string, token: string | null | undefined): Promise<T | null> {
   if (!token || !/^[\w-]+\.[\w-]+$/.test(token)) return null;
   const [body, sig] = token.split('.') as [string, string];

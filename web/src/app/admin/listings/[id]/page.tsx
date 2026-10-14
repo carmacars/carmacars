@@ -4,6 +4,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { withOriginalUrls } from '@/server/listing-photos';
+import { SimilarityTable, type Flag } from '@/features/admin/Similarity';
+import { Card } from '@/features/admin/ui';
 import { ListingReview, type L } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
@@ -19,6 +21,8 @@ export default async function Listing({ params }: { params: Promise<{ id: string
   const { read, user } = await page(`/admin/listings/${id}`);
   const l = await read<L | null>('listing', { id });
   if (!l) notFound();
+  // possible duplicates of this car (migration 0040): an open flag that stops publishing is decided here first
+  const flags = await read<Flag[]>('vehicle_similarity', { vehicle: l.vehicle_id }).catch(() => [] as Flag[]);
   const [cap, prog] = await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: id }), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: id })]);
   return (
     <>
@@ -29,6 +33,7 @@ export default async function Listing({ params }: { params: Promise<{ id: string
       {l.reason && <p className="pt-note small">{l.reason}</p>}
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/admin/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/admin/listings/${id}`]} />}
+      {flags.length > 0 && <Card title="Similar cars on file" testId="listing-similar"><SimilarityTable rows={flags} base="/admin" refresh={[`/admin/listings/${id}`]} showVehicle={false} /></Card>}
       <ListingReview l={await withOriginalUrls(l)} />
     </>
   );

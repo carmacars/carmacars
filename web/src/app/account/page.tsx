@@ -4,6 +4,11 @@ import { getFleet } from '@/lib/site';
 import { group, nextStep, carName } from '@/features/portal/status';
 import { TripRow, StatusBadge } from '@/features/portal/Blocks';
 import { findBooking, myBookings, requireUser } from '@/server/portal/data';
+import { rpc } from '@/lib/db/repo';
+import { when } from '@/features/agreement/model';
+import { LinkedNotice } from '@/features/portal/LinkedNotice';
+
+type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Your trips', path: '/account', noindex: true, description: 'Your CarmaCars bookings, offers, agreements and payments.' });
@@ -11,7 +16,9 @@ export const metadata = pageMeta({ title: 'Your trips', path: '/account', noinde
 // The portal's front door: the one next thing to do, then upcoming, current and past trips (section 7.1).
 export default async function Account({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUser('/account');
-  const [list, fleet, sp] = await Promise.all([myBookings(user), getFleet(), searchParams]);
+  const [list, fleet, sp, links] = await Promise.all([myBookings(user), getFleet(), searchParams,
+    // earlier requests attached when the address was confirmed, and trips as an additional driver (migration 0040)
+    rpc('server_my_account_links', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as Links).catch(() => null)]);
   const photo = (slug: string | null) => fleet.find((c) => c.slug === slug)?.cover ?? null;
   const { current, upcoming, past, nearest } = group(list);
   const full = nearest ? await findBooking(user, nearest.booking_number) : null;
@@ -20,6 +27,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     <>
       {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
       {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
+      {links && links.new.length > 0 && <LinkedNotice bookings={links.new.filter((l) => l.kind === 'booking').map((l) => l.booking_number ?? '')} drivers={links.new.filter((l) => l.kind === 'driver').length} />}
       <h1 className="d2">Your trips</h1>
       {!list.length ? (
         <div className="pt-empty"><p className="d4">No trips yet.</p><p className="muted">Pick a car and dates and send a request. Nothing is charged until you approve an offer.</p><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
@@ -40,6 +48,12 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             </section>
           ) : null)}
         </div>
+      )}
+      {links && links.driver_trips.length > 0 && (
+        <section className="stack" aria-labelledby="pt-driver-trips" data-testid="driver-trips">
+          <h2 className="pt-section-title" id="pt-driver-trips">Trips where you are a driver</h2>
+          <ul className="pt-list">{links.driver_trips.map((d) => <li key={d.booking_number} className="pt-card"><b>{d.vehicle_name}</b><p className="small">{when(d.pickup_at)} to {when(d.return_at)} · booking {d.booking_number}</p><p className="small muted">{d.accepted ? 'You accepted the agreement.' : 'Use the link in your email from CarmaCars to accept the agreement before pickup.'}</p></li>)}</ul>
+        </section>
       )}
     </>
   );

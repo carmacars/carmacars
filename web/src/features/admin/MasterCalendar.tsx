@@ -298,7 +298,9 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
       {e?.type === 'block' && (
         <div className="stack">
           <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => run('block_end', { block: e.id })}>End now</button>
-          <form className="ad-form" onSubmit={(ev) => { ev.preventDefault(); run('block_remove', { block: e.id, reason: f.remove }); }}>
+          {/* the cleaning block after a trip (migration 0040) is removed by Fleet, customer service or an Admin; it is not put back */}
+          {e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') && <p className="small muted" data-testid="cleaning-block">Added after the trip for cleaning. Remove it if the car is ready sooner.</p>}
+          <form className="ad-form" onSubmit={(ev) => { ev.preventDefault(); run(e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') ? 'turnaround_block_remove' : 'block_remove', { block: e.id, reason: f.remove }); }}>
             <div className="field"><label className="label" htmlFor="cal-rm">Reason for removing</label><input className="input" id="cal-rm" value={f.remove} onChange={(x) => setF({ ...f, remove: x.target.value })} required /></div>
             <button className="btn btn--primary btn--sm ad-btn--danger" type="submit" disabled={pending || !f.remove.trim()} data-testid="block-remove">Remove the block</button>
           </form>

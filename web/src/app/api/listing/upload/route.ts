@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
+import { sha256Hex } from '@/server/links';
 
 // One listing photo from the capture screen (docs/blueprint/09-listing-pipeline.md section 4). The browser
 // resized it (3000 px on the long side, JPEG); here the user's right to list this car is checked by the
@@ -38,8 +39,9 @@ export async function POST(req: Request) {
   await (await storage()).put('vehicle-originals', key, bytes, type);
   const num = (k: string) => { const v = Number(form?.get(k)); return Number.isInteger(v) && v > 0 && v < 20000 ? v : null; };
   try {
-    const r = await door<{ photo_id: string; missing: string[]; complete: boolean; state: string }>(user.id, 'ops_do', 'listing_upload',
-      { intake, shot_type: shot, original_path: key, width: num('width'), height: num('height'), byte_size: bytes.length, mime_type: type }, aal);
+    // the photo's fingerprint: the same image on another listed car is a possible duplicate (migration 0040)
+    const r = await door<{ photo_id: string; missing: string[]; complete: boolean; state: string; similar?: number }>(user.id, 'ops_do', 'listing_upload',
+      { intake, shot_type: shot, original_path: key, width: num('width'), height: num('height'), byte_size: bytes.length, mime_type: type, sha256: await sha256Hex(bytes) }, aal);
     return NextResponse.json({ ok: true, ...r });
   } catch (e) {
     await (await storage()).remove('vehicle-originals', key).catch(() => undefined);

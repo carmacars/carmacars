@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { withOriginalUrls } from '@/server/listing-photos';
+import { SimilarityTable, type Flag } from '@/features/admin/Similarity';
+import { Card } from '@/features/admin/ui';
 import { ListingReview } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
@@ -20,6 +22,8 @@ export default async function VaListing({ params }: { params: Promise<{ id: stri
   const { read, user, aal } = await vaPage(`/va/listings/${id}`, ['cs', 'fleet']);
   const l = await read<L | null>('listing', { id });
   if (!l) notFound();
+  // possible duplicates of this car (migration 0040): an open flag that stops publishing is decided here first
+  const flags = await read<Flag[]>('vehicle_similarity', { vehicle: l.vehicle_id }).catch(() => [] as Flag[]);
   const [cap, prog] = await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: id }, aal), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: id }, aal)]);
   return (
     <>
@@ -27,6 +31,7 @@ export default async function VaListing({ params }: { params: Promise<{ id: stri
       {l.reason && <p className="pt-note small">{l.reason}</p>}
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/va/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/va/listings/${id}`]} />}
+      {flags.length > 0 && <Card title="Similar cars on file" testId="listing-similar"><SimilarityTable rows={flags} base="/va" refresh={[`/va/listings/${id}`]} showVehicle={false} /></Card>}
       <ListingReview l={await withOriginalUrls(l)} />
     </>
   );

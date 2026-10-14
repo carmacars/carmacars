@@ -6,6 +6,7 @@ import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
+import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
     read<Detail | null>('booking', { number: n }), list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }),
     list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }), read<{ program: { offer_expiry_hours: number } }>('settings')]);
   if (!b) notFound();
+  const driverLinks = sp.tab === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   const base = `/admin/bookings/${encodeURIComponent(n)}`;
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status);
   const tab = sp.tab ?? (arranging ? 'review' : 'overview');
@@ -103,9 +105,12 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'changes' && (
         <div className="stack">
-          <Card title="Change requests"><Table rows={b.change_requests} empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
-            { key: 'changes', label: 'Changes', className: 'wrap' }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
-            { key: 'act', label: 'Decide', render: (r) => ['requested', 'proposed'].includes(String(r.status)) ? <span className="ad-actions"><Act action="approve_change" payload={{ request: r.id }} label="Approve" variant="primary" refresh={[base]} /><Act action="decline_change" payload={{ request: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /></span> : null }]} /></Card>
+          {b.status === 'confirmed' && b.bill_to === 'renter' && <Card title="Propose a change" testId="propose-card"><ProposeChange booking={b.id} number={b.booking_number} pickupAt={b.pickup_at} returnAt={b.return_at} vehicleId={b.vehicle_id} rentalCents={Number(b.rental_charge_cents ?? 0)} refresh={[base]} /></Card>}
+          <Card title="Change requests"><Table rows={b.change_requests} testId="change-requests" empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
+            { key: 'note', label: 'Reason', className: 'wrap' }, { key: 'accept_by', label: 'Answer by', render: (r) => t(r.accept_by) }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
+            { key: 'act', label: 'Decide', render: (r) => r.status === 'requested' ? <span className="ad-actions"><Act action="approve_change" payload={{ request: r.id }} label="Approve" variant="primary" refresh={[base]} /><Act action="decline_change" payload={{ request: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /></span>
+              : r.status === 'proposed' ? <Act action="change_withdraw" payload={{ request: r.id }} label="Withdraw" confirm="The renter can no longer accept this change. The booking stays as it is." refresh={[base]} testId="change-withdraw" />
+              : r.status === 'approved' && !r.renter_agreed_at ? <Act action="decline_change" payload={{ request: r.id }} label="Withdraw the approval" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null }]} /></Card>
           <Card title="Extensions"><Table rows={b.extensions} empty="No extensions." cols={[{ key: 'seq', label: 'No.' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'new_return_at', label: 'New return', render: (r) => t(r.new_return_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
             { key: 'act', label: 'Decide', render: (r) => r.status === 'requested' ? <span className="ad-actions"><Act action="approve_extension" payload={{ extension: r.id }} label="Approve" variant="primary" refresh={[base]} /><Act action="decline_extension" payload={{ extension: r.id }} label="Decline" fields={[{ name: 'reason', label: 'Reason', type: 'text' }]} refresh={[base]} /></span> : null }]} /></Card>
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
@@ -125,7 +130,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {tab === 'documents' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) }]} /></Card>
-          <Card title="Documents"><Table rows={b.documents} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
+          <Card title="Documents"><Table rows={b.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`/admin/documents/${r.id}`}>{String(r.title ?? label(r.kind))}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
+          <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={[base]} /></Card>
         </div>
       )}
     </>
