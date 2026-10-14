@@ -307,7 +307,7 @@ if (process.argv.includes('--auth')) {
       const t = await ask('toll_read', notice);
       const l = t.data?.lines?.[0] ?? null;
       out.toll = { status: t.status, ok: t.ok, model: t.model, neurons: t.neurons, ms: t.ms, message: t.message ?? t.error, lines: t.data?.lines?.length ?? 0,
-        plate: l?.plate ?? null, date: l?.date ?? null, time: l?.time ?? null, amount: l?.amount ?? null, notice: l?.notice_number ?? t.data?.notice_number ?? null, issuer: t.data?.issuer ?? null };
+        plate: l?.plate ?? null, date: l?.date ?? null, time: l?.time ?? null, amount: l?.amount ?? null, notice: l?.notice_number ?? t.data?.notice_number ?? null, issuer: t.data?.issuer ?? null, raw: t.data ? JSON.stringify(t.data).slice(0, 700) : null };
       out.toll.read_right = /VRFY\s*123/i.test(String(out.toll.plate ?? '')) && Number(String(out.toll.amount ?? '').replace(/[$,]/g, '')) === 50;
       // a plate at 43% to 57% across and 70% to 78% down
       const car = await shot(`<body style="margin:0"><div style="width:1000px;height:640px;background:linear-gradient(#bcd,#eee);position:relative">
@@ -320,7 +320,7 @@ if (process.argv.includes('--auth')) {
       const iou = (b) => { const ax = 0.43, ay = 0.7, aw = 0.14, ah = 0.078; const x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
         if (![x, y, w, h].every(Number.isFinite)) return 0; const ix = Math.max(0, Math.min(ax + aw, x + w) - Math.max(ax, x)), iy = Math.max(0, Math.min(ay + ah, y + h) - Math.max(ay, y));
         const i = ix * iy; return i / (aw * ah + w * h - i); };
-      out.plate = { status: pl.status, ok: pl.ok, model: pl.model, neurons: pl.neurons, ms: pl.ms, message: pl.message ?? pl.error, boxes: boxes.slice(0, 3), best_overlap: boxes.length ? Math.max(...boxes.map(iou)).toFixed(2) : null };
+      out.plate = { status: pl.status, ok: pl.ok, model: pl.model, neurons: pl.neurons, ms: pl.ms, message: pl.message ?? pl.error, boxes: boxes.slice(0, 3), raw: pl.data ? JSON.stringify(pl.data).slice(0, 400) : null, best_overlap: boxes.length ? Math.max(...boxes.map(iou)).toFixed(2) : null };
     } catch (e) { out.error = String(e).slice(0, 300); }
     return out;
   }

@@ -2,7 +2,7 @@ import type { VisionModel, VisionRequest, VisionResult, VisionUsage } from './ty
 
 // Cloudflare Workers AI vision models through the Worker's AI binding (wrangler.jsonc "ai"). The image goes as a
 // data URL in the chat message (the OpenAI shape Workers AI accepts); a model that wants the image on its own
-// ("image") is asked that way. Meta's Llama 3.2 vision model needs its licence accepted once: the adapter sends
+// ("image") is asked that way. JSON mode is asked as a JSON object (not a schema): the prompt gives the shape. Meta's Llama 3.2 vision model needs its licence accepted once: the adapter sends
 // "agree" when the answer says so, then asks again. Neurons per million tokens from the pricing page
 // (developers.cloudflare.com/workers-ai/platform/pricing).
 const NEURONS_PER_M: Record<string, { input: number; output: number }> = {
@@ -29,7 +29,7 @@ export function jsonFrom(raw: unknown): unknown {
   return null;
 }
 
-type Attempt = 'chat_schema' | 'chat' | 'image_field';
+type Attempt = 'chat_json' | 'chat' | 'image_field';
 export function workersAiVision(ai: AiBinding, timeoutMs = 45_000): VisionModel {
   const call = (model: string, input: Record<string, unknown>) => Promise.race([
     ai.run(model, input),
@@ -42,7 +42,8 @@ export function workersAiVision(ai: AiBinding, timeoutMs = 45_000): VisionModel 
     return {
       messages: [{ role: 'system', content: req.system }, { role: 'user', content: [{ type: 'text', text: req.prompt }, { type: 'image_url', image_url: { url: req.imageDataUrl } }] }],
       max_tokens: req.maxOutputTokens, temperature: 0,
-      ...(how === 'chat_schema' && req.schema ? { response_format: { type: 'json_schema', json_schema: req.schema } } : {})
+      // JSON mode without a schema: the constrained decoding of a schema dropped keys in live tests (0042); the prompt carries the shape
+      ...(how === 'chat_json' ? { response_format: { type: 'json_object' } } : {})
     };
   };
   return {
@@ -53,7 +54,7 @@ export function workersAiVision(ai: AiBinding, timeoutMs = 45_000): VisionModel 
       for (const model of models.filter(Boolean)) {
         tried.push(model);
         let agreed = false;
-        const plan: Attempt[] = req.schema ? ['chat_schema', 'chat', 'image_field'] : ['chat', 'image_field'];
+        const plan: Attempt[] = ['chat_json', 'chat', 'image_field'];
         for (let i = 0; i < plan.length; i++) {
           let raw: unknown;
           try {

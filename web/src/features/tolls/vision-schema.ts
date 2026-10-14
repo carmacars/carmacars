@@ -4,10 +4,10 @@
 import { findDate, findTime, KINDS, lineConfidence, normPlate, parseMoney, type Kind, type ReadLine } from './parse.ts';
 
 export const TOLL_SYSTEM = 'You read Ontario toll and traffic notices: 407 ETR statements, parking and administrative penalty notices, red light and speed camera notices, and provincial offence notices. Answer with JSON only, in the shape asked. Copy each value exactly as printed. Use null for anything you cannot read clearly. Never guess a plate, a number or an amount.';
-export const TOLL_PROMPT = `Read this page of a notice or statement and return JSON with:
-issuer (who issued it), kind (one of toll_invoice, ticket, camera_offence, parking, fine), statement_number, account_number, notice_number, due_date (YYYY-MM-DD), total (the amount due, in dollars),
-lines: one entry per toll trip or offence, each with notice_number, plate (letters and digits only), date (YYYY-MM-DD), time (HH:MM on the 24-hour clock, null if not printed), location, entry, exit, amount (the line's total in dollars), fees (the part of the amount that is fees, in dollars, or null), confidence (0 to 100: how sure you are of this line).
-A notice for one offence has one line. A page with no trips or offences has an empty list.`;
+export const TOLL_PROMPT = `Read this page of a notice or statement. Answer with one JSON object with every key below, using null for anything not printed or not readable:
+{"issuer": "who issued it, as printed", "kind": "toll_invoice or ticket or camera_offence or parking or fine", "statement_number": "as printed", "account_number": "as printed", "notice_number": "as printed", "due_date": "YYYY-MM-DD", "total": 0.00,
+ "lines": [{"notice_number": "as printed", "plate": "letters and digits only", "date": "YYYY-MM-DD", "time": "HH:MM on the 24-hour clock", "location": "as printed", "entry": "as printed", "exit": "as printed", "amount": 0.00, "fees": 0.00, "confidence": 0}]}
+"lines" has one entry per toll trip or offence: a notice for one offence has one line. "amount" is the line's total in dollars as a number; "fees" is the part of it that is fees, or null; "total" is the amount due on the page. "confidence" is 0 to 100: how sure you are of that line. A page with no trips or offences has "lines": [].`;
 export const TOLL_SCHEMA = {
   type: 'object',
   properties: {
@@ -22,7 +22,7 @@ export const TOLL_SCHEMA = {
 } as const;
 
 export const PLATE_SYSTEM = 'You find licence plates in photos of cars. Answer with JSON only, in the shape asked.';
-export const PLATE_PROMPT = 'Find every licence plate visible in this photo (front or rear, on any car). Return {"plates": [{"x": 0.41, "y": 0.62, "w": 0.18, "h": 0.07, "confidence": 80}]} where x and y are the top left corner and w and h the size of the plate, each as a fraction of the image width or height (0 to 1). Return {"plates": []} when no plate can be seen.';
+export const PLATE_PROMPT = 'Find every licence plate visible in this photo (the front or rear plate of any car). Answer with one JSON object: {"plates": [{"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0, "confidence": 0}]}, one entry per plate, every key present. x and y are the left and top edges of the plate and w and h its width and height, each as a fraction of the image width or height (numbers from 0 to 1). confidence is 0 to 100. Answer {"plates": []} when no plate can be seen.';
 export const PLATE_SCHEMA = {
   type: 'object',
   properties: { plates: { type: 'array', items: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' }, confidence: { type: ['number', 'null'] } } } } },
