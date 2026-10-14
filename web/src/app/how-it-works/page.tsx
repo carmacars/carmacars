@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { fill, getTokens, listItems, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -11,8 +11,8 @@ type Step = { title: string; body: string; who: string };
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('How booking works | {{brand}} car rental, {{city}}', t), path: '/how-it-works',
-    description: fill('How to rent a car from {{brand}} in {{city}}: send a request, get a confirmed price, sign and pay online, verify your licence and coverage, then pick up or have the car delivered.', t) });
+  return seoMeta({ title: fill('How booking works | {{brand}} car rental, {{city}}', t), path: '/how-it-works',
+    description: fill('How renting from {{brand}} in {{city}} works: send a request, get a confirmed price, sign and pay online, then pick up the car or have it delivered.', t) });
 }
 
 const DETAIL: [string, string[]][] = [

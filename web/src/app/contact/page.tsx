@@ -6,7 +6,7 @@ import { SlotPicture } from '@/components/Picture';
 import { waLink } from '@/components/Footer';
 import { ContactForm } from '@/features/forms/ContactForm';
 import { businessLd } from '@/features/seo/business';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { fill, getFacts, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -14,7 +14,7 @@ const trail: Trail = [['Home', '/'], ['Contact']];
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Contact {{brand}} | Car rental in {{city}}', t), path: '/contact',
+  return seoMeta({ title: fill('Contact {{brand}} | Car rental in {{city}}', t), path: '/contact',
     description: fill('Contact {{brand}} about renting a car in {{city}}, a booking you have made, or listing your own car. {{hours}}. Call, WhatsApp or send a message and a person replies.', t) });
 }
 

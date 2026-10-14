@@ -4,7 +4,7 @@ import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
 import { CtaBand } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { money } from '@/lib/format';
 import { fill, getClasses, getSettings, getTokens, photoUrl, siteUrl } from '@/lib/site';
@@ -29,7 +29,7 @@ async function load(hub: string) {
 export async function generateMetadata({ params }: Params) {
   const h = await load((await params).hub);
   const t = await getTokens();
-  return pageMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path,
+  return seoMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path,
     description: fill(`${h.make} ${h.model} for rent in {{city}} from ${money(h.min_daily_rate_cents)} a day. Pickup or delivery, drivers {{minAge}} and up, request to book with no payment up front.`, t) });
 }
 

@@ -50,6 +50,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
       {s.problems.length > 0 && <Card title="Still missing" tone="warn"><ul className="small">{s.problems.map((p) => <li key={p.field}>{p.message}</li>)}</ul></Card>}
       {SITE_GROUPS.map(([title, keys]) => <Card key={title} title={title}><SaveForm table="site_settings" rowKey="singleton" testId={`site-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.site, keys, { featured_mode: [['random', 'Random'], ['manual', 'Chosen by hand']] })} /></Card>)}
       <Card title="Logo"><p className="small muted">Light: {String(s.site.logo_light_file_key ?? 'none, the wordmark is shown')}. Dark: {String(s.site.logo_dark_file_key ?? 'none')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="light" /><LogoUpload which="dark" /></div></Card>
+      <Card title="Browser icon and sharing image"><p className="small muted">Icon: {String(s.site.favicon_file_key ?? 'none, the drawn stand-in is shown')}. Sharing image: {String(s.site.og_image_file_key ?? 'none, the built-in image is used')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="favicon" /><LogoUpload which="og" /></div></Card>
     </>);
   case 'content':
     return (<>{head}

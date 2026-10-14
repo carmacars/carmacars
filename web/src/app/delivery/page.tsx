@@ -3,7 +3,7 @@ import { Crumbs } from '@/components/Crumbs';
 import { CtaBand } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { fill, getFleet, getTokens, slotPhoto } from '@/lib/site';
 
@@ -12,7 +12,7 @@ const trail: Trail = [['Home', '/'], ['Delivery']];
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Car rental delivery in {{city}} | {{brand}}', t), path: '/delivery',
+  return seoMeta({ title: fill('Car rental delivery in {{city}} | {{brand}}', t), path: '/delivery',
     description: fill('{{brand}} delivers rental cars anywhere, including your home, office, hotel and {{city}} airports, and picks them up at the end. From {{delMin}} each way plus distance.', t) });
 }
 

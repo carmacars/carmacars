@@ -1,6 +1,6 @@
 import { LegalPage } from '@/features/legal/LegalPage';
 import { legalHtml } from '@/features/legal/render';
-import { pageMeta } from '@/features/seo/meta';
+import { seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { money } from '@/lib/format';
 import { fill, getFacts, getTokens } from '@/lib/site';
@@ -8,7 +8,7 @@ import { fill, getFacts, getTokens } from '@/lib/site';
 export const revalidate = 3600;
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Cancellation and refund policy | {{brand}}', t), path: '/cancellation-policy',
+  return seoMeta({ title: fill('Cancellation and refund policy | {{brand}}', t), path: '/cancellation-policy',
     description: fill('{{brand}} refunds by timing: {{c1}} within {{cGrace}} hours of booking, {{c2}} at {{cEarly}} hours or more before pickup, {{c3}} between {{cLate}} and {{cEarly}} hours, none inside {{cLate}} hours.', t) });
 }
 

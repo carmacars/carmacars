@@ -93,20 +93,23 @@ export async function inviteStaff(i: { email: string; full_name: string; role: s
   } catch (e) { return fail(e); }
 }
 
-/** The site logo (light or dark background): stored in the public bucket, then the setting points to it. */
+/** The site logo (light or dark background), the favicon or the social sharing image: stored in the public
+ *  bucket, then the setting points to it. */
 export async function uploadLogo(form: FormData): Promise<R<{ key: string }>> {
   try {
     await assertAdmin();
     const file = form.get('file');
-    const which = form.get('which') === 'dark' ? 'dark' : 'light';
+    const w = String(form.get('which'));
+    const which = w === 'dark' || w === 'favicon' || w === 'og' ? w : 'light';
     if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose an image file.' };
-    if (file.size > 1_000_000) return { ok: false, code: 'invalid', message: 'The logo must be under 1 MB.' };
+    if (file.size > (which === 'og' ? 3_000_000 : 1_000_000)) return { ok: false, code: 'invalid', message: which === 'og' ? 'The sharing image must be under 3 MB.' : 'The image must be under 1 MB.' };
     const type = file.type;
-    const ext = type === 'image/svg+xml' ? 'svg' : type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : null;
-    if (!ext) return { ok: false, code: 'invalid', message: 'Use an SVG, PNG or WebP image.' };
+    const ext = type === 'image/svg+xml' && which !== 'og' ? 'svg' : type === 'image/png' ? 'png' : type === 'image/webp' && which !== 'og' ? 'webp' : type === 'image/jpeg' && which === 'og' ? 'jpg' : null;
+    if (!ext) return { ok: false, code: 'invalid', message: which === 'og' ? 'Use a PNG or JPEG image, 1200 by 630.' : 'Use an SVG, PNG or WebP image.' };
+    if (ext === 'jpg' && !(bytes0(await file.slice(0, 2).arrayBuffer()))) return { ok: false, code: 'invalid', message: 'That file is not a JPEG image.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (ext === 'png' && !(bytes[0] === 0x89 && bytes[1] === 0x50)) return { ok: false, code: 'invalid', message: 'That file is not a PNG image.' };
-    const key = `site/logo-${which}-${randomUUID().slice(0, 8)}.${ext}`;
+    const key = `site/${which === 'favicon' || which === 'og' ? which : `logo-${which}`}-${randomUUID().slice(0, 8)}.${ext}`;
     const { storage } = await import('@/integrations/storage');
     const s = await storage();
     await s.put('vehicle-public', key, bytes, type);
@@ -118,11 +121,14 @@ export async function uploadLogo(form: FormData): Promise<R<{ key: string }>> {
       await mkdir(path.dirname(target), { recursive: true });
       await writeFile(target, bytes);
     }
-    const r = await adminSaveRow('site_settings', which === 'dark' ? { logo_dark_file_key: key } : { logo_light_file_key: key });
+    const col = { light: 'logo_light_file_key', dark: 'logo_dark_file_key', favicon: 'favicon_file_key', og: 'og_image_file_key' }[which];
+    const r = await adminSaveRow('site_settings', { [col]: key });
     if (!r.ok) return r;
     return { ok: true, data: { key } };
   } catch (e) { return fail(e); }
 }
+
+const bytes0 = (b: ArrayBuffer) => { const u = new Uint8Array(b); return u[0] === 0xff && u[1] === 0xd8; };
 
 /** A notice, receipt or estimate (PDF or image): stored in the private documents bucket and filed. */
 export async function uploadAdminDocument(form: FormData): Promise<R<{ id: string }>> {

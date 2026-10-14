@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { fill, getFacts, getFleet, getSettings, getTokens, listItems } from '@/lib/site';
 
@@ -11,8 +11,8 @@ type Row = { label: string; text: string };
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Rental requirements and coverage | {{brand}}, {{city}}', t), path: '/requirements',
-    description: fill('Who can rent from {{brand}} and how you are covered: age {{minAge}} and up, Ontario {{licence}} licence, three coverage options, deposits from {{depMin}} taken just before pickup, and the full fee list.', t) });
+  return seoMeta({ title: fill('Rental requirements and coverage | {{brand}}, {{city}}', t), path: '/requirements',
+    description: fill('Who can rent from {{brand}}: age {{minAge}} and up with an Ontario {{licence}} licence. Three coverage options, deposits from {{depMin}} before pickup, and every fee.', t) });
 }
 
 export default async function Requirements() {

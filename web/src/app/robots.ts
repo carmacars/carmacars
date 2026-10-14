@@ -6,7 +6,7 @@ import { siteUrl } from '@/lib/site';
 export default function robots(): MetadataRoute.Robots {
   if (env().APP_ENV === 'staging') return { rules: [{ userAgent: '*', disallow: '/' }] };
   return {
-    rules: [{ userAgent: '*', allow: '/', disallow: ['/book', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/go/', '/r/', '/unsubscribe', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/api/', '/cars?', '/cars/*?'] }],
+    rules: [{ userAgent: '*', allow: '/', disallow: ['/book', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/go/', '/r/', '/unsubscribe', '/email/', '/files/', '/d/', '/sign/', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/api/', '/cars?', '/cars/*?'] }],
     sitemap: `${siteUrl()}/sitemap.xml`
   };
 }

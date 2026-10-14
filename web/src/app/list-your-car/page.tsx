@@ -3,7 +3,7 @@ import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
 import { OwnerForm } from '@/features/forms/OwnerForm';
-import { breadcrumbLd, faqLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getFacts, getSettings, getTokens, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -11,7 +11,7 @@ const trail: Trail = [['Home', '/'], ['List your car']];
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('List your car with {{brand}} | Owner program, {{city}}', t), path: '/list-your-car',
+  return seoMeta({ title: fill('List your car with {{brand}} | Owner program, {{city}}', t), path: '/list-your-car',
     description: fill('Enrol your car on the {{brand}} rental fleet in {{city}}. We handle renters, insurance on our fleet policy and handovers. Paid on the {{payoutDay}} of each month. No minimum term.', t) });
 }
 

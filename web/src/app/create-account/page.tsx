@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
 import { SignUpForm } from '@/features/forms/AuthForms';
-import { pageMeta } from '@/features/seo/meta';
+import { seoMeta } from '@/features/seo/meta';
 import { fill, getTokens } from '@/lib/site';
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Create an account | {{brand}}', t), path: '/create-account', noindex: true, description: fill('Create a {{brand}} account to follow your requests, sign agreements and see statements.', t) });
+  return seoMeta({ title: fill('Create an account | {{brand}}', t), path: '/create-account', noindex: true, description: fill('Create a {{brand}} account to follow your requests, sign agreements and see statements.', t) });
 }
 export default async function CreateAccount() {
   const t = await getTokens();

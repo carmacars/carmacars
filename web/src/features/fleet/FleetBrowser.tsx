@@ -1,5 +1,5 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { CarCard } from '@/components/CarCard';
 import { DateRange } from '@/features/calendar/DateRange';
@@ -15,9 +15,21 @@ import type { CarRow } from '@/lib/types';
 type Avail = { vehicle_id: string; billable_days: number; rental_charge_cents: number; total_cents: number };
 const SEATS = [['any', 'Any'], ['2', '2'], ['5', '5+'], ['7', '7+']] as const;
 
-export function FleetBrowser({ cars, labels, classes, maxDays }: { cars: CarRow[]; labels: Record<string, string>; classes: string[]; maxDays: number }) {
+type Props = { cars: CarRow[]; labels: Record<string, string>; classes: string[]; maxDays: number };
+
+// The server renders every car with the default filters (useSearchParams would leave only a skeleton in the
+// static HTML, and crawlers would see no car links). After hydration the address's filters and dates are
+// read once and the browser is remounted with them.
+export function FleetBrowser(props: Props) {
+  const [qs, setQs] = useState<string | null>(null);
+  // the address is browser-only state, read once after hydration (the server has no query on a static page)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setQs(window.location.search); }, []);
+  return <Browser key={qs ?? ''} {...props} p={new URLSearchParams(qs ?? '')} sync={qs !== null} />;
+}
+
+function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSearchParams; sync: boolean }) {
   const router = useRouter();
-  const p = useSearchParams();
   const today = torontoToday();
   const prices = cars.map((c) => c.daily_rate_cents / 100);
   const minP = Math.floor(Math.min(...prices) / 10) * 10; const maxP = Math.ceil(Math.max(...prices) / 10) * 10;
@@ -68,8 +80,8 @@ export function FleetBrowser({ cars, labels, classes, maxDays }: { cars: CarRow[
     if (max < maxP) q.set('max', String(max));
     if (sort !== 'featured') q.set('sort', sort);
     const s = q.toString();
-    window.history.replaceState(null, '', `/cars${s ? '?' + s : ''}`);
-  }, [hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP]);
+    if (sync) window.history.replaceState(null, '', `/cars${s ? '?' + s : ''}`);
+  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP]);
 
   useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
 

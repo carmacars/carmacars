@@ -3,7 +3,7 @@ import { CtaBand, PageHead } from '@/components/Blocks';
 import { Faq } from '@/components/Faq';
 import { FaqFilter } from '@/components/FaqFilter';
 import { JsonLd } from '@/components/JsonLd';
-import { breadcrumbLd, faqLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getBlocks, getTokens } from '@/lib/site';
 import type { FaqItem } from '@/lib/types';
 
@@ -12,7 +12,7 @@ const trail: Trail = [['Home', '/'], ['FAQ']];
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('FAQ: renting a car from {{brand}} in {{city}}', t), path: '/faq',
+  return seoMeta({ title: fill('FAQ: renting a car from {{brand}} in {{city}}', t), path: '/faq',
     description: fill('Answers about booking, age and licence rules, coverage, deposits, delivery, kilometres, tolls, cancelling and listing your car with {{brand}}.', t) });
 }
 

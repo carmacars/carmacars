@@ -4,7 +4,7 @@ import { Crumbs } from '@/components/Crumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
 import { FleetBrowser } from '@/features/fleet/FleetBrowser';
-import { breadcrumbLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -12,9 +12,9 @@ const trail: Trail = [['Home', '/'], ['Fleet']];
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({
+  return seoMeta({
     title: fill('Cars to rent in {{city}} from {{minDaily}} a day | {{brand}}', t), path: '/cars',
-    description: fill('Cars to rent in {{city}}: economy cars, sedans, SUVs, vans, pickups, convertibles and luxury, from {{minDaily}} a day. Filter by type, seats, transmission and price, and check your dates.', t)
+    description: fill('Cars to rent in {{city}} from {{minDaily}} a day: economy, sedans, SUVs, vans, pickups, convertibles and luxury. Filter by type, seats and price, and check your dates.', t)
   });
 }
 

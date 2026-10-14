@@ -1,12 +1,12 @@
 import { LegalPage } from '@/features/legal/LegalPage';
 import { legalHtml } from '@/features/legal/render';
-import { pageMeta } from '@/features/seo/meta';
+import { seoMeta } from '@/features/seo/meta';
 import { fill, getTokens } from '@/lib/site';
 
 export const revalidate = 3600;
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Terms of use | {{brand}}', t), path: '/terms', description: fill('The terms that apply to everyone who uses the {{brand}} website and its renter, owner and staff portals.', t) });
+  return seoMeta({ title: fill('Terms of use | {{brand}}', t), path: '/terms', description: fill('The terms that apply to everyone who uses the {{brand}} website and its renter, owner and staff portals.', t) });
 }
 export default async function Terms() {
   const [terms, cancel] = await Promise.all([legalHtml('legal.terms'), legalHtml('legal.cancellation')]);

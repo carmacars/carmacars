@@ -9,7 +9,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { BookBar, CarBooking } from '@/features/car/CarBooking';
 import { Gallery } from '@/features/car/Gallery';
 import { carFaq, perDayFees } from '@/features/car/faq';
-import { breadcrumbLd, faqLd, pageMeta, type Trail } from '@/features/seo/meta';
+import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
@@ -38,9 +38,18 @@ const name = (c: Car) => `${c.make} ${c.model}`;
 export async function generateMetadata({ params }: Params) {
   const c = await load((await params).slug);
   const t = await getTokens();
-  return pageMeta({
-    title: c.seo_title ?? fill(`Rent a ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, t),
-    description: c.seo_description ?? fill(`${c.year} ${name(c)} ${c.trim ?? ''} for rent in {{city}}. ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${c.seats} seats, ${(c.transmission ?? '').toLowerCase()}, ${c.km_allowance_per_day} km a day included. Pickup or delivery. Request to book with no payment up front.`.replace(/\s+/g, ' '), t),
+  // The listing's own SEO text when it is a usable length, else built from the car; the longest parts are
+  // dropped first so the title stays near 60 characters and the description near 155.
+  const fit = (max: number, ...tries: string[]) => tries.map((x) => fill(x, t).replace(/\s+/g, ' ').trim()).find((x) => x.length <= max) ?? fill(tries[tries.length - 1]!, t);
+  const title = c.seo_title && c.seo_title.length >= 20 && c.seo_title.length <= 70 ? c.seo_title
+    : fit(65, `Rent a ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}} | {{brand}}`);
+  const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
+  const description = c.seo_description && c.seo_description.length >= 70 && c.seo_description.length <= 170 ? c.seo_description
+    : fit(160, `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
+      `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
+      `Rent the ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
+  return seoMeta({
+    title, description,
     path: c.canonical_path, image: c.photos[0] ? (/^https?:/.test(photoUrl(c.photos[0].path)) ? photoUrl(c.photos[0].path) : siteUrl() + photoUrl(c.photos[0].path)) : null,
     noindex: !c.indexable
   });

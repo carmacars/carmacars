@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
 import { SignInForm } from '@/features/forms/AuthForms';
-import { pageMeta } from '@/features/seo/meta';
+import { seoMeta } from '@/features/seo/meta';
 import { fill, getTokens } from '@/lib/site';
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({ title: fill('Sign in | {{brand}}', t), path: '/sign-in', noindex: true, description: fill('Sign in to {{brand}} to see your bookings, agreements, statements and, for owners, your cars and payouts.', t) });
+  return seoMeta({ title: fill('Sign in | {{brand}}', t), path: '/sign-in', noindex: true, description: fill('Sign in to {{brand}} to see your bookings, agreements, statements and, for owners, your cars and payouts.', t) });
 }
 export default function SignIn() {
   return (

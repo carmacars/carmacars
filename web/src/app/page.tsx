@@ -9,16 +9,16 @@ import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
-import { faqLd, pageMeta } from '@/features/seo/meta';
+import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 
 export const revalidate = 3600;
 
 export async function generateMetadata() {
   const t = await getTokens();
-  return pageMeta({
+  return seoMeta({
     title: fill('{{brand}} | {{city}} car rental, pickup or delivery', t), path: '/',
-    description: fill('{{city}} car rental from {{minDaily}} a day, picked up or delivered. Choose a car, send a request with no payment, and pay once the price is confirmed. Drivers {{minAge}} and up with a {{licence}} licence.', t)
+    description: fill('{{city}} car rental from {{minDaily}} a day, picked up or delivered. Send a request with no payment and pay once the price is confirmed. Drivers {{minAge}} and up.', t)
   });
 }
 
