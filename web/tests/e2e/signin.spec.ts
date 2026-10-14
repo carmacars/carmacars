@@ -304,9 +304,14 @@ test('links: an expired link and a password page without one offer a new link in
   await page.getByRole('button', { name: 'Send me a new link' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
   // the address asked with on this device is filled in next time
-  await page.goto('/update-password');
-  await expect(page.getByTestId('link-expired')).toBeVisible();
+  await page.goto('/link-expired?kind=password');
   await expect(page.getByLabel('Email')).toHaveValue(r.email);
+  // the password page opened without its link: saving says so and offers a new link
+  await page.goto('/update-password');
+  await page.locator('#np-pass').fill('a brand new password');
+  await page.getByRole('button', { name: 'Save the new password' }).click();
+  await expect(page.locator('.alert--error')).toContainText('expired or was already used');
+  await expect(page.getByRole('button', { name: 'Send me a new link' })).toBeVisible();
   // a callback link that does not verify goes to the same page
   await page.goto('/auth/callback?token_hash=nope&type=invite&next=/update-password');
   await expect(page).toHaveURL(/\/link-expired\?kind=invite/);

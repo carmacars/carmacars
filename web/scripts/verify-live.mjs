@@ -335,7 +335,7 @@ if (process.argv.includes('--auth')) {
         // Error 1102 on the page itself: the link already signed the person in, so the page is loaded again
         (inv.retried ??= []).push('update-password'); await p2.waitForTimeout(2000 * i); await p2.goto(`${BASE}/update-password`, { waitUntil: 'networkidle' });
       }
-      inv.for = await p2.getByTestId('password-for').textContent({ timeout: 5_000 }).catch(() => null);
+      inv.h1 = await p2.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
       await p2.locator('#np-pass').fill(randomPassword());
       await p2.getByRole('button', { name: 'Save the new password' }).click();
       await p2.waitForURL((u) => u.pathname === '/va', { timeout: 30_000 });
@@ -344,7 +344,7 @@ if (process.argv.includes('--auth')) {
       inv.who = await p2.locator('.ad__who').first().textContent().catch(() => null);
       await p2.screenshot({ path: path.join(out, 'invite-landed.png'), fullPage: true });
       await c2.close();
-      inv.ok = /Invitation sent/.test(inv.said ?? '') && inv.landed === '/update-password' && inv.for === inv.email && inv.portal === '/va' && /Sales/.test(inv.who ?? '');
+      inv.ok = /Invitation sent/.test(inv.said ?? '') && inv.landed === '/update-password' && inv.portal === '/va' && /Sales/.test(inv.who ?? '') && /Verify Invitation/.test(inv.who ?? '');
     } catch (e) { inv.ok = false; inv.error = String(e).slice(0, 300); }
     // tidy up: the sign-in, and the staff record the invitation made
     try {
@@ -398,6 +398,10 @@ if (process.argv.includes('--auth')) {
         }
         const link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}&next=${l.next}`;
         await page.goto(link, { waitUntil: 'networkidle' });
+        for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)) && new URL(page.url()).pathname === l.next; i++) {
+          // Error 1102 on the landing page: the link already signed the person in, so the page is loaded again
+          (r.retried ??= []).push(l.next); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}${l.next}`, { waitUntil: 'networkidle' });
+        }
         r.final = new URL(page.url()).pathname + new URL(page.url()).search;
         r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
         r.ok = r.final.startsWith(l.next) && !/error=link|link-expired/.test(r.final) && !BROKEN.test(await bodyText(page));
