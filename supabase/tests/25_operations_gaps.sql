@@ -213,6 +213,12 @@ values (test.id('vehicle:OGV'), test.id('owner:og_oscar'), 'F-OGV', 2021, 'Ford'
 select test.eq('similar: a VIN one character from another is flagged', (select count(*) from listing_similarity_flags where vehicle_id = test.id('vehicle:OGV') and kind = 'vin' and blocking), 1::bigint);
 select test.eq('similar: placeholder VINs one character apart are not (neither has a right check digit); a real VIN is recognised',
   app.vin_near('SAMPLE01XXXXXXXXX', 'SAMPLE02XXXXXXXXX') || '/' || app.vin_near('SAMPLE01XXXXXXXXX', 'SAMPLE01XXXXXXXXX') || '/' || app.vin_check_ok('1M8GDM9AXKP042788') || '/' || app.vin_check_ok('1M8GDM9AXKP042789'), 'false/true/true/false');
+-- 0041: sample cars (placeholders) are never compared, even with VINs one character from a real one
+insert into vehicles (id, owner_id, fleet_number, year, make, model, colour, vin, plate, class, status, management_mode, onboarding_method, is_sample)
+values (test.id('vehicle:OGS1'), test.id('owner:og_oscar'), 'F-OGS1', 2020, 'Kia', 'Rio', 'Teal', '11111111111111111', 'OGSMP01', 'standard', 'onboarding', 'managed', 'transfer', true),
+       (test.id('vehicle:OGS2'), test.id('owner:og_oscar'), 'F-OGS2', 2020, 'Kia', 'Rio', 'Teal', '11111111111111112', 'OGSMP02', 'standard', 'onboarding', 'managed', 'transfer', true);
+select test.eq('similar: sample cars are not compared (0041)',
+  (select count(*) from listing_similarity_flags where test.id('vehicle:OGS1') in (vehicle_id, other_vehicle_id) or test.id('vehicle:OGS2') in (vehicle_id, other_vehicle_id)), 0::bigint);
 update vehicles set year = 2023, make = 'Mercedes-Benz', model = 'C 300 OGA', colour = 'Black' where id in (test.id('vehicle:OGA'));
 insert into vehicles (id, owner_id, fleet_number, year, make, model, colour, vin, plate, class, status, management_mode, onboarding_method)
 values (test.id('vehicle:OGS'), test.id('owner:og_olive'), 'F-OGS', 2023, 'Mercedes-Benz', 'C 300 OGA', 'Black', upper(substr(md5('OGS-x'), 1, 17)), 'OGSPLT1', 'premium', 'onboarding', 'managed', 'transfer'),

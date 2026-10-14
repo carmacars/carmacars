@@ -76,6 +76,7 @@ cd emails && node check.mjs
 | `0038_debit_run_test_owners.sql` | Fixes from 0037's live run: a debit run of test owners only stays with the verification accounts, a webhook before the run's record is not lost, a failed invoice whose retry could not be sent is noticed again |
 | `0039_statement_pdf_without_sign_in.sql` | The PDF of an approved owner statement for an owner with no sign-in yet (the statement email of such an owner never went) |
 | `0040_operations_gaps.sql` | The operations gaps: staff proposals to change a confirmed booking (email, deadline, reminder, accept or decline, the difference charged or refunded, the owner told), the signed booking amendment, the cleaning block after each trip, the listing similarity check, earlier requests attached after a verified sign-in, expiring and renewable driver links, Forms C and D upload and review, the photo fingerprints of a field photo shoot (`docs/changes/2026-10-14-operations-gaps.md`) |
+| `0041_sample_cars_not_compared.sql` | The similarity check leaves the sample cars out (their placeholder VINs were flagged on the live database) |
 
 ## Test files
 
@@ -102,7 +103,7 @@ cd emails && node check.mjs
 | `22_launch_audit.sql` | The launch audit changes of 0035 | 28 |
 | `23_sign_in.sql` | Sign-in for every portal (0036) | 52 |
 | `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037 to 0039) | 118 |
-| `25_operations_gaps.sql` | The operations gaps of 0040: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
+| `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
 
 ## Rules for changes
 

@@ -1,6 +1,6 @@
 # Operations gaps: booking changes proposed by staff, amendments, cleaning blocks, similar listings, account links, driver links, Forms C and D, field photo shoots, October 14, 2026
 
-Migration `supabase/migrations/0040_operations_gaps.sql`, tests `supabase/tests/25_operations_gaps.sql`, end to end
+Migrations `supabase/migrations/0040_operations_gaps.sql` and `0041_sample_cars_not_compared.sql`, tests `supabase/tests/25_operations_gaps.sql`, end to end
 `web/tests/e2e/ops.spec.ts`, catalogue generator `supabase/seed/0040_gen_catalogue.mjs`. No earlier migration was
 edited; the functions it changes are wrapped (renamed `_00NN` and called from a new function of the same name) or
 replaced with the same signature, as 0029 to 0039 did.
@@ -87,6 +87,9 @@ screen (section 12).
   digest). `publish_listing` refuses while one is open or confirmed. Admin > Fleet > Similar cars and VA Fleet > Similar
   cars: "Not a duplicate" or "Same car", each with a note; the listing review screens show the flags of that car.
 - `listing_similarity_enabled` turns it off. Cars already on file were compared once without tasks or emails.
+- Sample cars (`vehicles.is_sample`) are never compared (0041): on the live database the first comparison flagged 20
+  pairs of sample cars whose placeholder VINs are one character apart and happen to carry a right check digit; 0041
+  removed those flags.
 
 ## 6. Earlier requests on a verified sign-in
 
