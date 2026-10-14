@@ -91,9 +91,33 @@ loaded by the deploy's templates step. Link paths added: `owner_banking`, `admin
 
 ## 7. Tests and live results
 
-See the final section, filled after the deploy.
+| Check | Result |
+| --- | --- |
+| Database suite | 24 files, 2,841 assertions, 0 failed (`24_owner_debit.sql` 118: notice day, dates, mandates, claim, submit, clear, return with Late Fee and retry, arrears, pauses, notice amount, cancel, passing and permanent errors, setup and mandate events, poll, run close, test owners, payloads, the twelve sections, PDF facts and access, email days, release, attachments, adjustments, privileges, and the 0038 and 0039 fixes) |
+| Unit | `debit-run.test.ts` (the Edge Function's run against a mocked database and Stripe), three new Stripe adapter tests; 52 in all |
+| End to end (local, fake Stripe), 375 and 1440 | `debit.spec.ts`: Banking setup, Admin notice, the debit day, one cleared and one returned through signed webhooks, the retry, Owner debits results and run log, company statement sections and three PDFs, email me the PDFs, mandate cancelled; axe and overflow on every page. `owner.spec.ts` passes unchanged |
+| Push CI | 38567052375 (0037 and the web), 38572682449 (0038), 38581893808 (0039): green (database, web with every e2e test, audit: crawl, SEO, emails) |
+| Deploys | 38569336594 failed at the Worker upload: Cloudflare's free KV write quota (1,000 a day) was used up by the day's deploys (code 10048); the Supabase side had applied 0037. A `page_cache` input (assets) was added; 38569845174, 38575451910 (0038) and 38584588227 (0039) green, migrations history 39 rows, 132 templates loaded, `owner-debit` answering, pg_cron `carmacars-owner-debit` and `carmacars-owner-debit-notices` scheduled |
+| Live debit, Stripe test mode | Two test owners (`is_test`, emails to `delivered+...@resend.dev`), each with a mandate made by a SetupIntent with micro-deposits; `setup_intent.succeeded` reached the site's webhook and activated both. Notices sent; the `owner-debit` function sent one off-session PaymentIntent per invoice. Clearing account 000123456789: cleared, invoice paid, receipt sent. Account 000222222227: returned `insufficient_funds` through `payment_intent.payment_failed`, invoice failed, $50.00 Late Fee, retry scheduled for the 18th for $72.60, `owner_payment_failed` sent, the staff notices only to the verification accounts. (900123456789, which Stripe documents as a failure, clears in test mode here.) The poll path settled a debit whose webhook had been missed |
+| Live statement email | An approved owner statement of a test owner went out from the statement emails job with `CarmaCars statement ST-1001.pdf` attached (Resend: delivered, attachment 7,848 bytes) |
+| Verify | 38577509198 and 38585108876: the owner's Banking debit block, Admin > Owner debits and Company statements all load; the statement job answered 200 (sent 1). Both runs failed on Cloudflare Error 1102 only (19 to 37 requests a run, a different page each time: view as, a link, a refusal page), with the page cache on static assets for the day |
+
+Found by the live run and fixed: the debit facts were sent to the database as a JSON string twice encoded (the debits
+were in Stripe with their keys, recorded on the next run with the same keys); a run of test owners only was
+summarised to every Admin (0038; one summary email, "Owner debits sent Oct 14", went to the real Admin address before
+the fix); a webhook before the run's record was dropped (0038); a failed invoice whose retry could not be sent was never
+noticed again (0038); the PDF of a statement of an owner with no sign-in could not be made (0039).
+
+Live test data: the owners "Debit Test Clears" and "Debit Test Returns" (with one sample vehicle each, invoices
+INV-1001 to INV-1003 and statement ST-1001) are kept, marked `is_test` and paused, their scheduled retry cancelled and
+their task closed. "Sample Owner" (the 20 sample cars) is marked `is_test` and paused too, so the sample cars are never
+debited and no staff notice about them reaches a real person.
 
 ## 8. For the owner
+
+- **Deploy again after 00:00 UTC** with the default page cache (Actions > ci > Run workflow > deploy, page_cache auto)
+  so pages are served from the KV cache again; today's deploys serve them as built, which costs more Worker CPU. The
+  Workers Paid plan removes Error 1102 altogether.
 
 - **Stripe live mode**: turn on Canadian pre-authorized debits (ACSS) in the live Stripe account, then put the live keys
   in the vault and deploy (launch audit item 9). The deploy subscribes the webhook to the new events itself.
