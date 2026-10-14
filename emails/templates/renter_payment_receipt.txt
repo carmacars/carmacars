@@ -36,5 +36,5 @@ Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
-Instagram: {{instagram_url}}
-TikTok: {{tiktok_url}}
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -74,7 +74,7 @@ const H = {
   facts: (b) => {
     const trs = b.rows.map((r) => wrapIf(r.when,
       `<tr><td class="tx-mid rule fl" width="36%" valign="top" style="width:36%;padding:11px 12px 11px 0;border-bottom:1px solid ${C.rule};font-family:${FONT};font-size:14px;line-height:22px;color:${C.mid};">${esc(r.label)}</td>` +
-      `<td class="tx rule" valign="top" style="padding:11px 0;border-bottom:1px solid ${C.rule};font-family:${FONT};font-size:15px;line-height:22px;color:${C.ink};font-weight:600;">${inlineHtml(r.value)}</td></tr>`)).join('\n');
+      `<td class="tx rule" valign="top" style="padding:11px 0;border-bottom:1px solid ${C.rule};font-family:${FONT};font-size:15px;line-height:22px;color:${C.ink};font-weight:600;word-break:break-word;overflow-wrap:anywhere;">${inlineHtml(r.value)}</td></tr>`)).join('\n');
     return section(`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="rule" style="border-top:1px solid ${C.rule};">\n${trs}\n</table>`, 28);
   },
 
@@ -292,7 +292,7 @@ ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
 ${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">CarmaCars<br>{{company_address}}</div>
-<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a> &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>`}</div>
+<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}{{#if instagram_url}} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a>{{/if}}{{#if tiktok_url}} &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>{{/if}}`}</div>
 </td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
@@ -315,7 +315,7 @@ export function textTemplate(email) {
     inlineText(helpLine(email)),
     reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time: {{unsubscribe_url}}\nWe act on it within 10 business days.' : ''),
     STAFF(email.audience) ? '' : CONTACT_LINE,
-    `CarmaCars\n{{company_address}}\n${url('home')}` + (STAFF(email.audience) ? '' : '\nInstagram: {{instagram_url}}\nTikTok: {{tiktok_url}}'),
+    `CarmaCars\n{{company_address}}\n${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
   ];
   return parts.join('\n\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }

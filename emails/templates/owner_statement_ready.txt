@@ -10,12 +10,14 @@ Here are the totals across your vehicles, {{first_name}}. The full statement lis
 {{payout_label}}: {{payout_amount}}
 {{payout_summary}}
 
+{{#if statement_vehicles}}
 By vehicle
 ------------------------
 
 {{#each statement_vehicles}}
   Vehicle: {{name}} | Owner Revenue: {{owner_revenue}} | Payable: {{payable}}
 {{/each}}
+{{/if}}
 
 Totals
 ------------------------
@@ -52,5 +54,5 @@ Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {
 CarmaCars
 {{company_address}}
 https://carmacars.ca/
-Instagram: {{instagram_url}}
-TikTok: {{tiktok_url}}
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

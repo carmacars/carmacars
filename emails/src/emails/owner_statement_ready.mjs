@@ -16,15 +16,17 @@ export default {
   body: [
     hero('Monthly statement', 'Your {{statement_month}} statement is ready', 'Here are the totals across your vehicles, {{first_name}}. The full statement lists every rental.'),
     figure('{{payout_label}}', '{{payout_amount}}', '{{payout_summary}}'),
-    h('By vehicle'),
-    table({
-      each: 'statement_vehicles',
-      cols: [
-        { head: 'Vehicle', value: '{{name}}', strong: true },
-        { head: 'Owner Revenue', value: '{{owner_revenue}}', align: 'right' },
-        { head: 'Payable', value: '{{payable}}', align: 'right', strong: true },
-      ],
-    }),
+    when('statement_vehicles', [
+      h('By vehicle'),
+      table({
+        each: 'statement_vehicles',
+        cols: [
+          { head: 'Vehicle', value: '{{name}}', strong: true },
+          { head: 'Owner Revenue', value: '{{owner_revenue}}', align: 'right' },
+          { head: 'Payable', value: '{{payable}}', align: 'right', strong: true },
+        ],
+      }),
+    ]),
     h('Totals'),
     price({
       rows: [
