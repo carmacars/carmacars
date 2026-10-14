@@ -254,7 +254,14 @@ if (process.argv.includes('--auth')) {
         const form = page.getByTestId(`open-as-${section}`);
         await form.locator('select').selectOption(t.id);
         await form.getByRole('button', { name: 'Open as this person' }).click();
-        await page.waitForURL((u) => u.pathname === home, { timeout: 30_000 });
+        await page.waitForURL((u) => u.pathname === home, { timeout: 30_000 }).catch(async () => {
+          // the form's answer was Cloudflare's Error 1102 (the free plan's CPU limit): send it once more
+          (r.retried ??= []).push(`view as ${section} start`);
+          await load(`${BASE}/admin/portals?q=${encodeURIComponent(t.email)}`);
+          await page.getByTestId(`open-as-${section}`).locator('select').selectOption(t.id);
+          await page.getByTestId(`open-as-${section}`).getByRole('button', { name: 'Open as this person' }).click();
+          await page.waitForURL((u) => u.pathname === home, { timeout: 30_000 });
+        });
         await page.waitForLoadState('networkidle');
         if (BROKEN.test(await bodyText(page))) { (r.retried ??= []).push(`view as ${section}`); await load(`${BASE}${home}`); }
         v.banner = (await page.getByTestId('view-as-banner').textContent({ timeout: 10_000 }).catch(() => '')).replace('Exit', '').trim();
@@ -317,12 +324,22 @@ if (process.argv.includes('--auth')) {
       inv.id = g.user?.id ?? g.id;
       const c2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
       const p2 = await c2.newPage();
+      p2.on('response', async (x) => {
+        if (x.status() < 500) return;
+        const said = (await x.text().catch(() => '')).match(/Error \d{4}[^<]{0,80}|exceeded[^<]{0,60}/i)?.[0] ?? '';
+        (r.responses ??= []).push(`${x.status()} ${x.request().method()} ${x.url().slice(0, 160)}${said ? ` (${said.trim()})` : ''}`);
+      });
       await p2.goto(`${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${type}&next=/update-password`, { waitUntil: 'networkidle' });
       inv.landed = new URL(p2.url()).pathname;
+      for (let i = 1; i <= 2 && inv.landed === '/update-password' && BROKEN.test(await bodyText(p2)); i++) {
+        // Error 1102 on the page itself: the link already signed the person in, so the page is loaded again
+        (inv.retried ??= []).push('update-password'); await p2.waitForTimeout(2000 * i); await p2.goto(`${BASE}/update-password`, { waitUntil: 'networkidle' });
+      }
       inv.for = await p2.getByTestId('password-for').textContent({ timeout: 5_000 }).catch(() => null);
       await p2.locator('#np-pass').fill(randomPassword());
       await p2.getByRole('button', { name: 'Save the new password' }).click();
       await p2.waitForURL((u) => u.pathname === '/va', { timeout: 30_000 });
+      if (BROKEN.test(await bodyText(p2))) { (inv.retried ??= []).push('va'); await p2.goto(`${BASE}/va`, { waitUntil: 'networkidle' }); }
       inv.portal = new URL(p2.url()).pathname;
       inv.who = await p2.locator('.ad__who').first().textContent().catch(() => null);
       await p2.screenshot({ path: path.join(out, 'invite-landed.png'), fullPage: true });
