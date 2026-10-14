@@ -312,7 +312,7 @@ select test.eq('D thirty days after: the 1-month offer at 15%, from followup_30d
     where m.code = 'renter_comeback_1m' and m.booking_id = test.id('booking:NT-9')), 'followup_30d/1500');
 select test.flush();
 select test.eq('D marketing emails carry a one-click unsubscribe link',
-  (select bool_and(payload ->> 'unsubscribe_url' like 'https://carmacars.ca/email/unsubscribe?token=%' and unsubscribe_token is not null)::text
+  (select bool_and(payload ->> 'unsubscribe_url' like 'https://carmacars.ca/unsubscribe?token=%' and unsubscribe_token is not null)::text
      from notification_outbox where code in ('renter_comeback_1w', 'renter_comeback_1m', 'renter_review_request') and booking_id in (test.id('booking:NT-9'), test.id('booking:NT-10'))),
   'true');
 -- a renter with an open incident gets no follow-up

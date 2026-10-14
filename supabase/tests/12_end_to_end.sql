@@ -160,7 +160,10 @@ select test.eq('E the renter agrees and pays online; applied by 0019: the bookin
   'true:3/applied:true:succeeded/done/proposed,agreed,applied');
 -- the renter asks for a later pickup the same day: approved by customer service at no cost, applied
 select test.e2_put('ch', app.request_booking_change(test.ba('e2:2'), test.ba_user('cal.end@example.test'),
-  jsonb_build_object('pickup_at', test.soon('10 days') + interval '2 hours'), 'My flight lands later'));
+  -- two hours later, or less when that would cross midnight in Toronto (another day can have another rate)
+  jsonb_build_object('pickup_at', test.soon('10 days') + least(interval '2 hours',
+    date_trunc('day', test.soon('10 days') at time zone 'America/Toronto') + interval '1 day' - (test.soon('10 days') at time zone 'America/Toronto') - interval '10 minutes')),
+  'My flight lands later'));
 select app.approve_booking_change(test.e2('ch'), test.id('e2_cs'));
 select test.eq('E the renter''s request costs nothing more: approved counts as agreed, and it is applied',
   (select (app.apply_booking_change(test.e2('ch'), test.id('e2_cs')) ->> 'status'))
