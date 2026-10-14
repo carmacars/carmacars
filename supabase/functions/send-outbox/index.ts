@@ -73,7 +73,10 @@ async function sendOne(r: Row): Promise<'sent' | 'failed'> {
     const headers: Record<string, string> = {};
     if (r.category === 'marketing') {
       if (!r.unsubscribe_url) throw Object.assign(new Error('A marketing email needs its unsubscribe link'), { permanent: true });
-      headers['List-Unsubscribe'] = `<${r.unsubscribe_url}>`;
+      // RFC 8058: the one-click POST goes to the site's /api/unsubscribe with the email's token; the
+      // link in the body (unsubscribe_url) opens the page, which asks first.
+      const token = new URL(r.unsubscribe_url).searchParams.get('token') ?? '';
+      headers['List-Unsubscribe'] = `<${APP_URL}/api/unsubscribe?token=${encodeURIComponent(token)}>`;
       headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
     }
     const res = await fetch('https://api.resend.com/emails', {

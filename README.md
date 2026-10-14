@@ -9,7 +9,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 33 migrations (0033: the gaps of the staff portals and documents closed); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/migrations/` | 34 migrations (0034: the fixes of the handover audit); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
 | `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
@@ -20,6 +20,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | `docs/data-model.md` | Tables by area, status flows, where each billing rule lives, assumptions |
 | `docs/permissions.md` | The role matrix, every table and function group, and how it is enforced |
 | `docs/changes/` | One record per migration from 0016 on (0025: the owner's answers): what was added, decisions, tests changed, what is not done |
+| `docs/audit/` | The independent handover audit (2026-10-13): every requirement with its status and evidence, the routes, SEO, emails, and what still needs the owner |
 | `docs/decisions/` | Decision records. 0001: the launch stack with no fixed monthly fees |
 | `docs/blueprint/` | The product blueprint the later migrations follow |
 | `docs/setup.md` | The accounts and how they connect; environment variables and secrets; running the tests; backups |
@@ -68,6 +69,7 @@ cd emails && node check.mjs
 | `0026` to `0031` | Reply-to alignment, the website, renter, owner, admin, staff and investor portals' doors (see `docs/changes/`) |
 | `0032_pipeline_documents.sql` | The listing pipeline's worker support (claims with budgets, results with units, retry, progress), generated documents and their access, signed links for emails, refunds through the payments module, the Deposit preview, the insurer invoice email (`docs/changes/0032_pipeline_documents.md`) |
 | `0033_gap_close.sql` | The gaps of 0031 and 0032: renter messages both ways and their emails, the monthly statement emails (PDF first, 7-day links), the assistant's function switcher and scorecard, Turo trips, daily checks, photo review and re-shoot, the late-return panel, find a renter, Sales quotes, field checklists for every job kind, the field report, referrals and profile, the live verification's accounts (`docs/changes/0033_gap_close.md`) |
+| `0034_audit_fixes.sql` | The handover audit's database fixes: one-click unsubscribe wrappers and the `/unsubscribe` link path, the renter's review with consent to publish, the disable approval email without a booking, the renter portal listing only the caller's documents, digest lines in words (`docs/changes/0034_audit_fixes.md`, `docs/audit/2026-10-13-audit.md`) |
 
 ## Test files
 
@@ -90,6 +92,7 @@ cd emails && node check.mjs
 | `15_renter_portal.sql` to `18_staff_investor_portals.sql` | The portals' doors (0028 to 0031) | 177 |
 | `19_pipeline_documents.sql` | The listing worker, generated documents and links, refunds, Deposit preview, insurer email (0032) | 69 |
 | `20_gap_close.sql` | The gaps closed by 0033, and every catalogue code emitted by something | 102 |
+| `21_audit_fixes.sql` | The audit fixes of 0034 | 29 |
 
 ## Rules for changes
 

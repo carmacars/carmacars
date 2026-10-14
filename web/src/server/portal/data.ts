@@ -57,3 +57,12 @@ export interface CancellationPreview {
   refund_due_by: string | null; booking_number: string; non_refundable: boolean; retained_cents: number; booking_made_at: string;
   total_paid_cents: number; deposit_returned_cents: number; deposit_hold_to_release: boolean; reason?: string | null; message?: string | null;
 }
+
+export interface ReviewState {
+  can_review: boolean; status: string;
+  review: { rating: number; title: string | null; body: string | null; status: 'pending' | 'published' | 'hidden'; staff_reply: string | null; created_at: string; publish_consent: boolean } | null;
+}
+/** The booking's review for its renter (public.renter_review_state of 0034 checks the renter again). */
+export async function reviewState(u: SessionUser, bookingId: string): Promise<ReviewState> {
+  return (await rpc('renter_review_state', { p_booking: bookingId, p_by: u.id }, { role: 'service_role' })) as unknown as ReviewState;
+}

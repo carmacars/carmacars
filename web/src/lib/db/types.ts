@@ -11418,10 +11418,12 @@ export type Database = {
       renter_request_booking_change: { Args: { p_booking: string; p_by: string; p_changes: Json; p_note?: string }; Returns: string };
       renter_request_extension: { Args: { p_booking: string; p_by: string; p_new_return: string; p_note?: string }; Returns: string };
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
+      renter_review_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_save_details: { Args: { p_by: string; p_details: Json; p_booking?: string }; Returns: Json };
       renter_send_message: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
       renter_set_marketing: { Args: { p_by: string; p_opt_in: boolean; p_text?: string; p_version?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
+      renter_submit_review: { Args: { p_booking: string; p_by: string; p_rating: number; p_title?: string; p_body?: string; p_publish_consent?: boolean }; Returns: string };
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
@@ -11457,6 +11459,8 @@ export type Database = {
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
+      server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
+      server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
       server_verify_accounts: { Args: { p: Json }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };

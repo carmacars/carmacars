@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { pageMeta } from '@/features/seo/meta';
+import { seoMeta } from '@/features/seo/meta';
 import { env } from '@/lib/env';
 import { money } from '@/lib/format';
 import { getSettings } from '@/lib/site';
@@ -20,7 +20,7 @@ import { signToken } from '@/server/links';
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
   const n = decodeURIComponent((await params).number);
-  return pageMeta({ title: `Booking ${n}`, path: `/account/bookings/${n}`, noindex: true, description: 'Your booking: status, next step, price, drivers and documents.' });
+  return seoMeta({ title: `Booking ${n}`, path: `/account/bookings/${n}`, noindex: true, description: 'Your booking: status, next step, price, drivers and documents.' });
 }
 
 const within = (iso: string, hours: number) => new Date(iso).getTime() - Date.now() < hours * 3600e3;
@@ -119,6 +119,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
               {(b.status === 'on_rent' || b.status === 'confirmed') && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}
               {['requested', 'pending_payment'].includes(b.status) && <Withdraw number={b.booking_number} />}
+              {b.status === 'closed' && b.booking_type !== 'owner' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'review')} data-testid="review-link">Review your rental</Link>}
               {phone && <a className="btn btn--quiet" href={`tel:${s.phone ?? phone}`}>Call us {phone}</a>}
             </div>
           </section>

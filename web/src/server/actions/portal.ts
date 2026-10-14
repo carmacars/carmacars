@@ -435,3 +435,20 @@ export async function sendBookingMessage(number: string, body: string): Promise<
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
+
+// ---------------------------------------------------------------- review (the review request email's link)
+export async function submitReview(number: string, input: { rating: number; title: string; body: string; consent: boolean }): Promise<R> {
+  const rating = Math.round(Number(input?.rating));
+  const title = String(input?.title ?? '').trim(); const body = String(input?.body ?? '').trim();
+  const fieldErrors: Record<string, string> = {};
+  if (!(rating >= 1 && rating <= 5)) fieldErrors.rating = 'Choose from 1 to 5 stars.';
+  if (title.length > 120) fieldErrors.title = 'At most 120 characters.';
+  if (body.length > 2000) fieldErrors.body = 'At most 2,000 characters.';
+  if (Object.keys(fieldErrors).length) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors };
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_submit_review', { p_booking: b.id, p_by: userId, p_rating: rating, p_title: title || undefined, p_body: body || undefined, p_publish_consent: Boolean(input?.consent) }, SR);
+    refresh(number); revalidatePath(bookingPath(number, 'review'));
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}

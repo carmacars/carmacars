@@ -170,3 +170,15 @@
 .pt-thread .pt-msg p { margin: 0; }
 .pt-msg--me { background: var(--white); border: 1px solid var(--grey-200); }
 .pt-msg__body { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* review stars (the renter's review, /account/bookings/[number]/review) */
+.pt-stars { display: flex; gap: var(--s-1); }
+.pt-star { font-size: 2rem; line-height: 1; color: var(--grey-300, #c8c8c8); cursor: pointer; padding: 4px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.pt-star.is-on { color: var(--red-600); }
+.pt-star:focus-within { outline: 2px solid var(--black); outline-offset: 2px; }
+
+/* a card's one column never grows past the card (long select options and date-time inputs widened the
+   "Book my own car" card past its 24rem column at 1440) */
+.pt-card { grid-template-columns: minmax(0, 1fr); }
+.pt-card .input, .pt-card .select, .pt-card .textarea { min-width: 0; max-width: 100%; }
+.pt-card .field-row { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }

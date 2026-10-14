@@ -5,7 +5,7 @@ const EMAIL_PATHS: Array<[string, string]> = [
   ['/account/bookings/:n/request', '/account/bookings/:n#questions'], ['/account/bookings/:n/agreement', '/account/bookings/:n/sign'],
   ['/account/bookings/:n/pickup', '/account/bookings/:n'], ['/account/bookings/:n/condition-report', '/account/bookings/:n'],
   ['/account/bookings/:n/return', '/account/bookings/:n'], ['/account/bookings/:n/statement', '/account/bookings/:n'],
-  ['/account/bookings/:n/incident', '/account/bookings/:n'], ['/account/bookings/:n/review', '/account/bookings/:n'],
+  ['/account/bookings/:n/incident', '/account/bookings/:n'],
   ['/owner/application', '/owner'], ['/owner/agreements', '/owner/documents'], ['/owner/billing', '/owner/invoices'],
   ['/owner/vehicles/:id/onboarding', '/owner/vehicles/:id'], ['/owner/vehicles/:id/calendar', '/owner/bookings'], ['/owner/vehicles/:id/exit', '/owner/vehicles/:id'],
   ['/owner/bookings/:n', '/owner/bookings'], ['/owner/claims/:n', '/owner/notifications'],
@@ -40,7 +40,7 @@ const config: NextConfig = {
       { source: '/account/:path*', headers: noindex },
       { source: '/book/:path*', headers: noindex },
       { source: '/api/:path*', headers: noindex },
-      ...['/admin', '/owner', '/va', '/field', '/investor', '/two-step', '/files', '/d'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
+      ...['/admin', '/owner', '/va', '/field', '/investor', '/two-step', '/files', '/d', '/sign', '/unsubscribe'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
       ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : [])
     ];
   },
@@ -51,6 +51,8 @@ const config: NextConfig = {
       { source: '/owners.html', destination: '/list-your-car', permanent: true },
       { source: '/signin.html', destination: '/sign-in', permanent: true },
       { source: '/sign-up', destination: '/create-account', permanent: true },
+      // the unsubscribe link's first path (0018); marketing links now go to /unsubscribe (0034)
+      { source: '/email/unsubscribe', destination: '/unsubscribe', permanent: true },
       // Paths the emails link to (emails/src/links.mjs) that are sections of a page here, or the blueprint's
       // longer names for the assistants' screens: each goes to the page that holds it (sign-in first where needed).
       ...EMAIL_PATHS.map(([source, destination]) => ({ source, destination, permanent: false }))
