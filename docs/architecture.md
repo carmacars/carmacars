@@ -98,7 +98,7 @@ Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 
 `pg_cron` runs on UTC. A job that belongs to a Toronto time is scheduled every hour (or more often); the wrapper works out the Toronto date and hour itself and claims a row in `job_runs (job_name, run_key)` with `app.job_claim()`, so a daylight-saving shift or a retry cannot run a business day (or a slot) twice. A run that fails is marked `failed` with its error, raises one urgent admin task and the `staff_job_failed` email, and is tried again on the next call. Every wrapper takes the instant to judge by, so a missed run can be made by hand, for example `select app.job_owner_invoices(timestamptz '2026-11-15 06:00 America/Toronto')`; the run key still stops a second run. Where `pg_cron` is absent (a plain local database) the migrations schedule nothing. Times below are Toronto time.
 
-### Run by pg_cron inside the database (20 jobs)
+### Run by pg_cron inside the database (22 jobs)
 
 | Cron job | When | Wrapper | What it does | Migration |
 | --- | --- | --- | --- | --- |
@@ -123,6 +123,7 @@ Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 | `carmacars-listing-sweep` | Every 10 minutes | `app.job_listing_sweep()` | A listing job a worker claimed and did not finish goes back to the queue (or fails after its attempts); counts what is due | 0024 |
 | `carmacars-listings-publish` | Every 5 minutes | `app.job_publish_listings()` | Publishes listings whose `publish_at` has come, in the scheduler's name; a refusal is kept in `publish_error` with a Fleet task | 0024 |
 | `carmacars-owner-debit-notices` | The debit day less `owner_debit_notice_days`, from `owner_debit_run_hour` | `app.job_owner_debit_notices()` | Issues the month's fee invoices, emails each owner the pre-debit notice and schedules one debit per invoice (no mandate: the owner is asked to set one up, an Admin gets the exception) | 0037 |
+| `carmacars-booking-changes` | Every 15 minutes | `app.job_booking_changes()` | A change staff proposed to a confirmed booking: one reminder `booking_change_reminder_hours` before its deadline, then it expires (the booking stays as it was; renter and customer service are told) | 0040 |
 
 These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.sql`, `09_operations.sql`, `10_tolls_statements.sql` and `12_end_to_end.sql`, by calling each wrapper with chosen instants.
 
