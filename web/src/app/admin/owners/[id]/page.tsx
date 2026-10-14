@@ -5,6 +5,8 @@ import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, OfflinePaymentForm, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
+import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
+import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { $, Card, Table, t as at } from '@/features/admin/ui';
@@ -85,6 +87,10 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
           <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
+          <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
+            {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><ViewAsButton user={String(o.user_id)} portal="owner" testId="view-as-owner" /><PasswordLinkButton userId={String(o.user_id)} /></div></>
+              : <><p className="small muted">No sign-in yet.</p><InviteRecordButton role="owner" recordId={o.id} email={o.email} name={o.legal_name} testId="invite-owner" /></>}</section>
           <section className="pt-card" aria-labelledby="ad-link"><h2 className="d4" id="ad-link">Send the owner a link</h2><SendLinkForm kind="portal" email={o.email ?? ''} name={o.legal_name} /></section>
         </aside>
       </div>

@@ -65,12 +65,3 @@ export function InvoiceRows({ items, empty = 'No invoices yet.' }: { items: Owne
   );
 }
 
-export function NotOwner() {
-  return (
-    <div className="pt-empty">
-      <h1 className="d3">No owner account here yet</h1>
-      <p className="muted">This sign-in is not linked to a car owner. Apply to list your car, or sign in with the email you applied with.</p>
-      <p className="row" style={{ justifyContent: 'center' }}><Link className="btn btn--primary" href="/list-your-car/apply">Apply to list your car</Link><Link className="btn btn--ghost" href="/account">Go to your trips</Link></p>
-    </div>
-  );
-}

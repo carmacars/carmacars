@@ -4,7 +4,9 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act, SaveForm, type Field } from '@/features/admin/Act';
 import { fieldsFrom } from '@/features/admin/fields';
-import { LogoUpload, StaffInvite } from '@/features/admin/SettingsClient';
+import { LogoUpload } from '@/features/admin/SettingsClient';
+import { InviteForm, PasswordLinkButton } from '@/features/admin/AccountTools';
+import { ViewAsButton } from '@/features/admin/ViewAs';
 import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { SECTIONS } from '../sections';
 
@@ -118,11 +120,15 @@ export default async function Section({ params }: { params: Promise<{ section: s
     </>);
   case 'staff':
     return (<>{head}
-      <Card title="Invite"><StaffInvite /></Card>
+      <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (one hour), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>.</p><InviteForm roles={['va', 'field', 'admin']} testId="staff-invite" /></Card>
       <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
         { key: 'fn', label: 'Function', render: (r) => { const p = r.profile as R | null; if (!p) return ''; const cover = (p.cover_functions as string[] | null) ?? []; return `${label(p.va_function ?? p.field_function)}${cover.length ? ` (also ${cover.map(label).join(', ')})` : ''}`; } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'act', label: 'Actions', render: (r) => r.id === user.id ? <span className="muted small">you</span> : <span className="ad-actions">
+          {r.status === 'active' && <PasswordLinkButton userId={String(r.id)} testId={`pw-${String(r.email)}`} />}
+          {r.status === 'active' && [String((r.profile as R | null)?.va_function ?? ''), ...(((r.profile as R | null)?.cover_functions as string[] | null) ?? [])].filter((f) => f && (r.profile as R | null)?.staff_type === 'va')
+            .map((f) => <ViewAsButton key={f} user={String(r.id)} portal="va" fn={f} label={`View as (${label(f)})`} testId={`view-as-${String(r.email)}-${f}`} />)}
+          {r.status === 'active' && (r.profile as R | null)?.staff_type === 'field' && <ViewAsButton user={String(r.id)} portal="field" testId={`view-as-${String(r.email)}-field`} />}
           {(r.profile as R | null) && <SaveFormLimits id={String(r.id)} p={r.profile as R} />}
           {(r.profile as R | null)?.va_function ? <>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>

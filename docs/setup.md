@@ -103,6 +103,7 @@ Listed with comments in `.env.example`. Variables starting `NEXT_PUBLIC_` reach 
 | `NEXT_PUBLIC_APP_URL`, `APP_ENV` | App | No |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and server; row-level security applies | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only: webhooks, jobs, money actions. Bypasses row-level security | **Yes** |
+| `SUPABASE_JWT_SECRET` | Server only: Admin "view as" reads a renter's or owner's portal with a 5-minute token for that person. The deploy reads it from the project | **Yes** |
 | `DATABASE_URL` | Migrations and the nightly backup only; never given to the app | **Yes** |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Checkout in the browser | No |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_HST_TAX_RATE_ID` | Payments module; the `stripe-webhook` function | **Yes** |
@@ -130,6 +131,7 @@ Create two GitHub environments, `staging` and `production`, and add these secret
 | `SUPABASE_PROJECT_REF` | Supabase project settings | Deploying Edge Functions |
 | `DATABASE_URL` | Supabase project settings, Database | Migrations; nightly `pg_dump` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase project settings, API | The Worker (server side) |
+| `SUPABASE_JWT_SECRET` | Management API `/v1/projects/{ref}/postgrest` (`jwt_secret`), read by the deploy | The Worker (server side) |
 | `STRIPE_SECRET_KEY` | Stripe, Developers, API keys | The Worker; Edge Functions |
 | `STRIPE_WEBHOOK_SECRET` | Stripe, the webhook endpoint | The `stripe-webhook` function |
 | `R2_ACCESS_KEY_ID` | Cloudflare R2 API token, section 3 step 3 | The Worker; the backup job |

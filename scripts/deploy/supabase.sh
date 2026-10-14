@@ -38,6 +38,12 @@ secrets() {
   export_env NEXT_PUBLIC_SUPABASE_URL "https://$REF.supabase.co"
   export_env NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon"
   export_env SUPABASE_SERVICE_ROLE_KEY "$service"
+  # the project's JWT secret (the legacy HS256 key the database API still accepts): Admin "view as" reads a renter's or
+  # owner's portal with a 5-minute token for that person, made on the server (web/src/server/view-as.ts)
+  local jwt
+  jwt=$(sbapi GET "/postgrest" | jq -r '.jwt_secret // empty')
+  if [ -n "$jwt" ]; then mask "$jwt"; export_env SUPABASE_JWT_SECRET "$jwt"
+  else notice "No JWT secret from the project: Admin view as cannot open the renter and owner portals"; fi
   local rows
   rows=$(sbq "select name, decrypted_secret as v from vault.decrypted_secrets where name like 'deploy\_%'")
   local pair name var val

@@ -6,6 +6,7 @@ import { auth, type SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
+import { viewAs, ViewAsReadOnly } from '@/server/view-as';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -23,6 +24,9 @@ export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
  *  database accepts it only if it is one of theirs (app.va_active_fn). */
 export const VA_FN_COOKIE = 'cc-va-fn';
 async function chosenFunction(): Promise<string | null> {
+  // viewing an assistant's portal as an Admin: the function chosen for the view
+  const v = await viewAs();
+  if (v) return v.fn;
   try { return (await cookies()).get(VA_FN_COOKIE)?.value ?? null; } catch { return null; }
 }
 
@@ -35,6 +39,8 @@ const cachedRead = cache(async (key: string): Promise<unknown> => {
 });
 
 export async function door<T = Record<string, unknown>>(userId: string, call: Call, name: string | null, p: Record<string, unknown> = {}, aal?: 'aal1' | 'aal2' | null): Promise<T> {
+  // viewing as this person: their reads only; any action for them is refused (src/server/view-as.ts)
+  if (!READS.has(call)) { const v = await viewAs(); if (v && v.target.id === userId) throw new ViewAsReadOnly(); }
   const level = aal === undefined ? await sessionAal() : aal;
   let args = p;
   if (call.startsWith('va_') && !('_va' in p)) { const fn = await chosenFunction(); if (fn) args = { ...p, _va: fn }; }
@@ -49,16 +55,6 @@ export async function rolesOf(userId: string): Promise<Roles> {
   const fn = r.va ? await chosenFunction() : null;
   if (fn && r.va_functions?.includes(fn as Roles['va'] & string)) r.va = fn as Roles['va'];
   return r;
-}
-
-/** Where a signed-in user goes when no page was asked for. */
-export function homeFor(r: Roles): string {
-  if (r.admin) return '/admin';
-  if (r.va) return '/va';
-  if (r.field) return '/field';
-  if (r.investor) return '/investor';
-  if (r.owner) return '/owner';
-  return '/account';
 }
 
 /** Staff pages: signed in, the role, and the second factor when the switch is on (or the person enrolled). */

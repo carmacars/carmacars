@@ -88,7 +88,7 @@ export function localAuth(): AuthAdapter {
       const e = email.trim().toLowerCase();
       const rows = await sql`select id, email, password_hash from local_auth.users where email = ${e}`;
       const r = rows[0];
-      if (!r || !(await checkPassword(password, r.password_hash as string))) return { ok: false, message: 'That email and password do not match an account.' };
+      if (!r || !(await checkPassword(password, r.password_hash as string))) return { ok: false, code: 'credentials', message: 'That email and password do not match an account.' };
       await sql`update local_auth.users set last_sign_in_at = now() where id = ${r.id as string}`;
       const user = { id: r.id as string, email: r.email as string };
       await setSession(user);
@@ -108,21 +108,37 @@ export function localAuth(): AuthAdapter {
     },
     async invite(email, _fullName, redirectTo) {
       const e = email.trim().toLowerCase();
-      const found = await sql`select id from local_auth.users where email = ${e}`;
+      const found = await sql`select id, password_hash from local_auth.users where email = ${e}`;
+      // an address that already signs in is not invited again (Supabase refuses it the same way)
+      if (found[0] && !String(found[0].password_hash).startsWith('invited$')) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
       const id = (found[0]?.id as string | undefined) ?? randomUUID();
       // an unusable password until the invited person chooses one through the emailed link
       if (!found[0]) await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${e}, ${'invited$' + randomBytes(16).toString('hex')})`;
       await this.requestPasswordReset(e, redirectTo);
       return { ok: true, user: { id, email: e } };
     },
+    async createForRecord(userId, email, _fullName, redirectTo) {
+      const e = email.trim().toLowerCase();
+      const found = await sql`select 1 from local_auth.users where id = ${userId} or email = ${e}`;
+      if (found.length) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      await sql`insert into local_auth.users (id, email, password_hash) values (${userId}, ${e}, ${'invited$' + randomBytes(16).toString('hex')})`;
+      await this.requestPasswordReset(e, redirectTo);
+      return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
+    },
+    async deleteAccount(userId) {
+      await sql`delete from local_auth.users where id = ${userId}`;
+    },
+    async resendConfirmation() {
+      // local accounts are confirmed when made: nothing to send
+    },
     async updatePassword(password, token) {
-      if (!token) return { ok: false, message: 'The reset link has expired. Ask for a new one.' };
+      if (!token) return { ok: false, message: 'This link has expired or was already used. Ask for a new one below.' };
       const rows = await sql`
         update local_auth.reset_tokens t set used_at = now() from local_auth.users u
          where t.token_hash = ${hashToken(token)} and t.used_at is null and t.expires_at > now() and u.id = t.user_id
          returning u.id, u.email`;
       const r = rows[0];
-      if (!r) return { ok: false, message: 'The reset link has expired. Ask for a new one.' };
+      if (!r) return { ok: false, message: 'This link has expired or was already used. Ask for a new one below.' };
       await sql`update local_auth.users set password_hash = ${await hashPassword(password)} where id = ${r.id as string}`;
       const user = { id: r.id as string, email: r.email as string };
       await setSession(user);

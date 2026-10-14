@@ -96,7 +96,7 @@ cd emails && node check.mjs
 | `20_gap_close.sql` | The gaps closed by 0033, and every catalogue code emitted by something | 102 |
 | `21_audit_fixes.sql` | The audit fixes of 0034 | 29 |
 | `22_launch_audit.sql` | The launch audit changes of 0035 | 28 |
-| `23_sign_in.sql` | Sign-in for every portal (0036) | 55 |
+| `23_sign_in.sql` | Sign-in for every portal (0036) | 52 |
 
 ## Rules for changes
 

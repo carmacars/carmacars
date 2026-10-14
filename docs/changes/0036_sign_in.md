@@ -19,7 +19,7 @@ Every new function is executable by `service_role` only, except `my_unread_count
 
 ## Tests
 
-`23_sign_in.sql` (55 assertions): view as each portal, a function they cover, refused for a function they do not
+`23_sign_in.sql` (52 assertions): view as each portal, a function they cover, refused for a function they do not
 have, a portal they do not have, a non-Admin, themselves, an unknown portal and an ended account; every start in the
 audit log with the portal and function; a browser cannot start it. An account made on the site has the renter portal
 before its first booking. Admin > Portals lists portals per person, searches (with `%` and `_` taken literally),

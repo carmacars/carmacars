@@ -11321,15 +11321,20 @@ export type Database = {
       };
     };
     Functions: {
+      admin_account_index: { Args: { p_admin: string }; Returns: Json };
+      admin_account_link: { Args: { p_admin: string; p_user: string; p_kind?: string }; Returns: Json };
       admin_approve_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_approve?: boolean }; Returns: Json };
       admin_do: { Args: { p_admin: string; p_action: string; p?: Json }; Returns: Json };
       admin_gate: { Args: { p_user: string }; Returns: Json };
+      admin_invite_account: { Args: { p_admin: string; p: Json }; Returns: Json };
       admin_issue_tracker_install_invoices: { Args: { p_admin: string; p_owner?: string; p_vehicles?: string[] }; Returns: Json };
       admin_issue_upfront_invoices: { Args: { p_owner: string; p_admin: string; p_vehicles?: string[] }; Returns: Json };
       admin_list: { Args: { p_admin: string; p_rel: string; p?: Json }; Returns: Json };
       admin_owner_applications: { Args: { p_admin: string }; Returns: Json };
       admin_owner_detail: { Args: { p_admin: string; p_owner: string }; Returns: Json };
       admin_owner_invoices: { Args: { p_admin: string; p_status?: string }; Returns: Json };
+      admin_portal_people: { Args: { p_admin: string; p_q?: string; p_limit?: number }; Returns: Json };
+      admin_rail_counts: { Args: { p_admin: string }; Returns: Json };
       admin_read: { Args: { p_admin: string; p_what: string; p?: Json }; Returns: Json };
       admin_record_owner_offline_payment: { Args: { p_invoice: string; p_admin: string; p: Json }; Returns: Json };
       admin_record_tracker_installed: { Args: { p_vehicle: string; p_admin: string; p_on?: string }; Returns: undefined };
@@ -11391,6 +11396,7 @@ export type Database = {
       my_profile: { Args: never; Returns: Json };
       my_promo_code_problem: { Args: { p_code: string; p_booking: string }; Returns: string };
       my_roles: { Args: { p_user: string }; Returns: Json };
+      my_unread_count: { Args: never; Returns: number };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
       owner_give_exit_notice: { Args: { p_by: string; p_vehicle: string; p?: Json }; Returns: Json };
       owner_id_for: { Args: { p_by: string }; Returns: string };
@@ -11464,7 +11470,9 @@ export type Database = {
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
+      server_user_by_email: { Args: { p_email: string }; Returns: string };
       server_verify_accounts: { Args: { p: Json }; Returns: Json };
+      server_view_as_start: { Args: { p_admin: string; p_target: string; p_portal: string; p_fn?: string }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };

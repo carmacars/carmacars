@@ -1,5 +1,5 @@
 import 'server-only';
-import { currentUser } from '@/server/portal/data';
+import { realUser as currentUser } from '@/server/portal/data';
 import { door } from '@/server/door';
 
 // The generated documents of a booking for staff (receipts, renter statements, the insurer invoice):

@@ -2,7 +2,7 @@ import '@/styles/portal.css';
 import '@/styles/field.css';
 import Link from 'next/link';
 import type { Metadata, Viewport } from 'next';
-import { signOut } from '@/server/actions/auth';
+import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { currentUser } from '@/server/portal/data';
 import { FieldNav } from '@/features/field/FieldNav';
 
@@ -22,7 +22,8 @@ export default async function FieldLayout({ children }: { children: React.ReactN
     <div className="fd">
       <div className="fd__frame">
         <header className="fd__top"><Link prefetch={false} className="link" href="/field"><b>CarmaCars field</b></Link>
-          {user && <form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form>}</header>
+          {user && <SignOutOrExit />}</header>
+        {user && <PortalSwitch current="field" />}
         {user && <FieldNav />}
         <main>{children}</main>
       </div>

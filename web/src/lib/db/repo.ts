@@ -22,6 +22,8 @@ export interface CallOptions {
   /** Supabase only: the user's access token, for the authenticated role. */
   accessToken?: string;
   requestId?: string;
+  /** The view-as check itself (src/server/view-as.ts) reads the Admin gate without being checked again. */
+  skipViewAs?: boolean;
 }
 
 export class DbError extends Error {
@@ -49,6 +51,18 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
   const b = await getBackend();
   const role = opts.role ?? (opts.userId ? 'authenticated' : 'anon');
   let accessToken = opts.accessToken;
+  const a = (args ?? {}) as Record<string, unknown>;
+  // An Admin viewing as someone (src/server/view-as.ts): calls made for that person read with their identity, and
+  // anything else made for them is refused. Only calls tied to a person are looked at, so a public page never
+  // reads cookies here (it would stop being static).
+  if (!opts.skipViewAs && (role === 'authenticated' || 'p_by' in a || 'p_user' in a)) {
+    const va = await import('@/server/view-as');
+    const v = await va.viewAs();
+    if (v) {
+      if (va.refusedForViewAs(v, fn, a, opts.userId)) throw new va.ViewAsReadOnly();
+      if (role === 'authenticated' && !accessToken && opts.userId === v.target.id) accessToken = (await va.viewAsToken()) ?? undefined;
+    }
+  }
   // The database API decides who the caller is from the session's access token, never from a user id
   // the server passes along: a call as the signed-in user carries their token (on Supabase a call without
   // it runs as anon and every row-level-security read is refused: React error #441 on /account).
@@ -56,7 +70,9 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
     accessToken = (await (await (await import('@/lib/auth')).auth()).accessToken()) ?? undefined;
     if (!accessToken) throw new DbError('Sign in first', '42501');
   }
-  return (await b.call(fn, (args ?? {}) as Record<string, unknown>, { ...opts, role, accessToken })) as ReturnsOf<F>;
+  const rest: CallOptions = { ...opts };
+  delete rest.skipViewAs;
+  return (await b.call(fn, a, { ...rest, role, accessToken })) as ReturnsOf<F>;
 }
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */

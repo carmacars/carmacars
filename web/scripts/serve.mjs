@@ -46,9 +46,31 @@ function localPublic(req, res) {
   return true;
 }
 
+// The same rule as the Worker entry (src/lib/security/view-as-guard.ts): while an Admin views as someone, every write
+// outside the Admin portal is refused; requests for the Admin portal are marked so the Admin is themselves there.
+const VIEW_AS_COOKIE = 'cc-view-as';
+const isAdminArea = (p) => /^\/admin(\/|$)/.test(p);
+function viewAsWriteRefused(method, pathname, cookie) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return false;
+  if (!String(cookie || '').split(';').some((p) => p.trim().startsWith(`${VIEW_AS_COOKIE}=`) && p.trim().length > VIEW_AS_COOKIE.length + 1)) return false;
+  return !(isAdminArea(pathname) || pathname.startsWith('/api/view-as/') || pathname.startsWith('/api/webhooks/'));
+}
+
 http.createServer((req, res) => {
   if (localPublic(req, res)) return;
+  const pathname = (req.url || '/').split('?')[0];
+  if (viewAsWriteRefused(req.method, pathname, req.headers.cookie)) {
+    if (req.headers['next-action']) { res.writeHead(200, { ...security, 'content-type': 'text/plain', 'cache-control': 'no-store', 'x-action-redirect': '/read-only;push' }); res.end(); }
+    else {
+      res.writeHead(403, { ...security, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+      res.end('Read only. You are viewing CarmaCars as another person, so nothing can be changed. Use Exit on the red banner to go back to your own account.');
+    }
+    req.resume();
+    return;
+  }
   const headers = { ...req.headers, 'accept-encoding': 'identity', 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http' };
+  delete headers['x-cc-admin-area'];
+  if (isAdminArea(pathname)) headers['x-cc-admin-area'] = '1';
   const up = http.request({ host: '127.0.0.1', port: INNER, method: req.method, path: req.url, headers }, (r) => {
     const h = { ...r.headers, ...security };
     const type = String(r.headers['content-type'] || '');

@@ -237,7 +237,9 @@ jobs:
           f="$RUNNER_TEMP/worker-secrets.json"
           jq -n '{SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY,
                   STRIPE_WEBHOOK_SECRET: env.STRIPE_WEBHOOK_SECRET, LINK_SIGNING_KEY: env.LINK_SIGNING_KEY,
-                  PAYOUT_ENCRYPTION_KEY: env.PAYOUT_ENCRYPTION_KEY}
+                  PAYOUT_ENCRYPTION_KEY: env.PAYOUT_ENCRYPTION_KEY,
+                  NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
+                 + (if env.SUPABASE_JWT_SECRET then {SUPABASE_JWT_SECRET: env.SUPABASE_JWT_SECRET} else {} end)
                  + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)
                  + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)' > "$f"
           if [ "$DEPLOY_ENV" = staging ]; then

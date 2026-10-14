@@ -1,23 +1,27 @@
 'use server';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { fieldErrors, newPasswordSchema, resetSchema, signInSchema, signUpSchema, type ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
-import { homeFor, rolesOf } from '@/server/door';
+import { rolesOf, VA_FN_COOKIE } from '@/server/door';
+import { landingFor, safeNext } from '@/server/portals';
+import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard';
+import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
 
 // Sign-in is Supabase Auth (email and password, reset by email). A new account also gets its users
 // row and the renter role (public.register_account, 0027) with the same id as the sign-in account.
-const safeNext = (n: FormDataEntryValue | null | undefined) => (typeof n === 'string' && /^\/(?!\/)[\w\-/?=&.]*$/.test(n) ? n : null);
+
+const base = siteBase;
 
 /** After the password: the second step when the person enrolled one (or must, as staff with the switch on),
- *  then the page asked for, or the home of their role (admin, assistant, field, investor, owner, renter). */
+ *  then the page asked for, or their portal (the "Choose a portal" page when they have several). */
 async function afterPassword(userId: string, next: string | null): Promise<string> {
   const a = await auth();
   const roles = await rolesOf(userId);
-  const home = next ?? homeFor(roles);
+  const home = next ?? landingFor(roles);
   const factors = (await a.mfaFactors().catch(() => [])).filter((f) => f.verified);
   if (factors.length) return `/two-step?next=${encodeURIComponent(home)}`;
   if (roles.staff && roles.two_step_required) return `/two-step/setup?next=${encodeURIComponent(home)}`;
@@ -28,8 +32,19 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   const p = signInSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
   const r = await (await auth()).signIn(p.data.email, p.data.password);
-  if (!r.ok) return { ok: false, code: 'auth', message: r.message };
+  if (!r.ok) return { ok: false, code: r.code ?? 'auth', message: r.message };
+  // a view-as left from an earlier session never carries over to a new sign-in
+  await clearSessionCookies(false);
   redirect(await afterPassword(r.user.id, safeNext(fd.get('next'))));
+}
+
+/** The "confirm your email" link again (from the sign-in form). Says the same whether or not the account exists. */
+export async function resendConfirmation(email: string): Promise<ActionResult> {
+  const e = String(email ?? '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { ok: false, code: 'invalid', message: 'Enter your email address first.' };
+  await (await auth()).resendConfirmation(e, `${base()}/auth/callback?next=/account`);
+  await rememberEmail(e);
+  return { ok: true, data: null };
 }
 
 /** Starts enrolling an authenticator app (two-step sign-in). */
@@ -50,7 +65,7 @@ export async function verifyTwoStep(factorId: string | null, code: string, next:
   if (!id) return { ok: false, code: 'refused', message: 'Set up two-step sign-in first.' };
   const r = await a.mfaVerify(id, code);
   if (!r.ok) return { ok: false, code: 'refused', message: r.message };
-  redirect(safeNext(next) ?? homeFor(await rolesOf(user.id)));
+  redirect(safeNext(next) ?? landingFor(await rolesOf(user.id)));
 }
 
 export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
@@ -61,13 +76,34 @@ export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
   const a = await auth();
   const r = await a.signUp(p.data.email, p.data.password, { full_name: p.data.name });
   if (!r.ok) return { ok: false, code: 'auth', message: r.message };
-  const reg = (await rpc('register_account', { p_user: r.user.id, p_email: p.data.email, p_full_name: p.data.name }, { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; message?: string };
+  const reg = (await rpc('register_account', { p_user: r.user.id, p_email: p.data.email, p_full_name: p.data.name }, { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; error?: string; message?: string };
+  if (!reg.ok && reg.error === 'email_on_record' && a.createForRecord && a.deleteAccount) {
+    // The address is already on file from a booking request, without a sign-in. The sign-in just made is removed and
+    // one is made for that record instead, with a link to the address to choose the password: whoever opens it
+    // owns the address, so the bookings it holds are theirs to see.
+    await a.signOut().catch(() => undefined);
+    await a.deleteAccount(r.user.id);
+    const id = (await rpc('server_user_by_email', { p_email: p.data.email }, { role: 'service_role' })) as unknown as string | null;
+    const made = id ? await a.createForRecord(id, p.data.email, p.data.name, passwordLinkTarget()) : null;
+    if (!made?.ok) return { ok: false, code: 'email_on_record', message: 'We already have a booking request with this email. Contact us and we will link it to your account.' };
+    await rememberEmail(p.data.email);
+    return { ok: true, data: { confirm: true, onRecord: true, email: p.data.email } };
+  }
   if (!reg.ok) return { ok: false, code: 'email_on_record', message: reg.message ?? 'We could not finish creating the account. Contact us.' };
-  if (r.needsConfirmation) return { ok: true, data: { confirm: true, email: p.data.email } };
+  if (r.needsConfirmation) { await rememberEmail(p.data.email); return { ok: true, data: { confirm: true, email: p.data.email } }; }
   redirect('/account?welcome=1');
 }
 
+/** The cookies that belong to one session in a browser: a view-as and the assistant's chosen function. */
+async function clearSessionCookies(all: boolean) {
+  try {
+    const jar = await cookies();
+    for (const n of [VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE, ...(all ? [VA_FN_COOKIE] : [])]) if (jar.get(n)) jar.delete(n);
+  } catch { /* read-only context */ }
+}
+
 export async function signOut(): Promise<void> {
+  await clearSessionCookies(true);
   await (await auth()).signOut();
   redirect('/');
 }
@@ -77,9 +113,8 @@ export async function requestReset(_: unknown, fd: FormData): Promise<ActionResu
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
   const meta = await requestMeta();
   if (!(await verifyTurnstile(fd.get('cf-turnstile-response') as string | null, meta.ip))) return { ok: false, code: 'turnstile', message: 'We could not confirm you are not a bot. Reload the page and try again.' };
-  const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
-  const redirectTo = env().DATA_BACKEND === 'local' ? `${base}/update-password` : `${base}/auth/callback?next=/update-password`;
-  await (await auth()).requestPasswordReset(p.data.email, redirectTo);
+  await (await auth()).requestPasswordReset(p.data.email, passwordLinkTarget());
+  await rememberEmail(p.data.email);
   return { ok: true, data: null };
 }
 
@@ -87,6 +122,8 @@ export async function updatePassword(_: unknown, fd: FormData): Promise<ActionRe
   const p = newPasswordSchema.safeParse({ password: fd.get('password'), token: fd.get('token') || undefined });
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
   const r = await (await auth()).updatePassword(p.data.password, p.data.token);
-  if (!r.ok) return { ok: false, code: 'auth', message: r.message };
-  redirect('/account?password=1');
+  if (!r.ok) return { ok: false, code: 'expired', message: r.message };
+  // invited staff, owners and investors go to their portal (or choose one), renters to their trips
+  const to = await afterPassword(r.user.id, null);
+  redirect(to === '/account' ? '/account?password=1' : to.includes('?') ? to : `${to}?password=1`);
 }

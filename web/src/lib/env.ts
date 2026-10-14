@@ -12,6 +12,9 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /** The project's JWT secret (legacy HS256 key, still accepted by the database API): Admin "view as" reads a renter's
+   *  or owner's portal with a 5-minute token for that person, made on the server (src/server/view-as.ts). */
+  SUPABASE_JWT_SECRET: z.string().optional(),
   NEXT_PUBLIC_VEHICLE_PHOTOS_URL: z.string().default('/_local/vehicle-public'),
   /** off: no widget, no check (only until the Turnstile widget exists; the database rate limits still apply) */
   TURNSTILE_PROVIDER: z.enum(['cloudflare', 'fake', 'off']).default('fake'),

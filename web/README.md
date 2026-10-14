@@ -156,9 +156,36 @@ user and their session's assurance level; the database refuses a staff session w
 | `/investor`, `/investor/statements`, `/investor/statements/[id]`, `/investor/profile` | A signed-in investor's own investments, statements and notices; election, bank and transfer requests become Admin tasks |
 | `/two-step/setup`, `/two-step` | Enrol an authenticator app (Supabase Auth TOTP; locally RFC 6238 in `local_auth.factors`) and the second step at sign-in |
 
-After the password, sign-in goes to the page asked for, or to the role's home (Admin, assistant, field, investor, owner,
-renter); a person with an authenticator app is asked for the code first, and staff without one are sent to enrol while
-the switch is on.
+After the password, sign-in goes to the page asked for (`?next=`, a path on this site only), or to the person's portal:
+Admin `/admin`, assistant `/va`, field `/field`, investor `/investor`, owner `/owner`, renter `/account`; a person with two
+or more portals gets `/choose-portal` (renting counts only when there is nothing else), and every portal's frame links
+to the others. A person with an authenticator app is asked for the code first, and staff without one are sent to enrol
+while the switch is on. A refusal page (`/admin/no-access`, `/va/no-access`, `/field/no-access`, `/investor/no-access`,
+`/owner/not-an-owner`) names the account signed in and offers its own portals and Sign out.
+
+### Sessions on the Worker, links and invitations (`docs/changes/2026-10-14-sign-in.md`)
+
+| Piece | Where |
+| --- | --- |
+| Session refresh | `custom-worker.ts` refreshes a Supabase session whose access token is within two minutes of expiry before the app runs (`src/lib/auth/edge-refresh.ts`, the cookie format in `session-cookie.ts`), so the new tokens are stored. A page cannot store them, and Supabase ends a session whose spent refresh token comes back |
+| Who is signed in | `src/lib/auth/supabase.ts` reads the session cookie and verifies the access token with the project's published key (`jwt-verify.ts`, ES256 through WebCrypto): no Supabase client and no round trip per page. An older or unverifiable token falls back to Supabase Auth |
+| Email links | Every Supabase Auth email links to `/auth/callback?token_hash=...` (`scripts/deploy/auth-templates.mjs`). A link that has expired (one hour, the project's only setting for email links) or was used goes to `/link-expired`, which sends a new one in one step (the address asked with on this device is filled in). `/update-password` without the link's session offers the same |
+| Sign-in errors | An unknown address and a wrong password read the same ("That email and password do not match an account") with a pointer to set a password; an unconfirmed address says so and sends the confirmation again; too many tries says to wait |
+| Invitations | Admin > Portals (any role: Admin, staff with the functions they cover, field, an owner or investor on file), Admin > Staff (staff roles), Admin > Owners and Investors (one click per record without a sign-in). The branded invitation email lands on `/update-password`, then the portal. Someone who already signs in just gets the role. Every account row has "Send password link" |
+| Create account | An address already on file from a booking request gets a sign-in for that record and a link to choose the password (it used to leave a sign-in with no record) |
+
+### View as (`src/server/view-as.ts`)
+
+An Admin opens any portal as one of its people from Admin > Portals (or Staff, Owners, Investors): `POST /api/view-as/start`
+checks the Admin and the database checks the person and the portal and writes the start to the audit log
+(`app.view_as_start`). The choice is a signed (`LINK_SIGNING_KEY`), httpOnly, 30-minute cookie that names the Admin; it
+counts only while that Admin is signed in and still an Admin (checked on every request, with two-step when required).
+Portal pages then read as that person (their reads through row-level security use a 5-minute token made on the server
+with `SUPABASE_JWT_SECRET`); the red banner says whose view it is, with Exit (`POST /api/view-as/exit`). Every write is
+refused: the Worker entry (and `scripts/serve.mjs`) refuses any non-GET request outside `/admin` while the cookie is
+set (a server action is sent to `/read-only`; `src/lib/security/view-as-guard.ts`), and the database layer refuses any
+call made for that person that is not a read (`src/lib/db/repo.ts`, `src/server/door.ts`). In `/admin` the Admin is
+always themselves. Tests: `src/lib/auth/session.test.ts`, `tests/e2e/signin.spec.ts`, the live verification.
 
 Owner invoice payments: `src/server/owner/payment.ts`. The browser confirms in Stripe's form; the server fetches the
 PaymentIntent again and records it (`server_record_owner_invoice_payment`); the webhook does the same for
@@ -219,9 +246,16 @@ works). The live verification counts these. The Workers Paid plan (30 seconds pe
 
 The `verify` workflow (`scripts/verify-live.mjs`) checks the public pages, headers and nonce, and with `--auth` signs in
 through the live form with one test account per portal (`verify-signin@`, `verify-owner@`, `verify-investor@`,
-`verify-va-cs@`, `verify-field@carmacars.ca`; never an Admin). The accounts are created or reset through the Supabase admin
-API and given their role by `public.server_verify_accounts`, which puts every one on the email suppression list. Each home
-must load without errors and each account must be refused the other portals; the workflow fails otherwise.
+`verify-va-cs@`, `verify-va-finance@`, `verify-va-fleet@`, `verify-va-sales@`, `verify-field@` and `verify-admin@carmacars.ca`).
+The accounts are created or reset through the Supabase admin API and given their role by `public.server_verify_accounts`,
+which puts every one on the email suppression list; the Admin's password is scrambled again at the end of the run. Each
+must land on its own portal without errors and be refused the others by a page that names it. As the Admin it opens
+every portal through view as, checks a write is refused and nothing changed, the audit log and Exit, and invites an
+assistant from Admin > Portals through to the password and the portal (Resend's test inbox; removed again). The renter
+signs out; a reset link goes through to a new password and the portal, and the same link again offers a new one.
+`scripts/cf-analytics.mjs` then reports the Worker's last 24 hours and last hour from Cloudflare: invocations by outcome
+(Error 1102 is "exceeded resources"), CPU time p50/p90/p99, 5xx answers by path, and CPU per path where Workers
+Observability answers. The workflow fails when a sign-in check fails.
 
 ## Layout
 

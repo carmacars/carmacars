@@ -6,7 +6,16 @@ import type { BookingSummary, Doc, MyBooking, Notice, NoticePref, Profile } from
 
 // Reads for the renter portal. Every read runs as the signed-in user (role authenticated), so
 // row-level security decides what comes back (migration 0028); nothing here uses the service role.
+/** The person whose portal this is: the signed-in user, or, while an Admin views as someone, that person
+ *  (src/server/view-as.ts). Admin pages use realUser(). */
 export async function currentUser(): Promise<SessionUser | null> {
+  const { viewAs } = await import('@/server/view-as');
+  const v = await viewAs();
+  return v ? { id: v.target.id, email: v.target.email } : (await auth()).currentUser();
+}
+
+/** The person actually signed in, whatever they are viewing. */
+export async function realUser(): Promise<SessionUser | null> {
   return (await auth()).currentUser();
 }
 

@@ -8,6 +8,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
+import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`}>
       <body>
+        <ViewAsBanner />
         <CookieBanner w={w} />
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>

@@ -1,7 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
-import { env } from '@/lib/env';
 import { DbError } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { auth } from '@/lib/auth';
@@ -73,24 +72,64 @@ export async function adminPreview<T = Record<string, unknown>>(what: 'booking_p
   } catch (e) { return fail(e); }
 }
 
-/** Invite a staff member: the sign-in account first (an emailed link to choose a password), then the roles. */
-export async function inviteStaff(i: { email: string; full_name: string; role: string; va_function?: string; field_function?: string }): Promise<R<{ user_id: string }>> {
+export interface InviteInput {
+  email: string; full_name?: string; role: string; va_function?: string; cover_functions?: string[]; field_function?: string;
+  owner_id?: string; investor_id?: string;
+}
+
+/** Invite a person into a role: admin, assistant (with the functions they cover), field, an owner on file or an
+ *  investor on file. The sign-in account is made first and emailed a link to choose a password (Supabase's branded
+ *  invitation, which lands on /update-password and then their portal); then the database gives it the role
+ *  (app.admin_invite_account, 0036). Someone who already signs in just gets the role: no email. */
+export async function inviteAccount(i: InviteInput): Promise<R<{ user_id: string; existed: boolean; email: string }>> {
   const email = (i.email ?? '').trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: { email: 'Enter an email address.' } };
-  if ((i.full_name ?? '').trim().length < 2) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: { full_name: 'Enter the name.' } };
-  if (!['admin', 'va', 'field'].includes(i.role)) return { ok: false, code: 'invalid', message: 'Choose the role.' };
-  if (i.role === 'va' && !i.va_function) return { ok: false, code: 'invalid', message: 'Choose the assistant\'s function.', fieldErrors: { va_function: 'Choose one.' } };
-  if (i.role === 'field' && !i.field_function) return { ok: false, code: 'invalid', message: 'Choose the field function.', fieldErrors: { field_function: 'Choose one.' } };
+  const fe: Record<string, string> = {};
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fe.email = 'Enter an email address.';
+  if (!['admin', 'va', 'field', 'owner', 'investor'].includes(i.role)) fe.role = 'Choose the role.';
+  if (['admin', 'va', 'field'].includes(i.role) && (i.full_name ?? '').trim().length < 2) fe.full_name = 'Enter the name.';
+  if (i.role === 'va' && !i.va_function) fe.va_function = 'Choose one.';
+  if (i.role === 'field' && !i.field_function) fe.field_function = 'Choose one.';
+  if (i.role === 'owner' && !i.owner_id) fe.owner_id = 'Choose the owner on file.';
+  if (i.role === 'investor' && !i.investor_id) fe.investor_id = 'Choose the investor on file.';
+  if (Object.keys(fe).length) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fe };
   try {
     const admin = await assertAdmin();
     const a = await auth();
-    const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
-    const invited = a.invite ? await a.invite(email, i.full_name.trim(), `${base}/update-password`) : { ok: false as const, message: 'Invitations are not available.' };
-    if (!invited.ok) return { ok: false, code: 'refused', message: invited.message };
-    await door(admin.id, 'admin_do', 'staff_add', { user_id: invited.user.id, email, full_name: i.full_name.trim(), role: i.role,
-      va_function: i.va_function || null, field_function: i.field_function || null });
-    revalidatePath('/admin/settings/staff');
-    return { ok: true, data: { user_id: invited.user.id } };
+    const { rpc } = await import('@/lib/db/repo');
+    const { passwordLinkTarget } = await import('@/server/auth-links');
+    const name = (i.full_name ?? '').trim();
+    if (!a.invite || !a.createForRecord) return { ok: false, code: 'refused', message: 'Invitations are not available.' };
+    let userId = (await rpc('server_user_by_email', { p_email: email }, { role: 'service_role' })) as unknown as string | null;
+    let existed = false;
+    if (userId) {
+      // already on file (a renter, a booking request, an earlier invitation): a sign-in for that record, unless it has one
+      const made = await a.createForRecord(userId, email, name, passwordLinkTarget());
+      if (!made.ok && made.code === 'exists') existed = true;
+      else if (!made.ok) return { ok: false, code: 'refused', message: made.message };
+    } else {
+      const invited = await a.invite(email, name, passwordLinkTarget());
+      if (!invited.ok) return { ok: false, code: 'refused', message: invited.code === 'exists'
+        ? 'This address has a sign-in that is not linked to a CarmaCars record. Ask them to use Forgot password, then invite them again.' : invited.message };
+      userId = invited.user.id;
+    }
+    await rpc('admin_invite_account', { p_admin: admin.id, p: { user_id: userId, email, full_name: name || null, role: i.role, va_function: i.va_function || null,
+      cover_functions: (i.cover_functions ?? []).filter(Boolean), field_function: i.field_function || null, owner_id: i.owner_id || null, investor_id: i.investor_id || null } }, { role: 'service_role' });
+    revalidatePath('/admin/settings/staff'); revalidatePath('/admin/portals'); revalidatePath('/admin/owners'); revalidatePath('/admin/investors');
+    return { ok: true, data: { user_id: userId, existed, email } };
+  } catch (e) { return fail(e); }
+}
+
+/** Sends a person the link to choose a password (a new invitation link for someone who never chose one, or a reset
+ *  for someone who forgot it). The same branded email as "Forgot password"; the link works for one hour. */
+export async function sendPasswordLink(userId: string): Promise<R<{ email: string }>> {
+  try {
+    const admin = await assertAdmin();
+    if (!/^[0-9a-f-]{36}$/i.test(userId ?? '')) return { ok: false, code: 'invalid', message: 'Choose a person.' };
+    const { rpc } = await import('@/lib/db/repo');
+    const { passwordLinkTarget } = await import('@/server/auth-links');
+    const u = (await rpc('admin_account_link', { p_admin: admin.id, p_user: userId }, { role: 'service_role' })) as unknown as { email: string };
+    await (await auth()).requestPasswordReset(u.email, passwordLinkTarget());
+    return { ok: true, data: { email: u.email } };
   } catch (e) { return fail(e); }
 }
 

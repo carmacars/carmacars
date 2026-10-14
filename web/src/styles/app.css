@@ -6,3 +6,18 @@
 .tabs a.tab { text-decoration: none; }
 .tabs a.tab[aria-current="page"] { color: var(--text); }
 .tabs a.tab[aria-current="page"]::after { transform: scaleX(1); }
+/* "View as": an Admin reading another person's portal. Red, on every page, until Exit. */
+.viewas { position: sticky; top: 0; z-index: 60; background: var(--red-600); color: var(--white); }
+.viewas__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-4); padding: var(--s-2) var(--s-4); max-width: 90rem; margin: 0 auto; font-weight: 600; }
+.viewas__in form { margin: 0; }
+.viewas .btn { background: var(--white); color: var(--black); border-color: var(--white); }
+.viewas .btn:hover { background: var(--black); color: var(--white); border-color: var(--black); }
+/* the portals a person has: on the refusal pages, the chooser and in each portal's frame */
+.portals { display: grid; gap: var(--s-3); width: 100%; max-width: 28rem; min-width: 0; margin: 0 auto; padding: 0; list-style: none; }
+.portals > li { min-width: 0; }
+.portals .btn { width: 100%; justify-content: center; white-space: normal; overflow-wrap: anywhere; }
+.portal-switch { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); align-items: baseline; font-size: var(--fs-xs); }
+.portal-switch a { white-space: nowrap; }
+/* a refusal page names the account: a long address wraps instead of widening the page at 375 */
+.pt-empty { grid-template-columns: minmax(0, 1fr); }
+.pt-empty p { max-width: 100%; overflow-wrap: anywhere; }

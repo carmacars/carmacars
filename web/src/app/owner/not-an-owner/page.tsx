@@ -1,5 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
-import { NotOwner } from '@/features/owner/Blocks';
+import { NoAccess } from '@/features/access/Access';
 import { requireOwnerUser } from '@/server/owner/data';
 
 export const dynamic = 'force-dynamic';
@@ -7,5 +7,5 @@ export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noinde
 
 export default async function NotAnOwner() {
   await requireOwnerUser('/owner');
-  return <NotOwner />;
+  return <NoAccess portal="owner" />;
 }

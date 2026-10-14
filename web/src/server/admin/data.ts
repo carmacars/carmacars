@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
-import { currentUser } from '@/server/portal/data';
+import { realUser as currentUser } from '@/server/portal/data';
 
 // The admin portal's door (docs/blueprint/03-admin.md): an Admin only, and with two-step sign-in when
 // program_settings.require_staff_two_step is on (the same rule the database applies to staff
