@@ -188,7 +188,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await desk.goto(`/admin/bookings/${req.booking_number}?tab=changes`);
     await expect(desk.getByTestId('propose-card')).toBeVisible();
     const later = new Date(new Date(before!.return_at as string).getTime() + 86_400_000);
-    const local = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(later).replace(' ', 'T');
+    // the date and time fields are in the browser's own time zone (staff are in Toronto; CI runs in UTC)
+    const local = await desk.evaluate((ms) => { const d = new Date(ms); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, later.getTime());
     await desk.locator('#pc-return').fill(local);
     await desk.getByTestId('propose-preview-btn').click();
     await expect(desk.getByTestId('propose-preview')).toContainText('Difference for the renter', { timeout: 15_000 });
@@ -254,6 +255,9 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await rp.getByTestId('change-decline').click();
     await rp.waitForURL(/\?declined=1/, { timeout: 15_000 });
     await expect(rp.getByTestId('declined-panel')).toContainText('Your booking stays as it was.');
+    // buttons fade in after the navigation: check the contrast once they are settled, not mid-transition
+    await rp.mouse.move(0, 0);
+    await rp.waitForTimeout(400);
     await check(rp, 'renter change declined');
     const [dec] = await sql`select status, renter_declined_at is not null d from booking_change_requests where booking_id = ${req.booking_id} order by created_at desc limit 1`;
     expect(dec).toMatchObject({ status: 'declined', d: true });
