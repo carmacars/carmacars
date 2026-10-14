@@ -9,7 +9,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 35 migrations (0034 and 0035: the fixes of the handover and launch audits); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/migrations/` | 36 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
 | `supabase/tests/` | Thirteen test files (2,235 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
@@ -71,6 +71,7 @@ cd emails && node check.mjs
 | `0033_gap_close.sql` | The gaps of 0031 and 0032: renter messages both ways and their emails, the monthly statement emails (PDF first, 7-day links), the assistant's function switcher and scorecard, Turo trips, daily checks, photo review and re-shoot, the late-return panel, find a renter, Sales quotes, field checklists for every job kind, the field report, referrals and profile, the live verification's accounts (`docs/changes/0033_gap_close.md`) |
 | `0034_audit_fixes.sql` | The handover audit's database fixes: one-click unsubscribe wrappers and the `/unsubscribe` link path, the renter's review with consent to publish, the disable approval email without a booking, the renter portal listing only the caller's documents, digest lines in words (`docs/changes/0034_audit_fixes.md`, `docs/audit/2026-10-13-audit.md`) |
 | `0035_launch_audit.sql` | The launch audit's database changes: sample cars noindex and out of the sitemap until an Admin clears `vehicles.is_sample`, reviews published only with consent, marketing emails waiting for the mailing address, the owner FAQ on tracker fees, email wording, the registry visit email waiting for its date (`docs/changes/0035_launch_audit.md`, `docs/audit/2026-10-13-launch-audit.md`) |
+| `0036_sign_in.sql` | Sign-in for every portal: view as (an Admin opens any portal read only, recorded in the audit log), Admin > Portals, invitations into any role, password links from Admin, the verification Admin and one assistant per function, lighter portal frames (`docs/changes/0036_sign_in.md`, `docs/changes/2026-10-14-sign-in.md`) |
 
 ## Test files
 
@@ -95,6 +96,7 @@ cd emails && node check.mjs
 | `20_gap_close.sql` | The gaps closed by 0033, and every catalogue code emitted by something | 102 |
 | `21_audit_fixes.sql` | The audit fixes of 0034 | 29 |
 | `22_launch_audit.sql` | The launch audit changes of 0035 | 28 |
+| `23_sign_in.sql` | Sign-in for every portal (0036) | 55 |
 
 ## Rules for changes
 

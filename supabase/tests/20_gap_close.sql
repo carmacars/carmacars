@@ -392,8 +392,8 @@ select test.eq('catalogue: the two message emails are in the catalogue, with wha
 -- ---------------------------------------------------------------- 14. the live verification's test accounts
 select test.throws('verify accounts: only verify-<name>@carmacars.ca addresses',
   format($$select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', %L, 'email', 'someone@example.test', 'role', 'renter')))$$, gen_random_uuid()), 'Not a verification address');
-select test.throws('verify accounts: never an Admin',
-  format($$select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', %L, 'email', 'verify-admin@carmacars.ca', 'role', 'admin')))$$, gen_random_uuid()), 'Not a verification role');
+select test.throws('verify accounts: never an Admin, except the one verification Admin (0036)',
+  format($$select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', %L, 'email', 'verify-boss@carmacars.ca', 'role', 'admin')))$$, gen_random_uuid()), 'Only verify-admin@carmacars.ca');
 create temp table gc_va as select public.server_verify_accounts(jsonb_build_array(
   jsonb_build_object('user_id', test.id('gc_v_owner'), 'email', 'verify-owner@carmacars.ca', 'role', 'owner'),
   jsonb_build_object('user_id', test.id('gc_v_inv'), 'email', 'verify-investor@carmacars.ca', 'role', 'investor'),
