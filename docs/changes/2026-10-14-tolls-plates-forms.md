@@ -89,7 +89,11 @@ budget (the free 10,000 neurons are shared). The answer is never stored as a tol
   marks them. The odometer shot (never public) is not asked.
 - **The editor** (`PlateEditor.tsx`, `plate-cover.ts`): the photo on a canvas; when the photo has not been checked, the
   vision model is asked for the plate box once (`plate_detect_enabled`), and its boxes are shown dashed for staff to check;
-  "Suggest the plate" asks again. Boxes are drawn by dragging (mouse, finger or pen, `touch-action: none`), moved by
+  "Suggest the plate" asks again. In live tests the model put its box across the plate but too high or too low (section
+  10), so the browser moves it onto the plate nearby: windows of plate shapes around the model's box are scored by the
+  vertical edges inside them (the characters) against the edges around them, and the best one is taken when it clearly
+  stands out (`refineBox`, unit tested; the end to end test checks the moved box covers the plate). When nothing stands
+  out the model's box stays, and when the model answers nothing the note says to draw the box. Boxes are drawn by dragging (mouse, finger or pen, `touch-action: none`), moved by
   dragging, resized from the lower right corner; keyboard: N adds a box, the arrows move it, Shift and the arrows resize
   it, Delete removes it. Styles: a CarmaCars plate (black, white name from Site settings or `plate_cover_text`, the red
   line), pixelation, or blur (made by shrinking and growing the area twice, so it works on phones without the canvas
@@ -210,14 +214,38 @@ No assertion's expected value changed.
 
 | Check | Result |
 | --- | --- |
-| Database suite (`scripts/test.sh`) | TBD |
-| Unit (`npm run test:unit`) | TBD |
-| Types, lint, build | TBD |
-| End to end, local | TBD |
-| Push CI | TBD |
-| Deploy | TBD |
-| Verify | TBD |
+| Database suite (`scripts/test.sh`) | 26 files, 3,050 assertions, 0 failed; `26_tolls_plates_forms.sql` 87 |
+| Unit (`npm run test:unit`) | pass: the reader (407 ETR statement with fees and the account fee apart, a total that does not add up, a parking notice, the general profile, CSV with fees and the date order, dates, times, money, plates), the vision answers (a notice, confidence never above the checks, plate boxes in fractions, pixels and thousandths, JSON inside text), the pdf.js worker file, filling a fillable PDF (fields, checkbox, signature, flattened), plate boxes and their refinement, the tracker's none adapter |
+| Types, lint, build | `npm run db:types` regenerated, `tsc` clean, `eslint --max-warnings=0` clean, `next build` green |
+| Text and emails | `scripts/check-text.sh` passed; `emails/check.mjs` 15 checks passed (no email added or changed) |
+| End to end (local, fake providers) | `tolls-plates-forms.spec.ts` 4 of 4: a 407 ETR statement PDF read from its text, checked beside the drawn page at 1440 and 375, confirmed: the trip in the rental imported, matched to the renter with high confidence and charged, the plate not in the fleet an exception, corrected and imported, the task closed; a photo of a parking notice read by the (fake) vision model by Finance, corrected and imported, the call recorded; a profile tried on pasted text and saved; a plate covered on a phone (the suggested box moved onto the plate, one more drawn by hand, pixelated), the covered file public, the old one gone, the original kept privately, publishing refused until the other photos were marked, then published; an official fillable PDF uploaded, mapped and used for owners, the owner's form filled (download checked field by field) and signed on a phone, filed as a registry form; the turnaround explained in Program settings; "Coming soon" on the vehicle page. axe, overflow and the copy rules on every page. `pipeline.spec.ts`, `admin.spec.ts` and `ops.spec.ts` pass with the plate step |
+| Push CI | 38639943040 green (database, web with every end-to-end test, audit: crawl as every role, SEO, emails); 38649734875 and 38652301438 green; 38660189642 (the plate box refinement): database and audit green, every test of this work green, one known flaky test failed in each attempt (`debit.spec.ts` colour contrast of a status message while it appears, then on the rerun `audit.spec.ts` the review page 2 px wide at 375, the flake 2026-10-14-operations-gaps.md records); both pass in every other run |
+| Deploys | 38643013309 applied 0042 (history 42 rows), then the Worker upload stopped on Cloudflare's free KV write quota for the day (code 10048); 38644082367, 38647030535 and 38649745110 green with the page cache on static assets; 38657557841 and 38663810370 (the last commit) green with the default page cache after 00:00 UTC |
+| Verify | 38645258517: Admin > Read a notice and Settings > Forms load; the vision route answered 500 (an unexpected error, now answered in words). 38648183977: the vision model answers (Llama 4 Scout, 37 neurons), but JSON mode with a schema dropped the date and the amount. 38650808705 (JSON mode as an object, the shape in the prompt): the photographed parking notice read right, every field (issuer, notice number PN 4410-2291, plate VRFY123, 2026-09-23 14:32, $50.00, due date), 45 neurons, 5 to 7 seconds; the plate box across the plate but below it. 38658481467 (default page cache): every portal signs in through the live form and is refused the others, view as, write refused, audit log, exit, email links ok; the notice read right again; the plate box in pixels off again (above the plate), which the browser now moves onto the plate (refineBox); the only failure was the invitation step of the Admin check, a page that did not load in time (Error 1102 or 503 from the CPU limit, 16 requests retried); it passed in the runs before. **38664698059 (the last deploy): green**: every portal signed in and refused the others, view as, write refused, audit log, exit, invitation, email links, Admin > Read a notice and Settings > Forms, the notice read right (8 seconds), the plate box as before (moved onto the plate in the browser); 6 page loads answered 503 under the CPU limit and passed when loaded again |
+
+No live test data was made except what the verification makes for its own `verify-*` accounts; the vision probes are
+recorded in `provider_calls` (about 80 neurons a run).
+
+**Error 1102.** Cloudflare's free plan stopped 199 requests in the 24 hours before the last run (16 in the last hour,
+while the page cache was on static assets after the KV quota ran out). Every failed verify check in these runs was a page
+that did not load in time or answered 503 under that limit; each check passed in another run.
 
 ## 11. For the owner
 
-TBD
+- **Send one real 407 ETR statement** (PDF), and a real parking or camera notice when one comes. Open Admin > Tolls >
+  Reading profiles, paste the statement's text under "Try it" and adjust the words; then read the file once and check the
+  lines. The 407 ETR profile was built from the public layout of its statements.
+- **Send the official ServiceOntario PDFs** (SR-LV-006, SR-LV-012, ON00453, 013-0169, 013-1155), the fillable versions.
+  Upload each under Admin > Settings > Forms, choose what goes in each field, download a preview for one car, then "Checked:
+  use for owners". Until then owners keep the data sheet.
+- **Plates on listings already live**: their photos show "Plate not checked" on the listing review. Check them (cover, or
+  "No plate visible"); the check applies the next time a listing is published.
+- **The plate suggestion is a starting point**: the model's box is rough and the browser moves it onto the plate when the
+  plate stands out; staff always check it. Switch it off with `plate_detect_enabled` if it gets in the way.
+- **Workers AI**: the vision reads use the free daily neurons shared with the listing copy (about 50 per notice page, 35 per
+  plate suggestion); the cap is `ai_vision_daily_neurons` (3,000). Nothing to accept: the Llama 4 Scout model needs no
+  licence; the fallback (Llama 3.2) is accepted automatically if it is ever used.
+- **Charging**: renters matched with high confidence are charged when a read is confirmed (`toll_read_auto_charge`, on; the
+  box can be unticked per read). Switch it off in Program settings if Finance should charge from the work queue only.
+- **Tracker**: send the tracker company's API documentation and credentials; the adapter interface is ready.
+- **Error 1102**: consider Workers Paid (US$5 a month), which removes the 10 ms limit.
