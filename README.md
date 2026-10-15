@@ -10,7 +10,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
 | `supabase/migrations/` | 43 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 27 test files (3,074 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/tests/` | 27 test files (3,073 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -108,7 +108,7 @@ cd emails && node check.mjs
 | `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037 to 0039) | 118 |
 | `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
 | `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
-| `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 24 |
+| `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
 
 ## Rules for changes
 

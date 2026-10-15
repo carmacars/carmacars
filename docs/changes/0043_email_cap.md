@@ -1,6 +1,6 @@
 # 0043: the email daily cap, safe on Resend's free plan
 
-Migration `supabase/migrations/0043_email_cap.sql`, tests `supabase/tests/27_email_cap.sql` (24 assertions), Edge
+Migration `supabase/migrations/0043_email_cap.sql`, tests `supabase/tests/27_email_cap.sql` (23 assertions), Edge
 Function `supabase/functions/send-outbox/index.ts`, Admin > Today and Admin > Email.
 
 ## Why

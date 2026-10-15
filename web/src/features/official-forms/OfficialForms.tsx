@@ -105,6 +105,13 @@ function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
   );
 }
 
+// Open while the mapping is being checked; it stays as the person left it when the page refreshes after "Checked:
+// use for owners", so the confirmation under the table stays in view.
+function FieldsPanel({ startOpen, children }: { startOpen: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(startOpen);
+  return <details open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}><summary className="link">Fields and what goes in them</summary>{children}</details>;
+}
+
 export function OfficialForms({ d }: { d: FormsData }) {
   return (
     <div className="stack" data-testid="official-forms">
@@ -118,7 +125,7 @@ export function OfficialForms({ d }: { d: FormsData }) {
             <p className="small">{official ? `${t!.file_name ?? 'PDF'}, ${t!.field_names.length} fields${t!.page_count ? ` on ${t!.page_count} page(s)` : ''}, version ${t!.version}` : 'No official PDF yet.'}
               {t?.verified_at ? ` Checked by ${t.verified_by_name ?? 'an Admin'}.` : ''} Owners now: {f.fills.pdf} with the official PDF, {f.fills.data_sheet} with the data sheet.</p>
             <Upload code={f.form_code} />
-            {official && t!.field_names.length > 0 && <details open={!t!.verified}><summary className="link">Fields and what goes in them</summary><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></details>}
+            {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></FieldsPanel>}
           </section>);
       })}
     </div>
