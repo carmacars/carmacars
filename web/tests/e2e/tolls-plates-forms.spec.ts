@@ -282,6 +282,11 @@ test('plates: an Admin covers a plate on a phone; the covered photo replaces the
     await expect(editor).toBeVisible();
     // the vision model's suggestion (the fake answers a box in the lower middle)
     await expect(phone.getByTestId('plate-note')).toContainText('Suggested 1 box', { timeout: 20_000 });
+    // the fake model's box is below the plate (as the live model's was); it is moved onto the plate's edges
+    const sug = JSON.parse((await phone.getByTestId('plate-canvas').getAttribute('data-boxes'))!)[0] as { x: number; y: number; w: number; h: number };
+    const plateBox = { x: 520 / 1200, y: 470 / 800, w: 160 / 1200, h: 60 / 800 };
+    const ix = Math.max(0, Math.min(sug.x + sug.w, plateBox.x + plateBox.w) - Math.max(sug.x, plateBox.x)), iy = Math.max(0, Math.min(sug.y + sug.h, plateBox.y + plateBox.h) - Math.max(sug.y, plateBox.y));
+    expect(ix * iy / (sug.w * sug.h + plateBox.w * plateBox.h - ix * iy), `suggested ${JSON.stringify(sug)}`).toBeGreaterThan(0.3);
     // and one more box drawn by hand over the plate, pixelated
     const cv = phone.getByTestId('plate-canvas');
     await cv.scrollIntoViewIfNeeded();

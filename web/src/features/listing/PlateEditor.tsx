@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
-import { clampBox, exportCovered, forSave, fromCorners, inside, nearCorner, paint, type NBox, type PlateStyle } from './plate-cover';
+import { clampBox, exportCovered, forSave, fromCorners, greyOf, inside, nearCorner, paint, refineBox, type NBox, type PlateStyle } from './plate-cover';
 
 // Cover the licence plate on one listing photo (migration 0042): the vision model suggests the box when it can;
 // staff drag a box (or several) over each plate with a mouse or a finger, choose a CarmaCars plate, pixelation or
@@ -73,8 +73,11 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     if (!r.ok) { setNote(`No suggestion: ${r.message} Draw the box yourself.`); return; }
     const found = normalizePlateBoxes(r.data, { width: c.width, height: c.height });
     if (!found.length) { setNote('No plate was found. Draw a box over the plate, or mark the photo "no plate visible" if there is none.'); return; }
-    setBoxes((b) => [...b, ...found.map((f) => ({ x: f.x, y: f.y, w: f.w, h: f.h, suggested: true }))]);
-    setNote(`Suggested ${found.length} box${found.length > 1 ? 'es' : ''}. Check each covers the whole plate; move or resize it if not.`);
+    // the model's box is rough: moved onto the plate's edges nearby when they stand out (plate-cover.ts refineBox)
+    const grey = greyOf(img.current, img.current.naturalWidth || c.width, img.current.naturalHeight || c.height);
+    const fixed = found.map((f) => refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }));
+    setBoxes((b) => [...b, ...fixed.map((r) => ({ ...r.box, suggested: true }))]);
+    setNote(`Suggested ${found.length} box${found.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
   }, [photo.id, photo.vehicle_id]);
   const asked = useRef(false);
   useEffect(() => { if (ready && ctx?.detect && !asked.current && !boxes.length && photo.plate_status === 'unchecked') { asked.current = true; void suggest(); } }, [ready, ctx, boxes.length, photo.plate_status, suggest]);
@@ -147,7 +150,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
         <p className="small muted" id={`pe-help-${photo.id}`}>Drag over each plate to put a box on it; drag a box to move it, or its corner to resize it. Keyboard: N adds a box, the arrows move it, Shift and the arrows resize it, Delete removes it.</p>
         <div className="pe__frame">
           <canvas ref={canvas} className="pe__canvas" tabIndex={0} role="img" aria-label={`The photo with ${boxes.length} box${boxes.length === 1 ? '' : 'es'} over the plate`} aria-describedby={`pe-help-${photo.id}`}
-            onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key} data-testid="plate-canvas" />
+            onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key} data-testid="plate-canvas" data-boxes={JSON.stringify(forSave(boxes))} />
         </div>
         <fieldset className="pe__styles"><legend className="label">Cover the plate with</legend>
           {([['cover', `A ${ctx?.cover_text ?? 'CarmaCars'} plate`], ['pixelate', 'Pixelation'], ['blur', 'Blur']] as Array<[PlateStyle, string]>).map(([k, t]) => (

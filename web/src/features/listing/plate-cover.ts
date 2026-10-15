@@ -86,3 +86,73 @@ export async function exportCovered(img: HTMLImageElement, boxes: NBox[], style:
   }
   return { main, width: W, height: H, variants };
 }
+
+/** A grey image: one byte per pixel, row by row. */
+export interface Grey { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
+/** The photo drawn small and grey, for refineBox (in the browser). */
+export function greyOf(img: CanvasImageSource, width: number, height: number, longSide = 360): Grey {
+  const k = Math.min(1, longSide / Math.max(width, height));
+  const c = scratch(Math.round(width * k), Math.round(height * k));
+  const g = c.getContext('2d')!; g.drawImage(img, 0, 0, c.width, c.height);
+  const rgba = g.getImageData(0, 0, c.width, c.height).data;
+  const data = new Uint8ClampedArray(c.width * c.height);
+  for (let i = 0; i < data.length; i++) data[i] = (rgba[i * 4]! * 299 + rgba[i * 4 + 1]! * 587 + rgba[i * 4 + 2]! * 114) / 1000;
+  return { width: c.width, height: c.height, data };
+}
+
+/**
+ * The vision model finds roughly where a plate is (in live tests its box was across the plate but too high or too low).
+ * A plate is the place in a photo with the densest vertical edges (its characters) inside a band of light background.
+ * Near the model's box, windows of plate shapes are scored by the edges inside them against the edges around them; the
+ * best one is taken when it clearly stands out, otherwise the model's box stays. Staff check the box either way.
+ */
+export function refineBox(g: Grey, guess: NBox): { box: NBox; moved: boolean; score: number } {
+  const W = g.width, H = g.height;
+  if (W < 16 || H < 16) return { box: guess, moved: false, score: 0 };
+  // vertical edges: the absolute horizontal gradient, as an integral image
+  const I = new Float64Array((W + 1) * (H + 1));
+  for (let y = 0; y < H; y++) {
+    let row = 0;
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const e = x > 0 && x < W - 1 ? Math.abs(g.data[i + 1]! - g.data[i - 1]!) : 0;
+      row += e > 24 ? e : 0;
+      I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1]! + row;
+    }
+  }
+  const sum = (x0: number, y0: number, x1: number, y1: number) => {
+    x0 = Math.max(0, Math.min(W, x0)); x1 = Math.max(0, Math.min(W, x1)); y0 = Math.max(0, Math.min(H, y0)); y1 = Math.max(0, Math.min(H, y1));
+    return I[y1 * (W + 1) + x1]! - I[y0 * (W + 1) + x1]! - I[y1 * (W + 1) + x0]! + I[y0 * (W + 1) + x0]!;
+  };
+  const score = (x: number, y: number, w: number, h: number) => {
+    const inner = sum(x, y, x + w, y + h) / Math.max(1, w * h);
+    const mx = Math.round(w * 0.5), my = Math.round(h * 0.8);
+    const outerArea = (w + 2 * mx) * (h + 2 * my) - w * h;
+    const outer = (sum(x - mx, y - my, x + w + mx, y + h + my) - sum(x, y, x + w, y + h)) / Math.max(1, outerArea);
+    return inner - outer;
+  };
+  const gw = Math.max(6, guess.w * W), gh = Math.max(3, guess.h * H);
+  const cx = (guess.x + guess.w / 2) * W, cy = (guess.y + guess.h / 2) * H;
+  const base = score(Math.round(cx - gw / 2), Math.round(cy - gh / 2), Math.round(gw), Math.round(gh));
+  let best = { s: base, x: cx - gw / 2, y: cy - gh / 2, w: gw, h: gh };
+  const step = Math.max(1, Math.round(Math.min(gw, gh) / 6));
+  for (const kw of [0.75, 1, 1.3]) {
+    for (const ratio of [2, 2.8, 3.6, 4.5]) {
+      const w = Math.round(gw * kw), h = Math.max(3, Math.round(w / ratio));
+      const rx = Math.round(Math.max(gw, w) * 1.2), ry = Math.round(Math.max(gh, h) * 2 + H * 0.12);
+      for (let y = Math.round(cy - h / 2 - ry); y <= cy - h / 2 + ry; y += step) {
+        if (y < 0 || y + h > H) continue;
+        for (let x = Math.round(cx - w / 2 - rx); x <= cx - w / 2 + rx; x += step) {
+          if (x < 0 || x + w > W) continue;
+          // a small pull towards the model's centre, so two equal places choose the nearer one
+          const d = Math.hypot((x + w / 2 - cx) / W, (y + h / 2 - cy) / H);
+          const s = score(x, y, w, h) * (1 - Math.min(0.3, d));
+          if (s > best.s) best = { s, x, y, w, h };
+        }
+      }
+    }
+  }
+  const moved = best.s > Math.max(4, base * 1.25) && (best.x !== cx - gw / 2 || best.y !== cy - gh / 2);
+  if (!moved) return { box: guess, moved: false, score: base };
+  return { box: clampBox({ x: best.x / W, y: best.y / H, w: best.w / W, h: best.h / H, suggested: true }), moved: true, score: best.s };
+}
