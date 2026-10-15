@@ -63,7 +63,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
         const js = await loadStripe(r.data.publishableKey);
         if (method === 'card' && mount.current) {
           const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
-          elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' } }).mount(mount.current);
+          elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
           stripe.current = { js, elements };
         } else stripe.current = { js, elements: null };
       }

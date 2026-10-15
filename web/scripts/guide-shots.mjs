@@ -132,6 +132,9 @@ async function polish(ids) {
     for (const [tb, c] of [['renters', 'email'], ['drivers', 'email'], ['notification_outbox', 'to_address'], ['messages', 'to_address']])
       await t.unsafe(`update public.${tb} set ${c} = 'guest' || substr(md5(${c}), 1, 6) || '@example.com' where ${c} ilike '%@example.test'`);
   });
+  // listing copy written by the tests to look alike (the similarity check) reads as filler: a plain description instead
+  await sql`update vehicle_listings set description = 'Clean, quiet and easy to drive, with room for four and their bags. Heated seats, Apple CarPlay and Android Auto, a backup camera and keyless entry. Picked up downtown or delivered to your door.'
+            where description ~ '(\\m\\w+\\M)( \\w+){2,} \\1( \\w+){2,} \\1'`;
   const left = await sql`select count(*)::int n from users where email ilike '%example.test' or full_name ~* '(test|e2e|crawl|verify|guide )'`;
   if (left[0].n) problems.push(`polish: ${left[0].n} users still look like test accounts`);
 }
@@ -233,7 +236,7 @@ async function settle(page) {
   await page.waitForTimeout(250);
 }
 let counters = {};
-async function shoot(page, portal, name, description, { kind, step } = {}) {
+async function shoot(page, portal, name, description, { kind, step, element } = {}) {
   await settle(page);
   const vp = kind ?? (page.viewportSize().width > 800 ? 'desktop' : 'phone');
   counters[portal] ??= {};
@@ -244,6 +247,19 @@ async function shoot(page, portal, name, description, { kind, step } = {}) {
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
   const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   const height = Math.min(h, Math.round(size.height * MAX_SCREENS));
+  if (element) {
+    // one part of the page, with a margin: the part the step is about
+    await element.scrollIntoViewIfNeeded(); await page.waitForTimeout(400);
+    const b = await element.boundingBox();
+    const y = Math.max(0, b.y + (await page.evaluate(() => scrollY)) - 24);
+    await page.evaluate((yy) => scrollTo(0, yy), y); await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(OUT, portal, file), clip: { x: 0, y: 0, width: size.width, height: Math.min(size.height, Math.ceil(b.height) + 48) }, animations: 'disabled', caret: 'hide' });
+    const u2 = new URL(page.url());
+    manifest.push({ portal, step: nn, name, file: `${portal}/${file}`, path: u2.pathname + u2.search, viewport: vp, width: size.width, height: Math.min(size.height, Math.ceil(b.height) + 48),
+      scale: VIEWPORTS[vp].deviceScaleFactor, title: await page.title().catch(() => ''), description, part_of_page: true });
+    console.log(`  ${portal}/${file}`);
+    return;
+  }
   // a full-page picture repeats fixed and sticky bars where the viewport was: they are put in the flow for the picture
   const n = await page.evaluate(() => { let k = 0; for (const e of document.querySelectorAll('body *')) { const p = getComputedStyle(e).position; if (p === 'fixed' || p === 'sticky') { e.dataset.guidePos = e.style.position || '-'; e.style.position = 'static'; k++; } } return k; });
   const hh = n ? Math.min(await page.evaluate(() => document.documentElement.scrollHeight), Math.round(size.height * MAX_SCREENS)) : height;
@@ -468,8 +484,15 @@ async function adminPortal(browser, ids) {
   await both(P, 'admin', 'vehicles', '/admin/vehicles', 'Vehicles: the fleet with status, owner and next booking.');
   await both(P, 'admin', 'listings', '/admin/listings', 'Listings: the listing pipeline, drafts waiting for review, published cars.');
   await both(P, 'admin', 'listing-review', () => intake && `/admin/listings/${intake.id}`, 'Review a listing: copy, photos, each photo\'s plate check, Approve and Publish.');
-  await both(P, 'admin', 'plate-editor', () => intake && `/admin/listings/${intake.id}`, 'The plate editor: the suggested box, boxes drawn by hand, the cover style, Save the covered photo.',
-    async (page) => { const b = page.locator('[data-testid^="plate-edit-"]').first(); await b.click({ timeout: 8000 }); await page.getByTestId('plate-editor').waitFor(); await page.getByTestId('plate-editor').scrollIntoViewIfNeeded(); await page.waitForTimeout(1500); });
+  for (const page of P) {
+    try {
+      if (!intake) { problems.push('admin/plate-editor: no record to show'); break; }
+      await page.goto(`/admin/listings/${intake.id}`, { waitUntil: 'networkidle' });
+      await page.locator('[data-testid^="plate-edit-"]').first().click({ timeout: 8000 });
+      await page.getByTestId('plate-editor').waitFor(); await page.waitForTimeout(2500);
+      await shoot(page, 'admin', 'plate-editor', 'The plate editor: the suggested box, boxes drawn by hand, the cover style, Save the covered photo.', { element: page.getByTestId('plate-editor') });
+    } catch (e) { problems.push(`admin/plate-editor (${page.viewportSize().width}): ${String(e.message).split('\n')[0]}`); }
+  }
   await both(P, 'admin', 'owners', '/admin/owners', 'Owners: applications and owners, with their sign-in.');
   await both(P, 'admin', 'owner', () => owner && `/admin/owners/${owner.id}`, 'An owner: vehicles and terms, invoices, Forms C and D, sign-in links, View as.');
   await both(P, 'admin', 'owner-invoices', '/admin/invoices', 'Owner invoices: issued, paid, failed; record an offline payment.');

@@ -45,7 +45,7 @@ export function PayForm({ number, amountCents, depositCents }: { number: string;
       if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
         const js = await loadStripe(r.data.publishableKey);
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
-        elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { name: 'never' } } }).mount(mount.current);
+        elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
         stripe.current = { js, elements };
       }
     }).catch(() => live && setFatal({ code: 'error', message: 'The payment form did not load. Reload the page.' }));
