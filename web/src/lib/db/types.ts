@@ -7238,6 +7238,8 @@ export type Database = {
           plate_cover_style: string;
           plate_cover_text: string | null;
           plate_detect_enabled: boolean;
+          notify_cap_warn_bps: number;
+          notify_count_auth_emails: boolean;
         };
         Insert: {
           id?: string;
@@ -7441,6 +7443,8 @@ export type Database = {
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;
+          notify_cap_warn_bps?: number;
+          notify_count_auth_emails?: boolean;
         };
         Update: {
           id?: string;
@@ -7644,6 +7648,8 @@ export type Database = {
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;
+          notify_cap_warn_bps?: number;
+          notify_count_auth_emails?: boolean;
         };
         Relationships: [];
       };

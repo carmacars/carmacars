@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '142/1');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '142/3');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -34,7 +34,7 @@ select test.eq('A each come-back email needs express consent, the review request
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
   'renter_comeback_1m=express,renter_comeback_1w=express,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
-  (select notify_daily_cap = 100 and notify_class_limits = array[100, 100, 95, 95, 60] and notify_comeback_1w_bps = 1000
+  (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
      from app.settings()));
 

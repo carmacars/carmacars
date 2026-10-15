@@ -1,0 +1,120 @@
+name: backup
+
+# Nightly database backup and its proof (docs/backups.md):
+#   - every night: pg_dump of the live database (session pooler), encrypted with age to the public key in the
+#     Supabase vault, uploaded to the private Storage bucket `backups` (30 days kept), then restored into a scratch
+#     PostgreSQL 17 on the runner and checked table by table against the counts taken in the dump's snapshot.
+#   - every Monday: the newest backup must be under 30 hours old and complete; it is downloaded, decrypted with the
+#     private key from the vault and restored again. Nothing is emailed: a failed run shows on Admin > Today (a
+#     failed job_runs row) and in the Actions tab.
+# Needs only the repository secrets the deploy already uses (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF,
+# SUPABASE_DB_PASSWORD); the age keys are vault secrets backup_age_recipient and backup_age_identity.
+on:
+  schedule:
+    - cron: '23 7 * * *'   # nightly, 03:23 Toronto in summer, 02:23 in winter
+    - cron: '41 13 * * 1'  # Monday: the weekly check
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: backup (dump, upload, restore test) or check (the newest backup is recent; restore it)
+        type: choice
+        options: [backup, check]
+        default: backup
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+jobs:
+  backup:
+    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 17 (the server's major version) and age
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common age
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -q postgresql-17 postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Dump, encrypt, upload, keep 30 days
+        run: |
+          mkdir -p "$RUNNER_TEMP/backup"
+          BACKUP_DIR="$RUNNER_TEMP/backup" scripts/backup/backup.sh | tee "$RUNNER_TEMP/backup.out"
+          echo "STAMP=$(tail -n 1 "$RUNNER_TEMP/backup.out")" >> "$GITHUB_ENV"
+      - name: Restore into a scratch PostgreSQL 17 and compare every table
+        run: scripts/backup/restore-test.sh --dir "$RUNNER_TEMP/backup"
+      - name: Record the restore test
+        if: always() && env.STAMP != ''
+        run: |
+          source scripts/deploy/lib.sh
+          R="$RUNNER_TEMP/backup/restore-report.json"
+          if [ -f "$R" ] && jq -e '(.missing | length == 0) and .pg_restore_errors_about_tables == 0 and ((.consistent_counts | not) or (.different | length == 0))' "$R" > /dev/null; then st=succeeded; err=''; else st=failed; err='the restore test of the nightly backup failed; see the backup workflow run'; fi
+          sum=$( [ -f "$R" ] && jq -c '{stamp, tables, matched, rows_restored, different: (.different | length), pg_restore_errors, seconds}' "$R" || echo '{}')
+          sbq "insert into public.job_runs (job_name, run_key, status, started_at, finished_at, summary, error)
+               values ('backup-restore-test', '$STAMP', '$st', now(), now(), \$j\$$sum\$j\$::jsonb, nullif('$err', ''))
+               on conflict (job_name, run_key) do nothing" > /dev/null
+          # the report goes beside the backup (no data in it: table names and counts)
+          KEY=$(curl -sS "$SB_API/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$KEY"
+          [ -f "$R" ] && curl -sS -o /dev/null -X POST "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/backups/nightly/$STAMP/restore-report.json" \
+            -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$R"
+          {
+            echo "## Backup nightly/$STAMP"; echo
+            jq -r '"- \(.row_counts | length) tables, \([.row_counts[]] | add) rows; \(.encrypted.bytes) bytes encrypted in \(.parts | length) part(s); pg_dump \(.pg_dump); server \(.server_version); counts \(if .consistent_counts then "from the dump snapshot" else "read after the dump" end)"' "$RUNNER_TEMP/backup/manifest.json"
+            [ -f "$R" ] && jq -r '"- Restore into \(.restored_into): \(.matched) of \(.tables) tables with the same row count, \(.rows_restored) rows, \(.different | length) different, \(.missing | length) missing; \(.pg_restore_errors) pg_restore errors about Supabase-only objects; \(.seconds) s"' "$R"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$st" = succeeded ]
+
+  check:
+    if: (github.event_name == 'schedule' && github.event.schedule == '41 13 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'check')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 17 and age
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common age
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -q postgresql-17 postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: The newest backup is recent and complete
+        run: |
+          source scripts/deploy/lib.sh
+          KEY=$(curl -sS "$SB_API/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$KEY"
+          ST="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+          folders=$(curl -sS -X POST "$ST/object/list/backups" -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H 'content-type: application/json' \
+            --data '{"prefix":"nightly/","limit":1000}' | jq -r '[.[] | select(.id == null) | .name] | sort')
+          n=$(jq 'length' <<<"$folders"); newest=$(jq -r 'last // empty' <<<"$folders")
+          problem=""
+          if [ -z "$newest" ]; then problem="no backup in the bucket"
+          else
+            age_h=$(( ( $(date -u +%s) - $(date -u -d "$(sed -E 's/T([0-9]{2})([0-9]{2})Z/ \1:\2 UTC/' <<<"$newest")" +%s) ) / 3600 ))
+            [ "$age_h" -le 30 ] || problem="the newest backup ($newest) is $age_h hours old"
+            curl -sS -f -o /dev/null "$ST/object/backups/nightly/$newest/manifest.json" -H "Authorization: Bearer $KEY" -H "apikey: $KEY" || problem="${problem:+$problem; }nightly/$newest has no manifest"
+          fi
+          echo "NEWEST=$newest" >> "$GITHUB_ENV"; echo "PROBLEM=$problem" >> "$GITHUB_ENV"
+          echo "::notice title=backup check::$n backup folder(s); newest ${newest:-none}${problem:+; PROBLEM: $problem}"
+          [ -z "$problem" ]
+      - name: Restore the newest backup (private key from the vault)
+        run: scripts/backup/restore-test.sh --stamp "$NEWEST"
+      - name: Record the check
+        if: always()
+        run: |
+          source scripts/deploy/lib.sh
+          if [ "${{ job.status }}" = success ]; then st=succeeded; err=''; else st=failed; err="weekly backup check: ${PROBLEM:-the restore of the newest backup failed}; see the backup workflow run"; fi
+          sbq "insert into public.job_runs (job_name, run_key, status, started_at, finished_at, summary, error)
+               values ('backup-check', to_char(now() at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24MI\"Z\"'), '$st', now(), now(),
+                       jsonb_build_object('newest', '${NEWEST:-}'), nullif(\$e\$$err\$e\$, ''))
+               on conflict (job_name, run_key) do nothing" > /dev/null
+          # an insert, never an update of status: the failed row shows on Admin > Today without the staff_job_failed email

@@ -23,6 +23,7 @@ type Dash = {
   approvals: Record<string, number>;
   alerts: Array<{ field: string; message: string; blocks?: string | null }>;
   email_today: number; email_cap: number;
+  email?: { outbox: number; auth: number; total: number; cap: number; warn_at: number; held: number; failed_today: number };
 };
 
 // The dashboard (03-admin.md section 1): needs you, today, money and fleet. Every card has its own zero state.
@@ -35,7 +36,7 @@ export default async function AdminToday() {
       <PageHead title="Today" kicker={t(d.now)}><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/requests">Work the requests</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/calendar">Calendar</Link></PageHead>
       {d.alerts.length > 0 && (
         <Card title="Alerts" tone="warn" testId="dash-alerts">
-          <ul className="ad-list">{d.alerts.map((a, i) => <li key={i}><span>{a.message}{a.blocks ? <span className="muted"> (blocks {label(a.blocks)})</span> : null}</span>{a.field !== 'job' && <Link prefetch={false} className="link small" href="/admin/settings/site">Fix in settings</Link>}</li>)}</ul>
+          <ul className="ad-list">{d.alerts.map((a, i) => <li key={i}><span>{a.message}{a.blocks ? <span className="muted"> (blocks {label(a.blocks)})</span> : null}</span>{a.field === 'email' ? <Link prefetch={false} className="link small" href="/admin/messages">Open Email</Link> : a.field !== 'job' && <Link prefetch={false} className="link small" href="/admin/settings/site">Fix in settings</Link>}</li>)}</ul>
         </Card>
       )}
       <Tiles items={[
@@ -101,7 +102,7 @@ export default async function AdminToday() {
               <li><Link prefetch={false} className="link" href="/admin/listings">Listings</Link><span>{d.approvals.listings}</span></li>
               <li><Link prefetch={false} className="link" href="/admin/tolls">Tolls to match</Link><span>{d.approvals.tolls}</span></li>
             </ul>
-            <p className="small muted">Email sent today: {d.email_today} of {d.email_cap ?? 100}.</p>
+            <p className="small muted" data-testid="email-use">Email sent today: {d.email_today} of {d.email_cap ?? 100}{d.email ? ` (${d.email.auth} sign-in emails)` : ''}. <Link prefetch={false} className="link" href="/admin/messages">Email</Link></p>
           </Card>
         </div>
       </div>

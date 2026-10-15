@@ -163,7 +163,7 @@ Files are in Cloudflare R2. All buckets are private except `vehicle-public`. Fil
 
 Tracker position history stays with the tracker service for 12 months; only the reading a decision relied on is copied into `tracker_commands` or a screenshot.
 
-**Backups.** One more private bucket, `backups`, holds the database backups. A GitHub Actions job runs `pg_dump` every night, encrypts the file before it leaves the runner, and uploads it to R2. The encryption key is a GitHub repository secret and is also kept in the company password manager; without it a backup cannot be read. A restore into a fresh database is tested before go-live and after any change to the backup job.
+**Backups.** A GitHub Actions job (`.github/workflows/backup.yml`) runs `pg_dump` every night through the session pooler, encrypts the file with age before it leaves the runner (the public key and the private key are vault secrets `backup_age_recipient` and `backup_age_identity`; keep the private key in the company password manager too), uploads it to the private Supabase Storage bucket `backups` (30 days kept) and restores it into a scratch PostgreSQL 17 to compare every table. Every Monday the newest backup is checked and restored again. See `docs/backups.md`.
 
 ## 7. Deliberately out of scope for launch
 
@@ -200,7 +200,7 @@ The field staff portal (`/field`) is designed for a phone first: large buttons, 
 | App | GitHub Actions builds the Next.js app with the OpenNext adapter and deploys it to Cloudflare Workers: `staging` branch to staging, `main` to production |
 | Migrations | Applied by GitHub Actions with `DATABASE_URL`, staging first, production after approval |
 | Edge Functions | Deployed by GitHub Actions with the Supabase CLI |
-| Backups | Nightly GitHub Actions job: `pg_dump`, encrypt, upload to the R2 `backups` bucket (section 6) |
+| Backups | Nightly GitHub Actions job: `pg_dump`, encrypt (age), upload to the Supabase Storage `backups` bucket, restore test; weekly check (`docs/backups.md`) |
 | Secrets | GitHub repository secrets, per environment. The deploy job copies them to Cloudflare and Supabase. No secret is ever pasted into a chat, an email or a ticket (`docs/setup.md` section 6) |
 
 The workflows themselves are added with the app; this repository does not hold them yet.
@@ -233,7 +233,7 @@ A booking is asked for, offered, approved, signed and paid; only then does it ta
 
 1. A business function or trigger calls `app.emit_event(code, entity, id, payload, dedupe_key)`. The dedupe key is `code:entity_id:discriminator`, so the same action never makes two events. Each code has one emitter (the catalogue's `emitted_by` says which).
 2. `app.process_events()` (every minute) reads new events in order, looks up the catalogue, finds the recipients by audience and writes, per recipient, one `notification_outbox` row (or, for a staff notice that is digested, one `staff_digest_items` row per role) and one in-app notice for anyone with an account. The merge payload is built by `app.notification_payload()` from the records, in Toronto time and `$1,234.56`; the sender supplies only signed links and sign-in links. Consent, suppression and preferences decide `skipped` or `suppressed`.
-3. The `send-outbox` Edge Function claims queued rows under the daily and monthly caps (customer email first, marketing last and only in its window), renders the template from `emails/` and sends through Resend. What cannot go today is delayed, never dropped.
+3. The `send-outbox` Edge Function claims queued rows under the daily and monthly caps (customer email first, marketing last and only in its window; Supabase Auth's own emails, sent through the same Resend account, count against the day since 0043), renders the template from `emails/` and sends through Resend. What cannot go today is delayed, never dropped; Resend's own 429 holds a row without spending an attempt; at 80% of the cap and on a final failure the Admins are told in the portal.
 4. Reminders, chases, follow-ups, digests, field job lists and the weekly summary are made by the two notification jobs of 0023.
 
 `12_end_to_end.sql` drives the newer flows and checks that each business action produced exactly one outbox row per intended recipient, with no duplicate across the emitters of 0019 to 0023.

@@ -23,3 +23,6 @@ supabase/.temp/
 
 prototype/shots/
 emails/shots/
+
+# user guide screenshots (downloaded from deploy-reports by the guides workflow; large)
+docs/guides/screens/

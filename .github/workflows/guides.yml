@@ -1,0 +1,100 @@
+name: guides
+
+# Screenshots for the user guides (web/scripts/guide-shots.mjs): the local stack of this commit (the same build as
+# carmacars.ca), filled by the end-to-end suite with realistic records, every person then renamed to a fictional
+# name at example.com. Each portal's person signs in and the key screens are taken at desktop 1440 x 900 (scale 2)
+# and phone 390 x 844 (scale 3), with the public pages and the request-to-book steps. The files go to the private
+# Storage bucket deploy-reports under guides/<date>/<portal>/<nn>-<name>-<desktop|phone>.png with manifest.json.
+# Nothing touches the live database; the payment screen uses Stripe's test keys only (a live key is refused).
+on:
+  workflow_dispatch:
+    inputs:
+      portals:
+        description: Only these portals (comma separated; empty for all) public,renter,owner,investor,admin,va-cs,va-finance,va-fleet,va-sales,field
+        type: string
+        default: ''
+
+jobs:
+  shots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      CARMACARS_LOCAL_DIR: /tmp/cc-local
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_BROWSERS_PATH: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: PostgreSQL 16
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-client-16 fonts-noto-color-emoji
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: npm ci
+      - name: Local stack (migrations, local auth, seed)
+        run: |
+          cp .env.example .env.local
+          bash scripts/local-db.sh up
+      - name: Build
+        run: ../.github/ci-run.sh "Build" npm run build
+      - name: Browsers
+        run: npx playwright install --with-deps chromium
+      - name: Server
+        run: |
+          (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+      - name: Sample records (the end-to-end suite, desktop; a failed test only means fewer records)
+        continue-on-error: true
+        run: BASE_URL=http://localhost:3000 npx playwright test --project desktop-1440 --reporter=dot > /tmp/e2e.log 2>&1 || tail -n 15 /tmp/e2e.log
+      - name: A second server with Stripe test keys, for the payment screen
+        run: |
+          q() { curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+                  --data "{\"query\":\"select decrypted_secret as v from vault.decrypted_secrets where name = '$1'\"}" | jq -r '.[0].v // empty'; }
+          SK=$(q deploy_stripe_secret_key); PK=$(q deploy_stripe_publishable_key)
+          echo "::add-mask::$SK"
+          if [[ "$SK" == sk_test_* && "$PK" == pk_test_* ]]; then
+            (PORT=3001 PAYMENTS_PROVIDER=stripe STRIPE_SECRET_KEY="$SK" NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$PK" node scripts/serve.mjs > /tmp/serve-pay.log 2>&1 &)
+            for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3001/robots.txt && break; sleep 1; done
+            echo "PAY_URL=http://localhost:3001" >> "$GITHUB_ENV"
+          else
+            echo "::notice title=guides::no Stripe test keys in the vault: the payment screen shows the local card form"
+          fi
+      - name: Screenshots
+        run: |
+          D=$(TZ=America/Toronto date +%Y-%m-%d); echo "GUIDE_DATE=$D" >> "$GITHUB_ENV"
+          BASE_URL=http://localhost:3000 ../.github/ci-run.sh "Screenshots" node scripts/guide-shots.mjs --out "$RUNNER_TEMP/guides" ${{ inputs.portals && format('--portals {0}', inputs.portals) || '' }}
+          jq -r '"\(.screens | length) screenshots, \(.problems | length) problems"' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::notice title=guides::/'
+          jq -r '.problems[:10][]' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::warning title=guides::/'
+      - name: Upload to deploy-reports/guides/<date>
+        run: |
+          set -euo pipefail
+          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$K"
+          S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+          curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
+          cd "$RUNNER_TEMP/guides"; n=0
+          for f in manifest.json */*.png; do
+            ct=image/png; case "$f" in *.json) ct=application/json;; esac
+            for try in 1 2 3; do
+              curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/guides/$GUIDE_DATE/$f" -H "Authorization: Bearer $K" -H "apikey: $K" -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$f" && break
+              sleep 3
+            done
+            n=$((n + 1))
+          done
+          echo "::notice title=guides::uploaded $n files to deploy-reports/guides/$GUIDE_DATE ($(du -sh . | cut -f1))"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: guides-debug
+          path: |
+            /tmp/serve.log
+            /tmp/e2e.log

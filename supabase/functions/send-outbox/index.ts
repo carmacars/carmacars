@@ -3,7 +3,10 @@
 // job) with `Authorization: Bearer <OUTBOX_JOB_TOKEN>`; any other caller gets 403. It claims a batch with
 // app.outbox_claim() (daily and monthly caps, priorities), renders each row with emails/src/engine.mjs
 // (copied next to this file at deploy time as engine.mjs), sends it through Resend and reports back with
-// app.outbox_mark_sent() or app.outbox_mark_failed().
+// app.outbox_mark_sent() or app.outbox_mark_failed(). Resend's own limits (HTTP 429: 2 requests a second, and
+// the free plan's 100 a day for the whole account, Supabase Auth's emails included) hold the row with
+// app.outbox_defer() without spending an attempt (0043): a rate refusal for a minute, a quota refusal until the
+// next Toronto midnight, together with the rest of the batch. Sends are spaced to stay under the rate.
 //
 // Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL,
 // LINK_SIGNING_KEY (the site's key: the 7-day file links are opened by the site at /d/<token>).
@@ -81,7 +84,21 @@ const fromHeader = (a: string | null) => {
   return addr.includes('<') ? addr : `CarmaCars <${addr}>`;
 };
 
-async function sendOne(r: Row): Promise<'sent' | 'failed'> {
+// Resend's 429 body names the limit: rate_limit_exceeded, daily_quota_exceeded or monthly_quota_exceeded.
+class Held extends Error { constructor(public reason: string, public until: 'minute' | 'midnight') { super(reason); } }
+function held(status: number, body: string): Held | null {
+  if (status !== 429) return null;
+  if (/daily_quota|monthly_quota|quota/i.test(body)) return new Held(/monthly/i.test(body) ? 'the email provider\'s monthly limit' : 'the email provider\'s daily limit', 'midnight');
+  return new Held('held by the email provider\'s rate limit', 'minute');
+}
+const nextMidnight = async () => ((await sql`select app.local_midnight(app.local_date(now()) + 1) as t`) as unknown as [{ t: Date }])[0].t;
+async function defer(r: Row, h: Held) {
+  const until = h.until === 'minute' ? new Date(Date.now() + 60_000) : await nextMidnight();
+  await sql`select app.outbox_defer(${r.id}::uuid, ${h.reason}, ${until})`;
+}
+const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
   try {
     if (!r.template_html || !r.template_text) throw Object.assign(new Error('The catalogue has no template for ' + r.code), { permanent: true });
     const values = { ...(await senderValues(r)), ...r.payload };
@@ -110,6 +127,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed'> {
     });
     if (!res.ok) {
       const body = (await res.text()).slice(0, 500);
+      const h = held(res.status, body);
+      if (h) { await defer(r, h); return h; }
       // 4xx other than rate limiting will not get better on a retry
       throw Object.assign(new Error(`Resend ${res.status}: ${body}`), { permanent: res.status >= 400 && res.status < 500 && res.status !== 429 });
     }
@@ -127,7 +146,18 @@ Deno.serve(async (req) => {
   if (!TOKEN || req.headers.get('authorization') !== `Bearer ${TOKEN}`) return new Response('Forbidden', { status: 403 });
   if (!RESEND) return new Response('RESEND_API_KEY is not set', { status: 500 });
   const rows = (await sql`select * from app.outbox_claim(${BATCH})`) as unknown as Row[];
-  let sent = 0, failed = 0;
-  for (const r of rows) (await sendOne(r)) === 'sent' ? sent++ : failed++;
-  return Response.json({ claimed: rows.length, sent, failed });
+  let sent = 0, failed = 0, deferred = 0;
+  let stop: Held | null = null;
+  for (const r of rows) {
+    // after a quota refusal nothing more can go today: the rest of the batch waits too, attempts untouched
+    if (stop) { await defer(r, stop); deferred++; continue; }
+    const t0 = Date.now();
+    const out = await sendOne(r);
+    if (out instanceof Held) { deferred++; if (out.until === 'midnight') stop = out; }
+    else if (out === 'sent') sent++; else failed++;
+    // Resend allows 2 requests a second per account
+    const wait = 550 - (Date.now() - t0);
+    if (wait > 0) await pause(wait);
+  }
+  return Response.json({ claimed: rows.length, sent, failed, deferred });
 });

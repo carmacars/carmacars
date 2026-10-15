@@ -187,7 +187,11 @@ It fails, listing file and line, if a tracked file under `src/`, `docs/` (except
 
 ## 8. Backups and restore
 
-1. A GitHub Actions job runs every night: `pg_dump` of production (with `DATABASE_URL`), encrypted on the runner with `BACKUP_ENCRYPTION_KEY`, uploaded to the R2 bucket `carmacars-prod-backups`. Use a `pg_dump` of the same major version as the Supabase database.
-2. Keep 30 nightly files and the first file of each month.
-3. **Before go-live, test a restore:** download last night's file, decrypt it, load it into a fresh local database, and run a few counts against production. Write the date of the test in the pull request. Repeat after any change to the backup job.
-4. The job is added with the app's workflows; it is not in this repository yet.
+Built: `.github/workflows/backup.yml` with `scripts/backup/backup.sh` and `scripts/backup/restore-test.sh`. Every night the
+live database is dumped through the session pooler (`pg_dump` 17), encrypted with age to the public key in the vault
+(`backup_age_recipient`), stored in the private Supabase Storage bucket `backups` for 30 days, and restored into a scratch
+PostgreSQL 17 on the runner, table by table against the counts of the dump's own snapshot. Every Monday the newest
+backup must be under 30 hours old and is restored again with the private key from the vault (`backup_age_identity`).
+Nothing is emailed: a failure is a failed `job_runs` row on Admin > Today and a failed run in the Actions tab. The full
+procedure, including a restore into a new Supabase project, is in `docs/backups.md`. Keep a copy of
+`backup_age_identity` in the company password manager: without it no backup can be read.
