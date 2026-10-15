@@ -21,9 +21,11 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | `docs/data-model.md` | Tables by area, status flows, where each billing rule lives, assumptions |
 | `docs/permissions.md` | The role matrix, every table and function group, and how it is enforced |
 | `docs/changes/` | One record per migration from 0016 on (0025: the owner's answers): what was added, decisions, tests changed, what is not done |
-| `docs/audit/` | The independent audits: the handover audit (2026-10-13) and the launch audit (`2026-10-13-launch-audit.md`: every requirement and decision with its status and evidence, links, emails, SEO, live operations, the Worker CPU limit, and what still needs the owner) |
+| `docs/audit/` | The independent audits: the handover audit (2026-10-13) and the launch audit (`2026-10-13-launch-audit.md`: every requirement and decision with its status and evidence, links, emails, SEO, live operations, the Worker CPU limit, and what still needs the owner), and the retest after the features of October 14 (`2026-10-14-retest.md`) |
 | `docs/decisions/` | Decision records. 0001: the launch stack with no fixed monthly fees |
 | `docs/blueprint/` | The product blueprint the later migrations follow |
+| `docs/backups.md` | The nightly encrypted backup, the restore test and how to restore |
+| `docs/guides/` | `portal-facts.md`: the facts for each portal's user guide; `screens/` (git-ignored): the screenshots from the guides workflow |
 | `docs/setup.md` | The accounts and how they connect; environment variables and secrets; running the tests; backups |
 | `docs/source/` | The agreements, billing specifications and procedures the model was built from |
 | `.env.example` | Every environment variable, without values |
