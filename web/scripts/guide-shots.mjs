@@ -351,12 +351,15 @@ async function renterStory(browser, ids) {
   await d.waitForURL(/\/pay$/, { timeout: 30_000 });
   // 4. pay (the Stripe form when a server with test keys is given; the local card form otherwise)
   for (const page of P) {
-    if (PAY) {
-      await page.goto(`${PAY}/account/bookings/${number}/pay`, { waitUntil: 'networkidle' });
-      await page.frameLocator('iframe[name^="__privateStripeFrame"]').first().locator('input').first().waitFor({ timeout: 20_000 }).catch(() => problems.push('pay: the Stripe form did not appear'));
-    } else await page.goto(`/account/bookings/${number}/pay`, { waitUntil: 'networkidle' });
-    await page.locator('#pt-card-name').fill('Jordan Lee').catch(() => {});
-    await shoot(page, 'renter', 'pay', 'Pay: the card is authorized now and charged once the booking is confirmed; it becomes the Card on File for the deposit.');
+    try {
+      if (PAY) {
+        await page.goto(`${PAY}/account/bookings/${number}/pay`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await page.locator('iframe[name^="__privateStripeFrame"]').first().waitFor({ timeout: 25_000 }).catch(() => problems.push('pay: the Stripe form did not appear'));
+        await page.waitForTimeout(2500);
+      } else await page.goto(`/account/bookings/${number}/pay`, { waitUntil: 'domcontentloaded' });
+      await page.locator('#pt-card-name').fill('Jordan Lee').catch(() => {});
+      await shoot(page, 'renter', 'pay', 'Pay: the card is authorized now and charged once the booking is confirmed; it becomes the Card on File for the deposit.');
+    } catch (e) { problems.push(`renter/pay (${page.viewportSize().width}): ${String(e.message).split('\n')[0]}`); }
   }
   await d.goto(`/account/bookings/${number}/pay`, { waitUntil: 'networkidle' });
   await d.locator('#pt-card-name').fill('Jordan Lee');
@@ -401,7 +404,9 @@ async function ownerPortal(browser, ids) {
   await both(P, 'owner', 'vehicle', () => v && `/owner/vehicles/${v.id}`, 'A vehicle: status, fees, the onboarding checklist, uploads, bookings, invoices, exit notice.');
   await both(P, 'owner', 'calendar', '/owner/bookings', 'Bookings and calendar: two months of your cars; Book my own car.');
   await both(P, 'owner', 'invoices', '/owner/invoices', 'Invoices: what is due, paid, being debited.');
-  await both(P, 'owner', 'invoice', () => inv && `/owner/invoices/${inv.invoice_number}`, 'An invoice: the lines, when it will be debited, and Pay by card or pre-authorized debit.');
+  if (inv) await both(P, 'owner', 'invoice', `/owner/invoices/${inv.invoice_number}`, 'An invoice: the lines, when it will be debited, and Pay by card or pre-authorized debit.');
+  else await asOther(browser, sql`select o.user_id, i.invoice_number as k from owner_invoices i join owners o on o.id = i.owner_id where o.user_id is not null order by (i.status in ('issued', 'failed')) desc, i.created_at desc limit 1`,
+    'owner', 'invoice', (k) => `/owner/invoices/${k}`, 'An invoice: the lines, when it will be debited, and Pay by card or pre-authorized debit.');
   await both(P, 'owner', 'banking', '/owner/banking', 'Banking: the account the monthly fees are debited from (Set up pre-authorized debit), and where payouts go.');
   await both(P, 'owner', 'statements', '/owner/statements', 'Statements: one a month, approved by CarmaCars.');
   await both(P, 'owner', 'statement', () => st && `/owner/statements/${st.id}`, 'A statement: every booking, the revenue share, deductions and the payout.');
@@ -409,9 +414,23 @@ async function ownerPortal(browser, ids) {
   await both(P, 'owner', 'documents', '/owner/documents', 'Documents: signed agreements, uploads, government forms, and Forms C and D to sign with witnesses.');
   await both(P, 'owner', 'forms-c-d', '/owner/documents', 'Forms C and D: download the filled form, sign it with witnesses, upload the scan.',
     async (page) => { const s = page.getByText(/Forms to sign with witnesses/).first(); if (await s.isVisible().catch(() => false)) await s.scrollIntoViewIfNeeded(); });
-  await both(P, 'owner', 'official-form', () => form && `/owner/documents/forms/${form.id}/official`, 'An official ServiceOntario form filled from your records: Download the filled form, or Sign on screen.');
+  const offDesc = 'An official ServiceOntario form filled from your records: Download the filled form, or Sign on screen.';
+  if (form) await both(P, 'owner', 'official-form', `/owner/documents/forms/${form.id}/official`, offDesc);
+  else await asOther(browser, sql`select o.user_id, f.id as k from government_form_fills f join owners o on o.id = f.owner_id where o.user_id is not null and f.pdf_template_id is not null and f.superseded_at is null order by f.generated_at desc nulls last limit 1`,
+    'owner', 'official-form', (k) => `/owner/documents/forms/${k}/official`, offDesc);
   await both(P, 'owner', 'notifications', '/owner/notifications', 'Messages and notices from CarmaCars.');
   await both(P, 'owner', 'profile', '/owner/profile', 'Profile: contact details and password.');
+  await d.context().close(); await m.context().close();
+}
+
+// A screen the main person has no record for, shown as another person of the same portal who has one.
+async function asOther(browser, query, portal, name, pathOf, description) {
+  const r = await one(query).catch(() => null);
+  if (!r) { problems.push(`${portal}/${name}: no record to show`); return; }
+  const u = await one(sql`select email from users where id = ${r.user_id}`);
+  await login(r.user_id, u.email);
+  const d = await session(browser, 'desktop', u.email); const m = await session(browser, 'phone', u.email);
+  await both([d, m], portal, name, pathOf(r.k), description);
   await d.context().close(); await m.context().close();
 }
 

@@ -94,7 +94,9 @@ jobs:
       - name: Browsers
         run: npx playwright install --with-deps chromium
       - name: End to end, accessibility
-        run: ../.github/ci-run.sh "End to end" npx playwright test ${{ inputs.e2e_grep && format('--grep "{0}"', inputs.e2e_grep) || '' }}
+        run: |
+          set +e; ../.github/ci-run.sh "End to end" npx playwright test ${{ inputs.e2e_grep && format('--grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
+          echo "::notice title=e2e::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
       - name: Link check and copy lint
         run: |
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
@@ -148,11 +150,17 @@ jobs:
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
       - name: Crawl as every role
-        run: ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --out reports/crawl.json
+        run: |
+          set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --out reports/crawl.json > /tmp/crawl.log; s=$?
+          cat /tmp/crawl.log | tail -n 40; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
       - name: SEO
-        run: ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs
+        run: |
+          set +e; ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs > /tmp/seo.log; s=$?
+          tail -n 40 /tmp/seo.log; echo "::notice title=seo::$( (head -n 3 /tmp/seo.log; tail -n 3 /tmp/seo.log) | paste -sd ';' -)"; exit $s
       - name: Emails with database values
-        run: ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots
+        run: |
+          set +e; ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots > /tmp/emails.log; s=$?
+          tail -n 40 /tmp/emails.log; echo "::notice title=emails::$(grep -E '^emails' /tmp/emails.log | paste -sd ';' -)"; exit $s
       - name: Lighthouse (mobile; recorded)
         continue-on-error: true
         run: |
