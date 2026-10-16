@@ -14,13 +14,15 @@ import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, 
 // continues on another device. Built for a phone first.
 export interface ProgramFacts {
   install_fee_cents: number; hst_bps: number; trackers_available: boolean;
+  /** The payout day of Program settings in words (0051), for example "10th". */
+  payout_day_text?: string;
   grid: Array<{ min_vehicles: number; max_vehicles: number | null; insurance_fee_cents: number; tracker_fee_cents: number; revenue_share_bps: number }>;
 }
 
 const FUELS = [['gasoline', 'Gasoline'], ['hybrid', 'Hybrid'], ['plug_in_hybrid', 'Plug-in hybrid'], ['electric', 'Electric'], ['diesel', 'Diesel']] as const;
 const PROVINCES = ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU'];
 const MODES = [
-  { v: 'managed', t: 'Managed', b: 'We do everything: pricing, renters, handovers, cleaning. You are paid on the 10th, less the Revenue Share.' },
+  { v: 'managed', t: 'Managed', b: 'We do everything: pricing, renters, handovers, cleaning. You are paid on the {payout} of each month, less the Revenue Share.' },
   { v: 'self_managed', t: 'Self-Managed', b: 'You find and hand over to your own renters; they book and pay through CarmaCars. No Revenue Share.' },
   { v: 'turo_only', t: 'Turo-Only', b: 'We rent it on our Turo account. You keep your registration and your own insurance. No fees.' }
 ] as const;
@@ -331,7 +333,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
                   <legend className="label">How do you want it rented?</legend>
                   <div className="ow-compare">{MODES.map((m) => (
                     <label key={m.v} className="option"><input type="radio" name={`ap-mode-${i}`} value={m.v} checked={v.management_mode === m.v} onChange={() => set({ management_mode: m.v, onboarding_method: m.v === 'turo_only' ? 'none' : '' }, 'management_mode')} />
-                      <span className="option__title">{m.t}</span><span className="option__body">{m.b}</span></label>))}</div>
+                      <span className="option__title">{m.t}</span><span className="option__body">{m.b.replace('{payout}', facts.payout_day_text ?? 'payout day')}</span></label>))}</div>
                   <p className="error" role="alert">{e('management_mode') ?? ''}</p>
                 </fieldset>
                 {v.management_mode !== 'turo_only' && (

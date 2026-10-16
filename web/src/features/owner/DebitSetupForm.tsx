@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { beginDebitSetup, completeDebitSetup, fakeConfirmDebitSetup } from '@/server/actions/owner';
-import { mandateText } from './OwnerPayForm';
+import { MandateBlock } from './OwnerPayForm';
 import type { DebitTerms } from './types';
 
 // Banking > Set up pre-authorized debit (migration 0037): the owner gives a Canadian bank account and accepts the
@@ -85,10 +85,7 @@ export function DebitSetupForm({ ownerType, terms, replace, holderName = '' }: {
           {field('account', 'Account number', { inputMode: 'numeric', autoComplete: 'off' })}
         </div>
       ) : <p className="small">When you continue, Stripe, our payment processor, asks for your bank and shows this agreement again to confirm. Your bank details go to Stripe, not to us.</p>}
-      <section className="ow-mandate" aria-labelledby="ds-mandate-h" tabIndex={0}>
-        <h3 id="ds-mandate-h">Pre-authorized debit agreement ({kind})</h3>
-        {mandateText(kind, terms, false).map((t, i) => <p key={i}>{t}</p>)}
-      </section>
+      <MandateBlock kind={kind} terms={terms} withInvoice={false} id="ds-mandate-h" />
       <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="debit-setup-agree" /><span>I accept the pre-authorized debit agreement above.</span></label>
       {msg && <p className={`alert ${msg.kind === 'ok' ? 'alert--ok' : 'alert--error'}`} role="alert"><span>{msg.text}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={busy} data-testid="debit-setup-submit">{busy ? 'Sending' : fake ? 'Save the bank account' : 'Continue to my bank details'}</button>

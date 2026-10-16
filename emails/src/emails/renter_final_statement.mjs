@@ -27,7 +27,7 @@ export default {
     facts(
       ['Deposit taken', '{{deposit_amount}}'],
       ['Applied to charges', '{{deposit_applied}}'],
-      { label: 'Held back', value: '{{deposit_held_back}}. {{holdback_reason}} We apply or release it within 30 days of check-in.', when: 'has_holdback' },
+      { label: 'Held back', value: '{{deposit_held_back}}. {{holdback_reason}} We apply or release it within {{holdback_days}} days of check-in.', when: 'has_holdback' },
       ['Returned', '{{deposit_returned}}'],
       { label: 'Charged to card ending {{card_last4}}', value: '{{card_charged}}', when: 'has_card_charge' },
     ),

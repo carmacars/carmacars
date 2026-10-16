@@ -21,7 +21,7 @@ Pay any of these invoices by card from its page before {{debit_date}} and we wil
 View my invoices:
 https://carmacars.ca/owner/billing
 
-A debit can take up to 5 business days to clear. If your bank returns it, a {{late_fee}} late fee applies and {{retry_text}}. To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.
+A debit can take up to 5 business days to clear. {{late_fee_rule}} To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.
 
 ----------------------------------------
 

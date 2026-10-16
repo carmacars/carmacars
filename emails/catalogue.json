@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 145,
+  "count": 146,
   "emails": [
     {
       "code": "account_password_reset",
@@ -367,6 +367,12 @@
           "name": "incident_number",
           "type": "string",
           "sample": "INC-2041"
+        },
+        {
+          "name": "incident_report_hours",
+          "type": "string",
+          "sample": "48",
+          "note": "Hours within which the renter sends the incident report (incident_report_hours)."
         },
         {
           "name": "instagram_url",
@@ -856,6 +862,12 @@
           "sample": "$351.71"
         },
         {
+          "name": "refund_days",
+          "type": "string",
+          "sample": "10",
+          "note": "Business days within which a refund is sent (refund_business_days)."
+        },
+        {
           "name": "refund_percent",
           "type": "string",
           "sample": "75%"
@@ -956,6 +968,12 @@
           "name": "refund_amount",
           "type": "string",
           "sample": "$468.95"
+        },
+        {
+          "name": "refund_days",
+          "type": "string",
+          "sample": "10",
+          "note": "Business days within which a refund is sent (refund_business_days)."
         },
         {
           "name": "reply_time",
@@ -1088,6 +1106,12 @@
           "name": "needs_verification",
           "type": "boolean",
           "sample": true
+        },
+        {
+          "name": "non_refundable_percent",
+          "type": "string",
+          "sample": "10%",
+          "note": "The non-refundable discount (non_refundable_discount_bps) as a percentage."
         },
         {
           "name": "opening_hours",
@@ -3393,6 +3417,12 @@
           "sample": false
         },
         {
+          "name": "holdback_days",
+          "type": "string",
+          "sample": "30",
+          "note": "Days after check-in within which a held-back Deposit is applied or released (deposit_holdback_days)."
+        },
+        {
           "name": "holdback_reason",
           "type": "string",
           "sample": ""
@@ -3610,10 +3640,22 @@
           "note": "First name of the person the email is addressed to."
         },
         {
+          "name": "id_retention_days",
+          "type": "string",
+          "sample": "90",
+          "note": "Days after the rental ends before licence images and selfies are deleted (retention_id_face_days)."
+        },
+        {
           "name": "instagram_url",
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
           "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "min_renter_age",
+          "type": "string",
+          "sample": "18",
+          "note": "The minimum age of every driver (min_renter_age)."
         },
         {
           "name": "missing_items",
@@ -4540,6 +4582,12 @@
           "sample": "10:00 am"
         },
         {
+          "name": "refund_days",
+          "type": "string",
+          "sample": "10",
+          "note": "Business days within which a refund is sent (refund_business_days)."
+        },
+        {
           "name": "reply_time",
           "type": "string",
           "sample": "within 2 hours",
@@ -4651,6 +4699,12 @@
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
           "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "interest_after_days",
+          "type": "string",
+          "sample": "7",
+          "note": "Days after a statement before unpaid amounts carry interest (statement_interest_days)."
         },
         {
           "name": "interest_rate",
@@ -5053,6 +5107,12 @@
           "name": "refund_amount",
           "type": "string",
           "sample": "$113.00"
+        },
+        {
+          "name": "refund_days",
+          "type": "string",
+          "sample": "10",
+          "note": "Business days within which a refund is sent (refund_business_days)."
         },
         {
           "name": "refund_reason",
@@ -5782,6 +5842,12 @@
           "type": "string",
           "sample": "$500.00",
           "note": "Security deposit for this booking, taken at pickup."
+        },
+        {
+          "name": "deposit_release_days",
+          "type": "string",
+          "sample": "7",
+          "note": "Business days after check-in within which the Deposit is released (deposit_release_business_days)."
         },
         {
           "name": "first_name",
@@ -7042,6 +7108,12 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "deductible_amount",
+          "type": "string",
+          "sample": "$2,500.00",
+          "note": "The fleet policy deductible (deductible_cents)."
+        },
+        {
           "name": "first_name",
           "type": "string",
           "sample": "Daniel",
@@ -7199,9 +7271,10 @@
           "note": "Instagram profile address (social_links)."
         },
         {
-          "name": "late_fee",
+          "name": "late_fee_rule",
           "type": "string",
-          "sample": "$50.00"
+          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
           "name": "notice_days",
@@ -7219,11 +7292,6 @@
           "type": "string",
           "sample": "within 2 hours",
           "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
-        },
-        {
-          "name": "retry_text",
-          "type": "string",
-          "sample": "we try again from the 18th"
         },
         {
           "name": "support_phone",
@@ -7272,6 +7340,12 @@
           "sample": "Sun, Nov 15, 2026"
         },
         {
+          "name": "debit_day",
+          "type": "string",
+          "sample": "15th",
+          "note": "The owner debit day (program_settings.billing_day) as an ordinal."
+        },
+        {
           "name": "debit_items",
           "type": "list",
           "sample": [
@@ -7307,9 +7381,10 @@
           "note": "Instagram profile address (social_links)."
         },
         {
-          "name": "late_fee",
+          "name": "late_fee_rule",
           "type": "string",
-          "sample": "$50.00"
+          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
           "name": "notice_days",
@@ -7603,6 +7678,12 @@
           "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
         },
         {
+          "name": "retransfer_business_days",
+          "type": "string",
+          "sample": "10",
+          "note": "Business days to transfer the registration back after the Exit Date (retransfer_business_days)."
+        },
+        {
           "name": "retransfer_fee_note",
           "type": "string",
           "sample": "Paid by you. The car has been on the fleet policy for less than 6 months."
@@ -7661,6 +7742,12 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "debit_day",
+          "type": "string",
+          "sample": "15th",
+          "note": "The owner debit day (program_settings.billing_day) as an ordinal."
+        },
+        {
           "name": "effective_date",
           "type": "string",
           "sample": "Fri, Jan 15, 2027"
@@ -7714,6 +7801,12 @@
           "sample": "45"
         },
         {
+          "name": "notice_period_days",
+          "type": "string",
+          "sample": "30",
+          "note": "The Notice Period of the Enrollment Agreement in days (notice_period_days)."
+        },
+        {
           "name": "opening_hours",
           "type": "string",
           "sample": "Open 24 hours, every day",
@@ -7764,7 +7857,7 @@
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "billing@carmacars.ca",
       "subject": "Invoice {{invoice_number}}: {{invoice_month}} fees for your {{vehicle_name}}, {{invoice_total}}",
-      "preheader": "Due on the 15th. Pay from the invoice page by card or pre-authorized debit.",
+      "preheader": "Due on {{due_date}}. Pay from the invoice page by card or pre-authorized debit.",
       "sample_subject": "Invoice INV-2026-11-0042: November fees for your 2023 Toyota RAV4 XLE, $536.75",
       "variables": [
         {
@@ -7783,6 +7876,11 @@
           "type": "string",
           "sample": "contact@carmacars.ca",
           "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "due_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
         },
         {
           "name": "first_name",
@@ -7837,6 +7935,12 @@
           "name": "invoice_total",
           "type": "string",
           "sample": "$536.75"
+        },
+        {
+          "name": "late_fee_rule",
+          "type": "string",
+          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
           "name": "opening_hours",
@@ -8048,6 +8152,12 @@
           "name": "arrears_amount",
           "type": "string",
           "sample": "$586.75"
+        },
+        {
+          "name": "arrears_removal_days",
+          "type": "string",
+          "sample": "30",
+          "note": "Days after a failed retry before CarmaCars may remove the vehicle (owner_arrears_removal_days)."
         },
         {
           "name": "company_address",
@@ -8549,6 +8659,12 @@
           "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
         },
         {
+          "name": "safety_certificate_days",
+          "type": "string",
+          "sample": "36",
+          "note": "Days a safety certificate is valid (safety_certificate_days)."
+        },
+        {
           "name": "support_phone",
           "type": "string",
           "sample": "647-575-3377",
@@ -8575,6 +8691,133 @@
       ],
       "template_html": "templates/owner_onboarding_steps.html",
       "template_text": "templates/owner_onboarding_steps.txt"
+    },
+    {
+      "code": "owner_pad_confirmed",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An owner's pre-authorized debit mandate becomes active (set up under Banking, confirmed by micro-deposits, or saved with a debit paid from an invoice page). CarmaCars' own confirmation of the pre-authorized debit agreement (Payments Canada Rule H1): the agreement, the payee and how to reach it, the account, the timing, how to cancel and the recourse rights. Sent once per debit mandate. An automatic debit is scheduled only with its notice, the notice days ahead, so this confirmation comes before the first automatic debit.",
+      "timing": "Immediate, when the debit mandate becomes active",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Your pre-authorized debit agreement with {{payee_name}}",
+      "preheader": "Your confirmation for the account ending {{bank_last4}}. Keep it for your records.",
+      "sample_subject": "Your pre-authorized debit agreement with CarmaCars",
+      "variables": [
+        {
+          "name": "accepted_on",
+          "type": "string",
+          "sample": "Fri, Oct 16, 2026"
+        },
+        {
+          "name": "agreement_type",
+          "type": "string",
+          "sample": "Personal"
+        },
+        {
+          "name": "bank_last4",
+          "type": "string",
+          "sample": "6621"
+        },
+        {
+          "name": "bank_name",
+          "type": "string",
+          "sample": "TD Canada Trust"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "debit_day",
+          "type": "string",
+          "sample": "15th",
+          "note": "The owner debit day (program_settings.billing_day) as an ordinal."
+        },
+        {
+          "name": "first_debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "late_fee_rule",
+          "type": "string",
+          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
+        },
+        {
+          "name": "notice_days",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_address",
+          "type": "string",
+          "sample": "100 Sample Street, Toronto, Ontario"
+        },
+        {
+          "name": "payee_email",
+          "type": "string",
+          "sample": "billing@carmacars.ca"
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "CarmaCars"
+        },
+        {
+          "name": "payee_phone",
+          "type": "string",
+          "sample": "647-575-3377"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_pad_confirmed.html",
+      "template_text": "templates/owner_pad_confirmed.txt"
     },
     {
       "code": "owner_payment_failed",
@@ -8633,6 +8876,12 @@
           "name": "late_fee",
           "type": "string",
           "sample": "$50.00"
+        },
+        {
+          "name": "late_fee_rule",
+          "type": "string",
+          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
           "name": "opening_hours",
@@ -9045,6 +9294,12 @@
           "sample": "$1,922.25"
         },
         {
+          "name": "payout_day",
+          "type": "string",
+          "sample": "10th",
+          "note": "The owner payout day (program_settings.payout_day) as an ordinal."
+        },
+        {
           "name": "payout_reference",
           "type": "string",
           "sample": "CC-PO-1210-0031"
@@ -9135,6 +9390,12 @@
           "type": "string",
           "sample": "within 2 hours",
           "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "safety_certificate_days",
+          "type": "string",
+          "sample": "36",
+          "note": "Days a safety certificate is valid (safety_certificate_days)."
         },
         {
           "name": "support_phone",
@@ -9632,6 +9893,12 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "debit_day",
+          "type": "string",
+          "sample": "15th",
+          "note": "The owner debit day (program_settings.billing_day) as an ordinal."
+        },
+        {
           "name": "enrollment_date",
           "type": "string",
           "sample": "Mon, Nov 9, 2026"
@@ -9761,6 +10028,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payout_day",
+          "type": "string",
+          "sample": "10th",
+          "note": "The owner payout day (program_settings.payout_day) as an ordinal."
         },
         {
           "name": "reply_time",
@@ -11092,9 +11365,15 @@
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
       "subject": "{{statement_month}} owner statements are ready for approval",
-      "preheader": "{{statement_count}} statements, {{payout_total}} to pay on the 10th. Approve by the 9th.",
+      "preheader": "{{statement_count}} statements, {{payout_total}} to pay on the {{payout_day}}. Approve by the {{approve_by_day}}.",
       "sample_subject": "November owner statements are ready for approval",
       "variables": [
+        {
+          "name": "approve_by_day",
+          "type": "string",
+          "sample": "9th",
+          "note": "The day before the payout day, by which the Admins approve the statements."
+        },
         {
           "name": "company_address",
           "type": "string",
@@ -11120,6 +11399,12 @@
           "name": "owner_revenue_total",
           "type": "string",
           "sample": "$34,910.00"
+        },
+        {
+          "name": "payout_day",
+          "type": "string",
+          "sample": "10th",
+          "note": "The owner payout day (program_settings.payout_day) as an ordinal."
         },
         {
           "name": "payout_total",
@@ -11791,6 +12076,18 @@
           "name": "owner_name",
           "type": "string",
           "sample": "Daniel Rossi"
+        },
+        {
+          "name": "payout_day",
+          "type": "string",
+          "sample": "10th",
+          "note": "The owner payout day (program_settings.payout_day) as an ordinal."
+        },
+        {
+          "name": "retry_day",
+          "type": "string",
+          "sample": "18th",
+          "note": "The retry day of a returned owner debit (program_settings.retry_day) as an ordinal."
         },
         {
           "name": "vehicle_name",

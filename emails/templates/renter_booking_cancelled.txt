@@ -17,7 +17,7 @@ Refund: {{refund_percent}} of {{amount_paid}} = {{refund_amount}}
 Deposit: Any deposit already taken is returned in full
 
 {{#if has_refund}}
-The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.
+The refund goes to the card you paid with, within {{refund_days}} business days. Your bank may take longer to show it.
 {{else}}
 No refund is due under the policy for this booking, so nothing will be returned to your card.
 {{/if}}

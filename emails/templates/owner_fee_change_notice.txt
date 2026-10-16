@@ -23,13 +23,13 @@ A change to the Revenue Share applies only if you sign a new Vehicle Schedule. U
 Read and sign the new schedule:
 https://carmacars.ca/owner/agreements
 {{else}}
-You do not need to do anything. The new amounts appear on the first invoice dated on or after {{effective_date}}, charged on the 15th as usual.
+You do not need to do anything. The new amounts appear on the first invoice dated on or after {{effective_date}}, charged on the {{debit_day}} as usual.
 
 View my vehicle:
 https://carmacars.ca/owner/vehicles/{{vehicle_id}}
 {{/if}}
 
-This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give 30 days' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.
+This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give {{notice_period_days}} days' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.
 
 ----------------------------------------
 

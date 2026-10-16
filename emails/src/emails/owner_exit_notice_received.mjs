@@ -25,7 +25,7 @@ export default {
       ['We stop new bookings after the Exit Date', 'Bookings already confirmed before that date go ahead.'],
       ['You send proof of your own insurance', 'It must start on the Exit Date. We need it before we hand the car back.'],
       ['On the Exit Date', 'We remove the tracker, record the odometer and photos, and take the car off the fleet policy.'],
-      ['Registration goes back to you', 'We complete our part within 10 business days after the Exit Date. We both sign Form E and you get the car, keys and permit.'],
+      ['Registration goes back to you', 'We complete our part within {{retransfer_business_days}} business days after the Exit Date. We both sign Form E and you get the car, keys and permit.'],
       ['Final account', 'The last month\'s fees are pro-rated to the Exit Date. Your final balance is paid on the first payout date after the month of the Exit Date.'],
     ),
     button('Upload my proof of insurance', '@owner_vehicle_exit'),

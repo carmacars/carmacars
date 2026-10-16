@@ -30,11 +30,10 @@ export default {
     ),
     notice('info', 'Prefer to pay another way?', 'Pay any of these invoices by card from its page before {{debit_date}} and we will not debit it.'),
     button('View my invoices', '@owner_billing'),
-    small('A debit can take up to 5 business days to clear. If your bank returns it, a {{late_fee}} late fee applies and {{retry_text}}. To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.'),
+    small('A debit can take up to 5 business days to clear. {{late_fee_rule}} To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.'),
   ],
   sample: {
-    debit_date: 'Sun, Nov 15, 2026', debit_total: '$1,073.50', debit_count_text: '2 invoices', bank_last4: '6621', late_fee: '$50.00',
-    retry_text: 'we try again from the 18th', notice_days: '10',
+    debit_date: 'Sun, Nov 15, 2026', debit_total: '$1,073.50', debit_count_text: '2 invoices', bank_last4: '6621', notice_days: '10',
     debit_items: [
       { invoice_number: 'INV-1042', vehicle: '2023 Toyota RAV4 XLE', covers: 'November 2026', amount: '$536.75' },
       { invoice_number: 'INV-1043', vehicle: '2022 Hyundai Elantra Preferred', covers: 'November 2026', amount: '$536.75' },

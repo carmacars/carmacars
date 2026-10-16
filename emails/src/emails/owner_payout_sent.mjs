@@ -23,7 +23,7 @@ export default {
       ['Transfer reference', '{{payout_reference}}'],
     ),
     button('View the statement', '@owner_statement'),
-    small('Bank transfers usually show within a few business days. If the account on file is no longer right, tell us before the next payout on the 10th.'),
+    small('Bank transfers usually show within a few business days. If the account on file is no longer right, tell us before the next payout on the {{payout_day}}.'),
   ],
   sample: { payout_amount: '$1,922.25', statement_month: 'November', statement_number: 'ST-2026-11-0031', bank_last4: '6621', payment_date: 'Thu, Dec 10, 2026', payout_reference: 'CC-PO-1210-0031' },
 };

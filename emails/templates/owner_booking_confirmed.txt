@@ -19,7 +19,7 @@ Good to know
 
 - Bring your driver's licence. We complete a condition report with photos at pickup and at return, the same as any rental.
 - Tolls and tickets from these dates are billed to you at cost, with no administration fee.
-- If you damage the car: under $2,500 you repair it at your own cost. If a claim is made on the fleet policy, you pay the $2,500 deductible.
+- If you damage the car: under {{deductible_amount}} you repair it at your own cost. If a claim is made on the fleet policy, you pay the {{deductible_amount}} deductible.
 - Your monthly fees continue as normal.
 
 View this booking:

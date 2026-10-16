@@ -4,11 +4,13 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { CarImage } from '@/components/Picture';
 import type { Photo } from '@/lib/types';
-import { STATUS, bookingPath, carName } from './status';
+import { AWAITING_SIGNATURE, STATUS, bookingPath, carName } from './status';
 import type { BookingStatus, BookingSummary, Line, OfferLine } from './types';
 
 // Server-rendered pieces of the portal. Money is shown exactly as the database stored it.
-export function StatusBadge({ s }: { s: BookingStatus }) {
+export function StatusBadge({ s, awaiting = false }: { s: BookingStatus; awaiting?: boolean }) {
+  // a rental staff added by hand is confirmed before the renter signs (0051): awaiting signature until then
+  if (awaiting && s === 'confirmed') return <span className="badge badge--red" data-testid="status-badge">{AWAITING_SIGNATURE.label}</span>;
   return <span className={`badge ${STATUS[s].badge}`} data-testid="status-badge">{STATUS[s].label}</span>;
 }
 

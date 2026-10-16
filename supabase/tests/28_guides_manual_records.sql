@@ -251,6 +251,10 @@ select test.eq('paper: the scan is in the owner''s documents',
 select test.eq('paper: the signature record says paper, with the owner and CarmaCars',
   (select string_agg(r.signer_role || ':' || r.method, ',' order by r.signer_role) from signature_records r join owner_agreements a on a.signature_request_id = r.signature_request_id
     where a.owner_id = test.gmv('app') and a.kind = 'enrollment'), 'carmacars:automatic,owner_individual:paper');
+select test.eq('paper (0051): the owner''s record keeps the paper date; CarmaCars'' countersignature is dated when staff recorded it',
+  (select string_agg(r.signer_role || ':' || (app.local_date(r.signed_at) = case when r.signer_role = 'carmacars' then app.today() else app.today() - 3 end), ',' order by r.signer_role)
+     from signature_records r join owner_agreements a on a.signature_request_id = r.signature_request_id
+    where a.owner_id = test.gmv('app') and a.kind = 'enrollment'), 'carmacars:true,owner_individual:true');
 select test.throws('paper: nothing left to sign the second time', format($$select test.gm_do('gm_admin', 'paper_signature_record', jsonb_build_object('doc_type', 'owner_agreement', 'target_id', %L,
   'signer_name', 'Olivia Paper', 'signed_on', app.today(), 'scan', jsonb_build_object('path', 'paper/again.pdf', 'sha256', test.gm_sha('again'))))$$, test.gmv('app')), 'Nothing of');
 select test.eq('audit: recorded', (select count(*) from audit_log where action = 'record_paper_signature' and entity_id = test.gmv('ps_owner')::text), 1::bigint);

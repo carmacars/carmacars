@@ -43,6 +43,8 @@ export async function openAmendment(f: ChangeFacts, by: string): Promise<{ id: s
 interface AmendmentRecord {
   amendment: { id: string; amendment_number: string; status: string; signed_document_id: string | null };
   record: { signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; consent_text: string; document_sha256: string } | null;
+  /** CarmaCars' automatic countersignature (0051); none on an amendment signed before it. */
+  countersign?: { signer_name: string; signer_title: string | null; method: string; signed_at: string; consent_text: string } | null;
 }
 
 /** After the change is applied: the signed copy, with the signature and its record, stored once. */
@@ -58,13 +60,16 @@ export async function attachSignedAmendment(amendmentId: string, requestId: stri
   }
   const signatures: SignatureRow[] = [
     { party: 'Renter', name: r.record.signer_name, signature: r.record.method === 'typed' ? `Typed: ${r.record.typed_name ?? r.record.signer_name}` : 'Drawn signature', when: when(r.record.signed_at) },
-    { party: 'CarmaCars', name: f.company.brand, signature: 'Proposed or approved by CarmaCars staff', when: when(f.change.created_at) }
+    r.countersign
+      ? { party: 'CarmaCars', name: r.countersign.signer_name, signature: 'Signed electronically for CarmaCars', when: when(r.countersign.signed_at) }
+      : { party: 'CarmaCars', name: f.company.brand, signature: 'Proposed or approved by CarmaCars staff', when: when(f.change.created_at) }
   ];
   const pdf = await renderAmendment(f, { signatures, images, record: { heading: 'Signature record', lines: [
     ['Amendment', `${r.amendment.amendment_number}, text version ${AMENDMENT_TEMPLATE_VERSION}`],
     ['Unsigned document SHA-256', r.record.document_sha256],
     ['Statement agreed', r.record.consent_text],
-    [`Renter: ${r.record.signer_name}`, `${when(r.record.signed_at)}; method ${r.record.method}${r.record.ip_address ? `; IP address ${r.record.ip_address}` : ''}${r.record.user_agent ? `; device ${r.record.user_agent}` : ''}`]
+    [`Renter: ${r.record.signer_name}`, `${when(r.record.signed_at)}; method ${r.record.method}${r.record.ip_address ? `; IP address ${r.record.ip_address}` : ''}${r.record.user_agent ? `; device ${r.record.user_agent}` : ''}`],
+    ...(r.countersign ? [[`CarmaCars: ${r.countersign.signer_name}${r.countersign.signer_title ? `, ${r.countersign.signer_title}` : ''}`, `${when(r.countersign.signed_at)}; method ${r.countersign.method}; ${r.countersign.consent_text}`]] : [])
   ] } });
   const sha = await sha256Hex(pdf);
   const key = `bookings/${f.booking.id}/amendments/${r.amendment.amendment_number}-signed.pdf`;

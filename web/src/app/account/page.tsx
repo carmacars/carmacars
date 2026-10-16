@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { getFleet } from '@/lib/site';
-import { group, nextStep, carName } from '@/features/portal/status';
+import { awaitingSignature, group, nextStep, carName } from '@/features/portal/status';
 import { TripRow, StatusBadge } from '@/features/portal/Blocks';
 import { findBooking, myBookings, requireUser } from '@/server/portal/data';
 import { rpc } from '@/lib/db/repo';
@@ -35,7 +35,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <div className="pt-home">
           {full && step && (
             <section className="pt-card pt-card--next" aria-labelledby="pt-next" data-testid="next-step">
-              <div className="pt-card__head"><p className="pt-kicker">Next step · {full.booking_number}</p><StatusBadge s={full.status} /></div>
+              <div className="pt-card__head"><p className="pt-kicker">Next step · {full.booking_number}</p><StatusBadge s={full.status} awaiting={awaitingSignature(full)} /></div>
               <h2 className="d3" id="pt-next">{step.title}</h2>
               <p>{carName(full)}. {step.note}</p>
               {step.href && <p><Link prefetch={false} className={`btn ${step.urgent ? 'btn--primary' : 'btn--ghost'}`} href={step.href}>{step.cta}</Link></p>}

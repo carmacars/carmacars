@@ -37,7 +37,7 @@ https://carmacars.ca/account/bookings/{{booking_number}}
 {{/if}}
 
 {{#if is_non_refundable}}
-This is a non-refundable booking. You saved 10% on the rental charge, and it cannot be refunded if you cancel.
+This is a non-refundable booking. You saved {{non_refundable_percent}} on the rental charge, and it cannot be refunded if you cancel.
 {{else}}
 If your plans change, the refund depends on when we receive your cancellation. See the cancellation policy (https://carmacars.ca/terms#cancellation).
 {{/if}}

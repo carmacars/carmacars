@@ -3,6 +3,7 @@ import { Dl } from '@/features/portal/Blocks';
 import { day } from '@/features/owner/Blocks';
 import { PayoutForm } from '@/features/owner/OwnerForms';
 import { DebitSetupForm } from '@/features/owner/DebitSetupForm';
+import { MandateBlock } from '@/features/owner/OwnerPayForm';
 import { money } from '@/lib/format';
 import { requireOwner } from '@/server/owner/data';
 
@@ -36,12 +37,18 @@ export default async function OwnerBanking() {
             ) : (
               <p className="small" data-testid="debit-missing">Your fees are paid by pre-authorized debit on the {d.terms.debit_day_text} of each month. Set it up once and we debit each invoice on that day, with a notice {d.notice_days} days before.</p>
             )}
+            {d.mandate && (
+              <details className="ow-agreement" id="agreement" data-testid="pad-in-force"><summary className="link">The pre-authorized debit agreement you accepted</summary>
+                <MandateBlock kind={home.owner.owner_type === 'corporation' ? 'business' : 'personal'} terms={d.terms} withInvoice={false} id="ow-inforce-h" />
+                <p className="small muted">We emailed you a confirmation of it when your bank account was set up.</p>
+              </details>
+            )}
             {d.enabled && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} holderName={home.owner.owner_type === 'corporation' ? (home.owner.corporation_name ?? home.owner.legal_name) : home.owner.legal_name} />}
           </section>
           <section className="pt-card" aria-labelledby="ow-pm"><h2 className="d4" id="ow-pm">Saved payment methods</h2>
             {home.payment_methods.length ? <Dl rows={home.payment_methods.map((m) => [m.kind === 'card' ? 'Card' : 'Pre-authorized debit', `${m.brand_or_bank ?? ''} ending ${m.last4 ?? ''}${m.is_default ? ', default' : ''}${m.status === 'pending' ? ', being confirmed' : ''}`.trim()])} />
               : <p className="small muted">None yet.</p>}
-            <p className="small muted">A returned debit adds the {d.terms.late_fee} Late Fee and is tried again from the {d.terms.retry_day_text}. You can always pay an invoice by card from its page before its debit day.</p>
+            <p className="small muted" data-testid="late-fee-rule">{d.terms.late_fee_rule} You can always pay an invoice by card from its page before its debit day.</p>
           </section>
         </aside>
       </div>

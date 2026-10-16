@@ -78,6 +78,14 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   await page.getByTestId('debit-setup-agree').check();
   await page.getByTestId('debit-setup-submit').click();
   await expect(page.getByTestId('fake-debit-setup')).toBeVisible();
+  // the agreement on screen names the payee with its address, phone and email, and the one Late Fee rule (0051)
+  await expect(page.getByTestId('pad-payee')).toContainText('Payee');
+  await expect(page.getByTestId('pad-payee')).toContainText('billing@carmacars.ca');
+  const [terms] = await sql`select app.owner_debit_terms() t`;
+  const t = terms!.t as { late_fee_rule: string; payee: { name: string; phone: string } };
+  await expect(page.getByTestId('pad-agreement')).toContainText(t.late_fee_rule);
+  await expect(page.getByTestId('pad-payee')).toContainText(t.payee.name);
+  expect(await page.getByTestId('pad-agreement').innerText()).not.toMatch(/18122211/);
   await check(page, 'banking setup form');
   await page.locator('#ds-name').fill(`Dora ${last}`);
   await page.locator('#ds-institution').fill('004');
@@ -89,6 +97,12 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   await check(page, 'banking after');
   const [m] = await sql`select s.processor_mandate_id mandate from owner_payment_methods m join owner_payment_method_secrets s on s.owner_payment_method_id = m.id where m.owner_id = ${owner} and m.status = 'active'`;
   expect(m?.mandate).toMatch(/^mandate_fake_/);
+  // CarmaCars' own confirmation of the agreement (Rule H1), once, to the owner; the agreement in force on the page
+  const pad = await sql`select count(*)::int n from app_events where code = 'owner_pad_confirmed' and payload ->> 'owner_id' = ${owner}`;
+  expect(pad[0]!.n, 'one PAD confirmation email').toBe(1);
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.getByTestId('pad-in-force')).toBeVisible();
+  await expect(page.getByTestId('late-fee-rule')).toContainText(t.late_fee_rule);
 
   // ---------------------------------------------------------------- 2. an Admin sends the notice
   const ctx = await browser.newContext({ viewport: page.viewportSize()!, baseURL: test.info().project.use.baseURL });

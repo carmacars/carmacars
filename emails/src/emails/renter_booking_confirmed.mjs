@@ -32,7 +32,7 @@ export default {
       button('View my booking', '@booking'),
     ]),
     when('is_non_refundable', [
-      small('This is a non-refundable booking. You saved 10% on the rental charge, and it cannot be refunded if you cancel.'),
+      small('This is a non-refundable booking. You saved {{non_refundable_percent}} on the rental charge, and it cannot be refunded if you cancel.'),
     ], [
       small('If your plans change, the refund depends on when we receive your cancellation. See the [cancellation policy](@cancellation_policy).'),
     ]),

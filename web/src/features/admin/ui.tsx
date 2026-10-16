@@ -44,7 +44,7 @@ const TONE: Record<string, string> = {
   requested: 'ad-b--wait', offered: 'ad-b--amber', pending_payment: 'ad-b--amber', confirmed: 'ad-b--dark', on_rent: 'ad-b--red',
   returned: 'ad-b--grey', closed: 'ad-b--light', cancelled: 'ad-b--light', expired: 'ad-b--light', declined: 'ad-b--light', no_show: 'ad-b--light',
   failed: 'ad-b--red', succeeded: 'ad-b--dark', paid: 'ad-b--dark', approved: 'ad-b--dark', draft: 'ad-b--wait', sent: 'ad-b--amber',
-  pending_approval: 'ad-b--amber', published: 'ad-b--dark', needs_review: 'ad-b--amber', open: 'ad-b--wait', done: 'ad-b--light', hidden: 'ad-b--light'
+  pending_approval: 'ad-b--amber', awaiting_signature: 'ad-b--amber', published: 'ad-b--dark', needs_review: 'ad-b--amber', open: 'ad-b--wait', done: 'ad-b--light', hidden: 'ad-b--light'
 };
 export function Badge({ s, children }: { s: string; children?: ReactNode }) {
   const text = label(s);

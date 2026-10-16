@@ -16,7 +16,7 @@ We have opened a file for the {{vehicle_name}}, {{first_name}}. If anyone is hur
 4. Do not admit fault
    Do not settle or sign anything at the scene.
 5. Send us your report
-   A written account, your photos and all keys, by {{report_due}}. That is 48 hours from the incident.
+   A written account, your photos and all keys, by {{report_due}}. That is {{incident_report_hours}} hours from the incident.
 
 Send my report and photos:
 https://carmacars.ca/account/bookings/{{booking_number}}/incident

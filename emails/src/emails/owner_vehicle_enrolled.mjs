@@ -25,7 +25,7 @@ export default {
     notice('info', 'Your own insurance', 'You may now cancel your own insurance on this vehicle, effective {{enrollment_date}} or later. Not before.'),
     h('From here'),
     list(
-      'Monthly fees start from the Enrollment Date and are charged on the 15th.',
+      'Monthly fees start from the Enrollment Date and are charged on the {{debit_day}} of each month.',
       'We photograph and list the car. You get an email when it is live.',
       'You can see the car\'s live location in your owner account at any time.',
     ),

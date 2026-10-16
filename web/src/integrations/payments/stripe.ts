@@ -117,9 +117,9 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
         expand
       };
       if (r.method === 'acss_debit') {
-        // the debit agreement: variable amounts on a schedule (the 15th, retried on the 18th), confirmed by the owner in Stripe's form
+        // the debit agreement: variable amounts on a schedule (the debit and retry days of Program settings), confirmed by the owner in Stripe's form
         p['payment_method_options[acss_debit][mandate_options][payment_schedule]'] = 'interval';
-        p['payment_method_options[acss_debit][mandate_options][interval_description]'] = r.intervalDescription ?? 'On the 15th of each month for the fees on your CarmaCars invoices';
+        p['payment_method_options[acss_debit][mandate_options][interval_description]'] = r.intervalDescription ?? 'Monthly, on the debit day of your agreement, for the fees on your CarmaCars invoices';
         p['payment_method_options[acss_debit][mandate_options][transaction_type]'] = r.transactionType;
         p['payment_method_options[acss_debit][verification_method]'] = 'automatic';
       }

@@ -154,6 +154,8 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   await page.getByTestId('mr-open').click();
   await page.waitForURL(new RegExp(`/admin/bookings/${number}`));
   await expect(page.locator('body')).toContainText('Added by hand');
+  // confirmed, but awaiting the renter's signature: not ready for handover (0051)
+  await expect(page.locator('h1')).toContainText('Awaiting signature');
   await check(page, 'booking added by hand');
 
   // the same dates again: a clash, which an Admin may add over with a reason
@@ -166,6 +168,8 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   // the renter signs it in their portal: no payment step
   const rp = await ctx(browser);
   await signIn(rp, renter.email, '/account');
+  await rp.goto(`/account/bookings/${number}`, { waitUntil: 'networkidle' });
+  await expect(rp.getByTestId('status-badge').first()).toHaveText('Awaiting signature');
   await rp.goto(`/account/bookings/${number}/sign`, { waitUntil: 'networkidle' });
   await expect(rp.getByRole('heading', { level: 1 })).toHaveText('Sign your rental agreement');
   if (await rp.locator('#pt-d-address_line1').isVisible()) {
@@ -186,7 +190,10 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   const [sig] = await sql`select string_agg(r.signer_role || ':' || r.method, ',' order by r.signer_role) recs
     from signature_records r join bookings b on b.signature_request_id = r.signature_request_id where b.booking_number = ${number}`;
   expect(sig!.recs).toBe('carmacars:automatic,renter:drawn');
+  await expect(rp.getByTestId('status-badge').first()).toHaveText('Confirmed');
   await rp.context().close();
+  await page.goto(`/admin/bookings/${number}`, { waitUntil: 'networkidle' });
+  await expect(page.locator('h1')).not.toContainText('Awaiting signature');
 
   // retire: refused while a confirmed booking is ahead; a car with none retires and is restored
   await page.goto(`/admin/vehicles/${cCar}`, { waitUntil: 'networkidle' });

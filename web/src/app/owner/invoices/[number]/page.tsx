@@ -74,7 +74,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
               {i.status !== 'paid' && <div><dt><b>Balance</b></dt><dd className="pt-total">{money(i.balance_cents, { cents: true })}</dd></div>}
             </dl>
             {i.kind === 'monthly' && i.days_billed && i.days_in_month && i.days_billed < i.days_in_month && <p className="small muted">Pro-rated: {i.days_billed} of {i.days_in_month} days.</p>}
-            <p className="small muted">{i.kind === 'upfront' && !home.trackers_available ? 'The Tracker Install Fee is billed on its own invoice when trackers become available. ' : ''}Fees are due every month, rented or not. Registry, inspection and appraisal costs are not billed by CarmaCars: you pay them directly.</p>
+            <p className="small muted">{i.kind === 'upfront' && !home.trackers_available ? 'The Tracker Install Fee is billed on its own invoice when trackers become available. ' : ''}Fees are due every month, rented or not. {home.auto_debit.terms.late_fee_rule} Registry, inspection and appraisal costs are not billed by CarmaCars: you pay them directly.</p>
           </section>
           {i.payments.length > 0 && (
             <section className="pt-card" aria-labelledby="ow-payments"><h2 className="d4" id="ow-payments">Payments</h2>

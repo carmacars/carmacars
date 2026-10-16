@@ -25,7 +25,7 @@ export default {
       ['Deposit', 'Any deposit already taken is returned in full'],
     ),
     when('has_refund', [
-      p('The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.'),
+      p('The refund goes to the card you paid with, within {{refund_days}} business days. Your bank may take longer to show it.'),
     ], [
       p('No refund is due under the policy for this booking, so nothing will be returned to your card.'),
     ]),

@@ -17,7 +17,7 @@ export default {
     hero('Cancelled by us', 'We have had to cancel your booking', 'We are sorry, {{first_name}}. We cannot provide the {{vehicle_name}} for {{pickup_date}}, and you are refunded in full.'),
     notice('info', 'Reason', '{{cancel_reason}}'),
     figure('Full refund', '{{refund_amount}}', 'Everything you paid at booking. Any deposit already taken is also returned in full.'),
-    p('The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.'),
+    p('The refund goes to the card you paid with, within {{refund_days}} business days. Your bank may take longer to show it.'),
     button('See other cars for your dates', '@cars'),
     p('If you still need a car, reply to this email or call us. We will look for one that fits and put your request first.'),
   ],

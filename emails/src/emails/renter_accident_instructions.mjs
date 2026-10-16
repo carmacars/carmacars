@@ -21,7 +21,7 @@ export default {
       ['Get the other party\'s details', 'Name, phone, licence, plate and insurer. Ask witnesses for a name and number.'],
       ['Take photos', 'All vehicles, the scene, the damage and any plates.'],
       ['Do not admit fault', 'Do not settle or sign anything at the scene.'],
-      ['Send us your report', 'A written account, your photos and all keys, by **{{report_due}}**. That is 48 hours from the incident.'],
+      ['Send us your report', 'A written account, your photos and all keys, by **{{report_due}}**. That is {{incident_report_hours}} hours from the incident.'],
     ),
     button('Send my report and photos', '@booking_incident'),
     notice('info', 'If the car cannot be driven', 'We tow it to an approved shop and the rental ends. Call **{{roadside_phone}}** and we will arrange it.'),

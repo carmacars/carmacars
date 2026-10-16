@@ -24,7 +24,7 @@ export default {
       price({ rows: [['{{payment_reason}}', '{{amount}}'], ['Declined payment fee, HST included', '{{declined_fee}}']], total: ['Now due', '{{amount_due}}'] }),
       notice('alert', 'Please pay by {{pay_by}}', 'We will try the card again on {{next_retry_date}}. Paying now by another card stops the retries.'),
       button('Pay {{amount_due}} now', '@booking_pay'),
-      small('Amounts still unpaid 7 days after your statement carry interest of {{interest_rate}} a month. If a charge stays unpaid for 24 hours while you have the car, we may end the rental.'),
+      small('Amounts still unpaid {{interest_after_days}} days after your statement carry interest of {{interest_rate}} a month. If a charge stays unpaid for 24 hours while you have the car, we may end the rental.'),
     ]),
     small('Common causes: not enough available credit, an expired card, or a block by your bank on a new merchant. A quick call to your bank usually clears it.'),
   ],

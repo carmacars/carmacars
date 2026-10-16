@@ -20,7 +20,7 @@ What happens next
 2. You get an itemized statement
    Within 7 business days, with the record for every line.
 3. Your deposit is released
-   The {{deposit_amount}} deposit comes back within 7 business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.
+   The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.
 
 View the return report:
 https://carmacars.ca/account/bookings/{{booking_number}}/condition-report

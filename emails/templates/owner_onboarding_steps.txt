@@ -20,7 +20,7 @@ Your steps
 1. Get what your method needs
    {{owner_to_obtain}}
 2. We prepare the forms and book the registry visit
-   We fill in the government forms and send you the date, time and place. A safety certificate is valid for 36 days, so we book inside that window.
+   We fill in the government forms and send you the date, time and place. A safety certificate is valid for {{safety_certificate_days}} days, so we book inside that window.
 3. Registry visit
    You attend with one of our admins and pay the registry fees and any tax at the counter.
 4. Tracker install

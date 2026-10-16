@@ -10,7 +10,7 @@ export default async function OwnerInvoices() {
   return (
     <>
       <header className="stack"><h1 className="d2">Invoices</h1>
-        <p className="muted">One invoice per vehicle. The upfront invoice is the first and last month&apos;s Insurance Fee; the Tracker Install Fee has its own invoice. Fees are billed on the 15th of each month, rented or not, by pre-authorized debit.</p></header>
+        <p className="muted">One invoice per vehicle. The upfront invoice is the first and last month&apos;s Insurance Fee; the Tracker Install Fee has its own invoice. Fees are billed on the {home.auto_debit.terms.debit_day_text} of each month, rented or not, by pre-authorized debit. {home.auto_debit.terms.late_fee_rule}</p></header>
       <InvoiceRows items={home.invoices} empty="No invoices yet. Your upfront invoice appears here once your terms are set." />
     </>
   );

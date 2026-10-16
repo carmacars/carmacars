@@ -16,6 +16,10 @@ export const STATUS: Record<BookingStatus, { label: string; badge: string; blurb
   declined: { label: 'Declined', badge: 'badge--grey', blurb: 'This request was declined or withdrawn.' }
 };
 
+/** A rental added by hand by staff, confirmed but not signed yet (0051): the car is not released until it is. */
+export const AWAITING_SIGNATURE = { label: 'Awaiting signature', blurb: 'Your rental is booked. Sign the rental agreement before pickup: the car is released only once it is signed.' };
+export const awaitingSignature = (b: MyBooking | BookingSummary) => b.status === 'confirmed' && (b as { readiness?: { awaiting_signature?: boolean } | null }).readiness?.awaiting_signature === true;
+
 export interface NextStep { title: string; note: string; href?: string; cta?: string; urgent?: boolean }
 
 export const carName = (b: Pick<BookingSummary, 'vehicle_year' | 'vehicle_make' | 'vehicle_model'>) => `${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`;
@@ -75,7 +79,7 @@ export function progress(b: MyBooking): Progress[] {
   return [
     { label: 'Request sent', done: true },
     { label: 'Offer approved', done: b.offer_approved_version !== null && after(['pending_payment', ...live]), href: b.status === 'offered' ? path('offer') : undefined },
-    { label: 'Agreement signed', done: renterSigned || after(live), href: b.status === 'pending_payment' && !renterSigned ? path('sign') : undefined },
+    { label: 'Agreement signed', done: renterSigned || (after(live) && !awaitingSignature(b)), href: b.status === 'pending_payment' && !renterSigned ? path('sign') : undefined },
     { label: 'Paid', done: paid || after(live), href: b.status === 'pending_payment' && renterSigned ? path('pay') : undefined },
     { label: 'Drivers verified', done: after(live) && !missing.includes('identity'), href: b.status === 'confirmed' ? path('verify') : undefined },
     { label: 'Coverage confirmed', done: !!b.coverage_confirmed_at, href: b.status === 'confirmed' ? path('verify') : undefined },

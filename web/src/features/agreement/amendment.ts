@@ -3,7 +3,7 @@
 import { money } from '@/lib/format';
 import { when, type Block, type SignatureRow } from './model';
 
-export const AMENDMENT_TEMPLATE_VERSION = 'amend-v1-2026-10';
+export const AMENDMENT_TEMPLATE_VERSION = 'amend-v2-2026-10';
 export const AMENDMENT_STATEMENT = 'I have read this amendment to my rental agreement and I sign it electronically.';
 
 export interface ChangeRow { label: string; before: string; after: string }
@@ -23,7 +23,12 @@ export interface ChangeFacts {
   amendment_number_next: string;
   card_on_file: { method_id: string | null; customer_id: string | null; brand: string | null; last4: string | null } | null;
   company: { brand: string; legal_name: string; address: string; phone: string; email: string; logo_key?: string | null };
+  /** Who signs for CarmaCars (0051): the staff member who proposed or approved the change, signing automatically when the Renter signs. */
+  countersigner?: { user_id: string | null; name: string; title: string } | null;
 }
+
+/** The name CarmaCars signs in: the staff member who proposed or approved the change, else the business name. */
+export const countersignerName = (f: ChangeFacts) => f.countersigner?.name || f.company.brand;
 
 /** The number this amendment carries: the open one's, or the next one for a document not opened yet. */
 export const amendmentNumber = (f: ChangeFacts) => (f.amendment && f.amendment.status !== 'voided' ? f.amendment.amendment_number : f.amendment_number_next);
@@ -54,9 +59,10 @@ export function amendmentBlocks(f: ChangeFacts, signatures?: SignatureRow[]): Bl
       f.change.accept_by ? `If it is not signed by ${when(f.change.accept_by)}, this amendment lapses and the booking stays as it was.` : 'If it is not signed before the pickup, this amendment lapses and the booking stays as it was.'
     ] },
     { t: 'h2', text: '4. Signature' },
+    { t: 'p', text: `CarmaCars signs this amendment electronically, in the name of ${countersignerName(f)}, who ${f.change.requested_by_role === 'renter' ? 'approved' : 'proposed'} the change, at the moment the Renter signs it.` },
     { t: 'signatures', rows: signatures ?? [
       { party: 'Renter', name: f.renter.legal_name, signature: 'Not yet signed', when: '' },
-      { party: 'CarmaCars', name: f.company.brand, signature: 'Proposed or approved by CarmaCars staff', when: when(f.change.created_at) }
+      { party: 'CarmaCars', name: countersignerName(f), signature: 'Not yet signed', when: '' }
     ] }
   ];
   return blocks;

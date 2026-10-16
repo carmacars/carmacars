@@ -10,7 +10,9 @@ import { useDoor } from './door';
 // instant), the database decides, and its refusal is shown as written. Keyboard: Enter submits, Esc
 // closes a dialog.
 export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list';
-export interface Field { name: string; label: string; type?: FieldType; options?: Array<[string, string]>; required?: boolean; hint?: string; value?: unknown; placeholder?: string; wide?: boolean }
+export interface Field { name: string; label: string; type?: FieldType; options?: Array<[string, string]>; required?: boolean; hint?: string; value?: unknown; placeholder?: string; wide?: boolean;
+  /** For a number: the smallest and largest value allowed (the database checks the same). */
+  min?: number; max?: number }
 type Result = { ok: true; data: unknown } | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -39,7 +41,13 @@ export function convert(f: Field, raw: string | boolean): { v?: unknown; err?: s
   switch (f.type) {
     case 'money': { const n = Number(s.replace(/[$,\s]/g, '')); return Number.isFinite(n) ? { v: Math.round(n * 100) } : { err: 'Enter an amount.' }; }
     case 'percent': { const n = Number(s.replace('%', '')); return Number.isFinite(n) ? { v: Math.round(n * 100) } : { err: 'Enter a percentage.' }; }
-    case 'number': { const n = Number(s); return Number.isFinite(n) ? { v: n } : { err: 'Enter a number.' }; }
+    case 'number': {
+      const n = Number(s);
+      if (!Number.isFinite(n)) return { err: 'Enter a number.' };
+      if (f.min !== undefined && n < f.min) return { err: `At least ${f.min}.` };
+      if (f.max !== undefined && n > f.max) return { err: `At most ${f.max}.` };
+      return { v: n };
+    }
     case 'datetime': { const d = new Date(s); return Number.isNaN(d.getTime()) ? { err: 'Enter a date and time.' } : { v: d.toISOString() }; }
     case 'json': try { return { v: JSON.parse(s) }; } catch { return { err: 'Not valid JSON.' }; }
     case 'list': return { v: s.split(',').map((x) => x.trim()).filter(Boolean) };

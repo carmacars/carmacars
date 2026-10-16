@@ -20,7 +20,7 @@ export default {
       ['You can pay today', 'Paying now clears the arrears and stops everything below.'],
       ['Otherwise we deduct it on {{next_payout_date}}', 'The amount comes out of this car\'s revenue at the next payout.'],
       ['Any balance left becomes a debt payable on demand', 'We may deduct it from the revenue of your other vehicles.'],
-      ['After {{removal_date}} we may remove the vehicle', 'That is 30 days after the failed retry. You would pay the fees to transfer the registration back.'],
+      ['After {{removal_date}} we may remove the vehicle', 'That is {{arrears_removal_days}} days after the failed retry. You would pay the fees to transfer the registration back.'],
     ),
     when('is_self_managed', [
       notice('alert', 'New bookings are paused', 'While this vehicle is in arrears, it is not enabled for new bookings.'),

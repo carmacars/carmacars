@@ -18,7 +18,17 @@ export interface InvoiceDebit {
   attempt: { attempt_no: number; status: 'scheduled' | 'submitting' | 'processing' | 'succeeded' | 'failed' | 'skipped' | 'canceled'; debit_on: string; amount_cents: number;
     bank_last4: string | null; failure_message: string | null; skip_reason: string | null; submitted_at: string | null; settled_at: string | null } | null;
 }
-export interface DebitTerms { debit_day: number; retry_day: number; notice_days: number; max_attempts: number; retry_gap_days: number; late_fee_cents: number; late_fee: string; debit_day_text: string; retry_day_text: string; interval_description: string }
+/** The PAD agreement's values from Program settings (app.owner_debit_terms, 0037 and 0051). */
+export interface DebitTerms {
+  debit_day: number; retry_day: number; notice_days: number; max_attempts: number; retry_gap_days: number; late_fee_cents: number; late_fee: string;
+  debit_day_text: string; retry_day_text: string; payout_day_text: string; interval_description: string;
+  /** The one Late Fee rule (Enrollment Agreement 4.4), the same sentence in every owner text. */
+  late_fee_rule: string;
+  /** What a returned debit the owner started from an invoice page does (no Late Fee). */
+  own_debit_rule: string;
+  /** The payee: the business name (the legal name only when the setting says so), address, phone and the billing email. */
+  payee: { name: string; address: string; phone: string; email: string };
+}
 export interface AutoDebit {
   enabled: boolean; mandate: boolean; bank: string | null; bank_last4: string | null; pending_setup: boolean; paused: boolean; paused_reason: string | null;
   next_debit_on: string | null; next_debit_cents: number; next_debit_invoices: string[]; processing_cents: number; next_notice_on: string; next_cycle_on: string;

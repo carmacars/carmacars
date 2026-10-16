@@ -24,13 +24,13 @@ function LineRow({ l }: { l: StatementLine }) {
 // The statement as stored (11-statements-and-reports.md section 2.1): owner totals, then each vehicle
 // with every line and the booking or invoice behind it.
 export default async function OwnerStatementPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ user }, { id }] = await Promise.all([requireOwner('/owner/statements'), params]);
+  const [{ user, home }, { id }] = await Promise.all([requireOwner('/owner/statements'), params]);
   const s = await ownerStatement(user, id);
   const st = s.statement;
   return (
     <>
       <Back href="/owner/statements">Statements</Back>
-      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the 15th.</p>
+      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
         <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
         <div className="stack-lg">

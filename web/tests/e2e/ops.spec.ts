@@ -217,6 +217,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await expect(rp.getByTestId('change-reason')).toContainText('keep the car one more day');
     await expect(rp.getByTestId('change-money')).toContainText('Extra to pay');
     await check(rp, 'renter change page');
+    // the amendment says CarmaCars signs it automatically, in the name of the staff member who proposed it (0051)
+    await expect(rp.locator('body')).toContainText('CarmaCars signs this amendment electronically, in the name of');
     await rp.getByTestId('change-accept').click();
     await expect(rp.getByText('Tick the statement to sign.').first()).toBeVisible();
     await rp.getByTestId('amend-agree').check();
@@ -232,6 +234,9 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
       from bookings b where b.id = ${req.booking_id}`;
     expect(new Date(after!.return_at as string).getTime()).toBe(later.getTime());
     expect(after).toMatchObject({ st: 'applied', amend: 'signed/true' });
+    const [cs] = await sql`select r.method, r.signer_role, r.signer_title from booking_amendments a join signature_records r on r.id = a.countersignature_record_id
+      where a.change_request_id = ${cr!.id} and a.status = 'signed'`;
+    expect(cs, 'CarmaCars countersigned the amendment').toMatchObject({ method: 'automatic', signer_role: 'carmacars', signer_title: 'for CarmaCars' });
     expect(after!.pay).toBe(`succeeded:${cr!.diff}`);
     // the signed amendment downloads as a PDF from the booking's documents
     const link = rp.getByTestId('doc-rental_amendment').last();

@@ -1,0 +1,52 @@
+CarmaCars  |  Pre-authorized debit
+
+========================================
+
+[Debit set up]
+Your pre-authorized debit is set up
+
+This confirms the pre-authorized debit agreement you accepted on {{accepted_on}}, {{first_name}}. Keep this email for your records.
+
+Payee: {{payee_name}}
+Address: {{payee_address}}
+Phone: {{payee_phone}}
+Email: {{payee_email}}
+Your account: {{bank_name}} account ending {{bank_last4}}
+Type: {{agreement_type}}
+Accepted on: {{accepted_on}}
+
+When we debit
+------------------------
+
+We debit the fees on your CarmaCars invoices on the {{debit_day}} of each month. The amount can change from month to month with your vehicles and their fees. We email you a notice listing every invoice and the total {{notice_days}} days before each debit. The first automatic debit is not before {{first_debit_date}}.
+
+{{late_fee_rule}}
+
+How to cancel
+------------------------
+
+You may cancel this authorization at any time by writing to {{payee_email}}. Cancelling it does not end your agreement or the fees you owe.
+
+Your recourse rights
+------------------------
+
+You have certain recourse rights if a debit does not comply with this agreement. For example, you have the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca.
+
+Read the agreement:
+https://carmacars.ca/owner/banking
+
+The full agreement is on the Banking page of your owner portal. Questions: reply to this email or call {{payee_phone}}.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

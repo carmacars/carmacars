@@ -60,6 +60,26 @@ export const SAMPLES = {
   sign_in_url: v('https://carmacars.ca/account/sign-in?token=sample', 'One-time link from the sign-in service.'),
   link_expiry: v('60 minutes', 'How long the one-time link stays valid.'),
   unsubscribe_url: v('https://carmacars.ca/unsubscribe?token=sample', 'One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header.'),
+
+  // Program settings in words (0051): every email can use them; they follow Admin > Settings, never typed into the copy
+  debit_day: v('15th', 'The owner debit day (program_settings.billing_day) as an ordinal.'),
+  retry_day: v('18th', 'The retry day of a returned owner debit (program_settings.retry_day) as an ordinal.'),
+  payout_day: v('10th', 'The owner payout day (program_settings.payout_day) as an ordinal.'),
+  approve_by_day: v('9th', 'The day before the payout day, by which the Admins approve the statements.'),
+  late_fee_rule: v('If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.', 'The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email.'),
+  arrears_removal_days: v('30', 'Days after a failed retry before CarmaCars may remove the vehicle (owner_arrears_removal_days).'),
+  notice_period_days: v('30', 'The Notice Period of the Enrollment Agreement in days (notice_period_days).'),
+  deductible_amount: v('$2,500.00', 'The fleet policy deductible (deductible_cents).'),
+  safety_certificate_days: v('36', 'Days a safety certificate is valid (safety_certificate_days).'),
+  retransfer_business_days: v('10', 'Business days to transfer the registration back after the Exit Date (retransfer_business_days).'),
+  refund_days: v('10', 'Business days within which a refund is sent (refund_business_days).'),
+  deposit_release_days: v('7', 'Business days after check-in within which the Deposit is released (deposit_release_business_days).'),
+  holdback_days: v('30', 'Days after check-in within which a held-back Deposit is applied or released (deposit_holdback_days).'),
+  min_renter_age: v('18', 'The minimum age of every driver (min_renter_age).'),
+  id_retention_days: v('90', 'Days after the rental ends before licence images and selfies are deleted (retention_id_face_days).'),
+  non_refundable_percent: v('10%', 'The non-refundable discount (non_refundable_discount_bps) as a percentage.'),
+  incident_report_hours: v('48', 'Hours within which the renter sends the incident report (incident_report_hours).'),
+  interest_after_days: v('7', 'Days after a statement before unpaid amounts carry interest (statement_interest_days).'),
 };
 
 // Sample values that differ by audience, so the previews read naturally.

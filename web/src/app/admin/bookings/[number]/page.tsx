@@ -49,7 +49,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
   return (
     <>
-      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /> {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
         {b.status === 'requested' && <Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />}
         {b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} testId="decline" />}
         {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw to edit" confirm="The renter's offer is withdrawn and they are told. Edit, then send the next version." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}

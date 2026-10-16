@@ -71,7 +71,7 @@ function ownerStatement(f: F): Block[] {
     ['HST on payout', dollars(t.hst_on_payout_cents)], ['Balance brought forward', dollars(t.balance_brought_forward_cents)],
     [n(t.payout_cents) > 0 ? '**Payout**' : '**Balance owing**', `**${dollars(n(t.payout_cents) > 0 ? t.payout_cents : -n(t.balance_carried_forward_cents))}**`],
     ...(paid ? [['Paid', `${day(paid.paid_at)}, ${label(paid.method)}, reference ${s(paid.reference)}`] as [string, string]] : [])] });
-  blocks.push({ t: 'p', text: 'Fees are billed separately on the 15th. Questions: reply to the statement email or use Statements in your owner portal.' });
+  blocks.push({ t: 'p', text: 'Fees are billed separately, on your monthly invoices. Questions: reply to the statement email or use Statements in your owner portal.' });
   return blocks;
 }
 

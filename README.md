@@ -9,8 +9,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 50 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 31 test files (3,388 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 51 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | 32 test files (3,418 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -90,6 +90,7 @@ cd emails && node check.mjs
 | `0048_guide_supply_sections.sql` | The new guide chapters of 0046 (Admin, VA, Owner) added to live guides, published, with each guide's version raised so its PDF shows as older |
 | `0049_simple_signing_guide_upkeep.sql` | Signing packages (one signature for several documents, each keeping its own signature record), the signer's own checklist ("2 of 3 signed"), investor and staff agreements generated from the records, partner insurance reminders, guide upkeep (changed screenshots replaced, sections flagged for review, suggested text from Workers AI), the guide chapters updated for these features (`docs/changes/2026-10-16-supply-manual-rentals-signing.md`) |
 | `0050_guide_upkeep_one_version.sql` | Guide upkeep raises each guide's version once per run, not once per screenshot |
+| `0051_legal_texts_fixes.sql` | The defects found while collecting the legal texts: one Late Fee rule (Enrollment Agreement 4.4) in every text, the settings in words for every email (no typed 15th), PAD notice days at least 10, CarmaCars' own PAD confirmation email, the booking amendment countersigned, paper countersignatures dated when recorded, rentals added by hand awaiting signature until signed (`docs/changes/2026-10-16-legal-texts-fixes.md`) |
 
 ## Test files
 
@@ -116,13 +117,14 @@ cd emails && node check.mjs
 | `22_launch_audit.sql` | The launch audit changes of 0035 | 28 |
 | `23_sign_in.sql` | Sign-in for every portal (0036) | 52 |
 | `24_owner_debit.sql` | The owner debit, statement emails and company statement sections (0037 to 0039) | 118 |
-| `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
+| `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments (and their countersignature, 0051), cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 124 |
 | `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
 | `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
-| `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 130 |
+| `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security, the countersignature dated when recorded (0051) | 131 |
 | `29_one_confirmation_email.sql` | 0045: no account email when a role is granted, the welcome once after the confirmation (owner over renter, none for staff or investors), no catalogue email asks to confirm, the live verification's sign-up functions | 25 |
 | `30_supply_manual_rentals.sql` | 0046 to 0048: supply types and partners, Add a car and the duplicate check, terms and splits by supply, rentals added by hand (Admin and assistant limits, clashes, payment modes, past rentals, agreements, emails), retire, restore, delete and sample cars, toll matching with placeholders and two rentals, the company statement by supply, the partner agreement, the official forms, the new guide chapters | 104 |
 | `31_signing_upkeep.sql` | 0047 and 0049: agreements generated from the records, signing packages and the signature evidence they keep, the owner's checklist, partner insurance reminders, guide upkeep (replacement, review, suggestion, the updated chapters), the vision model for guide review, the official form sources, Sales opening what its inbox lists, one guide version per upkeep run (0050) | 56 |
+| `32_legal_texts.sql` | 0051: the one Late Fee rule and what the code does, the settings in words, the PAD notice days, the PAD confirmation, rentals added by hand awaiting signature | 27 |
 
 ## Rules for changes
 

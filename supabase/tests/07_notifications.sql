@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '145/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '146/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -648,6 +648,12 @@ insert into test.nt_synth values
 -- a rental added by hand (0046): the renter's email
 insert into test.nt_synth values
   ('renter_rental_added', 'booking', test.id('booking:NT-2'), jsonb_build_object('booking_id', test.id('booking:NT-2')));
+-- the PAD confirmation (0051): a debit mandate that becomes active
+insert into owner_payment_methods (id, owner_id, kind, status, brand_or_bank, last4, authorized_at)
+values (test.id('nt_pad'), test.id('owner:nt_olga'), 'pre_authorized_debit', 'pending', 'TD Canada Trust', '6621', now());
+update owner_payment_methods set status = 'active' where id = test.id('nt_pad');
+insert into test.nt_synth values
+  ('owner_pad_confirmed', 'owner_payment_method', test.id('nt_pad'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');

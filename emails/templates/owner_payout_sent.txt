@@ -18,7 +18,7 @@ Transfer reference: {{payout_reference}}
 View the statement:
 https://carmacars.ca/owner/statements/{{statement_number}}
 
-Bank transfers usually show within a few business days. If the account on file is no longer right, tell us before the next payout on the 10th.
+Bank transfers usually show within a few business days. If the account on file is no longer right, tell us before the next payout on the {{payout_day}}.
 
 ----------------------------------------
 

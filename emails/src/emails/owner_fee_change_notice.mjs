@@ -21,10 +21,10 @@ export default {
       p('A change to the Revenue Share applies only if you sign a new Vehicle Schedule. Until you do, your current share stays in place.'),
       button('Read and sign the new schedule', '@owner_agreements'),
     ], [
-      p('You do not need to do anything. The new amounts appear on the first invoice dated on or after {{effective_date}}, charged on the 15th as usual.'),
+      p('You do not need to do anything. The new amounts appear on the first invoice dated on or after {{effective_date}}, charged on the {{debit_day}} as usual.'),
       button('View my vehicle', '@owner_vehicle'),
     ]),
-    small('This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give 30 days\' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.'),
+    small('This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give {{notice_period_days}} days\' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.'),
   ],
   allowButtons: true,
   sample: {

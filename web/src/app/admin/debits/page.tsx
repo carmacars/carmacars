@@ -41,7 +41,7 @@ export default async function OwnerDebits() {
         ['Debit day', `The ${s.debit_day}th of each month (billing_day), from ${String(s.run_hour).padStart(2, '0')}:00 Toronto time`],
         ['Notice', `${s.notice_days} days before, by email, listing every invoice and the total`],
         ['Invoices debited', s.kinds.map((k) => k.replace(/_/g, ' ')).join(', ')],
-        ['Returned debit', `Late Fee ${$(s.late_fee_cents)} once; ${s.max_attempts > 1 ? `up to ${s.max_attempts} attempts, the first retry from the ${s.retry_day}th, then ${s.retry_gap_days} days apart` : 'no retry'}; after the last one the invoice is in arrears`],
+        ['Returned debit', `Late Fee ${$(s.late_fee_cents)} once; ${s.max_attempts > 1 ? `up to ${s.max_attempts} attempts, the first retry from day ${s.retry_day} of the month, then ${s.retry_gap_days} days apart` : 'no retry'}; after the last one the invoice is in arrears`],
         ['One debit per invoice', 'Each attempt is its own PaymentIntent with its own idempotency key, never more than the notice said']
       ]} />
     </Card>

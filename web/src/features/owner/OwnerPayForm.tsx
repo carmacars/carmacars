@@ -5,6 +5,9 @@ import { money } from '@/lib/format';
 import { fakeConfirmInvoiceCard, fakeConfirmInvoiceDebit, finalizeInvoicePayment, startInvoicePayment } from '@/server/actions/owner';
 import type { StartedInvoicePayment } from '@/server/owner/payment';
 import type { DebitTerms } from './types';
+import { mandateText, payeeRows } from './mandate.ts';
+
+export { mandateText, payeeRows };
 
 // Paying an owner invoice: by card, or by Canadian pre-authorized debit. Card numbers and bank
 // details go into Stripe's own forms (the Payment Element, and Stripe's bank and mandate form for
@@ -28,13 +31,15 @@ function loadStripe(key: string): Promise<StripeJs> {
   });
 }
 
-// The agreement's schedule comes from Program settings (app.owner_debit_terms): the debit day, the notice days, the
-// retry day and the Late Fee.
-export const mandateText = (kind: 'personal' | 'business', t: DebitTerms, withInvoice = true) => [
-  `You authorize CarmaCars to debit the bank account you give${withInvoice ? ' for this invoice now, and' : ''} for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month's Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the ${t.debit_day_text} of each month. If a debit is returned, we try again from the ${t.retry_day_text} with the ${t.late_fee} Late Fee your Enrollment Agreement sets.`,
-  `The amount can change from month to month with your vehicles and their fees. We email you a notice listing every invoice and the total ${t.notice_days} days before each debit, and each invoice is in your owner portal.`,
-  `This authorization is for ${kind} purposes and stays in effect until you cancel it. You may cancel it at any time by writing to billing@carmacars.ca; cancelling it does not end your agreement or the fees you owe. You have certain recourse rights if a debit does not comply with this agreement: for example, the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca.`
-];
+export function MandateBlock({ kind, terms, withInvoice, id }: { kind: 'personal' | 'business'; terms: DebitTerms; withInvoice: boolean; id: string }) {
+  return (
+    <section className="ow-mandate" aria-labelledby={id} tabIndex={0} data-testid="pad-agreement">
+      <h3 id={id}>Pre-authorized debit agreement ({kind})</h3>
+      {mandateText(kind, terms, withInvoice).map((t, i) => <p key={i}>{t}</p>)}
+      <dl className="ow-payee" data-testid="pad-payee">{payeeRows(terms).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+    </section>
+  );
+}
 
 type Method = 'card' | 'acss_debit';
 
@@ -165,10 +170,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
               {input('bacct', 'Account number', bank.account, (v) => setBank({ ...bank, account: v }), { inputMode: 'numeric', autoComplete: 'off' })}
             </div>
           ) : <p className="small">When you continue, Stripe, our payment processor, asks for your bank and shows this agreement again to confirm. Your bank details go to Stripe, not to us.</p>}
-          <section className="ow-mandate" aria-labelledby="ow-mandate-h" tabIndex={0}>
-            <h3 id="ow-mandate-h">Pre-authorized debit agreement ({ownerType === 'corporation' ? 'business' : 'personal'})</h3>
-            {mandateText(ownerType === 'corporation' ? 'business' : 'personal', terms).map((t, i) => <p key={i}>{t}</p>)}
-          </section>
+          <MandateBlock kind={ownerType === 'corporation' ? 'business' : 'personal'} terms={terms} withInvoice id="ow-mandate-h" />
           <div className={`field${errors.agree ? ' has-error' : ''}`}>
             <label className="check"><input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); setErrors((x) => ({ ...x, agree: '' })); }} aria-invalid={!!errors.agree || undefined} aria-describedby="ow-agree-err" /><span>I accept the pre-authorized debit agreement above.</span></label>
             <p className="error" role="alert" id="ow-agree-err">{errors.agree ?? ''}</p>

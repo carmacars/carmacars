@@ -20,7 +20,7 @@ What happens now
 3. Any balance left becomes a debt payable on demand
    We may deduct it from the revenue of your other vehicles.
 4. After {{removal_date}} we may remove the vehicle
-   That is 30 days after the failed retry. You would pay the fees to transfer the registration back.
+   That is {{arrears_removal_days}} days after the failed retry. You would pay the fees to transfer the registration back.
 
 {{#if is_self_managed}}
 IMPORTANT: New bookings are paused

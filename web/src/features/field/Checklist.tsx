@@ -77,15 +77,18 @@ export function Checklist({ j }: { j: FieldJob }) {
   const oldMarks: Mark[] = (pickup ? j.baseline_damages : j.pickup?.damages ?? []).map((d) => ({ label: d.label, position: d.position ?? null, old: true }));
   const marks: Mark[] = [...oldMarks, ...damages.map((d) => ({ label: d.label, position: d.position }))];
 
+  // the ready check: a rental added by hand also needs the renter's signature (0051), as a booking made online already has
+  const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit));
   const screens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void }> = pickup ? [
-    { title: 'Ready check', can: Boolean(ready && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit)), body: (
+    { title: 'Ready check', can: readyOk, body: (
       <ul className="fd-checks" data-testid="ready-check">
+        <Line ok={ready ? ready.signed !== false : false}>{ready?.signed === false ? 'Awaiting signature: the renter has not signed the rental agreement' : 'Rental agreement signed'}</Line>
         <Line ok={ready?.identity}>Identity verified for every driver</Line>
         <Line ok={ready?.coverage}>Coverage confirmed</Line>
         <Line ok={ready?.drivers_accepted}>Additional drivers accepted</Line>
         <Line ok={ready?.calendar}>The booking holds the calendar</Line>
         <Line ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false}>Deposit: {ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}</Line>
-        {ready && !(ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit)) &&
+        {ready && !readyOk &&
           <li><button className="btn btn--primary fd-stop" type="button" onClick={() => block('The ready check failed')}>Stop: do not release the car</button></li>}
       </ul>) },
     { title: 'Car ready', body: (

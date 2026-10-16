@@ -11,11 +11,11 @@ export default {
   timing: '15th of each month',
   source: 'T24',
   subject: 'Invoice {{invoice_number}}: {{invoice_month}} fees for your {{vehicle_name}}, {{invoice_total}}',
-  preheader: 'Due on the 15th. Pay from the invoice page by card or pre-authorized debit.',
+  preheader: 'Due on {{due_date}}. Pay from the invoice page by card or pre-authorized debit.',
   ref: 'Invoice {{invoice_number}}',
   body: [
-    hero('Monthly fee invoice', '{{invoice_month}} fees for your {{vehicle_name}}', 'Your invoice for {{invoice_period}} is ready, {{first_name}}. It is due on the 15th.'),
-    price({ each: 'invoice_lines', total: ['Total due on the 15th', '{{invoice_total}}'] }),
+    hero('Monthly fee invoice', '{{invoice_month}} fees for your {{vehicle_name}}', 'Your invoice for {{invoice_period}} is ready, {{first_name}}. It is due on {{due_date}}.'),
+    price({ each: 'invoice_lines', total: ['Total due on {{due_date}}', '{{invoice_total}}'] }),
     facts(
       ['Invoice no.', '{{invoice_number}}'],
       ['Covers', '{{invoice_period}}'],
@@ -23,10 +23,10 @@ export default {
       ['How to pay', '{{bank_last4}}'],
     ),
     button('View invoice', '@owner_invoice'),
-    small('Fees run from the Enrollment Date to the Exit Date, whether or not the car is rented. A bank debit can take up to 5 business days to clear.'),
+    small('Fees run from the Enrollment Date to the Exit Date, whether or not the car is rented. A bank debit can take up to 5 business days to clear. {{late_fee_rule}}'),
   ],
   sample: {
-    invoice_number: 'INV-2026-11-0042', invoice_month: 'November', invoice_total: '$536.75', invoice_period: 'November 1 to 30, 2026', bank_last4: 'From the invoice page, with your saved method ending 6621',
+    invoice_number: 'INV-2026-11-0042', due_date: 'Sun, Nov 15, 2026', invoice_month: 'November', invoice_total: '$536.75', invoice_period: 'November 1 to 30, 2026', bank_last4: 'From the invoice page, with your saved method ending 6621',
     invoice_lines: [{ label: 'Insurance fee', amount: '$450.00' }, { label: 'Tracker fee', amount: '$25.00' }, { label: 'HST (13%)', amount: '$61.75' }],
   },
 };

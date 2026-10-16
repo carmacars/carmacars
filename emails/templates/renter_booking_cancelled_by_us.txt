@@ -13,7 +13,7 @@ Reason
 Full refund: {{refund_amount}}
 Everything you paid at booking. Any deposit already taken is also returned in full.
 
-The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.
+The refund goes to the card you paid with, within {{refund_days}} business days. Your bank may take longer to show it.
 
 See other cars for your dates:
 https://carmacars.ca/cars

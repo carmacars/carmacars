@@ -17,7 +17,7 @@ We debit the same account again that day for {{retry_amount}}. If that fails too
 Check my payment details:
 https://carmacars.ca/owner/billing
 
-If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately.
+If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately. {{late_fee_rule}}
 
 ----------------------------------------
 

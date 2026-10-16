@@ -21,7 +21,7 @@ export default {
     }),
     notice('alert', 'Make sure the money is there on {{retry_date}}', 'We debit the same account again that day for {{retry_amount}}. If that fails too, the amount is deducted from this car\'s revenue at the next payout.'),
     button('Check my payment details', '@owner_billing'),
-    small('If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately.'),
+    small('If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately. {{late_fee_rule}}'),
   ],
   sample: { amount: '$536.75', invoice_number: 'INV-2026-11-0042', invoice_month: 'November', late_fee: '$50.00', retry_date: 'November 18', retry_amount: '$586.75' },
 };

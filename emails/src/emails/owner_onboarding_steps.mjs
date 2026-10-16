@@ -23,7 +23,7 @@ export default {
     h('Your steps'),
     steps(
       ['Get what your method needs', '{{owner_to_obtain}}'],
-      ['We prepare the forms and book the registry visit', 'We fill in the government forms and send you the date, time and place. A safety certificate is valid for 36 days, so we book inside that window.'],
+      ['We prepare the forms and book the registry visit', 'We fill in the government forms and send you the date, time and place. A safety certificate is valid for {{safety_certificate_days}} days, so we book inside that window.'],
       ['Registry visit', 'You attend with one of our admins and pay the registry fees and any tax at the counter.'],
       ['Tracker install', 'Our field staff fit the tracker and we test it with the car parked. You get access to live location.'],
       ['Fleet policy', 'We add the car to the CarmaCars fleet policy and send you written confirmation. That date is your Enrollment Date.'],

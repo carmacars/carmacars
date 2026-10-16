@@ -11,18 +11,22 @@ const LABELS: Record<string, string> = {
   plate_cover_style: 'Default way to cover a plate (cover, pixelate or blur)', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',
+  owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)', owner_debit_show_legal_name: 'Name the legal company (not only the business name) as the payee in the PAD agreement and its confirmation',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',
+  owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',
   ai_vision_daily_neurons: 'Cloudflare gives 10,000 neurons a day free, shared with the listing copy. A scanned page uses about 100 to 300.'
 };
+// numbers with a range the database also checks
+const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
-  return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}) };
+  return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };
 }
 function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>): Field {
   if (options) return { name: k, label: nice(k), type: 'select', options, value: v, required: true };

@@ -71,7 +71,7 @@ a{text-decoration:underline;}
 <tr><td class="tx-mid rule fl" width="36%" valign="top" style="width:36%;padding:11px 12px 11px 0;border-bottom:1px solid #E2E2E2;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:14px;line-height:22px;color:#5E5E5E;">Deposit</td><td class="tx rule" valign="top" style="padding:11px 0;border-bottom:1px solid #E2E2E2;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:15px;line-height:22px;color:#000000;font-weight:600;word-break:break-word;overflow-wrap:anywhere;">Any deposit already taken is returned in full</td></tr>
 </table></td></tr>
 {{#if has_refund}}
-<tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">The refund goes to the card you paid with, within 10 business days. Your bank may take longer to show it.</p></td></tr>
+<tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">The refund goes to the card you paid with, within {{refund_days}} business days. Your bank may take longer to show it.</p></td></tr>
 {{else}}
 <tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">No refund is due under the policy for this booking, so nothing will be returned to your card.</p></td></tr>
 {{/if}}

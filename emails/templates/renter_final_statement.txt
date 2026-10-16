@@ -28,7 +28,7 @@ Your deposit
 Deposit taken: {{deposit_amount}}
 Applied to charges: {{deposit_applied}}
 {{#if has_holdback}}
-Held back: {{deposit_held_back}}. {{holdback_reason}} We apply or release it within 30 days of check-in.
+Held back: {{deposit_held_back}}. {{holdback_reason}} We apply or release it within {{holdback_days}} days of check-in.
 {{/if}}
 Returned: {{deposit_returned}}
 {{#if has_card_charge}}

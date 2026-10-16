@@ -27,7 +27,7 @@ export default {
     list(
       'When you need the car yourself, ask for an Owner Booking in your account before you plan around it. A renter\'s confirmed booking has priority.',
       'We email you each time a booking on this car is confirmed.',
-      'Earnings are paid on the 10th of each month for the month before, with a statement.',
+      'Earnings are paid on the {{payout_day}} of each month for the month before, with a statement.',
     ),
   ],
   sample: {

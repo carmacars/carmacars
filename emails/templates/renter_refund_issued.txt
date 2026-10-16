@@ -14,7 +14,7 @@ Reason: {{refund_reason}}
 Sent on: {{payment_date}}
 Booking: {{booking_number}}, {{vehicle_name}}
 
-Refunds arrive within 10 business days. Your bank may take longer to show it. There is nothing you need to do.
+Refunds arrive within {{refund_days}} business days. Your bank may take longer to show it. There is nothing you need to do.
 
 View my booking:
 https://carmacars.ca/account/bookings/{{booking_number}}

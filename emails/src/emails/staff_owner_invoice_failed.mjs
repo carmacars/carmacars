@@ -26,9 +26,9 @@ export default {
     ),
     button('Open the invoice', '@va_finance_invoice'),
     list(
-      '**First failure:** late fee added per vehicle, owner told, retry on the 18th.',
+      '**First failure:** late fee added per vehicle, owner told, retry on the {{retry_day}}.',
       '**Retry fails:** deduct from that vehicle\'s revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell an admin.',
-      '**Balance left at the next 10th:** debt payable on demand. Deduct from the owner\'s other vehicles.',
+      '**Balance left at the next payout, the {{payout_day}}:** debt payable on demand. Deduct from the owner\'s other vehicles.',
       '**30 days after the failed retry:** an admin may remove the vehicle.',
     ),
   ],

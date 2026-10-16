@@ -17,7 +17,7 @@ export default {
     hero('Offer withdrawn', 'We have had to withdraw this offer', 'Sorry, {{first_name}}. The offer we sent for the {{vehicle_name}} is no longer open. Nothing was booked.'),
     notice('info', 'Reason', '{{withdraw_reason}}'),
     when('has_amount_paid', [
-      p('You had already paid **{{amount_paid}}**. We are refunding it in full to the card you used. Refunds arrive within 10 business days.'),
+      p('You had already paid **{{amount_paid}}**. We are refunding it in full to the card you used. Refunds arrive within {{refund_days}} business days.'),
     ]),
     trip(),
     p('Your request is still with us. We are checking whether another car or other times can work, and we will email you a new offer or tell you plainly if we cannot help.'),

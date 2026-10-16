@@ -23,7 +23,7 @@ export default {
     table({ each: 'visit_items', cols: [{ head: 'Item', value: '{{name}}', strong: true }] }),
     notice('info', 'You pay at the counter', 'You pay the registry fees and any tax directly. Your estimate is {{onboarding_estimate}}. Amounts may vary.'),
     button('Open my onboarding checklist', '@owner_vehicle_onboarding'),
-    small('If you cannot make it, reply to this email as soon as you can. The visit has to fall inside the 36 days your safety certificate is valid.'),
+    small('If you cannot make it, reply to this email as soon as you can. The visit has to fall inside the {{safety_certificate_days}} days your safety certificate is valid.'),
   ],
   sample: {
     vehicle_name: '2023 Toyota RAV4 XLE', vehicle_id: 'v-3f81c2', visit_date: 'Thu, Nov 5, 2026', visit_time: '11:30 am',

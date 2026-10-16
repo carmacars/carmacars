@@ -3,7 +3,7 @@ import { seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { getSettings } from '@/lib/site';
 import { when } from '@/features/agreement/model';
-import { STATUS, bookingPath, carName, nextStep, progress } from '@/features/portal/status';
+import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, carName, nextStep, progress } from '@/features/portal/status';
 import { Back, Dl, PriceBreakdown, StatusBadge, placeText } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
 import { InfoReply } from '@/features/portal/InfoReply';
@@ -53,10 +53,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
       <header className="stack">
-        <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} /><span className="small muted" data-testid="booking-number">{b.booking_number}</span></div>
+        <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} awaiting={awaitingSignature(b)} /><span className="small muted" data-testid="booking-number">{b.booking_number}</span></div>
         <h1 className="d2">{carName(b)}</h1>
         <p className="lead">{when(b.pickup_at)} to {when(b.return_at)}</p>
-        <p className="muted">{STATUS[b.status].blurb}</p>
+        <p className="muted">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}</p>
         {live && <div><AddToCalendar number={b.booking_number} car={carName(b)} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} /></div>}
       </header>
       <div className="pt-split">

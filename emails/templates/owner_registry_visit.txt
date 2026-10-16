@@ -23,7 +23,7 @@ You pay the registry fees and any tax directly. Your estimate is {{onboarding_es
 Open my onboarding checklist:
 https://carmacars.ca/owner/vehicles/{{vehicle_id}}/onboarding
 
-If you cannot make it, reply to this email as soon as you can. The visit has to fall inside the 36 days your safety certificate is valid.
+If you cannot make it, reply to this email as soon as you can. The visit has to fall inside the {{safety_certificate_days}} days your safety certificate is valid.
 
 ----------------------------------------
 

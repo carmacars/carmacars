@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings', path: '/admin/bookings', noindex: true, description: 'Every booking.' });
 
 const STATUSES: Array<[string, string]> = [['', 'All'], ['requested', 'Requested'], ['offered', 'Offered'], ['pending_payment', 'Signing and payment'], ['confirmed', 'Confirmed'], ['on_rent', 'On rent'], ['returned', 'Returned'], ['closed', 'Closed'], ['cancelled', 'Cancelled']];
-type Row = { id: string; booking_number: string; status: string; vehicle_name: string; renter_name: string; pickup_at: string; return_at: string; total_due_at_booking_cents: number; bill_to: string; blocks_calendar: boolean };
+type Row = { id: string; booking_number: string; status: string; awaiting_signature?: boolean; vehicle_name: string; renter_name: string; pickup_at: string; return_at: string; total_due_at_booking_cents: number; bill_to: string; blocks_calendar: boolean };
 
 export default async function Bookings({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ list, user }, sp] = await Promise.all([page('/admin/bookings'), searchParams]);
@@ -27,7 +27,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
       <Filters base="/admin/bookings" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
       <Table<Row> testId="bookings" caption="Bookings" rows={rows} cols={[
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
-        { key: 'status', label: 'Status', render: (r) => <Badge s={r.status} /> },
+        { key: 'status', label: 'Status', render: (r) => <Badge s={r.awaiting_signature ? 'awaiting_signature' : r.status} /> },
         { key: 'vehicle_name', label: 'Car' }, { key: 'renter_name', label: 'Renter' },
         { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
         { key: 'total', label: 'Total', num: true, render: (r) => $(r.total_due_at_booking_cents) },

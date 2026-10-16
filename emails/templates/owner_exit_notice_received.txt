@@ -22,7 +22,7 @@ What happens
 3. On the Exit Date
    We remove the tracker, record the odometer and photos, and take the car off the fleet policy.
 4. Registration goes back to you
-   We complete our part within 10 business days after the Exit Date. We both sign Form E and you get the car, keys and permit.
+   We complete our part within {{retransfer_business_days}} business days after the Exit Date. We both sign Form E and you get the car, keys and permit.
 5. Final account
    The last month's fees are pro-rated to the Exit Date. Your final balance is paid on the first payout date after the month of the Exit Date.
 

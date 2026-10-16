@@ -21,7 +21,7 @@ export default {
       ['Sent on', '{{payment_date}}'],
       ['Booking', '{{booking_number}}, {{vehicle_name}}'],
     ),
-    p('Refunds arrive within 10 business days. Your bank may take longer to show it. There is nothing you need to do.'),
+    p('Refunds arrive within {{refund_days}} business days. Your bank may take longer to show it. There is nothing you need to do.'),
     button('View my booking', '@booking'),
   ],
   sample: { refund_amount: '$113.00', refund_reason: 'Unused day after a breakdown that was not your fault', payment_date: 'Tue, Oct 27, 2026' },

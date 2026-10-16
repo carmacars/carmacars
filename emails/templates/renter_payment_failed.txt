@@ -27,7 +27,7 @@ We will try the card again on {{next_retry_date}}. Paying now by another card st
 Pay {{amount_due}} now:
 https://carmacars.ca/account/bookings/{{booking_number}}/pay
 
-Amounts still unpaid 7 days after your statement carry interest of {{interest_rate}} a month. If a charge stays unpaid for 24 hours while you have the car, we may end the rental.
+Amounts still unpaid {{interest_after_days}} days after your statement carry interest of {{interest_rate}} a month. If a charge stays unpaid for 24 hours while you have the car, we may end the rental.
 {{/if}}
 
 Common causes: not enough available credit, an expired card, or a block by your bank on a new merchant. A quick call to your bank usually clears it.

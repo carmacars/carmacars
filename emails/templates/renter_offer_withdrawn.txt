@@ -11,7 +11,7 @@ Reason
 {{withdraw_reason}}
 
 {{#if has_amount_paid}}
-You had already paid {{amount_paid}}. We are refunding it in full to the card you used. Refunds arrive within 10 business days.
+You had already paid {{amount_paid}}. We are refunding it in full to the card you used. Refunds arrive within {{refund_days}} business days.
 {{/if}}
 
 Pickup: {{pickup_date}}, {{pickup_time}}

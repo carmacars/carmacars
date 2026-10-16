@@ -17,7 +17,7 @@ For each driver
 - A photo of the back of the licence
 - A selfie holding the licence next to your face
 
-Every driver must be 18 or older and hold a G2 or G licence that is valid past the return date.
+Every driver must be {{min_renter_age}} or older and hold a G2 or G licence that is valid past the return date.
 
 Proof of coverage, one of these
 ------------------------
@@ -29,7 +29,7 @@ Proof of coverage, one of these
 Upload my documents:
 https://carmacars.ca/account/bookings/{{booking_number}}/verify
 
-Still missing: {{missing_items}}. A person on our team reviews what you send. We delete licence images and selfies 90 days after the rental ends.
+Still missing: {{missing_items}}. A person on our team reviews what you send. We delete licence images and selfies {{id_retention_days}} days after the rental ends.
 
 ----------------------------------------
 

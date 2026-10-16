@@ -180,6 +180,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          countersignature_record_id: string | null;
         };
         Insert: {
           id?: string;
@@ -201,6 +202,7 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          countersignature_record_id?: string | null;
         };
         Update: {
           id?: string;
@@ -222,6 +224,7 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          countersignature_record_id?: string | null;
         };
         Relationships: [];
       };
@@ -7810,6 +7813,7 @@ export type Database = {
           manual_rental_past_max_days: number;
           partner_insurance_warn_days: number;
           staff_agreement_defaults: Json;
+          owner_debit_show_legal_name: boolean;
         };
         Insert: {
           id?: string;
@@ -8021,6 +8025,7 @@ export type Database = {
           manual_rental_past_max_days?: number;
           partner_insurance_warn_days?: number;
           staff_agreement_defaults?: Json;
+          owner_debit_show_legal_name?: boolean;
         };
         Update: {
           id?: string;
@@ -8232,6 +8237,7 @@ export type Database = {
           manual_rental_past_max_days?: number;
           partner_insurance_warn_days?: number;
           staff_agreement_defaults?: Json;
+          owner_debit_show_legal_name?: boolean;
         };
         Relationships: [];
       };

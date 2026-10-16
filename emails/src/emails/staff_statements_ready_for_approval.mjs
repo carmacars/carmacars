@@ -10,10 +10,10 @@ export default {
   trigger: 'Statements-draft job on the 5th at 06:00: the draft owner statements for last month are built and an approval task is raised. One email to both admins. A reminder is sent on the 8th at 09:00 if the run is still not approved.',
   timing: '5th of each month, reminder on the 8th',
   subject: '{{statement_month}} owner statements are ready for approval',
-  preheader: '{{statement_count}} statements, {{payout_total}} to pay on the 10th. Approve by the 9th.',
+  preheader: '{{statement_count}} statements, {{payout_total}} to pay on the {{payout_day}}. Approve by the {{approve_by_day}}.',
   ref: 'Payout run',
   body: [
-    hero('Approval needed', '{{statement_month}} statements are drafted', 'Review and approve the run by the 9th so payouts go out on the 10th.'),
+    hero('Approval needed', '{{statement_month}} statements are drafted', 'Review and approve the run by the {{approve_by_day}} so payouts go out on the {{payout_day}}.'),
     keyfacts(
       { label: 'Statements', value: '{{statement_count}}' },
       { label: 'Total to pay', value: '{{payout_total}}' },

@@ -5,7 +5,7 @@ CarmaCars  |  Fees due {{debit_date}}
 [Action needed]
 Set up your pre-authorized debit
 
-Your fees are paid by pre-authorized debit on the 15th, {{first_name}}, but we have no active bank account on file for you. Nothing was debited.
+Your fees are paid by pre-authorized debit on the {{debit_day}} of each month, {{first_name}}, but we have no active bank account on file for you. Nothing was debited.
 
 {{#each debit_items}}
   Invoice: {{invoice_number}} | Vehicle: {{vehicle}} | Covers: {{covers}} | Amount: {{amount}}
@@ -19,7 +19,7 @@ https://carmacars.ca/owner/banking
 
 In Banking, choose Set up pre-authorized debit, enter your bank details in Stripe's secure form and accept the agreement. Later invoices are then debited on the debit day, with notice {{notice_days}} days before.
 
-You can also pay each invoice by card from its page. An invoice still unpaid after its due date takes a {{late_fee}} late fee, as your Enrollment Agreement sets out.
+You can also pay each invoice by card from its page. {{late_fee_rule}}
 
 ----------------------------------------
 

@@ -5,7 +5,7 @@ CarmaCars  |  Payout run
 [Approval needed]
 {{statement_month}} statements are drafted
 
-Review and approve the run by the 9th so payouts go out on the 10th.
+Review and approve the run by the {{approve_by_day}} so payouts go out on the {{payout_day}}.
 
 Statements: {{statement_count}}
 Total to pay: {{payout_total}}

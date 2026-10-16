@@ -25,7 +25,7 @@ export default {
     steps(
       ['We review the photos', 'If we find damage that was not visible at hand-back, we tell you within 48 hours, with photos.'],
       ['You get an itemized statement', 'Within 7 business days, with the record for every line.'],
-      ['Your deposit is released', 'The {{deposit_amount}} deposit comes back within 7 business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.'],
+      ['Your deposit is released', 'The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.'],
     ),
     button('View the return report', '@booking_condition_report'),
   ],
