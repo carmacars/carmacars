@@ -648,9 +648,13 @@ if (process.argv.includes('--auth')) {
         await page.goto(link, { waitUntil: 'networkidle' });
         if (s.path === 'guest') {
           for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)); i++) { (r.retried ??= []).push('update-password'); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}/update-password`, { waitUntil: 'networkidle' }); }
-          await page.locator('#np-pass').fill(password);
-          await page.getByRole('button', { name: 'Save the new password' }).click();
-          await page.waitForURL((u) => u.pathname === s.home, { timeout: 30_000 }).catch(() => {});
+          // the link has signed the person in: a save the Worker refused (Error 1102) is pressed again on a fresh page
+          for (let i = 0; i < 3 && new URL(page.url()).pathname !== s.home; i++) {
+            if (i > 0) { (r.retried ??= []).push('save the new password'); await page.waitForTimeout(3000 * i); await page.goto(`${BASE}/update-password`, { waitUntil: 'load' }); }
+            await page.locator('#np-pass').fill(password);
+            await page.getByRole('button', { name: 'Save the new password' }).click();
+            await page.waitForURL((u) => u.pathname === s.home, { timeout: 30_000 }).catch(() => {});
+          }
         }
         for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)); i++) { (r.retried ??= []).push(s.home); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}${s.home}`, { waitUntil: 'networkidle' }); }
         r.landed = new URL(page.url()).pathname;
