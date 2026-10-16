@@ -251,8 +251,8 @@ select test.eq('paper: the scan is in the owner''s documents',
 select test.eq('paper: the signature record says paper, with the owner and CarmaCars',
   (select string_agg(r.signer_role || ':' || r.method, ',' order by r.signer_role) from signature_records r join owner_agreements a on a.signature_request_id = r.signature_request_id
     where a.owner_id = test.gmv('app') and a.kind = 'enrollment'), 'carmacars:automatic,owner_individual:paper');
-select test.eq('paper (0051): the owner''s record keeps the paper date; CarmaCars'' countersignature is dated when staff recorded it',
-  (select string_agg(r.signer_role || ':' || (app.local_date(r.signed_at) = case when r.signer_role = 'carmacars' then app.today() else app.today() - 3 end), ',' order by r.signer_role)
+select test.eq('paper (0051, 0053): the owner''s record keeps the paper date only (no time of day); CarmaCars'' countersignature is dated when staff recorded it',
+  (select string_agg(r.signer_role || ':' || case when r.signer_role = 'carmacars' then app.local_date(r.signed_at) = app.today() else r.signed_at is null and r.signed_on = app.today() - 3 end, ',' order by r.signer_role)
      from signature_records r join owner_agreements a on a.signature_request_id = r.signature_request_id
     where a.owner_id = test.gmv('app') and a.kind = 'enrollment'), 'carmacars:true,owner_individual:true');
 select test.throws('paper: nothing left to sign the second time', format($$select test.gm_do('gm_admin', 'paper_signature_record', jsonb_build_object('doc_type', 'owner_agreement', 'target_id', %L,

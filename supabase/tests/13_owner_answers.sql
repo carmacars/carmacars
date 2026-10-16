@@ -319,7 +319,7 @@ select test.eq('9 the offer carries that price; on an offer it changes only afte
   (select count(*) from booking_offers o, jsonb_array_elements(o.line_items) l where o.booking_id = test.oa('cv') and l ->> 'charge_type' = 'coverage_sold' and (l ->> 'amount_cents')::bigint = 9900)
 , '1');
 select test.throws('9 not on an open offer', $$select app.set_coverage_price(test.oa('cv'), test.id('oa_cs'), 5000)$$, 'withdraw an offer first');
-select test.eq('9 the provider is never named: the charge says CarmaCars', (select label from fee_types where code = 'coverage_sold'), 'Coverage sold through CarmaCars');
+select test.eq('9 the provider is never named: renters read "Protection Plan" (the legal review, 0053)', (select label from fee_types where code = 'coverage_sold'), 'Protection Plan');
 
 -- =====================================================================================
 -- 10. Delivery, airports, places

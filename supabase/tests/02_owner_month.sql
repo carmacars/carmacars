@@ -70,7 +70,7 @@ update owner_invoices set status = 'failed', first_failed_on = date '2026-11-15'
 select test.eq('O10 failed debit: a $50 Late Fee is added to that vehicle, with no HST',
   (select l.amount_cents || '/' || l.hst_cents from owner_invoice_lines l join owner_invoices i on i.id = l.owner_invoice_id
     where i.vehicle_id = test.id('vehicle:B') and i.period_month = date '2026-11-01' and l.kind = 'late_fee'), '5000/0');
-select test.eq('O10 the retry is $586.75', (select balance_cents from owner_invoices where vehicle_id = test.id('vehicle:B') and period_month = date '2026-11-01'), test.money('586.75'));
+select test.eq('O10 the balance owing is $586.75 (0053: the retry debits the original $536.75; the Late Fee goes with the next debit)', (select balance_cents from owner_invoices where vehicle_id = test.id('vehicle:B') and period_month = date '2026-11-01'), test.money('586.75'));
 select test.eq('O10 Vehicle A is untouched by B''s failure', (select status || '/' || late_fee_cents from owner_invoices where vehicle_id = test.id('vehicle:A') and period_month = date '2026-11-01'), 'paid/0');
 -- the retry of $586.75 fails on November 18
 update owner_invoices set status = 'retry_processing' where period_month = date '2026-11-01' and vehicle_id = test.id('vehicle:B');

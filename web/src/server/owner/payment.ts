@@ -56,7 +56,7 @@ export async function settleDebitIntent(intentId: string): Promise<unknown> {
   const i = await (await payments()).retrieveIntent(intentId);
   return rpc('server_owner_debit_result', { p_intent: intentId, p: {
     intent_id: i.id, attempt_id: i.metadata.debit_attempt_id ?? null, status: i.status, charge_id: i.chargeId, mandate_id: i.mandateId,
-    bank: i.bank ? { name: i.bank.name, last4: i.bank.last4 } : null, error_code: null, error_message: i.lastError
+    bank: i.bank ? { name: i.bank.name, last4: i.bank.last4 } : null, error_code: i.lastErrorCode ?? null, error_message: i.lastError
   } as never }, SR);
 }
 

@@ -140,9 +140,11 @@ select test.eq('returned: the Late Fee is added once (owner_late_fee_cents)',
 select test.eq('returned: the payment is failed with the bank''s reason',
   (select p.status || '/' || p.last_decline_code from owner_debit_attempts a join payments p on p.id = a.payment_id where a.processor_intent_id = 'pi_od_B1'),
   'failed/The bank returned the debit: insufficient funds.');
-select test.eq('returned: attempt 2 is scheduled for the 18th for the balance with the Late Fee',
-  (select a.attempt_no || '/' || a.status || '/' || a.debit_on || '/' || (a.amount_cents = (select b from test.od_bal) + (select owner_late_fee_cents from app.settings()))
-     from owner_debit_attempts a where a.id = test.od_att('iB')), '2/scheduled/2027-01-18/true');
+select test.eq('returned for insufficient funds: one retry on the 18th for the original amount only, never the Late Fee (0053)',
+  (select a.attempt_no || '/' || a.status || '/' || a.debit_on || '/' || (a.amount_cents = (select b from test.od_bal)) || '/' || a.is_retry
+     from owner_debit_attempts a where a.id = test.od_att('iB')), '2/scheduled/2027-01-18/true/true');
+select test.eq('returned for insufficient funds: the Late Fee is its own invoice line, "Late Fee"',
+  (select string_agg(description || ':' || amount_cents, ',') from owner_invoice_lines where owner_invoice_id = test.odv('iB') and kind = 'late_fee'), 'Late Fee:5000');
 select test.eq('returned: the owner and finance are told once',
   (select count(*) filter (where code = 'owner_payment_failed') || '/' || count(*) filter (where code = 'staff_owner_invoice_failed')
      from app_events where entity_id = test.odv('iB')), '1/1');
@@ -210,12 +212,25 @@ select test.eq('cancel: the invoice is back to issued, the pending payment cance
     where a.processor_intent_id = 'pi_od_X1'), 'issued/cancelled');
 select app.owner_debit_schedule(test.id('owner:od_olga'), date '2027-05-15', null, null, date '2027-05-01');
 select app.owner_debit_claim(test.od_at('2027-05-15 07:00'), 100);
-select test.eq('errors: an inactive mandate is a failed debit (the Late Fee applies)',
+select test.eq('errors: an inactive mandate is a failed debit',
   app.owner_debit_submit_error(test.od_att('iX'), 'payment_intent_mandate_invalid', 'The mandate is no longer active', true) ->> 'invoice_status', 'failed');
-select test.eq('errors: the method is revoked, the retry is scheduled for the balance with the Late Fee',
+select test.eq('errors: not insufficient funds (0053): the method is revoked, no retry, no Late Fee, the invoice''s automatic debit paused',
   (select status from owner_payment_methods where owner_id = test.id('owner:od_olga') and kind = 'pre_authorized_debit' order by created_at desc limit 1) || '/' ||
-  (select a.status || '/' || (a.amount_cents = i.balance_cents) || '/' || (i.late_fee_cents > 0) from owner_debit_attempts a join owner_invoices i on i.id = a.owner_invoice_id where a.id = test.od_att('iX')),
-  'revoked/scheduled/true/true');
+  (select a.status || '/' || (select count(*) from owner_debit_attempts x where x.owner_invoice_id = i.id and x.status = 'scheduled') || '/' || i.late_fee_cents || '/' || i.auto_debit_paused
+     from owner_debit_attempts a join owner_invoices i on i.id = a.owner_invoice_id where a.id = test.od_att('iX')),
+  'revoked/failed/0/0/true');
+select test.eq('errors: not insufficient funds: the owner gets "returned", an Admin gets the exception and a task; no "we retry" email',
+  (select count(*) filter (where e.code = 'owner_debit_returned') || '/' || count(*) filter (where e.code = 'staff_owner_debit_exception' and e.payload ->> 'exception' = 'returned')
+          || '/' || (select count(*) from tasks t where t.related_id = test.odv('iX') and t.task_type = 'owner_debit_returned')
+          || '/' || (select count(*) from app_events f where f.entity_id = test.odv('iX') and f.code = 'owner_payment_failed')
+     from app_events e where e.entity_id = test.od_att('iX')), '1/1/1/0');
+-- an Admin resumes the invoice's automatic debit (the owner updated the bank account)
+select app.admin_do(test.id('od_admin'), 'owner_debit_resume', jsonb_build_object('invoice', test.odv('iX')));
+-- and it is debited again after a new notice (on the June debit day below)
+select app.record_owner_payment_method(test.id('owner:od_olga'), null, jsonb_build_object('kind', 'pre_authorized_debit', 'last4', '2223',
+  'processor_customer_id', 'cus_od_olga', 'processor_method_id', 'pm_od_olga2b', 'processor_mandate_id', 'mandate_od_olga2b'));
+select test.eq('errors: resumed, the invoice is scheduled again with a new notice (a debit, not a retry)',
+  (select (r ->> 'invoices') from (select app.owner_debit_schedule(test.id('owner:od_olga'), date '2027-06-15', null, null, date '2027-06-01') r) x), '1');
 
 -- ---------------------------------------------------------------- 7. mandates and banking setup
 select test.eq('setup: a verification still to come is saved pending',
@@ -242,6 +257,7 @@ select app.record_owner_payment_method(test.id('owner:od_nina'), null, jsonb_bui
 select app.owner_debit_schedule(test.id('owner:od_nina'), date '2027-06-15', null, null, date '2027-06-01');
 select app.owner_debit_claim(test.od_at('2027-06-15 07:00'), 100);
 select app.owner_debit_submitted(test.od_att('iC'), '{"intent_id":"pi_od_C1","status":"processing"}');
+select app.owner_debit_submitted(test.od_att('iX'), '{"intent_id":"pi_od_X2","status":"processing"}');
 select test.eq('poll: listed after the poll hours', app.owner_debit_poll(now() + interval '2 days', 100) @> jsonb_build_array(jsonb_build_object('intent_id', 'pi_od_C1')), true);
 select test.eq('poll: not before', app.owner_debit_poll(now() + interval '1 hour', 100) @> jsonb_build_array(jsonb_build_object('intent_id', 'pi_od_C1')), false);
 select test.eq('run close: every debit of the day was sent, so the run closes', app.owner_debit_run_close(test.od_at('2027-06-15 09:00')) ->> 'open', 'false');
@@ -368,7 +384,11 @@ select test.eq('0038: a run with a real owner goes to every Admin',
   (select count(distinct to_address) > 1 from notification_outbox o join owner_debit_runs r on r.id = o.entity_id where o.code = 'staff_owner_debit_run' and r.run_on = '2027-06-15'), true);
 select test.eq('0038: a debit accepted after a passing error no longer shows that error',
   (select coalesce(failure_message, 'none') from owner_debit_attempts where processor_intent_id = 'pi_od_X1'), 'none');
--- a webhook before the run recorded the PaymentIntent (0038)
+-- a webhook before the run recorded the PaymentIntent (0038); a new invoice of the owner to debit
+insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, status) values (test.id('owner:od_olga'), test.id('vehicle:ODA'), 'adjustment', date '2027-08-01', 'draft');
+insert into test.od select 'iY', id from owner_invoices where vehicle_id = test.id('vehicle:ODA') and kind = 'adjustment' and billing_date = '2027-08-01';
+insert into owner_invoice_lines (owner_invoice_id, kind, description, amount_cents, hst_applies, hst_cents) values (test.odv('iY'), 'adjustment', 'Registry cost', 10000, true, 1300);
+update owner_invoices set status = 'issued' where id = test.odv('iY');
 select app.owner_debit_schedule(test.id('owner:od_olga'), date '2027-08-15', null, null, date '2027-08-01');
 select app.record_owner_payment_method(test.id('owner:od_olga'), null, jsonb_build_object('kind', 'pre_authorized_debit', 'last4', '2222',
   'processor_customer_id', 'cus_od_olga', 'processor_method_id', 'pm_od_olga3', 'processor_mandate_id', 'mandate_od_olga3'));

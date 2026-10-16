@@ -16,9 +16,9 @@ create or replace function test.lt_payload(p_code text, p_entity text, p_id uuid
 $$;
 
 -- ================================================================ 1. one Late Fee rule (Enrollment Agreement 4.4)
-select test.eq('rule: one sentence from the settings, the one section 4.4 sets (a returned automatic debit: the Late Fee once, then the retry)',
+select test.eq('rule (0053): the approved sentence, word for word',
   app.owner_debit_terms() ->> 'late_fee_rule',
-  'If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.');
+  'If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.');
 select test.ok('rule: no email says an unpaid invoice takes a Late Fee (the code never adds one for that)',
   not exists (select 1 from notification_catalogue where concat(subject, preheader) ~* 'unpaid after its due date'));
 
@@ -56,7 +56,7 @@ select test.ok('words: the catalogue rows of 0051 read them (no typed 15th, 18th
   and (select preheader from notification_catalogue where code = 'owner_fee_invoice') like 'Due on {{due_date}}%');
 update program_settings set billing_day = 20, retry_day = 23, payout_day = 12 where id = (app.settings()).id;
 select test.eq('words: a change in Admin > Settings changes every text (rule, days, the invoice''s due date)',
-  (app.owner_debit_terms() ->> 'late_fee_rule' like '%try again from the 23rd%') || '/' || (app.ntf_setting_words() ->> 'debit_day') || '/'
+  (app.owner_debit_terms() #>> '{agreement,personal,0}' like '%on the 20th of each month.') || '/' || (app.ntf_setting_words() ->> 'debit_day') || '/'
   || (app.ntf_setting_words() ->> 'payout_day') || '/' || (app.owner_debit_terms() ->> 'payout_day_text') || '/' || (app.owner_program_facts() ->> 'payout_day_text'),
   'true/20th/12th/12th/12th');
 update program_settings set billing_day = 15, retry_day = 18, payout_day = 10 where id = (app.settings()).id;
@@ -85,14 +85,14 @@ select test.eq('confirmation: to the owner, with the payee by its business name,
   || '/' || (test.lt('pad') ->> 'payee_phone' = app.ntf_contact() ->> 'support_phone') || '/' || (test.lt('pad') ->> 'bank_name') || ' ' || (test.lt('pad') ->> 'bank_last4')
   || '/' || (test.lt('pad') ->> 'agreement_type') || '/' || (test.lt('pad') ->> 'debit_day') || '/' || (test.lt('pad') ->> 'notice_days')
   || '/' || (test.lt('pad') ->> 'accepted_on' = app.fmt_day(app.today())) || '/' || (test.lt('pad') ->> 'late_fee_rule' = app.owner_debit_terms() ->> 'late_fee_rule'),
-  'CarmaCars/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
-select test.ok('confirmation: the first automatic debit is at least 3 days after it (Rule H1)',
-  app.owner_debit_next_date(app.today()) >= app.today() + 3);
-select test.ok('confirmation: never the numbered company by default', test.lt('pad')::text !~ '18122211');
-update program_settings set owner_debit_show_legal_name = true where id = (app.settings()).id;
-select test.eq('confirmation: the legal name only when the setting says so', app.owner_debit_terms() #>> '{payee,name}',
+  (select company_legal_name || ', operating as CarmaCars' from app.settings()) || '/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
+select test.ok('confirmation: the first automatic debit is at least 10 days after it (0053)',
+  app.owner_debit_next_date(app.today()) >= app.today() + 10);
+select test.eq('confirmation (0053): the full text of the accepted recurring agreement, below the summary',
+  (test.lt('pad') ->> 'agreement_1') || '|' || (test.lt('pad') ->> 'agreement_2') || '|' || (test.lt('pad') ->> 'agreement_3') || '|' || (test.lt('pad') ->> 'agreement_4'),
+  (select string_agg(x, '|' order by o) from jsonb_array_elements_text(app.owner_debit_terms() #> '{agreement,personal}') with ordinality t(x, o)));
+select test.eq('payee (0053): always the legal name, operating as CarmaCars', app.owner_debit_terms() #>> '{payee,name}',
   (select company_legal_name || ', operating as CarmaCars' from app.settings()));
-update program_settings set owner_debit_show_legal_name = false where id = (app.settings()).id;
 select test.eq('confirmation: the catalogue row says what emits it', (select emitted_by from notification_catalogue where code = 'owner_pad_confirmed'),
   'owner_payment_methods_pad_confirmed (0051)');
 

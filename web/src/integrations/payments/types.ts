@@ -31,6 +31,8 @@ export interface Intent {
   card: IntentCard | null;
   /** The processor's decline message, in plain words, when the last attempt failed. */
   lastError: string | null;
+  /** The processor's code for that failure (insufficient_funds, account_closed, ...): a returned debit is retried only for insufficient funds (0053). */
+  lastErrorCode?: string | null;
   /** card, or acss_debit (Canadian pre-authorized debit). */
   methodType: 'card' | 'acss_debit' | null;
   /** The bank account of a pre-authorized debit (never the full number). */

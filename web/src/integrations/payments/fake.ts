@@ -35,7 +35,8 @@ export interface FakePayments extends PaymentsAdapter {
   /** What Stripe's bank form does for a pre-authorized debit: the mandate is accepted and the debit is submitted (processing). */
   confirmDebit(id: string, bank: { name: string; institution: string; transit: string; account: string }): Promise<Intent>;
   /** What the bank answers days later. Account numbers ending 0000 are returned (insufficient funds). */
-  settleDebit(id: string, ok?: boolean): Promise<Intent>;
+  /** code: what the bank says when it returns the debit (insufficient_funds by default, or account_closed and the like). */
+  settleDebit(id: string, ok?: boolean, code?: string): Promise<Intent>;
   /** What Stripe's bank form does for a debit setup: the mandate is accepted and verified (succeeded). */
   confirmDebitSetup(id: string, bank: { name: string; institution: string; transit: string; account: string }): Promise<DebitSetup>;
   intents(): Intent[];
@@ -118,11 +119,13 @@ export function fakePayments(): FakePayments {
       i.status = 'processing';
       return { ...i };
     },
-    async settleDebit(id, ok) {
+    async settleDebit(id, ok, code) {
       const i = get(id);
       if (i.status !== 'processing') return { ...i };
       if (ok === false || (ok === undefined && i.bank?.last4 === '0000')) {
-        i.status = 'requires_payment_method'; i.lastError = 'The debit was returned by the bank: insufficient funds.';
+        const c = code ?? 'insufficient_funds';
+        i.status = 'requires_payment_method'; i.lastErrorCode = c;
+        i.lastError = c === 'insufficient_funds' ? 'The debit was returned by the bank: insufficient funds.' : `The debit was returned by the bank: ${c.replace(/_/g, ' ')}.`;
       } else i.status = 'succeeded';
       return { ...i };
     },

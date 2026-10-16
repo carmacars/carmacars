@@ -32,10 +32,28 @@ Your recourse rights
 
 You have certain recourse rights if a debit does not comply with this agreement. For example, you have the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca.
 
+The agreement you accepted
+------------------------
+
+Pre-authorized debit agreement ({{agreement_kind}})
+
+{{agreement_1}}
+
+{{agreement_2}}
+
+{{agreement_3}}
+
+{{agreement_4}}
+
+Payee: {{payee_name}}
+Address: {{payee_address}}
+Phone: {{payee_phone}}
+Email: {{payee_email}}
+
 Read the agreement:
 https://carmacars.ca/owner/banking
 
-The full agreement is on the Banking page of your owner portal. Questions: reply to this email or call {{payee_phone}}.
+The full agreement is also on the Banking page of your owner portal. Questions: reply to this email or call {{payee_phone}}.
 
 ----------------------------------------
 
@@ -45,7 +63,7 @@ You are receiving this because you have an owner account with CarmaCars. Notices
 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
-CarmaCars
+{{payee_name}}
 {{#if company_address}}{{company_address}}
 {{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}

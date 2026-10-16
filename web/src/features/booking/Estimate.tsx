@@ -51,7 +51,7 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
     case 'additional_driver': return { k: 'Additional driver', note: perDay && `${perDay} a day, ${t.addDrvPct} of the daily rate` };
     case 'winter_tire': return { k: 'Winter tires', note: perDay && `${perDay} a day${cap}` };
     case 'baby_seat': return { k: typeof d.seats === 'number' && d.seats > 1 ? `Baby seats (${d.seats})` : 'Baby seat', note: perDay && `${perDay} a day each${cap} each` };
-    case 'coverage_sold': return { k: 'Coverage sold through CarmaCars' };
+    case 'coverage_sold': return { k: 'Protection Plan' };
     default: return { k: l.label };
   }
 }
@@ -102,7 +102,7 @@ export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, maxD
           <table className="estimate__lines">
             <tbody>
               {q.lines.map((l, i) => { const d = describe(l, labels); return <tr key={i}><th scope="row">{d.k}{d.note && <small>{d.note}</small>}</th><td className="num">{money(l.amount_cents, { cents: true })}</td></tr>; })}
-              {(coverageChosen ?? q.coverage.option === 3) && q.coverage.priced_in_offer && <tr><th scope="row">Coverage bought through CarmaCars<small>By car and driver age</small></th><td>{q.coverage.price_note ?? 'Priced in your offer'}</td></tr>}
+              {(coverageChosen ?? q.coverage.option === 3) && q.coverage.priced_in_offer && <tr><th scope="row">Protection Plan<small>By car and driver age</small></th><td>{q.coverage.price_note ?? 'Priced in your offer'}</td></tr>}
               <tr><th scope="row">HST ({hst})</th><td className="num">{money(q.hst_cents, { cents: true })}</td></tr>
             </tbody>
             <tfoot><tr><th scope="row">Estimated total<small>Due when you approve, sign and pay. Nothing now.</small></th><td className="num"><Tween cents={q.total_cents} /></td></tr></tfoot>

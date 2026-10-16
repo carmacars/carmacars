@@ -16,6 +16,8 @@ Recorded for: {{payment_date}}
 Vehicle: {{vehicle_name}}
 Now owing: {{balance}}
 
+No late fee applies. If this invoice has an automatic debit scheduled, it is debited on {{debit_date}} for {{balance}}; otherwise pay it from the invoice page.
+
 Please pay {{balance}} from the invoice page, or send it by e-Transfer with the invoice number in the message. Questions: reply to this email.
 
 View invoice:
@@ -29,7 +31,7 @@ You are receiving this because you have an owner account with CarmaCars. Notices
 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
-CarmaCars
+{{payee_name}}
 {{#if company_address}}{{company_address}}
 {{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}

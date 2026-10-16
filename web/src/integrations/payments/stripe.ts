@@ -43,6 +43,7 @@ export function toIntent(pi: Obj): Intent {
     currency: str(pi.currency) ?? 'cad', clientSecret: str(pi.client_secret), metadata: (obj(pi.metadata) ?? {}) as Record<string, string>,
     customerId: str(pi.customer) ?? str(obj(pi.customer)?.id), paymentMethodId: str(pi.payment_method) ?? str(pm?.id),
     chargeId: str(pi.latest_charge) ?? str(charge?.id), card, lastError: str(obj(pi.last_payment_error)?.message),
+    lastErrorCode: str(obj(pi.last_payment_error)?.code) ?? str(obj(pi.last_payment_error)?.decline_code) ?? str(charge?.failure_code),
     methodType: type === 'card' || type === 'acss_debit' ? type : null,
     bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
     mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)

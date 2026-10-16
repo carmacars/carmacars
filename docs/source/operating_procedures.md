@@ -278,8 +278,9 @@ Billing, 15th:
 
 | Missed payment | Action |
 | --- | --- |
-| Charge fails | Add $50 Late Fee per Vehicle. Send T25. |
-| 18th | Retry with the Late Fee |
+| Debit returned for insufficient funds | Add the $50 Late Fee per Vehicle as its own invoice line. Send T25. |
+| Debit returned for another reason | No retry, no Late Fee. The invoice's automatic debit is paused; Admin is alerted; the Owner is emailed to pay from the invoice page or update the bank account. |
+| The later of the 18th and 3 business days after the return (within 30 days of the debit) | Retry once for the original amount. The Late Fee goes with the next scheduled debit. |
 | Retry fails | Deduct from that Vehicle's revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell Admin. |
 | Balance left at the next 10th | Debt payable on demand. Deduct from the Owner's other Vehicles. |
 | 30 days after the failed retry | Admin may remove the Vehicle (procedure 16) |
@@ -427,5 +428,5 @@ Never name the coverage provider.
 | T22 | Enrolled | Written confirmation: [car], VIN [ ], is on the CarmaCars fleet policy from [date], your Enrollment Date. You may now cancel your own insurance on it. |
 | T23 | Turo-Only expiry | Your insurance on [car] expires [date]. Send renewed proof before then or we must pause the Turo listing. |
 | T24 | Owner invoice | Invoice [no.], [month], [car]: insurance fee $[ ], tracker fee $[ ], HST $[ ]. Total $[ ], charged on the 15th. |
-| T25 | Missed payment | Your $[amount] payment for [car] failed. A $50 late fee applies. We retry on the 18th; if that fails, it is deducted from the car's revenue. |
+| T25 | Missed payment | Your $[amount] payment for [car] failed. A $50.00 late fee is added to your next debit. We retry [amount] on or after [retry date]. The $50.00 late fee is collected with your next debit. If that fails too, this vehicle goes into arrears. |
 | T26 | Payout | [Month] statement attached: rentals $[ ], kickbacks deducted $[ ], kickbacks earned $[ ], revenue share $[ ], deductions $[ ]. Paid today $[amount]. |

@@ -12,6 +12,7 @@ import { PrepareAgreement } from '@/features/portal/PrepareAgreement';
 import { myBooking } from '@/server/portal/data';
 import { agreementFacts, blocksFor, openAgreement, unsignedFacts } from '@/server/portal/agreement';
 import { viewAs } from '@/server/view-as';
+import { rpc } from '@/lib/db/repo';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/account/bookings', noindex: true, description: 'Read and sign the rental agreement for your booking.' });
@@ -34,6 +35,8 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   const needDetails = !r?.address_line1 || !me?.licence_number || !me?.licence_expiry;
   const blocks = blocksFor(unsignedFacts(facts));
   const legal = r?.legal_name ?? me?.full_name ?? '';
+  // a rental staff added with the saved card (0053): charged on "Accept and sign", never before
+  const charge = added ? ((await rpc('server_manual_rental_sign_charge', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { amount_cents: number; brand: string | null; last4: string | null } | null) : null;
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -45,6 +48,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
         <div><span>Car</span>{carName(b)}</div>
         <div><span>Dates</span>{when(b.pickup_at)} to {when(b.return_at)}</div>
         {!added && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
+        {charge && <div data-testid="sign-charge"><span>Charged when you sign</span>{money(charge.amount_cents, { cents: true })}</div>}
         <div><span>Deposit at pickup</span>{money(b.deposit_cents)}</div>
         <div><span>Deductible</span>{money(b.deductible_cents)}</div>
         <div><span>Cancellation</span>{b.booking_type === 'non_refundable' ? 'Non-refundable' : 'Standard tiers'}</div>
@@ -67,7 +71,8 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
             <section className="pt-card" aria-labelledby="pt-sign">
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={added ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              {charge && <p className="small" data-testid="sign-charge-note">Read and sign your rental agreement; your card is charged when you sign. We charge {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
               <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>

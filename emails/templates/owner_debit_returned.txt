@@ -1,0 +1,39 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Debit returned]
+Your bank returned the debit
+
+The debit for your {{vehicle_name}} did not go through, {{first_name}}.
+
+IMPORTANT: What happened
+The debit of {{debit_date}} was returned: {{bank_reason}}
+
+Pay this invoice from its page or update your bank account under Banking. We will not debit this invoice again.
+
+Invoice no.: {{invoice_number}}
+Vehicle: {{vehicle_name}}
+Debit returned: {{amount}}
+Now owing: {{balance}}
+
+{{#if has_late_fee}}
+The {{late_fee}} Late Fee on this invoice is part of what is owing.
+{{/if}}
+
+Pay this invoice:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+{{payee_name}}
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

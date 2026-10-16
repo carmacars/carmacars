@@ -18,7 +18,7 @@ type Quote = { role: 'admin' | 'va'; free: boolean; clashes: Array<{ kind: strin
 const MODE: Record<string, [string, string]> = {
   other_way: ['Paid another way', 'e-Transfer, cheque, cash or bank transfer: recorded as a payment received another way.'],
   link: ['Send a payment link', 'The renter gets an email to sign and pay online, the usual way. The rental waits for that payment.'],
-  card: ['Charge the saved card', 'The renter\'s card on file is charged now.'],
+  card: ['Charge the saved card when the renter signs', 'The renter\'s card on file is charged when the renter presses Accept and sign, not before. Until then the rental is awaiting signature.'],
   unpaid: ['Unpaid: invoice later', 'Confirmed now; the balance is collected later.']
 };
 const SOURCES: Array<[string, string]> = [['phone', 'Phone'], ['walk_in', 'Walk-in'], ['turo', 'Turo'], ['partner', 'Partner'], ['insurer', 'Insurer'], ['email', 'Email'], ['other', 'Other']];
@@ -89,6 +89,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         <h2 className="d3" id="mr-done">Rental {done.booking_number} added</h2>
         <p>{done.status === 'confirmed' ? 'Confirmed and on the calendar.' : done.status === 'pending_payment' ? 'The renter has the email to sign and pay online; the rental is confirmed once they pay.' : done.status === 'closed' ? 'Recorded as a completed past rental. It counts on the owner\'s or partner\'s statement and the company statement.' : done.status}
           {!done.blocks_calendar && done.status === 'confirmed' ? ' It was added over a clash, so it does not block the calendar: resolve the clash before the handover.' : ''}</p>
+        {done.charge_on_sign && <p className="alert alert--ok" role="status" data-testid="mr-charge-on-sign"><span>Awaiting signature. The saved card is charged when the renter signs the rental agreement (Accept and sign), not before.</span></p>}
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
         <p className="small">Total {fmt(done.total_cents)}. The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
         <p className="row"><Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>
@@ -150,7 +151,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <fieldset className="stack"><legend className="d4">3. The rental</legend>
         <div className="ad-fields">
           {select('booking_type', 'Booking', [['standard', 'Standard'], ['non_refundable', 'Non-refundable (fixed discount)']])}
-          {select('coverage_option', 'Damage coverage', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: coverage sold by CarmaCars']])}
+          {select('coverage_option', 'Damage coverage', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: the CarmaCars Protection Plan']])}
           <div className="field ad-field"><label className="check" htmlFor={id('winter')}><input id={id('winter')} type="checkbox" checked={flags.winter_tire} onChange={flag('winter_tire')} /> <span>Winter tires</span></label></div>
           {text('baby_seats', 'Baby seats', { inputMode: 'numeric' })}
           {select('source', 'Where it came from', SOURCES)}

@@ -1,6 +1,6 @@
 -- 0053_legal_review.sql
 -- The owner's final legal review, "CarmaCars: legal text changes before launch" (October 16, 2026), applied as approved
--- (docs/changes/2026-10-16-legal-review-applied.md):
+-- (docs/changes/2026-10-16-legal-review-admin-redesign.md):
 --   1. billing and pre-authorized debit: the payee "<legal name>, operating as CarmaCars" in the PAD agreement, its
 --      confirmation, Stripe's mandate description and every owner billing email; a returned debit is retried only for
 --      insufficient funds, once, for the original amount, on the later of the 18th and 3 business days after the return,
@@ -22,6 +22,9 @@
 alter table program_settings add column if not exists signing_officer_user_id uuid references users (id);
 comment on column program_settings.signing_officer_user_id is
   'The signing officer''s own account (0053). When set, only this Admin may press Countersign on an investment agreement; when empty any Admin may, and who pressed it is recorded.';
+-- the signing officer's account: the Admin who signs in as rent@carmacars.ca, the only Admin address (when it exists here)
+update program_settings set signing_officer_user_id = (select u.id from users u where lower(u.email) = 'rent@carmacars.ca' limit 1)
+ where signing_officer_user_id is null and exists (select 1 from users u where lower(u.email) = 'rent@carmacars.ca');
 comment on column program_settings.owner_debit_show_legal_name is
   'No longer used (0053): the payee of the PAD agreement, its confirmation, Stripe''s mandate and the owner billing emails is always "<company_legal_name>, operating as <company_trade_name>".';
 update program_settings set owner_debit_show_legal_name = true where not owner_debit_show_legal_name;
@@ -152,13 +155,13 @@ language sql immutable as $$
       or coalesce(lower(p_message), '') ~ '(insufficient|non-sufficient|not sufficient) funds'
 $$;
 
--- The Late Fee line (0007's trigger adds it when an invoice fails): only for an automatic debit returned for
--- insufficient funds, which app.owner_debit_fail marks; any other failure adds none. It is its own line, "Late Fee".
+-- The Late Fee line (0007's trigger adds it when an invoice fails): its own line, "Late Fee". A debit returned for any
+-- reason other than insufficient funds adds none: app.owner_debit_fail names the invoice in app.debit_no_late_fee.
 create or replace function app.owner_invoice_lines_late_fee_guard() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
   if new.kind = 'late_fee' and new.description = 'Late Fee: missed payment' then
-    if coalesce(current_setting('app.debit_late_fee', true), '') is distinct from new.owner_invoice_id::text then
+    if coalesce(current_setting('app.debit_no_late_fee', true), '') = new.owner_invoice_id::text then
       return null;
     end if;
     new.description := 'Late Fee';
@@ -193,6 +196,7 @@ declare
   v_msg text := coalesce(nullif(btrim(p_message), ''), 'The debit was returned by the bank.');
   v_nsf boolean := app.owner_debit_is_nsf(p_code, p_message);
   v_original date;
+  v_failed integer;
 begin
   select * into a from owner_debit_attempts where id = p_attempt for update;
   if a.status in ('failed', 'succeeded', 'canceled', 'skipped') then return jsonb_build_object('ok', true, 'repeat', true, 'status', a.status); end if;
@@ -201,6 +205,7 @@ begin
   update payments set status = 'failed', decline_count = decline_count + 1, last_decline_code = left(v_msg, 200), processed_at = now()
    where id = a.payment_id and status = 'pending';
   update owner_debit_runs set failed = failed + 1 where id = a.run_id;
+  select count(*) into v_failed from owner_debit_attempts where owner_invoice_id = a.owner_invoice_id and status = 'failed';
   select * into i from owner_invoices where id = a.owner_invoice_id for update;
   if i.status not in ('processing', 'retry_processing', 'issued', 'failed') then
     return jsonb_build_object('ok', true, 'status', 'failed', 'invoice_status', i.status);
@@ -210,21 +215,21 @@ begin
   if a.is_retry or (v_nsf and s.owner_debit_max_attempts < 2) then
     -- the retry was returned too (for any reason), or no retry is allowed: in arrears, without a second "we retry"
     -- email; the Late Fee (added once, on its own line) and the amount come off the next payout
-    perform set_config('app.debit_late_fee', i.id::text, true);
     perform set_config('app.debit_no_retry', i.id::text, true);
     if i.status in ('processing', 'issued') then
       update owner_invoices set status = 'failed', retry_on = null, debit_on = null where id = i.id;
     end if;
     update owner_invoices set status = 'in_arrears', debit_on = null where id = i.id;
     perform set_config('app.debit_no_retry', '', true);
-    perform set_config('app.debit_late_fee', '', true);
     return jsonb_build_object('ok', true, 'status', 'failed', 'invoice_status', 'in_arrears', 'nsf', v_nsf);
   end if;
 
   if not v_nsf then
     -- any other return reason: no retry, no Late Fee; the invoice waits on its page, its automatic debit paused
     perform set_config('app.debit_no_retry', i.id::text, true);
+    perform set_config('app.debit_no_late_fee', i.id::text, true);
     update owner_invoices set status = 'failed', retry_on = null, debit_on = null, auto_debit_paused = true where id = i.id;
+    perform set_config('app.debit_no_late_fee', '', true);
     perform set_config('app.debit_no_retry', '', true);
     update owner_debit_attempts set status = 'canceled', skip_reason = 'not retried: the debit was returned for another reason than insufficient funds'
      where owner_invoice_id = i.id and status = 'scheduled';
@@ -243,21 +248,19 @@ begin
   end if;
 
   -- insufficient funds, the first debit: the Late Fee once, on its own line, and one retry
-  perform set_config('app.debit_late_fee', i.id::text, true);
   v_next := greatest(app.retry_date(v_original), app.add_business_days(app.local_date(now()), greatest(s.owner_debit_retry_gap_days, 1)));
   if v_next > v_original + 30 then
     -- too late for a retry within 30 days of the original debit: the Late Fee stays, no retry, the owner pays from the page
     perform set_config('app.debit_no_retry', i.id::text, true);
     update owner_invoices set status = 'failed', retry_on = null, debit_on = null, auto_debit_paused = true where id = i.id;
     perform set_config('app.debit_no_retry', '', true);
-    perform set_config('app.debit_late_fee', '', true);
     perform app.ntf_emit('owner_debit_returned', 'owner_debit_attempt', a.id, 'returned', jsonb_build_object('owner_id', i.owner_id, 'vehicle_id', i.vehicle_id));
     perform app.ntf_emit('staff_owner_debit_exception', 'owner_debit_attempt', a.id, 'retry_window',
       jsonb_build_object('owner_id', i.owner_id, 'exception', 'retry_window', 'reason', v_msg, '_immediate_roles', jsonb_build_array('staff_admin')));
     return jsonb_build_object('ok', true, 'status', 'failed', 'invoice_status', 'failed', 'retry', false, 'paused', true, 'nsf', true);
   end if;
 
-  perform set_config('app.debit_attempt_no', '1', true);
+  perform set_config('app.debit_attempt_no', v_failed::text, true);
   insert into owner_debit_attempts (owner_invoice_id, owner_id, notice_id, run_id, attempt_no, debit_on, amount_cents, idempotency_key, bank_last4,
                                     is_retry, original_debit_on)
   values (i.id, i.owner_id, a.notice_id, null, a.attempt_no + 1, v_next, a.amount_cents, 'owner-debit:' || gen_random_uuid(), a.bank_last4,
@@ -269,7 +272,6 @@ begin
     update owner_invoices set retry_on = v_next, debit_on = v_next where id = i.id;
   end if;
   perform set_config('app.debit_attempt_no', '', true);
-  perform set_config('app.debit_late_fee', '', true);
   return jsonb_build_object('ok', true, 'status', 'failed', 'invoice_status', 'failed', 'retry_on', v_next, 'next_attempt', v_new,
                             'retry_amount_cents', a.amount_cents, 'nsf', true);
 end $$;
@@ -352,11 +354,11 @@ end $$;
 
 -- A cleared retry pays the original amount; the Late Fee left on the invoice is issued, so the next notice lists it
 -- and the next scheduled debit collects it.
-alter function app.owner_debit_result(text, jsonb) rename to owner_debit_result_0037;
+alter function app.owner_debit_result(text, jsonb) rename to owner_debit_result_0038;
 create or replace function app.owner_debit_result(p_intent text, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.owner_debit_result_0037(p_intent, p);
+  v_out jsonb := app.owner_debit_result_0038(p_intent, p);
   a owner_debit_attempts;
   i owner_invoices;
 begin
@@ -451,7 +453,7 @@ begin
   elsif p_code = 'owner_cosigner_sign' then
     select * into co from owner_cosigners where id = p_event.entity_id;
     select * into o from owners where id = co.owner_id;
-    x := x || jsonb_build_object('first_name', split_part(btrim(co.name), ' ', 1), 'cosigner_name', co.name, 'owner_name', o.legal_name,
+    x := x || jsonb_build_object('first_name', split_part(btrim(co.name), ' ', 1), 'cosigner_name', co.name, 'owner_name', o.legal_name, 'token', co.token,
                                  'sign_url', app.ntf_link('owner_cosign', jsonb_build_object('token', co.token)),
                                  '_url', app.ntf_link('owner_cosign', jsonb_build_object('token', co.token)));
   end if;
@@ -475,10 +477,29 @@ language sql stable security definer set search_path = public, app as $$
               then format('Signed electronically for %s, operating as %s, by %s, %s, under a standing authorization dated %s.',
                           coalesce(nullif(btrim(s.company_legal_name), ''), s.company_trade_name), s.company_trade_name, s.signing_officer_name,
                           coalesce(nullif(btrim(s.signing_officer_title), ''), 'Director'),
-                          coalesce(to_char(s.signing_officer_authorized_on, 'FMMonth FMDD, YYYY'), 'the day the signing officer was set'))
+                          to_char(coalesce(s.signing_officer_authorized_on, app.today()), 'FMMonth FMDD, YYYY'))
               else format('Signed electronically for %s, operating as %s.', coalesce(nullif(btrim(s.company_legal_name), ''), s.company_trade_name), s.company_trade_name) end
     from app.settings() s
 $$;
+
+-- The standing authorization is dated the day the signing officer is set: a new officer (or a first one) takes today's
+-- date unless the same change gives a date.
+create or replace function app.program_settings_officer_date() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if nullif(btrim(coalesce(new.signing_officer_name, '')), '') is null then return new; end if;
+  if tg_op = 'INSERT' then
+    new.signing_officer_authorized_on := coalesce(new.signing_officer_authorized_on, app.today());
+  elsif new.signing_officer_name is distinct from old.signing_officer_name
+        and new.signing_officer_authorized_on is not distinct from old.signing_officer_authorized_on then
+    new.signing_officer_authorized_on := app.today();
+  elsif new.signing_officer_authorized_on is null then
+    new.signing_officer_authorized_on := app.today();
+  end if;
+  return new;
+end $$;
+create trigger program_settings_officer_date before insert or update on program_settings
+  for each row execute function app.program_settings_officer_date();
 
 -- Every automatic countersignature (rental agreements, amendments, owner documents, Forms A and B, partner and staff
 -- agreements, paper records): the signing officer signs for the company with the approved wording. A staff member the
@@ -535,7 +556,9 @@ language sql stable security definer set search_path = public, app as $$
   select jsonb_build_object('user_id', s.signing_officer_user_id,
            'name', coalesce(nullif(btrim(s.signing_officer_name), ''), s.company_trade_name),
            'title', coalesce(nullif(btrim(s.signing_officer_title), ''), 'for ' || s.company_trade_name),
-           'proposed_by', (select u.full_name from booking_change_requests c join users u on u.id = c.decided_by where c.id = p_request))
+           'proposed_by', (select u.full_name from booking_change_requests c
+                             join users u on u.id = coalesce(case when c.requested_by_role <> 'renter' then c.requested_by end, c.decided_by)
+                            where c.id = p_request))
     from app.settings() s
 $$;
 
@@ -554,7 +577,10 @@ declare
 begin
   select * into am from booking_amendments where id = p_amendment for update;
   if am.status = 'signed' and am.countersignature_record_id is null then
-    select u2.* into u from booking_change_requests c join users u2 on u2.id = c.decided_by where c.id = am.change_request_id;
+    -- the staff member who proposed the change, or approved the renter's request: recorded as "Proposed by", never the signer
+    select u2.* into u from booking_change_requests c
+      join users u2 on u2.id = coalesce(case when c.requested_by_role <> 'renter' then c.requested_by end, c.decided_by)
+     where c.id = am.change_request_id;
     insert into signature_records (signature_request_id, signer_role, signer_user_id, signer_name, signer_email, status, signed_at,
                                    method, document_sha256)
     values (am.signature_request_id, 'carmacars', u.id, coalesce(u.full_name, s.company_trade_name), s.company_email, 'signed', now(),
@@ -1088,6 +1114,18 @@ begin
   return v_out;
 end $$;
 
+-- Staff never charge the saved card of a rental they added (0046's charge path): the renter's signature does.
+alter function app.manual_rental_card_result(uuid, jsonb) rename to manual_rental_card_result_0046;
+create or replace function app.manual_rental_card_result(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if exists (select 1 from bookings b where b.id = nullif(p ->> 'booking', '')::uuid and b.added_by_staff and b.payment_mode = 'card'
+               and not exists (select 1 from payments x where x.booking_id = b.id and x.purpose = 'booking_total' and x.status = 'succeeded')) then
+    raise exception 'The saved card is charged when the renter signs the rental agreement, not before' using errcode = '23514';
+  end if;
+  return app.manual_rental_card_result_0046(p_by, p);
+end $$;
+
 -- What the renter's signing page charges: a rental added by staff, with the saved card, not paid yet.
 create or replace function app.manual_rental_sign_charge(p_booking uuid, p_by uuid) returns jsonb
 language sql stable security definer set search_path = public, app as $$
@@ -1167,7 +1205,9 @@ declare
     array['the provider of optional rental coverage if you buy it', 'the provider of the optional Protection Plan if you buy it'],
     array['messaging and optional rental coverage on their own terms', 'messaging and the optional Protection Plan on their own terms'],
     array['or payment for coverage through CarmaCars', 'or payment for the Protection Plan'],
-    array['coverage purchased through CarmaCars', 'the Protection Plan bought through CarmaCars']];
+    array['coverage purchased through CarmaCars', 'the Protection Plan bought through CarmaCars'],
+    array['or coverage bought through us.', 'or the CarmaCars Protection Plan.'],
+    array['add coverage to your booking.', 'add the Protection Plan to your booking.']];
   i integer;
 begin
   for i in 1 .. array_length(pairs, 1) loop
@@ -1237,7 +1277,7 @@ begin
      where (n.nspname = 'app' and p.proname = any (array[
               'owner_payee_name', 'owner_debit_payee', 'owner_late_fee_rule', 'owner_pad_agreement', 'owner_mandate_description', 'owner_debit_terms',
               'owner_debit_is_nsf', 'owner_invoice_lines_late_fee_guard', 'owner_debit_fail', 'owner_debit_claim', 'corporate_signature_text',
-              'signature_records_corporate', 'signature_records_paper_date', 'amendment_countersigner', 'investment_awaiting_countersignature',
+              'signature_records_corporate', 'signature_records_paper_date', 'program_settings_officer_date', 'amendment_countersigner', 'investment_awaiting_countersignature',
               'investment_countersign', 'cosign_defer_requests', 'cosign_defer_agreements', 'cosign_defer_schedules', 'owner_open_requests',
               'owner_cosigners_json', 'owner_primary_signed', 'owner_agreements_finalize', 'owner_cosigner_send', 'owner_cosigner_add',
               'owner_cosigner_remove', 'owner_cosigner_facts', 'owner_cosigner_sign', 'owner_form_c_open', 'manual_rental_sign_charge',
@@ -1260,13 +1300,13 @@ declare
 begin
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             join (values ('ntf_payload_0051', 'notification_payload'), ('owner_debit_result_0037', 'owner_debit_result'),
+             join (values ('ntf_payload_0051', 'notification_payload'), ('owner_debit_result_0038', 'owner_debit_result'),
                           ('sign_booking_amendment_0051', 'sign_booking_amendment'), ('my_sign_requests_0044', 'my_sign_requests'),
                           ('sign_request_sign_0046', 'sign_request_sign'), ('record_paper_signature_0051', 'record_paper_signature'),
                           ('owner_open_agreements_0029', 'owner_open_agreements'), ('owner_sign_agreements_0029', 'owner_sign_agreements'),
                           ('owner_signing_needed_0029', 'owner_signing_needed'), ('manual_rental_create_0046', 'manual_rental_create'),
                           ('notification_recipients_0040', 'notification_recipients'), ('door_0049', 'door'),
-                          ('owner_agreement_facts_0029', 'owner_agreement_facts')) m(old_name, new_name)
+                          ('owner_agreement_facts_0029', 'owner_agreement_facts'), ('manual_rental_card_result_0046', 'manual_rental_card_result')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;
@@ -1279,6 +1319,32 @@ end $$;
 
 -- ================================================================ 13. the email catalogue
 -- CATALOGUE 0053 START (generated by supabase/seed/0053_gen_catalogue.mjs; do not edit by hand)
+insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to,
+    subject, preheader, timing, trigger_text, replaces_template, link_path, variables, template_html, template_text) values
+  ('renter_rental_added', 'renter', '{}'::text[], 'transactional', false, null, 'CarmaCars <bookings@carmacars.ca>', 'bookings@carmacars.ca', 'Booked: {{vehicle_name}}, {{pickup_date}}', 'Booking {{booking_number}}. {{payment_line}} Next: sign your rental agreement.', 'Immediate', 'CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, to be charged to the saved card when the renter signs, or to be invoiced later. Not sent when staff tick "Do not email the renter", for a past rental, or for a payment link (the offer email carries the link).', null, '/account/bookings/{{booking_number}}/sign', '[{"name":"balance_line","type":"string"},{"name":"booking_number","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"deposit_amount","type":"string"},{"name":"first_name","type":"string"},{"name":"has_balance","type":"boolean"},{"name":"instagram_url","type":"url","global":true},{"name":"km_allowance","type":"string"},{"name":"line_items","type":"list","fields":["label","amount"]},{"name":"needs_verification","type":"boolean"},{"name":"opening_hours","type":"string","global":true},{"name":"overage_rate","type":"string"},{"name":"payment_line","type":"string"},{"name":"pickup_date","type":"string"},{"name":"pickup_place","type":"string"},{"name":"pickup_time","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"return_date","type":"string"},{"name":"return_place","type":"string"},{"name":"return_time","type":"string"},{"name":"sign_line","type":"string"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"total_amount","type":"string"},{"name":"vehicle_image_url","type":"url"},{"name":"vehicle_name","type":"string"},{"name":"verify_by","type":"string"}]'::jsonb, 'templates/renter_rental_added.html', 'templates/renter_rental_added.txt'),
+  ('owner_cosigner_sign', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <owners@carmacars.ca>', 'owners@carmacars.ca', 'Your CarmaCars owner documents are ready to sign', 'You are named as an Owner. Read the documents and sign them with your own link.', 'Immediate', 'Every Owner named in the Title Schedule signs the program agreements. The documents of an owner are opened for signature (or an Admin adds an Owner, or sends the link again): each Owner besides the one with the portal account gets their own signing link. The agreements take effect when the last Owner signs.', null, '/sign/owner/{{token}}', '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"owner_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"token","type":"string"}]'::jsonb, 'templates/owner_cosigner_sign.html', 'templates/owner_cosigner_sign.txt'),
+  ('owner_debit_notice', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Pre-authorized debit on {{debit_date}}: {{debit_total}}', '{{debit_count_text}} from your account ending {{bank_last4}}. Nothing to do if your account is up to date.', 'The notice days before the debit day (the 5th for the 15th by default)', 'Owner debit notice job, on the notice day (the debit day less the notice days in Program settings, 10 by default): the owner has issued invoices that will be debited automatically on the debit day from their pre-authorized debit account. One email per owner, listing every invoice in the debit. Required notice under the pre-authorized debit agreement.', null, '/owner/billing', '[{"name":"bank_last4","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_count_text","type":"string"},{"name":"debit_date","type":"string"},{"name":"debit_items","type":"list","fields":["invoice_number","vehicle","covers","amount"]},{"name":"debit_total","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"late_fee_rule","type":"string"},{"name":"notice_days","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/owner_debit_notice.html', 'templates/owner_debit_notice.txt'),
+  ('owner_debit_returned', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'The debit for invoice {{invoice_number}} was returned', 'We will not debit this invoice again. Pay it from its page or update your bank account.', 'The day the bank reports the returned debit', 'The bank returns the automatic debit of an owner invoice for a reason other than insufficient funds (for example the account is closed), or for insufficient funds too late for a retry within 30 days of the original debit. The debit is not retried: the automatic debit of that invoice is paused and an Admin is alerted at the same time. One email per returned debit.', null, '/owner/invoices/{{invoice_number}}', '[{"name":"amount","type":"string"},{"name":"balance","type":"string"},{"name":"bank_reason","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_date","type":"string"},{"name":"first_name","type":"string"},{"name":"has_late_fee","type":"boolean"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_number","type":"string"},{"name":"late_fee","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_debit_returned.html', 'templates/owner_debit_returned.txt'),
+  ('owner_debit_setup_needed', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Set up your bank debit for {{debit_total}} due {{debit_date}}', 'We have no pre-authorized debit for your account, so nothing was scheduled. It takes two minutes.', 'The notice day, or the debit day when the agreement was cancelled since the notice', 'Owner debit notice job (or the debit run itself): the owner has invoices due for the automatic debit but no active pre-authorized debit agreement on file, or it was cancelled at the bank. Nothing is debited. One email per owner per debit date. An Admin gets the exception at the same time.', null, '/owner/banking', '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_date","type":"string"},{"name":"debit_day","type":"string"},{"name":"debit_items","type":"list","fields":["invoice_number","vehicle","covers","amount"]},{"name":"debit_total","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"late_fee_rule","type":"string"},{"name":"notice_days","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/owner_debit_setup_needed.html', 'templates/owner_debit_setup_needed.txt'),
+  ('owner_fee_invoice', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Invoice {{invoice_number}}: {{invoice_month}} fees for your {{vehicle_name}}, {{invoice_total}}', 'Due on {{due_date}}. Pay from the invoice page by card or pre-authorized debit.', '15th of each month', 'Owner-billing job on the 15th: a monthly owner invoice for a vehicle is issued and its pre-authorized debit is submitted. One invoice and one email per vehicle. Not sent for Turo-Only vehicles or vehicles owned personally by the two principals. (Message template T24.)', 'T24', '/owner/invoices/{{invoice_number}}', '[{"name":"bank_last4","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"due_date","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_lines","type":"list","fields":["label","amount"]},{"name":"invoice_month","type":"string"},{"name":"invoice_number","type":"string"},{"name":"invoice_period","type":"string"},{"name":"invoice_total","type":"string"},{"name":"late_fee_rule","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"},{"name":"vehicle_plate","type":"string"}]'::jsonb, 'templates/owner_fee_invoice.html', 'templates/owner_fee_invoice.txt'),
+  ('owner_in_arrears', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'In arrears: {{arrears_amount}} owing on your {{vehicle_name}}', 'The retry failed. Pay by {{removal_date}} to keep the vehicle in the program.', 'The day the bank reports the failed retry (18th or after)', 'Debit-retry job on the 18th: the retry of a failed owner invoice also fails and the invoice status becomes in_arrears (the vehicle''s arrears flag is set).', null, '/owner/invoices/{{invoice_number}}', '[{"name":"amount","type":"string"},{"name":"arrears_amount","type":"string"},{"name":"arrears_removal_days","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_number","type":"string"},{"name":"is_self_managed","type":"boolean"},{"name":"late_fee","type":"string"},{"name":"next_payout_date","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"removal_date","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_in_arrears.html', 'templates/owner_in_arrears.txt'),
+  ('owner_pad_confirmed', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Your pre-authorized debit agreement with {{payee_name}}', 'Your confirmation for the account ending {{bank_last4}}. Keep it for your records.', 'Immediate, when the debit mandate becomes active', 'An owner''s pre-authorized debit mandate becomes active (set up under Banking, confirmed by micro-deposits, or saved with a debit paid from an invoice page). CarmaCars'' own confirmation of the pre-authorized debit agreement (Payments Canada Rule H1): the agreement, the payee and how to reach it, the account, the timing, how to cancel and the recourse rights. Sent once per debit mandate. An automatic debit is scheduled only with its notice, the notice days ahead, so this confirmation comes before the first automatic debit.', null, '/owner/banking', '[{"name":"accepted_on","type":"string"},{"name":"agreement_1","type":"string"},{"name":"agreement_2","type":"string"},{"name":"agreement_3","type":"string"},{"name":"agreement_4","type":"string"},{"name":"agreement_kind","type":"string"},{"name":"agreement_type","type":"string"},{"name":"bank_last4","type":"string"},{"name":"bank_name","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_day","type":"string"},{"name":"first_debit_date","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"late_fee_rule","type":"string"},{"name":"notice_days","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_address","type":"string"},{"name":"payee_email","type":"string"},{"name":"payee_name","type":"string"},{"name":"payee_phone","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/owner_pad_confirmed.html', 'templates/owner_pad_confirmed.txt'),
+  ('owner_payment_failed', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Your {{amount}} payment for the {{vehicle_name}} failed', 'A {{late_fee}} late fee is added to your next debit. We retry {{amount}} on or after {{retry_date}}.', 'The day the bank reports the failed debit', 'The bank returns the automatic debit of an owner invoice for insufficient funds (the first debit): the invoice status becomes failed, the Late Fee is added once as its own line, and one retry of the original amount is scheduled on the later of the retry day and 3 business days after the return, within 30 days of the original debit. One email per vehicle. A debit returned for another reason sends owner_debit_returned instead. (Message template T25.)', 'T25', '/owner/billing', '[{"name":"amount","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_month","type":"string"},{"name":"invoice_number","type":"string"},{"name":"late_fee","type":"string"},{"name":"late_fee_rule","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"retry_amount","type":"string"},{"name":"retry_date","type":"string"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_payment_failed.html', 'templates/owner_payment_failed.txt'),
+  ('owner_payment_received', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Payment received: {{amount}} for invoice {{invoice_number}}', 'For your {{vehicle_name}}. Nothing more to do.', 'Immediate', 'An owner invoice changes to paid: the debit for a monthly invoice clears (including a cleared retry), or the upfront invoice is paid by card or e-Transfer.', null, '/owner/invoices/{{invoice_number}}', '[{"name":"amount","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_number","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"payment_date","type":"string"},{"name":"payment_method","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_payment_received.html', 'templates/owner_payment_received.txt'),
+  ('owner_payment_recorded', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Receipt: {{amount}} received for invoice {{invoice_number}}', 'Paid by {{payment_method}} on {{payment_date}}. {{balance_line}}', 'Immediate', 'An Admin or Finance records a payment received outside the card processor (e-Transfer, cheque, cash, bank transfer or another way) on an owner invoice, in full or in part. The receipt for that payment; the automatic debit stops, or debits only what is still owing.', null, '/owner/invoices/{{invoice_number}}', '[{"name":"amount","type":"string"},{"name":"balance","type":"string"},{"name":"balance_line","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_line","type":"string"},{"name":"first_name","type":"string"},{"name":"has_reference","type":"boolean"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_number","type":"string"},{"name":"is_paid_in_full","type":"boolean"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"payment_date","type":"string"},{"name":"payment_method","type":"string"},{"name":"reference","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_payment_recorded.html', 'templates/owner_payment_recorded.txt'),
+  ('owner_payment_reversed', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Payment for invoice {{invoice_number}} was not received', '{{amount}} by {{payment_method}} on {{payment_date}}. {{balance}} is owing.', 'Immediate', 'An Admin voids a payment that was recorded by hand on an owner invoice (for example a cheque that was returned, or a payment recorded on the wrong invoice), with the reason. The invoice owes that amount again.', null, '/owner/invoices/{{invoice_number}}', '[{"name":"amount","type":"string"},{"name":"balance","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"debit_date","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_number","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"payment_date","type":"string"},{"name":"payment_method","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"},{"name":"void_reason","type":"string"}]'::jsonb, 'templates/owner_payment_reversed.html', 'templates/owner_payment_reversed.txt'),
+  ('owner_payout_sent', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Payout sent: {{payout_amount}} for {{statement_month}}', 'By bank transfer to your account ending {{bank_last4}}.', '10th of each month, when the transfer is sent', 'A payout row for an owner changes to paid (an admin sent the bank transfer and recorded its reference). Normally the 10th. Not sent when the statement shows a balance owing instead of a payout. (Message template T26, payment part.)', 'T26', '/owner/statements/{{statement_number}}', '[{"name":"bank_last4","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"payment_date","type":"string"},{"name":"payout_amount","type":"string"},{"name":"payout_day","type":"string"},{"name":"payout_reference","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"statement_month","type":"string"},{"name":"statement_number","type":"string"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/owner_payout_sent.html', 'templates/owner_payout_sent.txt'),
+  ('owner_statement_ready', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Your {{statement_month}} statement: {{payout_amount}}', 'Owner Revenue {{owner_revenue_total}}. {{payout_summary}}', '10th of each month', 'An owner statement changes to issued: on the 10th of the month, after an admin approves the payout run, for the previous month. One statement and one email per owner, covering all their vehicles. (Message template T26, statement part.)', 'T26', '/owner/statements/{{statement_number}}', '[{"name":"balance_forward","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"deductions_total","type":"string"},{"name":"first_name","type":"string"},{"name":"has_balance_forward","type":"boolean"},{"name":"has_payout_hst","type":"boolean"},{"name":"instagram_url","type":"url","global":true},{"name":"kickbacks_deducted","type":"string"},{"name":"kickbacks_earned","type":"string"},{"name":"link_expiry","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"owner_revenue_total","type":"string"},{"name":"payee_name","type":"string"},{"name":"payout_amount","type":"string"},{"name":"payout_hst","type":"string"},{"name":"payout_label","type":"string"},{"name":"payout_summary","type":"string"},{"name":"rentals_total","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"revenue_share_total","type":"string"},{"name":"statement_month","type":"string"},{"name":"statement_number","type":"string"},{"name":"statement_url","type":"url"},{"name":"statement_vehicles","type":"list","fields":["name","owner_revenue","payable"]},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/owner_statement_ready.html', 'templates/owner_statement_ready.txt'),
+  ('owner_toll_ticket', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', '{{notice_type}} for your {{vehicle_name}}, {{notice_amount}}', '{{notice_action_short}}', 'Immediate, when Finance matches the notice', 'A toll or ticket is matched to the owner rather than a renter. is_forwarded true: the owner had the car outside the program, or the car is Turo-Only, and the notice is forwarded for the owner to pay. is_forwarded false: the owner had the car on an Owner Booking, CarmaCars paid it and an owner deduction is created at cost with no fee.', null, null, '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"is_forwarded","type":"boolean"},{"name":"notice_action_short","type":"string"},{"name":"notice_amount","type":"string"},{"name":"notice_description","type":"string"},{"name":"notice_due_date","type":"string"},{"name":"notice_event_date","type":"string"},{"name":"notice_number","type":"string"},{"name":"notice_type","type":"string"},{"name":"notice_type_lower","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"supporting_document_url","type":"url"},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_toll_ticket.html', 'templates/owner_toll_ticket.txt'),
+  ('owner_upfront_invoice', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <billing@carmacars.ca>', 'billing@carmacars.ca', 'Upfront invoice {{invoice_number}} for the {{vehicle_name}}: {{invoice_total}}', 'Pay by card or e-Transfer to start registration. No security deposit.', 'Immediate', 'The upfront owner invoice for a vehicle is issued after documents_signed: the Install Fee plus the first and last month''s Insurance Fee, with HST. Not issued for Turo-Only or shareholder-owned vehicles.', null, '/owner/invoices/{{invoice_number}}', '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"invoice_lines","type":"list","fields":["label","amount"]},{"name":"invoice_number","type":"string"},{"name":"invoice_total","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"payee_name","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/owner_upfront_invoice.html', 'templates/owner_upfront_invoice.txt')
+on conflict (code) do update set
+  audience = excluded.audience, also_sent_to = excluded.also_sent_to, category = excluded.category,
+  is_digest = excluded.is_digest, digest_slot = excluded.digest_slot, from_address = excluded.from_address,
+  reply_to = excluded.reply_to, subject = excluded.subject, preheader = excluded.preheader, timing = excluded.timing,
+  trigger_text = excluded.trigger_text, replaces_template = excluded.replaces_template, link_path = excluded.link_path,
+  variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
+  in_catalogue = true, updated_at = now();
+select app.notification_catalogue_refresh();
 -- CATALOGUE 0053 END
 update notification_catalogue set emitted_by = 'app.owner_debit_fail (0053)' where code = 'owner_debit_returned';
 update notification_catalogue set emitted_by = 'app.owner_cosigner_send (0053)' where code = 'owner_cosigner_sign';

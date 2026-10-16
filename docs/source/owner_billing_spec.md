@@ -12,7 +12,7 @@ Amounts come from each vehicle's signed Vehicle Schedule, never from a tier. Upf
 | First and last month's Insurance Fee | 2 × monthly Insurance Fee | Before the Enrollment Date | Yes | Card or e-Transfer |
 | Insurance Fee | Vehicle Schedule | 15th, monthly | Yes | Pre-authorized debit |
 | Tracker Fee | Vehicle Schedule | 15th, monthly | Yes | Pre-authorized debit |
-| Late Fee | $50 per vehicle per missed payment | On the failed charge | No | Added to the retry |
+| Late Fee | $50 per vehicle per automatic debit returned for insufficient funds | Its own invoice line, when the bank returns the debit | No | Listed in the next pre-debit notice and collected with the next scheduled debit (or deducted from the next payout when attempts per invoice is 1); never added to the retry |
 | Owner costs CarmaCars paid | Actual cost: plate renewal, Owner Booking tolls and tickets, lender handover costs | Next statement | As on the receipt | Deducted from payout |
 
 | Standard grid (default only) | Insurance Fee | Revenue Share | Tracker Fee |
@@ -93,8 +93,9 @@ Issued on the 10th, one per Owner, with a block per vehicle.
 
 | When | Event | Action |
 | --- | --- | --- |
-| 15th | Debit fails | Add the $50 Late Fee to each vehicle affected. Notify the Owner |
-| 18th | Retry Fees plus Late Fee | If it fails, the vehicle is in arrears and a Self-managed vehicle is not enabled for new bookings |
+| 15th | Debit returned for insufficient funds | Add the $50 Late Fee to that vehicle's invoice as its own line. Notify the Owner |
+| 15th | Debit returned for any other reason (for example the account is closed) | No retry and no Late Fee. The invoice's automatic debit is paused, an Admin is alerted, and the Owner is emailed to pay from the invoice page or update the bank account |
+| The later of the 18th and 3 business days after the return, never more than 30 days after the original debit | Retry once, the original invoice amount only (never the Late Fee) | If it fails, the vehicle is in arrears and a Self-managed vehicle is not enabled for new bookings |
 | Next 10th | Payout run | Deduct the unpaid Fees and Late Fee from that vehicle's revenue |
 | Same 10th | Balance still left | Debt payable on demand. Deduct it from the Owner's other vehicles |
 | 30 days after the failed retry | Still unpaid | CarmaCars may remove the vehicle immediately. The Owner pays the transfer-back fees |
@@ -162,7 +163,7 @@ One Owner, one agreement, two Managed vehicles at $450, 35% and $25, not HST-reg
 | B1 | $700 | | | $700 | |
 | B2 | $1,200 + $100 extra day | $100 | | $1,400 | Late return fee $75 |
 
-Fees billed November 15, per vehicle: $450 + $25 + HST $61.75 = $536.75. Vehicle A's debit clears. Vehicle B's fails, a $50 Late Fee is added, and the retry of $586.75 fails on November 18.
+Fees billed November 15, per vehicle: $450 + $25 + HST $61.75 = $536.75. Vehicle A's debit clears. Vehicle B's is returned for insufficient funds, a $50 Late Fee is added as its own line (the invoice now owes $586.75), and the retry of the original $536.75 fails on November 18.
 
 | Line | Vehicle A | Vehicle B |
 | --- | --- | --- |

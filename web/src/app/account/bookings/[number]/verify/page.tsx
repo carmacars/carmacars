@@ -49,7 +49,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
         {cov === 1 || cov === 2 ? (
           <div className="pt-card"><p>{cov === 1 ? 'Option 1: your own auto policy with the OPCF 27 endorsement.' : 'Option 2: rental coverage on your credit card. It must be the card you paid with.'}</p>
             <CoverageUpload number={b.booking_number} option={cov} status={up('coverage_proof', null)?.status} reason={up('coverage_proof', null)?.reject_reason} /></div>
-        ) : <div className="pt-card"><p>{cov === 3 ? 'You chose coverage purchased through CarmaCars. We send you its terms before pickup.' : 'Tell us how you will cover damage to the car: call or message us.'}</p></div>}
+        ) : <div className="pt-card"><p>{cov === 3 ? 'You chose the CarmaCars Protection Plan. We send you its terms before pickup.' : 'Tell us how you will cover damage to the car: call or message us.'}</p></div>}
       </section>
     </>
   );

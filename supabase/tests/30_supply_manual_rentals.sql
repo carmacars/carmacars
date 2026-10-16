@@ -131,16 +131,24 @@ select test.throws('payment link: not with "do not email"', format($$select app.
   test.id('sm_admin'), test.smv('partner_car')), 'Do not email');
 -- the saved card
 insert into sm select 'r_card', app.manual_rental_create(test.id('sm_cs'), test.smr(test.smv('partner_car'), interval '14 days', interval '15 days', '{"payment": {"mode": "card"}}'));
-select test.ok('saved card: confirmed, and the server is told what to charge', (test.smb('r_card')).status = 'confirmed'
-  and test.sm('r_card') -> 'charge' ->> 'method_id' = 'pm_sm_rita' and (test.sm('r_card') -> 'charge' ->> 'amount_cents')::bigint = (test.smb('r_card')).renter_due_at_booking_cents);
-select app.manual_rental_card_result(test.id('sm_cs'), jsonb_build_object('booking', (test.smb('r_card')).id, 'ok', true, 'amount_cents', (test.smb('r_card')).renter_due_at_booking_cents,
+select test.ok('saved card (0053): confirmed and awaiting signature; nothing is charged when staff add it',
+  (test.smb('r_card')).status = 'confirmed' and test.sm('r_card') -> 'charge' = 'null'::jsonb and (test.sm('r_card') ->> 'charge_on_sign')::boolean
+  and not exists (select 1 from payments p where p.booking_id = (test.smb('r_card')).id) and app.booking_awaiting_signature((test.smb('r_card')).id));
+select test.throws('saved card (0053): staff cannot charge it before the renter signs',
+  format($$select app.manual_rental_card_result(%L, %L)$$, test.id('sm_cs'), jsonb_build_object('booking', (test.smb('r_card')).id, 'ok', true)), 'charged when the renter signs');
+select test.ok('saved card (0053): the renter''s signing page is told what to charge on "Accept and sign"',
+  app.manual_rental_sign_charge((test.smb('r_card')).id, test.id('sm_rita')) ->> 'method_id' = 'pm_sm_rita'
+  and (app.manual_rental_sign_charge((test.smb('r_card')).id, test.id('sm_rita')) ->> 'amount_cents')::bigint = (test.smb('r_card')).renter_due_at_booking_cents
+  and app.manual_rental_sign_charge((test.smb('r_card')).id, test.id('sm_cs')) is null);
+select app.manual_rental_sign_charged((test.smb('r_card')).id, test.id('sm_rita'), jsonb_build_object('ok', true, 'amount_cents', (test.smb('r_card')).renter_due_at_booking_cents,
   'processor', jsonb_build_object('payment_id', 'pi_sm_1', 'charge_id', 'ch_sm_1')));
-select test.ok('saved card: the charge recorded once', (select count(*) from payments p where p.booking_id = (test.smb('r_card')).id and p.status = 'succeeded') = 1
-  and (app.manual_rental_card_result(test.id('sm_cs'), jsonb_build_object('booking', (test.smb('r_card')).id, 'ok', true)) ->> 'repeat')::boolean);
+select test.ok('saved card: charged once when the renter signed (a second report is a replay)', (select count(*) from payments p where p.booking_id = (test.smb('r_card')).id and p.status = 'succeeded') = 1
+  and (app.manual_rental_sign_charged((test.smb('r_card')).id, test.id('sm_rita'), jsonb_build_object('ok', true)) ->> 'repeat')::boolean
+  and app.manual_rental_sign_charge((test.smb('r_card')).id, test.id('sm_rita')) is null);
 select test.ok('partner car: the partner gets the owner notice', exists (select 1 from app_events e where e.code = 'owner_new_booking' and e.entity_id = (test.smb('r_card')).id
   and (e.payload ->> 'owner_id')::uuid = (test.sm('partner') ->> 'owner_id')::uuid));
 insert into sm select 'r_decl', app.manual_rental_create(test.id('sm_admin'), test.smr(test.smv('partner_car'), interval '17 days', interval '18 days', '{"do_not_email": true, "payment": {"mode": "card"}}'));
-select app.manual_rental_card_result(test.id('sm_admin'), jsonb_build_object('booking', (test.smb('r_decl')).id, 'ok', false, 'error', 'Your card was declined.'));
+select app.manual_rental_sign_charged((test.smb('r_decl')).id, test.id('sm_rita'), jsonb_build_object('ok', false, 'error', 'Your card was declined.'));
 select test.ok('saved card declined: the failed charge and a Finance task', exists (select 1 from payments p where p.booking_id = (test.smb('r_decl')).id and p.status = 'failed')
   and exists (select 1 from tasks t where t.booking_id = (test.smb('r_decl')).id and t.task_type = 'manual_rental_unpaid' and t.queue = 'finance'));
 select test.ok('do not email: no renter email', not exists (select 1 from app_events e where e.code = 'renter_rental_added' and e.entity_id = (test.smb('r_decl')).id));
@@ -161,7 +169,11 @@ select app.record_signature((select signature_request_id from rental_agreements 
 select test.eq('agreement: completed when the renter signs, countersigned automatically',
   (select a.status || '/' || (select r.consent_text from signature_records r where r.signature_request_id = a.signature_request_id and r.signer_role = 'carmacars')
      from rental_agreements a where a.booking_id = (test.smb('r1')).id),
-  'completed/Countersigned for CarmaCars automatically when the renter signed, in the name of the staff member who added the rental.');
+  'completed/' || app.corporate_signature_text());
+select test.eq('agreement (0053): the staff member who added the rental is recorded as "Added by", never as the signer',
+  (select r.signer_name || '/' || coalesce(r.staff_attribution, '-') from rental_agreements a join signature_records r on r.signature_request_id = a.signature_request_id and r.signer_role = 'carmacars'
+     where a.booking_id = (test.smb('r1')).id),
+  (select coalesce(signing_officer_name, 'CarmaCars') from app.settings()) || '/Added by: ' || (select full_name from users where id = (test.smb('r1')).created_by));
 -- identity checked in person
 select app.verify_driver_in_person(test.id('sm_admin'), jsonb_build_object('booking_driver_id',
   (select id from booking_drivers where booking_id = (test.smb('r1')).id and role = 'renter'), 'note', 'Licence seen at the counter'));
@@ -297,7 +309,7 @@ select app.sign_request_sign(test.id('sm_pat'), (test.sm('pa') ->> 'id')::uuid, 
 select test.eq('partner agreement: signed in the portal, countersigned automatically',
   (select r.agreement_status || '/' || r.agreement_method || '/' || (select x.consent_text from signature_records x where x.signature_request_id = (test.sm('pa') ->> 'signature_request_id')::uuid and x.signer_role = 'carmacars')
      from partners r where r.id = (test.sm('partner') ->> 'id')::uuid),
-  'signed/typed/Countersigned for CarmaCars automatically when the partner signed.');
+  'signed/typed/' || app.corporate_signature_text());
 insert into sm select 'partner2', app.partner_save(test.id('sm_admin'), '{"business_name": "Sm Paper Rentals"}');
 insert into sm select 'paper', app.record_paper_signature(test.id('sm_admin'), jsonb_build_object('doc_type', 'partner_agreement', 'target_id', test.sm('partner2') ->> 'id',
   'signer_name', 'Paula Paper', 'signed_on', app.today(), 'scan', jsonb_build_object('path', 'paper/sm/pa.pdf', 'sha256', repeat('d', 64))));

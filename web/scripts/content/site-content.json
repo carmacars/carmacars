@@ -14,7 +14,7 @@
     },
     {
       "question": "What coverage do I need?",
-      "answer": "Third-party liability coverage is included in the rate. For damage to the car you need one of three options before pickup: OPCF 27 on your own auto policy, rental coverage on your credit card, or coverage bought through us. <a class=\"link\" href=\"/requirements#coverage\">Compare the three options</a>."
+      "answer": "Third-party liability coverage is included in the rate. For damage to the car you need one of three options before pickup: OPCF 27 on your own auto policy, rental coverage on your credit card, or the CarmaCars Protection Plan. <a class=\"link\" href=\"/requirements#coverage\">Compare the three options</a>."
     },
     {
       "question": "When is the deposit taken, and when do I get it back?",
@@ -126,8 +126,8 @@
       "body": "Many cards include it. The rental has to be paid with that card, and the benefit has to cover the car and the length of the rental."
     },
     {
-      "title": "Coverage bought through CarmaCars",
-      "body": "If you have no policy and no card benefit, add coverage to your booking. It is priced in your offer, for your car and the driver’s age. A third-party provider supplies it on its own terms, which we send you before you buy."
+      "title": "The CarmaCars Protection Plan",
+      "body": "If you have no policy and no card benefit, add the Protection Plan to your booking. It is priced in your offer, for your car and the driver’s age. A third-party provider supplies it on its own terms, which we send you before you buy."
     }
   ],
   "faq_groups": [
@@ -212,8 +212,8 @@
       "id": "coverage",
       "items": [
         {
-          "question": "Can I buy coverage from you?",
-          "answer": "Yes. Coverage bought through CarmaCars is priced in your offer, for your car and the driver’s age. A third-party provider supplies it, and we send its terms before you buy."
+          "question": "Can I buy a Protection Plan from you?",
+          "answer": "Yes. The Protection Plan is priced in your offer, for your car and the driver’s age. A third-party provider supplies it, and we send its terms before you buy."
         },
         {
           "question": "Is insurance included?",
@@ -221,7 +221,7 @@
         },
         {
           "question": "What coverage do I need for the car itself?",
-          "answer": "One of three: OPCF 27 on your own auto policy, rental coverage on your credit card (with the rental paid on that card), or coverage bought through CarmaCars. <a class=\"link\" href=\"/requirements#coverage\">Compare them</a>."
+          "answer": "One of three: OPCF 27 on your own auto policy, rental coverage on your credit card (with the rental paid on that card), or the CarmaCars Protection Plan. <a class=\"link\" href=\"/requirements#coverage\">Compare them</a>."
         },
         {
           "question": "What is OPCF 27?",

@@ -18,7 +18,7 @@ export function ConfEmail({ number }: { number: string }) { const r = useLast(nu
 export function ConfCoverage({ number }: { number: string }) {
   const r = useLast(number);
   if (!r) return null;
-  return <>{r.coverage === '1' && ' For option 1, add the policy page or insurer letter that shows OPCF 27.'}{r.coverage === '2' && ' For option 2, add your card’s benefits certificate, and pay with that card.'}{r.coverage === '3' && ' For option 3, we send the provider’s terms and activate the coverage once it is paid.'}</>;
+  return <>{r.coverage === '1' && ' For option 1, add the policy page or insurer letter that shows OPCF 27.'}{r.coverage === '2' && ' For option 2, add your card’s benefits certificate, and pay with that card.'}{r.coverage === '3' && ' For option 3, we send the Protection Plan’s terms and activate it once it is paid.'}</>;
 }
 export function ConfRows({ number, depLead }: { number: string; depLead: string }) {
   const r = useLast(number);

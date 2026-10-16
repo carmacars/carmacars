@@ -9,10 +9,11 @@ The debit for your {{vehicle_name}} was returned by your bank, {{first_name}}.
 
   Invoice {{invoice_number}}, {{invoice_month}} fees: {{amount}}
   Late fee: {{late_fee}}
-  We retry on {{retry_date}}: {{retry_amount}}
+
+We retry {{amount}} on or after {{retry_date}}. The {{late_fee}} late fee is collected with your next debit.
 
 IMPORTANT: Make sure the money is there on {{retry_date}}
-We debit the same account again that day for {{retry_amount}}. If that fails too, the amount is deducted from this car's revenue at the next payout.
+We debit the same account again that day for {{retry_amount}}. If that fails too, this vehicle goes into arrears.
 
 Check my payment details:
 https://carmacars.ca/owner/billing
@@ -27,7 +28,7 @@ You are receiving this because you have an owner account with CarmaCars. Notices
 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
-CarmaCars
+{{payee_name}}
 {{#if company_address}}{{company_address}}
 {{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}

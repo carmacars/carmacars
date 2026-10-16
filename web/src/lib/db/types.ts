@@ -5922,6 +5922,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_cosigners: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          email: string;
+          status: string;
+          token: string;
+          link_sent_at: string | null;
+          link_sent_count: number;
+          signed_at: string | null;
+          signature_record_ids: string[];
+          added_by: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          email: string;
+          status?: string;
+          token?: string;
+          link_sent_at?: string | null;
+          link_sent_count?: number;
+          signed_at?: string | null;
+          signature_record_ids?: string[];
+          added_by?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          name?: string;
+          email?: string;
+          status?: string;
+          token?: string;
+          link_sent_at?: string | null;
+          link_sent_count?: number;
+          signed_at?: string | null;
+          signature_record_ids?: string[];
+          added_by?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       owner_credits: {
         Row: {
           id: string;
@@ -5993,6 +6047,8 @@ export type Database = {
           last_checked_at: string | null;
           created_at: string;
           updated_at: string;
+          is_retry: boolean;
+          original_debit_on: string | null;
         };
         Insert: {
           id?: string;
@@ -6019,6 +6075,8 @@ export type Database = {
           last_checked_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_retry?: boolean;
+          original_debit_on?: string | null;
         };
         Update: {
           id?: string;
@@ -6045,6 +6103,8 @@ export type Database = {
           last_checked_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_retry?: boolean;
+          original_debit_on?: string | null;
         };
         Relationships: [];
       };
@@ -7814,6 +7874,8 @@ export type Database = {
           partner_insurance_warn_days: number;
           staff_agreement_defaults: Json;
           owner_debit_show_legal_name: boolean;
+          signing_officer_authorized_on: string | null;
+          signing_officer_user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -8026,6 +8088,8 @@ export type Database = {
           partner_insurance_warn_days?: number;
           staff_agreement_defaults?: Json;
           owner_debit_show_legal_name?: boolean;
+          signing_officer_authorized_on?: string | null;
+          signing_officer_user_id?: string | null;
         };
         Update: {
           id?: string;
@@ -8238,6 +8302,8 @@ export type Database = {
           partner_insurance_warn_days?: number;
           staff_agreement_defaults?: Json;
           owner_debit_show_legal_name?: boolean;
+          signing_officer_authorized_on?: string | null;
+          signing_officer_user_id?: string | null;
         };
         Relationships: [];
       };
@@ -8962,6 +9028,7 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;
+          vehicle_id: string | null;
         };
         Insert: {
           id?: string;
@@ -8990,6 +9057,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          vehicle_id?: string | null;
         };
         Update: {
           id?: string;
@@ -9018,6 +9086,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          vehicle_id?: string | null;
         };
         Relationships: [];
       };
@@ -9041,6 +9110,9 @@ export type Database = {
           typed_name: string | null;
           consent_text: string | null;
           document_sha256: string | null;
+          staff_attribution: string | null;
+          attributed_user_id: string | null;
+          signed_on: string | null;
         };
         Insert: {
           id?: string;
@@ -9061,6 +9133,9 @@ export type Database = {
           typed_name?: string | null;
           consent_text?: string | null;
           document_sha256?: string | null;
+          staff_attribution?: string | null;
+          attributed_user_id?: string | null;
+          signed_on?: string | null;
         };
         Update: {
           id?: string;
@@ -9081,6 +9156,9 @@ export type Database = {
           typed_name?: string | null;
           consent_text?: string | null;
           document_sha256?: string | null;
+          staff_attribution?: string | null;
+          attributed_user_id?: string | null;
+          signed_on?: string | null;
         };
         Relationships: [];
       };
@@ -12951,6 +13029,7 @@ export type Database = {
       my_unread_count: { Args: never; Returns: number };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
       owner_form_ab_open: { Args: { p_by: string; p_code: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
+      owner_form_c_open: { Args: { p_by: string; p_vehicle: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_official: { Args: { p_by: string; p_fill: string }; Returns: Json };
       owner_form_signed: { Args: { p_by: string; p_fill: string; p: Json }; Returns: Json };
       owner_give_exit_notice: { Args: { p_by: string; p_vehicle: string; p?: Json }; Returns: Json };
@@ -13029,11 +13108,16 @@ export type Database = {
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
+      server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
+      server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
+      server_owner_cosigner_facts: { Args: { p_token: string }; Returns: Json };
+      server_owner_cosigner_sign: { Args: { p_token: string; p: Json }; Returns: Json };
       server_owner_debit_result: { Args: { p_intent: string; p: Json }; Returns: Json };
       server_owner_debit_setup_facts: { Args: { p_by: string }; Returns: Json };
       server_owner_debit_setup_verified: { Args: { p_method: string; p_mandate: string }; Returns: Json };
@@ -13052,6 +13136,7 @@ export type Database = {
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
+      server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };

@@ -25,13 +25,13 @@ Kilometres included: {{km_allowance}}, then {{overage_rate}} per km
 Security deposit: {{deposit_amount}}, taken at pickup
 
 Sign your rental agreement
-Please read and sign your rental agreement before pickup. It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.
+{{sign_line}} It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.
 
 Sign my rental agreement:
 https://carmacars.ca/account/bookings/{{booking_number}}/sign
 
 {{#if needs_verification}}
-We also need each driver's licence photos and a selfie, plus proof of coverage, by {{verify_by}}. You can upload them from your booking.
+We also need each driver's licence photos and a selfie, plus proof of your coverage option, by {{verify_by}}. You can upload them from your booking.
 {{/if}}
 
 {{#if has_balance}}

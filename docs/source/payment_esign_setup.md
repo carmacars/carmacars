@@ -123,8 +123,8 @@ Build each template from the blank PDF: place signature, initial, tick-box and d
 7. **10th.** Deduct only unpaid Fees and Late Fees, Owner costs, refund or chargeback shares and agreed amounts. Pay by bank transfer. Send T26 with the statement. Send Field staff kickbacks to payroll.
 8. **15th.** Issue one invoice per vehicle: Insurance Fee, Tracker Fee, HST, pro-rated in enrollment and exit months. Skip Turo-Only cars and cars owned personally by Abbas or Mahad. Send T24.
 9. **15th.** Pay investor Returns by bank transfer.
-10. **15th to 18th.** On a failed debit add the $50 Late Fee and send T25.
-11. **18th.** Retry Fees plus Late Fee. On failure: vehicle in arrears, tell Admin, block new bookings on a Self-managed car.
+10. **15th to 18th.** On a debit returned for insufficient funds add the $50 Late Fee as its own line and send T25. On any other return reason: no retry, pause the invoice's automatic debit, alert an Admin and email the owner.
+11. **The later of the 18th and 3 business days after the return.** Retry the original amount once, never more than 30 days after the original debit; the Late Fee goes with the next scheduled debit. On failure: vehicle in arrears, tell Admin, block new bookings on a Self-managed car.
 12. **To the 25th.** Check daily for late debit failures.
 
 ## 8. When the platform goes live

@@ -20,7 +20,7 @@ This Agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 | Rate | ☐ 1 to 6 days: [●] daily days × $[●], plus [●] weekend days × $[●]  ☐ 7 to 29 days: weekly rate $[●] ÷ 7 × [●] days  ☐ 30 days: monthly rate $[●] |
 | Mileage | Allowance: [●] km per day × [●] days = [●] km  Overage: $[●] per km |
 | Deposit | $[●], taken at pickup  ☐ Card hold  ☐ Charged and refunded  ☐ Carried over from the earlier agreement |
-| Coverage Option | ☐ 1: OPCF 27 (insurer, policy no., expiry: [●])  ☐ 2: credit card (issuer, last four digits: [●])  ☐ 3: purchased through CarmaCars  Proof or activation confirmed: ☐ |
+| Coverage Option | ☐ 1: OPCF 27 (insurer, policy no., expiry: [●])  ☐ 2: credit card (issuer, last four digits: [●])  ☐ 3: the CarmaCars Protection Plan  Proof or activation confirmed: ☐ |
 | Deductible | $2,500 |
 | Card on File | Type and last four digits: [●]  Cardholder: [●] |
 
@@ -31,7 +31,7 @@ This Agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 | Delivery fee / pickup fee | $[●] / $[●] |
 | Young driver fee | $[●] |
 | Additional driver fee | $[●] |
-| Coverage Option 3 | $[●] |
+| Protection Plan (option 3) | $[●] |
 | Other fees: [●] | $[●] |
 | HST (13%) | $[●] |
 | **Total due at booking** (the Deposit is taken at pickup) | $[●] |
@@ -131,7 +131,7 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 1. OPCF 27 rental vehicle coverage on an active auto insurance policy.
 2. Rental car coverage on your credit card, with the rental paid on that card.
-3. Coverage purchased through CarmaCars. A third-party provider supplies it on its own terms, which we give you before you buy. It starts when we confirm activation. CarmaCars is not an insurer.
+3. The CarmaCars Protection Plan, bought through CarmaCars. A third-party provider supplies it on its own terms, which we give you before you buy. It starts when we confirm activation. CarmaCars is not an insurer.
 
 **8.3 Proof.** For option 1 or 2, you must give us satisfactory proof before pickup and check that it covers the Vehicle, the rental and every driver. We release the Vehicle only when a Coverage Option is confirmed. Having none at pickup counts as cancelling at that time under section 7. If your coverage ends, you must tell us and stop driving.
 

@@ -721,14 +721,14 @@ select test.eq('P the card becomes the Card on File; the processor''s ids are in
 select test.eq('P every charge line of the booking is tied to the payment',
   (select count(*) || '/' || count(*) filter (where li.payment_id = (select id from payments where booking_id = test.ba('f1')))
      from booking_line_items li where li.booking_id = test.ba('f1') and li.voided_at is null), '2/2');
-select test.eq('P CarmaCars countersigned automatically, in the name of the staff member who sent the offer, as its own signature record',
-  (select string_agg(signer_role || ':' || signer_name || ':' || method || ':' || coalesce(signer_title, '-') || ':' || (signer_user_id is not null), ' ' order by signed_at, signer_role desc)
+select test.eq('P CarmaCars countersigned automatically by the signing officer (0053), as its own signature record',
+  (select string_agg(signer_role || ':' || signer_name || ':' || method || ':' || coalesce(signer_title, '-'), ' ' order by signed_at, signer_role desc)
      from signature_records where signature_request_id = test.ba_sigreq('f1')),
-  'renter:Gus Green:typed:-:true carmacars:Ba Cs:automatic:for CarmaCars:true');
-select test.eq('P the countersignature says how it was applied and carries the hash of the same document',
-  (select (consent_text like 'Countersigned for CarmaCars automatically when the booking was confirmed%') || '/' || (document_sha256 = test.sha('agreement of f1 v1'))
-          || '/' || (signer_user_id = test.id('ba_cs'))
-     from signature_records where signature_request_id = test.ba_sigreq('f1') and signer_role = 'carmacars'), 'true/true/true');
+  'renter:Gus Green:typed:- carmacars:' || (select coalesce(signing_officer_name, 'CarmaCars') || ':automatic:' || coalesce(signing_officer_title, 'for CarmaCars') from app.settings()));
+select test.eq('P the countersignature has the approved wording and the hash of the same document; the staff member who sent the offer is only "Proposed by"',
+  (select (consent_text = app.corporate_signature_text())
+          || '/' || (document_sha256 = test.sha('agreement of f1 v1')) || '/' || coalesce(staff_attribution, '-') || '/' || (attributed_user_id = test.id('ba_cs'))
+     from signature_records where signature_request_id = test.ba_sigreq('f1') and signer_role = 'carmacars'), 'true/true/Proposed by: Ba Cs/true');
 select test.eq('P the signature request and the agreement are completed',
   (select s.status || '/' || (s.completed_at is not null) || '/' || a.status || '/' || (a.completed_at is not null)
      from rental_agreements a join signature_requests s on s.id = a.signature_request_id where a.id = test.ba('f1:ag')), 'completed/true/completed/true');

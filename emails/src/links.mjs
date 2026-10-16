@@ -51,6 +51,7 @@ export const PATHS = {
   owner_invoice: '/owner/invoices/{{invoice_number}}',
   owner_statement: '/owner/statements/{{statement_number}}',
   owner_claim: '/owner/claims/{{incident_number}}',
+  owner_cosign: '/sign/owner/{{token}}',
 
   // Admin portal
   admin: '/admin',

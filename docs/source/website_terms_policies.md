@@ -36,7 +36,7 @@ Staff and contractors may use their portals only for assigned work.
 
 **6. Intellectual property.** The Site, its software, brand, text and photos belong to us or our licensors. You may use them only to book and manage rentals or vehicles. You keep ownership of what you upload, such as photos, messages and reviews. You give us a free, non-exclusive licence to use it to run our business and handle claims, and to publish your reviews. You confirm you have the right to upload it.
 
-**7. Third-party services.** Other companies provide payments, identity checks, maps, messaging and optional rental coverage on their own terms. We are not responsible for their services or for sites we link to. A booking made through another platform is governed by that platform's terms.
+**7. Third-party services.** Other companies provide payments, identity checks, maps, messaging and the optional Protection Plan on their own terms. We are not responsible for their services or for sites we link to. A booking made through another platform is governed by that platform's terms.
 
 **8. Electronic communication.** Agreements are signed through an electronic signature service. You agree to receive agreements, notices and statements by email, text message or through your portal. You must keep your contact details current.
 
@@ -89,7 +89,7 @@ We rely on your consent. You give express consent to tracking, remote disabling 
 
 We do not sell personal information. We share only what each recipient needs:
 
-- **Insurance.** Our insurer and broker, and the provider of optional rental coverage if you buy it, for underwriting and claims.
+- **Insurance.** Our insurer and broker, and the provider of the optional Protection Plan if you buy it, for underwriting and claims.
 - **Payment and identity.** Our payment processor and our identity verification provider.
 - **Vehicle owners.** The owner of a vehicle can see its location during your rental, its status and its booking dates. The owner cannot lock it, sound its alarm or shut it off during a rental we manage. An owner who manages their own rentals also receives the renter details needed to hand over the vehicle. Owners must keep this confidential and may not use it to follow, contact or monitor a renter.
 - **Authorities.** Police, courts, regulators, and toll and parking authorities, where the law requires or permits. This includes naming the driver responsible for a toll or ticket and reporting a vehicle stolen.

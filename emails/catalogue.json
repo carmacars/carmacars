@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 146,
+  "count": 148,
   "emails": [
     {
       "code": "account_password_reset",
@@ -5151,7 +5151,7 @@
       "code": "renter_rental_added",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, charged to the saved card, or to be invoiced later. Not sent when staff tick \"Do not email the renter\", for a past rental, or for a payment link (the offer email carries the link).",
+      "trigger": "CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, to be charged to the saved card when the renter signs, or to be invoiced later. Not sent when staff tick \"Do not email the renter\", for a past rental, or for a payment link (the offer email carries the link).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -5255,7 +5255,7 @@
         {
           "name": "payment_line",
           "type": "string",
-          "sample": "Paid by e-Transfer on Fri, Oct 16, 2026."
+          "sample": "Your card is charged when you sign."
         },
         {
           "name": "pickup_date",
@@ -5292,6 +5292,11 @@
           "name": "return_time",
           "type": "string",
           "sample": "10:00 am"
+        },
+        {
+          "name": "sign_line",
+          "type": "string",
+          "sample": "Read and sign your rental agreement; your card is charged when you sign."
         },
         {
           "name": "support_phone",
@@ -7190,6 +7195,81 @@
       "template_text": "templates/owner_booking_confirmed.txt"
     },
     {
+      "code": "owner_cosigner_sign",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Every Owner named in the Title Schedule signs the program agreements. The documents of an owner are opened for signature (or an Admin adds an Owner, or sends the link again): each Owner besides the one with the portal account gets their own signing link. The agreements take effect when the last Owner signs.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Your CarmaCars owner documents are ready to sign",
+      "preheader": "You are named as an Owner. Read the documents and sign them with your own link.",
+      "sample_subject": "Your CarmaCars owner documents are ready to sign",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "sample": "Jordan Rossi"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "sample": "3f9c1b2a7d4e4c8a9b0e6f1d2c3b4a5e3f9c1b2a7d4e4c8a9b0e6f1d2c3b4a5e"
+        }
+      ],
+      "template_html": "templates/owner_cosigner_sign.html",
+      "template_text": "templates/owner_cosigner_sign.txt"
+    },
+    {
       "code": "owner_debit_notice",
       "audience": "owner",
       "category": "transactional",
@@ -7273,7 +7353,7 @@
         {
           "name": "late_fee_rule",
           "type": "string",
-          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.",
           "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
@@ -7286,6 +7366,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -7308,6 +7394,118 @@
       ],
       "template_html": "templates/owner_debit_notice.html",
       "template_text": "templates/owner_debit_notice.txt"
+    },
+    {
+      "code": "owner_debit_returned",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "The bank returns the automatic debit of an owner invoice for a reason other than insufficient funds (for example the account is closed), or for insufficient funds too late for a retry within 30 days of the original debit. The debit is not retried: the automatic debit of that invoice is paused and an Admin is alerted at the same time. One email per returned debit.",
+      "timing": "The day the bank reports the returned debit",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "The debit for invoice {{invoice_number}} was returned",
+      "preheader": "We will not debit this invoice again. Pay it from its page or update your bank account.",
+      "sample_subject": "The debit for invoice INV-2026-11-0042 was returned",
+      "variables": [
+        {
+          "name": "amount",
+          "type": "string",
+          "sample": "$536.75"
+        },
+        {
+          "name": "balance",
+          "type": "string",
+          "sample": "$536.75"
+        },
+        {
+          "name": "bank_reason",
+          "type": "string",
+          "sample": "the account is closed"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_late_fee",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INV-2026-11-0042"
+        },
+        {
+          "name": "late_fee",
+          "type": "string",
+          "sample": "$50.00"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_debit_returned.html",
+      "template_text": "templates/owner_debit_returned.txt"
     },
     {
       "code": "owner_debit_setup_needed",
@@ -7383,7 +7581,7 @@
         {
           "name": "late_fee_rule",
           "type": "string",
-          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.",
           "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
@@ -7396,6 +7594,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -7939,7 +8143,7 @@
         {
           "name": "late_fee_rule",
           "type": "string",
-          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.",
           "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
@@ -7947,6 +8151,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -8208,6 +8418,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "removal_date",
@@ -8703,12 +8919,37 @@
       "reply_to": "billing@carmacars.ca",
       "subject": "Your pre-authorized debit agreement with {{payee_name}}",
       "preheader": "Your confirmation for the account ending {{bank_last4}}. Keep it for your records.",
-      "sample_subject": "Your pre-authorized debit agreement with CarmaCars",
+      "sample_subject": "Your pre-authorized debit agreement with 18122211 Canada Inc., operating as CarmaCars",
       "variables": [
         {
           "name": "accepted_on",
           "type": "string",
           "sample": "Fri, Oct 16, 2026"
+        },
+        {
+          "name": "agreement_1",
+          "type": "string",
+          "sample": "You authorize 18122211 Canada Inc., operating as CarmaCars, to debit the bank account you give for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month's Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the 15th of each month."
+        },
+        {
+          "name": "agreement_2",
+          "type": "string",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit."
+        },
+        {
+          "name": "agreement_3",
+          "type": "string",
+          "sample": "The amount can change from month to month with your vehicles and their fees. We email you a notice listing every invoice and the total 10 days before each debit, and each invoice is in your owner portal. We also email you a confirmation of this agreement once your bank account is set up."
+        },
+        {
+          "name": "agreement_4",
+          "type": "string",
+          "sample": "This authorization is for personal purposes and stays in effect until you cancel it. You may cancel it at any time by writing to billing@carmacars.ca; cancelling it does not end your agreement or the fees you owe. You have certain recourse rights if a debit does not comply with this agreement: for example, the right to be reimbursed for a debit that was not authorized or is not consistent with this agreement. For more information on your recourse rights, contact your financial institution or visit payments.ca."
+        },
+        {
+          "name": "agreement_kind",
+          "type": "string",
+          "sample": "personal"
         },
         {
           "name": "agreement_type",
@@ -8763,7 +9004,7 @@
         {
           "name": "late_fee_rule",
           "type": "string",
-          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.",
           "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
@@ -8780,7 +9021,7 @@
         {
           "name": "payee_address",
           "type": "string",
-          "sample": "100 Sample Street, Toronto, Ontario"
+          "sample": "2967 Dundas St W, Unit 208B, Toronto, ON"
         },
         {
           "name": "payee_email",
@@ -8790,7 +9031,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars"
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "payee_phone",
@@ -8823,14 +9065,14 @@
       "code": "owner_payment_failed",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "Debit-results job (15th to 25th, daily): the debit for a monthly owner invoice is returned and the invoice status becomes failed, which adds the Late Fee to that vehicle. One email per vehicle. (Message template T25.)",
+      "trigger": "The bank returns the automatic debit of an owner invoice for insufficient funds (the first debit): the invoice status becomes failed, the Late Fee is added once as its own line, and one retry of the original amount is scheduled on the later of the retry day and 3 business days after the return, within 30 days of the original debit. One email per vehicle. A debit returned for another reason sends owner_debit_returned instead. (Message template T25.)",
       "timing": "The day the bank reports the failed debit",
       "digest": false,
       "source": "T25",
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "billing@carmacars.ca",
       "subject": "Your {{amount}} payment for the {{vehicle_name}} failed",
-      "preheader": "A {{late_fee}} late fee applies. We retry on {{retry_date}}.",
+      "preheader": "A {{late_fee}} late fee is added to your next debit. We retry {{amount}} on or after {{retry_date}}.",
       "sample_subject": "Your $536.75 payment for the 2023 Toyota RAV4 XLE failed",
       "variables": [
         {
@@ -8880,7 +9122,7 @@
         {
           "name": "late_fee_rule",
           "type": "string",
-          "sample": "If your bank returns the automatic debit of an invoice, we add the $50.00 Late Fee to that invoice once and try again from the 18th, as section 4.4 of your Enrollment Agreement sets out.",
+          "sample": "If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.",
           "note": "The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email."
         },
         {
@@ -8888,6 +9130,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -8898,12 +9146,12 @@
         {
           "name": "retry_amount",
           "type": "string",
-          "sample": "$586.75"
+          "sample": "$536.75"
         },
         {
           "name": "retry_date",
           "type": "string",
-          "sample": "November 18"
+          "sample": "Wed, Nov 18, 2026"
         },
         {
           "name": "support_phone",
@@ -8979,6 +9227,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -9097,6 +9351,12 @@
           "note": "Opening hours wording (site_settings.opening_hours_text)."
         },
         {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
+        },
+        {
           "name": "payment_date",
           "type": "string",
           "sample": "Tue, Nov 10, 2026"
@@ -9175,6 +9435,11 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "debit_date",
+          "type": "string",
+          "sample": "Sun, Nov 15, 2026"
+        },
+        {
           "name": "instagram_url",
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
@@ -9190,6 +9455,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -9282,6 +9553,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -9550,6 +9827,12 @@
           "sample": "$3,860.00"
         },
         {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
+        },
+        {
           "name": "payout_amount",
           "type": "string",
           "sample": "$1,922.25"
@@ -9726,6 +10009,12 @@
           "note": "Opening hours wording (site_settings.opening_hours_text)."
         },
         {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
+        },
+        {
           "name": "reply_time",
           "type": "string",
           "sample": "within 2 hours",
@@ -9837,6 +10126,12 @@
           "type": "string",
           "sample": "Open 24 hours, every day",
           "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit (app.owner_payee_name): the company legal name, operating as the business name. Named in every owner billing email."
         },
         {
           "name": "reply_time",

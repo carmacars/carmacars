@@ -5,7 +5,8 @@ import { confirmFormUpload, createFormUpload } from '@/server/actions/owner';
 
 // Forms C and D (migration 0040; simpler in 0049): print the pre-filled form (every spot to sign marked), sign it on paper
 // with the witnesses, then take a photo with the phone's camera (or choose a PDF scan) and give the witnesses' names.
-// Staff review it; a form sent back says what to fix. They stay on paper because they need witnesses in person.
+// Staff review it; a form sent back says what to fix. Form D stays on paper (two witnesses, a power of attorney); Form C
+// may also be signed on screen with the witness beside the owner (the legal review, 0053).
 export interface WForm { code: 'C' | 'D1'; vehicle_id: string | null; vehicle_name: string | null; title: string; witnesses: number; status: 'needed' | 'uploaded' | 'approved' | 'rejected'; reject_reason: string | null; uploaded_at: string | null }
 const STATUS: Record<WForm['status'], string> = { needed: 'To do', uploaded: 'Waiting for our review', approved: 'Approved', rejected: 'Sent back' };
 
@@ -71,6 +72,7 @@ function One({ f }: { f: WForm }) {
           <input id={`${id}-file`} className="vh" type="file" accept="application/pdf,image/jpeg,image/png" onChange={pick} disabled={busy} aria-label={`${f.title}: choose the signed form`} data-testid="witnessed-file" />
         </div>
         {err.form && <p className="error" role="alert">{err.form}</p>}
+        {f.code === 'C' && f.vehicle_id && <p className="small" data-testid="form-c-screen-link">Your witness is with you now? <a className="link" href={`/owner/documents/form-c/${f.vehicle_id}`}>Sign Form C on screen instead</a>: you sign, and your witness types their name on the same device.</p>}
       </>}
       {ok && <p className="small" role="status">Thanks. We review it within one business day and email you.</p>}
     </li>

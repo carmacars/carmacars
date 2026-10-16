@@ -109,13 +109,15 @@ select test.eq('amendment: signed (typed), the signature record keeps the statem
   (select a.status || '/' || r.method || '/' || r.consent_text || '/' || host(r.ip_address) || '/' || (r.document_sha256 = a.document_sha256) || '/' || (c.renter_agreed_at is not null) || '/' || c.status
      from booking_amendments a join signature_records r on r.id = a.signature_record_id join booking_change_requests c on c.id = a.change_request_id where a.id = test.og('a1')),
   'signed/typed/I agree to this amendment./203.0.113.9/true/true/approved');
-select test.eq('amendment (0051): countersigned automatically for CarmaCars when the renter signed, in the name of the staff member who proposed the change',
-  (select r.signer_role || '/' || r.method || '/' || r.signer_name || '/' || r.signer_title || '/' || (r.signed_at = s.signed_at) || '/' || (r.document_sha256 = a.document_sha256) || '/' || r.consent_text
+select test.eq('amendment (0053): countersigned automatically when the renter signed, by the signing officer with the approved wording; the staff member is "Proposed by"',
+  (select r.signer_role || '/' || r.method || '/' || r.signer_name || '/' || (r.signed_at = s.signed_at) || '/' || (r.document_sha256 = a.document_sha256) || '/'
+          || (r.consent_text = app.corporate_signature_text()) || '/' || r.staff_attribution
      from booking_amendments a join signature_records r on r.id = a.countersignature_record_id join signature_records s on s.id = a.signature_record_id where a.id = test.og('a1')),
-  'carmacars/automatic/Og Cs/for CarmaCars/true/true/Countersigned for CarmaCars automatically when the renter signed, in the name of the staff member who proposed or approved the change.');
-select test.eq('amendment (0051): the facts name who countersigns; the record the server renders carries both signatures',
+  'carmacars/automatic/' || (select coalesce(signing_officer_name, 'CarmaCars') from app.settings()) || '/true/true/true/Proposed by: Og Cs');
+select test.eq('amendment (0053): the facts name the signing officer; the record the server renders carries both signatures and "Proposed by"',
   (app.booking_change_facts(test.og('c1'), test.id('og_rita')) #>> '{countersigner,name}') || '/' || (public.server_amendment_record(test.og('a1')) #>> '{countersign,method}')
-  || '/' || (public.server_amendment_record(test.og('a1')) #>> '{record,method}'), 'Og Cs/automatic/typed');
+  || '/' || (public.server_amendment_record(test.og('a1')) #>> '{record,method}') || '/' || (public.server_amendment_record(test.og('a1')) #>> '{countersign,staff_attribution}'),
+  (select coalesce(signing_officer_name, 'CarmaCars') from app.settings()) || '/automatic/typed/Proposed by: Og Cs');
 select test.throws('apply: a change that costs more needs a payment of exactly the difference', format('select app.accept_booking_change_apply(%L, %L)', test.og('c1'), test.id('og_rita')), 'needs a payment of exactly');
 select app.accept_booking_change_apply(test.og('c1'), test.id('og_rita'), jsonb_build_object('processor', 'stripe', 'payment_id', 'pi_og_c1', 'charge_id', 'ch_og_c1'),
   (select total_difference_cents from booking_change_requests where id = test.og('c1')));

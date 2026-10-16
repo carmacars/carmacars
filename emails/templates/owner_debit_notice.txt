@@ -12,6 +12,7 @@ This is your notice of the fees below, {{first_name}}. If your bank account is u
 {{/each}}
 
 Debit date: {{debit_date}}
+Payee: {{payee_name}}
 From: Your account ending {{bank_last4}}
 Total: {{debit_total}}
 
@@ -31,7 +32,7 @@ You are receiving this because you have an owner account with CarmaCars. Notices
 
 Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
 
-CarmaCars
+{{payee_name}}
 {{#if company_address}}{{company_address}}
 {{/if}}https://carmacars.ca/
 {{#if instagram_url}}Instagram: {{instagram_url}}

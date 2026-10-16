@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '146/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '148/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 66::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 67::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -654,6 +654,16 @@ values (test.id('nt_pad'), test.id('owner:nt_olga'), 'pre_authorized_debit', 'pe
 update owner_payment_methods set status = 'active' where id = test.id('nt_pad');
 insert into test.nt_synth values
   ('owner_pad_confirmed', 'owner_payment_method', test.id('nt_pad'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
+-- the legal review (0053): a debit returned for another reason than insufficient funds, and an Owner of the Title
+-- Schedule's own signing link
+insert into owner_debit_attempts (id, owner_invoice_id, owner_id, attempt_no, debit_on, amount_cents, idempotency_key, status, failure_code, failure_message)
+select test.id('nt_ret'), i.id, i.owner_id, 9, date '2031-06-15', 53675, 'nt-returned', 'failed', 'account_closed', 'the account is closed'
+  from owner_invoices i where i.owner_id = test.id('owner:nt_olga') order by i.created_at limit 1;
+insert into owner_cosigners (id, owner_id, name, email) values (test.id('nt_cos'), test.id('owner:nt_olga'), 'Nadia Cosigner', 'nt_cosigner@example.test');
+insert into test.nt_synth values
+  ('owner_debit_returned', 'owner_debit_attempt', test.id('nt_ret'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('staff_owner_debit_exception', 'owner_debit_attempt', test.id('nt_ret'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'exception', 'returned', 'reason', 'the account is closed')),
+  ('owner_cosigner_sign', 'owner_cosigner', test.id('nt_cos'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'signer_email', 'nt_cosigner@example.test'));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
@@ -675,7 +685,11 @@ select test.eq('G every wired email code has been built at least once in these t
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),
   'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url');
-select test.eq('G no payload names the numbered company', (select count(*) from notification_outbox where payload::text ~ '18122211|operated by'), 0::bigint);
+select test.eq('G no payload names the numbered company, except the payee of the owner billing emails (0053)',
+  (select count(*) from notification_outbox where (payload - array['payee_name', 'agreement_1', 'agreement_2', 'agreement_3', 'agreement_4'])::text ~ '18122211|operated by'), 0::bigint);
+select test.eq('G the owner billing emails name the payee "<legal name>, operating as CarmaCars" (0053)',
+  (select bool_and(payload ->> 'payee_name' like '%, operating as CarmaCars') from notification_outbox o join notification_catalogue c on c.code = o.code
+    where c.from_address like '%billing@%' and c.audience = 'owner'), true);
 select test.eq('G the mailing address and phone in the emails come from the site settings',
   (select string_agg(distinct (payload ->> 'company_address') || ' / ' || coalesce(payload ->> 'support_phone', '647-555-0100'), ', ') from notification_outbox
     where event_id in (select id from app_events where dedupe_key like '%:completeness')),

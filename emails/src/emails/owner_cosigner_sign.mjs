@@ -14,11 +14,11 @@ export default {
   ref: 'Owner documents',
   body: [
     hero('Owner documents', 'Read and sign your documents', 'Hi {{first_name}}, you are named as an Owner in the CarmaCars agreements of {{owner_name}}. Each Owner signs with their own link.'),
-    button('Read and sign', '{{sign_url}}'),
+    button('Read and sign', '@owner_cosign'),
     p('No account is needed. The agreements take effect when every Owner has signed.'),
     small('If you did not expect this email, reply to it and we will look into it.'),
   ],
   sample: {
-    sign_url: 'https://carmacars.ca/sign/owner/3f9c1b2a7d4e4c8a9b0e6f1d2c3b4a5e', cosigner_name: 'Priya Rossi',
+    token: '3f9c1b2a7d4e4c8a9b0e6f1d2c3b4a5e3f9c1b2a7d4e4c8a9b0e6f1d2c3b4a5e', owner_name: 'Jordan Rossi',
   },
 };
