@@ -3,14 +3,18 @@ import { randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual, createHas
 import { promisify } from 'node:util';
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
-import { required } from '@/lib/env';
+import { env, required } from '@/lib/env';
 import { localSql } from '@/lib/db/local';
 import type { AuthAdapter, SessionUser } from './types';
 import { checkCode, newSecret, otpauthUri } from './totp';
 
 // LOCAL ONLY. A stand-in for Supabase Auth on the local stack (local/local_auth.sql):
 // scrypt password hashes, an HS256 session cookie with the same claims Supabase issues
-// (sub, email, role "authenticated"), and reset links written to local_auth.mailbox.
+// (sub, email, role "authenticated"), and reset links written to local_auth.mailbox. A sign-up waits for its
+// confirmation link (written to the mailbox, as Supabase would email it) before it can sign in; links last 24 hours,
+// as mailer_otp_exp does on Supabase (scripts/deploy/auth-templates.mjs).
+const LINK_HOURS = 24;
+const UNCONFIRMED = 'Confirm your email first. We emailed you a link when the account was made (subject "Confirm your CarmaCars account"); it works for 24 hours. Press "Send a new confirmation link" below to get a new one.';
 const scrypt = promisify(scryptCb) as (p: string, s: Buffer, n: number) => Promise<Buffer>;
 const COOKIE = 'cc-local-session';
 const key = () => new TextEncoder().encode(required('LOCAL_AUTH_SECRET'));
@@ -77,18 +81,31 @@ export function localAuth(): AuthAdapter {
     async signUp(email, password) {
       const e = email.trim().toLowerCase();
       const exists = await sql`select 1 from local_auth.users where email = ${e}`;
-      if (exists.length) return { ok: false, message: 'An account with this email already exists. Sign in instead.' };
+      if (exists.length) return { ok: false, code: 'exists', message: 'An account with this email already exists. Sign in, or use "Forgot password" to set a new password.' };
       const id = randomUUID();
-      await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${e}, ${await hashPassword(password)})`;
-      const user = { id, email: e };
+      await sql`insert into local_auth.users (id, email, password_hash, email_confirmed_at) values (${id}, ${e}, ${await hashPassword(password)}, null)`;
+      await this.resendConfirmation(e, '');
+      // as on Supabase with confirmations on: no session until the link is opened
+      return { ok: true, user: { id, email: e }, needsConfirmation: true };
+    },
+    async confirmEmail(tokenHash) {
+      const rows = await sql`
+        update local_auth.reset_tokens t set used_at = now() from local_auth.users u
+         where t.token_hash = ${hashToken(tokenHash)} and t.kind = 'signup' and t.used_at is null and t.expires_at > now() and u.id = t.user_id
+         returning u.id, u.email`;
+      const r = rows[0];
+      if (!r) return { ok: false, message: 'This link has expired or was already used.' };
+      await sql`update local_auth.users set email_confirmed_at = coalesce(email_confirmed_at, now()) where id = ${r.id as string}`;
+      const user = { id: r.id as string, email: r.email as string };
       await setSession(user);
       return { ok: true, user };
     },
     async signIn(email, password) {
       const e = email.trim().toLowerCase();
-      const rows = await sql`select id, email, password_hash from local_auth.users where email = ${e}`;
+      const rows = await sql`select id, email, password_hash, email_confirmed_at from local_auth.users where email = ${e}`;
       const r = rows[0];
       if (!r || !(await checkPassword(password, r.password_hash as string))) return { ok: false, code: 'credentials', message: 'That email and password do not match an account.' };
+      if (!r.email_confirmed_at) return { ok: false, code: 'unconfirmed', message: UNCONFIRMED };
       await sql`update local_auth.users set last_sign_in_at = now() where id = ${r.id as string}`;
       const user = { id: r.id as string, email: r.email as string };
       await setSession(user);
@@ -102,7 +119,7 @@ export function localAuth(): AuthAdapter {
       const rows = await sql`select id from local_auth.users where email = ${e}`;
       if (!rows[0]) return;
       const token = randomBytes(24).toString('base64url');
-      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at) values (${hashToken(token)}, ${rows[0].id as string}, now() + interval '1 hour')`;
+      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at) values (${hashToken(token)}, ${rows[0].id as string}, now() + make_interval(hours => ${LINK_HOURS}))`;
       const link = `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}token=${token}`;
       await sql`insert into local_auth.mailbox (to_email, subject, body, link) values (${e}, 'Reset your CarmaCars password', ${'Open this link to choose a new password: ' + link}, ${link})`;
     },
@@ -128,18 +145,27 @@ export function localAuth(): AuthAdapter {
     async deleteAccount(userId) {
       await sql`delete from local_auth.users where id = ${userId}`;
     },
-    async resendConfirmation() {
-      // local accounts are confirmed when made: nothing to send
+    async resendConfirmation(email) {
+      // a new link for an account still waiting for its confirmation (nothing for any other address, as on Supabase)
+      const e = email.trim().toLowerCase();
+      const rows = await sql`select id from local_auth.users where email = ${e} and email_confirmed_at is null`;
+      if (!rows[0]) return;
+      const token = randomBytes(24).toString('base64url');
+      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at, kind) values (${hashToken(token)}, ${rows[0].id as string}, now() + make_interval(hours => ${LINK_HOURS}), 'signup')`;
+      // the link of the Supabase template (scripts/deploy/auth-templates.mjs): no next, the person lands in their portal
+      const link = `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/auth/callback?token_hash=${token}&type=signup`;
+      await sql`insert into local_auth.mailbox (to_email, subject, body, link) values (${e}, 'Confirm your CarmaCars account', ${'Open this link to confirm your email: ' + link}, ${link})`;
     },
     async updatePassword(password, token) {
       if (!token) return { ok: false, message: 'This link has expired or was already used. Ask for a new one below.' };
       const rows = await sql`
         update local_auth.reset_tokens t set used_at = now() from local_auth.users u
-         where t.token_hash = ${hashToken(token)} and t.used_at is null and t.expires_at > now() and u.id = t.user_id
+         where t.token_hash = ${hashToken(token)} and t.kind = 'recovery' and t.used_at is null and t.expires_at > now() and u.id = t.user_id
          returning u.id, u.email`;
       const r = rows[0];
       if (!r) return { ok: false, message: 'This link has expired or was already used. Ask for a new one below.' };
-      await sql`update local_auth.users set password_hash = ${await hashPassword(password)} where id = ${r.id as string}`;
+      // the emailed link proved the address, as Supabase's recovery and invitation links do
+      await sql`update local_auth.users set password_hash = ${await hashPassword(password)}, email_confirmed_at = coalesce(email_confirmed_at, now()) where id = ${r.id as string}`;
       const user = { id: r.id as string, email: r.email as string };
       await setSession(user);
       return { ok: true, user };

@@ -13,9 +13,13 @@ test('create an account, sign out, sign in, reset the password by email', async 
   await page.locator('#su-pass').fill('correct horse battery');
   await page.locator('input[name="agree"]').check();
   await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByText('Check your email')).toBeVisible();
+  const sql = db();
+  // the confirmation link (the local stand-in keeps Supabase's email in local_auth.mailbox) signs in and opens /account
+  const c = await sql`select link from local_auth.mailbox where to_email = ${email} order by id desc limit 1`;
+  await page.goto(new URL(c[0]!.link as string).pathname + new URL(c[0]!.link as string).search);
   await page.waitForURL(/\/account/);
   await expect(page.getByTestId('account-email')).toHaveText(email);
-  const sql = db();
   const u = await sql`select u.id, r.role::text from users u join user_roles r on r.user_id = u.id where u.email = ${email}`;
   expect(u[0]?.role).toBe('renter');
   // sign out and back in

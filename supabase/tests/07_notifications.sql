@@ -641,6 +641,10 @@ select test.id('nt_mp'), p.id, 'owner_invoice', p.owner_invoice_id, p.owner_id, 
 insert into test.nt_synth values
   ('owner_payment_recorded', 'manual_payment', test.id('nt_mp'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
   ('owner_payment_reversed', 'manual_payment', test.id('nt_mp'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
+-- the account welcomes (0045): sent when the address is first confirmed, no longer when a role is granted
+insert into test.nt_synth values
+  ('renter_account_created', 'user', test.id('nt_rita'), '{}'::jsonb),
+  ('owner_account_created', 'user', test.id('nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');
@@ -661,7 +665,7 @@ select test.eq('G every wired email code has been built at least once in these t
   null::text);
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),
-  'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url,verify_url');
+  'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url');
 select test.eq('G no payload names the numbered company', (select count(*) from notification_outbox where payload::text ~ '18122211|operated by'), 0::bigint);
 select test.eq('G the mailing address and phone in the emails come from the site settings',
   (select string_agg(distinct (payload ->> 'company_address') || ' / ' || coalesce(payload ->> 'support_phone', '647-555-0100'), ', ') from notification_outbox

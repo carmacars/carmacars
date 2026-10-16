@@ -12,11 +12,11 @@ def build():
         who='CarmaCars Admins: the owner of the business and anyone an Admin invites with the Admin role. '
             'Admin sees and changes everything, and can open any other portal as one of its people.',
         need=['Your Admin email address. The owner\'s account is rent@carmacars.ca',
-              'Access to that inbox (links work for one hour, once)',
+              'Access to that inbox (links work for 24 hours, once)',
               'A computer for most work. Admin also works on a phone, with the menu as one scrolling strip'],
         first_steps=[
             f'First time? Go to {U("carmacars.ca/reset-password")}, enter your Admin email and press {B("Send the link")}.',
-            f'Open the email "Reset your CarmaCars password" within one hour and press {B("Choose a new password")}.',
+            f'Open the email "Reset your CarmaCars password" within 24 hours and press {B("Choose a new password")}.',
             f'Type a New password of 8 characters or more and press {B("Save the new password")}. You land in Admin.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")} with that email and password.',
         ],
@@ -72,7 +72,7 @@ def build():
         'Under Invite a person, choose the Role: Admin, Staff (assistant), Field staff, Owner on file or Investor on file.',
         'Fill in the Name and Email.',
         'For staff, pick the Main function, and tick Also covers for any other function they help with. For field staff, pick the Field function.',
-        f'Press {B("Invite")}. The link in the email works for one hour.',
+        f'Press {B("Invite")}. The link in the email works for 24 hours.',
     ], shot=S('admin/27-portals-desktop', 210, 880, 1440, 1240, pins=[(1, 441, 1027), (2, 825, 1027), (3, 441, 1120), (4, 330, 1196)]))
     g.tip('Someone who already signs in gets the new role at once, with no email. Owners and investors must be on file first: '
           'Admin > Owners and Admin > Investors also have a one-click invite for a record without a sign-in.')
@@ -80,7 +80,7 @@ def build():
     g.task('Send a password link', 'For anyone who forgot their password or let their invitation expire.')
     g.steps([
         'Under People who can sign in, search by name or email.',
-        f'On their row, press {B("Send password link")}. They get "Reset your CarmaCars password", valid for one hour.',
+        f'On their row, press {B("Send password link")}. They get "Reset your CarmaCars password", valid for 24 hours.',
         f'{B("View as (...)")} on the same row opens their portal, read only.',
     ], shot=S('admin/27-portals-desktop', 210, 1260, 1440, 1700, pins=[(1, 1130, 1289), (2, 1049, 1386), (3, 1244, 1386)]))
 

@@ -18,17 +18,22 @@ const wrap = (title, body, cta, href, after) => `<!doctype html><html><body styl
 <tr><td style="background:#F5F5F5;padding:20px 32px;font-size:13px;color:#5C5C5C">CarmaCars, Toronto. Questions: contact@carmacars.ca</td></tr>
 </table></td></tr></table></body></html>`;
 
-const cb = (type, next) => `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=${type}&next=${next}`;
+const cb = (type, next) => `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=${type}${next ? `&next=${next}` : ''}`;
+// Every email link (confirmation, invitation, reset, sign-in link) lasts 24 hours: Supabase has one setting for all of
+// them. The sign-up confirmation is the only email at sign-up; the app's welcome follows once it is opened (0045).
+const LINK_SECONDS = 86400;
 
 const patch = {
+  mailer_otp_exp: LINK_SECONDS,
   mailer_subjects_confirmation: 'Confirm your CarmaCars account',
-  mailer_templates_confirmation_content: wrap('Confirm your email', 'Thanks for creating a CarmaCars account. Confirm this email address to finish.', 'Confirm my email', cb('signup', '/account'), 'The link works once. If you did not create an account, ignore this email.'),
+  // no next: the callback sends the person to their own portal by role (an owner who applied lands in /owner)
+  mailer_templates_confirmation_content: wrap('Confirm your email', 'Thanks for creating a CarmaCars account. Confirm this email address to finish: the button confirms it and signs you in.', 'Confirm my email', cb('signup', ''), 'The link works once, for 24 hours. If it has expired, go to carmacars.ca/sign-in, enter your email and password, and press "Send a new confirmation link". If you did not create an account, ignore this email.'),
   mailer_subjects_invite: 'Your CarmaCars account',
-  mailer_templates_invite_content: wrap('Your CarmaCars account is ready', 'An account has been created for you. Choose a password to sign in.', 'Choose your password', cb('invite', '/update-password'), 'The link works once. If it has expired, use "Forgot password" on the sign-in page.'),
+  mailer_templates_invite_content: wrap('Your CarmaCars account is ready', 'An account has been created for you. Choose a password to sign in.', 'Choose your password', cb('invite', '/update-password'), 'The link works once, for 24 hours. If it has expired, use "Forgot password" on the sign-in page.'),
   mailer_subjects_recovery: 'Reset your CarmaCars password',
-  mailer_templates_recovery_content: wrap('Choose a new password', 'We received a request to reset the password on your CarmaCars account.', 'Choose a new password', cb('recovery', '/update-password'), 'The link works once and expires in one hour. If you did not ask for this, ignore this email; your password stays the same.'),
+  mailer_templates_recovery_content: wrap('Choose a new password', 'We received a request to reset the password on your CarmaCars account.', 'Choose a new password', cb('recovery', '/update-password'), 'The link works once and expires in 24 hours. If you did not ask for this, ignore this email; your password stays the same.'),
   mailer_subjects_magic_link: 'Your CarmaCars sign-in link',
-  mailer_templates_magic_link_content: wrap('Sign in to CarmaCars', 'Tap the button to sign in. No password needed.', 'Sign in', cb('magiclink', '/account'), 'The link works once and expires in one hour.'),
+  mailer_templates_magic_link_content: wrap('Sign in to CarmaCars', 'Tap the button to sign in. No password needed.', 'Sign in', cb('magiclink', ''), 'The link works once and expires in 24 hours.'),
   mailer_subjects_email_change: 'Confirm your new CarmaCars email',
   // not sent while reauthentication is off (security_update_password_require_reauthentication), branded all the same
   mailer_subjects_reauthentication: 'Your CarmaCars verification code',

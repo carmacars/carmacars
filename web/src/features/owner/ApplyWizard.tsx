@@ -180,8 +180,10 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
         <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>
         {done.declined > 0 && <p className="ow-warn">{done.declined} vehicle{done.declined === 1 ? ' was' : 's were'} not accepted: a rebuilt, salvage or irreparable brand is not eligible (Enrollment Agreement 3.1).</p>}
         {done.checkEmail
-          ? <p className="pt-note" data-testid="apply-check-email">We already had your email from an earlier booking request, so your sign-in is set up on that record. Open the email we just sent and choose your password: your owner portal and your earlier requests are there.</p>
-          : <p><Link className="btn btn--primary" href="/owner?applied=1">Go to your owner portal</Link></p>}
+          ? <p className="pt-note" data-testid="apply-check-email">We already had your email from an earlier booking request, so your sign-in is set up on that record. Open the email we just sent and choose your password: your owner portal and your earlier requests are there. The link works for 24 hours.</p>
+          : done.confirmEmail
+            ? <div className="pt-note" data-testid="apply-confirm-email"><p><strong>One more step: confirm your email.</strong> We sent a link to {done.confirmEmail} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours: it confirms your email and opens your owner portal.</p><p className="small">No email after a few minutes? Check spam, or go to <Link className="link" href="/sign-in">Sign in</Link>, enter your email and password, and press &quot;Send a new confirmation link&quot;.</p></div>
+            : <p><Link className="btn btn--primary" href="/owner?applied=1">Go to your owner portal</Link></p>}
       </div>
     );
   }

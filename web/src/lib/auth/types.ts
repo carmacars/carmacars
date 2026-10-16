@@ -16,7 +16,7 @@ export interface AuthAdapter {
   /** Sends the reset email. Always resolves, so the response never says whether an account exists. */
   requestPasswordReset(email: string, redirectTo: string): Promise<void>;
   /** Sends the "confirm your email" link again (an account created and not yet confirmed). Always resolves. */
-  resendConfirmation(email: string, redirectTo: string): Promise<void>;
+  resendConfirmation(email: string, redirectTo: string): Promise<void | 'rate_limited'>;
   /** With a token from the email (local), or with the session the reset link created (Supabase). */
   updatePassword(password: string, token?: string): Promise<AuthResult>;
   /** Server only (an Admin inviting someone): creates the account and emails a link to choose a password.
@@ -24,6 +24,8 @@ export interface AuthAdapter {
   invite?(email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
   /** Server only: a sign-in for a record that is already on file (its id), then a link to choose a password. */
   createForRecord?(userId: string, email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
+  /** Local stand-in only: checks a sign-up confirmation link (Supabase checks its own in the callback). */
+  confirmEmail?(tokenHash: string): Promise<AuthResult>;
   /** Server only: removes a sign-in account (one this request created and could not finish). */
   deleteAccount?(userId: string): Promise<void>;
   /** Two-step sign-in (TOTP): the signed-in user's verified authenticator factors. */

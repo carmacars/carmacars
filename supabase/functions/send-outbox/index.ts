@@ -46,7 +46,8 @@ async function senderValues(r: Row): Promise<Record<string, unknown>> {
   const portal = r.code.startsWith('owner_') ? `${APP_URL}/owner` : r.code.startsWith('investor_') ? `${APP_URL}/investor/statements` : `${APP_URL}/account`;
   const out: Record<string, unknown> = {
     link_expiry: '7 days',
-    verify_url: `${APP_URL}/sign-in`, sign_in_url: `${APP_URL}/sign-in`, reset_url: `${APP_URL}/reset-password`,
+    // never a stand-in for a link that confirms an address (0045): the only confirmation link is Supabase's own email
+    sign_in_url: `${APP_URL}/sign-in`, reset_url: `${APP_URL}/reset-password`,
     signed_agreement_url: portal, receipt_url: portal, statement_url: portal, supporting_document_url: portal, invoice_url: `${APP_URL}/contact`,
     security_device: 'Not recorded', security_event: 'Account change', security_event_at: 'Recently', security_place: 'Not recorded'
   };

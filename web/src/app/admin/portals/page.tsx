@@ -43,7 +43,7 @@ export default async function Portals({ searchParams }: { searchParams: Promise<
         </Card>))}
     </div>
     <Card title="Invite a person" id="invite" testId="invite-card">
-      <p className="small muted">They get the CarmaCars invitation email with a link to choose a password (it works for one hour), then land in their portal. Someone who already signs in just gets the new role.</p>
+      <p className="small muted">They get the CarmaCars invitation email with a link to choose a password (it works for 24 hours), then land in their portal. Someone who already signs in just gets the new role.</p>
       <InviteForm owners={d.owners_without_account.map((o) => ({ ...o, email: o.email }))} investors={d.investors_without_account.map((o) => ({ ...o, email: o.email }))} />
     </Card>
     <Card title={`People who can sign in${q ? `: "${q}"` : ''}`} aside={<Search action="/admin/portals" value={q} placeholder="Name or email" />}>

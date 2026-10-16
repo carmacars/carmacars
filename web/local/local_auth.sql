@@ -29,6 +29,11 @@ create table if not exists local_auth.mailbox (
   created_at timestamptz not null default now()
 );
 
+-- Sign-up confirmation, as Supabase Auth does it (0045): an account made through the sign-up form waits for the link
+-- emailed to it (local_auth.mailbox) before it can sign in. Rows inserted directly (tests, seeds) are confirmed.
+alter table local_auth.users add column if not exists email_confirmed_at timestamptz default now();
+alter table local_auth.reset_tokens add column if not exists kind text not null default 'recovery';
+
 -- Two-step sign-in: TOTP factors (Supabase Auth keeps these in auth.mfa_factors).
 create table if not exists local_auth.factors (
   id          uuid primary key,

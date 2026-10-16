@@ -20,7 +20,8 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
   return (
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Sign in">
       {sp.get('error') === 'link' && !state && <p className="alert alert--error" role="alert"><span>That link has expired or was already used. <Link className="link" href="/reset-password">Ask for a new one</Link>.</span></p>}
-      <Err s={state as never} />
+      {code !== 'unconfirmed' && <Err s={state as never} />}
+      {code === 'unconfirmed' && <div className="alert alert--error" role="alert" data-testid="signin-unconfirmed"><span className="alert__title">Confirm your email first</span><span>We emailed you a link when the account was made (subject &quot;Confirm your CarmaCars account&quot;). Links work for 24 hours. Press the button for a new one, then open it: it signs you in.</span></div>}
       {code === 'credentials' && <p className="small muted" data-testid="signin-hint">Invited by CarmaCars and never chose a password, or forgot it? <Link className="link" href="/reset-password">Set a new password</Link> by email.</p>}
       {code === 'unconfirmed' && <ResendConfirmation email={() => email.current?.value ?? ''} />}
       <input type="hidden" name="next" value={n} />
@@ -37,9 +38,9 @@ function ResendConfirmation({ email }: { email: () => string }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   return (
     <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)', alignItems: 'center' }}>
-      <button className="btn btn--ghost btn--sm" type="button" data-testid="resend-confirmation" disabled={pending}
-        onClick={() => start(async () => { const r = await resendConfirmation(email()); setMsg(r.ok ? { ok: true, text: 'If that address has an account waiting to be confirmed, we sent the link again. Check your inbox and spam.' } : { ok: false, text: r.message }); })}>
-        {pending ? 'Sending' : 'Send the confirmation link again'}</button>
+      <button className="btn btn--primary" type="button" data-testid="resend-confirmation" disabled={pending}
+        onClick={() => start(async () => { const r = await resendConfirmation(email()); setMsg(r.ok ? { ok: true, text: 'If that address has an account waiting to be confirmed, we sent a new link. It works for 24 hours. Check your inbox and spam.' } : { ok: false, text: r.message }); })}>
+        {pending ? 'Sending' : 'Send a new confirmation link'}</button>
       {msg && <span className={msg.ok ? 'small' : 'small error'} role="status">{msg.text}</span>}
     </div>
   );
@@ -51,8 +52,8 @@ export function SignUpForm({ minAge }: { minAge: string }) {
     const email = (state as { data?: { email?: string } }).data?.email;
     const onRecord = (state as { data?: { onRecord?: boolean } }).data?.onRecord;
     return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>{onRecord
-      ? <>We already have a booking request from {email ?? 'this address'}. We sent a link there: open it to choose your password and see your bookings. The link works for one hour.</>
-      : <>We sent a link to {email ?? 'your email address'}. Open it to confirm your account, then sign in. It can take a minute to arrive; check spam if you do not see it.</>}</span></div>;
+      ? <>We already have a booking request from {email ?? 'this address'}. We sent a link there: open it to choose your password and see your bookings. The link works for 24 hours.</>
+      : <>We sent a link to {email ?? 'your email address'} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours to confirm your email: it signs you in. It can take a minute to arrive; check spam if you do not see it.</>}</span></div>;
   }
   return (
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Create an account">
@@ -72,7 +73,7 @@ export function SignUpForm({ minAge }: { minAge: string }) {
 
 export function ResetForm({ email, label = 'Send the link', idPrefix = 'rp' }: { email?: string; label?: string; idPrefix?: string }) {
   const { state, run, pending, errors: e, clear } = useForm(resetSchema, requestReset);
-  if (state?.ok) return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>If an account uses that address, we sent a link to choose a new password. It works for one hour. Check spam if you do not see it within a few minutes.</span></div>;
+  if (state?.ok) return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>If an account uses that address, we sent a link to choose a new password. It works for 24 hours. Check spam if you do not see it within a few minutes.</span></div>;
   return (
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Reset your password">
       <Err s={state as never} />
@@ -111,10 +112,10 @@ export function ResendConfirmForm({ email }: { email?: string }) {
   const ref = useRef<HTMLInputElement>(null);
   if (msg?.ok) return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>{msg.text}</span></div>;
   return (
-    <form className="stack-lg" aria-label="Send the confirmation link again" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await resendConfirmation(ref.current?.value ?? ''); setMsg(r.ok ? { ok: true, text: 'If that address has an account waiting to be confirmed, we sent a new link. It works for one hour.' } : { ok: false, text: r.message }); }); }}>
+    <form className="stack-lg" aria-label="Send the confirmation link again" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await resendConfirmation(ref.current?.value ?? ''); setMsg(r.ok ? { ok: true, text: 'If that address has an account waiting to be confirmed, we sent a new link. It works for 24 hours. Check spam if you do not see it within a few minutes.' } : { ok: false, text: r.message }); }); }}>
       {msg && !msg.ok && <p className="alert alert--error" role="alert"><span>{msg.text}</span></p>}
       <Field id="rc-email" label="Email"><input ref={ref} className="input" id="rc-email" name="email" type="email" autoComplete="email" defaultValue={email} /></Field>
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send me a new link'}</button>
+      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send a new confirmation link'}</button>
     </form>
   );
 }

@@ -39,7 +39,7 @@ function failure(e: { message?: string; code?: string; status?: number } | null 
   const code = e?.code ?? '';
   const m = e?.message ?? fallback;
   if (code === 'invalid_credentials' || /invalid login/i.test(m)) return { ok: false, code: 'credentials', message: 'That email and password do not match an account.' };
-  if (code === 'email_not_confirmed' || /email not confirmed/i.test(m)) return { ok: false, code: 'unconfirmed', message: 'This email address is not confirmed yet. Open the link we emailed when the account was made, or send it again.' };
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(m)) return { ok: false, code: 'unconfirmed', message: 'Confirm your email first. We emailed you a link when the account was made (subject "Confirm your CarmaCars account"); it works for 24 hours. Press "Send a new confirmation link" below to get a new one.' };
   if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit' || e?.status === 429 || /rate limit|too many/i.test(m)) return { ok: false, code: 'rate_limited', message: 'Too many tries. Wait a minute, then try again.' };
   if (code === 'user_banned') return { ok: false, code: 'inactive', message: 'This account is not active. Contact us if you think it should be.' };
   if (code === 'email_exists' || code === 'user_already_exists' || /already (been )?registered|already exists/i.test(m)) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
@@ -69,7 +69,7 @@ export function supabaseAuth(): AuthAdapter {
       const s = await supabaseServer();
       const { env } = await import('@/lib/env');
       const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
-      const { data, error } = await s.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: `${base}/auth/callback?next=/account` } });
+      const { data, error } = await s.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: `${base}/auth/callback` } });
       if (error || !data.user) return failure(error, 'We could not create the account.');
       // Supabase answers an existing address with a user that has no identities (it never says so outright).
       if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
@@ -91,7 +91,9 @@ export function supabaseAuth(): AuthAdapter {
       await gotrue('/recover', { email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => undefined);
     },
     async resendConfirmation(email, redirectTo) {
-      await gotrue('/resend', { type: 'signup', email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => undefined);
+      const r = await gotrue('/resend', { type: 'signup', email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => null);
+      // Supabase sends one confirmation per address a minute; saying "sent" then would be wrong
+      if (r && !r.ok && (r.status === 429 || /rate limit|seconds/i.test(r.err?.message ?? ''))) return 'rate_limited';
     },
     async invite(email, fullName, redirectTo) {
       const r = await gotrue('/invite', { email: email.trim().toLowerCase(), data: { full_name: fullName } }, { service: true, query: { redirect_to: redirectTo } });

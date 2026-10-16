@@ -17,10 +17,10 @@ def build():
         who='CarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, '
             'move them and shoot listing photos. Everything is on your phone.',
         need=['Your phone, charged, with a data connection (photos and signatures save as you take them)',
-              'The invitation email from CarmaCars (the link works for one hour)',
+              'The invitation email from CarmaCars (the link works for 24 hours)',
               'A car charger and a cloth for the camera lens'],
         first_steps=[
-            f'Open the invitation email on your phone and press its link within one hour. Choose a password and press {B("Save the new password")}.',
+            f'Open the invitation email on your phone and press its link within 24 hours. Choose a password and press {B("Save the new password")}.',
             f'You land on {B("My jobs")}. Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password.',
             f'In your browser\'s menu, choose {B("Add to Home Screen")}. The portal then opens full screen, like an app.',
             f'Open {B("Profile")}, add your mobile number and press {B("Save my phone")}.',

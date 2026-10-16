@@ -12802,6 +12802,9 @@ export type Database = {
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
       server_user_by_email: { Args: { p_email: string }; Returns: string };
       server_verify_accounts: { Args: { p: Json }; Returns: Json };
+      server_verify_signup: { Args: { p: Json }; Returns: Json };
+      server_verify_signup_cleanup: { Args: { p_user: string }; Returns: Json };
+      server_verify_signup_emails: { Args: { p_user: string }; Returns: Json };
       server_view_as_start: { Args: { p_admin: string; p_target: string; p_portal: string; p_fn?: string }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };

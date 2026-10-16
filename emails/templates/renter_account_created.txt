@@ -3,14 +3,14 @@ CarmaCars  |  Your account
 ========================================
 
 [Welcome]
-Confirm your email, {{first_name}}
+You are all set, {{first_name}}
 
-Your CarmaCars account is open. Confirm this email address so we can send you offers, agreements and receipts.
+Your email is confirmed and your CarmaCars account is open. Offers, agreements and receipts will come to this address.
 
-Confirm my email:
-{{verify_url}}
+Browse cars:
+https://carmacars.ca/cars
 
-The link works once and expires in {{link_expiry}}. If it has expired, sign in and we will send a new one.
+Next time, sign in at carmacars.ca with this email and the password you chose.
 
 1. Request a car
    Pick your dates and send a request. No card is needed to ask.
@@ -19,7 +19,7 @@ The link works once and expires in {{link_expiry}}. If it has expired, sign in a
 3. Approve, sign and pay
    Your booking is confirmed once the agreement is signed and paid.
 
-If you did not open this account, ignore this email and nothing happens.
+If you did not open this account, reply to this email and we will close it.
 
 ----------------------------------------
 

@@ -338,7 +338,7 @@ class Guide:
         nav = ''.join(f'<tr><td><b>{a}</b></td><td>{b}</td></tr>' for a, b in nav_rows)
         tasks = ''.join(f'<li><b>{a}</b><span>{b}</span></li>' for a, b in top_tasks)
         probs = [
-            ('A link says it expired', f'Links in our emails work for one hour, once. Press {B("Send me a new link")} on that page.'),
+            ('A link says it expired', f'Links in our emails work for 24 hours, once. Press {B("Send me a new link")} on that page.'),
             ('"Error 1102" on a page', 'A short limit on our web host. Reload the page. You are still signed in.'),
             ('"That email and password do not match an account."', f'Check the address, or use {B("Set a new password")} on the sign-in page.'),
         ] + list(extra_problems)

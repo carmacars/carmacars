@@ -3,23 +3,23 @@ CarmaCars  |  Owner account
 ========================================
 
 [Owner account]
-Confirm your email, {{first_name}}
+You are all set, {{first_name}}
 
-Your owner account is where you sign agreements, follow each vehicle, and see invoices, statements and payouts.
+Your email is confirmed and your owner account is open. It is where you sign agreements, follow each vehicle, and see invoices, statements and payouts.
 
-Confirm my email:
-{{verify_url}}
+Open my owner portal:
+https://carmacars.ca/owner
 
-The link works once and expires in {{link_expiry}}. If it has expired, sign in and we will send a new one.
+Next time, sign in at carmacars.ca with this email and the password you chose.
 
 What you can do there
 ------------------------
 
-- Apply to enrol a vehicle and track each onboarding step
+- Follow each onboarding step of your application
 - Sign your agreements on screen
 - See bookings, live location, fee invoices and monthly statements
 
-If you did not open this account, ignore this email and nothing happens.
+If you did not open this account, reply to this email and we will close it.
 
 ----------------------------------------
 

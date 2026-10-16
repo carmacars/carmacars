@@ -12,10 +12,10 @@ def build():
         who='Investors with an Investment Agreement with CarmaCars. Your portal shows each investment, what it has earned '
             'and paid, your monthly statements, and lets you send notices to us.',
         need=['The invitation email from CarmaCars (investor accounts are by invitation only)',
-              'Access to that inbox: the link works for one hour, once',
+              'Access to that inbox: the link works for 24 hours, once',
               'An authenticator app, if you choose two-step sign-in (recommended)'],
         first_steps=[
-            f'Open the invitation email and press its link within one hour.',
+            f'Open the invitation email and press its link within 24 hours.',
             f'Choose a password of 8 characters or more and press {B("Save the new password")}. You land on Investments.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")}, or use Investor sign in at the bottom of any page of carmacars.ca.',
             f'Forgot your password? Press {B("Forgot your password?")} on the sign-in page.',
@@ -130,7 +130,7 @@ def build():
     g.task('Good habits')
     g.table([
         ['Sign out on shared computers', f'{B("Sign out")} is at the top of every page. It signs you out on this device only.'],
-        ['Email links work once', 'Invitation and password links work for one hour, once. Never forward them.'],
+        ['Email links work once', 'Invitation and password links work for 24 hours, once. Never forward them.'],
         ['Two-step sign-in', 'With it on, a password alone cannot open your portal. Set it up under Profile and notices.'],
         ['We never ask for your password', 'CarmaCars never asks for your password or a sign-in code by email or phone.'],
         ['Bank changes are confirmed by phone', 'We call the number on file before we change where returns are paid.'],

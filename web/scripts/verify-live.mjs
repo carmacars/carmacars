@@ -463,7 +463,7 @@ if (process.argv.includes('--auth')) {
     const LINKS = [
       { type: 'recovery', email: 'verify-signin@carmacars.ca', next: '/update-password', tpl: 'recovery', choose: '/account' },
       { type: 'invite', email: `delivered+invite-${stamp}@resend.dev`, next: '/update-password', tpl: 'invite', remove: true },
-      { type: 'signup', email: `delivered+signup-${stamp}@resend.dev`, next: '/account', tpl: 'confirmation', remove: true, password: `S${stamp}x!aA` }
+      { type: 'signup', email: `delivered+signup-${stamp}@resend.dev`, next: '', land: '/account', tpl: 'confirmation', remove: true, password: `S${stamp}x!aA` }
     ];
     for (const l of LINKS) {
       const r = { type: l.type, ok: false };
@@ -484,15 +484,16 @@ if (process.argv.includes('--auth')) {
             if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) r.overflow = (r.overflow ?? []).concat(w);
           }
         }
-        const link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}&next=${l.next}`;
+        const land = l.land ?? l.next;
+        const link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=${l.type}${l.next ? `&next=${l.next}` : ''}`;
         await page.goto(link, { waitUntil: 'networkidle' });
-        for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)) && new URL(page.url()).pathname === l.next; i++) {
+        for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)) && new URL(page.url()).pathname === land; i++) {
           // Error 1102 on the landing page: the link already signed the person in, so the page is loaded again
-          (r.retried ??= []).push(l.next); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}${l.next}`, { waitUntil: 'networkidle' });
+          (r.retried ??= []).push(land); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}${land}`, { waitUntil: 'networkidle' });
         }
         r.final = new URL(page.url()).pathname + new URL(page.url()).search;
         r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
-        r.ok = r.final.startsWith(l.next) && !/error=link|link-expired/.test(r.final) && !BROKEN.test(await bodyText(page));
+        r.ok = r.final.startsWith(land) && !/error=link|link-expired/.test(r.final) && !BROKEN.test(await bodyText(page));
         await page.screenshot({ path: path.join(out, `auth-link-${l.type}.png`), fullPage: true });
         if (l.choose) {
           // the reset through to the end: a new password, then the person's portal
@@ -544,13 +545,128 @@ if (process.argv.includes('--auth')) {
     if (made?.id) r.removed = (await fetch(`${url}/auth/v1/admin/users/${made.id}`, { method: 'DELETE', headers: h })).status;
     report.reset_form = r;
   } catch (e) { report.reset_form = { ok: false, error: String(e).slice(0, 300) }; }
+  // Every sign-up path end to end (migration 0045, docs/changes/2026-10-16-one-confirmation-email.md): the create-account
+  // form (renter), the owner application (owner) and a guest's booking request followed by the create-account form
+  // with the same address (guest). Throwaway addresses verify-signup-<path>-<n>@carmacars.ca, on the email suppression
+  // list before anything is made: nothing is sent to them. The sign-in and its link come from the Auth admin API as the
+  // sign-up makes them (generate_link sends nothing); the records as the site's server action makes them
+  // (public.server_verify_signup). Then: no account email of the app before the confirmation; sign-in first says
+  // "Confirm your email first" with the button for a new link (not pressed: it would send an email); the link exactly as
+  // the template carries it lands in the portal by role; exactly one welcome after it (the outbox row, suppressed for
+  // these addresses, once the sender's job has processed it); sign out; sign in lands in the same portal. Removed again.
+  report.signups = [];
+  {
+    const call = async (fn, body) => {
+      const x = await fetch(`${url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: h, body: JSON.stringify(body) });
+      const t = await x.text();
+      if (!x.ok) throw new Error(`${fn} ${x.status}: ${t.slice(0, 200)}`);
+      return JSON.parse(t);
+    };
+    const accountKeys = (rows) => (Array.isArray(rows) ? rows : []).filter((e) => /_account_created$/.test(e.code)).map((e) => `${e.code}:${e.key}`);
+    const SIGNUPS = [
+      { path: 'renter', home: '/account', welcome: 'renter_account_created' },
+      { path: 'owner', home: '/owner', welcome: 'owner_account_created' },
+      { path: 'guest', home: '/account', welcome: 'renter_account_created' }
+    ];
+    try {
+      const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
+      const cfg = ref && mt ? await (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json() : null;
+      const tpl = cfg?.mailer_templates_confirmation_content ?? '';
+      report.signup_config = { link_seconds: cfg?.mailer_otp_exp ?? null, confirmation_link: tpl ? (/auth\/callback\?token_hash=\{\{ \.TokenHash \}\}&type=signup"/.test(tpl) ? 'by role (no next)' : 'HAS A FIXED next') : 'not read' };
+    } catch (e) { report.signup_config = { error: String(e).slice(0, 200) }; }
+    for (const s of SIGNUPS) {
+      const r = { path: s.path, home: s.home, ok: false };
+      const email = `verify-signup-${s.path}-${Date.now()}@carmacars.ca`;
+      const password = randomPassword();
+      const ctx = await browser.newContext({ viewport: { width: s.path === 'owner' ? 1440 : 390, height: 844 } });
+      const page = await ctx.newPage();
+      try {
+        let link;
+        if (s.path === 'guest') {
+          r.uid = (await call('server_verify_signup', { p: { email, name: 'Verify Guest' } })).user_id;
+          r.beforeConfirm = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
+          // create account with that address: a sign-in for the record (unconfirmed) and the link to choose the password
+          const c = await (await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: h, body: JSON.stringify({ id: r.uid, email, email_confirm: false, user_metadata: { full_name: 'Verify Guest' } }) })).json();
+          if (!c.id) throw new Error('admin create for the record: ' + JSON.stringify(c).slice(0, 200));
+          r.authMade = true;
+          const g = await (await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: h, body: JSON.stringify({ type: 'recovery', email }) })).json();
+          const hashed = g.properties?.hashed_token ?? g.hashed_token;
+          if (!hashed) throw new Error('generate_link recovery: ' + JSON.stringify(g).slice(0, 200));
+          link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=recovery&next=/update-password`;
+        } else {
+          const g = await (await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: h, body: JSON.stringify({ type: 'signup', email, password, data: { full_name: `Verify ${s.path}` } }) })).json();
+          const hashed = g.properties?.hashed_token ?? g.hashed_token;
+          r.uid = g.user?.id ?? g.id;
+          if (!hashed || !r.uid) throw new Error('generate_link signup: ' + JSON.stringify(g).slice(0, 200));
+          r.authMade = true;
+          await call('server_verify_signup', { p: { email, user_id: r.uid, name: `Verify ${s.path === 'owner' ? 'Owner' : 'Renter'} Signup` } });
+          r.beforeConfirm = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
+          // sign-in before the link: the page says to confirm first and offers a new link in one click
+          await page.goto(`${BASE}/sign-in`, { waitUntil: 'networkidle' });
+          const cookie = page.getByRole('button', { name: 'Necessary only' }).first();
+          if (await cookie.isVisible().catch(() => false)) await cookie.click();
+          await page.locator('#si-email').fill(email);
+          await page.locator('#si-pass').fill(password);
+          await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+          r.unconfirmed = ((await page.getByTestId('signin-unconfirmed').textContent({ timeout: 30_000 }).catch(() => null)) ?? '').slice(0, 40);
+          r.resendButton = await page.getByRole('button', { name: 'Send a new confirmation link' }).count();
+          await page.screenshot({ path: path.join(out, `signup-${s.path}-confirm-first.png`), fullPage: true });
+          // the link exactly as the confirmation template carries it (scripts/deploy/auth-templates.mjs): no next
+          link = `${BASE}/auth/callback?token_hash=${encodeURIComponent(hashed)}&type=signup`;
+        }
+        await page.goto(link, { waitUntil: 'networkidle' });
+        if (s.path === 'guest') {
+          for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)); i++) { (r.retried ??= []).push('update-password'); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}/update-password`, { waitUntil: 'networkidle' }); }
+          await page.locator('#np-pass').fill(password);
+          await page.getByRole('button', { name: 'Save the new password' }).click();
+          await page.waitForURL((u) => u.pathname === s.home, { timeout: 30_000 }).catch(() => {});
+        }
+        for (let i = 1; i <= 2 && BROKEN.test(await bodyText(page)); i++) { (r.retried ??= []).push(s.home); await page.waitForTimeout(2000 * i); await page.goto(`${BASE}${s.home}`, { waitUntil: 'networkidle' }); }
+        r.landed = new URL(page.url()).pathname;
+        r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
+        await page.screenshot({ path: path.join(out, `signup-${s.path}-landed.png`), fullPage: true });
+        r.afterConfirm = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
+        // sign out, then sign in through the form
+        await page.getByRole('button', { name: 'Sign out' }).first().click();
+        await page.waitForURL((u) => u.pathname === '/', { timeout: 20_000 });
+        await signInForm(page, email, password);
+        await page.waitForURL((u) => u.pathname === s.home, { timeout: 30_000 }).catch(() => {});
+        r.signedInAgain = new URL(page.url()).pathname;
+        r.afterSignIn = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
+        r.ok = r.beforeConfirm.length === 0 && (s.path === 'guest' || (r.unconfirmed.startsWith('Confirm your email first') && r.resendButton === 1))
+          && r.landed === s.home && !!r.h1 && r.signedInAgain === s.home
+          && JSON.stringify(r.afterConfirm) === JSON.stringify([`${s.welcome}:confirmed`]) && JSON.stringify(r.afterSignIn) === JSON.stringify([`${s.welcome}:confirmed`]);
+      } catch (e) { r.ok = false; r.error = String(e).slice(0, 400); await page.screenshot({ path: path.join(out, `signup-${s.path}-failed.png`), fullPage: true }).catch(() => {}); }
+      await ctx.close();
+      report.signups.push(r);
+    }
+    // the welcome in the outbox: the sender's job (every minute) turns each event into its row, suppressed here
+    for (let i = 0; i < 24; i++) {
+      for (const r of report.signups.filter((x) => x.uid)) {
+        const rows = await call('server_verify_signup_emails', { p_user: r.uid }).catch(() => []);
+        r.outbox = (Array.isArray(rows) ? rows : []).map((e) => `${e.code}:${e.outbox ?? 'waiting'}`);
+      }
+      if (report.signups.every((x) => !x.uid || (x.outbox?.length && x.outbox.every((o) => !o.endsWith(':waiting'))))) break;
+      await new Promise((ok) => setTimeout(ok, 5000));
+    }
+    for (const r of report.signups) {
+      if (r.ok) r.ok = JSON.stringify(r.outbox) === JSON.stringify([`${SIGNUPS.find((x) => x.path === r.path).welcome}:suppressed`]);
+      try {
+        if (r.authMade && r.uid) r.authRemoved = (await fetch(`${url}/auth/v1/admin/users/${r.uid}`, { method: 'DELETE', headers: h })).status;
+        if (r.uid) r.cleanup = await call('server_verify_signup_cleanup', { p_user: r.uid });
+      } catch (e) { r.cleanup_error = String(e).slice(0, 200); }
+      delete r.uid;
+    }
+    report.signups_ok = report.signups.length === SIGNUPS.length && report.signups.every((x) => x.ok)
+      && report.signup_config?.link_seconds === 86400 && report.signup_config?.confirmation_link === 'by role (no next)';
+  }
   // the verification Admin cannot be used between runs: its password is scrambled again
   try { if (admin?.id) await fetch(`${url}/auth/v1/admin/users/${admin.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ password: randomPassword() + randomPassword() }) }); report.admin_password_scrambled = true; } catch { report.admin_password_scrambled = false; }
   report.auth_links_ok = report.auth_links.length === 3 && report.auth_links.every((x) => x.ok);
   report.portals_ok = report.portals.length === ACCOUNTS.length && report.portals.every((x) => x.ok);
   // Cloudflare's 1102 ("Worker exceeded resource limits": the plan's CPU or memory limit) per run
   report.worker_limits = report.portals.flatMap((x) => (x.responses ?? []).filter((y) => /exceeded resource limits|Error 1102/i.test(y))).length;
-  if (!report.portals_ok || !report.auth_links_ok) process.exitCode = 1;
+  if (!report.portals_ok || !report.auth_links_ok || !report.signups_ok) process.exitCode = 1;
 }
 
 await browser.close();

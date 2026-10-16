@@ -7,7 +7,8 @@ name: verify
 # Slim by default (a few minutes): the public pages, the security headers and nonce, console errors, the
 # statement emails job and the Worker's analytics. full = true adds the sign-in through the live form with a test
 # account per portal (renter, owner, investor, each staff function, field, the verification Admin), view as,
-# invitation, reset, and the live SEO audit. `request` sends one real request to book (as Resend's test inbox
+# invitation, reset, every sign-up path end to end (renter, owner application, guest then account), and the live SEO
+# audit. `request` sends one real request to book (as Resend's test inbox
 # delivered@resend.dev); remove it afterwards.
 on:
   workflow_dispatch:
@@ -75,6 +76,7 @@ jobs:
           jq -r '(.portals // [])[] | select(.role == "admin") | "view as: " + ([(.viewAs // [])[] | "\(.portal) \(if .ok then "ok" else "FAILED \(.error // .banner)" end)"] | join(", ")) + "; write refused \(.writeRefused.ok) (save -> \(.writeRefused.save), POST \(.writeRefused.post), unchanged \(.writeRefused.unchanged)); audit log \(.audit.view_as_starts) starts; exit \(.exit.ok)"' "$R" | sed 's/^/::notice title=view as::/'
           jq -r '(.portals // [])[] | select(.role == "admin") | .invite | "invite from Admin > Portals: ok \(.ok); \"\(.said // .error // "")\"; link -> \(.landed); password -> \(.portal) \(.who // "" | gsub("Sign out"; ""))"' "$R" | sed 's/^/::notice title=invite::/'
           jq -r '"email links: " + ([(.auth_links // [])[] | "\(.type) \(if .ok then "ok" else "FAILED" end) -> \(.final // .error // "")\(if .chosen then " -> \(.chosen)" else "" end)\(if .reused then ", used again -> \(.reused)" else "" end)"] | join("; ")) + "; sign-out: " + ([(.portals // [])[] | select(.role == "renter") | .signOut // "not checked"] | join("")) + "; reset form: \(.reset_form | if . == null then "not run" elif .ok then "ok, Supabase sent the email" elif .botCheck then "stopped by the bot check (headless browser)" else "FAILED \(.said // .error // "")" end)"' "$R" | sed 's/^/::notice title=verify::/'
+          jq -r 'if .signups then "sign-up paths: " + ([.signups[] | "\(.path) \(if .ok then "ok" else "FAILED \(.error // "")" end) -> \(.landed // "") then \(.signedInAgain // ""), welcome \(.outbox // [] | join(","))"] | join("; ")) + "; links last \(.signup_config.link_seconds // "?") s; confirmation link \(.signup_config.confirmation_link // "?")" else empty end' "$R" | sed 's/^/::notice title=sign-up::/'
           jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$R"
           jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", ")) + "; nonce \(.nonce | tostring); console errors \(.console | length)"' "$R" | sed 's/^/::notice title=verify::/'
           jq -r '(.portals // [])[] | select(.role == "admin") | "tolls, plates, forms: Read a notice \(.tollReadPage // "MISSING"); Settings > Forms \(.formsPage // "MISSING"); vision read of a notice: \(.vision.toll | tostring); plate box: \(.vision.plate | tostring)"' "$R" | sed 's/^/::notice title=0042::/'
@@ -90,8 +92,11 @@ jobs:
             echo; echo "## Email links"; echo
             jq -r '(.auth_links // [])[] | "- \(.type): \(del(.overflow) | tostring)"' "$R"
             jq -r '"- reset form: \(.reset_form | tostring)"' "$R"
+            echo; echo "## Sign-up paths (0045)"; echo
+            jq -r '(.signups // [])[] | "- \(.path): \(tostring)"' "$R"
+            jq -r '"- config: \(.signup_config | tostring)"' "$R"
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite and auth link notices)"; exit "$status"; fi
+          if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite, auth link and sign-up notices)"; exit "$status"; fi
       - name: SEO of the live site (seo-audit.mjs against carmacars.ca)
         if: ${{ always() && inputs.full }}
         continue-on-error: true

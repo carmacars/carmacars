@@ -43,7 +43,7 @@ def md_text(s):
     s = re.sub(r'<br\s*/?>', ' ', s)
     s = re.sub(r'<[^>]+>', '', s)
     s = html.unescape(s)
-    s = s.replace('–', '-').replace('—', '-')
+    s = s.replace('\u2013', '-').replace('\u2014', '-')
     return re.sub(r'[ \t]+', ' ', s).strip()
 
 
@@ -182,7 +182,7 @@ class MdGuide(lib.Guide):
                   '\n'.join(f'| **{md_text(a)}** | {md_text(b)} |' for a, b in nav_rows))
         self._add('### Top tasks\n\n' + '\n'.join(f'{i + 1}. **{md_text(a)}** {md_text(b)}' for i, (a, b) in enumerate(top_tasks)))
         probs = [
-            ('A link says it expired', f'Links in our emails work for one hour, once. Press {lib.B("Send me a new link")} on that page.'),
+            ('A link says it expired', f'Links in our emails work for 24 hours, once. Press {lib.B("Send me a new link")} on that page.'),
             ('"Error 1102" on a page', 'A short limit on our web host. Reload the page. You are still signed in.'),
             ('"That email and password do not match an account."', f'Check the address, or use {lib.B("Set a new password")} on the sign-in page.'),
         ] + list(extra_problems)

@@ -423,14 +423,14 @@
       "code": "renter_account_created",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A user with the renter role is created (sign-up form, or the account made with a first booking request) and the email address is not yet verified.",
+      "trigger": "The person confirms their email address for the first time (the confirmation link from the sign-in service, or a password link for an address already on file from a booking request) and has the renter role only. Sent once per account. Accounts already confirmed before October 16, 2026 do not get it.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
-      "subject": "Confirm your email to finish your CarmaCars account",
-      "preheader": "One tap confirms your email. The link works for {{link_expiry}}.",
-      "sample_subject": "Confirm your email to finish your CarmaCars account",
+      "subject": "Your CarmaCars account is ready",
+      "preheader": "Your email is confirmed. Request a car whenever you are ready.",
+      "sample_subject": "Your CarmaCars account is ready",
       "variables": [
         {
           "name": "company_address",
@@ -457,12 +457,6 @@
           "note": "Instagram profile address (social_links)."
         },
         {
-          "name": "link_expiry",
-          "type": "string",
-          "sample": "60 minutes",
-          "note": "How long the one-time link stays valid."
-        },
-        {
           "name": "opening_hours",
           "type": "string",
           "sample": "Open 24 hours, every day",
@@ -485,12 +479,6 @@
           "type": "url",
           "sample": "https://tiktok.com/@carmacars.ca",
           "note": "TikTok profile address (social_links)."
-        },
-        {
-          "name": "verify_url",
-          "type": "url",
-          "sample": "https://carmacars.ca/account/verify-email?token=sample",
-          "note": "One-time link from the sign-in service."
         }
       ],
       "template_html": "templates/renter_account_created.html",
@@ -6183,14 +6171,14 @@
       "code": "owner_account_created",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "A user with the owner role is created (owner sign-up, or created by staff from an application) and the email address is not yet verified.",
+      "trigger": "The person confirms their email address for the first time (the confirmation link from the sign-in service, an invitation or a password link) and has the owner role. Sent once per account. Accounts already confirmed before October 16, 2026 do not get it.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",
       "reply_to": "owners@carmacars.ca",
-      "subject": "Confirm your email to open your CarmaCars owner account",
-      "preheader": "One tap confirms your email. The link works for {{link_expiry}}.",
-      "sample_subject": "Confirm your email to open your CarmaCars owner account",
+      "subject": "Your CarmaCars owner account is ready",
+      "preheader": "Your email is confirmed. Your owner portal is open.",
+      "sample_subject": "Your CarmaCars owner account is ready",
       "variables": [
         {
           "name": "company_address",
@@ -6217,12 +6205,6 @@
           "note": "Instagram profile address (social_links)."
         },
         {
-          "name": "link_expiry",
-          "type": "string",
-          "sample": "60 minutes",
-          "note": "How long the one-time link stays valid."
-        },
-        {
           "name": "opening_hours",
           "type": "string",
           "sample": "Open 24 hours, every day",
@@ -6245,12 +6227,6 @@
           "type": "url",
           "sample": "https://tiktok.com/@carmacars.ca",
           "note": "TikTok profile address (social_links)."
-        },
-        {
-          "name": "verify_url",
-          "type": "url",
-          "sample": "https://carmacars.ca/account/verify-email?token=sample",
-          "note": "One-time link from the sign-in service."
         }
       ],
       "template_html": "templates/owner_account_created.html",

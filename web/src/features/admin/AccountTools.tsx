@@ -11,7 +11,7 @@ export function PasswordLinkButton({ userId, label = 'Send password link', testI
   return (
     <span className="row" style={{ display: 'inline-flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center' }}>
       <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={testId}
-        onClick={() => { if (!window.confirm('Email this person a link to choose a password? It works for one hour.')) return; start(async () => { const r = await sendPasswordLink(userId); setMsg(r.ok ? { ok: true, text: `Sent to ${r.data.email}.` } : { ok: false, text: r.message }); }); }}>
+        onClick={() => { if (!window.confirm('Email this person a link to choose a password? It works for 24 hours.')) return; start(async () => { const r = await sendPasswordLink(userId); setMsg(r.ok ? { ok: true, text: `Sent to ${r.data.email}.` } : { ok: false, text: r.message }); }); }}>
         {pending ? 'Sending' : label}</button>
       {msg && <span className={msg.ok ? 'small' : 'ad-err'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</span>}
     </span>
@@ -56,7 +56,7 @@ export function InviteForm({ owners = [], investors = [], roles = ['va', 'field'
       owner_id: f.role === 'owner' ? f.owner_id : undefined, investor_id: f.role === 'investor' ? f.investor_id : undefined });
     if (r.ok) {
       setErrs({});
-      setMsg({ ok: true, text: r.data.existed ? `${r.data.email} already signs in to CarmaCars: the role is added and no email was sent. Use Send password link if they need one.` : `Invitation sent to ${r.data.email}. The link works for one hour; send a new one from the list if it runs out.` });
+      setMsg({ ok: true, text: r.data.existed ? `${r.data.email} already signs in to CarmaCars: the role is added and no email was sent. Use Send password link if they need one.` : `Invitation sent to ${r.data.email}. The link works for 24 hours; send a new one from the list if it runs out.` });
       setF({ ...f, email: '', full_name: '', owner_id: '', investor_id: '', cover: [] });
       router.refresh();
     } else { setErrs((r as { fieldErrors?: Record<string, string> }).fieldErrors ?? {}); setMsg({ ok: false, text: r.message }); }

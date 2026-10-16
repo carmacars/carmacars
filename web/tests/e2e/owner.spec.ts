@@ -146,7 +146,10 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   expect(vehicles.map((v) => v.status)).toEqual(['intake', 'intake', 'intake']);
   const pending = await sql`select count(*)::int n from vehicles where owner_id = ${owner!.id} and tracker_install_pending`;
   expect(pending[0]!.n, 'each vehicle waits for a tracker').toBe(3);
-  await page.getByRole('link', { name: 'Go to your owner portal' }).click();
+  // the application page asks to confirm the email; the link (local_auth.mailbox) signs in and opens the owner portal
+  await expect(page.getByTestId('apply-confirm-email')).toContainText(email);
+  const [confirm] = await sql`select link from local_auth.mailbox where to_email = ${email} order by id desc limit 1`;
+  await page.goto(new URL(confirm!.link as string).pathname + new URL(confirm!.link as string).search);
   await page.waitForURL(/\/owner/);
   await expect(page.getByTestId('owner-vehicle')).toHaveCount(3);
 

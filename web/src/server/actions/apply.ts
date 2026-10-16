@@ -9,7 +9,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { cleanVin, DRAFT_COOKIE, ownerErrors, planErrors, vehicleErrors, vehiclePayload, type ApplyState } from '@/features/owner/apply-schema';
 import { currentUser } from '@/server/portal/data';
 import { requestMeta } from '@/server/request';
-import { passwordLinkTarget } from '@/server/auth-links';
+import { passwordLinkTarget, rememberEmail } from '@/server/auth-links';
 
 // The owner application wizard (04-owner.md section 3; 08-forms.md section 3). Every step autosaves
 // to form_drafts: by account when signed in, otherwise by a device token kept in an httpOnly cookie.
@@ -82,7 +82,7 @@ export async function methodOptions(heldBy: string, titleStatus: string, mode: s
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number; checkEmail?: boolean }
+export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number; checkEmail?: boolean; confirmEmail?: string }
 
 export async function submitApplication(state: ApplyState, password: string, turnstileToken: string | null): Promise<R<SubmitResult>> {
   const o = state.owner;
@@ -91,6 +91,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
   state.vehicles.forEach((v, i) => { for (const [k, m] of Object.entries({ ...vehicleErrors(v, o.owner_type), ...planErrors(v) })) fe[`v${i}.${k}`] = m; });
   let user = await currentUser();
   let onRecord = false;
+  let confirmEmail: string | null = null;
   if (!user && (password ?? '').length < 10) fe.password = 'Choose a password of at least 10 characters.';
   if (Object.keys(fe).length) return { ok: false, code: 'invalid', message: 'Some answers need a look. The first one is highlighted.', fieldErrors: fe };
   const meta = await requestMeta();
@@ -99,11 +100,25 @@ export async function submitApplication(state: ApplyState, password: string, tur
   const phoneDigits = o.phone.replace(/[^\d+]/g, '');
   const phone = phoneDigits.startsWith('+') ? phoneDigits : phoneDigits.length === 10 ? `+1${phoneDigits}` : `+${phoneDigits}`;
   try {
+    const onFile = user ? null : (await rpc('server_user_by_email', { p_email: o.email.trim().toLowerCase() }, SR).catch(() => null)) as unknown as string | null;
+    if (!user && onFile) {
+      // The address is on file (an earlier booking request, or a record staff made) with no sign-in yet: a sign-in for
+      // that record and one email, the link to choose the password (opening it proves the address). Asked before any
+      // sign-up, so Supabase never also sends a confirmation for a sign-in that would be removed again.
+      const a = await auth();
+      const made = a.createForRecord ? await a.createForRecord(onFile, o.email.trim().toLowerCase(), name, passwordLinkTarget()) : null;
+      if (made && !made.ok && made.code === 'exists') return { ok: false, code: 'account', message: 'An account with this email already exists. Sign in first, then apply.', fieldErrors: { password: 'An account with this email already exists. Sign in first, then apply.' } };
+      if (!made?.ok) return fail('We already have a booking request with this email. Call us and we will finish your application.');
+      user = { id: onFile, email: o.email.trim().toLowerCase() };
+      onRecord = true;
+    }
     if (!user) {
       const a = await auth();
       const r = await a.signUp(o.email.trim().toLowerCase(), password, { full_name: name });
       if (!r.ok) return { ok: false, code: 'account', message: r.message, fieldErrors: { password: r.message } };
       user = r.user;
+      // Supabase emails the confirmation link (its only email at sign-up); the account signs in once it is opened
+      if (r.needsConfirmation) confirmEmail = r.user.email;
       const reg = (await rpc('register_account', { p_user: user.id, p_email: user.email, p_full_name: name, p_phone: phone }, SR)) as unknown as { ok?: boolean; error?: string };
       if (reg && reg.ok === false && reg.error === 'email_on_record' && a.createForRecord && a.deleteAccount) {
         // The address is on file from an earlier booking request, without a sign-in (migration 0040): the sign-in just
@@ -116,6 +131,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
         if (!id || !made?.ok) return fail('We already have a booking request with this email. Call us and we will finish your application.');
         user = { id, email: o.email.trim().toLowerCase() };
         onRecord = true;
+        confirmEmail = null;
       } else if (reg && reg.ok === false) return fail('We could not open your account. Call us and we will finish your application.');
     }
     const token = (await cookies()).get(DRAFT_COOKIE)?.value;
@@ -135,6 +151,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
       vehicles: state.vehicles.map(vehiclePayload)
     }, p_by: user.id }, SR)) as unknown as { application_number: string; vehicles: Array<{ declined: boolean }> };
     (await cookies()).delete(DRAFT_COOKIE);
-    return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}) } };
+    if (confirmEmail || onRecord) await rememberEmail(user.email);
+    return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}), ...(confirmEmail ? { confirmEmail } : {}) } };
   } catch (e) { return fail(dbMessage(e)); }
 }

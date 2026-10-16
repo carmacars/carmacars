@@ -9,8 +9,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 43 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 27 test files (3,073 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 45 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | 29 test files (3,228 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -83,6 +83,7 @@ cd emails && node check.mjs
 | `0042_tolls_plates_forms.sql` | Reading toll notices and statements (reads and lines checked beside the file, reading profiles editable in Admin, confirm through 0021's import with charging and exceptions), licence plates covered on listing photos (the decision per photo, the publish check), official ServiceOntario PDFs mapped field by field and filled for owners, one turnaround between trips (block or buffer, never both), the vision model's calls and daily cap (`docs/changes/2026-10-14-tolls-plates-forms.md`) |
 | `0043_email_cap.sql` | The email daily cap safe on Resend's free plan: Supabase Auth's emails counted, classes leaving room for them, the 80% warning in the portal, the provider's 429 held without spending an attempt, a final failure told to the Admins (`docs/changes/0043_email_cap.md`) |
 | `0044_guides_manual_records.sql` | The user guide of every portal stored in the database (sections, versions, publish, images, stored PDFs, who read which version, the first-visit banner), payments received outside the card processor recorded on owner invoices and renter bookings (partial, proof, receipt, the debit stopped, void with a reason), signatures on paper for every signable document (scan, signer, witnesses, void), documents sent to sign in the investor, VA and Field portals, Forms A and B signed on screen, the owner checklist (`docs/changes/2026-10-15-guides-manual-records.md`) |
+| `0045_one_confirmation_email.sql` | One confirmation email per sign-up: Supabase Auth's confirmation is the only email that asks to confirm; the app's two account emails become welcomes sent once the address is first confirmed (owner or renter, once); granting a role emails nothing; the live verification's sign-up checks (`docs/changes/2026-10-16-one-confirmation-email.md`) |
 
 ## Test files
 
@@ -113,6 +114,7 @@ cd emails && node check.mjs
 | `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
 | `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
 | `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 130 |
+| `29_one_confirmation_email.sql` | 0045: no account email when a role is granted, the welcome once after the confirmation (owner over renter, none for staff or investors), no catalogue email asks to confirm, the live verification's sign-up functions | 25 |
 
 ## Rules for changes
 

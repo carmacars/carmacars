@@ -15,13 +15,13 @@ def build():
               'Each car\'s VIN, ownership permit and insurance details',
               'A Canadian bank account for your fees and payouts'],
         first_steps=[
-            f'New to CarmaCars? Apply at {U("carmacars.ca/list-your-car")}. Your account is made at the end of the application.',
-            f'Invited by us? Open the invitation email within one hour, choose a password and press {B("Save the new password")}.',
+            f'New to CarmaCars? Apply at {U("carmacars.ca/list-your-car")}. Your account is made at the end of the application: open the email "Confirm your CarmaCars account" within 24 hours and its link opens your owner portal.',
+            f'Invited by us? Open the invitation email within 24 hours, choose a password and press {B("Save the new password")}.',
             f'Next time, go to {U("carmacars.ca/sign-in")}, enter your Email and Password and press {B("Sign in")}.',
             f'Forgot your password? Press {B("Forgot your password?")} on the sign-in page and follow the email.',
         ],
         shot=S('public/09-sign-in-phone', 0, 595, 390, 1180, pins=[(3, 372, 1041)]),
-        note='Email links work for one hour, once. If a link has expired, the page it opens has '
+        note='Email links work for 24 hours, once. If a link has expired, the page it opens has '
              f'{B("Send me a new link")}.')
 
     # ---------------------------------------------------------------- 1

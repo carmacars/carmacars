@@ -11,11 +11,11 @@ def build():
     g.start_page(
         who='CarmaCars assistants (VAs) in Customer service, Finance, Fleet and Sales. Read chapter 1, then the chapter '
             'for your function. If you cover more than one, read each of them.',
-        need=['The invitation email from CarmaCars (the link works for one hour)',
+        need=['The invitation email from CarmaCars (the link works for 24 hours)',
               'A computer for your shift. The portal also works on a phone',
               'An authenticator app on your phone, if your Admin turns on two-step sign-in'],
         first_steps=[
-            f'Open the invitation email and press its link within one hour. Choose a password of 8 characters or more and press {B("Save the new password")}.',
+            f'Open the invitation email and press its link within 24 hours. Choose a password of 8 characters or more and press {B("Save the new password")}.',
             f'You land in your portal, on {B("Queue")}, working as your main function.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password, then {B("Sign in")}.',
             f'Link expired? Press {B("Send me a new link")} on the page it opens, or ask an Admin for a password link.',

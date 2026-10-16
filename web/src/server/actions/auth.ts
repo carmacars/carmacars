@@ -44,8 +44,9 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
 export async function resendConfirmation(email: string): Promise<ActionResult> {
   const e = String(email ?? '').trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { ok: false, code: 'invalid', message: 'Enter your email address first.' };
-  await (await auth()).resendConfirmation(e, `${base()}/auth/callback?next=/account`);
+  const r = await (await auth()).resendConfirmation(e, `${base()}/auth/callback`);
   await rememberEmail(e);
+  if (r === 'rate_limited') return { ok: false, code: 'rate_limited', message: 'We sent a link to this address less than a minute ago. Check your inbox and spam, or wait a minute and press again.' };
   return { ok: true, data: null };
 }
 
@@ -76,6 +77,18 @@ export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
   const meta = await requestMeta();
   if (!(await verifyTurnstile(fd.get('cf-turnstile-response') as string | null, meta.ip))) return { ok: false, code: 'turnstile', message: 'We could not confirm you are not a bot. Reload the page and try again.' };
   const a = await auth();
+  // An address already on file (a booking request, an owner or investor record) gets a sign-in for that record and one
+  // email, the link to choose the password. Asked before the sign-up so Supabase never also sends a confirmation for a
+  // sign-in that would be removed again (two emails, one dead link).
+  const onFile = (await rpc('server_user_by_email', { p_email: p.data.email }, { role: 'service_role' }).catch(() => null)) as unknown as string | null;
+  if (onFile && a.createForRecord) {
+    const made = await a.createForRecord(onFile, p.data.email, p.data.name, passwordLinkTarget());
+    if (!made.ok) return { ok: false, code: made.code === 'exists' ? 'exists' : 'email_on_record', message: made.code === 'exists'
+      ? 'An account with this email already exists. Sign in, or use "Forgot password" to set a new password.'
+      : 'We already have a booking request with this email. Contact us and we will link it to your account.' };
+    await rememberEmail(p.data.email);
+    return { ok: true, data: { confirm: true, onRecord: true, email: p.data.email } };
+  }
   const r = await a.signUp(p.data.email, p.data.password, { full_name: p.data.name });
   if (!r.ok) return { ok: false, code: 'auth', message: r.message };
   const reg = (await rpc('register_account', { p_user: r.user.id, p_email: p.data.email, p_full_name: p.data.name }, { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; error?: string; message?: string };

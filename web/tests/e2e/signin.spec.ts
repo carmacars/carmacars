@@ -274,6 +274,11 @@ test('invite: an Admin invites an assistant and an owner on file; each chooses a
     await expect(p.locator('h1').first()).toBeVisible();
     await p.context().close();
   }
+  // the invitations sent no account email of the app; after the password, the owner got one welcome, the assistant none
+  const welcomes = await sql`select u.email, string_agg(e.code || ':' || split_part(e.dedupe_key, ':', 3), ',') k from users u
+                               left join app_events e on e.entity_id = u.id and e.code in ('renter_account_created', 'owner_account_created')
+                              where u.email in (${`nina.${t}@example.test`}, ${`owen.${t}@example.test`}) group by u.email order by u.email`;
+  expect(welcomes.map((w) => `${w.email}=${w.k ?? 'none'}`)).toEqual([`nina.${t}@example.test=none`, `owen.${t}@example.test=owner_account_created:confirmed`]);
   // the second use of the same link is refused, and offers a new one
   const m = await sql`select link from local_auth.mailbox where to_email = ${`nina.${t}@example.test`} order by id desc limit 1`;
   const p = await newPage(browser, phone);

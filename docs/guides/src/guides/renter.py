@@ -17,8 +17,8 @@ def build():
         first_steps=[
             f'Go to {U("carmacars.ca/create-account")}. Enter your Full name, Email and a Password of 8 characters or more.',
             f'Tick the box to agree to the terms, then press {B("Create account")}.',
-            f'Open the email "Confirm your CarmaCars account" and press its link within one hour.',
-            f'Sign in at {U("carmacars.ca/sign-in")} with your email and password. You land on Trips.',
+            f'Open the email "Confirm your CarmaCars account" and press its link within 24 hours. It confirms your email and opens Trips.',
+            f'Next time, sign in at {U("carmacars.ca/sign-in")} with your email and password. Link expired? Sign in and press {B("Send a new confirmation link")}.',
         ],
         shot=S('public/10-create-account-phone', 0, 595, 390, 1275, pins=[(2, 372, 1253)]),
         note='Sent a request before you had an account? Once your email is confirmed, those requests are added to your '

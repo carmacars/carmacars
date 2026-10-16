@@ -120,7 +120,7 @@ export async function inviteAccount(i: InviteInput): Promise<R<{ user_id: string
 }
 
 /** Sends a person the link to choose a password (a new invitation link for someone who never chose one, or a reset
- *  for someone who forgot it). The same branded email as "Forgot password"; the link works for one hour. */
+ *  for someone who forgot it). The same branded email as "Forgot password"; the link works for 24 hours. */
 export async function sendPasswordLink(userId: string): Promise<R<{ email: string }>> {
   try {
     const admin = await assertAdmin();
