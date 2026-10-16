@@ -7,6 +7,8 @@ import { DepositSettle } from '@/features/admin/DepositSettle';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
+import { door } from '@/server/door';
+import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -25,13 +27,20 @@ type Detail = B & R & {
 export default async function Booking({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ number }, sp] = await Promise.all([params, searchParams]);
   const n = decodeURIComponent(number);
-  const { read, list } = await page(`/admin/bookings/${n}`);
+  const { read, list, user } = await page(`/admin/bookings/${n}`);
   const [b, ins, km, settings] = await Promise.all([
     read<Detail | null>('booking', { number: n }), list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }),
     list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }), read<{ program: { offer_expiry_hours: number } }>('settings')]);
   if (!b) notFound();
   const driverLinks = sp.tab === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   const base = `/admin/bookings/${encodeURIComponent(n)}`;
+  // payments received another way and documents signed on paper (migration 0044)
+  const [manual, paper] = await Promise.all([
+    sp.tab === 'money' ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
+    sp.tab === 'documents' ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const paperDocs: PaperDoc[] = [{ doc_type: 'rental_agreement', target_id: b.id, label: 'Rental agreement', signer: b.renter?.legal_name ?? '' },
+    ...b.change_requests.filter((c) => ['proposed', 'approved'].includes(String(c.status)) && !c.renter_agreed_at).map((c) => ({ doc_type: 'rental_amendment', target_id: String(c.id), label: `Booking change of ${t(c.created_at)}`, signer: b.renter?.legal_name ?? '' }))];
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status);
   const tab = sp.tab ?? (arranging ? 'review' : 'overview');
   const P = { booking: b.id };
@@ -91,7 +100,12 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'money' && (
         <div className="stack">
-          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' }]} /></Card>
+          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
+            { key: 'act', label: '', render: (r) => r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>
+          <Card title="Paid another way" testId="booking-manual-payments">
+            <ManualPaymentList rows={manual} canVoid refresh={[base]} />
+            <ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" />
+          </Card>
           <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
             <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
           </Card>
@@ -132,6 +146,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) }]} /></Card>
           <Card title="Documents"><Table rows={b.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`/admin/documents/${r.id}`}>{String(r.title ?? label(r.kind))}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
           <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={[base]} /></Card>
+          <Card title="Signed on paper" testId="booking-paper"><div className="stack"><PaperSignatureList rows={paper} canVoid refresh={[base]} /><PaperSignatureForm docs={paperDocs} today={today} refresh={[base]} /></div></Card>
         </div>
       )}
     </>

@@ -4,6 +4,7 @@ import { PortalNav } from '@/features/portal/PortalNav';
 import { currentUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
+import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 
 // The renter portal shell (02-booking-and-renter.md section 7): phone-first tabs, then the page.
 // Each page checks the session itself (a page without one redirects to sign in).
@@ -19,10 +20,11 @@ export default async function AccountLayout({ children }: { children: React.Reac
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{v ? 'Viewing as' : 'Signed in as'} <b data-testid="account-email">{user.email}</b></p>
-          <SignOutOrExit />
+          <span className="gd-frame-links"><GuideLink portal="renter" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="account" />
         <PortalNav unread={unread || 0} />
+        <GuideBanner portal="renter" userId={user.id} />
       </div>
       <div className="wrap pt__body">{children}</div>
     </div>

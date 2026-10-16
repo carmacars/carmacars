@@ -4,6 +4,7 @@ import { rpc } from '@/lib/db/repo';
 import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
+import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 
 // The owner portal shell (04-owner.md): the same phone-first frame as the renter portal. Each page
 // checks the session and the owner role itself (requireOwner).
@@ -16,10 +17,11 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">Owner portal · <b data-testid="account-email">{user.email}</b></p>
-          <SignOutOrExit />
+          <span className="gd-frame-links"><GuideLink portal="owner" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="owner" />
         <OwnerNav unread={unread || 0} />
+        <GuideBanner portal="owner" userId={user.id} />
       </div>
       <div className="wrap pt__body">{children}</div>
     </div>

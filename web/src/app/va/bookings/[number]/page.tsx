@@ -7,6 +7,8 @@ import { DepositSettle } from '@/features/admin/DepositSettle';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
+import { door } from '@/server/door';
+import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { QuickReply } from '@/features/va/QuickReply';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
 
@@ -27,7 +29,7 @@ const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', '
 export default async function VaBooking({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ number }, sp] = await Promise.all([params, searchParams]);
   const n = decodeURIComponent(number);
-  const { read, list, fn } = await vaPage(`/va/bookings/${n}`);
+  const { read, list, fn, user, aal } = await vaPage(`/va/bookings/${n}`);
   const b = await read<Detail | null>('booking', { number: n }).catch(() => null);
   if (!b) notFound();
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status) && (fn === 'cs' || fn === 'sales');
@@ -41,6 +43,13 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
     fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] }),
     fn === 'cs' && tab === 'messages' ? read<R[]>('messages', { booking: b.id }) : Promise.resolve([] as R[])]);
   // the additional drivers' signing links (migration 0040), for customer service
+  // payments received another way (Finance) and rental documents signed on paper (customer service), migration 0044
+  const [manual, paper] = await Promise.all([
+    fn === 'finance' && tab === 'money' ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }, aal).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
+    fn === 'cs' && tab === 'overview' ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }, aal).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const paperDocs: PaperDoc[] = [{ doc_type: 'rental_agreement', target_id: b.id, label: 'Rental agreement', signer: b.renter?.legal_name ?? '' },
+    ...b.change_requests.filter((c) => ['proposed', 'approved'].includes(String(c.status)) && !c.renter_agreed_at).map((c) => ({ doc_type: 'rental_amendment', target_id: String(c.id), label: `Booking change of ${t(c.created_at)}`, signer: b.renter?.legal_name ?? '' }))];
   const driverLinks = fn === 'cs' && tab === 'overview' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   // the late-return panel (05-va.md section 3.4) for Fleet and customer service while the car is out past its time
   const late = (fn === 'fleet' || fn === 'cs') && b.status === 'on_rent'
@@ -88,11 +97,14 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }]} /></Card>
           {fn === 'cs' && <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={R} /></Card>}
+          {fn === 'cs' && <Card title="Signed on paper" testId="booking-paper"><div className="stack"><p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p><PaperSignatureList rows={paper} canVoid={false} docBase="/va/documents" /><PaperSignatureForm docs={paperDocs} today={today} refresh={R} /></div></Card>}
         </div>
       )}
       {tab === 'money' && b.payments && (
         <div className="stack">
-          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' }]} /></Card>
+          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
+            { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>
+          {fn === 'finance' && <Card title="Paid another way" testId="booking-manual-payments"><ManualPaymentList rows={manual} canVoid={false} docBase="/va/documents" /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={R} label="Record a payment received another way" /></Card>}
           <Card title="Refunds" aside={fn === 'finance' ? <Act action="request_refund" payload={P} label="Request a refund" testId="request-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: REFUND_REASONS.map((x) => [x, label(x)] as [string, string]) }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Refund requested." /> : null}>
             <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
               { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />

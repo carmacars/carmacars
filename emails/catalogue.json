@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 142,
+  "count": 144,
   "emails": [
     {
       "code": "account_password_reset",
@@ -8607,6 +8607,222 @@
       ],
       "template_html": "templates/owner_payment_received.html",
       "template_text": "templates/owner_payment_received.txt"
+    },
+    {
+      "code": "owner_payment_recorded",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin or Finance records a payment received outside the card processor (e-Transfer, cheque, cash, bank transfer or another way) on an owner invoice, in full or in part. The receipt for that payment; the automatic debit stops, or debits only what is still owing.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Receipt: {{amount}} received for invoice {{invoice_number}}",
+      "preheader": "Paid by {{payment_method}} on {{payment_date}}. {{balance_line}}",
+      "sample_subject": "Receipt: $350.00 received for invoice INV-2026-11-0042",
+      "variables": [
+        {
+          "name": "amount",
+          "type": "string",
+          "sample": "$350.00"
+        },
+        {
+          "name": "balance",
+          "type": "string",
+          "sample": "$0.00"
+        },
+        {
+          "name": "balance_line",
+          "type": "string",
+          "sample": "Paid in full."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "debit_line",
+          "type": "string",
+          "sample": "We debit only what is still owing, on the date of your notice."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_reference",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INV-2026-11-0042"
+        },
+        {
+          "name": "is_paid_in_full",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payment_date",
+          "type": "string",
+          "sample": "Tue, Nov 10, 2026"
+        },
+        {
+          "name": "payment_method",
+          "type": "string",
+          "sample": "e-Transfer"
+        },
+        {
+          "name": "reference",
+          "type": "string",
+          "sample": "CAxK7f2Pq"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_payment_recorded.html",
+      "template_text": "templates/owner_payment_recorded.txt"
+    },
+    {
+      "code": "owner_payment_reversed",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin voids a payment that was recorded by hand on an owner invoice (for example a cheque that was returned, or a payment recorded on the wrong invoice), with the reason. The invoice owes that amount again.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Payment for invoice {{invoice_number}} was not received",
+      "preheader": "{{amount}} by {{payment_method}} on {{payment_date}}. {{balance}} is owing.",
+      "sample_subject": "Payment for invoice INV-2026-11-0042 was not received",
+      "variables": [
+        {
+          "name": "amount",
+          "type": "string",
+          "sample": "$350.00"
+        },
+        {
+          "name": "balance",
+          "type": "string",
+          "sample": "$350.00"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INV-2026-11-0042"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payment_date",
+          "type": "string",
+          "sample": "Tue, Nov 10, 2026"
+        },
+        {
+          "name": "payment_method",
+          "type": "string",
+          "sample": "cheque"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "void_reason",
+          "type": "string",
+          "sample": "The bank returned the cheque (insufficient funds)."
+        }
+      ],
+      "template_html": "templates/owner_payment_reversed.html",
+      "template_text": "templates/owner_payment_reversed.txt"
     },
     {
       "code": "owner_payout_sent",

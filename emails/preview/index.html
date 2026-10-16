@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>142 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>56</span></a><a href="#owner">Owner <span>31</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>144 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>56</span></a><a href="#owner">Owner <span>33</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (56)</h2>
 <div class="grid">
@@ -363,7 +363,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (31)</h2>
+<h2 id="owner">Owner (33)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Confirm your email to open your CarmaCars owner account</div>
@@ -508,6 +508,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An owner invoice changes to paid: the debit for a monthly invoice clears (including a cleared retry), or the upfront invoice is paid by card or e-Transfer.</div>
 <div class="ln"><a href="../dist/owner_payment_received.html">HTML</a><a href="../dist/owner_payment_received.txt">Text</a><a href="../shots/owner_payment_received.desktop.png">Desktop</a><a href="../shots/owner_payment_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_payment_recorded.html"><img loading="lazy" src="../shots/owner_payment_recorded.desktop.png" alt="Screenshot of owner_payment_recorded"></a><div class="b">
+<div class="code">owner_payment_recorded</div><div class="sub">Receipt: $350.00 received for invoice INV-2026-11-0042</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin or Finance records a payment received outside the card processor (e-Transfer, cheque, cash, bank transfer or another way) on an owner invoice, in full or in part. The receipt for that payment; the automatic debit stops, or debits only what is still owing.</div>
+<div class="ln"><a href="../dist/owner_payment_recorded.html">HTML</a><a href="../dist/owner_payment_recorded.txt">Text</a><a href="../shots/owner_payment_recorded.desktop.png">Desktop</a><a href="../shots/owner_payment_recorded.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_payment_reversed.html"><img loading="lazy" src="../shots/owner_payment_reversed.desktop.png" alt="Screenshot of owner_payment_reversed"></a><div class="b">
+<div class="code">owner_payment_reversed</div><div class="sub">Payment for invoice INV-2026-11-0042 was not received</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin voids a payment that was recorded by hand on an owner invoice (for example a cheque that was returned, or a payment recorded on the wrong invoice), with the reason. The invoice owes that amount again.</div>
+<div class="ln"><a href="../dist/owner_payment_reversed.html">HTML</a><a href="../dist/owner_payment_reversed.txt">Text</a><a href="../shots/owner_payment_reversed.desktop.png">Desktop</a><a href="../shots/owner_payment_reversed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_payout_sent.html"><img loading="lazy" src="../shots/owner_payout_sent.desktop.png" alt="Screenshot of owner_payout_sent"></a><div class="b">
 <div class="code">owner_payout_sent</div><div class="sub">Payout sent: $1,922.25 for November</div>

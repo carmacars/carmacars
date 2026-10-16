@@ -3,6 +3,7 @@
 //   content  Site copy an admin edits (FAQ lists, steps, cookie wording, legal pages, scene photos,
 //            the owner's line). Needed in every environment: `node scripts/seed.mjs --content-only`
 //            against staging or production writes the same rows.
+//   guides   The six portal guides (docs/guides/content), only where a guide has none (scripts/seed-guides.mjs).
 //   sample   The 20 sample cars of prototype/tools/src/data.mjs with their rates, classes, photos,
 //            listings and the sample bookings that fill their calendars. Local and staging only.
 //
@@ -19,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { execFileSync } from 'node:child_process';
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.resolve(WEB, '..');
@@ -231,3 +233,7 @@ try {
 } finally {
   await sql.end();
 }
+// the user guides (0044): added where a guide has none, never overwriting an Admin's edits. A separate process with
+// Node's TypeScript support, so the HTML comes from the same renderer as Admin > Settings > Guides > Publish.
+execFileSync(process.execPath, ['--experimental-strip-types', '--no-warnings', path.join(WEB, 'scripts/seed-guides.mjs')],
+  { stdio: 'inherit', env: { ...process.env, DATABASE_URL: url } });

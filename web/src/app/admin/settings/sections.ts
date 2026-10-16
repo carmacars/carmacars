@@ -9,6 +9,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Coverage prices', 'Price table for coverage sold through CarmaCars'],
   ['forms', 'Forms', 'The official ServiceOntario PDFs and what goes in each field'],
+  ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
   ['insurers', 'Insurers', 'Insurance companies billed for bookings'],

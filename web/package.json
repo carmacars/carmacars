@@ -7,8 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev --port 3000",
-    "build": "next build",
+    "dev": "node scripts/guide-assets.mjs && next dev --port 3000",
+    "build": "node scripts/guide-assets.mjs && next build",
+    "guides:pdf": "node scripts/guides-pdf.mjs",
     "start": "node scripts/serve.mjs",
     "lint": "eslint --max-warnings=0 .",
     "typecheck": "tsc --noEmit",

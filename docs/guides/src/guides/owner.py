@@ -141,6 +141,9 @@ def build():
         'Prefer Interac e-Transfer? Send the amount to billing@carmacars.ca with the invoice number in the message.',
     ], shot=S('owner/06-invoice-desktop', 0, 330, 1440, 1000, pins=[(2, 100, 648), (3, 550, 648), (4, 165, 855)]))
 
+    g.tip('Paid us by e-Transfer, cheque, cash or bank transfer? Once we record it, the invoice says "Paid by e-Transfer on" the date, you get a receipt by email, '
+          'and the automatic debit does not take that amount. Paid part of it? The invoice shows Partly paid and only the rest is debited.')
+
     g.task('Tell us where to pay you')
     g.steps([
         f'Open {B("Banking")}. Under Where we pay you, choose Bank transfer or e-Transfer.',
@@ -160,6 +163,16 @@ def build():
               'Your signed agreements, uploads and government forms are under Documents. Some forms are '
               'filled for you; Forms C and D are signed on paper with witnesses.',
               blurb='Agreements, government forms, Forms C and D, and official forms filled for you.')
+    g.task('Forms A and B, signed on screen',
+           'Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed.')
+    g.steps([
+        f'Open Documents. Under Forms to sign on screen, press the form marked To sign.',
+        'Read it. It is filled in from your records, with your cars listed.',
+        f'Draw your signature in the box, or press {B("Type my name instead")} and type your full legal name.',
+        f'Tick the box to sign electronically and press {B("Sign")}. CarmaCars countersigns at once, and the signed copy is in Documents.',
+    ])
+    g.tip('Signed one of your documents on paper instead? Send us the scan. Once we record it, Documents shows it as Signed on paper and we do not ask again.')
+
     g.task('Forms C and D, signed with witnesses',
            'Form D is a limited power of attorney (two witnesses). Form C is the lender or lessor permission for a financed or leased car (one witness).')
     g.steps([

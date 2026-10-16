@@ -60,7 +60,7 @@ export const viewAsCookieOptions = () => ({ httpOnly: true, secure: env().NEXT_P
 
 // Database functions that only read, which a page may call for the person being viewed. Anything else made for
 // that person (their id as the caller, or as p_by / p_user) is refused while viewing as them.
-const READS = /^(my_|owner_portal_|site_|public_|admin_gate$|door$|sitemap_rows$|fleet$|car_page$|model_hubs?$|vehicle_classes$|handover_places$|quote_booking$|calc_cancellation$|renter_review_state$|server_file_access$|server_pdf_facts$|server_document_file$|server_owner_program_facts$|server_onboarding_options$|server_owner_invoice_id$|server_owner_agreement_facts$|server_agreement_facts$|server_booking_payment_facts$|server_owner_invoice_payment_facts$|server_extension_payment_facts$|driver_signing$|delivery_origin$|load_form_draft$|server_unsubscribe_info$)/;
+const READS = /^(my_|owner_portal_|site_|public_|admin_gate$|door$|sitemap_rows$|fleet$|car_page$|model_hubs?$|vehicle_classes$|handover_places$|quote_booking$|calc_cancellation$|renter_review_state$|server_file_access$|server_pdf_facts$|server_document_file$|server_owner_program_facts$|server_onboarding_options$|server_owner_invoice_id$|server_owner_agreement_facts$|server_agreement_facts$|server_booking_payment_facts$|server_owner_invoice_payment_facts$|server_extension_payment_facts$|driver_signing$|delivery_origin$|load_form_draft$|server_unsubscribe_info$|guide_read$|guide_banner$|guide_pdf_file$|owner_screen_forms$|server_owner_form_ab_facts$|sign_request_facts$)/;
 export const isViewAsRead = (fn: string) => READS.test(fn);
 
 /** For the database layer: is this call made for the person being viewed, and is it a write? */

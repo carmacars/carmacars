@@ -23,6 +23,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
   const paid = i.payments.find((x) => x.status === 'succeeded');
   const pending = i.payments.find((x) => x.status === 'pending');
   const failed = i.payments.find((x) => x.status === 'failed');
+  const reversed = new Set((i.manual ?? []).filter((m) => m.voided_at && m.payment_id).map((m) => m.payment_id!));
   const debit = i.status !== 'paid' ? debitLine(i.debit, day, (c) => money(c, { cents: true })) : null;
   return (
     <>
@@ -31,7 +32,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
         <p className="pt-kicker">Invoice {i.invoice_number}</p>
         <h1 className="d2">{invoiceTitle(i, monthOf)}</h1>
         <p className="muted">{i.vehicle_name}{i.plate ? `, plate ${i.plate}` : ''}. Issued {day(i.issued_at ?? i.billing_date)}.</p>
-        <p><span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span></p>
+        <p><span className={`badge ${s.badge}`} data-testid="invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span></p>
         {debit && <p className="pt-note" data-testid="invoice-debit">{debit}.{i.debit?.attempt?.status === 'scheduled' ? ' You can still pay it now by card; we then do not debit it.' : ''}</p>}
         {i.debit?.paused && i.status !== 'paid' && <p className="pt-note" data-testid="invoice-debit-paused">The automatic debit of this invoice is paused. Pay it from this page, or call us.</p>}
       </header>
@@ -40,7 +41,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
           {i.status === 'paid' ? (
             <section className="ow-status ow-status--paid" data-testid="invoice-paid" aria-labelledby="ow-paid">
               <h2 className="d3" id="ow-paid">{sp.paid ? 'Thank you. Payment received.' : 'Paid'}</h2>
-              <p>{money(i.total_cents, { cents: true })} paid{i.paid_at ? ` on ${day(i.paid_at)}` : ''}{paid ? ` by ${PAY_METHOD_LABEL[paid.method] ?? paid.method}${paid.card_last4 ? ` ending ${paid.card_last4}` : ''}${paid.reference ? `, reference ${paid.reference}` : ''}` : ''}. A receipt is on its way to {i.owner_email ?? 'your email'}.</p>
+              {i.paid_by ? <p data-testid="invoice-paid-by">{i.paid_by}. {money(i.total_cents, { cents: true })} paid in all. A receipt is on its way to {i.owner_email ?? 'your email'}.</p> : <p>{money(i.total_cents, { cents: true })} paid{i.paid_at ? ` on ${day(i.paid_at)}` : ''}{paid ? ` by ${PAY_METHOD_LABEL[paid.method] ?? paid.method}${paid.card_last4 ? ` ending ${paid.card_last4}` : ''}${paid.reference ? `, reference ${paid.reference}` : ''}` : ''}. A receipt is on its way to {i.owner_email ?? 'your email'}.</p>}
               {i.kind === 'upfront' && <p className="small muted">Your first and last month&apos;s Insurance Fee are now held for this vehicle. The first pays the month it is enrolled; the last pays the month it leaves.</p>}
               <p><Link prefetch={false} className="btn btn--ghost" href="/owner">Back to the owner portal</Link></p>
             </section>
@@ -77,7 +78,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
           </section>
           {i.payments.length > 0 && (
             <section className="pt-card" aria-labelledby="ow-payments"><h2 className="d4" id="ow-payments">Payments</h2>
-              <ul className="ow-rows">{i.payments.map((x) => <li key={x.id}><span>{PAY_METHOD_LABEL[x.method] ?? x.method}{x.card_last4 ? ` ending ${x.card_last4}` : ''}{x.reference ? ` · ${x.reference}` : ''}</span><span className="ow-amount">{money(x.amount_cents, { cents: true })}</span><span className="ow-meta"><span>{x.status === 'succeeded' ? 'Received' : x.status === 'pending' ? 'Processing' : 'Did not go through'}</span><span>{day(x.processed_at ?? x.created_at)}</span></span></li>)}</ul>
+              <ul className="ow-rows">{i.payments.map((x) => <li key={x.id}><span>{PAY_METHOD_LABEL[x.method] ?? x.method}{x.card_last4 ? ` ending ${x.card_last4}` : ''}{x.reference ? ` · ${x.reference}` : ''}</span><span className="ow-amount">{money(x.amount_cents, { cents: true })}</span><span className="ow-meta"><span>{reversed.has(x.id) ? 'Reversed' : x.status === 'succeeded' ? 'Received' : x.status === 'pending' ? 'Processing' : 'Did not go through'}</span><span>{day(x.processed_at ?? x.created_at)}</span></span></li>)}</ul>
             </section>
           )}
         </aside>

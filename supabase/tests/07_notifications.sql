@@ -15,8 +15,8 @@ create or replace function test.flush() returns integer
 language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app cap notice',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '142/3');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '144/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -631,6 +631,16 @@ insert into test.nt_synth values
   ('staff_owner_form_uploaded', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), '_immediate', true)),
   ('owner_form_approved', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
   ('owner_form_rejected', 'owner_agreement_form', test.id('nt_form'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
+-- the payments recorded by hand (0044): a receipt and a reversal
+insert into payments (id, owner_id, owner_invoice_id, purpose, kind, method, amount_cents, status, processed_at)
+select test.id('nt_mp_pay'), i.owner_id, i.id, 'owner_fees', 'charge', 'e_transfer', 5000, 'succeeded', now()
+  from owner_invoices i where i.owner_id = test.id('owner:nt_olga') order by i.created_at limit 1;
+insert into manual_payments (id, payment_id, target, owner_invoice_id, owner_id, method, amount_cents, received_on, reference, recorded_by)
+select test.id('nt_mp'), p.id, 'owner_invoice', p.owner_invoice_id, p.owner_id, 'e_transfer', 5000, date '2031-06-10', 'NT-REF-1', test.id('nt_admin')
+  from payments p where p.id = test.id('nt_mp_pay');
+insert into test.nt_synth values
+  ('owner_payment_recorded', 'manual_payment', test.id('nt_mp'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('owner_payment_reversed', 'manual_payment', test.id('nt_mp'), jsonb_build_object('owner_id', test.id('owner:nt_olga')));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');

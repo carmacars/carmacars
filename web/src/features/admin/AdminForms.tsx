@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { approveVehicleTerms, issueTrackerInvoices, recordTrackerInstalled, issueUpfrontInvoices, recordOfflinePayment, sendOwnerLink, setVehicleTerms, type OfflineInput, type TermsInput } from '@/server/actions/admin';
+import { approveVehicleTerms, issueTrackerInvoices, recordTrackerInstalled, issueUpfrontInvoices, sendOwnerLink, setVehicleTerms, type TermsInput } from '@/server/actions/admin';
 
 // The admin forms of the owner billing flow. Terms start from the standard grid; anything off the
 // grid is the Admin's decision and is recorded as such by the database.
@@ -88,29 +88,6 @@ export function IssueInvoices({ ownerId, count }: { ownerId: string; count: numb
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>{a.res.data.count} invoice{a.res.data.count === 1 ? '' : 's'} issued. The owner is emailed each one.</span></p>}
     </div>
-  );
-}
-
-export function OfflinePaymentForm({ ownerId, invoiceId, number, balance, today }: { ownerId: string; invoiceId: string; number: string; balance: number; today: string }) {
-  const router = useRouter();
-  const a = useAct<{ status: string }>();
-  const [p, setP] = useState<OfflineInput>({ method: 'e_transfer', reference: '', received_on: today, amount: '', note: '' });
-  const [open, setOpen] = useState(false);
-  const id = (k: string) => `ad-off-${number}-${k}`;
-  if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid={`offline-${number}`}>Record an offline payment</button>;
-  return (
-    <form className="stack pt-sheet" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => recordOfflinePayment(ownerId, invoiceId, p), (r) => { if (r.ok) router.refresh(); }); }} aria-label={`Record a payment for ${number}`}>
-      <div className="field"><label className="label" htmlFor={id('m')}>Received by</label>
-        <select className="select" id={id('m')} value={p.method} onChange={(e) => setP({ ...p, method: e.target.value })}><option value="e_transfer">e-Transfer</option><option value="cheque">Cheque</option><option value="bank_transfer">Bank transfer</option></select></div>
-      <F id={id('ref')} label="Reference" value={p.reference} set={(v) => setP({ ...p, reference: v })} err={a.err('reference')} hint="The e-Transfer reference number or the cheque number." />
-      <div className="field-row">
-        <F id={id('on')} label="Date received" type="date" value={p.received_on} set={(v) => setP({ ...p, received_on: v })} err={a.err('received_on')} />
-        <F id={id('amt')} label="Amount ($)" value={p.amount} set={(v) => setP({ ...p, amount: v })} err={a.err('amount')} inputMode="decimal" placeholder={(balance / 100).toFixed(2)} hint="Empty: the balance." />
-      </div>
-      <F id={id('note')} label="Note (optional)" value={p.note} set={(v) => setP({ ...p, note: v })} />
-      <Problem a={a} />
-      <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={a.pending}>{a.pending ? 'Recording' : 'Mark paid'}</button><button className="btn btn--quiet btn--sm" type="button" onClick={() => setOpen(false)}>Cancel</button></div>
-    </form>
   );
 }
 

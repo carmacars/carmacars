@@ -11,6 +11,7 @@ import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/u
 import { SECTIONS } from '../sections';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
+import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -144,6 +145,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
               value: ((r.profile as R).cover_functions as string[] | null) ?? [] }]} /></> : null}
           {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
             : <Act action="staff_restore" payload={{ user: r.id }} label="Restore" refresh={['/admin/settings/staff']} />}</span> }]} /></Card>
+      <Card title="Staff agreements" testId="staff-agreements"><StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);
   }
   notFound();

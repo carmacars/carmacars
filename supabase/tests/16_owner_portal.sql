@@ -149,7 +149,7 @@ select test.eq('offline: the same reference again is a replay',
   (public.admin_record_owner_offline_payment(test.opv('i3'), test.id('o16_admin'), '{"method":"e_transfer","reference":"CA1234XYZ"}') ->> 'repeat')::boolean, true);
 select test.eq('offline: audited with the method and reference, shown on the invoice',
   (select a.actor_user_id = test.id('o16_admin') and a.after ->> 'reference' = 'CA1234XYZ' from audit_log a
-     where a.action = 'record_offline_payment' and a.entity_id = test.opv('i3')::text)::text
+     where a.action = 'record_manual_payment' and a.entity_id = test.opv('i3')::text)::text
   || '/' || (select p ->> 'reference' from jsonb_array_elements(public.owner_portal_invoice(test.id('o16_olivia'), (select invoice_number from owner_invoices where id = test.opv('i3'))) -> 'payments') p
               where p ->> 'status' = 'succeeded'), 'true/CA1234XYZ');
 select test.eq('offline: a payment arriving on a settled invoice leaves it paid',

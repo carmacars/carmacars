@@ -4,13 +4,16 @@ import { money, pct } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
-import { IssueInvoices, OfflinePaymentForm, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
+import { IssueInvoices, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
 import Link from 'next/link';
+import { door } from '@/server/door';
+import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';
+import { OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -29,6 +32,12 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
     adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id }),
     // Forms C and D signed with witnesses (migration 0040)
     adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
+  // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
+  const [checklist, paper, manual] = await Promise.all([
+    door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
+    door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
+    Promise.all(d.invoices.filter((i) => (i.manual ?? []).length > 0).map(async (i) => [i.id, await door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { invoice: i.id }).catch(() => [] as ManualRow[])] as const)).then((x) => new Map(x))]);
+  const here = [`/admin/owners/${id}`];
   const o = d.owner;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
@@ -69,13 +78,23 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
               {v.upfront_invoice && <p className="small">Upfront invoice <a href={`#inv-${v.upfront_invoice.invoice_number}`}>{v.upfront_invoice.invoice_number}</a>: {money(v.upfront_invoice.total_cents, { cents: true })}, {invoiceStatus({ status: v.upfront_invoice.status, pending: false }).label.toLowerCase()}.</p>}
             </section>
           ))}
+          {checklist && (
+            <section className="pt-card stack" id="checklist" aria-labelledby="ad-ck"><h2 className="d4" id="ad-ck">Paid and signed</h2>
+              <p className="small">Everything this owner signs and pays to get their cars on the road, and how each was done. A payment received by e-Transfer, cheque, cash or bank transfer, or a document signed on paper, is recorded here and counts everywhere.</p>
+              <OwnerChecklist row={checklist} signer={o.owner_type === 'corporation' ? String(o.signing_officer_name ?? o.legal_name) : o.legal_name} today={today} refresh={here} />
+              <h3 className="d5">Paper signatures</h3>
+              <PaperSignatureList rows={paper} canVoid refresh={here} />
+            </section>
+          )}
           <section className="stack" aria-labelledby="ad-inv"><h2 className="pt-section-title" id="ad-inv">Invoices</h2>
             {d.invoices.length ? <ul className="ow-rows" data-testid="admin-owner-invoices">{d.invoices.map((i) => { const s = invoiceStatus(i); const paid = i.payments.find((x) => x.status === 'succeeded'); return (
               <li key={i.id} id={`inv-${i.invoice_number}`} data-invoice={i.invoice_number}>
                 <span><b>{i.invoice_number}</b> · {i.kind === 'upfront' ? 'First and last month' : i.kind === 'tracker_install' ? 'Tracker install' : monthOf(i.period_month)} · {i.vehicle_name}</span>
                 <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
-                <span className="ow-meta"><span className={`badge ${s.badge}`} data-testid="admin-invoice-status">{s.label}</span>{paid && <span>{PAY_METHOD_LABEL[paid.method] ?? paid.method}{paid.reference ? ` ${paid.reference}` : paid.card_last4 ? ` ending ${paid.card_last4}` : ''}, {day(paid.processed_at ?? paid.created_at)}</span>}
-                  {i.payable && <OfflinePaymentForm ownerId={o.id} invoiceId={i.id} number={i.invoice_number} balance={i.balance_cents} today={today} />}</span>
+                <span className="ow-meta"><span className={`badge ${s.badge}`} data-testid="admin-invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span>{i.paid_by ? <span>{i.paid_by.replace(/^Paid /, '')}</span> : paid && <span>{PAY_METHOD_LABEL[paid.method] ?? paid.method}{paid.reference ? ` ${paid.reference}` : paid.card_last4 ? ` ending ${paid.card_last4}` : ''}, {day(paid.processed_at ?? paid.created_at)}</span>}
+                  {i.partly_paid && <span>{money(i.balance_cents, { cents: true })} owing</span>}</span>
+                {manual.get(i.id) && <div style={{ flex: '1 1 100%' }}><ManualPaymentList rows={manual.get(i.id)!} canVoid refresh={here} /></div>}
+                {i.payable && <div style={{ flex: '1 1 100%' }}><ManualPaymentForm invoice={i.id} number={i.invoice_number} balance={i.balance_cents} today={today} refresh={here} /></div>}
               </li>); })}</ul> : <p className="pt-empty muted">No invoices yet.</p>}
           </section>
         </div>

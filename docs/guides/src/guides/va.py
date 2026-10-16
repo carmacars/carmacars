@@ -54,6 +54,13 @@ def build():
         f'Press a booking number to open it. {B("Queue")} takes you back to your tasks.',
     ], shot=S('va-cs/02-today-desktop', 0, 60, 1440, 760, pins=[(1, 300, 160)]))
 
+    g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
+    g.steps([
+        f'The queue shows "You have a document to sign". Press {B("Read and sign")}.',
+        f'Press the document, then {B("Open the PDF")} and read it.',
+        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}. The signed copy stays on the same page.',
+    ])
+
     g.task('Several functions? Switch with Working as')
     g.para(f'If you cover more than one function, {B("Working as")} at the top of the rail lists them: Customer service, '
            'Finance, Fleet and Sales. Choose one; the rail, the queue and Today change to that function.')
@@ -107,6 +114,14 @@ def build():
         f'Press {B("Approve")}, or {B("Send back")} with What to fix (the owner reads this).',
     ], shot=S('va-cs/08-owner-forms-desktop', 0, 60, 1440, 360, pins=[(2, 988, 170), (3, 1105, 170)]))
 
+    g.task('A rental agreement signed on paper')
+    g.steps([
+        f'Open the booking. Under Signed on paper, press {B("Record paper signature")}.',
+        'Choose the Rental agreement, or the booking change the renter signed.',
+        'Check Signed by and Date signed, and upload the scan of every signed page.',
+        f'Press {B("Record signature")}. It counts as signed, and the renter is not asked to sign again.',
+    ])
+
     g.task('A change to a confirmed booking')
     g.para('On a booking\'s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, '
            f'write the reason, press {B("Preview the price")}, then {B("Send to the renter")}. The renter has 48 hours to accept and sign the '
@@ -139,6 +154,17 @@ def build():
         f'Refunds in progress. Press {B("Request the refund")}; above your limit it waits for an Admin. Then {B("Issue the refund")}.',
         'Owner invoices that failed, and owner statements to prepare.',
     ], shot=S('va-finance/02-money-desktop', 210, 120, 1440, 1180, pins=[(1, 340, 190), (2, 360, 324), (3, 340, 727), (4, 370, 896)]), fig_w=4.0)
+
+    g.task('A payment received another way', 'An owner or renter paid by e-Transfer, cheque, cash or bank transfer.')
+    g.steps([
+        f'Owner invoice: on {B("Payments, deposits, refunds")}, find it under Owner invoices owing and press {B("Record payment")}.',
+        f'Renter: beside the failed payment, press {B("Paid another way")}. Or open the booking\'s Money tab and press {B("Record a payment received another way")}.',
+        'Choose Paid by, the Date received and the Reference (the cheque number for a cheque). Leave Amount empty for the full balance; type less for a partial payment.',
+        f'Add the proof if you have it (a screenshot or a photo of the cheque), then press {B("Record payment")}.',
+    ])
+    g.para('The invoice is marked paid or partly paid, the automatic debit stops for that amount and the owner gets a receipt. '
+           'Above your single limit the payment needs an Admin. Recorded something wrong? Ask an Admin to void it; you cannot void a payment.')
+    g.para('Each month\'s payments recorded by hand are listed under Reconciliation, with the totals by method, to check against the bank.')
 
     g.task('Read a toll notice')
     g.steps([

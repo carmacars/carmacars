@@ -54,24 +54,6 @@ export async function issueUpfrontInvoices(ownerId: string, vehicleIds: string[]
   } catch (e) { return fail(e); }
 }
 
-export interface OfflineInput { method: string; reference: string; received_on: string; amount: string; note: string }
-export async function recordOfflinePayment(ownerId: string, invoiceId: string, p: OfflineInput): Promise<R<{ status: string }>> {
-  const fe: Record<string, string> = {};
-  if (!['e_transfer', 'cheque', 'bank_transfer'].includes(p.method)) fe.method = 'Choose how it was paid.';
-  if ((p.reference ?? '').trim().length < 3) fe.reference = 'Enter the e-Transfer reference or the cheque number.';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(p.received_on ?? '')) fe.received_on = 'Enter the date received.';
-  const amount = p.amount?.trim() ? cents(p.amount) : null;
-  if (amount !== null && (!Number.isFinite(amount) || amount <= 0)) fe.amount = 'Enter the amount received, or leave it empty for the balance.';
-  if (Object.keys(fe).length) return invalid(fe);
-  try {
-    const admin = await assertAdmin();
-    const r = (await rpc('admin_record_owner_offline_payment', { p_invoice: invoiceId, p_admin: admin.id, p: {
-      method: p.method, reference: p.reference.trim(), received_on: p.received_on, amount_cents: amount, note: p.note.trim() || null } }, SR)) as unknown as { invoice_status: string };
-    refresh(ownerId);
-    return { ok: true, data: { status: r.invoice_status } };
-  } catch (e) { return fail(e); }
-}
-
 /** An invitation to apply (a new owner) or a sign-in link to the owner portal (an owner on file). */
 export async function sendOwnerLink(kind: 'invite' | 'portal', email: string, name: string): Promise<R<{ url: string }>> {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email ?? '')) return invalid({ email: 'Enter the owner\'s email address.' });

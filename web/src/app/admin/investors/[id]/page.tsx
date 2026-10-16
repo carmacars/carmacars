@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { monthOf } from '@/features/owner/Blocks';
+import { door } from '@/server/door';
+import { PaperSignatureForm, PaperSignatureList, type PaperRow } from '@/features/manual/ManualRecords';
+import { SendToSign, SignRequestList, type SignRequestRow } from '@/features/manual/SignRequests';
 import { $, Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +14,13 @@ type R = Record<string, unknown>;
 export default async function Investor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const { read } = await page(`/admin/investors/${id}`);
+  const { read, user } = await page(`/admin/investors/${id}`);
   const i = await read<(R & { investments: R[]; returns: R[]; documents: R[]; payouts: R[] }) | null>('investor', { id });
   if (!i) notFound();
+  const [requests, paper] = await Promise.all([door<SignRequestRow[]>(user.id, 'ops_read', 'sign_requests', { investor: id }).catch(() => [] as SignRequestRow[]),
+    door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { investor: id }).catch(() => [] as PaperRow[])]);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const here = [`/admin/investors/${id}`];
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/investors">Investors</Link>} title={<>{String(i.legal_name)} <Badge s={String(i.status)} /></>} />
     <div className="ad-cols ad-cols--2">
@@ -23,6 +30,17 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
         <p className="small">Yearly summaries: {[...new Set(i.returns.map((r) => String(r.return_month).slice(0, 4)))].map((y) => <a key={y} className="link" href={`/files/investor_year/${id}:${y}`} data-testid="investor-year">{y} </a>)}</p></Card>
       <Card title="Documents and payouts"><Table rows={i.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} />
         <Table rows={i.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) }]} /></Card>
+      <Card title="Investment agreement" testId="investor-signing">
+        <div className="stack">
+          <p className="small">Send the agreement to sign in the investor portal, or record one signed on paper. Either way it counts as signed; CarmaCars is bound once the funds clear.</p>
+          <SignRequestList rows={requests} refresh={here} />
+          <PaperSignatureList rows={paper} canVoid refresh={here} />
+          <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
+            <SendToSign docType="investment_agreement" who={id} defaultTitle="Investment agreement" refresh={here} />
+            <PaperSignatureForm docs={[{ doc_type: 'investment_agreement', target_id: id, label: 'Investment agreement', signer: String(i.legal_name ?? '') }]} today={today} refresh={here} />
+          </div>
+        </div>
+      </Card>
     </div>
   </>);
 }

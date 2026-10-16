@@ -1,0 +1,36 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Payment reversed]
+A payment did not go through
+
+The {{amount}} we recorded for invoice {{invoice_number}} was reversed.
+
+IMPORTANT: Why
+{{void_reason}}
+
+Invoice no.: {{invoice_number}}
+Payment: {{amount}} by {{payment_method}}
+Recorded for: {{payment_date}}
+Vehicle: {{vehicle_name}}
+Now owing: {{balance}}
+
+Please pay {{balance}} from the invoice page, or send it by e-Transfer with the invoice number in the message. Questions: reply to this email.
+
+View invoice:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

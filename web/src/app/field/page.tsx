@@ -5,6 +5,7 @@ import { FieldButton } from '@/features/field/FieldButton';
 import type { FieldCard, FieldList } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { getTokens } from '@/lib/site';
+import { signCount } from '@/features/manual/SignPages';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My jobs', path: '/field', noindex: true, description: 'Today\'s and tomorrow\'s field jobs.' });
@@ -16,13 +17,14 @@ const maps = (p: string) => `https://www.google.com/maps/search/?api=1&query=${e
 // first and open; acknowledge and start from the card; vehicle moves.
 export default async function Field({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user }, sp] = await Promise.all([requireStaff('field', '/field'), searchParams]);
-  const [d, tk] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens()]);
+  const [d, tk, toSign] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id)]);
   const day = sp.day === 'tomorrow' ? 'tomorrow' : 'today';
   const jobs = d[day];
   const next = jobs.find((j) => !['done'].includes(j.status));
   return (
     <>
       <h1 className="d3">My jobs{d.name ? `, ${d.name.split(' ')[0]}` : ''}</h1>
+      {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/field/sign">Read and sign</Link></span></p>}
       <nav className="fd-days" aria-label="Day"><Link prefetch={false} href="/field" aria-current={day === 'today' ? 'page' : undefined}>Today ({d.today.length})</Link><Link prefetch={false} href="/field?day=tomorrow" aria-current={day === 'tomorrow' ? 'page' : undefined}>Tomorrow ({d.tomorrow.length})</Link></nav>
       {!jobs.length && <p className="pt-empty" data-testid="no-jobs">No jobs {day}.</p>}
       {jobs.map((j: FieldCard) => (

@@ -36,6 +36,15 @@ def build():
     ], shot=S('investor/01-investments-phone', 0, 595, 390, 1330, pins=[(1, 380, 650), (2, 300, 760), (3, 360, 830), (4, 360, 1105), (5, 360, 1300)]))
     g.tip('This area shows your records under your Investment Agreement. It is not an offer or a solicitation.')
 
+    g.task('Sign your investment agreement', 'When CarmaCars sends your agreement, it is under Documents to sign.')
+    g.steps([
+        f'Press {B("Documents to sign")} in the menu, then the agreement.',
+        f'Press {B("Open the PDF")} and read it, with its schedules.',
+        'Say whether you got independent legal advice, and type your initials for the risk acknowledgment (Schedule C).',
+        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}. The signed copy is on the same page.',
+    ])
+    g.tip('Signed on paper instead? Once we record it, it shows under Signed with the scan.')
+
     g.chapter('How your returns work',
               'Your return is worked out month by month on the Invested Amount, at the Yearly Percentage in your agreement. '
               'Here is the cycle and the words your statements use.',

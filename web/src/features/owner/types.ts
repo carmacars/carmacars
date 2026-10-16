@@ -9,7 +9,7 @@ export interface OwnerVehicle {
 export interface OwnerInvoiceRow {
   id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install'; period_month: string | null;
   billing_date: string; retry_on: string | null; status: string; fees_cents: number; hst_cents: number; late_fee_cents: number; total_cents: number;
-  balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean;
+  balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean; partly_paid?: boolean;
   /** The automatic pre-authorized debit of this invoice (migration 0037). */
   debit?: InvoiceDebit | null;
 }
@@ -30,6 +30,10 @@ export interface OwnerInvoice extends OwnerInvoiceRow {
   lines: Array<{ kind: string; description: string | null; amount_cents: number; hst_cents: number }>;
   payments: Array<{ id: string; method: string; status: string; amount_cents: number; card_brand: string | null; card_last4: string | null; decline: string | null; created_at: string; processed_at: string | null; reference: string | null }>;
   saved_methods: Array<{ kind: string; brand_or_bank: string | null; last4: string | null; is_default: boolean }>;
+  /** Payments recorded by hand (migration 0044) and, when paid, "Paid by e-Transfer on <date>". */
+  manual?: Array<{ id: string; payment_id: string | null; method: string; method_label: string; amount_cents: number; received_on: string; reference: string | null; voided_at: string | null }>;
+  paid_by?: string | null;
+  partly_paid?: boolean;
 }
 export interface OwnerProfile {
   id: string; owner_type: 'individual' | 'corporation'; legal_name: string; first_name: string; corporation_name: string | null; corporation_number: string | null;
@@ -98,7 +102,8 @@ export function debitLine(d: InvoiceDebit | null | undefined, day: (iso: string 
     default: return null;
   }
 }
-export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'>) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
+export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'> & { partly_paid?: boolean }) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' }
+  : i.partly_paid && i.status === 'issued' ? { label: 'Partly paid', badge: 'badge--outline' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
 
 export const invoiceTitle = (i: { kind: string; period_month: string | null }, month: (iso: string | null) => string) =>
   i.kind === 'upfront' ? 'First and last month\'s insurance' : i.kind === 'tracker_install' ? 'Tracker install' : i.kind === 'adjustment' ? 'Adjustment' : `Fees for ${month(i.period_month)}`;
@@ -114,4 +119,4 @@ export const METHOD_LABEL: Record<string, string> = {
   lease_existing_corporation: 'Lease, existing corporation', lease_new_owner_corporation: 'Lease, new Owner Corporation',
   co_registrant: 'Co-Registrant', transfer: 'Transfer', none: 'None (Turo-Only)'
 };
-export const PAY_METHOD_LABEL: Record<string, string> = { card: 'Card', pre_authorized_debit: 'Pre-authorized debit', e_transfer: 'e-Transfer', cheque: 'Cheque', bank_transfer: 'Bank transfer' };
+export const PAY_METHOD_LABEL: Record<string, string> = { card: 'Card', pre_authorized_debit: 'Pre-authorized debit', e_transfer: 'e-Transfer', cheque: 'Cheque', bank_transfer: 'Bank transfer', cash: 'Cash', other: 'Other' };

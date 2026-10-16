@@ -248,7 +248,7 @@ def build():
     g.steps([
         f'Open the application and press {B("Approve and set terms")} (or {B("Set terms (standard grid)")}).',
         'The owner signs the agreements and pays the upfront invoice in their portal.',
-        f'Paid offline? On the invoice, press {B("Mark paid")} and fill in Reference, Date received and Amount ($).',
+        f'Paid another way? On the invoice, press {B("Record payment")} (see Paid and signed, below).',
     ])
     g.task('An owner\'s page', 'Open an owner from Owners. The details are in the right-hand column.')
     g.steps([
@@ -258,6 +258,18 @@ def build():
         'Forms C and D, with a link to the review queue.',
         f'Further down: {B("View as (owner portal)")}, {B("Send password link")} and {B("Send a sign-in link to the owner portal")}.',
     ], shot=S('admin/13-owner-desktop', 1010, 280, 1420, 1310, hdr=False, pins=[(1, 1111, 325), (2, 1076, 619), (3, 1139, 1034), (4, 1097, 1290)]))
+
+    g.task('Paid and signed', f'{P("People", "Owners")}, then {B("Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
+    g.steps([
+        'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
+        f'Open {B("Checklist and quick actions")}. Each line says Signed in the portal, Signed on paper, Paid by e-Transfer, Not signed, and so on.',
+        f'Paid by e-Transfer, cheque, cash or bank transfer? Press {B("Record payment")}. Choose Paid by, the Date received and the Reference (the cheque number for a cheque). Leave Amount empty for the full balance, or type less for a partial payment. Add a photo of the cheque or a screenshot if you have one.',
+        f'Signed on paper? Press {B("Record paper signature")}. Choose the Document, check Signed by and Date signed, add the witnesses where the form needs them, and upload the scan of every signed page.',
+        'The same checklist sits at the top of each owner\'s page.',
+    ])
+    g.para('A recorded payment marks the invoice paid (or partly paid), stops the automatic debit for that amount, sends the owner a receipt, and shows "Paid by e-Transfer on <date>" in their portal. '
+           'A paper signature counts as signed everywhere: the checklist, onboarding and the owner portal. The scan is kept privately with the owner\'s documents.')
+    g.warn(f'Recorded the wrong thing, or a cheque bounced? Press {B("Void")} beside it and give the reason. The invoice owes that amount again and the owner is told; a voided signature makes the item open again. Only an Admin can void.')
 
     g.task('Forms C and D', f'{P("People", "Owner forms")}. Owners upload the scans signed in front of witnesses.')
     g.steps([
@@ -276,7 +288,7 @@ def build():
         f'{B("Run the monthly invoices")} issues the invoices for the 15th by hand, for a missed month. An invoice is never issued twice.',
         f'{B("Issue all tracker invoices")} bills the Tracker Install for each car waiting for its tracker.',
         'Filter by Open, Paid, Failed or In arrears. Failed invoices show the reason.',
-        f'Paid by e-Transfer or cheque? Open the invoice, press {B("Mark paid")}, fill in Reference, Date received and Amount ($).',
+        f'Paid by e-Transfer, cheque, cash or bank transfer? Press {B("Record payment")} under the invoice. Leave Amount empty for the full balance.',
     ], shot=S('admin/14-owner-invoices-desktop', 0, 0, 1440, 1060, pins=[(1, 1200, 237), (2, 600, 378), (3, 418, 460), (4, 743, 894)]))
 
     g.task('The automatic debit', 'The debit runs by itself. Your job is to watch for returned debits and owners without a mandate.')
@@ -382,6 +394,24 @@ def build():
         'For each field, choose What goes in it (or "The owner signs here"), a Format, and Only when if it applies.',
         f'Press {B("Save the mapping")}, then {B("Download a filled preview")} for one car and check it.',
         f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed.',
+    ])
+
+    g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are signed in the person\'s own portal, or on paper.')
+    g.steps([
+        f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send a PDF to sign")}, choose the PDF and press {B("Send to sign")}.',
+        f'Staff: open {P("Settings", "Staff and roles")}. Under Staff agreements, press {B("Send a PDF to sign")} beside the person.',
+        'They get a notice and sign it in their portal by typing their name or drawing. The signed copy is filed with their documents.',
+        f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',
+        f'Sent by mistake? Press {B("Withdraw")} and give the reason.',
+    ])
+
+    g.task('The user guides', f'{P("Settings", "Guides")}. The guide of each portal, as people read it under Guide.')
+    g.steps([
+        'Each guide shows its version, when it was published and whether there are unpublished changes.',
+        f'Open a guide and press a section. Change its text and press {B("Show the preview")} to see it as people will. Press {B("Save the draft")}; each save is kept in the section\'s history.',
+        f'Move a section with the arrows, hide it, or press {B("Add a chapter")}. Upload a screenshot under Screenshots and paste the line it gives you.',
+        f'Press {B("Publish version")} (the next number). The portals show the new version at once.',
+        'The stored PDF is printed again by the guides-pdf workflow. Until then the guide says the web guide has newer edits.',
     ])
 
     g.task('Insurers and the other lists')

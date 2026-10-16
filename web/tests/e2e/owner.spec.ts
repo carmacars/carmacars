@@ -243,7 +243,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await admin.getByTestId(`offline-${invoices[2]!.invoice_number}`).click();
   await admin.locator(`#ad-off-${invoices[2]!.invoice_number}-ref`).fill('CA9XKT2');
   await check(admin, 'admin offline payment');
-  await admin.getByRole('button', { name: 'Mark paid' }).click();
+  await admin.locator(`li[data-invoice="${invoices[2]!.invoice_number}"]`).getByRole('button', { name: 'Record payment' }).click();
   await expect(admin.locator(`li[data-invoice="${invoices[2]!.invoice_number}"] [data-testid="admin-invoice-status"]`)).toHaveText('Paid', { timeout: 15_000 });
   await admin.goto('/admin/invoices?status=paid', { waitUntil: 'networkidle' });
   await check(admin, 'admin invoices');
@@ -251,13 +251,16 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await check(admin, 'admin owners');
   await admin.context().close();
 
-  const after = await sql`select i.status, (select count(*) from audit_log a where a.action = 'record_offline_payment' and a.entity_id = i.id::text)::int audited from owner_invoices i where i.owner_id = ${owner!.id} order by i.invoice_number`;
+  const after = await sql`select i.status, (select count(*) from audit_log a where a.action = 'record_manual_payment' and a.entity_id = i.id::text)::int audited from owner_invoices i where i.owner_id = ${owner!.id} order by i.invoice_number`;
   expect(after.map((r) => r.status)).toEqual(['paid', 'paid', 'paid']);
   expect(after[2]!.audited).toBe(1);
   const ob = await sql`select string_agg(ob.status::text, ',') s from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = ${owner!.id}`;
   expect(ob[0]!.s).toBe('upfront_paid,upfront_paid,upfront_paid');
+  // the two paid online get "payment received"; the one recorded by hand gets its own receipt (owner_payment_recorded, 0044)
   const receipts = await sql`select count(*)::int n from app_events e where e.code = 'owner_payment_received' and e.entity_id in ${sql(invoices.map((i) => i.id as string))}`;
-  expect(receipts[0]!.n).toBe(3);
+  expect(receipts[0]!.n).toBe(2);
+  const recorded = await sql`select count(*)::int n from app_events e where e.code = 'owner_payment_recorded' and e.entity_id in (select m.id from manual_payments m where m.owner_invoice_id = ${invoices[2]!.id})`;
+  expect(recorded[0]!.n).toBe(1);
 
   // ---------------------------------------------------------------- 7. every owner page renders with real data
   await page.goto('/owner/invoices', { waitUntil: 'networkidle' });

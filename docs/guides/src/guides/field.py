@@ -58,6 +58,13 @@ def build():
         f'Press {B("Start a move")}. When you arrive, press {B("End the move")} and enter the odometer again.',
     ], shot=S('field/01-today-phone', 0, 1040, 390, 1490, hdr=False, pins=[(1, 340, 1140), (2, 340, 1312), (3, 340, 1460)]))
 
+    g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
+    g.steps([
+        f'My jobs shows "You have a document to sign". Press {B("Read and sign")}.',
+        f'Press the document, then {B("Open the PDF")} and read it.',
+        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}.',
+    ])
+
     # ---------------------------------------------------------------- 2
     g.chapter('A handover',
               'You give the renter the keys only after every check passes. The steps guide you one by one: '

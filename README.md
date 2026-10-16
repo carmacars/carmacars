@@ -82,6 +82,7 @@ cd emails && node check.mjs
 | `0041_sample_cars_not_compared.sql` | The similarity check leaves the sample cars out (their placeholder VINs were flagged on the live database) |
 | `0042_tolls_plates_forms.sql` | Reading toll notices and statements (reads and lines checked beside the file, reading profiles editable in Admin, confirm through 0021's import with charging and exceptions), licence plates covered on listing photos (the decision per photo, the publish check), official ServiceOntario PDFs mapped field by field and filled for owners, one turnaround between trips (block or buffer, never both), the vision model's calls and daily cap (`docs/changes/2026-10-14-tolls-plates-forms.md`) |
 | `0043_email_cap.sql` | The email daily cap safe on Resend's free plan: Supabase Auth's emails counted, classes leaving room for them, the 80% warning in the portal, the provider's 429 held without spending an attempt, a final failure told to the Admins (`docs/changes/0043_email_cap.md`) |
+| `0044_guides_manual_records.sql` | The user guide of every portal stored in the database (sections, versions, publish, images, stored PDFs, who read which version, the first-visit banner), payments received outside the card processor recorded on owner invoices and renter bookings (partial, proof, receipt, the debit stopped, void with a reason), signatures on paper for every signable document (scan, signer, witnesses, void), documents sent to sign in the investor, VA and Field portals, Forms A and B signed on screen, the owner checklist (`docs/changes/2026-10-15-guides-manual-records.md`) |
 
 ## Test files
 
@@ -111,6 +112,7 @@ cd emails && node check.mjs
 | `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
 | `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
 | `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
+| `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 129 |
 
 ## Rules for changes
 

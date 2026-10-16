@@ -1,0 +1,58 @@
+{
+ "portal": "investor",
+ "title": "Investor Portal Guide",
+ "promise": "Your investment, your returns and your statements, any time.",
+ "signin_url": "carmacars.ca/sign-in?next=/investor",
+ "lands_on": "Investments",
+ "sections": [
+  {
+   "kind": "start",
+   "slug": "start-here",
+   "title": "Start here",
+   "blurb": "Who this is for and your first sign-in.",
+   "body_md": "### Who this guide is for\n\nInvestors with an Investment Agreement with CarmaCars. Your portal shows each investment, what it has earned and paid, your monthly statements, and lets you send notices to us.\n\n### What you need\n\n- The invitation email from CarmaCars (investor accounts are by invitation only)\n- Access to that inbox: the link works for one hour, once\n- An authenticator app, if you choose two-step sign-in (recommended)\n\n## Your first sign-in\n\n1. Open the invitation email and press its link within one hour.\n2. Choose a password of 8 characters or more and press **Save the new password**. You land on Investments.\n3. Next time, sign in at `carmacars.ca/sign-in`, or use Investor sign in at the bottom of any page of carmacars.ca.\n4. Forgot your password? Press **Forgot your password?** on the sign-in page.\n\n![](/guides/img/public-09-sign-in-phone-1f766061.jpg \"phone; size: 390 645; pins: 3 95.4 78.4\")\n\n> Good to know: Link expired? The page it opens has **Send me a new link**.\n"
+  },
+  {
+   "kind": "chapter",
+   "slug": "your-investments",
+   "title": "Your investments",
+   "blurb": "Each investment, its returns and the latest statement.",
+   "body_md": "Investments shows each of your investments: what you put in, what it earns, and when it pays.\n\n## Read an investment\n\n1. The menu: **Investments**, **Statements** and **Profile and notices**. **Sign out** is on the right.\n2. Your agreement number and name.\n3. Invested Amount, Principal, what was reinvested and redeemed to date, and the Yearly Percentage.\n4. Investment Date, Lockup End Date, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date.\n5. Latest statement, with **Open**.\n\n![](/guides/img/investor-01-investments-phone-d7251016.jpg \"phone; size: 390 795; pins: 1 97.0 14.5, 2 76.9 28.3, 3 92.3 37.1, 4 92.3 71.7, 5 92.3 96.2\")\n\n> Tip: This area shows your records under your Investment Agreement. It is not an offer or a solicitation.\n\n## Sign your investment agreement\n\nWhen CarmaCars sends your agreement, it is under Documents to sign.\n\n1. Press **Documents to sign** in the menu, then the agreement.\n2. Press **Open the PDF** and read it, with its schedules.\n3. Say whether you got independent legal advice, and type your initials for the risk acknowledgment (Schedule C).\n4. Draw your signature or type your full legal name, tick the box and press **Sign**. The signed copy is on the same page.\n\n> Tip: Signed on paper instead? Once we record it, it shows under Signed with the scan.\n"
+  },
+  {
+   "kind": "chapter",
+   "slug": "how-your-returns-work",
+   "title": "How your returns work",
+   "blurb": "The monthly cycle, the terms on your statements, notices and holds.",
+   "body_md": "Your return is worked out month by month on the Invested Amount, at the Yearly Percentage in your agreement. Here is the cycle and the words your statements use.\n\n## The monthly cycle\n\n:::flow\nReturn Month | Your Invested Amount earns for each day of the month\nStatement | The return is worked out after the month ends\nThe 15th | Paid to your bank account, or reinvested\nEmail | Your statement, with its PDF attached\n:::\n\n- No return is earned for the lockup period. Your first Return Month starts on your Lockup End Date.\n- Paid monthly: the return is paid by bank transfer on the 15th of the month after the Return Month (the Next Payment Date).\n- Reinvested: the return is added to your Invested Amount, so it earns from then on.\n- Each statement shows the Invested Amount at the start and the end of the month, so you can follow it over time.\n\n## The words on your statements\n\n| Term | What it means |\n| --- | --- |\n| Invested Amount | What is earning a return: your principal, plus returns reinvested, less amounts redeemed. |\n| Principal | What you invested. |\n| Yearly Percentage | The yearly rate in your agreement. |\n| Investment Date | The day your funds cleared. |\n| Lockup End Date | Six months after the Investment Date. No return is earned before it. |\n| Return Month | The calendar month a return is earned in. |\n| Days earning | How many days of the month the amount earned, for example 31 of 31. |\n| Next Payment Date | When the next return is paid: the 15th of the month after the Return Month. |\n\n## Notices from CarmaCars\n\nTwo notices can appear on Investments, above your investments:\n\n| Notice | What it means |\n| --- | --- |\n| Return on hold: | A return is held, with the reason, for example tax information we still need. Send what it asks for and we release it. |\n| Redemption notice: | CarmaCars will repay an amount, with the Redemption Date. |\n\n## Emails you get from us\n\n- Your statement is ready, with the PDF attached, each month.\n- Your return was paid, with the amount and date (not sent when it is reinvested).\n- We received your notice: an election change, a bank account change or a contact change.\n\n> Tip: Our investor emails are servicing notices about your existing investment. They are not an offer or a solicitation. CarmaCars gives no tax advice.\n"
+  },
+  {
+   "kind": "chapter",
+   "slug": "statements",
+   "title": "Statements",
+   "blurb": "Monthly statements, PDFs and yearly downloads.",
+   "body_md": "One statement per month, as a page and a PDF. We also email each statement with its PDF attached.\n\n## Open a statement\n\n1. Statements lists each Return Month with the Invested Amount, days, the return and whether it was paid or reinvested.\n2. Press a month to open it, or **PDF** beside it.\n3. Download a year: all statements of a year (ZIP) and the summary table (CSV). Yearly summaries come as PDF.\n\n![](/guides/img/investor-02-statements-phone-57c8875e.jpg \"phone; size: 390 665; pins: 1 97.0 38.3, 2 30.8 51.9, 3 97.0 78.9\")\n\n4. A statement shows the investor, the agreement, the amount at the start of the month, the Yearly Percentage, the days earning, the return for the month, when it is paid, and the amount at the end. Press **Download PDF** to keep it.\n\n![](/guides/img/investor-03-statement-phone-5cdb2399.jpg \"phone; size: 390 765; pins: 4 76.9 35.0\")\n"
+  },
+  {
+   "kind": "chapter",
+   "slug": "profile-and-notices",
+   "title": "Profile and notices",
+   "blurb": "Contact details, notices about returns and bank account, transfers, two-step sign-in.",
+   "body_md": "Your contact details, and the notices you can send us: how returns are handled, your bank account, and a transfer request.\n\n## Contact details\n\nContact details shows your name, email, phone, address and bank account on file. To update these, ask us; we confirm by phone.\n\n## Change how returns are handled\n\n1. Under How returns are handled, choose Paid monthly or Reinvested.\n2. Press **Send the notice**. The change applies from the first Return Month that starts at least 10 days after we receive it.\n\n![](/guides/img/investor-04-profile-phone-e5894b5f.jpg \"phone; size: 390 290; pins: 1 92.3 53.4, 2 92.3 85.2\")\n\n## Bank account and transfers\n\n1. To change the account we pay, press **Ask to change the bank account**. We call you at the number on file to take the new details. A change applies 10 days after notice.\n2. To transfer an investment, choose it, fill in To (full name) and a Note, then press **Send the request**. A transfer needs CarmaCars' written consent.\n3. You see \"Received. CarmaCars will confirm in writing.\" We confirm each request by email.\n\n![](/guides/img/investor-04-profile-phone-68025eca.jpg \"phone; size: 390 610; pins: 1 92.8 23.0, 2 92.8 60.7\")\n\n## Two-step sign-in (recommended)\n\n1. At the bottom of Profile and notices, press **Set up two-step sign-in**.\n2. Scan the code with your authenticator app.\n3. Type the 6 digits and press **Continue**. From then on, every sign-in asks for a code.\n\n![](/guides/img/investor-04-profile-desktop-c559288a.jpg \"desktop; size: 320 150; address: carmacars.ca/investor/profile; pins: 1 93.8 72.0\")\n\nDocuments, further down the same page, lists your statements as files.\n"
+  },
+  {
+   "kind": "chapter",
+   "slug": "keeping-your-account-safe",
+   "title": "Keeping your account safe",
+   "blurb": "Signing out, email links, two-step sign-in and the wrong account.",
+   "body_md": "Your portal holds your investment records. A few habits keep it yours.\n\n## Good habits\n\n| Habit | Why |\n| --- | --- |\n| Sign out on shared computers | **Sign out** is at the top of every page. It signs you out on this device only. |\n| Email links work once | Invitation and password links work for one hour, once. Never forward them. |\n| Two-step sign-in | With it on, a password alone cannot open your portal. Set it up under Profile and notices. |\n| We never ask for your password | CarmaCars never asks for your password or a sign-in code by email or phone. |\n| Bank changes are confirmed by phone | We call the number on file before we change where returns are paid. |\n\n## Signed in with the wrong account?\n\nIf a page says \"You are signed in as ...\" and that you have no access, you are signed in with another CarmaCars account (for example a renter account). Press **Sign out**, then sign in with the email your invitation was sent to.\n"
+  },
+  {
+   "kind": "reference",
+   "slug": "quick-reference",
+   "title": "Quick reference",
+   "blurb": "One page with the essentials.",
+   "body_md": "### Where things are\n\n| Item | What it is for |\n| --- | --- |\n| **Investments** | Each investment, returns, next payment |\n| **Statements** | One per month; PDF, ZIP and CSV by year |\n| **Profile and notices** | Contact details, notices, transfers, two-step sign-in |\n\n### Top tasks\n\n1. **See what you earned** ›*a month\n2. **Keep a statement** **Download PDF**\n3. **A whole year** ›*Download a year\n4. **Paid monthly or reinvested** **Send the notice**\n5. **Change your bank account** **Ask to change the bank account**\n6. **Transfer an investment** **Send the request**\n7. **Protect your account** **Set up two-step sign-in**\n\n### If something goes wrong\n\n| What you see | What to do |\n| --- | --- |\n| **A link says it expired** | Links in our emails work for one hour, once. Press **Send me a new link** on that page. |\n| **\"Error 1102\" on a page** | A short limit on our web host. Reload the page. You are still signed in. |\n| **\"That email and password do not match an account.\"** | Check the address, or use **Set a new password** on the sign-in page. |\n| **Asked for a 6-digit code** | Open your authenticator app. Lost your phone? Call us. |\n"
+  }
+ ]
+}

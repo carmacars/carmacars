@@ -1,0 +1,71 @@
+name: guides-pdf
+
+# The user guides' stored PDFs (migration 0044): each published guide is printed from the live database (the same
+# HTML the portal's guide page shows, in its print layout) with Playwright Chromium and stored as that guide's PDF,
+# with its version and date, through the site's job endpoint (web/scripts/guides-pdf.mjs). Run it after publishing
+# guide edits in Admin > Settings > Guides; until then the portals offer the older PDF and say the web guide is newer.
+# committed = true uploads the October 2026 PDFs of docs/guides/pdf instead, only for guides with no PDF stored.
+on:
+  workflow_dispatch:
+    inputs:
+      portals:
+        description: Only these guides (comma separated; empty for all) renter,owner,admin,va,field,investor
+        type: string
+        default: ''
+      committed:
+        description: Upload the committed PDFs (docs/guides/pdf) where no PDF is stored yet, instead of printing
+        type: boolean
+        default: false
+
+concurrency:
+  group: guides-pdf
+  cancel-in-progress: false
+
+jobs:
+  pdf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      APP_URL: https://carmacars.ca
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        if: ${{ !inputs.committed }}
+      - name: Playwright browser cache
+        if: ${{ !inputs.committed }}
+        id: pw
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Browser
+        if: ${{ !inputs.committed }}
+        run: |
+          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
+      - name: Print and store
+        run: |
+          # the site's link key (the jobs' bearer token is derived from it), from the Supabase vault as verify.yml reads it
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          if [ -z "$L" ]; then echo "::error title=guides-pdf::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
+          echo "::add-mask::$L"
+          export LINK_SIGNING_KEY="$L"
+          P="${{ inputs.portals }}"
+          node scripts/guides-pdf.mjs --base "$APP_URL" ${{ inputs.committed && '--committed' || '--out "$RUNNER_TEMP/guides"' }} ${P:+--portals "$P"} | tee "$RUNNER_TEMP/report.txt"
+          sed 's/^/::notice title=guides-pdf::/' "$RUNNER_TEMP/report.txt"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.committed }}
+        with:
+          name: guides-pdf
+          path: ${{ runner.temp }}/guides
+          retention-days: 7
