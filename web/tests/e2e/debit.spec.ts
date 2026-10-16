@@ -164,7 +164,7 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   await admin.goto(`/admin/reports?month=${month}`, { waitUntil: 'networkidle' });
   await admin.getByTestId('company-build').click();
   // (the other width may be building the same month at the same moment: the page is read again once one build is in)
-  await expect.poll(async () => (await sql`select jsonb_array_length(sections)::int n from company_statements where statement_month = ${month + '-01'}`)[0]?.n ?? 0, { timeout: 60_000 }).toBe(12);
+  await expect.poll(async () => (await sql`select jsonb_array_length(sections)::int n from company_statements where statement_month = ${month + '-01'}`)[0]?.n ?? 0, { timeout: 60_000 }).toBe(13); // 0046: the company fleet and partners section
   await admin.reload({ waitUntil: 'networkidle' });
   await expect(admin.getByTestId('company-sections')).toContainText('Income summary', { timeout: 30_000 });
   await expect(admin.getByTestId('company-sections')).toContainText('Owner fees and debits');

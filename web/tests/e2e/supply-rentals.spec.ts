@@ -276,7 +276,7 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });
   const number = (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
-  const [bk] = await sql`select b.status, b.payment_mode, b.added_by_staff = ${va.id} by_me from bookings b where b.booking_number = ${number}`;
+  const [bk] = await sql`select b.status, b.payment_mode, b.added_by_staff and b.created_by = ${va.id} by_me from bookings b where b.booking_number = ${number}`;
   expect(`${bk!.status}/${bk!.payment_mode}/${bk!.by_me}`).toBe('pending_payment/link/true');
   await page.context().close();
   await sql.end();

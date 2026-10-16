@@ -35,7 +35,7 @@
 .ad-head__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
 
 /* tables */
-.ad-scroll { background: var(--white); border: 1px solid var(--grey-200); max-width: 100%; overflow-x: auto; }
+.ad-scroll { position: relative; background: var(--white); border: 1px solid var(--grey-200); max-width: 100%; overflow-x: auto; } /* relative: a visually hidden label inside stays clipped */
 .ad-scroll:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
 .ad-table--dense { font-size: var(--fs-xs); }
 .ad-table--dense th, .ad-table--dense td { padding: 0.45rem 0.6rem; white-space: nowrap; }

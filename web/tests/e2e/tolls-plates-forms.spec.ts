@@ -347,7 +347,8 @@ test('forms: an Admin maps an official fillable PDF; the owner downloads it fill
     const errors = watch(desk);
     await signIn(desk, admin.email, '/admin', '/admin/settings/forms');
     await desk.goto('/admin/settings/forms', { waitUntil: 'networkidle' });
-    await expect(desk.getByTestId('form-SR-LV-012')).toContainText('Data sheet in use');
+    // 0047 loaded the official form with a draft mapping: waiting for an Admin to check it
+    await expect(desk.getByTestId('form-SR-LV-012')).toContainText('Mapping to check');
     await desk.getByTestId('form-upload-SR-LV-012').setInputFiles({ name: 'sr-lv-012-fillable.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await sampleForm()) });
     await expect(desk.getByTestId('form-map-SR-LV-012')).toBeVisible({ timeout: 20_000 });
     await expect(desk.getByTestId('form-SR-LV-012')).toContainText('Mapping to check');
