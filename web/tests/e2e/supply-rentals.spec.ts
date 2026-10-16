@@ -200,6 +200,7 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   await expect(page.getByTestId('vehicle-retired')).toBeVisible({ timeout: 15_000 });
   await check(page, 'retired car');
   await page.getByTestId('vehicle-restore').click();
+  await page.getByTestId('vehicle-restore-submit').click();
   await expect(page.getByTestId('vehicle-retired')).toHaveCount(0, { timeout: 15_000 });
 
   // delete a car added by mistake: the plate must be typed
@@ -232,6 +233,11 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   test.setTimeout(150_000);
   const sql = db();
   const va = await mkUser(sql, 'va', `Val Assistant ${tag()}`);
+  // a company car with rates and no booking: the assistant's list shows only bookable cars with rates
+  const admin = await mkUser(sql, 'admin', `Ada Admin ${tag()}`);
+  const [car] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2023, make: 'Honda', model: 'Civic',
+    rates: { daily: 6900, weekend: 7900, weekly: 42000, monthly: 150000, deposit: 30000 } })}) as r`;
+  const carId = (car!.r as { vehicle_id: string }).vehicle_id;
   const page = await ctx(browser);
   await signIn(page, va.email, '/va');
   await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
@@ -244,7 +250,8 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   const pad = (n: number) => String(n).padStart(2, '0');
   const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T10:00`;
   let free = false;
-  for (const id of cars.slice(0, 6)) {
+  expect(cars).toContain(carId);
+  for (const id of [carId]) {
     await page.getByTestId('mr-vehicle_id').selectOption(id);
     await page.getByTestId('mr-pickup_at').fill(local(pick));
     await page.getByTestId('mr-return_at').fill(local(new Date(pick.getTime() + 2 * 86_400_000)));

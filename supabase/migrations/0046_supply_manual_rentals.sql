@@ -2205,7 +2205,10 @@ begin
                        'bookable', app.vehicle_bookable(v.id), 'retired', v.retired_at is not null,
                        'daily_rate_cents', (select r.daily_rate_cents from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now())))
                        order by app.vehicle_bookable(v.id) desc, v.make, v.model, v.year)
-                      from vehicles v where v.status not in ('declined', 'exited') and (app.user_is_admin(p_user) or (v.retired_at is null and not coalesce(v.is_sample, false)))), '[]'::jsonb);
+                      from vehicles v where v.status not in ('declined', 'exited')
+                       -- an assistant never types a price: only bookable cars with rates on file
+                       and (app.user_is_admin(p_user) or (v.retired_at is null and not coalesce(v.is_sample, false) and app.vehicle_bookable(v.id)
+                            and exists (select 1 from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now()))))), '[]'::jsonb);
   when 'verify_driver_in_person' then return app.verify_driver_in_person(p_user, p);
   when 'bookings_by_supply' then return app.bookings_by_supply(p_user, p);
   -- the partner portal

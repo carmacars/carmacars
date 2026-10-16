@@ -41,7 +41,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
   const [partners, owners] = tab === 'overview' ? await Promise.all([door<Array<{ id: string; business_name: string }>>(user.id, 'ops_read', 'partners').catch(() => []), adminOwners(user)]) : [[], []];
-  const supplier = v.supply_type === 'company' ? 'CarmaCars-owned'
+  const supplier = v.supply_type === 'company' ? 'Company fleet'
     : v.supply_type === 'partner' && v.partner ? <Link prefetch={false} className="link" href={`/admin/partners/${v.partner.id}`}>{v.partner.business_name}</Link>
     : v.owner ? <Link prefetch={false} className="link" href={`/admin/owners/${v.owner.id}`}>{v.owner.legal_name}</Link> : 'no owner';
   return (

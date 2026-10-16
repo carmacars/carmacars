@@ -95,7 +95,7 @@ async function inspect(bytes) {
       return { name: x.getName(), type: typeOf(x), ...(page > 0 ? { page } : {}), ...(r ? { rect: [r.x, r.y, r.width, r.height].map((n) => Math.round(n * 10) / 10) } : {}),
                ...(opts?.length ? { options: opts } : {}), ...(tip ? { tooltip: tip } : {}), ...(max ? { max_length: max } : {}), widgets: w.length };
     });
-  } catch (e) { fields = []; }
+  } catch { fields = []; }
   const sizes = pages.map((p) => { const s = p.getSize(); return [Math.round(s.width), Math.round(s.height)]; });
   let info = null;
   try { info = { title: doc.getTitle() ?? null, subject: doc.getSubject() ?? null, producer: doc.getProducer() ?? null }; } catch { info = null; }
