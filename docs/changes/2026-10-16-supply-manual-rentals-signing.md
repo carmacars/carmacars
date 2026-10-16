@@ -181,9 +181,11 @@ fast gates only; the guide upkeep is part of the manual `guides` run (about 20 m
 | guides-pdf | 38901851864 | Green: the six PDFs printed from the published guides and stored |
 | verify, full | 38903085430 | Green: every check passed (pages, headers and nonce, sign-in as every portal, view as, invitation, reset and confirmation links, sign-up paths, the guide in every portal, owner debit, tolls and forms, SEO). The first full verify (38899680158) failed on timeouts while the Worker hit Error 1102; the run before this work (38863629274) failed the same way |
 | Deploy of the style fix (the progress list on a phone) | 38904582980 | Not deployed: the statement test picked the company fleet's owners row (no owner statement) when the supply tests ran first. Admin > Statements > Build one no longer lists the company fleet and marks partners; the test leaves it out |
+| Final deploy with the full suite | 38908541412 | Green: 175 end-to-end tests passed, crawl, SEO and emails 0 problems; deployed (history 50 migrations) |
+| verify, full, on the final deploy | 38918432532 | Green: every check passed. Runs 38912915938, 38914807814 and 38916931026 before it each failed one different sign-in or sign-up step on a 30-second timeout while the Worker answered with Error 1102 (19 in one run) |
 
-**Error 1102 (separate).** Cloudflare stopped 211 requests in 24 hours with Error 1102 (the free plan's 10 ms CPU limit;
-19 in the last hour of the verification). The verification loads such a page again; a sign-in step that meets several in
+**Error 1102 (separate).** Cloudflare stopped 211 to 257 requests in 24 hours with Error 1102 (the free plan's 10 ms CPU
+limit; 19 to 46 an hour during the verifications). The verification loads such a page again; a sign-in step that meets several in
 a row times out, which is what failed the first verification. Workers Paid removes the limit.
 
 ## 11. What still needs the owner
