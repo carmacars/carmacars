@@ -1,8 +1,8 @@
 # Supply types, rentals added by hand, retire and delete, official forms, simple signing and guide upkeep, October 16, 2026
 
-Migrations `0046_supply_manual_rentals.sql`, `0047_official_forms_drafts.sql`, `0048_guide_supply_sections.sql` and
-`0049_simple_signing_guide_upkeep.sql`; tests `supabase/tests/30_supply_manual_rentals.sql` (104 assertions) and
-`31_signing_upkeep.sql` (55); end to end `web/tests/e2e/supply-rentals.spec.ts`, with the signing changes in
+Migrations `0046_supply_manual_rentals.sql`, `0047_official_forms_drafts.sql`, `0048_guide_supply_sections.sql`,
+`0049_simple_signing_guide_upkeep.sql` and `0050_guide_upkeep_one_version.sql`; tests `supabase/tests/30_supply_manual_rentals.sql` (104 assertions) and
+`31_signing_upkeep.sql` (56); end to end `web/tests/e2e/supply-rentals.spec.ts`, with the signing changes in
 `owner.spec.ts`, `portal.spec.ts` and `guides-manual.spec.ts`; unit tests `src/features/person-agreements/model.test.ts`.
 No migration that is applied on the live database was edited (0046 to 0049 were not applied before this deploy).
 
@@ -155,7 +155,7 @@ fast gates only; the guide upkeep is part of the manual `guides` run (about 20 m
 
 ## 9. Tests
 
-- `30_supply_manual_rentals.sql` (104) and `31_signing_upkeep.sql` (55): agreements generated from the records (facts,
+- `30_supply_manual_rentals.sql` (104) and `31_signing_upkeep.sql` (56): agreements generated from the records (facts,
   numbering, template version, summary), signing packages (refused before signing, for someone else, with another method;
   recorded with each document's own record and consent; the signature evidence unchanged), the owner's checklist, partner
   insurance reminders (once per expiry, closed by a new expiry), guide upkeep (replacement in drafts, published text and

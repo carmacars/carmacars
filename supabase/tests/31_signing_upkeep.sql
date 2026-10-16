@@ -117,10 +117,17 @@ select test.eq('upkeep: the section flagged for review with the old and new imag
   from guide_sections where id = test.id('gs:su')), 'true//guides/img/su-01-screen-desktop-aaaa.jpg/0.12');
 select test.eq('upkeep: the guide version goes up (its PDF shows as older); the replacement is recorded', (select version from guides where portal = 'owner') || '/'
   || (select count(*) from guide_images where replaces_url = '/guides/img/su-01-screen-desktop-aaaa.jpg'), '4/1');
+-- a second image of the same run: the guide keeps the version the run gave it (0050)
+insert into guide_sections (id, portal, kind, sort_order, slug, title, body_md, published_title, published_md, published_html, published_hidden, published_version, published_at)
+values (test.id('gs:su4'), 'owner', 'chapter', 902, 'su-upkeep-2', 'Su chapter 2', '![x](/guides/img/su-02-screen-desktop-bbbb.jpg "desktop")',
+        'Su chapter 2', '![x](/guides/img/su-02-screen-desktop-bbbb.jpg "desktop")', '<img src="/guides/img/su-02-screen-desktop-bbbb.jpg">', false, 1, now());
+select public.server_guide_upkeep_apply(jsonb_build_object('run', 'test', 'images', jsonb_build_array(jsonb_build_object(
+  'old_url', '/guides/img/su-02-screen-desktop-bbbb.jpg', 'new_url', 'https://photos.example.test/guides/owner/upkeep-2.jpg', 'portal', 'owner', 'diff', 0.2))));
+select test.eq('upkeep: one new version per guide and run', (select version from guides where portal = 'owner'), 4);
 select test.ok('upkeep: the run finds the replacement next time', exists (select 1 from jsonb_array_elements(public.server_guide_images_replaced()) x
   where x ->> 'url' = 'https://photos.example.test/guides/owner/upkeep-1.jpg' and x ->> 'replaces_url' = '/guides/img/su-01-screen-desktop-aaaa.jpg'));
 select test.eq('upkeep: Admin > Settings > Guides counts the sections to review',
-  (select (g ->> 'needs_review')::integer from jsonb_array_elements(test.su_read('su_admin', 'guides_admin', '{}')) g where g ->> 'portal' = 'owner'), 1);
+  (select (g ->> 'needs_review')::integer from jsonb_array_elements(test.su_read('su_admin', 'guides_admin', '{}')) g where g ->> 'portal' = 'owner'), 2);
 select test.eq('upkeep: the guide''s section carries its review state', (select s ->> 'needs_review' from jsonb_array_elements(test.su_read('su_admin', 'guide_admin', '{"portal": "owner"}') -> 'sections') s
   where s ->> 'slug' = 'su-upkeep'), 'true');
 select test.throws('suggestion: an Admin only', format($$select test.su_do('su_cs', 'guide_suggestion_record', jsonb_build_object('id', %L, 'body_md', 'New text here'))$$, test.id('gs:su')), null);
