@@ -1,0 +1,53 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Rental booked]
+You are booked, {{first_name}}
+
+Our team booked the {{vehicle_name}} for you. Here is everything in one place.
+
+{{vehicle_name}}
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Pickup place: {{pickup_place}}
+Return place: {{return_place}}
+
+{{#each line_items}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total: {{total_amount}}
+
+Payment: {{payment_line}}
+Kilometres included: {{km_allowance}}, then {{overage_rate}} per km
+Security deposit: {{deposit_amount}}, taken at pickup
+
+Sign your rental agreement
+Please read and sign your rental agreement before pickup. It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.
+
+Sign my rental agreement:
+https://carmacars.ca/account/bookings/{{booking_number}}/sign
+
+{{#if needs_verification}}
+We also need each driver's licence photos and a selfie, plus proof of coverage, by {{verify_by}}. You can upload them from your booking.
+{{/if}}
+
+{{#if has_balance}}
+{{balance_line}}
+{{/if}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

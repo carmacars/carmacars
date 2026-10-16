@@ -271,7 +271,7 @@ create table test.od_cs as select * from company_statements where statement_mont
 grant select on test.od_cs to service_role;
 select test.eq('sections: every section of blueprint 11 section 3.3 is stored with the statement',
   (select string_agg(s ->> 'key', ',' order by ord) from company_statements cs, jsonb_array_elements(cs.sections) with ordinality x(s, ord) where cs.statement_month = '2027-01-01'),
-  'income,fleet,recoveries,held,hst,receivables,cash,owner_fees,funnel,investors,checks,adjustments');
+  'income,fleet,recoveries,held,hst,receivables,cash,owner_fees,funnel,investors,checks,adjustments,supply');
 select test.eq('sections: the income summary''s total revenue is the sum of its revenue lines',
   (select (r -> 12 ->> 'cents')::bigint = (select sum((x ->> 'cents')::bigint) from jsonb_array_elements(r) with ordinality q(x, n) where n <= 12)
      from (select s -> 'rows' r from company_statements cs, jsonb_array_elements(cs.sections) s where cs.statement_month = '2027-01-01' and s ->> 'key' = 'income') z), true);
@@ -282,11 +282,11 @@ select test.eq('sections: owner fees billed for January match the statement''s o
 select test.eq('sections: the net HST line is collected less refunds less paid',
   (select (s -> 'rows' -> 3 ->> 'cents')::bigint = (s -> 'rows' -> 0 ->> 'cents')::bigint + (s -> 'rows' -> 1 ->> 'cents')::bigint + (s -> 'rows' -> 2 ->> 'cents')::bigint
      from company_statements cs, jsonb_array_elements(cs.sections) s where cs.statement_month = '2027-01-01' and s ->> 'key' = 'hst'), true);
-select test.eq('sections: the Admin screen reads them', jsonb_array_length(app.admin_read(test.id('od_admin'), 'company_sections', '{"month":"2027-01-01"}')), 12);
+select test.eq('sections: the Admin screen reads them', jsonb_array_length(app.admin_read(test.id('od_admin'), 'company_sections', '{"month":"2027-01-01"}')), 13);
 select test.eq('PDF facts: the three company statement PDFs carry their title, the sections, and are stored once rendered',
   (select (f ->> 'title') || '/' || jsonb_array_length(f -> 'sections') || '/' || (f ->> 'store')
      from (select app.pdf_facts('company_statement', app.company_doc_key(cs)) f from company_statements cs where cs.statement_month = '2027-01-01') x),
-  'CarmaCars statement, January 2027/12/true');
+  'CarmaCars statement, January 2027/13/true');
 select test.eq('PDF facts: by owner and by vehicle list their rows',
   (select (jsonb_array_length(app.pdf_facts('company_owners', app.company_doc_key(cs)) -> 'owners') > 0) || '/' ||
           (jsonb_array_length(app.pdf_facts('company_vehicles', app.company_doc_key(cs)) -> 'vehicles') > 0)

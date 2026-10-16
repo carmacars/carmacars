@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 144,
+  "count": 145,
   "emails": [
     {
       "code": "account_password_reset",
@@ -5086,6 +5086,191 @@
       ],
       "template_html": "templates/renter_refund_issued.html",
       "template_text": "templates/renter_refund_issued.txt"
+    },
+    {
+      "code": "renter_rental_added",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, charged to the saved card, or to be invoiced later. Not sent when staff tick \"Do not email the renter\", for a past rental, or for a payment link (the offer email carries the link).",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Booked: {{vehicle_name}}, {{pickup_date}}",
+      "preheader": "Booking {{booking_number}}. {{payment_line}} Next: sign your rental agreement.",
+      "sample_subject": "Booked: 2024 Honda Civic Sport, Fri, Oct 23, 2026",
+      "variables": [
+        {
+          "name": "balance_line",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "deposit_amount",
+          "type": "string",
+          "sample": "$500.00",
+          "note": "Security deposit for this booking, taken at pickup."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_balance",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "km_allowance",
+          "type": "string",
+          "sample": "600 km",
+          "note": "Allowance per day times billable days."
+        },
+        {
+          "name": "line_items",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Rental charge, 3 days",
+              "amount": "$340.00"
+            },
+            {
+              "label": "Delivery",
+              "amount": "$75.00"
+            },
+            {
+              "label": "HST (13%)",
+              "amount": "$53.95"
+            }
+          ],
+          "fields": [
+            "label",
+            "amount"
+          ],
+          "note": "Booking lines in order, HST last. Each item: label, amount."
+        },
+        {
+          "name": "needs_verification",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "overage_rate",
+          "type": "string",
+          "sample": "$0.35",
+          "note": "Per extra kilometre, from the booking price snapshot."
+        },
+        {
+          "name": "payment_line",
+          "type": "string",
+          "sample": "Paid by e-Transfer on Fri, Oct 16, 2026."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "pickup_place",
+          "type": "string",
+          "sample": "Union Station, 65 Front Street West, Toronto"
+        },
+        {
+          "name": "pickup_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_place",
+          "type": "string",
+          "sample": "Union Station, 65 Front Street West, Toronto"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "total_amount",
+          "type": "string",
+          "sample": "$468.95",
+          "note": "Total due at booking, HST included."
+        },
+        {
+          "name": "vehicle_image_url",
+          "type": "url",
+          "sample": "",
+          "note": "Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "verify_by",
+          "type": "string",
+          "sample": "Thu, Oct 22 at 10:00 am"
+        }
+      ],
+      "template_html": "templates/renter_rental_added.html",
+      "template_text": "templates/renter_rental_added.txt"
     },
     {
       "code": "renter_rental_started",

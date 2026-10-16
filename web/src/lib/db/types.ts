@@ -1192,6 +1192,11 @@ export type Database = {
           return_distance_km: number | null;
           pickup_airport_id: string | null;
           return_airport_id: string | null;
+          added_by_staff: boolean;
+          added_mode: string | null;
+          payment_mode: string | null;
+          do_not_email: boolean;
+          clash_override_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -1304,6 +1309,11 @@ export type Database = {
           return_distance_km?: number | null;
           pickup_airport_id?: string | null;
           return_airport_id?: string | null;
+          added_by_staff?: boolean;
+          added_mode?: string | null;
+          payment_mode?: string | null;
+          do_not_email?: boolean;
+          clash_override_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -1416,6 +1426,11 @@ export type Database = {
           return_distance_km?: number | null;
           pickup_airport_id?: string | null;
           return_airport_id?: string | null;
+          added_by_staff?: boolean;
+          added_mode?: string | null;
+          payment_mode?: string | null;
+          do_not_email?: boolean;
+          clash_override_reason?: string | null;
         };
         Relationships: [];
       };
@@ -6768,6 +6783,7 @@ export type Database = {
           auto_debit_paused_at: string | null;
           auto_debit_paused_by: string | null;
           is_test: boolean;
+          kind: string;
         };
         Insert: {
           id?: string;
@@ -6810,6 +6826,7 @@ export type Database = {
           auto_debit_paused_at?: string | null;
           auto_debit_paused_by?: string | null;
           is_test?: boolean;
+          kind?: string;
         };
         Update: {
           id?: string;
@@ -6852,6 +6869,7 @@ export type Database = {
           auto_debit_paused_at?: string | null;
           auto_debit_paused_by?: string | null;
           is_test?: boolean;
+          kind?: string;
         };
         Relationships: [];
       };
@@ -6924,6 +6942,102 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      partners: {
+        Row: {
+          id: string;
+          owner_id: string;
+          partner_number: string;
+          business_name: string;
+          legal_name: string | null;
+          contact_name: string | null;
+          contact_title: string | null;
+          email: string | null;
+          phone: string | null;
+          contacts: Json;
+          address_line1: string | null;
+          city: string | null;
+          province: string | null;
+          postal_code: string | null;
+          hst_number: string | null;
+          commission_bps: number | null;
+          insurance_company: string | null;
+          insurance_policy: string | null;
+          insurance_expiry: string | null;
+          insurance_document_id: string | null;
+          agreement_status: string;
+          agreement_signed_at: string | null;
+          agreement_method: string | null;
+          agreement_document_id: string | null;
+          status: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          partner_number?: string;
+          business_name: string;
+          legal_name?: string | null;
+          contact_name?: string | null;
+          contact_title?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          contacts?: Json;
+          address_line1?: string | null;
+          city?: string | null;
+          province?: string | null;
+          postal_code?: string | null;
+          hst_number?: string | null;
+          commission_bps?: number | null;
+          insurance_company?: string | null;
+          insurance_policy?: string | null;
+          insurance_expiry?: string | null;
+          insurance_document_id?: string | null;
+          agreement_status?: string;
+          agreement_signed_at?: string | null;
+          agreement_method?: string | null;
+          agreement_document_id?: string | null;
+          status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          partner_number?: string;
+          business_name?: string;
+          legal_name?: string | null;
+          contact_name?: string | null;
+          contact_title?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          contacts?: Json;
+          address_line1?: string | null;
+          city?: string | null;
+          province?: string | null;
+          postal_code?: string | null;
+          hst_number?: string | null;
+          commission_bps?: number | null;
+          insurance_company?: string | null;
+          insurance_policy?: string | null;
+          insurance_expiry?: string | null;
+          insurance_document_id?: string | null;
+          agreement_status?: string;
+          agreement_signed_at?: string | null;
+          agreement_method?: string | null;
+          agreement_document_id?: string | null;
+          status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -7669,6 +7783,11 @@ export type Database = {
           plate_detect_enabled: boolean;
           notify_cap_warn_bps: number;
           notify_count_auth_emails: boolean;
+          partner_commission_bps: number;
+          manual_rental_va_payment_modes: string[];
+          manual_rental_va_promo: boolean;
+          manual_rental_past_max_days: number;
+          partner_insurance_warn_days: number;
         };
         Insert: {
           id?: string;
@@ -7874,6 +7993,11 @@ export type Database = {
           plate_detect_enabled?: boolean;
           notify_cap_warn_bps?: number;
           notify_count_auth_emails?: boolean;
+          partner_commission_bps?: number;
+          manual_rental_va_payment_modes?: string[];
+          manual_rental_va_promo?: boolean;
+          manual_rental_past_max_days?: number;
+          partner_insurance_warn_days?: number;
         };
         Update: {
           id?: string;
@@ -8079,6 +8203,11 @@ export type Database = {
           plate_detect_enabled?: boolean;
           notify_cap_warn_bps?: number;
           notify_count_auth_emails?: boolean;
+          partner_commission_bps?: number;
+          manual_rental_va_payment_modes?: string[];
+          manual_rental_va_promo?: boolean;
+          manual_rental_past_max_days?: number;
+          partner_insurance_warn_days?: number;
         };
         Relationships: [];
       };
@@ -11486,6 +11615,13 @@ export type Database = {
           tracker_installed_on: string | null;
           is_sample: boolean;
           turnaround_block_minutes: number | null;
+          supply_type: string;
+          partner_id: string | null;
+          commission_bps: number | null;
+          retired_at: string | null;
+          retired_by: string | null;
+          retired_reason: string | null;
+          added_by: string | null;
         };
         Insert: {
           id?: string;
@@ -11530,6 +11666,13 @@ export type Database = {
           tracker_installed_on?: string | null;
           is_sample?: boolean;
           turnaround_block_minutes?: number | null;
+          supply_type?: string;
+          partner_id?: string | null;
+          commission_bps?: number | null;
+          retired_at?: string | null;
+          retired_by?: string | null;
+          retired_reason?: string | null;
+          added_by?: string | null;
         };
         Update: {
           id?: string;
@@ -11574,6 +11717,13 @@ export type Database = {
           tracker_installed_on?: string | null;
           is_sample?: boolean;
           turnaround_block_minutes?: number | null;
+          supply_type?: string;
+          partner_id?: string | null;
+          commission_bps?: number | null;
+          retired_at?: string | null;
+          retired_by?: string | null;
+          retired_reason?: string | null;
+          added_by?: string | null;
         };
         Relationships: [];
       };
@@ -12719,6 +12869,9 @@ export type Database = {
       owner_upload_witnessed_form: { Args: { p_by: string; p: Json }; Returns: Json };
       owner_withdraw_exit_notice: { Args: { p_by: string; p_exit: string }; Returns: undefined };
       owner_witnessed_forms: { Args: { p_by: string }; Returns: Json };
+      partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
+      partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
+      partner_agreement_state: { Args: { p_by: string }; Returns: Json };
       public_reviews: { Args: { p_vehicle?: string; p_limit?: number; p_offset?: number }; Returns: { review_id: string; vehicle_id: string; vehicle_label: string; rating: number; title: string; body: string; reviewer_first_name: string; review_month: string; staff_reply: string }[] };
       public_vehicle_calendar: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: { unavailable_from: string; unavailable_to: string; first_date: string; last_date: string }[] };
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
@@ -12829,7 +12982,7 @@ export type Database = {
       booking_status: "requested" | "offered" | "tentative" | "pending_payment" | "confirmed" | "on_rent" | "returned" | "closed" | "cancelled" | "no_show" | "expired" | "declined";
       booking_type: "standard" | "non_refundable" | "owner";
       charge_stage: "booking" | "pickup" | "extension" | "check_in" | "after_return" | "on_decline" | "monthly" | "split";
-      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment";
+      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment" | "partner_agreement" | "partner_insurance";
       field_function: "driver" | "detailer" | "driver_detailer";
       finance_permission: "not_applicable" | "attached" | "not_obtained";
       fuel_type: "gasoline" | "diesel" | "hybrid" | "plug_in_hybrid" | "electric";

@@ -24,6 +24,7 @@ export const PATHS = {
   booking_offer: '/account/bookings/{{booking_number}}/offer',
   booking_request: '/account/bookings/{{booking_number}}/request',
   booking_agreement: '/account/bookings/{{booking_number}}/agreement',
+  booking_sign: '/account/bookings/{{booking_number}}/sign',
   booking_verify: '/account/bookings/{{booking_number}}/verify',
   booking_pickup: '/account/bookings/{{booking_number}}/pickup',
   booking_condition_report: '/account/bookings/{{booking_number}}/condition-report',
