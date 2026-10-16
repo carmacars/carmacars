@@ -171,7 +171,20 @@ fast gates only; the guide upkeep is part of the manual `guides` run (about 20 m
 
 ## 10. Deploy and checks
 
-Filled in below with the run ids.
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates: database suite, text check, lint, types, unit, generated types) | 38887121046, 38890504066, 38892706617, 38901840443 | Green. The earlier pushes of this work (38870923964, 38876089670) had failed on the text check (the official forms' en dashes) and a lint warning |
+| Deploy with the full suite (end to end at 375 and 1440 with axe, links, copy lint, crawl as every role, SEO, emails) | 38895943872 | Green: 175 end-to-end tests passed (15 skipped by design), crawl, SEO and emails 0 problems; 4 migrations applied (0046 to 0049); carmacars.ca, /cars and photos answer 200 |
+| Earlier deploy attempts | 38891322802 (cancelled: the crawl found Sales' 404, fixed), 38892715244 (a contrast check measured a button mid-hover; the test now waits) | Not deployed |
+| Guides workflow with upkeep | 38899642454 | Green: 206 screenshots; 98 compared with the live guides, 81 changed (3% to 24% different: the screens changed since the October 15 shots) and replaced in the live guides; 29 sections flagged for review (Admin 10, VA 6, Owner 5, Renter 5, Investor 3, Field 0) |
+| 0050 (one guide version per run), deployed with checks off (SQL only) | 38902459100 | Green: 1 migration applied, history 50 rows |
+| guides-pdf | 38901851864 | Green: the six PDFs printed from the published guides and stored |
+| verify, full | 38903085430 | Green: every check passed (pages, headers and nonce, sign-in as every portal, view as, invitation, reset and confirmation links, sign-up paths, the guide in every portal, owner debit, tolls and forms, SEO). The first full verify (38899680158) failed on timeouts while the Worker hit Error 1102; the run before this work (38863629274) failed the same way |
+| Deploy of the style fix (the progress list on a phone) | 38904582980 | Not deployed: the statement test picked the company fleet's owners row (no owner statement) when the supply tests ran first. Admin > Statements > Build one no longer lists the company fleet and marks partners; the test leaves it out |
+
+**Error 1102 (separate).** Cloudflare stopped 211 requests in 24 hours with Error 1102 (the free plan's 10 ms CPU limit;
+19 in the last hour of the verification). The verification loads such a page again; a sign-in step that meets several in
+a row times out, which is what failed the first verification. Workers Paid removes the limit.
 
 ## 11. What still needs the owner
 
@@ -182,4 +195,7 @@ Filled in below with the run ids.
   `company_rin` and `company_address` in Program settings (the registrant on SR-LV-006 and SR-LV-012).
 - Program settings: confirm the staff agreement defaults (rate, hours, platform, trial period) and the partner commission
   and insurance warning days.
+- Admin > Settings > Guides: 29 sections show "To review" after the first upkeep run (the screenshots are already new):
+  read each against its new screenshot, use a suggestion if it helps, mark it reviewed, publish.
 - Run `guides` (upkeep) after deploys that change screens, then `guides-pdf`.
+- Error 1102: Workers Paid removes the CPU limit that times out a few requests a day.

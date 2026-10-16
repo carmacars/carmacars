@@ -318,7 +318,8 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
 
   // ---------------------------------------------------------------- an owner statement built and approved
   const [ow] = await sql`select o.id, m.month::text from owners o cross join lateral (select (date_trunc('month', now()) - make_interval(months => g))::date as month from generate_series(0, 24) g) m
-    where o.status = 'active' and exists (select 1 from vehicles v where v.owner_id = o.id and v.enrollment_date is not null and v.enrollment_date < m.month + interval '1 month')
+    where o.status = 'active' and o.kind <> 'company' -- the company fleet has no owner statement (0046)
+      and exists (select 1 from vehicles v where v.owner_id = o.id and v.enrollment_date is not null and v.enrollment_date < m.month + interval '1 month')
       and not exists (select 1 from owner_statements s where s.owner_id = o.id and s.status <> 'draft' and s.statement_month = m.month)
     order by m.month desc limit 1`;
   await ap.goto('/admin/statements', { waitUntil: 'networkidle' });
