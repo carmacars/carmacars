@@ -1,8 +1,11 @@
 name: ci
 
-# Minutes matter: the free plan has 2,000 a month (docs/ci-minutes.md has the budget and the estimate).
+# The repository is public, so Actions minutes cost nothing; the budget below still keeps runs short (docs/ci-minutes.md).
+# No pull_request trigger: a pull request from a fork would run the fork's code here. The only triggers are a push to
+# this repository (write access) and Run workflow; secrets are passed only to the deploy job, which runs only on Run
+# workflow. Logs are public: no step prints a secret or personal data (secrets are masked; the checks use test data).
 #
-#   push, pull request   the fast gates only, in one job: the database suite (every migration, every test), the
+#   push                 the fast gates only, in one job: the database suite (every migration, every test), the
 #                        text check, lint, types, unit tests and the generated types. Skipped entirely when only
 #                        documentation changed (docs/**, *.md). A newer push to the same branch cancels the older run.
 #   Run workflow         deploy = true: the fast gates, then the full suite (Worker build, every end-to-end test at
@@ -16,12 +19,6 @@ name: ci
 # its last output lines into the run's annotations.
 on:
   push:
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - 'emails/shots/**'
-      - 'emails/preview/**'
-  pull_request:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'

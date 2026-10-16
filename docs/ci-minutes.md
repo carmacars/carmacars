@@ -1,5 +1,11 @@
 # GitHub Actions minutes
 
+**Since October 16, 2026 the repository is public, and GitHub does not bill Actions minutes for public repositories.**
+The workflows keep the shape below all the same (short runs, quick answers), and there is no `pull_request` trigger:
+a pull request from a fork would run the fork's code (`docs/changes/2026-10-16-one-confirmation-email.md`, section 4).
+Run logs are public too, so no step prints a secret or personal data. The budget below applies again if the repository
+goes back to private.
+
 The repository is private, so GitHub bills Actions by the minute: the free plan has **2,000 minutes a month** on
 Linux runners, and each job is rounded up to the next whole minute. In October 2026 the month's minutes ran out
 because every push ran the whole suite (about 33 billed minutes a push: the database job 2, the end-to-end job 18
@@ -9,7 +15,7 @@ and the audit job 13, in parallel). The workflows now spend minutes only where t
 
 | Workflow | Trigger | What runs | Billed minutes (estimate) |
 | --- | --- | --- | --- |
-| `ci` | push or pull request | One job, `fast`: database suite (every migration and test), text check, lint, types, unit tests, generated types | about 7 |
+| `ci` | push | One job, `fast`: database suite (every migration and test), text check, lint, types, unit tests, generated types | about 7 |
 | `ci` | push that changes only `docs/**`, `*.md`, email previews | Nothing (paths-ignore) | 0 |
 | `ci` | a newer push to the same branch | The older run is cancelled (concurrency) | only what ran |
 | `ci` | Run workflow, `deploy` | `fast`, then `full` (Worker build, end to end at 375 and 1440 with axe, links, copy lint, crawl as every role, SEO, emails with database values), then `deploy` | about 43 (7 + 31 + 5) |
