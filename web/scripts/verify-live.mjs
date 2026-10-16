@@ -221,7 +221,32 @@ if (process.argv.includes('--auth')) {
           const named = (await page.getByTestId('no-access-email').textContent({ timeout: 3_000 }).catch(() => null)) === a.email;
           r.refused[p] = fin !== p && /no-access|not-an-owner/.test(fin) ? `${fin}${named ? '' : ' (account not named)'}` : `SHOWN ${fin} ${resp?.status()}`;
         }
-        if (a.role === 'admin') await adminChecks(page, r, load);
+        // the portal's user guide (0044): the guide page with its contents, from the frame's Guide link
+        await load(`${BASE}${a.home}/guide`);
+        r.guide = (await page.getByTestId('guide').count()) && (await page.getByTestId('guide-toc').count())
+          ? `${new URL(page.url()).pathname} ${((await page.locator('h1').first().textContent().catch(() => '')) ?? '').trim().slice(0, 50)}` : `MISSING ${new URL(page.url()).pathname}`;
+        if (a.role === 'admin') {
+          // payments recorded by hand and signatures on paper (0044): Paid and signed, an owner's checklist with the
+          // paper signature form (opened, never submitted), and the month's payments received another way
+          try {
+            await load(`${BASE}/admin/owners?view=checklist`);
+            const h = ((await page.locator('h1').first().textContent().catch(() => '')) ?? '').trim();
+            const owner = ACCOUNTS.find((x) => x.role === 'owner');
+            const rec = (await rest(`owners?user_id=eq.${owner.id}&select=id`))[0]?.id;
+            await load(`${BASE}/admin/owners/${rec}`);
+            const ck = page.locator('#checklist');
+            const btn = ck.getByTestId('paper-signature');
+            const hasBtn = await btn.count();
+            if (hasBtn) await btn.first().click();
+            const form = hasBtn ? await ck.getByTestId('paper-signature-form').isVisible({ timeout: 10_000 }).catch(() => false) : false;
+            await page.screenshot({ path: path.join(out, 'admin-paper-signature.png'), fullPage: true });
+            await load(`${BASE}/admin/reconciliation`);
+            const month = await page.getByTestId('manual-month').count();
+            r.manualRecords = { paidAndSigned: h, paperButton: hasBtn > 0, paperForm: form, manualMonth: month > 0 };
+            r.manualRecords.ok = !!h && form && month > 0;
+          } catch (e) { r.manualRecords = { ok: false, error: String(e).slice(0, 200) }; }
+          await adminChecks(page, r, load);
+        }
         // the automatic monthly owner debit (0037): the owner's Banking block, Admin > Owner debits and the company statements
         if (a.role === 'owner') {
           await load(`${BASE}/owner/banking`);
@@ -258,7 +283,8 @@ if (process.argv.includes('--auth')) {
         }
         r.ok = new URL(r.afterSignIn).pathname === a.home && !!r.h1 && !r.broken && r.errors.length === 0
           && Object.values(r.refused).every((v) => !String(v).startsWith('SHOWN') && !String(v).includes('not named'))
-          && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out')
+          && (!a.fn || r.fn === a.fn) && (a.role !== 'renter' || r.signOut === 'signed out') && !String(r.guide).startsWith('MISSING')
+          && (a.role !== 'admin' || !!r.manualRecords?.ok)
           && (a.role !== 'owner' || !!r.autoDebit) && (a.role !== 'admin' || (!!r.debitsPage && r.reportsPage === 'Company statements' && r.similarPage === 'Similar cars' && r.ownerFormsPage === 'Owner forms' && r.tollReadPage === 'Read a notice' && r.formsPage === 'Forms'))
           && (a.role !== 'admin' || (r.viewAs?.every((v) => v.ok) && r.writeRefused?.ok && r.audit?.ok && r.exit?.ok && r.invite?.ok));
         if (r.ok) break;
@@ -626,10 +652,18 @@ if (process.argv.includes('--auth')) {
         r.h1 = await page.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
         await page.screenshot({ path: path.join(out, `signup-${s.path}-landed.png`), fullPage: true });
         r.afterConfirm = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
-        // sign out, then sign in through the form
-        await page.getByRole('button', { name: 'Sign out' }).first().click();
-        await page.waitForURL((u) => u.pathname === '/', { timeout: 20_000 });
-        await signInForm(page, email, password);
+        // sign out, then sign in through the form (once more on a fresh page when the Worker answered Error 1102)
+        try {
+          await page.getByRole('button', { name: 'Sign out' }).first().click();
+          await page.waitForURL((u) => u.pathname === '/', { timeout: 20_000 });
+          r.signedOut = true;
+          await signInForm(page, email, password);
+        } catch (e) {
+          (r.retried ??= []).push(`sign out and in: ${String(e).split('\n')[0].slice(0, 100)}`);
+          await ctx.clearCookies();
+          await page.waitForTimeout(3000);
+          await signInForm(page, email, password);
+        }
         await page.waitForURL((u) => u.pathname === s.home, { timeout: 30_000 }).catch(() => {});
         r.signedInAgain = new URL(page.url()).pathname;
         r.afterSignIn = accountKeys(await call('server_verify_signup_emails', { p_user: r.uid }));
