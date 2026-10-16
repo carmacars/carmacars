@@ -137,5 +137,25 @@ on his account:
 
 ## 7. Deploy and results
 
-Filled in after the deploy (section 8 of `2026-10-15-guides-manual-records.md` runs in the same deploy: 0044 and 0045
-together, the guides seeded, the committed PDFs uploaded).
+| Run | Result |
+| --- | --- |
+| Push CI of the fix (38847822433) | green (fast gates: database suite 3,228 assertions, text check, lint, types, unit tests, generated types) |
+| Deploy, `ci` with `deploy` (38847853019) | full suite failed: the owner billing test read the first of three vehicles that share one creation instant (order not fixed), and the crawl met a 404 on a listing's odometer shot (a shot kept as taken has its original as its processed path; the review built a public link for it). Both fixed in 10c3ac6 |
+| Deploy, `ci` with `deploy` (38852184301) | green: fast, full (169 end-to-end tests at 375 and 1440, crawl as every role, links, copy, SEO, emails), deploy. Migrations 0044 and 0045 applied (history 45 rows), Auth settings and templates updated, 148 email templates loaded, send-outbox redeployed, guides seeded, committed guide PDFs uploaded |
+| `guides-pdf` (38854859791) | green: the six guides printed from the live database and stored (renter 37 pages, owner 27, admin 56, VA 29, field 15, investor 14) |
+| `verify` with `full` (38854923680, 38856159056, 38857087460, 38859249333, 38861533645, 38863629274) | Every sign-up path passed on the live site (renter, owner, guest, in several runs each); every portal's guide shown; Admin: the Paid and signed tab, the paper signature form and the month's payments received another way. Each run also had pages the Worker answered with Error 1102 (the free plan's CPU limit), which failed whichever check met them: a portal sign-in, a password save. Reported separately |
+
+Live state after the deploy (read from the project, nothing changed by hand):
+
+- Supabase Auth: `mailer_otp_exp` 86400; the confirmation template links to
+  `/auth/callback?token_hash={{ .TokenHash }}&type=signup` (no `next`); subject "Confirm your CarmaCars account".
+- The catalogue: "Your CarmaCars owner account is ready" and "Your CarmaCars account is ready", emitted by
+  `users_confirmed_notify (0045)`; `user_roles_notify` gone; no account Supabase has confirmed is left without
+  `email_verified_at`.
+- The owner of section 1: his sign-in is still unconfirmed (as expected), with the renter and owner roles; his welcome
+  goes when he confirms, and the link lands him in `/owner`.
+
+Sign-up results of the last live run (`verify` 38863629274: all three sign-up paths, the email links, Admin with the guide and the manual records passed; five portal sign-ins met Error 1102 or a dropped connection): renter, sign-in first says "Confirm your email first" with the
+button, the link lands in `/account`, one `renter_account_created` (suppressed for the throwaway address), sign out and
+in to `/account`; owner, the same to `/owner` with one `owner_account_created`; guest, no email at the request, the
+password link, `/account`, one renter welcome, sign out and in. Each throwaway account removed again.
