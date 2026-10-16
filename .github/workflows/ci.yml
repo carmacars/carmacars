@@ -1,25 +1,50 @@
 name: ci
 
-# Every push and pull request: the database suite (all migrations, all tests) and the web app's
-# gates (lint, types, build, Worker build, end-to-end at 375 and 1440 with axe, link check, copy lint).
-# Deploy: run by hand (Actions > ci > Run workflow > deploy = true), after the same checks. It needs only
-# the five repository secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
-# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID): everything else is read at deploy time from the
-# Supabase project (its keys, and the deploy_* secrets in its vault). See scripts/deploy/ and
-# web/README.md, "Deploy". A failing step puts its last output lines into the run's annotations.
+# Minutes matter: the free plan has 2,000 a month (docs/ci-minutes.md has the budget and the estimate).
+#
+#   push, pull request   the fast gates only, in one job: the database suite (every migration, every test), the
+#                        text check, lint, types, unit tests and the generated types. Skipped entirely when only
+#                        documentation changed (docs/**, *.md). A newer push to the same branch cancels the older run.
+#   Run workflow         deploy = true: the fast gates, then the full suite (Worker build, every end-to-end test at
+#                        375 and 1440 with axe, link check, copy lint, crawl as every role, SEO, emails with
+#                        database values), then the deploy. full = true without deploy: the same checks, no deploy.
+#                        checks = false skips both (re-deploy of a commit that already passed).
+#
+# Deploy needs only the five repository secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID): everything else is read at deploy time from the Supabase project (its
+# keys, and the deploy_* secrets in its vault). See scripts/deploy/ and web/README.md, "Deploy". A failing step puts
+# its last output lines into the run's annotations.
 on:
   push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'emails/shots/**'
+      - 'emails/preview/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'emails/shots/**'
+      - 'emails/preview/**'
   workflow_dispatch:
     inputs:
       deploy:
-        description: Apply migrations to Supabase and deploy the web app to Cloudflare
+        description: Apply migrations to Supabase and deploy the web app to Cloudflare (runs the full suite first)
+        type: boolean
+        default: false
+      full:
+        description: Run the full suite (build, end to end, crawl, SEO, emails) without deploying
         type: boolean
         default: false
       checks:
-        description: Run the database and web checks first (turn off only to re-run a deploy of a commit whose push run passed)
+        description: Run the checks first (turn off only to re-run a deploy of a commit that already passed)
         type: boolean
         default: true
+      lighthouse:
+        description: Also record Lighthouse mobile scores (a few minutes; not gated)
+        type: boolean
+        default: false
       e2e_grep:
         description: Only the end-to-end tests whose title matches (diagnosis; leave empty for all)
         type: string
@@ -35,37 +60,25 @@ on:
         options: [production, staging]
         default: production
 
-# A deploy run never cancels (or is cancelled by) the push run of the same commit.
+# A newer push to the same branch cancels the run it supersedes. A deploy run never cancels (or is cancelled by)
+# a push run, and a second deploy waits for the first.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
+  group: ci-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'push' }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
-jobs:
-  database:
-    if: github.event_name != 'workflow_dispatch' || inputs.checks
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: PostgreSQL 16
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q postgresql-16 postgresql-client-16
-      - name: All migrations and tests
-        run: PATH="/usr/lib/postgresql/16/bin:$PATH" scripts/test.sh
-      - name: Text check
-        run: scripts/check-text.sh
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  CARMACARS_LOCAL_DIR: /tmp/cc-local
 
-  web:
+jobs:
+  # ---------------------------------------------------------------- the fast gates (every push)
+  fast:
     if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: web
-    env:
-      CARMACARS_LOCAL_DIR: /tmp/cc-local
-      NEXT_TELEMETRY_DISABLED: '1'
-      # browsers inside node_modules, for the install step and the test step alike
-      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -73,57 +86,37 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: PostgreSQL 16
+      - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+          if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-      - run: npm ci
-      - name: Local stack (migrations, local auth, seed)
-        run: |
-          cp .env.example .env.local
-          bash scripts/local-db.sh up
+      - name: Database suite (every migration, every test)
+        working-directory: .
+        run: .github/ci-run.sh "Database" scripts/test.sh
+      - name: Text check
+        working-directory: .
+        run: scripts/check-text.sh
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npx tsc --noEmit -p tests/tsconfig.json
       - name: Types are generated from the schema
-        run: npm run db:types && git diff --exit-code src/lib/db/types.ts
-      - name: Worker build (runs next build)
-        run: ../.github/ci-run.sh "Worker build" npx opennextjs-cloudflare build
-      - name: Browsers
-        run: npx playwright install --with-deps chromium
-      - name: End to end, accessibility
         run: |
-          set +e; ../.github/ci-run.sh "End to end" npx playwright test ${{ inputs.e2e_grep && format('--grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
-          echo "::notice title=e2e::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
-      - name: Link check and copy lint
-        run: |
-          (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
-          npm run check:links
-          npm run check:copy
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright
-          path: web/test-results
+          cp .env.example .env.local
+          bash scripts/local-db.sh up --no-seed
+          npm run db:types && git diff --exit-code src/lib/db/types.ts
 
-  # The handover audit's checks (docs/audit/2026-10-13-audit.md), beside the web job: every page and link
-  # anonymous and as each role with no 404, 500, dead button, console error or overflow at 375 and 1440
-  # (tests/lint/crawl-roles.mjs); SEO of every public page and car page (seo-audit.mjs); every catalogue
-  # email rendered with database values, its links and the unsubscribe flow (emails-db.mjs); Lighthouse
-  # mobile scores (recorded, not gated: shared runners vary).
-  audit:
-    if: github.event_name != 'workflow_dispatch' || inputs.checks
+  # ---------------------------------------------------------------- the full suite (deploy, or full = true)
+  # One job, one build: the end-to-end tests, link check and copy lint, then the crawl as every role, SEO and the
+  # emails with database values against the same server.
+  full:
+    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: web
-    env:
-      CARMACARS_LOCAL_DIR: /tmp/cc-local
-      NEXT_TELEMETRY_DISABLED: '1'
-      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -131,54 +124,87 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: PostgreSQL 16
+      - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q postgresql-16 postgresql-client-16
+          if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
+      - name: Playwright browser cache
+        id: pw
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Browsers
+        run: |
+          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
+      - name: Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: web/.next/cache
+          key: nextjs-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
+          restore-keys: nextjs-${{ hashFiles('web/package-lock.json') }}-
       - name: Local stack (migrations, local auth, seed)
         run: |
           cp .env.example .env.local
           bash scripts/local-db.sh up
-      - name: Build
-        run: ../.github/ci-run.sh "Build" npm run build
-      - name: Browsers
-        run: npx playwright install --with-deps chromium
+      - name: Worker build (runs next build)
+        run: ../.github/ci-run.sh "Worker build" npx opennextjs-cloudflare build
       - name: Server
         run: |
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+      - name: End to end, accessibility
+        env:
+          BASE_URL: http://localhost:3000
+        run: |
+          set +e; ../.github/ci-run.sh "End to end" npx playwright test ${{ inputs.e2e_grep && format('--grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
+          echo "::notice title=e2e::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
+      - name: Link check and copy lint
+        if: ${{ !cancelled() && inputs.e2e_grep == '' }}
+        run: |
+          npm run check:links
+          npm run check:copy
       - name: Crawl as every role
+        if: ${{ !cancelled() && inputs.e2e_grep == '' }}
         run: |
           set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --out reports/crawl.json > /tmp/crawl.log; s=$?
-          cat /tmp/crawl.log | tail -n 40; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
+          tail -n 40 /tmp/crawl.log; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
       - name: SEO
+        if: ${{ !cancelled() && inputs.e2e_grep == '' }}
         run: |
           set +e; ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs > /tmp/seo.log; s=$?
           tail -n 40 /tmp/seo.log; echo "::notice title=seo::$( (head -n 3 /tmp/seo.log; tail -n 3 /tmp/seo.log) | paste -sd ';' -)"; exit $s
       - name: Emails with database values
+        if: ${{ !cancelled() && inputs.e2e_grep == '' }}
         run: |
           set +e; ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots > /tmp/emails.log; s=$?
           tail -n 40 /tmp/emails.log; echo "::notice title=emails::$(grep -E '^emails' /tmp/emails.log | paste -sd ';' -)"; exit $s
       - name: Lighthouse (mobile; recorded)
+        if: ${{ !cancelled() && inputs.lighthouse }}
         continue-on-error: true
         run: |
           CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" node tests/lint/lighthouse.mjs
           jq -r 'to_entries[] | "::notice title=lighthouse::\(.key) performance \(.value.performance), accessibility \(.value.accessibility), best practices \(.value.bestPractices), SEO \(.value.seo); LCP \(.value.lcp), CLS \(.value.cls), TBT \(.value.tbt)"' reports/lighthouse.json
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
-          name: audit-reports
-          path: web/reports
+          name: full-suite
+          retention-days: 7
+          path: |
+            web/test-results
+            web/reports
+            /tmp/serve.log
 
+  # ---------------------------------------------------------------- deploy
   deploy:
     if: >-
       !cancelled() && github.event_name == 'workflow_dispatch' && inputs.deploy
-      && needs.database.result != 'failure' && needs.web.result != 'failure' && needs.audit.result != 'failure'
-      && (inputs.checks == false || (needs.database.result == 'success' && needs.web.result == 'success' && needs.audit.result == 'success'))
-    needs: [database, web, audit]
+      && needs.fast.result != 'failure' && needs.full.result != 'failure'
+      && (inputs.checks == false || (needs.fast.result == 'success' && needs.full.result == 'success'))
+    needs: [fast, full]
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     environment: ${{ inputs.environment }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -190,7 +216,6 @@ jobs:
       PAGE_CACHE: ${{ inputs.page_cache || 'auto' }}
       APP_URL: https://carmacars.ca
       DOMAIN: carmacars.ca
-      NEXT_TELEMETRY_DISABLED: '1'
       RUN: ${{ github.workspace }}/.github/ci-run.sh
     steps:
       - uses: actions/checkout@v4
@@ -206,7 +231,7 @@ jobs:
           if [ "$DEPLOY_ENV" = staging ] && [ -z "${{ vars.STAGING_READY }}" ]; then
             echo "::error::Staging has no Supabase project of its own yet; deploy production, or set up the staging environment (web/README.md, Deploy)."; exit 1
           fi
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: web
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
@@ -214,7 +239,7 @@ jobs:
         run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns images
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender, owner debit
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox debit
-      - name: Seed (content rows; the sample cars while the site has none)
+      - name: Seed (content rows and the user guides, only where missing; the sample cars while the site has none)
         working-directory: web
         run: $RUN "Seed" node scripts/seed.mjs --production
       - name: File buckets and the stand-in photos (R2, or Supabase Storage when the account has no R2)
@@ -270,3 +295,8 @@ jobs:
             [ "$code" = 200 ] && break; sleep 10
           done
           echo "::notice title=deploy::https://carmacars.ca answered $code; /cars $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/cars); photos $(curl -s -o /dev/null -w '%{http_code}' "$NEXT_PUBLIC_VEHICLE_PHOTOS_URL/.seeded/stand-in-photos-v1")"
+      - name: The stored guide PDFs (the committed PDFs, uploaded once where none is stored yet)
+        if: inputs.environment == 'production'
+        working-directory: web
+        continue-on-error: true
+        run: $RUN "Guide PDFs" node scripts/guides-pdf.mjs --base "$APP_URL" --committed

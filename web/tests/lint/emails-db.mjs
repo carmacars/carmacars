@@ -14,7 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import postgres from 'postgres';
 
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= fs.existsSync('/opt/pw-browsers') ? '/opt/pw-browsers' : '0';
+// the browsers of this machine when present; otherwise Playwright's own cache (CI caches ~/.cache/ms-playwright)
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync('/opt/pw-browsers')) process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/pw-browsers';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const EMAILS = path.resolve(HERE, '../../../emails');
 const { render, renderText } = await import(path.join(EMAILS, 'src/engine.mjs'));

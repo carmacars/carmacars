@@ -2,7 +2,7 @@
 # The local stack: a PostgreSQL server with the Supabase shim, every migration of
 # ../supabase/migrations, the local auth stand-in and the seed. See web/README.md.
 #
-#   scripts/local-db.sh up      start the server; build the database on first run
+#   scripts/local-db.sh up      start the server; build the database on first run (up --no-seed: schema only)
 #   scripts/local-db.sh reset   drop and rebuild the database, then seed it
 #   scripts/local-db.sh down    stop the server
 set -euo pipefail
@@ -58,7 +58,7 @@ case "${1:-up}" in
   up)
     start
     if ! "$PSQL" -X -At "$ADMIN" -c "select 1 from pg_database where datname = '$DB'" | grep -q 1; then
-      build; (cd "$WEB" && node scripts/seed.mjs)
+      build; [ "${2:-}" = --no-seed ] || (cd "$WEB" && node scripts/seed.mjs)
     fi
     echo "DATABASE_URL=$URL" ;;
   reset) start; build; (cd "$WEB" && node scripts/seed.mjs) ;;

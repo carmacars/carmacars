@@ -15,7 +15,8 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import postgres from 'postgres';
 
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= fs.existsSync('/opt/pw-browsers') ? '/opt/pw-browsers' : '0';
+// the browsers of this machine when present; otherwise Playwright's own cache (CI caches ~/.cache/ms-playwright)
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync('/opt/pw-browsers')) process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/pw-browsers';
 const BASE = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const PER_SHAPE = Number(arg('--per-shape', '2'));

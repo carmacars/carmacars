@@ -1,9 +1,11 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
 // End-to-end tests against the local stack (scripts/local-db.sh) and the local production server
 // (scripts/serve.mjs, which adds the same security headers and nonce as the Worker entry).
 // Run `npm run build` first. Two widths: 375 (phone) and 1440 (desktop).
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
+// the browsers of this machine when present; otherwise Playwright's own cache (CI caches ~/.cache/ms-playwright)
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH && existsSync('/opt/pw-browsers')) process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/pw-browsers';
 const base = process.env.BASE_URL ?? 'http://localhost:3000';
 
 export default defineConfig({
