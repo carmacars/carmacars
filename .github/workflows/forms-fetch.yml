@@ -45,14 +45,14 @@ jobs:
           curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
           R="$RUNNER_TEMP/forms/report.json"
           [ -f "$R" ] || { echo "::error title=forms::no report was written"; exit 1; }
-          for row in $(jq -r '.forms[] | select(.ok) | "\(.code)|\(.sha256)"' "$R"); do
+          for row in $(jq -r '.forms[] | select(.downloaded) | "\(.code)|\(.sha256)"' "$R"); do
             code="${row%%|*}"; sha="${row##*|}"
             key="forms/templates/$code/official-${sha:0:16}.pdf"
             curl -sS -f -o /dev/null -X POST "$S/object/documents/$key" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/forms/$code.pdf"
             curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/$code.pdf" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/forms/$code.pdf"
             echo "::notice title=forms::$code stored at documents/$key"
           done
-          jq --arg run "${{ github.run_id }}" '.run_id = $run | .forms |= map(if .ok then .file_key = "forms/templates/\(.code)/official-\(.sha256[0:16]).pdf" else . end)' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+          jq --arg run "${{ github.run_id }}" '.run_id = $run | .forms |= map(if .downloaded then .file_key = "forms/templates/\(.code)/official-\(.sha256[0:16]).pdf" else . end)' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
           curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/report.json" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$R"
           jq -r '.forms[] | "\(.code): \(if .ok then "\(.pages) pages, \(.fields | length) fields, fillable \(.fillable), XFA \(.xfa), \(.file_key)" else "failed: \(.error)" end)"' "$R" | sed 's/^/::notice title=forms report::/'
           echo "::notice title=forms::report at deploy-reports/forms/${{ github.run_id }}/report.json"

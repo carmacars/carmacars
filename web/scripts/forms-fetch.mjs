@@ -76,8 +76,8 @@ const typeOf = (x) => x instanceof PDFTextField ? 'text' : x instanceof PDFCheck
 async function inspect(bytes) {
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
   const pages = doc.getPages();
-  const acro = doc.catalog.lookup(PDFName.of('AcroForm'));
-  const xfa = !!(acro && acro.get && acro.get(PDFName.of('XFA')));
+  let xfa = false;
+  try { const acro = doc.catalog.lookup(PDFName.of('AcroForm')); xfa = !!(acro && acro.get && acro.get(PDFName.of('XFA'))); } catch { xfa = false; }
   let fields = [];
   try {
     fields = doc.getForm().getFields().map((x) => {
@@ -95,7 +95,8 @@ async function inspect(bytes) {
     });
   } catch (e) { fields = []; }
   const sizes = pages.map((p) => { const s = p.getSize(); return [Math.round(s.width), Math.round(s.height)]; });
-  const info = { title: doc.getTitle() ?? null, subject: doc.getSubject() ?? null, producer: doc.getProducer() ?? null };
+  let info = null;
+  try { info = { title: doc.getTitle() ?? null, subject: doc.getSubject() ?? null, producer: doc.getProducer() ?? null }; } catch { info = null; }
   return { pages: pages.length, sizes, xfa, fields, info };
 }
 
@@ -125,7 +126,8 @@ for (const f of FORMS) {
     row.sha256 = createHash('sha256').update(b).digest('hex');
     row.file = `${f.code}.pdf`;
     writeFileSync(join(OUT, row.file), b);
-    Object.assign(row, await inspect(b));
+    row.downloaded = true;
+    try { Object.assign(row, await inspect(b)); } catch (e) { row.inspect_error = e.message; row.fields = []; }
     row.fillable = row.fields.filter((x) => x.type !== 'button').length > 0;
     if (!row.fillable || row.xfa) {
       try { row.text = await pageText(b); } catch (e) { row.text_error = e.message; }
