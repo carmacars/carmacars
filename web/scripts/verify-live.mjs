@@ -230,20 +230,25 @@ if (process.argv.includes('--auth')) {
           // paper signature form (opened, never submitted), and the month's payments received another way
           try {
             await load(`${BASE}/admin/owners?view=checklist`);
-            const h = ((await page.locator('h1').first().textContent().catch(() => '')) ?? '').trim();
+            const tab = ((await page.getByRole('link', { name: 'Paid and signed' }).first().getAttribute('aria-current').catch(() => null)) ?? '') === 'page';
             const owner = ACCOUNTS.find((x) => x.role === 'owner');
             const rec = (await rest(`owners?user_id=eq.${owner.id}&select=id`))[0]?.id;
             await load(`${BASE}/admin/owners/${rec}`);
-            const ck = page.locator('#checklist');
-            const btn = ck.getByTestId('paper-signature');
+            const checklist = await page.locator('#checklist').count();
+            // the paper signature form: an investor's page always offers the investment agreement
+            const inv = ACCOUNTS.find((x) => x.role === 'investor');
+            const irec = (await rest(`investors?user_id=eq.${inv.id}&select=id`))[0]?.id;
+            await load(`${BASE}/admin/investors/${irec}`);
+            const btn = page.getByTestId('paper-signature');
             const hasBtn = await btn.count();
             if (hasBtn) await btn.first().click();
-            const form = hasBtn ? await ck.getByTestId('paper-signature-form').isVisible({ timeout: 10_000 }).catch(() => false) : false;
+            const form = hasBtn ? await page.getByTestId('paper-signature-form').first().isVisible({ timeout: 10_000 }).catch(() => false) : false;
             await page.screenshot({ path: path.join(out, 'admin-paper-signature.png'), fullPage: true });
             await load(`${BASE}/admin/reconciliation`);
             const month = await page.getByTestId('manual-month').count();
-            r.manualRecords = { paidAndSigned: h, paperButton: hasBtn > 0, paperForm: form, manualMonth: month > 0 };
-            r.manualRecords.ok = !!h && form && month > 0;
+            await page.screenshot({ path: path.join(out, 'admin-manual-payments.png'), fullPage: true });
+            r.manualRecords = { paidAndSignedTab: tab, ownerChecklist: checklist > 0, paperForm: form, manualMonth: month > 0 };
+            r.manualRecords.ok = tab && form && month > 0;
           } catch (e) { r.manualRecords = { ok: false, error: String(e).slice(0, 200) }; }
           await adminChecks(page, r, load);
         }
