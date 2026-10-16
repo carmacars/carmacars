@@ -2,7 +2,8 @@ name: forms-fetch
 
 # The official ServiceOntario forms for Admin > Settings > Forms (0042's official form mapping; 0046's default
 # drafts). Resolves each dataset page of the Central Forms Repository to its English PDF, downloads it, records its
-# SHA-256, its pages and its fillable fields (web/scripts/forms-fetch.mjs), then stores each PDF in the private
+# SHA-256, its pages and its fillable fields (web/scripts/forms-fetch.mjs; an encrypted form is opened with qpdf, a pure
+# XFA form is laid out by pdf.js and printed to a plain PDF with the box of each field, web/scripts/forms-xfa.mjs), then stores each PDF in the private
 # documents bucket under forms/templates/<code>/ (where Admin > Settings > Forms keeps uploaded templates) and the
 # report in deploy-reports/forms/<run id>/report.json. Nothing in the database changes: the templates and their
 # draft mappings are added by a migration from this report, and an Admin checks each one before owners get it.
@@ -31,6 +32,10 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - name: Tools (qpdf opens the encrypted forms; Chromium lays out a pure XFA form)
+        run: |
+          sudo apt-get install -y -qq qpdf > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
       - name: Resolve, download and read the forms
         run: |
           node scripts/forms-fetch.mjs --out "$RUNNER_TEMP/forms" | tee "$RUNNER_TEMP/forms.txt"
@@ -49,10 +54,11 @@ jobs:
             code="${row%%|*}"; sha="${row##*|}"
             key="forms/templates/$code/official-${sha:0:16}.pdf"
             curl -sS -f -o /dev/null -X POST "$S/object/documents/$key" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/forms/$code.pdf"
+            curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/$code.original.pdf" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/forms/$code.original.pdf"
             curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/$code.pdf" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/forms/$code.pdf"
             echo "::notice title=forms::$code stored at documents/$key"
           done
           jq --arg run "${{ github.run_id }}" '.run_id = $run | .forms |= map(if .downloaded then .file_key = "forms/templates/\(.code)/official-\(.sha256[0:16]).pdf" else . end)' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
           curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/report.json" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$R"
-          jq -r '.forms[] | "\(.code): \(if .ok then "\(.pages) pages, \(.fields | length) fields, fillable \(.fillable), XFA \(.xfa), \(.file_key)" else "failed: \(.error)" end)"' "$R" | sed 's/^/::notice title=forms report::/'
+          jq -r '.forms[] | "\(.code): \(if .ok then "\(.kind): \(.pages) pages, \(.fields | length) fields, fillable \(.fillable), pure XFA \(.pure_xfa), \(.file_key)" else "failed: \(.error)" end)"' "$R" | sed 's/^/::notice title=forms report::/'
           echo "::notice title=forms::report at deploy-reports/forms/${{ github.run_id }}/report.json"

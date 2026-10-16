@@ -7,7 +7,9 @@
 // development sandbox cannot). Writes <out>/<code>.pdf and <out>/report.json.
 //
 //   node scripts/forms-fetch.mjs --out /tmp/forms
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { PDFDocument, PDFCheckBox, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, PDFName } from 'pdf-lib';
@@ -100,40 +102,66 @@ async function inspect(bytes) {
   return { pages: pages.length, sizes, xfa, fields, info };
 }
 
-// the text of each page with its position, for a form with no fillable field (pdf.js legacy build runs in Node)
-async function pageText(bytes) {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: true, isEvalSupported: false }).promise;
-  const out = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const tc = await page.getTextContent();
-    out.push({ page: i, items: tc.items.filter((t) => t.str && t.str.trim()).map((t) => ({ s: t.str.trim(), x: Math.round(t.transform[4] * 10) / 10, y: Math.round(t.transform[5] * 10) / 10, h: Math.round((t.height || 0) * 10) / 10 })) });
+// The template the platform fills: the publisher's PDF opened (the forms are encrypted with an empty password and
+// allow filling form fields; pdf-lib cannot read an encrypted file, so qpdf removes the encryption), with its XFA
+// part removed so the AcroForm fields are used. A pure XFA form (no AcroForm field at all) is laid out by pdf.js and
+// printed to a plain PDF with the box of each field: a coordinates-based template.
+function decrypt(bytes) {
+  const dir = mkdtempSync(join(tmpdir(), 'form-'));
+  writeFileSync(join(dir, 'in.pdf'), bytes);
+  try { execFileSync('qpdf', ['--decrypt', join(dir, 'in.pdf'), join(dir, 'out.pdf')], { stdio: 'pipe' }); }
+  catch (e) { if (e.status !== 3) throw new Error('qpdf could not open the PDF: ' + String(e.stderr ?? e.message).slice(0, 200)); }
+  return new Uint8Array(readFileSync(join(dir, 'out.pdf')));
+}
+const encrypted = (b) => /\/Encrypt\s/.test(Buffer.from(b.subarray(Math.max(0, b.length - 4096))).toString('latin1') + Buffer.from(b.subarray(0, 4096)).toString('latin1'));
+
+async function prepare(original) {
+  const open = encrypted(original) ? decrypt(original) : original;
+  const seen = await inspect(open);
+  const fillable = seen.fields.filter((x) => x.type !== 'button');
+  if (fillable.length) {
+    const doc = await PDFDocument.load(open, { updateMetadata: false });
+    doc.getForm().deleteXFA();
+    const bytes = await doc.save({ useObjectStreams: false });
+    return { kind: 'acroform', bytes, ...seen, fields: fillable, decrypted: open !== original };
   }
-  return out;
+  if (seen.xfa) {
+    const { renderXfa } = await import('./forms-xfa.mjs');
+    const x = await renderXfa(open);
+    return { kind: 'overlay', bytes: x.pdf, pages: x.pages, sizes: seen.sizes, xfa: true, pure_xfa: x.pure, fields: x.boxes, info: seen.info, decrypted: open !== original };
+  }
+  return { kind: 'overlay', bytes: open, ...seen, fields: [], decrypted: open !== original };
 }
 
+const LOCAL = arg('--local', null);
 const report = { at: new Date().toISOString(), forms: [] };
 for (const f of FORMS) {
   const row = { code: f.code, page: f.page };
   try {
-    const r = await resolve(f);
-    Object.assign(row, { pdf_url: r.url, via: r.via, dataset_title: r.title ?? null, resource: r.resource ?? null });
-    const pdf = await get(r.url, 'bytes');
-    const b = pdf.body;
-    if (!(b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46)) throw new Error(`the download is not a PDF (${pdf.type})`);
-    row.bytes = b.length;
-    row.sha256 = createHash('sha256').update(b).digest('hex');
-    row.file = `${f.code}.pdf`;
-    writeFileSync(join(OUT, row.file), b);
-    row.downloaded = true;
-    try { Object.assign(row, await inspect(b)); } catch (e) { row.inspect_error = e.message; row.fields = []; }
-    row.fillable = row.fields.filter((x) => x.type !== 'button').length > 0;
-    if (!row.fillable || row.xfa) {
-      try { row.text = await pageText(b); } catch (e) { row.text_error = e.message; }
+    let b;
+    if (LOCAL) { b = new Uint8Array(readFileSync(join(LOCAL, `${f.code}.pdf`))); row.pdf_url = 'local'; }
+    else {
+      const r = await resolve(f);
+      Object.assign(row, { pdf_url: r.url, via: r.via, dataset_title: r.title ?? null, resource: r.resource ?? null });
+      const pdf = await get(r.url, 'bytes');
+      b = pdf.body;
+      if (!(b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46)) throw new Error(`the download is not a PDF (${pdf.type})`);
     }
+    row.bytes = b.length;
+    row.original_sha256 = createHash('sha256').update(b).digest('hex');
+    row.encrypted = encrypted(b);
+    writeFileSync(join(OUT, `${f.code}.original.pdf`), b);
+    const t = await prepare(b);
+    row.kind = t.kind; row.pages = t.pages; row.sizes = t.sizes; row.xfa = t.xfa; row.pure_xfa = t.pure_xfa ?? false; row.info = t.info; row.decrypted = t.decrypted;
+    row.fields = t.fields;
+    row.fillable = t.kind === 'acroform';
+    row.sha256 = createHash('sha256').update(t.bytes).digest('hex');
+    row.template_bytes = t.bytes.length;
+    row.file = `${f.code}.pdf`;
+    writeFileSync(join(OUT, row.file), t.bytes);
+    row.downloaded = true;
     row.ok = true;
-    console.log(`${f.code}: ${r.url} ${row.bytes} bytes, ${row.pages} pages, ${row.fields.length} fields${row.xfa ? ', XFA' : ''}${row.fillable ? '' : ', NOT FILLABLE'}`);
+    console.log(`${f.code}: ${row.pdf_url} ${row.bytes} bytes${row.encrypted ? ' (encrypted, opened)' : ''}, ${row.pages} pages, ${row.fields.length} ${row.kind === 'acroform' ? 'fillable fields' : 'boxes for placed text'}${row.pure_xfa ? ' (pure XFA form, laid out by pdf.js)' : ''}`);
   } catch (e) {
     row.ok = false; row.error = e.message;
     console.log(`${f.code}: FAILED ${e.message}`);
