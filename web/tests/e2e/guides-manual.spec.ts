@@ -230,6 +230,9 @@ test('paper signature: an Admin records the debit agreement signed on paper from
   await form.getByLabel('Document', { exact: true }).selectOption({ label: 'Pre-authorized debit agreement' });
   await form.getByLabel('Scan of the signed document').setInputFiles({ name: 'debit-signed.pdf', mimeType: 'application/pdf', buffer: PDF });
   await form.getByLabel('Note (optional)').fill('Signed at the office');
+  // the pointer last rested on a button (its hover colours): move it away and let the transition settle before the contrast check
+  await ap.mouse.move(0, 0);
+  await ap.waitForTimeout(400);
   await check(ap, 'admin paper signature form');
   await form.getByRole('button', { name: 'Record signature' }).click();
   await expect(form.getByTestId('paper-signature-done')).toBeVisible({ timeout: 15_000 });
