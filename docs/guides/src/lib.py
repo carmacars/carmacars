@@ -10,7 +10,10 @@ import os
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCREENS = os.path.normpath(os.path.join(HERE, '..', 'screens'))
+# GUIDE_SCREENS and GUIDE_IMG: the guide upkeep run (web/scripts/guide-upkeep.mjs) crops freshly taken screens into a
+# folder of its own, to compare them with the images the guides show.
+SCREENS = os.environ.get('GUIDE_SCREENS') or os.path.normpath(os.path.join(HERE, '..', 'screens'))
+IMG_DIR = os.environ.get('GUIDE_IMG') or os.path.join(HERE, 'img')
 MANIFEST = {s['file'][:-4]: s for s in json.load(open(os.path.join(SCREENS, 'manifest.json')))['screens']}
 
 PHONE_SCALE = 3
@@ -60,10 +63,12 @@ class Shot:
     """
 
     def __init__(self, key, crop=None, pins=(), boxes=(), hdr=True, url=None, width=None, caption=None):
-        if key not in MANIFEST:
+        if key not in MANIFEST and not os.environ.get('GUIDE_SCREENS'):
             raise KeyError(key)
         self.key = key
-        self.m = MANIFEST[key]
+        # the upkeep run may not have retaken every screen: a stand-in keeps the export going (nothing is compared for it)
+        self.m = MANIFEST.get(key) or {'viewport': 'phone' if key.endswith('-phone') else 'desktop', 'width': 390 if key.endswith('-phone') else 1440,
+                                       'height': 2110 if key.endswith('-phone') else 2250, 'path': '/'}
         self.phone = self.m['viewport'] == 'phone'
         w, h = self.m['width'], self.m['height']
         self.crop = crop or (0, PHONE_GAP_END if self.phone else 0, w, h)
@@ -92,10 +97,13 @@ class Shot:
         sc = PHONE_SCALE if self.phone else DESK_SCALE
         tag = hashlib.sha1(json.dumps([self.key, self.crop, hh]).encode()).hexdigest()[:8]
         name = f"{self.key.replace('/', '-')}-{tag}.jpg"
-        out = os.path.join(HERE, 'img', name)
+        out = os.path.join(IMG_DIR, name)
         USED_IMAGES.add(name)
+        src = os.path.join(SCREENS, self.key + '.png')
+        if not os.path.exists(out) and not os.path.exists(src) and os.environ.get('GUIDE_SCREENS'):
+            return 'img/' + name  # the upkeep run did not retake this screen: nothing to compare
         if not os.path.exists(out):
-            im = Image.open(os.path.join(SCREENS, self.key + '.png')).convert('RGB')
+            im = Image.open(src).convert('RGB')
             body = im.crop((x0 * sc, y0 * sc, x1 * sc, y1 * sc))
             if hh:
                 head = im.crop((x0 * sc, 0, x1 * sc, hh * sc))

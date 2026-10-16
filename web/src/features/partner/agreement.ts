@@ -1,6 +1,6 @@
 // The partner agreement (migration 0046): a short, plain-language agreement between CarmaCars and a partner rental
-// company whose cars CarmaCars rents out on commission. DRAFT FOR LAWYER REVIEW: the text is quoted in
-// docs/legal/for-lawyer-review.md; change it here, bump PARTNER_AGREEMENT_VERSION, and partners sign the new version.
+// company whose cars CarmaCars rents out on commission. DRAFT FOR LAWYER REVIEW (the lawyer's copy is kept
+// outside this repository); change it here, bump PARTNER_AGREEMENT_VERSION, and partners sign the new version.
 // Filled from the partner record (app.partner_agreement_facts) and signed in the owner portal or on paper.
 import { markdown, type Block, type SignatureRow } from '@/features/agreement/model';
 

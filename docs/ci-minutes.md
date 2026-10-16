@@ -25,7 +25,8 @@ and the audit job 13, in parallel). The workflows now spend minutes only where t
 | `verify` | Run workflow, `full` | Adds sign-in as every portal, view as, invitation, reset, live SEO audit | about 12 |
 | `backup` | nightly | Encrypted database and storage backup | about 2 |
 | `backup` | Monday | The weekly restore check | about 5 |
-| `guides` | Run workflow | Screenshots for the user guides | about 19 |
+| `guides` | Run workflow | Screenshots for the user guides, then the guide upkeep (each screenshot compared with the live guide's; a changed one replaced and its sections flagged for review; `upkeep` on by default) | about 20 |
+| `forms-fetch` | Run workflow | Downloads the official ServiceOntario PDFs, reads their fields, stores them | about 1 |
 | `guides-pdf` | Run workflow | Prints each published guide and stores its PDF | about 4 (1 with `committed`) |
 
 Caches keep the repeat cost down: npm (`actions/setup-node`), the Playwright browser (`~/.cache/ms-playwright`,
@@ -45,7 +46,10 @@ The busy month the plan is sized for: 40 pushes, 10 deploys, 10 verifies, 30 nig
 | Weekly restore check | 4 | 5 | 20 |
 | **Total** | | | **840** |
 
-That leaves about 1,160 minutes for the occasional extra: a `full` verify (12), a guides run (19), a guide PDF
+The guide upkeep is a manual run of `guides` (not part of every deploy: it needs the end-to-end records and takes about
+20 minutes): run it after a deploy that changed screens, then `guides-pdf`.
+
+That leaves about 1,160 minutes for the occasional extra: a `full` verify (12), a guides run (20), a guide PDF
 print (4), or a deploy that has to be run twice. The same month under the old workflows was about 40 x 33 + 10 x 36
 + 10 x 10 + 30 x 2 + 20 = 1,860 minutes, which is how October ran out.
 

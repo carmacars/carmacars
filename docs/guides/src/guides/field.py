@@ -61,8 +61,8 @@ def build():
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
     g.steps([
         f'My jobs shows "You have a document to sign". Press {B("Read and sign")}.',
-        f'Press the document, then {B("Open the PDF")} and read it.',
-        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}.',
+        f'Check the key values at the top (your role, wage and start date), then press {B("Read the PDF")} and read it.',
+        f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}).',
     ])
 
     # ---------------------------------------------------------------- 2

@@ -38,10 +38,11 @@ def build():
 
     g.task('Sign your investment agreement', 'When CarmaCars sends your agreement, it is under Documents to sign.')
     g.steps([
-        f'Press {B("Documents to sign")} in the menu, then the agreement.',
-        f'Press {B("Open the PDF")} and read it, with its schedules.',
-        'Say whether you got independent legal advice, and type your initials for the risk acknowledgment (Schedule C).',
-        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}. The signed copy is on the same page.',
+        f'Press {B("Documents to sign")} in the menu. The top shows what is signed ("0 of 1 signed").',
+        'Check the key values: your name and address, the Invested Amount, the Yearly Percentage and the dates. The agreement is filled in from your record.',
+        f'Press {B("Read the PDF")} and read it, with its schedules.',
+        'Say whether you got independent legal advice, and tick the risk acknowledgment (Schedule C). Your initials are filled in.',
+        f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}). The signed copy is on the same page.',
     ])
     g.tip('Signed on paper instead? Once we record it, it shows under Signed with the scan.')
 

@@ -1,7 +1,7 @@
 // Official fillable PDFs (migration 0042), with pdf-lib in the browser (never in the Worker): read the fillable
 // fields of an uploaded form, and fill one with the values the database resolved for a car and its owner, with
 // the owner's drawn signature placed in the signature fields. Works the same in Node for the unit tests.
-import { PDFCheckBox, PDFDocument, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, StandardFonts, rgb, type PDFField, type PDFFont, type PDFPage } from 'pdf-lib';
+import { PDFButton, PDFCheckBox, PDFDocument, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, StandardFonts, rgb, type PDFField, type PDFFont, type PDFPage } from 'pdf-lib';
 
 export type FieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'signature' | 'button';
 export interface PdfField { name: string; type: FieldType; options?: string[]; page?: number; rect?: [number, number, number, number]; label?: string; tooltip?: string }
@@ -89,7 +89,11 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
       filled.push(name);
     }
   }
-  if (o.flatten && form.getFields().length) { form.updateFieldAppearances(); form.flatten(); }
+  if (o.flatten && form.getFields().length) {
+    // the publisher's Print and Clear buttons do nothing on a signed copy: they leave it
+    for (const f of form.getFields()) if (f instanceof PDFButton) { try { form.removeField(f); } catch { /* a button shared with another field stays */ } }
+    form.updateFieldAppearances(); form.flatten();
+  }
   return { bytes: await doc.save(), filled, missing };
 }
 

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Guides', path: '/admin/settings/guides', noindex: true, description: 'The user guide of each portal.' });
 
 type G = { portal: GuidePortal; title: string; version: number; published_at: string | null; published_by_name: string | null; sections: number; unpublished: number;
-  readers: number; readers_current: number; pdf: { generated_at: string; source: string; bytes: number; guide_version: number | null; stale: boolean } | null };
+  readers: number; readers_current: number; needs_review?: number; pdf: { generated_at: string; source: string; bytes: number; guide_version: number | null; stale: boolean } | null };
 
 const SOURCE: Record<string, string> = { committed: 'the October 2026 edition', generated: 'printed from the published guide', uploaded: 'uploaded by an Admin' };
 
@@ -23,10 +23,14 @@ export default async function Guides() {
     <Table<G> testId="guides" rows={rows} rowKey={(r) => r.portal} cols={[
       { key: 'title', label: 'Guide', render: (r) => <Link prefetch={false} className="link" href={`/admin/settings/guides/${r.portal}`} data-testid={`guide-edit-${r.portal}`}>{r.title}</Link> },
       { key: 'version', label: 'Published', render: (r) => r.version ? <>Version {r.version}, {d(r.published_at)}{r.published_by_name ? ` by ${r.published_by_name}` : ''}</> : <Badge s="draft">Not published</Badge> },
+      { key: 'needs_review', label: 'To review', render: (r) => r.needs_review ? <Badge s="pending_approval">{`${r.needs_review} section${r.needs_review === 1 ? '' : 's'}`}</Badge> : <span className="muted">none</span> },
       { key: 'unpublished', label: 'Changes waiting', render: (r) => r.unpublished ? <Badge s="pending_approval">{`${r.unpublished} section${r.unpublished === 1 ? '' : 's'}`}</Badge> : <span className="muted">none</span> },
       { key: 'pdf', label: 'PDF', render: (r) => r.pdf ? <>{d(r.pdf.generated_at)}, {SOURCE[r.pdf.source] ?? r.pdf.source}{r.pdf.stale ? <><br /><span className="small">The web guide has newer edits</span></> : null}</> : <span className="muted">none stored</span> },
       { key: 'readers', label: 'Readers', render: (r) => <>{r.readers}{r.version ? <span className="muted small"> ({r.readers_current} on version {r.version})</span> : null}</> },
       { key: 'view', label: 'Open', render: (r) => <Link prefetch={false} className="link" href={r.portal === 'admin' ? GUIDE_PATH.admin : `/admin/guide/${r.portal}`}>{GUIDE_NAME[r.portal]} guide</Link> }]} />
+    <Card title="Keeping the screenshots current">
+      <p className="small">The <b>guides</b> workflow (GitHub, Actions, guides, Run workflow) retakes every screenshot on this version of the site and compares each with the one the guide shows. A screen that changed is replaced in the guide at once, and its sections show here as <b>To review</b>: open the guide, read the text against the new screenshot, and mark it reviewed (Workers AI can suggest a text). Then run <b>guides-pdf</b> for the PDFs.</p>
+    </Card>
     <Card title="The PDF, printed from the published guide">
       <p className="small">The polished PDF is printed from the published guide by the <b>guides-pdf</b> workflow (GitHub, Actions, guides-pdf, Run workflow), which stores it here with its date. Until then the October 2026 PDFs are offered. You can also store a PDF yourself: open the guide, use &quot;Print or save as PDF&quot;, then upload it on the guide&apos;s page here.</p>
     </Card>

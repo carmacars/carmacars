@@ -185,3 +185,25 @@ export async function signRequest(input: SignInput): Promise<R<{ status: string 
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }
+
+/** An agreement generated from the record (migration 0049): the values it starts with, for the Admin to confirm. */
+export async function prepareGeneratedAgreement(kind: 'investment_agreement' | 'staff_agreement', who: string): Promise<R<import('@/server/person-agreements').Prepared>> {
+  try {
+    const { user, aal } = await me();
+    const { prepareGenerated } = await import('@/server/person-agreements');
+    return { ok: true, data: await prepareGenerated(user.id, aal, kind, who) };
+  } catch (e) { return fail(e); }
+}
+
+/** Render the agreement with the confirmed values and send it to sign in the person's portal (no PDF to upload). */
+export async function sendGeneratedAgreement(kind: 'investment_agreement' | 'staff_agreement', who: string, values: Record<string, string>,
+  exemption: { category: string; paragraph: string }, paths: string[] = []): Promise<R<{ id: string; blanks: number }>> {
+  if (kind === 'investment_agreement' && !['accredited_investor', 'offering_memorandum_eligible'].includes(exemption.category)) return invalid({ exemption_category: 'Choose the exemption.' });
+  try {
+    const { user, aal } = await me();
+    const { sendGenerated } = await import('@/server/person-agreements');
+    const r = await sendGenerated(user.id, aal, kind, who, values, exemption);
+    refresh(paths);
+    return { ok: true, data: r };
+  } catch (e) { return fail(e); }
+}

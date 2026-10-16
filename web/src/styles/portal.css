@@ -202,3 +202,16 @@
 .ck-dot.is-open { background: var(--red, #d0111b); }
 /* a long email address or reference in a sentence wraps instead of widening a phone screen */
 .pt-card p, .ow-status p, .pt-note, .alert span { overflow-wrap: anywhere; }
+
+/* Simple signing (0049): the adopted signature, one tap for all statements, the progress and the filled values */
+.sig-adopt { display: grid; gap: var(--s-1); padding: var(--s-4); border: var(--bw) solid var(--black); border-radius: var(--r-2); background: var(--white); }
+.sig-adopt.is-invalid { border-color: var(--red-600); border-width: 2px; }
+.sig-adopt__name { font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive; font-size: 1.9rem; line-height: 1.2; color: var(--black); overflow-wrap: anywhere; border-bottom: 1px solid var(--grey-300); padding-bottom: var(--s-1); }
+.pk-all { font-size: var(--fs-base); padding-bottom: var(--s-2); border-bottom: 1px solid var(--grey-200); }
+.pk-statements { display: grid; gap: var(--s-2); padding-left: var(--s-2); }
+.sg-progress__bar { height: 6px; border-radius: 3px; background: var(--grey-200); overflow: hidden; }
+.sg-progress__bar span { display: block; height: 100%; background: var(--red-600); }
+.sg-summary > div { display: grid; grid-template-columns: minmax(7rem, 40%) 1fr; gap: var(--s-2); }
+.sg-summary dd { margin: 0; overflow-wrap: anywhere; }
+.sg-docs details { border-top: 1px solid var(--grey-200); padding: var(--s-2) 0; }
+.sg-docs summary { cursor: pointer; font-weight: 600; }

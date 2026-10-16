@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { day, InvoiceRows, VehicleCard } from '@/features/owner/Blocks';
 import { requireOwner } from '@/server/owner/data';
+import { rpc } from '@/lib/db/repo';
 import { TRACKER_LATER } from '@/features/owner/types';
 
 export const dynamic = 'force-dynamic';
@@ -10,14 +11,17 @@ export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noinde
 
 // Home (04-owner.md section 2): the one next thing to do, then the vehicles with their checklist, money and notices.
 export default async function OwnerHomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
+  const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
+  // what is left to sign on screen (0049): one package on /owner/sign
+  const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { items: Array<{ status: string; how: string; label: string }>; done: number; total: number } | null;
+  const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
   const due = home.invoices.filter((i) => i.payable);
   const pending = home.invoices.filter((i) => i.pending && i.status !== 'paid');
   const partner = home.kind === 'partner' ? home.partner ?? null : null;
   const next = partner && partner.agreement_status !== 'signed'
-    ? { title: 'Sign your partner agreement', note: `Your partner agreement with CarmaCars is ready: your cars, our commission and how we pay you. Read it and sign on this screen.`, href: '/owner/partner-agreement', cta: 'Read and sign' }
-    : home.signing.needed
-    ? { title: 'Sign your agreements', note: `Your Vehicle Enrollment Agreement and Vehicle Schedule are ready${home.signing.title_holding && home.signing.title_holding !== 'signed' ? ', with the Title-Holding and Lease Agreement' : ''}. Read them and sign once, on this screen.`, href: '/owner/sign', cta: 'Read and sign' }
+    ? { title: 'Sign your partner agreement', note: `Your partner agreement with CarmaCars is ready: your cars, our commission and how we pay you. It is filled in for you; check it and sign on this screen.`, href: '/owner/sign', cta: 'Check and sign' }
+    : home.signing.needed || onScreen.length
+    ? { title: `Sign your documents (${checklist ? `${checklist.done} of ${checklist.total} signed` : 'ready'})`, note: `${onScreen.map((i) => i.label).filter((v, n, a) => a.indexOf(v) === n).join(', ') || 'Your agreements'}: filled in from what you gave us. Check the key values and sign once for all of them, in about a minute.`, href: '/owner/sign', cta: 'Check and sign' }
     : due.length
       ? { title: due.length === 1 ? `Pay invoice ${due[0]!.invoice_number}` : `Pay ${due.length} invoices`, note: `${money(due.reduce((s, i) => s + i.balance_cents, 0), { cents: true })} due: ${due.map((i) => i.vehicle_name).join(', ')}. Pay by card or pre-authorized debit.`, href: due.length === 1 ? `/owner/invoices/${due[0]!.invoice_number}` : '/owner/invoices', cta: due.length === 1 ? 'Pay now' : 'See invoices' }
       : null;

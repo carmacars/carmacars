@@ -10,6 +10,11 @@ export function fakeVision(): VisionModel {
     async read(req: VisionRequest): Promise<VisionResult> {
       if (process.env.FAKE_VISION_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake vision model is set to fail', tried: [FAKE_MODEL] };
       const usage = { inputTokens: 1200, outputTokens: 180, neurons: 0 };
+      if (req.purpose === 'guide_review') {
+        // the text between the markers of the prompt, with one sentence added: enough to check the review flow
+        const m = /<<<GUIDE\n([\s\S]*?)\nGUIDE>>>/.exec(req.prompt);
+        return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { body_md: `${m?.[1] ?? ''}\n\n> Good to know: the screen now matches the steps above.`, summary: 'Added a note that the screen matches the steps.' } };
+      }
       if (req.purpose === 'plate_detect') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { plates: [{ x: 0.42, y: 0.66, w: 0.16, h: 0.06, confidence: 72 }] } };
       return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {
         issuer: 'City of Toronto', kind: 'parking', notice_number: 'PN 7710-0042', due_date: '2026-11-01', total: 50,

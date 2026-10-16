@@ -36,7 +36,7 @@ export default async function OwnerBanking() {
             ) : (
               <p className="small" data-testid="debit-missing">Your fees are paid by pre-authorized debit on the {d.terms.debit_day_text} of each month. Set it up once and we debit each invoice on that day, with a notice {d.notice_days} days before.</p>
             )}
-            {d.enabled && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} />}
+            {d.enabled && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} holderName={home.owner.owner_type === 'corporation' ? (home.owner.corporation_name ?? home.owner.legal_name) : home.owner.legal_name} />}
           </section>
           <section className="pt-card" aria-labelledby="ow-pm"><h2 className="d4" id="ow-pm">Saved payment methods</h2>
             {home.payment_methods.length ? <Dl rows={home.payment_methods.map((m) => [m.kind === 'card' ? 'Card' : 'Pre-authorized debit', `${m.brand_or_bank ?? ''} ending ${m.last4 ?? ''}${m.is_default ? ', default' : ''}${m.status === 'pending' ? ', being confirmed' : ''}`.trim()])} />

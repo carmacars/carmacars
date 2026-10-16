@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The official ServiceOntario forms (docs/changes/2026-10-16-supply-manual-rentals.md, section 5): resolve each
+// The official ServiceOntario forms (docs/changes/2026-10-16-supply-manual-rentals-signing.md, section 5): resolve each
 // dataset page of the Central Forms Repository (forms.mgcs.gov.on.ca) to its English PDF, download it, record its
 // SHA-256, its pages and its fillable (AcroForm) fields with their page and box, whether it carries an XFA form,
 // and, for a form with no fillable field, the text on each page with its position (the labels a coordinates-based

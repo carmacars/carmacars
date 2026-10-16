@@ -16,8 +16,9 @@ import { viewAs } from '@/server/view-as';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/account/bookings', noindex: true, description: 'Read and sign the rental agreement for your booking.' });
 
-// Your details and signature (02 section 5): the agreement for the approved offer, filled from the
-// booking, read on screen (the same text as the PDF), four consents and a drawn or typed signature.
+// Your details and signature (02 section 5; simpler in 0049): the agreement for the approved offer, filled from the
+// booking; the key values at the top with where to fix them, the full text one tap away (the same text as the PDF), the
+// four statements ticked in one tap, and the signature (the legal name on file, or drawn).
 export default async function SignPage({ params }: { params: Promise<{ number: string }> }) {
   const { user, b } = await myBooking((await params).number, 'sign');
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
@@ -48,6 +49,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
         <div><span>Deductible</span>{money(b.deductible_cents)}</div>
         <div><span>Cancellation</span>{b.booking_type === 'non_refundable' ? 'Non-refundable' : 'Standard tiers'}</div>
       </div>
+      <p className="small muted" data-testid="sign-fix-line">Car, dates or price not right? <Link prefetch={false} className="link" href={bookingPath(b.booking_number)}>Message us from your booking</Link> before you sign. Your name, address or licence? Fix them under Your details below.</p>
       <section className={`pt-card${needDetails ? ' pt-card--next' : ''}`} aria-labelledby="pt-details">
         <h2 className="d4" id="pt-details">Your details</h2>
         {needDetails ? <p>The agreement needs your home address and licence details. Add them once; we keep them for next time.</p> : <p className="small muted">Your address and licence are on file. Change them here if they are not right.</p>}
@@ -57,14 +59,15 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
       {!b.agreement ? <PrepareAgreement number={b.booking_number} /> : (
         <div className="pt-split">
           <section className="stack" aria-labelledby="pt-read">
-            <div className="pt-card__head"><h2 className="d4" id="pt-read">Read the agreement</h2><a className="link" href={`/account/documents/${b.agreement.document_id}`} data-testid="agreement-pdf">Download PDF</a></div>
-            <AgreementView blocks={blocks} />
+            <div className="pt-card__head"><h2 className="d4" id="pt-read">The agreement</h2><a className="link" href={`/account/documents/${b.agreement.document_id}`} data-testid="agreement-pdf">Download PDF</a></div>
+            <p className="small muted">Filled in with your booking and your details above. The full text, word for word:</p>
+            <details className="sg-docs"><summary>Read the full rental agreement</summary><AgreementView blocks={blocks} /></details>
           </section>
           <aside className="pt-split__aside">
             <section className="pt-card" aria-labelledby="pt-sign">
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} button={added ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={added ? 'Sign the agreement' : 'Sign and continue to payment'} />
               <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>

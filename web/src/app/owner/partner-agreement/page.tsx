@@ -4,8 +4,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { PortalSignForm } from '@/features/manual/PortalSignForm';
-import { SIGN_STATEMENT } from '@/features/manual/constants';
+import { PackageSignForm } from '@/features/signing/PackageSignForm';
+import { signOwnerPackage } from '@/server/actions/signing';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import { requireOwner } from '@/server/owner/data';
 import { openPartnerAgreement, partnerFacts } from '@/server/sign-requests';
@@ -45,7 +45,9 @@ export default async function PartnerAgreementPage() {
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={partnerAgreementBlocks(facts)} id="partner-agreement" label={PARTNER_AGREEMENT_TITLE} />
         {open ? <section className="pt-card stack" aria-labelledby="pa-sign"><h2 className="d4" id="pa-sign">Sign the partner agreement</h2>
-          <PortalSignForm id={open.id} sha={open.sha} signerName={facts.partner.signer_name} statement={SIGN_STATEMENT} done="Signed. CarmaCars countersigned it, and the signed copy is in your Documents." /></section>
+          <PackageSignForm docs={[{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }]} signerName={facts.partner.signer_name} fixNameHref="/owner/profile"
+            consent="By pressing Sign you sign the partner agreement electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment."
+            button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title: PARTNER_AGREEMENT_TITLE }], next: '/owner/partner-agreement' })} testId="portal-sign-form" /></section>
           : <p className="small muted">Read only.</p>}
         <p className="small muted">Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
       </div>

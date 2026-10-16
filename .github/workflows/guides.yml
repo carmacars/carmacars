@@ -5,7 +5,12 @@ name: guides
 # name at example.com. Each portal's person signs in and the key screens are taken at desktop 1440 x 900 (scale 2)
 # and phone 390 x 844 (scale 3), with the public pages and the request-to-book steps. The files go to the private
 # Storage bucket deploy-reports under guides/<date>/<portal>/<nn>-<name>-<desktop|phone>.png with manifest.json.
-# Nothing touches the live database; the payment screen uses Stripe's test keys only (a live key is refused).
+# Nothing touches the live database while the screens are taken; the payment screen uses Stripe's test keys only.
+#
+# Guide upkeep (upkeep = true, the default; web/scripts/guide-upkeep.mjs, migration 0049): each new screenshot is cropped
+# as the guides crop it and compared with the image the live guide shows (a perceptual difference above 3%). A changed
+# one is sent to carmacars.ca's job endpoint: stored, put in place of the old image in the guides (drafts and published
+# copies), and its sections flagged "needs review" in Admin > Settings > Guides. Run guides-pdf afterwards for the PDFs.
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +18,10 @@ on:
         description: Only these portals (comma separated; empty for all) public,renter,owner,investor,admin,va-cs,va-finance,va-fleet,va-sales,field
         type: string
         default: ''
+      upkeep:
+        description: Compare with the live guides and replace the screenshots that changed (flagged for review)
+        type: boolean
+        default: true
 
 jobs:
   shots:
@@ -78,6 +87,18 @@ jobs:
           BASE_URL=http://localhost:3000 ../.github/ci-run.sh "Screenshots" node scripts/guide-shots.mjs --out "$RUNNER_TEMP/guides" ${{ inputs.portals && format('--portals {0}', inputs.portals) || '' }}
           jq -r '"\(.screens | length) screenshots, \(.problems | length) problems"' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::notice title=guides::/'
           jq -r '.problems[:10][]' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::warning title=guides::/'
+      - name: Guide upkeep (replace changed screenshots in the live guides, flag their sections for review)
+        if: ${{ inputs.upkeep }}
+        run: |
+          python3 -c 'import PIL' 2>/dev/null || pip install -q pillow
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          if [ -z "$L" ]; then echo "::error title=guide upkeep::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
+          echo "::add-mask::$L"
+          LINK_SIGNING_KEY="$L" ../.github/ci-run.sh "Guide upkeep" node scripts/guide-upkeep.mjs --shots "$RUNNER_TEMP/guides" --out "$RUNNER_TEMP/guides/upkeep" --apply --base https://carmacars.ca --run "${{ github.run_id }}" | tee "$RUNNER_TEMP/upkeep.txt"
+          sed 's/^/::notice title=guide upkeep::/' "$RUNNER_TEMP/upkeep.txt"
+          cp "$RUNNER_TEMP/guides/upkeep/report.json" "$RUNNER_TEMP/guides/upkeep.json"
+          rm -rf "$RUNNER_TEMP/guides/upkeep"
       - name: Upload to deploy-reports/guides/<date>
         run: |
           set -euo pipefail
@@ -86,7 +107,8 @@ jobs:
           S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
           curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
           cd "$RUNNER_TEMP/guides"; n=0
-          for f in manifest.json */*.png; do
+          for f in manifest.json upkeep.json */*.png; do
+            [ -f "$f" ] || continue
             ct=image/png; case "$f" in *.json) ct=application/json;; esac
             for try in 1 2 3; do
               curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/guides/$GUIDE_DATE/$f" -H "Authorization: Bearer $K" -H "apikey: $K" -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$f" && break

@@ -178,7 +178,8 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
     await expect(rp.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   }
   await check(rp, 'renter signs a rental added by hand');
-  for (const c of await rp.locator('.pt-consents input[type="checkbox"]').all()) await c.check();
+  await rp.getByTestId('consents-all').check();
+  await rp.getByTestId('signature-mode').click();
   await drawSignature(rp);
   await rp.getByRole('button', { name: 'Sign the agreement' }).click();
   await rp.waitForURL(new RegExp(`/account/bookings/${number}(\\?|$)`), { timeout: 30_000 });
@@ -269,8 +270,8 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   await page.getByTestId('mr-mobile').fill('4165550199');
   await page.getByTestId('mr-licence_number').fill('C1234-56789-01234');
   await page.getByTestId('mr-licence_expiry').fill('2030-01-31');
+  // a payment link goes by email, so "do not email" stays off for it
   await page.getByTestId('mr-mode-link').check();
-  await page.getByTestId('mr-do-not-email').check();
   await check(page, 'va add a rental, priced');
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });
@@ -299,11 +300,9 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await expect(page.locator('#partner-agreement')).toContainText('25%');
   await check(page, 'partner agreement');
   const form = page.getByTestId('portal-sign-form');
-  await form.getByRole('button', { name: 'Type my name instead' }).click();
-  await form.locator('#ps-sig').fill(pu.name);
-  await form.getByRole('checkbox').check();
-  await form.getByRole('button', { name: 'Sign' }).click();
-  await expect(page.getByTestId('portal-signed').or(page.getByTestId('partner-agreement-signed'))).toBeVisible({ timeout: 30_000 });
+  await expect(form.getByTestId('signature-adopted')).toContainText(pu.name);
+  await form.getByTestId('package-sign').click();
+  await expect(page.getByTestId('package-signed').or(page.getByTestId('partner-agreement-signed'))).toBeVisible({ timeout: 30_000 });
   const [p] = await sql`select p.agreement_status, p.agreement_method,
       (select string_agg(x.signer_role || ':' || x.method, ',' order by x.signer_role) from sign_requests s join signature_records x on x.signature_request_id = s.signature_request_id
         where s.owner_id = p.owner_id and s.doc_type = 'partner_agreement' and s.status = 'signed') recs

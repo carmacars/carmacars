@@ -56,27 +56,31 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 }
 
 interface SignedRequest {
-  id: string; doc_type: 'form_a' | 'form_b' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement'; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
+  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement'; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
   signer_name: string; signer_role: string; signed_at: string; method: string; document_sha256: string;
   record: { signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null };
 }
 
-export async function signDocument(userId: string, input: { id: string; sha: string; typedName?: string; drawn?: string; legalAdvice?: string; adviser?: string; initials?: string; consent: string }): Promise<{ status: string }> {
-  const s = await storage();
-  let drawnPath: string | null = null;
-  if (input.drawn) {
-    const png = pngBytes(input.drawn);
-    if (!png) throw new Error('Please sign your name in the box.');
-    drawnPath = `signatures/${userId}/${crypto.randomUUID()}.png`;
-    await s.put('agreements', drawnPath, png, 'image/png');
-  } else if (!(input.typedName ?? '').trim()) throw new Error('Sign by drawing or by typing your full legal name.');
+/** A drawn signature, checked and stored once (a signing package uses the one file for each of its documents). */
+export async function storeDrawnSignature(userId: string, dataUrl: string): Promise<string> {
+  const png = pngBytes(dataUrl);
+  if (!png) throw new Error('Please sign your name in the box.');
+  const path = `signatures/${userId}/${crypto.randomUUID()}.png`;
+  await (await storage()).put('agreements', path, png, 'image/png');
+  return path;
+}
+
+export async function signDocument(userId: string, input: { id: string; sha: string; typedName?: string; drawn?: string; drawnPath?: string; legalAdvice?: string; adviser?: string; initials?: string; consent: string }): Promise<{ status: string; signature_request_id: string; title: string }> {
+  let drawnPath: string | null = input.drawnPath ?? null;
+  if (!drawnPath && input.drawn) drawnPath = await storeDrawnSignature(userId, input.drawn);
+  else if (!drawnPath && !(input.typedName ?? '').trim()) throw new Error('Sign by drawing or by typing your full legal name.');
   const meta = await requestMeta();
   const r = (await rpc('sign_request_sign', { p_by: userId, p_id: input.id, p: {
     typed_name: input.typedName?.trim() || null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: input.consent || SIGN_STATEMENT,
     document_sha256: input.sha, legal_advice_choice: input.legalAdvice || null, legal_adviser: input.adviser?.trim() || null, initials: input.initials?.trim() || null } }, SR)) as unknown as SignedRequest;
   // the signed record, filed with the document
   try { await attachSignedRecord(userId, r, drawnPath); } catch (e) { console.error('signed record', e); }
-  return { status: 'signed' };
+  return { status: 'signed', signature_request_id: r.signature_request_id, title: r.title };
 }
 
 async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: string | null) {

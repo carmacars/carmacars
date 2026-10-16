@@ -1,6 +1,6 @@
 -- 0046_supply_manual_rentals.sql
 -- Vehicle supply types, partner rental companies, rentals added by hand, retiring and deleting cars, toll matching
--- around insurer placeholder bookings (docs/changes/2026-10-16-supply-manual-rentals.md).
+-- around insurer placeholder bookings (docs/changes/2026-10-16-supply-manual-rentals-signing.md).
 --
 --   1. supply types: every vehicle is a program owner's car (as before), a CarmaCars-owned car (the company fleet) or a
 --      partner rental company's car (brokered). The vehicle's owners row stays the ledger party: a company car belongs

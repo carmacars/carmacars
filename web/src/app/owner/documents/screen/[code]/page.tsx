@@ -4,8 +4,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { PortalSignForm } from '@/features/manual/PortalSignForm';
-import { SIGN_STATEMENT } from '@/features/manual/constants';
+import { PackageSignForm } from '@/features/signing/PackageSignForm';
+import { signOwnerPackage } from '@/server/actions/signing';
 import { screenFormBlocks, SCREEN_FORM_TITLE } from '@/features/owner-agreement/screen-forms';
 import { requireOwner } from '@/server/owner/data';
 import { formABFacts, openFormAB } from '@/server/sign-requests';
@@ -45,11 +45,13 @@ export default async function ScreenForm({ params }: { params: Promise<{ code: s
     <>
       <Back href="/owner/documents">Documents</Back>
       <header className="stack"><p className="pt-kicker">Title-Holding and Lease Agreement</p><h1 className="d2">{title}</h1>
-        <p className="muted">Filled in from your records. Read it, then sign at the bottom. No witness is needed for this form.</p></header>
+        <p className="muted">Filled in from your records. Read it, then sign at the bottom. No witness is needed for this form. Several documents to sign? <Link prefetch={false} className="link" href="/owner/sign">Sign them all at once</Link>.</p></header>
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={screenFormBlocks(facts)} id={`form-${code.toLowerCase()}`} label={title} />
         {open ? <section className="pt-card stack" aria-labelledby="sf-sign"><h2 className="d4" id="sf-sign">Sign {title}</h2>
-          <PortalSignForm id={open.id} sha={open.sha} signerName={facts.owner.signer_name} statement={SIGN_STATEMENT} done="Signed. CarmaCars countersigned it, and the signed copy is in your Documents." /></section>
+          <PackageSignForm docs={[{ key: `form-${code}`, title }]} signerName={facts.owner.signer_name} fixNameHref="/owner/profile"
+            consent={`By pressing Sign you sign ${title} electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment.`}
+            button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title }], next: `/owner/documents/screen/${code.toLowerCase()}` })} testId="portal-sign-form" /></section>
           : <p className="small muted">Read only.</p>}
         <p className="small muted">Prefer paper? Print it from <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>, sign it and send us the scan. We record it and it counts the same.</p>
       </div>

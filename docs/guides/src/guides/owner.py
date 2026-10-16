@@ -43,11 +43,11 @@ def build():
             ('One registry visit', 'We fill in the forms and come with you'), ('Tracker and insurance', 'We install it and add the car'),
             ('Photos and listing', 'Live within 1 business day')])
     g.steps([
-        f'When your terms are ready, Home shows {B("Read and sign")}. Read each agreement and tick the three initialled confirmations.',
-        f'Draw your signature, or press {B("Type my name instead")}. Then press {B("Sign all 2")} (or {B("Sign")}).',
+        f'When your terms are ready, Home shows {B("Check and sign")}. Everything is filled in from your application: check the short list of key values (each has a {B("Fix")} link) and open any document to read it in full.',
+        f'Tap {B("All of these")} for the three confirmations (your initials are filled in), then press {B("Sign all")}. Your name on file is your signature; prefer to draw it? Press {B("Draw instead")}. One signature covers every document, in about a minute.',
         'Pay the upfront invoice: the first and last month\'s insurance fee for each car (see chapter 4).',
         'Upload what each car\'s checklist asks for: the ownership permit, the lender\'s permission if it is financed or leased, and insurance.',
-        'Sign Forms C and D in front of witnesses and upload them (see chapter 5).',
+        'Print Forms C and D (filled in for you), sign them in front of witnesses and take a photo of each page with your phone (see chapter 5).',
     ])
 
     # ---------------------------------------------------------------- 2
@@ -163,32 +163,35 @@ def build():
               'Your signed agreements, uploads and government forms are under Documents. Some forms are '
               'filled for you; Forms C and D are signed on paper with witnesses.',
               blurb='Agreements, government forms, Forms C and D, and official forms filled for you.')
-    g.task('Forms A and B, signed on screen',
-           'Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed.')
+    g.task('Sign everything at once',
+           'Everything you sign on screen is in one place: Home shows how many are signed ("2 of 5 signed") and opens it with Check and sign.')
     g.steps([
-        f'Open Documents. Under Forms to sign on screen, press the form marked To sign.',
-        'Read it. It is filled in from your records, with your cars listed.',
-        f'Draw your signature in the box, or press {B("Type my name instead")} and type your full legal name.',
-        f'Tick the box to sign electronically and press {B("Sign")}. CarmaCars countersigns at once, and the signed copy is in Documents.',
+        f'Press {B("Check and sign")} on Home (or open {U("carmacars.ca/owner/sign")}). The list at the top shows each document: signed, in this package, or done elsewhere (Forms C and D, the bank debit).',
+        f'Check the key values: your name, address, each car with its VIN and plate, your fees and Revenue Share. Something wrong? Press {B("Fix")} next to it, change it, and come back.',
+        'Open any document to read it word for word: the agreements, the schedules, Forms A and B, and the official registry forms that are ready.',
+        f'Tap {B("All of these")} for the statements the agreement asks you to initial (your initials are filled in), then press {B("Sign all")}.',
+        'Your name on file is your signature. One signature is applied to each document; CarmaCars countersigns at once and every signed copy is in Documents.',
     ])
+    g.tip('Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed: they are in the same package. You can also sign one on its own page from Documents.', label='Good to know')
     g.tip('Signed one of your documents on paper instead? Send us the scan. Once we record it, Documents shows it as Signed on paper and we do not ask again.')
 
     g.task('Forms C and D, signed with witnesses',
            'Form D is a limited power of attorney (two witnesses). Form C is the lender or lessor permission for a financed or leased car (one witness).')
     g.steps([
-        f'Open Documents. Under Forms to sign with witnesses, press {B("Download the pre-filled form")} and print it.',
-        'Sign it in front of your witnesses. They sign and print their names.',
+        f'Open Documents. Under Forms to sign with witnesses, press {B("Print the form")}. It is filled in, and every spot to sign or initial is marked SIGN HERE or INITIAL HERE.',
+        'Sign it in front of your witnesses. They sign and print their names in their spots.',
         'Type each witness\'s full name in the boxes.',
-        f'Press {B("Upload the signed form")} and choose a PDF scan or a clear photo of every page.',
+        f'On your phone, press {B("Take a photo of the signed page")}: one photo of each page. A PDF scan works too ({B("Or choose a file")}).',
     ], shot=S('owner/12-forms-c-d-desktop', 0, 330, 1440, 1000, pins=[(1, 310, 499), (3, 1000, 634), (4, 1000, 706)]))
-    g.tip('We check the scan and approve it, or send it back with what to fix. You get an email either way, and the page shows the status.')
+    g.tip('We check the photo and approve it, or send it back with what to fix. You get an email either way, and the page shows the status.')
+    g.tip('Why paper for these two? The forms need witnesses who sign in person, and Form D is a power of attorney, which cannot be signed electronically in Ontario.', label='Good to know')
 
     g.task('Government forms filled for you',
            'Each car\'s registry forms are prepared from your records. Until we load the official PDF, you get a data sheet with the values.')
     g.steps([
         f'Open Documents and choose a form marked "Official form, filled for you".',
         f'Press {B("Download the filled form")} and check each value.',
-        f'To sign it on screen, draw your signature in the box, then press {B("Sign and save")}. The signed copy is kept with your documents.',
+        f'To sign it on screen, draw your signature in the box, then press {B("Sign and save")}. Forms ready to sign are also in the package on {B("Check and sign")}, signed with the same one signature. The signed copy is kept with your documents.',
     ], shot=S('owner/13-official-form-desktop', 0, 420, 1440, 1080, pins=[(2, 320, 564), (3, 720, 1047)]))
     g.warn('If the registry office asks for an ink signature, print the filled form and sign it there. You pay ServiceOntario, the inspection station and the appraiser directly.')
 
@@ -203,12 +206,13 @@ def build():
         'Vehicles and Bookings show each car and its rentals. There are no program fees, so there is no Invoices page.',
         'Statements and Payouts: a statement for each month and the payment of your share.',
     ])
-    g.task('Sign the partner agreement', f'Open {B("Partner agreement")}.')
+    g.task('Sign the partner agreement', f'Press {B("Check and sign")} on Home, or open {B("Partner agreement")}.')
     g.steps([
-        'Read the agreement. It is filled in from your partner record: your cars, our commission, your insurance and the payout day.',
+        'Check the key values at the top: who signs, your address, our commission, your insurance and your cars. The agreement is filled in from your partner record; open it to read it in full.',
         'Something wrong? Tell us before you sign and we fix it.',
-        'Sign by drawing or typing your name. CarmaCars countersigns at once and the signed copy is in Documents.',
+        f'Press {B("Sign")}. Your name on file is your signature (or press {B("Draw instead")}). CarmaCars countersigns at once and the signed copy is in Documents.',
     ])
+    g.tip('Your insurance covers your cars. We remind you before it expires: send us the new certificate and we record the new expiry.')
     g.tip('Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same.')
 
     # ---------------------------------------------------------------- 6
@@ -244,11 +248,11 @@ def build():
                   ('Banking', 'Automatic debit, where we pay you'),
                   ('Notifications', 'Our messages'),
                   ('Profile', 'Contact details, password')],
-        top_tasks=[('Sign your agreements', f'{P("Home", "Read and sign")}'),
+        top_tasks=[('Sign everything at once', f'{P("Home", "Check and sign")}'),
                    ('Set up the monthly debit', f'{P("Banking", "Set up pre-authorized debit")}'),
                    ('Pay an invoice now', f'{P("Invoices", "the invoice", "Pay $...")}'),
                    ('Payout details', f'{P("Banking", "Where we pay you")}'),
-                   ('Forms C and D', f'{P("Documents", "Upload the signed form")}'),
+                   ('Forms C and D', f'{P("Documents", "Take a photo of the signed page")}'),
                    ('Book your own car', f'{P("Bookings", "Book my own car")}'),
                    ('New listing photos', f'{P("Vehicles", "the car", "Take new photos")}'),
                    ('Leave the program', f'{P("Vehicles", "the car", "Give notice")}')],

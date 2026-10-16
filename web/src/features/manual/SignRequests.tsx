@@ -2,7 +2,8 @@
 import { useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { createSignRequest, voidSignRequest } from '@/server/actions/manual-records';
+import { createSignRequest, prepareGeneratedAgreement, sendGeneratedAgreement, voidSignRequest } from '@/server/actions/manual-records';
+import type { Field } from '@/features/person-agreements/model';
 
 // An Admin sends a PDF to an investor (their investment agreement) or a staff member (their agreement) to sign in their
 // portal with the built-in signature, and sees what was sent and signed (migration 0044).
@@ -68,6 +69,61 @@ function Withdraw({ id, refresh }: { id: string; refresh: string[] }) {
       <input className="input" id={uid} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why? For example: sent the wrong version" />
       <button className="btn btn--ghost btn--sm" type="submit" disabled={a.pending}>Withdraw</button>
       {a.res && !a.res.ok && <p className="error" role="alert">{a.res.fieldErrors?.reason ?? a.res.message}</p>}
+    </form>
+  );
+}
+
+// An agreement generated from the record (migration 0049): the investor's or staff member's values, filled in from their
+// record and the settings, shown for the Admin to confirm (or change), then rendered and sent to sign in one click.
+export function SendGenerated({ docType, who, refresh }: { docType: 'investment_agreement' | 'staff_agreement'; who: string; refresh: string[] }) {
+  const router = useRouter();
+  const uid = `sg-${useId().replace(/[^\w-]/g, '')}`;
+  const [fields, setFields] = useState<Field[] | null>(null);
+  const [title, setTitle] = useState('');
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [category, setCategory] = useState('accredited_investor');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+  const open = async () => {
+    setBusy(true); setErr(null);
+    const r = await prepareGeneratedAgreement(docType, who);
+    setBusy(false);
+    if (!r.ok) { setErr(r.message); return; }
+    setFields(r.data.fields); setTitle(r.data.title); setVals(Object.fromEntries(r.data.fields.map((f) => [f.key, f.value])));
+  };
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true); setErr(null);
+    const r = await sendGeneratedAgreement(docType, who, vals, { category, paragraph: vals.exemption_paragraph ?? '' }, refresh);
+    setBusy(false);
+    if (!r.ok) { setErr(r.fieldErrors ? Object.values(r.fieldErrors).join(' ') : r.message); return; }
+    setSent(`Sent. ${title} is waiting for their signature in their portal.`); setFields(null); router.refresh();
+  };
+  if (sent) return <p className="small" role="status" data-testid="send-generated-done">{sent}</p>;
+  if (!fields) return (
+    <span className="stack">
+      <button className="btn btn--primary btn--sm" type="button" onClick={open} disabled={busy} data-testid="send-generated">{busy ? 'Preparing' : 'Send the agreement to sign'}</button>
+      {err && <span className="error" role="alert">{err}</span>}
+    </span>
+  );
+  return (
+    <form className="stack pt-sheet" noValidate onSubmit={send} aria-label="Send the agreement to sign" data-testid="send-generated-form">
+      <p className="small"><b>{title}</b>, filled in from the record. Check these values; everything else is the standard text.</p>
+      <div className="ad-fields">
+        {fields.map((f) => (
+          <div key={f.key} className="field ad-field"><label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>
+            <input className="input" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`} />
+            {f.hint && <p className="hint">{f.hint}</p>}</div>
+        ))}
+        {docType === 'investment_agreement' && (
+          <div className="field ad-field"><label className="label" htmlFor={`${uid}-ex`}>Exemption</label>
+            <select className="select" id={`${uid}-ex`} value={category} onChange={(e) => setCategory(e.target.value)}><option value="accredited_investor">Accredited investor</option><option value="offering_memorandum_eligible">Offering memorandum, eligible investor</option></select></div>
+        )}
+      </div>
+      {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
+      <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={busy} data-testid="send-generated-submit">{busy ? 'Sending' : 'Send to sign'}</button>
+        <button className="btn btn--quiet btn--sm" type="button" onClick={() => setFields(null)}>Cancel</button></div>
     </form>
   );
 }

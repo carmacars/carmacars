@@ -37,6 +37,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
   ['Vision model', (k) => k.startsWith('ai_vision')],
   ['Email and notifications', (k) => k.startsWith('notify_')],
+  ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

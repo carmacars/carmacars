@@ -138,10 +138,12 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
   await axe(page, 'sign');
   await page.screenshot({ path: `${SHOTS}-${info.project.name}-sign.png`, fullPage: true });
-  // the four statements are required, then a drawn signature
+  // the four statements are required (one tap on "All four" ticks them, each stays on screen), then a drawn signature
   await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
-  await expect(page.getByText('Tick all four statements to sign.')).toBeVisible();
-  for (const c of await page.locator('.pt-consents input[type="checkbox"]').all()) await c.check();
+  await expect(page.getByText('Tick the four statements (one tap on "All four").')).toBeVisible();
+  await page.getByTestId('consents-all').check();
+  for (const c of await page.locator('.pk-statements input[type="checkbox"]').all()) await expect(c).toBeChecked();
+  await page.getByTestId('signature-mode').click();
   await drawSignature(page);
   await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
   await page.waitForURL(/\/pay$/, { timeout: 30_000 });
@@ -315,9 +317,9 @@ test('race: another renter pays first, the authorization is voided and the push-
   await page.locator('#pt-d-licence_expiry').fill('2030-01-31');
   await page.getByRole('button', { name: 'Save details' }).click();
   await expect(page.locator('.agreement')).toContainText('1 Yonge Street', { timeout: 15_000 });
-  for (const c of await page.locator('.pt-consents input[type="checkbox"]').all()) await c.check();
-  await page.getByRole('button', { name: 'Type my name instead' }).click();
-  await page.locator('#pt-sig').fill('avery  slow');
+  // the legal name on file is the signature: one tap for the statements, one to sign
+  await page.getByTestId('consents-all').check();
+  await expect(page.getByTestId('signature-adopted')).toBeVisible();
   await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
   await page.waitForURL(/\/pay$/, { timeout: 30_000 });
   await expect(page.getByTestId('fake-card')).toBeVisible();

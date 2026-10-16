@@ -15,7 +15,7 @@ import { toLocalInput } from './Act';
 export interface Entry { type: string; id: string; booking_id: string | null; booking_number: string | null; booking_type: string | null; status: string | null; state: string | null;
   starts_at: string; ends_at: string | null; blocks: boolean | null; blocking: boolean | null; bill_to: string | null; provisional: boolean | null; insurer: string | null;
   renter: string | null; reason: string | null; note: string | null; assignee: string | null; detail: string | null }
-export interface Veh { id: string; label: string; plate: string | null; fleet_number: string | null; status: string; class: string | null; owner: string | null; mode: string | null; entries: Entry[] }
+export interface Veh { id: string; label: string; plate: string | null; fleet_number: string | null; status: string; class: string | null; owner: string | null; mode: string | null; supply_type?: string | null; entries: Entry[] }
 export interface CalData { from: string; to: string; now: string; vehicles: Veh[] }
 type Preview = { action: string; refusal: string | null; renter_must_approve: boolean; offer_must_be_resent: boolean; available: boolean; difference_cents: number | null;
   old: { pickup_at: string; return_at: string; total_cents: number; vehicle_id: string }; new: { pickup_at: string; return_at: string; total_cents: number; vehicle_id: string } | null; conflicts: unknown[] };
@@ -55,6 +55,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const [q, setQ] = useState(sp.get('q') ?? '');
   const [onlyNonBlocking, setOnlyNonBlocking] = useState(sp.get('nb') === '1');
   const [onlyInsurer, setOnlyInsurer] = useState(sp.get('ins') === '1');
+  const [supply, setSupply] = useState(sp.get('supply') ?? ''); // 0046: who supplies the car
   const [agenda, setAgenda] = useState(false);
   const [sel, setSel] = useState<{ entry?: Entry; vehicle?: Veh; at?: number } | null>(null);
   const [move, setMove] = useState<Move | null>(null);
@@ -86,8 +87,9 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
     const hit = !s || [v.label, v.plate, v.fleet_number].some((x) => x?.toLowerCase().includes(s)) || v.entries.some((e) => [e.booking_number, e.renter].some((x) => x?.toLowerCase().includes(s)));
     const nb = !onlyNonBlocking || v.entries.some((e) => e.type === 'booking' && e.blocks === false);
     const ins = !onlyInsurer || v.entries.some((e) => e.bill_to && e.bill_to !== 'renter');
-    return hit && nb && ins;
-  }), [data, q, onlyNonBlocking, onlyInsurer]);
+    const sup = !supply || (v.supply_type ?? 'program_owner') === supply;
+    return hit && nb && ins && sup;
+  }), [data, q, onlyNonBlocking, onlyInsurer, supply]);
 
   const preview = (m: Move) => {
     setConfirm({ move: m, preview: null }); setReason(''); setMsg('');
@@ -175,6 +177,9 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
           <input className="input" style={{ minHeight: 36, width: '13rem' }} id="cal-q" type="search" placeholder="Plate, booking, surname" value={q} onChange={(e) => setQ(e.target.value)} data-shortcut="/" />
           <label className="check small"><input type="checkbox" checked={onlyNonBlocking} onChange={(e) => setOnlyNonBlocking(e.target.checked)} /> <span>Not blocking</span></label>
           <label className="check small"><input type="checkbox" checked={onlyInsurer} onChange={(e) => setOnlyInsurer(e.target.checked)} /> <span>Insurer</span></label>
+          <label className="vh" htmlFor="cal-supply">Who supplies the car</label>
+          <select className="select" style={{ width: 'auto', minHeight: 0 }} id="cal-supply" value={supply} onChange={(e) => setSupply(e.target.value)} data-testid="cal-supply">
+            <option value="">Every car</option><option value="program_owner">Program owners&apos; cars</option><option value="company">Company fleet</option><option value="partner">Partners&apos; cars</option></select>
           <button className="btn btn--primary btn--sm" type="button" onClick={() => setSel({ vehicle: vehicles[0], at: Math.max(now, from) })} data-testid="cal-new-block">New block</button>
         </div>
       </div>

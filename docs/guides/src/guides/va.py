@@ -57,8 +57,8 @@ def build():
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
     g.steps([
         f'The queue shows "You have a document to sign". Press {B("Read and sign")}.',
-        f'Press the document, then {B("Open the PDF")} and read it.',
-        f'Draw your signature or type your full legal name, tick the box and press {B("Sign")}. The signed copy stays on the same page.',
+        f'Check the key values at the top (your role, hours, rate and start date), then press {B("Read the PDF")} and read it.',
+        f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}). Several documents? One signature covers all of them. The signed copy stays on the same page.',
     ])
 
     g.task('Several functions? Switch with Working as')

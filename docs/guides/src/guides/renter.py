@@ -111,7 +111,7 @@ def build():
     # ---------------------------------------------------------------- 3
     g.chapter('Sign and pay',
               'After you approve, you sign the rental agreement on screen and pay. '
-              'It takes about five minutes on a phone or a computer.',
+              'It takes a few minutes on a phone or a computer; the signing itself is three taps.',
               blurb='Sign the rental agreement on screen and pay with your card.')
     g.task('Sign the rental agreement')
     g.steps([
@@ -119,9 +119,9 @@ def build():
         f'Press {B("Save details")}. The agreement then shows your details.',
     ], shot=S('renter/04-sign-details-desktop', 0, 560, 1440, 1540, pins=[(1, 640, 760), (2, 235, 1502)]))
     g.steps([
-        f'Read the agreement. Press {B("Download PDF")} to keep a copy.',
-        'Under Sign, tick each statement.',
-        f'Sign in the box with your finger or the mouse ({B("Clear")} to redo), or press {B("Type my name instead")}.',
+        f'Check the key values at the top: the car, the dates, the deposit and the deductible. Open {B("Read the full rental agreement")} to read it word for word, or press {B("Download PDF")} to keep a copy.',
+        f'Under Sign, tap {B("All four")}: it ticks the four statements, which stay on screen to read.',
+        f'Your full legal name is your signature. Prefer to sign with your finger or the mouse? Press {B("Draw instead")}.',
         f'Press {B("Sign and continue to payment")}.',
     ], shot=S('renter/06-sign-ready-desktop', 0, 700, 1440, 1840,
               pins=[(3, 850, 736), (4, 1000, 848), (5, 1300, 1580), (6, 1395, 1684)]))
@@ -265,7 +265,7 @@ def build():
                   ('Profile', 'Contact details, drivers, Card on File')],
         top_tasks=[('Request a car', f'{P("Find a car", "a car", "Request to book")}'),
                    ('Approve an offer', f'{P("Trips", "Review offer", "Approve and continue")}'),
-                   ('Sign and pay', f'{B("Sign and continue to payment")}, then {B("Pay $...")}'),
+                   ('Sign and pay', f'{B("All four")}, {B("Sign and continue to payment")}, then {B("Pay $...")}'),
                    ('Upload documents', f'{P("Your booking", "Licence and coverage")}'),
                    ('Extend or change dates', f'{B("Extend")} or {B("Ask to change dates")}'),
                    ('Answer a change we suggest', f'{B("Review and answer")}'),

@@ -357,8 +357,8 @@ async function renterStory(browser, ids) {
   await d.locator('#pt-d-address_line1').fill('100 Queen Street West'); await d.locator('#pt-d-city').fill('Toronto'); await d.locator('#pt-d-postal_code').fill('M5H 2N2');
   await d.locator('#pt-d-licence_number').fill('L1234-56789-01234'); await d.locator('#pt-d-licence_expiry').fill('2031-06-30');
   await d.getByRole('button', { name: 'Save details' }).click();
-  await d.locator('.agreement').getByText('100 Queen Street West').first().waitFor({ timeout: 20_000 });
-  await both(P, 'renter', 'sign-agreement', `/account/bookings/${number}/sign`, 'Sign, part 2: read the agreement (also as a PDF), tick the consents, sign by drawing or typing your name.');
+  await d.locator('.agreement').getByText('100 Queen Street West').first().waitFor({ state: 'attached', timeout: 20_000 });
+  await both(P, 'renter', 'sign-agreement', `/account/bookings/${number}/sign`, 'Sign, part 2: the key values at the top, the full agreement one tap away (also as a PDF), one tap ticks the four statements, your name is your signature (or draw it).');
   for (const c of await d.locator('input[type="checkbox"]').all()) if (!(await c.isChecked())) await c.check().catch(() => {});
   const typed = d.getByRole('button', { name: 'Type my name instead' });
   if (await typed.isVisible().catch(() => false)) { await typed.click(); await d.locator('input[name="typed"], #pt-typed, input[autocomplete="name"]').last().fill('Jordan Lee').catch(() => {}); }
@@ -429,7 +429,7 @@ async function ownerPortal(browser, ids) {
   await both(P, 'owner', 'statement', () => st && `/owner/statements/${st.id}`, 'A statement: every booking, the revenue share, deductions and the payout.');
   await both(P, 'owner', 'payouts', '/owner/payouts', 'Payouts: what was paid and when.');
   await both(P, 'owner', 'documents', '/owner/documents', 'Documents: signed agreements, uploads, government forms, and Forms C and D to sign with witnesses.');
-  await both(P, 'owner', 'forms-c-d', '/owner/documents', 'Forms C and D: download the filled form, sign it with witnesses, upload the scan.',
+  await both(P, 'owner', 'forms-c-d', '/owner/documents', 'Forms C and D: print the filled form (every spot to sign marked), sign it with witnesses, take a photo of each page with the phone.',
     async (page) => { const s = page.getByText(/Forms to sign with witnesses/).first(); if (await s.isVisible().catch(() => false)) await s.scrollIntoViewIfNeeded(); });
   const offDesc = 'An official ServiceOntario form filled from your records: Download the filled form, or Sign on screen.';
   if (form) await both(P, 'owner', 'official-form', `/owner/documents/forms/${form.id}/official`, offDesc);

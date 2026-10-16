@@ -27,7 +27,7 @@ import sys
 import lib
 
 HERE = lib.HERE
-OUT = os.path.normpath(os.path.join(HERE, '..', 'content'))
+OUT = os.environ.get('GUIDE_CONTENT') or os.path.normpath(os.path.join(HERE, '..', 'content'))
 KEYS = ['renter', 'owner', 'admin', 'va', 'field', 'investor']
 IMG_BASE = '/guides/img/'
 

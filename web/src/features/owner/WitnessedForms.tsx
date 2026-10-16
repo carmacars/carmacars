@@ -3,8 +3,9 @@ import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { confirmFormUpload, createFormUpload } from '@/server/actions/owner';
 
-// Forms C and D (migration 0040): download the pre-filled form, sign it on paper with the witnesses, then upload a
-// PDF scan or a photo with the witnesses' names. Staff review it; a form sent back says what to fix.
+// Forms C and D (migration 0040; simpler in 0049): print the pre-filled form (every spot to sign marked), sign it on paper
+// with the witnesses, then take a photo with the phone's camera (or choose a PDF scan) and give the witnesses' names.
+// Staff review it; a form sent back says what to fix. They stay on paper because they need witnesses in person.
 export interface WForm { code: 'C' | 'D1'; vehicle_id: string | null; vehicle_name: string | null; title: string; witnesses: number; status: 'needed' | 'uploaded' | 'approved' | 'rejected'; reject_reason: string | null; uploaded_at: string | null }
 const STATUS: Record<WForm['status'], string> = { needed: 'To do', uploaded: 'Waiting for our review', approved: 'Approved', rejected: 'Sent back' };
 
@@ -51,9 +52,9 @@ function One({ f }: { f: WForm }) {
       {f.status === 'rejected' && f.reject_reason && !ok && <p className="alert alert--error" role="alert"><span className="alert__title">What to fix</span><span>{f.reject_reason}</span></p>}
       {open && <>
         <ol className="small">
-          <li><a className="link" href={href} target="_blank" rel="noreferrer" data-testid="witnessed-download">Download the pre-filled form</a> and print it.</li>
-          <li>Sign it in front of {f.witnesses === 2 ? 'two adult witnesses' : 'one adult witness'}; they sign and print their names.</li>
-          <li>Upload a PDF scan or a clear photo of every page.</li>
+          <li><a className="link" href={href} target="_blank" rel="noreferrer" data-testid="witnessed-download">Print the form</a>: everything is filled in, and each spot to sign or initial is marked.</li>
+          <li>Sign it in front of {f.witnesses === 2 ? 'two adult witnesses' : 'one adult witness'}; they sign and print their names in their spots.</li>
+          <li>Type {f.witnesses === 2 ? 'their names' : 'their name'} below, then take a photo of the signed page with your phone.</li>
         </ol>
         <div className="field-row">
           <div className={`field${err.w1 ? ' has-error' : ''}`}><label className="label" htmlFor={`${id}-w1`}>{f.witnesses === 2 ? 'First witness' : 'Witness'}, full name</label>
@@ -63,8 +64,12 @@ function One({ f }: { f: WForm }) {
             <input className="input" id={`${id}-w2`} value={w2} onChange={(e) => setW2(e.target.value)} autoComplete="off" aria-invalid={!!err.w2 || undefined} aria-describedby={`${id}-w2-err`} />
             <p className="error" role="alert" id={`${id}-w2-err`}>{err.w2 ?? ''}</p></div>}
         </div>
-        <label className="btn btn--primary btn--sm" htmlFor={`${id}-file`}>{busy ? 'Uploading' : 'Upload the signed form'}</label>
-        <input id={`${id}-file`} className="vh" type="file" accept="application/pdf,image/jpeg,image/png" onChange={pick} disabled={busy} aria-label={`${f.title}: choose the signed form`} data-testid="witnessed-file" />
+        <div className="row">
+          <label className="btn btn--primary btn--sm" htmlFor={`${id}-cam`}>{busy ? 'Uploading' : 'Take a photo of the signed page'}</label>
+          <input id={`${id}-cam`} className="vh" type="file" accept="image/*" capture="environment" onChange={pick} disabled={busy} aria-label={`${f.title}: take a photo of the signed page`} data-testid="witnessed-camera" />
+          <label className="btn btn--ghost btn--sm" htmlFor={`${id}-file`}>Or choose a file</label>
+          <input id={`${id}-file`} className="vh" type="file" accept="application/pdf,image/jpeg,image/png" onChange={pick} disabled={busy} aria-label={`${f.title}: choose the signed form`} data-testid="witnessed-file" />
+        </div>
         {err.form && <p className="error" role="alert">{err.form}</p>}
       </>}
       {ok && <p className="small" role="status">Thanks. We review it within one business day and email you.</p>}

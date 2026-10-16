@@ -29,6 +29,14 @@ const PURPOSE = {
 };
 
 const T = (source, extra = {}) => ({ source, ...extra });
+// What the draft leaves for a person to write, and why (kept in the template's notes for the Admin who checks it).
+const LEFT = {
+  'SR-LV-006': 'Left blank on purpose: sex and date of birth (a company registrant has none), the plates question, section 7 (the fleet insurer and policy are written at the counter), section 8\'s signature (CarmaCars\' signing officer signs; no owner signature on this form) and the office-use block.',
+  'SR-LV-012': 'Left blank on purpose: sex, registrant type codes, the mailing address when it is the same as the home address, CarmaCars\' own signature in section 2 (its signing officer signs) and section 3 (no operating name is recorded).',
+  ON00453: 'Left blank on purpose: the other purposes (name or address change, merge, amalgamation), whether the vehicles are kept at this address and whether the business runs from the owner\'s home (the owner answers), the street number box (the street line carries the number), the province (the laid-out form already prints Ontario) and the office-use block.',
+  '013-0169': 'Left blank on purpose: the province (a drop-down of the form, chosen when printed), the street number box (the street line carries it) and the relationship between seller and buyer (the owner writes it in their own words).',
+  '013-1155': 'Left blank on purpose: the county or regional municipality boxes and the City or Town words (they depend on the address), the acquisition date and the reasons (the owner writes them), and the commissioner block (sworn in person).'
+};
 const DATE = 'date:YYYY/MM/DD';
 // the draft mapping of each form, by field name (or, for the laid-out form, by the label of its box)
 const MAP = {
@@ -38,7 +46,9 @@ const MAP = {
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].streetName[0]': T('registrant.address'),
     'form1[0].page1[0].body[0].personalInfo[0].#subform[2].#field[12]': T('method.is_co_registrant', { type: 'checkbox' }),
     'form1[0].page1[0].body[0].businessInfo[0].#subform[0].lastName[0]': T('vehicle.plate', { transform: 'upper' }),
+    'form1[0].page1[0].body[0].businessInfo[0].#subform[2].#field[3]': T('always', { type: 'checkbox' }),
     'form1[0].page1[0].body[0].businessInfo[0].#subform[4].#field[14]': T('vehicle.odometer_km'),
+    'form1[0].page1[0].body[0].businessInfo2[0].#subform[0].#field[0]': T('always', { type: 'checkbox' }),
     'form1[0].page1[0].body[0].businessInfo7[0].esoName[0]': T('registrant.signing_officer_name', { transform: 'upper' }),
     'form1[0].page1[0].body[0].businessInfo7[0].date[0]': T('today', { transform: DATE })
   }),
@@ -47,7 +57,7 @@ const MAP = {
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].#subform[1].date[0]': T('owner.date_of_birth', { transform: DATE }),
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].lastName[3]': T('owner.legal_name', { transform: 'upper' }),
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].streetName[0]': T('owner.address_line1'),
-    'form1[0].page1[0].body[0].personalInfo[0].#subform[0].apt[0]': T('owner.address_line2'),
+    'form1[0].page1[0].body[0].personalInfo[0].#subform[0].apt[0]': T('owner.unit'),
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].city[0]': T('owner.city'),
     'form1[0].page1[0].body[0].personalInfo[0].#subform[0].postalCode[0]': T('owner.postal_code', { transform: 'postal' }),
     'form1[0].page1[0].body[0].personalInfo[0].esoName[0]': T('owner.legal_name', { transform: 'upper' }),
@@ -72,7 +82,7 @@ const MAP = {
   '013-0169': ({
     'form1[0].page1[0].body[0].SectionA[0].busname[0]': T('owner.legal_name', { transform: 'upper' }),
     'form1[0].page1[0].body[0].SectionB[0].#subform[0].busname[0]': T('corporation.name', { transform: 'upper', when: 'corporation.applies' }),
-    'form1[0].page1[0].body[0].SectionB[0].#subform[1].busUnitNo[0]': T('owner.address_line2'),
+    'form1[0].page1[0].body[0].SectionB[0].#subform[1].busUnitNo[0]': T('owner.unit'),
     'form1[0].page1[0].body[0].SectionB[0].#subform[1].busStreetName[0]': T('owner.address_line1'),
     'form1[0].page1[0].body[0].SectionB[0].#subform[1].busCity[0]': T('owner.city'),
     'form1[0].page1[0].body[0].SectionB[0].#subform[1].busPostalCode[0]': T('owner.postal_code', { transform: 'postal' }),
@@ -91,6 +101,7 @@ const MAP = {
     nameDonor2: T('owner.legal_name', { transform: 'upper' })
   }),
   ON00453: ({
+    'Section 1. Proof of Business Address. Purpose of Application. New': T('corporation.rin_missing', { type: 'checkbox', when: 'corporation.applies' }),
     'Section 1. Organization name as indicated on identification document': T('corporation.name', { transform: 'upper', when: 'corporation.applies' }),
     'Section 1. Proof of Business Address. Existing RIN(s) (if applicable).': T('corporation.rin'),
     'Section 1. Provide the name of the contact person (Director/Owner). First Name': T('owner.first_name'),
@@ -99,7 +110,7 @@ const MAP = {
     'Section 1. Provide the name of the contact person (Director/Owner). Phone Number': T('owner.phone', { transform: 'phone' }),
     'Section 1. Provide the name of the contact person (Director/Owner). Email Address': T('owner.email'),
     'Section 1. Driver’s Licence Number or Ontario Photo Card Number of the contact person (Director/Owner)': T('owner.licence_number', { transform: 'upper' }),
-    'Section 1. Provide Address of Physical Ontario Location. Unit Number': T('owner.address_line2'),
+    'Section 1. Provide Address of Physical Ontario Location. Unit Number': T('owner.unit'),
     'Section 1. Provide Address of Physical Ontario Location. Street Name': T('owner.address_line1'),
     'Section 1. Provide Address of Physical Ontario Location. City or Town': T('owner.city'),
     'Section 1. Provide Address of Physical Ontario Location. Postal Code': T('owner.postal_code', { transform: 'postal' }),
@@ -144,7 +155,7 @@ const rows = REPORT.forms.map((f) => {
   }
   // every name the draft maps must exist in the form
   for (const k of Object.keys(MAP[f.code])) if (!names.has(k)) throw new Error(`${f.code}: no field ${k}`);
-  const notes = `${PURPOSE[f.code]} Draft mapping from the official PDF (${f.pdf_url}, SHA-256 ${f.original_sha256}; template ${f.template_sha256}); check every field before use.`;
+  const notes = `${PURPOSE[f.code]} ${LEFT[f.code]} Draft mapping from the official PDF (${f.pdf_url}, SHA-256 ${f.original_sha256}; template ${f.template_sha256}); check every field before use.`;
   return { code: f.code, title: plain(f.dataset_title || f.title), kind: f.kind, file_key: f.file_key, sha256: f.template_sha256, pages: f.pages,
            fields, map, notes, file_name: f.pdf_url.split('/').pop(), mapped: Object.keys(map).length };
 });

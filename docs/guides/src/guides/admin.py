@@ -251,9 +251,9 @@ def build():
     g.task('Partners', f'{P("People", "Partners")}. Partner rental companies whose cars we rent out on commission.')
     g.steps([
         f'Press {B("Add a partner")}: business and legal name, contacts, HST number, commission and insurance with its expiry date.',
-        'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon.',
+        'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).',
         f'Banking (Admins only): {B("Save the payout account")} for the account we pay the partner into. The account number is stored encrypted. Press {B("Verify")} once checked.',
-        f'Portal: {B("Invite to the owner portal")} gives the partner the owner portal with its cars, bookings, statements and the partner agreement to sign on screen.',
+        f'Portal: {B("Invite to the owner portal")} gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.',
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
     ])
     g.warn('The partner agreement is a draft for lawyer review. Use it only once it is approved.')
@@ -294,7 +294,7 @@ def build():
     g.task('Approve an application and set terms')
     g.steps([
         f'Open the application and press {B("Approve and set terms")} (or {B("Set terms (standard grid)")}).',
-        'The owner signs the agreements and pays the upfront invoice in their portal.',
+        'The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready, with one signature) and pays the upfront invoice.',
         f'Paid another way? On the invoice, press {B("Record payment")} (see Paid and signed, below).',
     ])
     g.task('An owner\'s page', 'Open an owner from Owners. The details are in the right-hand column.')
@@ -318,10 +318,10 @@ def build():
            'A paper signature counts as signed everywhere: the checklist, onboarding and the owner portal. The scan is kept privately with the owner\'s documents.')
     g.warn(f'Recorded the wrong thing, or a cheque bounced? Press {B("Void")} beside it and give the reason. The invoice owes that amount again and the owner is told; a voided signature makes the item open again. Only an Admin can void.')
 
-    g.task('Forms C and D', f'{P("People", "Owner forms")}. Owners upload the scans signed in front of witnesses.')
+    g.task('Forms C and D', f'{P("People", "Owner forms")}. Owners print them filled in, sign in front of witnesses and send a photo of each page from their phone.')
     g.steps([
         'Each row shows the owner, the form, the witnesses and when it was uploaded.',
-        'Press Open to read the scan.',
+        'Press Open to read the photo or scan. Check each marked spot is signed or initialled.',
         f'Press {B("Approve")}, or {B("Send back")} with What to fix (the owner reads this).',
     ], shot=S('admin/22-owner-forms-desktop', 0, 0, 1440, 470, pins=[(1, 420, 246), (2, 829, 246), (3, 1105, 246)]))
 
@@ -434,20 +434,22 @@ def build():
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
-    g.task('Official ServiceOntario forms', 'Until a form\'s official PDF is mapped, owners get a data sheet with the values.')
+    g.task('Official ServiceOntario forms', 'The five official forms are loaded with a draft mapping to the owner, car, company and lender details. Until you check a form, owners get a data sheet with the values.')
     g.steps([
-        f'Open {P("Settings", "Forms")}. Each form shows "Data sheet in use", "Mapping to check" or "Official PDF in use".',
-        f'Press {B("Upload the official fillable PDF")}. Its fields are read in your browser.',
-        'For each field, choose What goes in it (or "The owner signs here"), a Format, and Only when if it applies.',
-        f'Press {B("Save the mapping")}, then {B("Download a filled preview")} for one car and check it.',
-        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed.',
+        f'Open {P("Settings", "Forms")}. Each form shows "Mapping to check" (a draft is ready) or "Official PDF in use". Its notes say what the form is for and which boxes are left blank on purpose.',
+        f'Press {B("Download a filled preview")} for one car and check each value against the form.',
+        'Change a field if needed: What goes in it (or "The owner signs here"), a Format (for example YYYY/MM/DD) and Only when. Press Save the mapping.',
+        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed, and owners sign it with their other documents.',
+        f'A new version from ServiceOntario? Press {B("Upload the official fillable PDF")}: the fields of the same name keep their mapping.',
     ])
+    g.tip('SR-LV-006 (registration), SR-LV-012 (two registrants), ON00453 (a company\'s RIN), 013-1155 and 013-0169 (the tax-exempt transfer into an owner\'s corporation). 013-1155 is sworn before a commissioner, so it is printed and signed in person.', label='Good to know')
 
-    g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are signed in the person\'s own portal, or on paper.')
+    g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are made from the person\'s record and signed in their own portal, or on paper.')
     g.steps([
-        f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send a PDF to sign")}, choose the PDF and press {B("Send to sign")}.',
-        f'Staff: open {P("Settings", "Staff and roles")}. Under Staff agreements, press {B("Send a PDF to sign")} beside the person.',
-        'They get a notice and sign it in their portal by typing their name or drawing. The signed copy is filed with their documents.',
+        f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send the agreement to sign")}. Check the values it is filled with (amount, yearly percentage, dates, exemption) and press {B("Send to sign")}.',
+        f'Staff: open {P("Settings", "Staff and roles")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Rate, hours and the other values start from the staff profile and Program settings; change any before sending.',
+        'They get a notice, check the key values and sign in their portal in a few taps (their name is the signature, or they draw it). The signed copy is filed with their documents.',
+        f'Your own PDF instead? {B("Send a PDF to sign")} still works.',
         f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',
         f'Sent by mistake? Press {B("Withdraw")} and give the reason.',
     ])
@@ -459,6 +461,12 @@ def build():
         f'Move a section with the arrows, hide it, or press {B("Add a chapter")}. Upload a screenshot under Screenshots and paste the line it gives you.',
         f'Press {B("Publish version")} (the next number). The portals show the new version at once.',
         'The stored PDF is printed again by the guides-pdf workflow. Until then the guide says the web guide has newer edits.',
+    ])
+    g.task('Keeping the screenshots current', 'The guides workflow retakes every screenshot and replaces the ones whose screen changed.')
+    g.steps([
+        f'A guide with screens that changed shows {B("To review")}; the section shows {B("Needs review")} with the screenshot before and now (the new one is already in the guide).',
+        f'Read the text against the new screenshot. Press {B("Suggest a text update")} for a suggestion from Workers AI, then {B("Use this text as the draft")} or {B("Dismiss the suggestion")}.',
+        f'Press {B("Mark reviewed")}, then {B("Publish version")} when the text is right, and run guides-pdf for the PDFs.',
     ])
 
     g.task('Insurers and the other lists')

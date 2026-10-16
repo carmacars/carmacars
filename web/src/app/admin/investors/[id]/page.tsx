@@ -5,7 +5,7 @@ import { page } from '@/server/admin/api';
 import { monthOf } from '@/features/owner/Blocks';
 import { door } from '@/server/door';
 import { PaperSignatureForm, PaperSignatureList, type PaperRow } from '@/features/manual/ManualRecords';
-import { SendToSign, SignRequestList, type SignRequestRow } from '@/features/manual/SignRequests';
+import { SendGenerated, SendToSign, SignRequestList, type SignRequestRow } from '@/features/manual/SignRequests';
 import { $, Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -32,10 +32,11 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
         <Table rows={i.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) }]} /></Card>
       <Card title="Investment agreement" testId="investor-signing">
         <div className="stack">
-          <p className="small">Send the agreement to sign in the investor portal, or record one signed on paper. Either way it counts as signed; CarmaCars is bound once the funds clear.</p>
+          <p className="small">Send the agreement to sign in the investor portal (filled in from this record, or a PDF of your own), or record one signed on paper. Either way it counts as signed; CarmaCars is bound once the funds clear.</p>
           <SignRequestList rows={requests} refresh={here} />
           <PaperSignatureList rows={paper} canVoid refresh={here} />
           <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
+            {!requests.some((r) => r.status === 'sent' || r.status === 'signed') && <SendGenerated docType="investment_agreement" who={id} refresh={here} />}
             <SendToSign docType="investment_agreement" who={id} defaultTitle="Investment agreement" refresh={here} />
             <PaperSignatureForm docs={[{ doc_type: 'investment_agreement', target_id: id, label: 'Investment agreement', signer: String(i.legal_name ?? '') }]} today={today} refresh={here} />
           </div>

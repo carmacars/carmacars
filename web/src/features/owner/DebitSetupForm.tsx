@@ -23,11 +23,11 @@ function loadStripe(key: string): Promise<StripeJs> {
   });
 }
 
-export function DebitSetupForm({ ownerType, terms, replace }: { ownerType: 'individual' | 'corporation'; terms: DebitTerms; replace: boolean }) {
+export function DebitSetupForm({ ownerType, terms, replace, holderName = '' }: { ownerType: 'individual' | 'corporation'; terms: DebitTerms; replace: boolean; holderName?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [fake, setFake] = useState<{ setupId: string } | null>(null);
-  const [bank, setBank] = useState({ name: '', institution: '', transit: '', account: '' });
+  const [bank, setBank] = useState({ name: holderName, institution: '', transit: '', account: '' }); // the account holder starts as the owner on file
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null);

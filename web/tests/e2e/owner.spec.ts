@@ -171,21 +171,31 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   const invoices = await sql`select i.id, i.invoice_number, i.total_cents, i.status from owner_invoices i where i.owner_id = ${owner!.id} order by i.invoice_number`;
   expect(invoices.map((i) => `${i.status}:${i.total_cents}`)).toEqual(['issued:90400', 'issued:90400', 'issued:90400']);
 
-  // ---------------------------------------------------------------- 3. the owner signs
+  // ---------------------------------------------------------------- 3. the owner signs: one package, one signature (0049)
   await page.goto('/owner', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('owner-next-step')).toContainText('Sign your agreements');
+  await expect(page.getByTestId('owner-next-step')).toContainText('Sign your documents');
   await check(page, 'owner home');
   await page.screenshot({ path: `${SHOTS}/owner-home-${info.project.name}.png`, fullPage: true });
-  await page.getByRole('link', { name: 'Read and sign' }).click();
+  await page.getByRole('link', { name: 'Check and sign' }).click();
   await page.waitForURL(/\/owner\/sign/);
-  await expect(page.getByRole('heading', { name: '1. Vehicle Enrollment Agreement' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '2. Title-Holding and Lease Agreement' })).toBeVisible();
+  const opened = Date.now();
+  await expect(page.locator('summary', { hasText: 'Vehicle Enrollment Agreement' })).toBeVisible();
+  await expect(page.locator('summary', { hasText: 'Title-Holding and Lease Agreement' })).toBeVisible();
+  await expect(page.getByTestId('sign-progress-count')).toContainText(/^0 of \d+ signed$/);
+  await expect(page.getByTestId('sign-summary-values')).toContainText('VIN');
+  await expect(page.getByTestId('sign-fix').first()).toHaveAttribute('href', '/owner/profile');
   await check(page, 'owner sign');
-  for (const t of ['I keep my own insurance', 'Fees are due every month', 'The Tracker records location']) await page.locator(`label:has-text("${t}")`).click();
-  await page.locator('#ow-initials').fill('OP');
-  await drawSignature(page);
-  await page.getByRole('button', { name: 'Sign all 2' }).click();
-  await page.waitForURL(/\/owner\?signed=1/, { timeout: 30_000 });
+  const total = await page.getByTestId('package-docs').innerText().then((t) => Number(/these (\d+) documents/.exec(t)?.[1] ?? '1'));
+  // the three statements in one tap, the initials filled in from the name, the name adopted as the signature (phone) or drawn (desktop)
+  await page.getByTestId('package-tick-all').check();
+  await expect(page.getByTestId('package-initials')).not.toHaveValue('');
+  if (info.project.name.includes('desktop')) { await page.getByTestId('signature-mode').click(); await drawSignature(page); }
+  await page.getByTestId('package-sign').click();
+  await page.waitForURL(/\/owner\?signed=1/, { timeout: 60_000 });
+  const pkg = await sql`select k.method, k.seconds_to_sign, (select count(*)::int from signing_package_documents d where d.package_id = k.id) n
+    from signing_packages k join owners o on o.user_id = k.signer_user_id where o.id = ${owner!.id} order by k.signed_at desc limit 1`;
+  expect(`${pkg[0]!.method}/${pkg[0]!.n}`).toBe(`${info.project.name.includes('desktop') ? 'drawn' : 'typed'}/${total}`);
+  console.log(`owner package (${info.project.name}): ${total} documents, ${info.project.name.includes('desktop') ? 3 : 2} taps after opening, ${Math.round((Date.now() - opened) / 1000)} s in the test, ${pkg[0]!.seconds_to_sign} s recorded`);
   const signed = await sql`select string_agg(status, ',' order by kind) s from owner_agreements where owner_id = ${owner!.id}`;
   expect(signed[0]!.s).toBe('signed,signed');
   const docs = await sql`select count(*)::int n from signature_requests r join owner_agreements a on a.signature_request_id = r.id where a.owner_id = ${owner!.id} and r.signed_document_id is not null`;
@@ -285,7 +295,9 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await expect(page.getByTestId('owner-upload-ownership_permit')).toContainText('Received', { timeout: 15_000 });
   await expect.poll(async () => (await sql`select count(*)::int n from documents where vehicle_id = ${vehicles[0]!.id} and kind = 'ownership_permit'`)[0]!.n).toBe(1);
   await page.goto('/owner/documents', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('owner-docs').locator('li')).toHaveCount(5);
+  // the five files, and the signed copies of the forms signed in the same package (Forms A and B)
+  const [forms] = await sql`select count(*)::int n from documents where owner_id = ${owner!.id} and kind in ('form_a_trust_declaration', 'form_b_lease_summary')`;
+  await expect(page.getByTestId('owner-docs').locator('li')).toHaveCount(5 + forms!.n);
   const pdf = await page.request.get(await page.getByTestId('owner-docs').locator('a').first().getAttribute('href') as string);
   expect(pdf.status()).toBe(200);
   await page.goto('/owner/banking', { waitUntil: 'networkidle' });

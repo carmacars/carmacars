@@ -259,24 +259,26 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   const admin = await mkUser(sql, 'admin');
   const o = await mkOwnerWithInvoices(sql, admin.id);
 
-  // Forms A and B: listed in Documents, read and signed on screen; CarmaCars countersigns
+  // Forms A and B: listed in Documents, filled in, and signed on screen in one package with one signature (0049); CarmaCars countersigns
   const op = await ctx(browser, phone);
   await signIn(op, o.user.email, '');
   await op.goto('/owner/documents', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('screen-form-status')).toHaveText(['To sign', 'To sign']);
   await check(op, 'owner documents');
-  for (const code of ['a', 'b']) {
-    await op.goto(`/owner/documents/screen/${code}`, { waitUntil: 'networkidle' });
-    await expect(op.locator(`#form-${code}`)).toBeVisible();
-    await check(op, `owner form ${code}`);
-    const form = op.getByTestId('portal-sign-form');
-    await form.getByRole('button', { name: 'Type my name instead' }).click();
-    await form.locator('#ps-sig').fill(o.user.name);
-    await form.getByRole('checkbox').check();
-    await form.getByRole('button', { name: 'Sign' }).click();
-    // the page refreshes into the signed state
-    await expect(op.getByTestId('portal-signed').or(op.getByTestId('screen-form-signed'))).toBeVisible({ timeout: 30_000 });
-  }
+  await op.goto('/owner/documents/screen/a', { waitUntil: 'networkidle' });
+  await expect(op.locator('#form-a')).toBeVisible();
+  await check(op, 'owner form a');
+  await op.goto('/owner/sign', { waitUntil: 'networkidle' });
+  await expect(op.locator('summary', { hasText: 'Form A: trust declaration' })).toBeVisible();
+  await expect(op.locator('summary', { hasText: 'Form B: lease summary' })).toBeVisible();
+  await expect(op.getByTestId('sign-progress')).toContainText('in this package');
+  await check(op, 'owner signing package');
+  const t0 = Date.now();
+  if (await op.getByTestId('package-tick-all').isVisible()) await op.getByTestId('package-tick-all').check();
+  await expect(op.getByTestId('signature-adopted')).toContainText(o.user.name);
+  await op.getByTestId('package-sign').click();
+  await op.waitForURL(/\/owner\?signed=1/, { timeout: 60_000 });
+  console.log(`forms A and B package (${info.project.name}): signed in ${Math.round((Date.now() - t0) / 1000)} s after the first tap`);
   await op.goto('/owner/documents', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('screen-form-status')).toHaveText(['Signed on screen', 'Signed on screen']);
   const forms = await sql`select r.doc_type, r.status, r.signed_document_id is not null as copy,
@@ -287,7 +289,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await expect(op.getByTestId('screen-form-signed')).toContainText('Signed on screen');
   await op.context().close();
 
-  // the investment agreement: an Admin sends the PDF; the investor (a prospect) signs it in the investor portal
+  // the investment agreement: generated from the investor's record (no PDF to upload, 0049); the investor (a prospect) signs it in the investor portal
   const iu = await mkUser(sql, 'investor', { name: `Ivy Investor ${tag()}` });
   await sql`update investors set status = 'prospect' where user_id = ${iu.id}`;
   const [inv] = await sql`select id from investors where user_id = ${iu.id}`;
@@ -295,27 +297,34 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await signIn(ap, admin.email, '/admin');
   await ap.goto(`/admin/investors/${inv!.id}`, { waitUntil: 'networkidle' });
   const card = ap.getByTestId('investor-signing');
-  await card.getByTestId('send-to-sign').click();
-  await card.getByLabel('The PDF to sign').setInputFiles({ name: 'agreement.pdf', mimeType: 'application/pdf', buffer: PDF });
-  await card.getByRole('button', { name: 'Send to sign' }).click();
-  await expect(card.getByTestId('sign-requests')).toContainText('waiting for', { timeout: 15_000 });
-  await check(ap, 'admin investor signing');
+  await card.getByTestId('send-generated').click();
+  const gen = card.getByTestId('send-generated-form');
+  await gen.getByTestId('gen-invested').fill('$25,000.00');
+  await gen.getByTestId('gen-yearly').fill('30%');
+  await gen.getByTestId('gen-investment_date').fill('November 1, 2026');
+  await gen.getByTestId('gen-lockup_end').fill('May 1, 2027');
+  await check(ap, 'admin investor agreement from the record');
+  await gen.getByTestId('send-generated-submit').click();
+  await expect(card.getByTestId('sign-requests')).toContainText('waiting for', { timeout: 30_000 });
+  const [genReq] = await sql`select r.template_version, r.extra ->> 'generated' g, r.extra #>> '{summary,2,value}' amount from sign_requests r where r.investor_id = ${inv!.id} and r.status = 'sent'`;
+  expect(`${genReq!.template_version.startsWith('person-')}/${genReq!.g}/${genReq!.amount}`).toBe('true/true/$25,000.00');
   const ip = await ctx(browser, phone);
   await signIn(ip, iu.email, '');
   await ip.goto('/investor/sign', { waitUntil: 'networkidle' });
+  await expect(ip.getByTestId('sign-summary-values')).toContainText('$25,000.00');
+  await expect(ip.getByTestId('sign-progress-count')).toHaveText('0 of 1 signed');
   await check(ip, 'investor documents to sign');
-  await ip.getByTestId('sign-open').locator('a').first().click();
-  await ip.waitForURL(/\/investor\/sign\/[0-9a-f-]{36}$/);
-  await expect(ip.getByTestId('sign-read')).toBeVisible();
+  const doc = await ip.request.get(await ip.getByTestId('sign-read').first().getAttribute('href') as string);
+  expect((await doc.body()).subarray(0, 4).toString()).toBe('%PDF');
   const f2 = ip.getByTestId('portal-sign-form');
   await f2.getByRole('radio', { name: /chose not to/ }).check();
-  await f2.locator('#ps-initials').fill('II');
-  await f2.getByRole('button', { name: 'Type my name instead' }).click();
-  await f2.locator('#ps-sig').fill(iu.name);
-  await f2.getByRole('checkbox').check();
+  await f2.locator('input[name="statement"]').check();
+  await expect(f2.getByTestId('package-initials')).toHaveValue(/^[A-Z]{2,4}$/);
   await check(ip, 'investor signing page');
-  await f2.getByRole('button', { name: 'Sign' }).click();
-  await expect(ip.getByTestId('portal-signed').or(ip.getByTestId('sign-one-signed'))).toBeVisible({ timeout: 30_000 });
+  await f2.getByTestId('package-sign').click();
+  await expect(ip.getByTestId('package-signed').or(ip.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
+  await ip.goto('/investor/sign', { waitUntil: 'networkidle' });
+  await expect(ip.getByTestId('sign-progress-count')).toHaveText('1 of 1 signed');
   const ia = await sql`select r.status, r.extra ->> 'legal_advice_choice' adv from sign_requests r where r.investor_id = ${inv!.id} order by r.sent_at desc limit 1`;
   expect([ia[0]!.status, ia[0]!.adv]).toEqual(['signed', 'declined']);
   await ip.context().close();
@@ -334,18 +343,18 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await vp2.goto('/va', { waitUntil: 'networkidle' });
   await vp2.getByTestId('va-to-sign').getByRole('link').click();
   await vp2.waitForURL(/\/va\/sign$/);
-  await vp2.getByTestId('sign-open').locator('a').first().click();
-  await vp2.waitForURL(/\/va\/sign\/[0-9a-f-]{36}$/);
+  // the documents to sign are one package on this page: the PDF to read, the signature drawn, one button
+  await expect(vp2.getByTestId('sign-read')).toBeVisible();
+  await vp2.getByTestId('portal-sign-form').getByTestId('signature-mode').click();
   const canvas = vp2.locator('[data-testid="portal-sign-form"] canvas');
   await canvas.evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   const b = (await canvas.boundingBox())!;
   await vp2.mouse.move(b.x + 20, b.y + b.height * 0.6); await vp2.mouse.down();
   for (let i = 1; i <= 30; i++) await vp2.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
   await vp2.mouse.up();
-  await vp2.getByTestId('portal-sign-form').getByRole('checkbox').check();
   await check(vp2, 'va signing page');
-  await vp2.getByTestId('portal-sign-form').getByRole('button', { name: 'Sign' }).click();
-  await expect(vp2.getByTestId('portal-signed').or(vp2.getByTestId('sign-one-signed'))).toBeVisible({ timeout: 30_000 });
+  await vp2.getByTestId('portal-sign-form').getByTestId('package-sign').click();
+  await expect(vp2.getByTestId('package-signed').or(vp2.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
   const sa = await sql`select r.status, r.method, (select agreement_document_id from staff_profiles where user_id = ${va.id}) in (r.document_id, r.signed_document_id) as on_file from sign_requests r where r.staff_user_id = ${va.id}`;
   expect([sa[0]!.status, sa[0]!.method, sa[0]!.on_file]).toEqual(['signed', 'drawn', true]);
   await vp2.goto('/va/sign', { waitUntil: 'networkidle' });

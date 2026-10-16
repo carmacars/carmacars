@@ -3711,6 +3711,13 @@ export type Database = {
           created_at: string;
           updated_by: string | null;
           updated_at: string;
+          needs_review: boolean;
+          review_note: string | null;
+          review_images: Json;
+          review_flagged_at: string | null;
+          suggestion_md: string | null;
+          suggestion_at: string | null;
+          suggestion_model: string | null;
         };
         Insert: {
           id?: string;
@@ -3735,6 +3742,13 @@ export type Database = {
           created_at?: string;
           updated_by?: string | null;
           updated_at?: string;
+          needs_review?: boolean;
+          review_note?: string | null;
+          review_images?: Json;
+          review_flagged_at?: string | null;
+          suggestion_md?: string | null;
+          suggestion_at?: string | null;
+          suggestion_model?: string | null;
         };
         Update: {
           id?: string;
@@ -3759,6 +3773,13 @@ export type Database = {
           created_at?: string;
           updated_by?: string | null;
           updated_at?: string;
+          needs_review?: boolean;
+          review_note?: string | null;
+          review_images?: Json;
+          review_flagged_at?: string | null;
+          suggestion_md?: string | null;
+          suggestion_at?: string | null;
+          suggestion_model?: string | null;
         };
         Relationships: [];
       };
@@ -7788,6 +7809,7 @@ export type Database = {
           manual_rental_va_promo: boolean;
           manual_rental_past_max_days: number;
           partner_insurance_warn_days: number;
+          staff_agreement_defaults: Json;
         };
         Insert: {
           id?: string;
@@ -7998,6 +8020,7 @@ export type Database = {
           manual_rental_va_promo?: boolean;
           manual_rental_past_max_days?: number;
           partner_insurance_warn_days?: number;
+          staff_agreement_defaults?: Json;
         };
         Update: {
           id?: string;
@@ -8208,6 +8231,7 @@ export type Database = {
           manual_rental_va_promo?: boolean;
           manual_rental_past_max_days?: number;
           partner_insurance_warn_days?: number;
+          staff_agreement_defaults?: Json;
         };
         Relationships: [];
       };
@@ -9093,6 +9117,78 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           in_person?: boolean;
+        };
+        Relationships: [];
+      };
+      signing_package_documents: {
+        Row: {
+          id: number;
+          package_id: string;
+          signature_request_id: string;
+          signature_record_id: string;
+          title: string;
+          document_sha256: string;
+          consent_text: string;
+        };
+        Insert: {
+          id?: number;
+          package_id: string;
+          signature_request_id: string;
+          signature_record_id: string;
+          title: string;
+          document_sha256: string;
+          consent_text: string;
+        };
+        Update: {
+          id?: number;
+          package_id?: string;
+          signature_request_id?: string;
+          signature_record_id?: string;
+          title?: string;
+          document_sha256?: string;
+          consent_text?: string;
+        };
+        Relationships: [];
+      };
+      signing_packages: {
+        Row: {
+          id: string;
+          signer_user_id: string;
+          portal: string;
+          signer_name: string;
+          method: string;
+          consent_text: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          seconds_to_sign: number | null;
+          signed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          signer_user_id: string;
+          portal: string;
+          signer_name: string;
+          method: string;
+          consent_text: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          seconds_to_sign?: number | null;
+          signed_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          signer_user_id?: string;
+          portal?: string;
+          signer_name?: string;
+          method?: string;
+          consent_text?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          seconds_to_sign?: number | null;
+          signed_at?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -12920,12 +13016,15 @@ export type Database = {
       server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
       server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };
       server_guide_print_content: { Args: { p_portal: string }; Returns: Json };
+      server_guide_upkeep_apply: { Args: { p: Json }; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
+      server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
@@ -12947,6 +13046,7 @@ export type Database = {
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
+      server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
