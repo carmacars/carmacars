@@ -215,3 +215,5 @@
 .sg-summary dd { margin: 0; overflow-wrap: anywhere; }
 .sg-docs details { border-top: 1px solid var(--grey-200); padding: var(--s-2) 0; }
 .sg-docs summary { cursor: pointer; font-weight: 600; }
+.sg-progress .ck-items li { flex-wrap: nowrap; align-items: flex-start; }
+.sg-progress .ck-dot { margin-top: 0.45em; }
