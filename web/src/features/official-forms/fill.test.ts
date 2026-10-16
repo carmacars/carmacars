@@ -29,3 +29,17 @@ test('the signed copy is flattened: no field can be changed afterwards', async (
   const doc = await PDFDocument.load(out.bytes);
   assert.equal(doc.getForm().getFields().length, 0);
 });
+
+test('a form with no fillable field (a coordinates-based template) gets its values drawn in their boxes, the signature too', async () => {
+  const flat = await PDFDocument.create();
+  flat.addPage([612, 792]);
+  const out = await fillPdf(await flat.save(), { 'Organization name': 'SAMPLE HOLDINGS INC', 'Purpose: New': 'Yes', 'Not boxed': 'x' },
+    { 'Organization name': { source: 'corporation.name', box: { page: 1, rect: [20, 700, 300, 14] } },
+      'Purpose: New': { source: 'method.is_lease', type: 'checkbox', box: { page: 1, rect: [20, 650, 10, 12] } },
+      Signature: { type: 'signature', box: { page: 1, rect: [20, 500, 160, 30] } } }, { signaturePng: PNG, flatten: true });
+  assert.deepEqual(out.missing, ['Not boxed']);
+  assert.deepEqual(out.filled.sort(), ['Organization name', 'Purpose: New', 'Signature']);
+  const doc = await PDFDocument.load(out.bytes);
+  assert.equal(doc.getPageCount(), 1);
+  assert.ok(out.bytes.length > (await flat.save()).length + 500, 'text and the image were drawn');
+});

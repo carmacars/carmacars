@@ -1,11 +1,14 @@
 // Official fillable PDFs (migration 0042), with pdf-lib in the browser (never in the Worker): read the fillable
 // fields of an uploaded form, and fill one with the values the database resolved for a car and its owner, with
 // the owner's drawn signature placed in the signature fields. Works the same in Node for the unit tests.
-import { PDFCheckBox, PDFDocument, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, type PDFField } from 'pdf-lib';
+import { PDFCheckBox, PDFDocument, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, StandardFonts, rgb, type PDFField, type PDFFont, type PDFPage } from 'pdf-lib';
 
 export type FieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'signature' | 'button';
-export interface PdfField { name: string; type: FieldType; options?: string[]; page?: number }
-export interface Spec { source?: string; type?: 'text' | 'checkbox' | 'signature' | 'dropdown' | 'radio'; transform?: string; when?: string; required?: boolean }
+export interface PdfField { name: string; type: FieldType; options?: string[]; page?: number; rect?: [number, number, number, number]; label?: string; tooltip?: string }
+/** box: where a value is drawn on a form with no fillable field (a coordinates-based template, pdf_templates.kind
+ *  'overlay', 0046): the page (from 1) and the rectangle [x, y, width, height] in PDF points from the bottom left. */
+export interface Spec { source?: string; type?: 'text' | 'checkbox' | 'signature' | 'dropdown' | 'radio'; transform?: string; when?: string; required?: boolean;
+  box?: { page: number; rect: [number, number, number, number] } }
 
 const typeOf = (f: PDFField): FieldType =>
   f instanceof PDFTextField ? 'text' : f instanceof PDFCheckBox ? 'checkbox' : f instanceof PDFDropdown || f instanceof PDFOptionList ? 'dropdown'
@@ -33,8 +36,23 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
   const form = doc.getForm();
   const filled: string[] = []; const missing: string[] = [];
   const get = (name: string) => { try { return form.getField(name); } catch { return null; } };
+  const pages = doc.getPages();
+  let font: PDFFont | null = null;
+  const boxOf = (name: string) => { const s = map[name]; return typeof s === 'string' ? undefined : s?.box; };
   for (const [name, raw] of Object.entries(values)) {
     const f = get(name);
+    const box = boxOf(name);
+    if (!f && box) {
+      // a coordinates-based template: the value is drawn in its box
+      const page = pages[box.page - 1];
+      if (!page) { missing.push(name); continue; }
+      font ??= await doc.embedFont(StandardFonts.Helvetica);
+      const spec = map[name] as Spec;
+      if (spec.type === 'checkbox') { if (/^(yes|true|on|1|x)$/i.test(raw ?? '')) { drawText(page, font, 'X', box.rect, true); filled.push(name); } continue; }
+      if (spec.type === 'signature') continue;
+      if (raw) { drawText(page, font, raw, box.rect, false); filled.push(name); }
+      continue;
+    }
     if (!f) { missing.push(name); continue; }
     const v = raw ?? '';
     try {
@@ -49,10 +67,17 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
   }
   if (o.signaturePng) {
     const png = await doc.embedPng(o.signaturePng);
-    const pages = doc.getPages();
     for (const [name, s] of Object.entries(map)) {
       if (typeof s === 'string' || s.type !== 'signature') continue;
       const f = get(name);
+      if (!f && s.box) {
+        const page = pages[s.box.page - 1] ?? pages[0]!;
+        const [x, y, w, h] = s.box.rect;
+        const k = Math.min(w / png.width, h / png.height);
+        page.drawImage(png, { x: x + (w - png.width * k) / 2, y: y + (h - png.height * k) / 2, width: png.width * k, height: png.height * k });
+        filled.push(name);
+        continue;
+      }
       if (!f) { missing.push(name); continue; }
       for (const w of f.acroField.getWidgets()) {
         const page = pages.find((p) => p.ref === w.P()) ?? pages[0]!;
@@ -64,8 +89,19 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
       filled.push(name);
     }
   }
-  if (o.flatten) { form.updateFieldAppearances(); form.flatten(); }
+  if (o.flatten && form.getFields().length) { form.updateFieldAppearances(); form.flatten(); }
   return { bytes: await doc.save(), filled, missing };
+}
+
+/** Text drawn inside a box: one line, shrunk to fit its width, sitting on the box's lower part. */
+function drawText(page: PDFPage, font: PDFFont, text: string, rect: [number, number, number, number], centre: boolean) {
+  const [x, y, w, h] = rect;
+  let size = Math.max(6, Math.min(10, h - 2));
+  while (size > 6 && font.widthOfTextAtSize(text, size) > w - 4) size -= 0.5;
+  let t = text;
+  while (t.length > 1 && font.widthOfTextAtSize(t, size) > w - 4) t = t.slice(0, -1);
+  const tw = font.widthOfTextAtSize(t, size);
+  page.drawText(t, { x: centre ? x + (w - tw) / 2 : x + 2, y: y + Math.max(1, (h - size) / 2), size, font, color: rgb(0, 0, 0) });
 }
 
 /** A small fillable form, for the tests and the Admin's trial: a few text fields, a checkbox and a signature box. */

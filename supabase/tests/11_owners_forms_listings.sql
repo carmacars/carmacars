@@ -287,6 +287,9 @@ select test.eq('D a second run issues nothing more', (select count(*) from app.i
 select test.throws('D a signed schedule cannot be changed through the onboarding terms', format('select app.set_vehicle_terms(%L, %L)', test.ofl_v(1), test.id('ofl_admin')), 'Terms are fixed');
 
 -- ------------------------------------------------------------------ E. government forms: pre-fill and data sheets
+-- these assertions exercise the sample mappings seeded in 0011 (the official forms fetched in 0047 are tested in suite 30)
+update pdf_templates set is_current = false where version like 'official-%' and form_code in (select form_code from pdf_templates where version = 'unverified-1');
+update pdf_templates set is_current = true where version = 'unverified-1';
 create temp table ofl_fill1 as select * from app.fill_vehicle_government_forms(test.ofl_v(1), test.id('ofl_cs'));
 grant all on ofl_fill1 to authenticated, anon;
 select test.eq('E the S3 vehicle gets its two forms as data sheets (templates unverified); CarmaCars'' RIN is missing so they stay drafts',
@@ -331,7 +334,10 @@ select test.throws('E an owner cannot record the filing', format($$select app.se
 select test.throws('E another owner cannot touch the form', format($$select app.set_government_form_status(%L, 'filed', %L)$$, (select fill_id from ofl_fill2 where form_code = 'SR-LV-006'), test.id('ofl_olga')), 'Not permitted');
 select test.lives('E staff record the filing', format($$select app.set_government_form_status(%L, 'filed', %L)$$, (select fill_id from ofl_fill2 where form_code = 'SR-LV-006'), test.id('ofl_cs')));
 select test.throws('E a filed form is not filled again', format($$select app.fill_government_form(%L, 'SR-LV-006')$$, test.ofl_v(1)), 'already filed');
-select test.eq('E the five forms are seeded, all unverified', (select count(*) || '/' || bool_or(verified)::text from pdf_templates), '5/false');
+select test.eq('E the five forms are seeded, all unverified', (select count(*) filter (where version = 'unverified-1') || '/' || bool_or(verified)::text from pdf_templates), '5/false');
+-- back to the official forms of 0047 as the current versions
+update pdf_templates set is_current = false where version = 'unverified-1' and form_code in (select form_code from pdf_templates where version like 'official-%');
+update pdf_templates set is_current = true where version like 'official-%';
 
 -- ------------------------------------------------------------------ F. the onboarding checklist
 select test.eq('F the checklist says what is done, who it waits on and the next action',
@@ -732,7 +738,7 @@ select test.eq('M admin: edits the shot list, the situations, the checklist word
   test.affected($$update listing_shot_types set guide = 'Whole car, three-quarter front' where code = 'front_left'$$)
   + test.affected($$update onboarding_situations set description = description where situation = 'S1'$$)
   + test.affected($$update onboarding_checklist_items set label = label where code = 'photos'$$)
-  + test.affected($$update pdf_templates set notes = 'Loaded later' where form_code = 'SR-LV-012'$$), 4::bigint);
+  + test.affected($$update pdf_templates set notes = 'Loaded later' where form_code = 'SR-LV-012' and is_current$$), 4::bigint);
 select test.throws('M even an Admin does not write the pipeline tables directly', $$update listing_jobs set status = 'failed'$$, 'permission denied');
 select test.logout();
 select test.eq('M every new table has row-level security, the admin policy and an audit trigger',

@@ -49,6 +49,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "for-partner-rental-companies",
+   "title": "For partner rental companies",
+   "blurb": "The partner portal, the partner agreement, statements and payouts.",
+   "body_md": "A partner rental company uses this same portal. CarmaCars rents out your cars, keeps its commission and pays you the rest each month.\n\n## Your partner portal\n\n1. Home shows your partner number, our commission and your cars. CarmaCars adds your cars once we agree which ones join.\n2. Vehicles and Bookings show each car and its rentals. There are no program fees, so there is no Invoices page.\n3. Statements and Payouts: a statement for each month and the payment of your share.\n\n## Sign the partner agreement\n\nOpen **Partner agreement**.\n\n1. Read the agreement. It is filled in from your partner record: your cars, our commission, your insurance and the payout day.\n2. Something wrong? Tell us before you sign and we fix it.\n3. Sign by drawing or typing your name. CarmaCars countersigns at once and the signed copy is in Documents.\n\n> Tip: Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "notices-profile-and-leaving",
    "title": "Notices, profile and leaving",
    "blurb": "Notifications, your profile and giving an exit notice.",

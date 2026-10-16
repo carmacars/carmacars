@@ -89,6 +89,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
             <Kv rows={[['Car', <Link prefetch={false} key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
               ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
               ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
+              ...(b.added_by_staff ? [['Added by hand', <span key="a" data-testid="booking-added">{b.added_mode === 'past' ? 'A past rental recorded by staff' : 'Added by staff'}; source {label(b.source)}; payment: {label(b.payment_mode)}{b.do_not_email ? '; renter not emailed' : ''}{b.clash_override_reason ? `; added over a clash: ${String(b.clash_override_reason)}` : ''}</span>] as [string, React.ReactNode]] : []),
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
           <Card title="Price">
@@ -143,7 +144,10 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'documents' && (
         <div className="ad-cols ad-cols--2">
-          <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) }]} /></Card>
+          <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) },
+            { key: 'identity_verified_on', label: 'Identity', render: (r) => r.identity_verified_on ? `Verified${r.identity_method === 'in_person' ? ' in person' : ''}`
+              : ['confirmed', 'pending_payment'].includes(String(b.status)) ? <Act ops action="verify_driver_in_person" payload={{ booking_driver_id: r.id }} label="Verified in person" testId={`verify-in-person-${String(r.role)}`} refresh={[base]}
+                  fields={[{ name: 'note', label: 'What you checked (the licence seen, its number, the face matched)', type: 'text', required: true }]} /> : 'Not verified' }]} /></Card>
           <Card title="Documents"><Table rows={b.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`/admin/documents/${r.id}`}>{String(r.title ?? label(r.kind))}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
           <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={[base]} /></Card>
           <Card title="Signed on paper" testId="booking-paper"><div className="stack"><PaperSignatureList rows={paper} canVoid refresh={[base]} /><PaperSignatureForm docs={paperDocs} today={today} refresh={[base]} /></div></Card>

@@ -49,6 +49,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "add-a-rental-by-hand",
+   "title": "Add a rental by hand",
+   "blurb": "Choose the car and dates, find the renter, price it, record how it is paid.",
+   "body_md": "Customer service and Sales add rentals that come in by phone, at the counter, from Turo, a partner or an insurer. The rental is confirmed and on the calendar at once.\n\n## Add a rental\n\nOpen **Add a rental** on your rail.\n\n1. Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.\n2. Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.\n3. Press **Check the calendar and the price**. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code; a price typed by hand is for Admins.\n4. Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as **Paid another way**, **Send a payment link** or **Charge the saved card**.\n5. Press **Add the rental**. The renter gets the confirmation email unless you tick **Do not email the renter**.\n\n> Tip: The renter signs the rental agreement in their portal before pickup. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "shared-tools",
    "title": "Shared tools",
    "blurb": "The calendar and Find a renter.",

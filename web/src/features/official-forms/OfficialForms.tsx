@@ -8,7 +8,7 @@ import type { PdfField, Spec } from './fill';
 // its fields are read here in the browser; choose what goes in each field; preview it filled for a car; then
 // "Use for owners": every owner's form not signed yet is filled again from it, and owners get the official PDF to
 // sign or download instead of the data sheet.
-type Tpl = { id: string; version: string; title: string | null; file_key: string | null; file_name: string | null; page_count: number | null; field_names: PdfField[]; field_map: Record<string, Spec | string>;
+type Tpl = { id: string; version: string; kind?: 'acroform' | 'overlay' | 'generated'; notes?: string | null; title: string | null; file_key: string | null; file_name: string | null; page_count: number | null; field_names: PdfField[]; field_map: Record<string, Spec | string>;
   verified: boolean; verified_at: string | null; verified_by_name: string | null; mapped_at: string | null; mapped_by_name: string | null };
 export type FormsData = { forms: Array<{ form_code: string; current: Tpl | null; versions: number; fills: { pdf: number; data_sheet: number } }>;
   sources: Array<{ path: string; label: string; section: string }>; transforms: string[]; vehicles: Array<{ id: string; name: string; owner: string }> };
@@ -45,7 +45,9 @@ function Upload({ code }: { code: string }) {
 function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [map, setMap] = useState<Record<string, Spec>>(() => Object.fromEntries(t.field_names.map((f) => [f.name, spec(t.field_map[f.name])])));
+  // a coordinates-based template (a form with no fillable field): each value is drawn in the box the field list gives
+  const [map, setMap] = useState<Record<string, Spec>>(() => Object.fromEntries(t.field_names.map((f) => [f.name,
+    t.kind === 'overlay' && f.rect && f.page ? { ...spec(t.field_map[f.name]), box: { page: f.page, rect: f.rect } } : spec(t.field_map[f.name])])));
   const [vehicle, setVehicle] = useState(d.vehicles[0]?.id ?? '');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const sections = useMemo(() => [...new Set(d.sources.map((s) => s.section))], [d.sources]);
@@ -124,6 +126,8 @@ export function OfficialForms({ d }: { d: FormsData }) {
               <span className={`ad-b ${t?.verified && official ? 'ad-b--dark' : official ? 'ad-b--amber' : 'ad-b--light'}`}>{t?.verified && official ? 'Official PDF in use' : official ? 'Mapping to check' : 'Data sheet in use'}</span></div>
             <p className="small">{official ? `${t!.file_name ?? 'PDF'}, ${t!.field_names.length} fields${t!.page_count ? ` on ${t!.page_count} page(s)` : ''}, version ${t!.version}` : 'No official PDF yet.'}
               {t?.verified_at ? ` Checked by ${t.verified_by_name ?? 'an Admin'}.` : ''} Owners now: {f.fills.pdf} with the official PDF, {f.fills.data_sheet} with the data sheet.</p>
+            {official && t!.kind === 'overlay' && <p className="small" data-testid={`form-overlay-${f.form_code}`}>This form has no fillable fields (the publisher&apos;s PDF is an Adobe dynamic form). It was laid out as a plain PDF, and each value is printed in the box of its field.</p>}
+            {official && t!.notes && <p className="small muted">{t!.notes}</p>}
             <Upload code={f.form_code} />
             {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></FieldsPanel>}
           </section>);

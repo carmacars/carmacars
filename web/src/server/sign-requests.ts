@@ -7,6 +7,7 @@ import { screenFormBlocks, SCREEN_FORMS_VERSION, SCREEN_FORM_TITLE, type ScreenF
 import { requestMeta } from '@/server/request';
 import { sha256Hex } from '@/server/links';
 import { SIGN_STATEMENT } from '@/features/manual/constants';
+import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERSION, type PartnerFacts } from '@/features/partner/agreement';
 
 // Documents one person signs in their portal (migration 0044): Forms A and B (rendered here from the owner's records),
 // investment agreements and staff agreements (a PDF an Admin sent). The person signs by typing their name or drawing;
@@ -30,6 +31,22 @@ export async function openFormAB(userId: string, code: 'A' | 'B'): Promise<{ id:
   return { id: r.id, sha };
 }
 
+// The partner agreement (migration 0046): rendered from the partner's record, stored privately, opened for signature.
+export async function partnerFacts(userId: string): Promise<PartnerFacts | null> {
+  return (await rpc('partner_agreement_facts', { p_by: userId }, SR)) as unknown as PartnerFacts | null;
+}
+export async function openPartnerAgreement(userId: string): Promise<{ id: string; sha: string; facts: PartnerFacts }> {
+  const facts = await partnerFacts(userId);
+  if (!facts) throw new Error('Only a partner account signs the partner agreement.');
+  const name = facts.partner.legal_name || facts.partner.business_name;
+  const pdf = await agreementPdf(partnerAgreementBlocks(facts), { title: `${PARTNER_AGREEMENT_TITLE}, ${name}`, createdAt: FIXED, footer: `CarmaCars ${PARTNER_AGREEMENT_TITLE} for ${name}. ${PARTNER_AGREEMENT_VERSION}` });
+  const sha = await sha256Hex(pdf);
+  const path = `owners/${facts.owner_id}/partner/partner-agreement-${sha.slice(0, 16)}.pdf`;
+  await (await storage()).put('agreements', path, pdf, 'application/pdf');
+  const r = (await rpc('partner_agreement_open', { p_by: userId, p_sha256: sha, p_path: path, p_template_version: PARTNER_AGREEMENT_VERSION }, SR)) as unknown as { id: string };
+  return { id: r.id, sha, facts };
+}
+
 function pngBytes(dataUrl: string): Uint8Array | null {
   const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? '');
   if (!m) return null;
@@ -39,7 +56,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 }
 
 interface SignedRequest {
-  id: string; doc_type: 'form_a' | 'form_b' | 'investment_agreement' | 'staff_agreement'; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
+  id: string; doc_type: 'form_a' | 'form_b' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement'; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
   signer_name: string; signer_role: string; signed_at: string; method: string; document_sha256: string;
   record: { signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null };
 }
@@ -67,13 +84,17 @@ async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: s
   const images = new Map<number, Uint8Array>();
   if (drawnPath) { const png = await s.get('agreements', drawnPath).catch(() => null); if (png) images.set(0, png); }
   const rec = r.record;
-  const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'staff' ? 'Staff member' : 'Owner', name: rec.signer_name,
+  const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'partner' ? 'Partner' : rec.signer_role === 'staff' ? 'Staff member' : 'Owner', name: rec.signer_name,
     signature: rec.method === 'typed' ? `Typed: ${rec.typed_name ?? rec.signer_name}` : 'Drawn signature', when: when(rec.signed_at) };
   let blocks: Block[];
   if (r.doc_type === 'form_a' || r.doc_type === 'form_b') {
     const code = r.doc_type === 'form_a' ? 'A' : 'B';
     const facts = await formABFacts(userId, code);
     blocks = screenFormBlocks(facts, { owner: row, carmacars: { party: code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', name: facts.company.legal_name || facts.company.brand, signature: 'Signed electronically for CarmaCars', when: when(rec.signed_at) } });
+  } else if (r.doc_type === 'partner_agreement') {
+    const facts = await partnerFacts(userId);
+    blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: facts.company.legal_name || facts.company.brand, signature: 'Signed electronically for CarmaCars', when: when(rec.signed_at) } })
+      : [{ t: 'title', text: r.title }, { t: 'signatures', rows: [row] }];
   } else {
     blocks = [{ t: 'title', text: `${r.title}: signature` }, { t: 'p', text: 'This page records the signature of the document named below. The document itself is filed beside it, unchanged.' },
       { t: 'table', head: ['Document', 'SHA-256 of the document signed'], rows: [[r.title, r.document_sha256]] }, { t: 'signatures', rows: [row] }];
@@ -85,7 +106,7 @@ async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: s
   ];
   const pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
   const sha = await sha256Hex(pdf);
-  const base = r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
+  const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
   const path = `${base}/${r.doc_type}-${r.id.slice(0, 8)}-signed.pdf`;
   await s.put('agreements', path, pdf, 'application/pdf');
   await rpc('server_sign_request_attach', { p_id: r.id, p_path: path, p_sha256: sha }, SR);

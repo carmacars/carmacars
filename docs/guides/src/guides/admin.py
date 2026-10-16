@@ -233,6 +233,53 @@ def build():
     g.warn('Publishing waits for a plate decision on every public photo ("Cover the licence plate or mark it not visible on every '
            'public photo first"). Listings already live show "Plate not checked" until someone checks them.')
 
+    # ---------------------------------------------------------------- 5b
+    g.chapter('Partners, company cars and rentals added by hand',
+              'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. '
+              'You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.',
+              blurb='Add a car, partners, add a rental, retire or delete a car, sample cars and tolls with two rentals.')
+    g.task('Add a car', f'{P("Vehicles", "Add a car")}. First choose who supplies it.')
+    g.steps([
+        B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
+        f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
+        B("A partner rental company's car") + ': choose the partner. Leave the commission empty to use the partner\'s, or type one for this car.',
+        f'Type the VIN, the plate and the details, and the rates if you have them. Press {B("Add the car")}.',
+    ])
+    g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
+    g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
+
+    g.task('Partners', f'{P("People", "Partners")}. Partner rental companies whose cars we rent out on commission.')
+    g.steps([
+        f'Press {B("Add a partner")}: business and legal name, contacts, HST number, commission and insurance with its expiry date.',
+        'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon.',
+        f'Banking (Admins only): {B("Save the payout account")} for the account we pay the partner into. The account number is stored encrypted. Press {B("Verify")} once checked.',
+        f'Portal: {B("Invite to the owner portal")} gives the partner the owner portal with its cars, bookings, statements and the partner agreement to sign on screen.',
+        f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
+    ])
+    g.warn('The partner agreement is a draft for lawyer review. Use it only once it is approved.')
+
+    g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
+    g.steps([
+        'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
+        'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
+        'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
+        f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card")} or {B("Unpaid: invoice later")}.',
+        f'Press {B("Check the calendar and the price")}. Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
+    ])
+    g.tip('The rental is confirmed and on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. '
+          f'On the booking, {B("Verified in person")} records a licence checked at the counter. A past rental is recorded as completed.')
+
+    g.task('Retire or delete a car', f'{P("Vehicles", "the car")}, then {B("Retire or delete")}.')
+    g.steps([
+        f'{B("Retire this car")} takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. {B("Restore")} brings it back.',
+        f'{B("Delete this car")} removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.',
+        f'{P("Vehicles", "Sample cars")}, then {B("Delete all sample cars")}, deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.',
+    ])
+
+    g.task('Tolls when two rentals overlap')
+    g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
+           'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
     # ---------------------------------------------------------------- 6
     g.chapter('Owners and onboarding',
               'Owners apply on the site. You approve them, set their terms, and check their forms. '

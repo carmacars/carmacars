@@ -47,6 +47,10 @@ export interface OwnerHome {
   invoices: OwnerInvoiceRow[];
   statements: Array<{ id: string; statement_number: string; statement_month: string; payout_date: string; status: string; payout_cents: number }>;
   payouts: Array<{ id: string; kind: string; amount_cents: number; method: string; scheduled_for: string; status: string }>;
+  /** 0046: program (an owner in the program), partner (a partner rental company), company (CarmaCars' own fleet). */
+  kind?: 'program' | 'partner' | 'company';
+  partner?: { id: string; business_name: string; partner_number: string; commission_effective_bps: number; agreement_status: 'not_sent' | 'sent' | 'signed' | string;
+    agreement_signed_at: string | null; agreement_method: string | null; agreement_document_id: string | null; insurance_expiry: string | null } | null;
   signing: { needed: boolean; enrollment: string | null; title_holding: string | null; unsigned_schedules: number; signed_schedules: number };
   payment_methods: Array<{ id: string; kind: string; status: string; brand_or_bank: string | null; last4: string | null; is_default: boolean; authorized_at: string | null }>;
   payout_accounts: Array<{ id: string; method: string; account_last4: string | null; institution_no: string | null; e_transfer_email: string | null; is_current: boolean; verified_at: string | null; submitted_at: string }>;

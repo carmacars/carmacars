@@ -2100,6 +2100,25 @@ begin
             join vehicles v on v.id = b.vehicle_id), '[]'::jsonb);
 end $$;
 
+-- The renter's booking page knows a rental staff added by hand (it is confirmed before the agreement is signed: the
+-- portal asks the renter to sign it, with no payment step).
+create or replace function app.booking_added_flag(p_booking uuid) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select b.added_by_staff from bookings b where b.id = p_booking and app.is_booking_renter(b.id, app.uid())
+$$;
+alter function public.my_booking(text) set schema app;
+alter function app.my_booking(text) rename to my_booking_0028;
+create or replace function public.my_booking(p_number text) returns jsonb
+language sql stable security invoker set search_path = public, app as $$
+  select case when x is null then null
+              else x || jsonb_build_object('added_by_staff', coalesce(app.booking_added_flag((x ->> 'id')::uuid), false)) end
+    from (select app.my_booking_0028(p_number) as x) q
+$$;
+revoke all on function public.my_booking(text) from public, anon;
+grant execute on function public.my_booking(text) to authenticated, service_role;
+revoke all on function app.booking_added_flag(uuid) from public, anon;
+grant execute on function app.booking_added_flag(uuid) to authenticated, service_role;
+
 -- ================================================================ 11. the renter's email for a rental added by hand
 insert into notification_link_paths (key, path) values ('booking_sign', '/account/bookings/{{booking_number}}/sign')
 on conflict (key) do update set path = excluded.path;
@@ -2190,6 +2209,12 @@ begin
   when 'verify_driver_in_person' then return app.verify_driver_in_person(p_user, p);
   when 'bookings_by_supply' then return app.bookings_by_supply(p_user, p);
   -- the partner portal
+  when 'supply_settings' then
+    if app.manual_rental_role(p_user) is null then raise exception 'Not permitted' using errcode = '42501'; end if;
+    return (select jsonb_build_object('partner_commission_bps', s.partner_commission_bps, 'manual_rental_va_payment_modes', to_jsonb(s.manual_rental_va_payment_modes),
+                                      'manual_rental_va_promo', s.manual_rental_va_promo, 'manual_rental_past_max_days', s.manual_rental_past_max_days,
+                                      'partner_insurance_warn_days', s.partner_insurance_warn_days, 'sample_cars', (select count(*) from vehicles where is_sample))
+              from (select (app.settings()).*) s);
   when 'partner_agreement_facts' then
     perform app.assert_admin(p_user);
     return app.partner_agreement_facts((select r.owner_id from partners r where r.id = (p ->> 'partner_id')::uuid));
@@ -2206,14 +2231,14 @@ begin
      and p_name in ('partners', 'partner', 'partner_save', 'partner_payout_account', 'partner_payout_verify', 'vehicle_add', 'vehicle_set_supply',
                     'vehicle_set_commission', 'vehicle_retire', 'vehicle_restore', 'vehicle_delete', 'vehicles_delete_samples', 'vehicle_delete_blockers',
                     'sample_cars', 'manual_rental_renters', 'manual_rental_quote', 'manual_rental_create', 'manual_rental_card_result',
-                    'manual_rental_vehicles', 'verify_driver_in_person', 'bookings_by_supply', 'partner_agreement_facts') then
+                    'manual_rental_vehicles', 'verify_driver_in_person', 'bookings_by_supply', 'partner_agreement_facts', 'supply_settings') then
     perform app.door_begin(p_user, p_aal);
     if p_call = 'ops_read' and p_name not in ('partners', 'partner', 'vehicle_delete_blockers', 'sample_cars', 'manual_rental_renters', 'manual_rental_quote',
-                                              'manual_rental_vehicles', 'bookings_by_supply', 'partner_agreement_facts') then
+                                              'manual_rental_vehicles', 'bookings_by_supply', 'partner_agreement_facts', 'supply_settings') then
       raise exception 'Unknown read %', p_name using errcode = '22023';
     end if;
     if p_call = 'ops_do' and p_name in ('partners', 'partner', 'vehicle_delete_blockers', 'sample_cars', 'manual_rental_renters', 'manual_rental_quote',
-                                        'manual_rental_vehicles', 'bookings_by_supply', 'partner_agreement_facts') then
+                                        'manual_rental_vehicles', 'bookings_by_supply', 'partner_agreement_facts', 'supply_settings') then
       raise exception 'Unknown action %', p_name using errcode = '22023';
     end if;
     return app.ops46(p_user, p_call, p_name, coalesce(p, '{}'::jsonb) - '_va');

@@ -106,7 +106,8 @@ export async function saveDetails(number: string, d: DetailsInput): Promise<R> {
   try {
     const { userId, b } = await mine(number);
     await rpc('renter_save_details', { p_by: userId, p_booking: b.id, p_details: { ...d, licence_number: d.licence_number.toUpperCase() } }, SR);
-    if (b.status === 'pending_payment' && b.agreement?.status === 'open') await openAgreement(b.id, userId);
+    const added = !!(b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
+    if ((b.status === 'pending_payment' || added) && b.agreement?.status === 'open') await openAgreement(b.id, userId);
     refresh(number);
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
@@ -161,7 +162,8 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
       p_consents: all.map((c) => ({ code: c.code, version: CONSENT_VERSION, text: consentLine(c) }))
     }, SR);
     refresh(number);
-    target = bookingPath(number, 'pay');
+    // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned
+    target = (b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed' ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
   } catch (e) { return fail(dbMessage(e)); }
   redirect(target);
 }

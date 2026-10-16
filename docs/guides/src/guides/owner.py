@@ -192,6 +192,25 @@ def build():
     ], shot=S('owner/13-official-form-desktop', 0, 420, 1440, 1080, pins=[(2, 320, 564), (3, 720, 1047)]))
     g.warn('If the registry office asks for an ink signature, print the filled form and sign it there. You pay ServiceOntario, the inspection station and the appraiser directly.')
 
+    # ---------------------------------------------------------------- 6b
+    g.chapter('For partner rental companies',
+              'A partner rental company uses this same portal. CarmaCars rents out your cars, keeps its commission and '
+              'pays you the rest each month.',
+              blurb='The partner portal, the partner agreement, statements and payouts.')
+    g.task('Your partner portal')
+    g.steps([
+        'Home shows your partner number, our commission and your cars. CarmaCars adds your cars once we agree which ones join.',
+        'Vehicles and Bookings show each car and its rentals. There are no program fees, so there is no Invoices page.',
+        'Statements and Payouts: a statement for each month and the payment of your share.',
+    ])
+    g.task('Sign the partner agreement', f'Open {B("Partner agreement")}.')
+    g.steps([
+        'Read the agreement. It is filled in from your partner record: your cars, our commission, your insurance and the payout day.',
+        'Something wrong? Tell us before you sign and we fix it.',
+        'Sign by drawing or typing your name. CarmaCars countersigns at once and the signed copy is in Documents.',
+    ])
+    g.tip('Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same.')
+
     # ---------------------------------------------------------------- 6
     g.chapter('Notices, profile and leaving',
               'Keep your details up to date, read our notices, and know how to take a car out of the program.',

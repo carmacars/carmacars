@@ -11,16 +11,19 @@ import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) return <>{children}</>;
-  const unread = await rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0);
+  const [unread, partner] = await Promise.all([
+    rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0),
+    rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' }).then((r) => !!r).catch(() => false)
+  ]);
   return (
     <div className="pt">
       <div className="wrap pt__top">
         <div className="pt__hello">
-          <p className="small muted">Owner portal · <b data-testid="account-email">{user.email}</b></p>
+          <p className="small muted">{partner ? 'Partner portal' : 'Owner portal'} · <b data-testid="account-email">{user.email}</b></p>
           <span className="gd-frame-links"><GuideLink portal="owner" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="owner" />
-        <OwnerNav unread={unread || 0} />
+        <OwnerNav unread={unread || 0} partner={partner} />
         <GuideBanner portal="owner" userId={user.id} />
       </div>
       <div className="wrap pt__body">{children}</div>

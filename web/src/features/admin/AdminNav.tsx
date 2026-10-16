@@ -11,7 +11,7 @@ export const NAV: Array<[string, Array<[string, string, string?]>]> = [
   ['Fleet', [['/admin/vehicles', 'Vehicles', 'v'], ['/admin/listings', 'Listings', 'l'], ['/admin/similar-cars', 'Similar cars'], ['/admin/vehicles/bulk-rates', 'Bulk rates']]],
   ['Money', [['/admin/money', 'Payments and refunds', 'm'], ['/admin/insurer-invoices', 'Insurer invoices'], ['/admin/invoices', 'Owner invoices'], ['/admin/debits', 'Owner debits'], ['/admin/statements', 'Owner statements'], ['/admin/payouts', 'Payouts'], ['/admin/reports', 'Company statements'], ['/admin/expenses', 'Expenses'], ['/admin/reconciliation', 'Reconciliation']]],
   ['Recover', [['/admin/tolls', 'Tolls and tickets', 'o'], ['/admin/damages', 'Damage'], ['/admin/incidents', 'Incidents and claims']]],
-  ['People', [['/admin/portals', 'Portals and sign-in'], ['/admin/settings/staff', 'Staff'], ['/admin/owners', 'Owners'], ['/admin/owner-forms', 'Owner forms'], ['/admin/investors', 'Investors'], ['/admin/reviews', 'Reviews'], ['/admin/messages', 'Email'], ['/admin/audit', 'Audit log']]],
+  ['People', [['/admin/portals', 'Portals and sign-in'], ['/admin/settings/staff', 'Staff'], ['/admin/owners', 'Owners'], ['/admin/partners', 'Partners'], ['/admin/owner-forms', 'Owner forms'], ['/admin/investors', 'Investors'], ['/admin/reviews', 'Reviews'], ['/admin/messages', 'Email'], ['/admin/audit', 'Audit log']]],
   ['Setup', [['/admin/settings', 'Settings', 's']]]
 ];
 

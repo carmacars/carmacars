@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const LINKS = [
+const LINKS: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: '/owner', label: 'Home', exact: true },
   { href: '/owner/vehicles', label: 'Vehicles' },
   { href: '/owner/bookings', label: 'Bookings' },
@@ -15,11 +15,13 @@ const LINKS = [
   { href: '/owner/profile', label: 'Profile' }
 ];
 
-export function OwnerNav({ unread }: { unread: number }) {
+// A partner rental company (0046) uses the same portal: no invoices (it pays no program fees), and its partner agreement.
+export function OwnerNav({ unread, partner = false }: { unread: number; partner?: boolean }) {
   const path = usePathname() ?? '/owner';
+  const links = partner ? [...LINKS.filter((l) => l.href !== '/owner/invoices').slice(0, 5), { href: '/owner/partner-agreement', label: 'Partner agreement' }, ...LINKS.filter((l) => l.href !== '/owner/invoices').slice(5)] : LINKS;
   return (
-    <nav className="pt__nav" aria-label="Owner portal">
-      {LINKS.map((l) => {
+    <nav className="pt__nav" aria-label={partner ? 'Partner portal' : 'Owner portal'}>
+      {links.map((l) => {
         const on = l.exact ? path === l.href : path.startsWith(l.href);
         return (
           <Link key={l.href} href={l.href} aria-current={on ? 'page' : undefined}>

@@ -1,6 +1,8 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
+import Link from 'next/link';
 import { $, Badge, BookingLink, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { door } from '@/server/door';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings', path: '/admin/bookings', noindex: true, description: 'Every booking.' });
@@ -9,13 +11,20 @@ const STATUSES: Array<[string, string]> = [['', 'All'], ['requested', 'Requested
 type Row = { id: string; booking_number: string; status: string; vehicle_name: string; renter_name: string; pickup_at: string; return_at: string; total_due_at_booking_cents: number; bill_to: string; blocks_calendar: boolean };
 
 export default async function Bookings({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ list }, sp] = await Promise.all([page('/admin/bookings'), searchParams]);
+  const [{ list, user }, sp] = await Promise.all([page('/admin/bookings'), searchParams]);
   const status = sp.status ?? '';
-  const { rows, count } = await list<Row>('bookings', { eq: status ? { status } : {}, q: sp.q, order: 'pickup_at', limit: 200 });
+  const res = await list<Row>('bookings', { eq: status ? { status } : {}, q: sp.q, order: 'pickup_at', limit: 200 });
+  // by who supplies the car, or only the rentals added by hand (0046)
+  const keep = sp.supply || sp.added ? new Set((await door<Array<{ id: string }>>(user.id, 'ops_read', 'bookings_by_supply', { supply: sp.supply ?? '', added: !!sp.added, status, limit: 2000 })).map((b) => b.id)) : null;
+  const rows = keep ? res.rows.filter((r) => keep.has(r.id)) : res.rows;
+  const count = keep ? rows.length : res.count;
   return (
     <>
-      <PageHead title="Bookings" kicker={`${count} found`}><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" /></PageHead>
+      <PageHead title="Bookings" kicker={`${count} found`}><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
       <Filters base="/admin/bookings" name="status" value={status} options={STATUSES} sp={sp} />
+      <Filters base="/admin/bookings" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />
+      <Filters base="/admin/bookings" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
       <Table<Row> testId="bookings" caption="Bookings" rows={rows} cols={[
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
         { key: 'status', label: 'Status', render: (r) => <Badge s={r.status} /> },

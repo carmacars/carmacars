@@ -249,6 +249,21 @@ def build():
         'Owner applications, last 90 days, shows who applied and how far onboarding has come.',
     ], shot=S('va-sales/04-leads-desktop', 210, 60, 1440, 460, pins=[(1, 290, 166), (3, 1376, 236), (4, 400, 312)]))
 
+    # ---------------------------------------------------------------- 5b
+    g.chapter('Add a rental by hand',
+              'Customer service and Sales add rentals that come in by phone, at the counter, from Turo, a partner or an '
+              'insurer. The rental is confirmed and on the calendar at once.',
+              blurb='Choose the car and dates, find the renter, price it, record how it is paid.')
+    g.task('Add a rental', f'Open {B("Add a rental")} on your rail.')
+    g.steps([
+        'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
+        'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
+        f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code; a price typed by hand is for Admins.',
+        f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card")}.',
+        f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
+    ])
+    g.tip('The renter signs the rental agreement in their portal before pickup. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.')
+
     # ---------------------------------------------------------------- 6
     g.chapter('Shared tools',
               'Every function has the calendar and Find a renter. Use them to answer questions fast.',

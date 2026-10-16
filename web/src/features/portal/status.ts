@@ -38,6 +38,10 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
         : { title: 'Sign and pay', note: 'Sign the rental agreement, then pay to confirm.', href: path('sign'), cta: 'Sign agreement', urgent: true };
     }
     case 'confirmed': {
+      // a rental staff added by hand (0046): confirmed before the agreement is signed
+      if (full && (full as { added_by_staff?: boolean }).added_by_staff && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
+        return { title: 'Sign your rental agreement', note: 'Your rental is booked. Read and sign the agreement before pickup.', href: path('sign'), cta: 'Sign agreement', urgent: true };
+      }
       const missing = full?.readiness?.missing ?? [];
       if (full && (missing.includes('identity') || missing.includes('coverage'))) return { title: 'Upload your licence', note: 'Licence photos, a selfie and proof of coverage are needed before pickup.', href: path('verify'), cta: 'Upload documents', urgent: true };
       const soon = new Date(b.pickup_at).getTime() - now < 36 * 3600e3;

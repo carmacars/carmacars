@@ -28,6 +28,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | `docs/guides/` | `portal-facts.md`: the facts for each portal's user guide; `screens/` (git-ignored): the screenshots from the guides workflow |
 | `docs/setup.md` | The accounts and how they connect; environment variables and secrets; running the tests; backups |
 | `docs/source/` | The agreements, billing specifications and procedures the model was built from |
+| `docs/legal/for-lawyer-review.md` | Every legal text the platform shows (PAD agreement and Stripe mandate, booking amendment, Forms C and D, the partner agreement draft, automatic countersignatures, paper-signature records), verbatim, with where it appears and its file |
+| `docs/forms/official-forms.json` | The official ServiceOntario forms the forms-fetch workflow downloaded: source, checksums, kind, pages and fields |
 | `.env.example` | Every environment variable, without values |
 
 ## Run the tests
@@ -84,6 +86,9 @@ cd emails && node check.mjs
 | `0043_email_cap.sql` | The email daily cap safe on Resend's free plan: Supabase Auth's emails counted, classes leaving room for them, the 80% warning in the portal, the provider's 429 held without spending an attempt, a final failure told to the Admins (`docs/changes/0043_email_cap.md`) |
 | `0044_guides_manual_records.sql` | The user guide of every portal stored in the database (sections, versions, publish, images, stored PDFs, who read which version, the first-visit banner), payments received outside the card processor recorded on owner invoices and renter bookings (partial, proof, receipt, the debit stopped, void with a reason), signatures on paper for every signable document (scan, signer, witnesses, void), documents sent to sign in the investor, VA and Field portals, Forms A and B signed on screen, the owner checklist (`docs/changes/2026-10-15-guides-manual-records.md`) |
 | `0045_one_confirmation_email.sql` | One confirmation email per sign-up: Supabase Auth's confirmation is the only email that asks to confirm; the app's two account emails become welcomes sent once the address is first confirmed (owner or renter, once); granting a role emails nothing; the live verification's sign-up checks (`docs/changes/2026-10-16-one-confirmation-email.md`) |
+| `0046_supply_manual_rentals.sql` | Three supply types (program owner, CarmaCars-owned, partner rental company), partners (contacts, banking, commission, insurance, portal, partner agreement), Add a car, rentals added by hand by Admins and assistants (availability, renter, price, extras, payment, agreement), retire, restore, delete and delete the sample cars, toll matching that ignores placeholders and holds two overlapping rentals, the company statement by supply type (`docs/changes/2026-10-16-supply-manual-rentals.md`) |
+| `0047_official_forms_drafts.sql` | The five official ServiceOntario forms fetched by the forms-fetch workflow as templates with draft mappings, unchecked (`docs/forms/official-forms.json`) |
+| `0048_guide_supply_sections.sql` | The new guide chapters of 0046 (Admin, VA, Owner) added to live guides, published, with each guide's version raised so its PDF shows as older |
 
 ## Test files
 
@@ -115,6 +120,7 @@ cd emails && node check.mjs
 | `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
 | `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 130 |
 | `29_one_confirmation_email.sql` | 0045: no account email when a role is granted, the welcome once after the confirmation (owner over renter, none for staff or investors), no catalogue email asks to confirm, the live verification's sign-up functions | 25 |
+| `30_supply_manual_rentals.sql` | 0046 to 0048: supply types and partners, Add a car and the duplicate check, terms and splits by supply, rentals added by hand (Admin and assistant limits, clashes, payment modes, past rentals, agreements, emails), retire, restore, delete and sample cars, toll matching with placeholders and two rentals, the company statement by supply, the partner agreement, the official forms, the new guide chapters | 104 |
 
 ## Rules for changes
 

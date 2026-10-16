@@ -324,3 +324,46 @@ select app.process_events(100000);
 select test.eq('outbox: the renter''s email built with every variable',
   (select string_agg(o.code || ':' || (o.missing_variables = '{}'), ',') from notification_outbox o join app_events e on e.id = o.event_id
     where e.code = 'renter_rental_added' and e.entity_id = (test.smb('r1')).id), 'renter_rental_added:true');
+
+-- ================================================================ 8. the official forms fetched by the forms-fetch workflow (0047)
+select test.eq('forms: the five official forms are the current templates, each unchecked, with a draft mapping',
+  (select string_agg(form_code || ':' || kind || ':' || verified || ':' || ((select count(*) from jsonb_object_keys(field_map)) > 0), ',' order by form_code)
+     from pdf_templates where is_current),
+  '013-0169:acroform:false:true,013-1155:acroform:false:true,ON00453:overlay:false:true,SR-LV-006:acroform:false:true,SR-LV-012:acroform:false:true');
+select test.ok('forms: the laid-out form (no fillable fields) prints each value in its box',
+  (select bool_and((v -> 'box' ->> 'page')::integer between 1 and 3 and jsonb_array_length(v -> 'box' -> 'rect') = 4)
+     from pdf_templates t, jsonb_each(t.field_map) e(k, v) where t.form_code = 'ON00453' and t.is_current));
+select test.ok('forms: what each form is for, and where it came from, is kept with it',
+  (select bool_and(notes like '%https://forms.mgcs.gov.on.ca/%' and notes like '%SHA-256%') from pdf_templates where is_current));
+select test.lives('forms: every draft mapping passes the mapping checks of 0042 (saved again by an Admin, not checked)',
+  $$select app.form_template_map(test.id('sm_admin'), jsonb_build_object('template', t.id, 'field_map', t.field_map)) from pdf_templates t where t.is_current$$);
+select test.eq('forms: still nothing in use for owners (no fetched form is checked; suite 26 checks an uploaded one of its own)',
+  (select count(*) from pdf_templates where verified and notes like '%https://forms.mgcs.gov.on.ca/%'), 0::bigint);
+
+-- ================================================================ 9. the guides get the new chapters (0048)
+-- a fresh database has no guide sections when the migrations run (the seed adds every chapter, the new ones included)
+select test.eq('guides: on a fresh database the migration adds nothing (the seed brings the chapters)',
+  (select count(*) from guide_sections where slug in ('partners-company-cars-and-rentals-added-by-hand', 'add-a-rental-by-hand', 'for-partner-rental-companies')), 0::bigint);
+-- a live guide: an Admin has published sections, one of them edited
+delete from guide_section_versions where section_id in (select id from guide_sections where portal = 'va');
+delete from guide_sections where portal = 'va';
+insert into guide_sections (portal, kind, sort_order, slug, title, body_md, published_title, published_md, published_html, published_hidden, published_version, published_at)
+values ('va', 'start', 1, 'start-here', 'Start here', 'a', 'Start here', 'a', '<p>a</p>', false, 1, now()),
+       ('va', 'chapter', 2, 'sales', 'Sales', 'edited by an Admin', 'Sales', 'edited by an Admin', '<p>edited by an Admin</p>', false, 3, now()),
+       ('va', 'chapter', 3, 'shared-tools', 'Shared tools', 'c', 'Shared tools', 'c', '<p>c</p>', false, 1, now()),
+       ('va', 'reference', 4, 'quick-reference', 'Quick reference', 'd', 'Quick reference', 'd', '<p>d</p>', false, 1, now());
+create temp table g48 as select version from guides where portal = 'va';
+create temp table g48_runs as
+  select app.guide_add_published_section('va', 'sales', 'add-a-rental-by-hand', 'Add a rental by hand', 'b', '## Add a rental', '<h2>Add a rental</h2>') as first;
+alter table g48_runs add column second boolean;
+update g48_runs set second = app.guide_add_published_section('va', 'sales', 'add-a-rental-by-hand', 'Add a rental by hand', 'b', '## Add a rental', '<h2>Add a rental</h2>');
+select test.eq('guides: a live guide gets the new chapter once, published, after the chapter it follows',
+  (select first::text || '/' || second::text from g48_runs) || '/' || (select string_agg(slug, ',' order by sort_order) from guide_sections where portal = 'va'),
+  'true/false/start-here,sales,add-a-rental-by-hand,shared-tools,quick-reference');
+select test.eq('guides: the new chapter is published with its HTML and history; the edited chapter is untouched',
+  (select (published_html = '<h2>Add a rental</h2>')::text || '/' || (published_version = draft_version)::text || '/'
+          || (select count(*) from guide_section_versions v where v.section_id = s.id)
+     from guide_sections s where portal = 'va' and slug = 'add-a-rental-by-hand') || '/'
+  || (select published_md from guide_sections where portal = 'va' and slug = 'sales'), 'true/true/2/edited by an Admin');
+select test.eq('guides: the guide version goes up by one, so its stored PDF shows as older than the web guide',
+  (select version from guides where portal = 'va') - (select version from g48), 1);

@@ -10,7 +10,8 @@ import { DetailsForm } from '@/features/portal/DetailsForm';
 import { SignForm } from '@/features/portal/SignForm';
 import { PrepareAgreement } from '@/features/portal/PrepareAgreement';
 import { myBooking } from '@/server/portal/data';
-import { agreementFacts, blocksFor, unsignedFacts } from '@/server/portal/agreement';
+import { agreementFacts, blocksFor, openAgreement, unsignedFacts } from '@/server/portal/agreement';
+import { viewAs } from '@/server/view-as';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/account/bookings', noindex: true, description: 'Read and sign the rental agreement for your booking.' });
@@ -20,8 +21,12 @@ export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/
 export default async function SignPage({ params }: { params: Promise<{ number: string }> }) {
   const { user, b } = await myBooking((await params).number, 'sign');
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
-  if (b.status !== 'pending_payment') redirect(bookingPath(b.booking_number));
-  if (b.agreement?.renter_signed_at) redirect(bookingPath(b.booking_number, 'pay'));
+  // a rental staff added by hand (0046) is confirmed already: the renter signs it with no payment step after
+  const added = !!(b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
+  if (b.status !== 'pending_payment' && !added) redirect(bookingPath(b.booking_number));
+  if (b.agreement?.renter_signed_at) redirect(added ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
+  // its agreement is made the first time the renter opens this page (there was no offer to approve)
+  if (added && !b.agreement && !(await viewAs())) { await openAgreement(b.id, user.id); redirect(bookingPath(b.booking_number, 'sign')); }
   const facts = await agreementFacts(b.id, user.id);
   const r = facts.renter;
   const me = facts.drivers.find((d) => d.role === 'renter');
@@ -32,13 +37,13 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
       <header className="stack">
-        <p className="pt-kicker">Step 2 of 3 · Sign</p>
+        <p className="pt-kicker">{added ? 'Your rental agreement' : 'Step 2 of 3 · Sign'}</p>
         <h1 className="d2">Sign your rental agreement</h1>
       </header>
       <div className="pt-strip" data-testid="sign-summary" role="group" aria-label="Summary">
         <div><span>Car</span>{carName(b)}</div>
         <div><span>Dates</span>{when(b.pickup_at)} to {when(b.return_at)}</div>
-        <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>
+        {!added && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         <div><span>Deposit at pickup</span>{money(b.deposit_cents)}</div>
         <div><span>Deductible</span>{money(b.deductible_cents)}</div>
         <div><span>Cancellation</span>{b.booking_type === 'non_refundable' ? 'Non-refundable' : 'Standard tiers'}</div>
@@ -59,8 +64,8 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
             <section className="pt-card" aria-labelledby="pt-sign">
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} button="Sign and continue to payment" />
-              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars when you pay. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} button={added ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>
         </div>
