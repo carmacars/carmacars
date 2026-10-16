@@ -90,7 +90,7 @@ jobs:
       - name: Guide upkeep (replace changed screenshots in the live guides, flag their sections for review)
         if: ${{ inputs.upkeep }}
         run: |
-          python3 -c 'import PIL' 2>/dev/null || pip install -q pillow
+          python3 -c 'import PIL' 2>/dev/null || sudo apt-get install -y -q python3-pil > /dev/null
           L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
             --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
           if [ -z "$L" ]; then echo "::error title=guide upkeep::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
