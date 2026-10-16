@@ -397,6 +397,12 @@ select test.eq('staff agreements: Admin sees each one, how it was signed',
 select test.eq('reads: what was sent to an investor, and the paper signatures of a staff member',
   jsonb_array_length(test.gm_read('gm_admin', 'sign_requests', jsonb_build_object('investor', test.id('inv:gm_ivan')))) || '/' ||
   jsonb_array_length(test.gm_read('gm_admin', 'paper_signatures', jsonb_build_object('staff', test.id('gm_fin')))), '1/1');
+select test.eq('files: Finance opens a proof of payment, not a paper scan; customer service a rental scan, not a proof',
+  (test.gm_read('gm_fin', 'staff_document', jsonb_build_object('document', (select proof_document_id from manual_payments where proof_document_id is not null limit 1))) is not null)
+  || '/' || (test.gm_read('gm_fin', 'staff_document', jsonb_build_object('document', (select document_id from paper_signatures where doc_type = 'rental_agreement' limit 1))) is null)
+  || '/' || (test.gm_read('gm_cs', 'staff_document', jsonb_build_object('document', (select document_id from paper_signatures where doc_type = 'rental_agreement' limit 1))) is not null)
+  || '/' || (test.gm_read('gm_cs', 'staff_document', jsonb_build_object('document', (select proof_document_id from manual_payments where proof_document_id is not null limit 1))) is null),
+  'true/true/true/true');
 select test.throws('staff agreements: Admins only', $$select test.gm_read('gm_fin', 'staff_agreements')$$, 'Admin');
 
 -- ================================================================ 5. Admin > Owners and privileges

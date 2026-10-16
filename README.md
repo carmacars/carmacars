@@ -112,7 +112,7 @@ cd emails && node check.mjs
 | `25_operations_gaps.sql` | The operations gaps of 0040 and 0041: change proposals, amendments, cleaning blocks, similarity, account links, driver links, Forms C and D, emails | 122 |
 | `26_tolls_plates_forms.sql` | 0042: one turnaround, notice reads and lines, confirm and import, exceptions, profiles, the vision budget, plate decisions and the publish check, official form mapping and the owner's signed copy | 87 |
 | `27_email_cap.sql` | 0043: Auth emails counted, the classes, the 80% warning, the provider's 429, failures told, the day's use on Admin > Today | 23 |
-| `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 129 |
+| `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 130 |
 
 ## Rules for changes
 

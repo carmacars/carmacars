@@ -1,6 +1,6 @@
 # User guides in every portal, payments recorded by hand, signatures on paper, signing in every portal, fewer Actions minutes, October 15, 2026
 
-Migration `supabase/migrations/0044_guides_manual_records.sql`, tests `supabase/tests/28_guides_manual_records.sql` (129
+Migration `supabase/migrations/0044_guides_manual_records.sql`, tests `supabase/tests/28_guides_manual_records.sql` (130
 assertions), end to end `web/tests/e2e/guides-manual.spec.ts`, unit tests `web/src/features/guides/markdown.test.ts`,
 emails `emails/src/emails/owner_payment_recorded.mjs` and `owner_payment_reversed.mjs`. No earlier migration was edited;
 the functions it changes are wrapped (`door`, `owner_invoice_view`, `notification_payload`, `my_roles`) or replaced with
@@ -97,6 +97,9 @@ the person's document). Admins record every type; customer service also records 
 
 A void (Admins, a reason) undoes what that record changed (`paper_signatures.effect`).
 
+Files from these screens: Admins open any proof or scan at `/admin/documents/<id>`; at `/va/documents/<id>` Finance opens
+a proof of payment and customer service a rental document's paper scan (the `staff_document` read), nothing else.
+
 ## 5. Signing in the portals
 
 - **Forms A and B** (owners): `/owner/documents/screen/a` and `/b`, filled from the owner's records (`app.owner_form_ab_facts`)
@@ -122,7 +125,7 @@ the Next.js build cache are cached. `verify.yml` is slim by default (`full` adds
 
 ## 7. Tests
 
-- `supabase/tests/28_guides_manual_records.sql`: 129 assertions.
+- `supabase/tests/28_guides_manual_records.sql`: 130 assertions.
 - Changed assertions in earlier suites:
   - `07_notifications.sql`: the catalogue count `142/3` becomes `144/4` (the two new emails and the in-portal notice
     `person_document_to_sign`); the completeness block gets a manual payment and the two new emails.

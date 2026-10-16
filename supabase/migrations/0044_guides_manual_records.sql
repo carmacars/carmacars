@@ -2005,6 +2005,15 @@ begin
     return app.paper_signatures_json(nullif(p ->> 'owner', '')::uuid, nullif(p ->> 'booking', '')::uuid, nullif(p ->> 'investor', '')::uuid, nullif(p ->> 'staff', '')::uuid);
   when 'owner_checklists' then return app.owner_checklists(p_user, nullif(p ->> 'owner', '')::uuid);
   when 'owner_invoices_open' then return app.owner_invoices_open(p_user, p ->> 'q');
+  -- a file staff open from these screens: a proof of payment (Finance), a rental document's paper scan (customer service)
+  when 'staff_document' then
+    return (select jsonb_build_object('bucket', d.storage_bucket, 'path', d.storage_path, 'mime_type', d.mime_type)
+              from documents d
+             where d.id = nullif(p ->> 'document', '')::uuid and d.storage_path is not null and d.purged_at is null
+               and (app.user_is_admin(p_user)
+                    or (app.user_runs_finance(p_user) and exists (select 1 from manual_payments m where m.proof_document_id = d.id))
+                    or (app.user_va_has(p_user, 'cs') and exists (select 1 from paper_signatures ps where ps.document_id = d.id
+                                                                     and ps.doc_type in ('rental_agreement', 'rental_amendment')))));
   when 'staff_agreements' then return app.staff_agreements(p_user);
   when 'owner_signables' then
     if not (app.user_is_admin(p_user) or app.user_va_has(p_user, 'finance', 'cs')) then raise exception 'Not permitted' using errcode = '42501'; end if;
@@ -2033,10 +2042,11 @@ begin
      and p_name in ('guides_admin', 'guide_admin', 'guide_section_version', 'guide_readers', 'guide_section_save', 'guide_section_move', 'guide_section_delete',
                     'guide_publish', 'guide_pdf_record', 'guide_image_record', 'manual_payment_record', 'manual_payment_void', 'manual_payments',
                     'manual_payments_month', 'paper_signature_record', 'paper_signature_void', 'paper_signatures', 'owner_checklists', 'owner_signables',
-                    'sign_request_create', 'sign_request_void', 'sign_requests', 'owner_invoices_open', 'staff_agreements') then
+                    'sign_request_create', 'sign_request_void', 'sign_requests', 'owner_invoices_open', 'staff_agreements', 'staff_document') then
     perform app.door_begin(p_user, p_aal);
     if p_call = 'ops_read' and p_name not in ('guides_admin', 'guide_admin', 'guide_section_version', 'guide_readers', 'manual_payments', 'manual_payments_month',
-                                              'paper_signatures', 'owner_checklists', 'owner_signables', 'sign_requests', 'owner_invoices_open', 'staff_agreements') then
+                                              'paper_signatures', 'owner_checklists', 'owner_signables', 'sign_requests', 'owner_invoices_open', 'staff_agreements',
+                                              'staff_document') then
       raise exception 'Unknown read %', p_name using errcode = '22023';
     end if;
     return app.ops44(p_user, p_call, p_name, coalesce(p, '{}'::jsonb) - '_va');
