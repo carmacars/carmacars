@@ -66,7 +66,8 @@ export function ListingReview({ l, plates }: { l: L; plates?: Plates | null }) {
             : <><span className="small">No plate can be read on any of these {toCheck.length} photos?</span>
               <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="plates-none-visible-yes" onClick={() => { setSure(false); noneVisible(); }}>Yes, none visible</button>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></>}</p>}
-          <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
+          {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
+          <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path && p.processed_path !== p.original_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
               {/* eslint-disable-next-line @next/next/no-img-element -- photos come pre-sized from the pipeline */}
               {path ? <img src={path} alt={p.alt_text ?? p.shot_label ?? p.shot_type} loading="lazy" width={300} height={200} /> : <span className="muted">no file</span>}

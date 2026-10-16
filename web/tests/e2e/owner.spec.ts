@@ -299,7 +299,8 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   const admin2 = await adminPage(browser, viewport, adminEmail);
   await admin2.goto(`/admin/owners/${owner!.id}`, { waitUntil: 'networkidle' });
   await admin2.getByTestId(`tracker-invoice-${String(vehicles[0]!.id).slice(0, 8)}`).click();
-  await expect(admin2.getByTestId('admin-tracker').first()).toContainText('Install invoice', { timeout: 15_000 });
+  // the three vehicles share one creation instant, so the page's order among them is not fixed: find the one invoiced
+  await expect(admin2.getByTestId('admin-tracker').filter({ hasText: /Install invoice/ })).toHaveCount(1, { timeout: 15_000 });
   await check(admin2, 'admin tracker');
   await admin2.context().close();
   await page.goto('/owner/invoices', { waitUntil: 'networkidle' });
