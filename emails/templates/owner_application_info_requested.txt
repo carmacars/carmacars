@@ -1,0 +1,40 @@
+CarmaCars  |  Owner application {{application_number}}
+
+========================================
+
+[One more step]
+We need a little more, {{first_name}}
+
+Before we can approve your application for the {{vehicle_name}}, please send us the items below.
+
+What we need
+------------------------
+
+{{#each requested_items}}
+- {{item}}
+
+{{/each}}
+
+{{#if has_message}}
+A note from our team
+{{request_message}}
+{{/if}}
+
+Answer in my owner portal:
+https://carmacars.ca/owner
+
+Upload documents from your owner portal, or reply to this email with them attached. We review your answer within 1 business day.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 148,
+  "count": 150,
   "emails": [
     {
       "code": "account_password_reset",
@@ -6724,6 +6724,87 @@
       "template_text": "templates/owner_agreement_signed.txt"
     },
     {
+      "code": "owner_application_approved",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin approves an owner application (Admin > Owners and partners > Applications > Approve): the owner is active, each car has its terms from the standard grid, the agreements open for one signature in the owner portal, and the first and last month's invoices are issued by the existing rules (their own emails go too).",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Approved: your {{vehicle_name}} can join CarmaCars",
+      "preheader": "Sign your documents and pay the first invoice in your owner portal.",
+      "sample_subject": "Approved: your 2023 Toyota RAV4 XLE can join CarmaCars",
+      "variables": [
+        {
+          "name": "application_number",
+          "type": "string",
+          "sample": "OA-1001"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_count",
+          "type": "string",
+          "sample": 1
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_application_approved.html",
+      "template_text": "templates/owner_application_approved.txt"
+    },
+    {
       "code": "owner_application_declined",
       "audience": "owner",
       "category": "transactional",
@@ -6808,6 +6889,107 @@
       ],
       "template_html": "templates/owner_application_declined.html",
       "template_text": "templates/owner_application_declined.txt"
+    },
+    {
+      "code": "owner_application_info_requested",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin presses \"Ask for something\" on an owner application (Admin > Owners and partners > Applications) and chooses what is needed. The owner also sees it as a task in the owner portal until they answer. One email per request.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "We need a little more for application {{application_number}}",
+      "preheader": "A few items for your {{vehicle_name}}, then we can send your terms.",
+      "sample_subject": "We need a little more for application OA-1001",
+      "variables": [
+        {
+          "name": "application_number",
+          "type": "string",
+          "sample": "OA-1001"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_message",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "request_message",
+          "type": "string",
+          "sample": "The ownership permit you sent is cut off at the bottom. A full photo is fine."
+        },
+        {
+          "name": "requested_items",
+          "type": "list",
+          "sample": [
+            {
+              "item": "The vehicle's ownership permit"
+            },
+            {
+              "item": "Your current insurance pink slip"
+            }
+          ],
+          "fields": [
+            "item"
+          ]
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_application_info_requested.html",
+      "template_text": "templates/owner_application_info_requested.txt"
     },
     {
       "code": "owner_application_received",

@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>148 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>57</span></a><a href="#owner">Owner <span>36</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>150 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>57</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>3</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (57)</h2>
 <div class="grid">
@@ -369,7 +369,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (36)</h2>
+<h2 id="owner">Owner (38)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Your CarmaCars owner account is ready</div>
@@ -389,11 +389,23 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">Vehicle onboarding status changes to documents_signed (every owner document for the vehicle is signed by the owner and countersigned by CarmaCars, and witnessed forms are uploaded).</div>
 <div class="ln"><a href="../dist/owner_agreement_signed.html">HTML</a><a href="../dist/owner_agreement_signed.txt">Text</a><a href="../shots/owner_agreement_signed.desktop.png">Desktop</a><a href="../shots/owner_agreement_signed.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_application_approved.html"><img loading="lazy" src="../shots/owner_application_approved.desktop.png" alt="Screenshot of owner_application_approved"></a><div class="b">
+<div class="code">owner_application_approved</div><div class="sub">Approved: your 2023 Toyota RAV4 XLE can join CarmaCars</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin approves an owner application (Admin &gt; Owners and partners &gt; Applications &gt; Approve): the owner is active, each car has its terms from the standard grid, the agreements open for one signature in the owner portal, and the first and last month's invoices are issued by the existing rules (their own emails go too).</div>
+<div class="ln"><a href="../dist/owner_application_approved.html">HTML</a><a href="../dist/owner_application_approved.txt">Text</a><a href="../shots/owner_application_approved.desktop.png">Desktop</a><a href="../shots/owner_application_approved.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_application_declined.html"><img loading="lazy" src="../shots/owner_application_declined.desktop.png" alt="Screenshot of owner_application_declined"></a><div class="b">
 <div class="code">owner_application_declined</div><div class="sub">We cannot enrol your 2019 Nissan Rogue SV</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Vehicle onboarding status changes to declined at any step before enrolled. Staff choose the reason.</div>
 <div class="ln"><a href="../dist/owner_application_declined.html">HTML</a><a href="../dist/owner_application_declined.txt">Text</a><a href="../shots/owner_application_declined.desktop.png">Desktop</a><a href="../shots/owner_application_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_application_info_requested.html"><img loading="lazy" src="../shots/owner_application_info_requested.desktop.png" alt="Screenshot of owner_application_info_requested"></a><div class="b">
+<div class="code">owner_application_info_requested</div><div class="sub">We need a little more for application OA-1001</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin presses &quot;Ask for something&quot; on an owner application (Admin &gt; Owners and partners &gt; Applications) and chooses what is needed. The owner also sees it as a task in the owner portal until they answer. One email per request.</div>
+<div class="ln"><a href="../dist/owner_application_info_requested.html">HTML</a><a href="../dist/owner_application_info_requested.txt">Text</a><a href="../shots/owner_application_info_requested.desktop.png">Desktop</a><a href="../shots/owner_application_info_requested.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_application_received.html"><img loading="lazy" src="../shots/owner_application_received.desktop.png" alt="Screenshot of owner_application_received"></a><div class="b">
 <div class="code">owner_application_received</div><div class="sub">We have your application for the 2023 Toyota RAV4 XLE</div>

@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '148/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '150/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -664,6 +664,12 @@ insert into test.nt_synth values
   ('owner_debit_returned', 'owner_debit_attempt', test.id('nt_ret'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
   ('staff_owner_debit_exception', 'owner_debit_attempt', test.id('nt_ret'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'exception', 'returned', 'reason', 'the account is closed')),
   ('owner_cosigner_sign', 'owner_cosigner', test.id('nt_cos'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'signer_email', 'nt_cosigner@example.test'));
+-- the owner applications inbox (0054): asked for something, approved (a decline is 0023's email per car)
+insert into owner_applications (id, owner_id, source, vehicle_count, requested_items, request_message, decline_reason)
+values (test.id('nt_oa'), test.id('owner:nt_olga'), 'web', 1, array['ownership', 'other'], 'A full photo of the permit, please.', 'Too old for the fleet policy.');
+insert into test.nt_synth select c, 'owner_application', a.id, jsonb_build_object('owner_id', a.owner_id)
+  from (select id, owner_id from owner_applications where id = test.id('nt_oa')) a,
+       unnest(array['owner_application_info_requested', 'owner_application_approved']) c;
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');

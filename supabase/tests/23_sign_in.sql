@@ -135,7 +135,8 @@ select test.eq('verify accounts: the Admin and one assistant per function',
 select test.throws('verify accounts: an Admin role on any other verification address is refused',
   format($$select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', %L, 'email', 'verify-va-sales@carmacars.ca', 'role', 'admin')))$$, test.id('si_v_sales')), 'Only verify-admin');
 reset role;
-insert into user_roles (user_id, role) values (test.id('si_v_fin'), 'admin');
+select test.throws('verify accounts (0054): the Admin role is refused for that address in the first place',
+  format($$insert into user_roles (user_id, role) values (%L, 'admin')$$, test.id('si_v_fin')), 'Admin access is only for');
 set role service_role;
 select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', test.id('si_v_fin'), 'email', 'verify-va-finance@carmacars.ca', 'role', 'va_finance')));
 select test.eq('verify accounts: an Admin role on an assistant is taken away again', public.my_roles(test.id('si_v_fin')) ->> 'admin', 'false');

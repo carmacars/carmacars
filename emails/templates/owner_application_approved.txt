@@ -1,0 +1,41 @@
+CarmaCars  |  Owner application {{application_number}}
+
+========================================
+
+[Application approved]
+Welcome to CarmaCars, {{first_name}}
+
+We approved application {{application_number}} for your {{vehicle_name}}.
+
+What happens next
+------------------------
+
+1. Sign your documents
+   Your agreements are filled in from your application. Check the key values and sign them all with one signature in your owner portal.
+2. Pay the first invoice
+   The first and last month's Insurance Fee. You can pay by card or pre-authorized debit from the invoice page.
+3. We book the registry visit
+   We email you the date and what to bring.
+
+{{#if invoice_count}}
+Your first invoice is in your owner portal, and we sent it to you in a separate email.
+{{/if}}
+
+Open my owner portal:
+https://carmacars.ca/owner
+
+Questions about your terms? Reply to this email before you sign.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

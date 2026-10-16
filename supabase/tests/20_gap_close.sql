@@ -399,7 +399,8 @@ create temp table gc_va as select public.server_verify_accounts(jsonb_build_arra
   jsonb_build_object('user_id', test.id('gc_v_inv'), 'email', 'verify-investor@carmacars.ca', 'role', 'investor'),
   jsonb_build_object('user_id', test.id('gc_v_cs'), 'email', 'verify-va-cs@carmacars.ca', 'role', 'va_cs'),
   jsonb_build_object('user_id', test.id('gc_v_field'), 'email', 'verify-field@carmacars.ca', 'role', 'field'))) r;
-insert into user_roles (user_id, role) values (test.id('gc_v_cs'), 'admin');
+select test.throws('verify accounts (0054): the Admin role is refused for that address in the first place',
+  format($$insert into user_roles (user_id, role) values (%L, 'admin')$$, test.id('gc_v_cs')), 'Admin access is only for');
 select public.server_verify_accounts(jsonb_build_array(jsonb_build_object('user_id', test.id('gc_v_cs'), 'email', 'verify-va-cs@carmacars.ca', 'role', 'va_cs'),
   jsonb_build_object('user_id', test.id('gc_v_field'), 'email', 'verify-field@carmacars.ca', 'role', 'field')));
 select test.eq('verify accounts: each portal''s role, made again without doubling, and an Admin role taken away',
