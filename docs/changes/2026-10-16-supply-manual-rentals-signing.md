@@ -2,7 +2,7 @@
 
 Migrations `0046_supply_manual_rentals.sql`, `0047_official_forms_drafts.sql`, `0048_guide_supply_sections.sql` and
 `0049_simple_signing_guide_upkeep.sql`; tests `supabase/tests/30_supply_manual_rentals.sql` (104 assertions) and
-`31_signing_upkeep.sql` (52); end to end `web/tests/e2e/supply-rentals.spec.ts`, with the signing changes in
+`31_signing_upkeep.sql` (55); end to end `web/tests/e2e/supply-rentals.spec.ts`, with the signing changes in
 `owner.spec.ts`, `portal.spec.ts` and `guides-manual.spec.ts`; unit tests `src/features/person-agreements/model.test.ts`.
 No migration that is applied on the live database was edited (0046 to 0049 were not applied before this deploy).
 
@@ -46,7 +46,9 @@ person. "Do not email the renter" stops the confirmation (refused with a payment
 is recorded as completed for history and statements. Everything is in the audit log.
 
 An assistant's car list shows only bookable cars with rates on file (0046, changed in this work): an assistant cannot
-price a car without rates.
+price a car without rates. Sales opens the bookings its inbox lists (0049): one waiting for payment (an approved offer, or
+a rental added with a payment link) and a rental Sales added itself, without the money, as before for requests and offers
+(the role crawl found the 404).
 
 ## 3. Retire and delete
 
@@ -153,7 +155,7 @@ fast gates only; the guide upkeep is part of the manual `guides` run (about 20 m
 
 ## 9. Tests
 
-- `30_supply_manual_rentals.sql` (104) and `31_signing_upkeep.sql` (52): agreements generated from the records (facts,
+- `30_supply_manual_rentals.sql` (104) and `31_signing_upkeep.sql` (55): agreements generated from the records (facts,
   numbering, template version, summary), signing packages (refused before signing, for someone else, with another method;
   recorded with each document's own record and consent; the signature evidence unchanged), the owner's checklist, partner
   insurance reminders (once per expiry, closed by a new expiry), guide upkeep (replacement in drafts, published text and

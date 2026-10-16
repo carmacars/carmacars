@@ -881,6 +881,29 @@ When CarmaCars sends your agreement, it is under Documents to sign.
   '<p class="gd-p">Investments shows each of your investments: what you put in, what it earns, and when it pays.</p><section class="gd-task" id="your-investments-read-an-investment" data-gd-task><h2 class="gd-h2">Read an investment</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The menu: <b class="gd-ui">Investments</b>, <b class="gd-ui">Statements</b> and <b class="gd-ui">Profile and notices</b>. <b class="gd-ui">Sign out</b> is on the right.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Your agreement number and name.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Invested Amount, Principal, what was reinvested and redeemed to date, and the Yearly Percentage.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Investment Date, Lockup End Date, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Latest statement, with <b class="gd-ui">Open</b>.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/795"><img src="/guides/img/investor-01-investments-phone-d7251016.jpg" alt="" loading="lazy" decoding="async" width="390" height="795"><span class="gd-pin" style="left:97%;top:14.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:76.9%;top:28.3%" aria-hidden="true">2</span><span class="gd-pin" style="left:92.3%;top:37.1%" aria-hidden="true">3</span><span class="gd-pin" style="left:92.3%;top:71.7%" aria-hidden="true">4</span><span class="gd-pin" style="left:92.3%;top:96.2%" aria-hidden="true">5</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>This area shows your records under your Investment Agreement. It is not an offer or a solicitation.</div></aside></section><section class="gd-task" id="your-investments-sign-your-investment-agreement" data-gd-task><h2 class="gd-h2">Sign your investment agreement</h2><p class="gd-p">When CarmaCars sends your agreement, it is under Documents to sign.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press <b class="gd-ui">Documents to sign</b> in the menu. The top shows what is signed (&quot;0 of 1 signed&quot;).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the key values: your name and address, the Invested Amount, the Yearly Percentage and the dates. The agreement is filled in from your record.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Read the PDF</b> and read it, with its schedules.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Say whether you got independent legal advice, and tick the risk acknowledgment (Schedule C). Your initials are filled in.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Sign</b>. Your full legal name is your signature (or press <b class="gd-ui">Draw instead</b>). The signed copy is on the same page.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Signed on paper instead? Once we record it, it shows under Signed with the scan.</div></aside></section>');
 -- GUIDES 0049 END
 
+-- Sales opens what its own inbox lists (0046 lets Sales add rentals by hand): a booking waiting for payment (an approved
+-- offer, or a rental added with a payment link), and a rental Sales added itself. The view is 0031's for Sales: no money.
+alter function app.va_booking(uuid, text, jsonb) rename to va_booking_0031;
+create or replace function app.va_booking(p_user uuid, p_fn text, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  b bookings;
+  v jsonb;
+begin
+  if p_fn = 'sales' then
+    select * into b from bookings x where x.booking_number = p ->> 'number' or x.id::text = coalesce(p ->> 'id', p ->> 'booking');
+    if b.id is not null and b.status not in ('requested', 'offered')
+       and (b.status = 'pending_payment' or (b.added_by_staff and b.created_by = p_user)) then
+      v := app.va_booking_0031(p_user, 'cs', p);
+      if v is null then return null; end if;
+      return v - 'payments' - 'refunds' - 'statements' - 'emails'
+             || jsonb_build_object('deposit', case when v -> 'deposit' is null or v -> 'deposit' = 'null'::jsonb then null
+                                                   else jsonb_build_object('status', v -> 'deposit' ->> 'status') end, 'va_function', 'sales');
+    end if;
+  end if;
+  return app.va_booking_0031(p_user, p_fn, p);
+end $$;
+
 -- ================================================================ 6. the doors
 create or replace function app.ops49(p_user uuid, p_call text, p_name text, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
@@ -948,7 +971,7 @@ begin
      where (n.nspname = 'app' and p.proname = any (array[
               'notify_daily_checks', 'partner_insurance_check', 'partners_insurance_resolve', 'signing_package_record', 'signing_packages_for', 'my_signing_checklist',
               'investor_agreement_prepare', 'staff_agreement_prepare', 'sign_request_create', 'guide_upkeep_apply', 'guide_suggestion_record',
-              'guide_review_resolve', 'guide_admin', 'guides_admin', 'ops49', 'door', 'ai_vision_gate', 'ai_call_record']))
+              'guide_review_resolve', 'guide_admin', 'guides_admin', 'ops49', 'door', 'ai_vision_gate', 'ai_call_record', 'va_booking', 'guide_update_published_section']))
         or (n.nspname = 'public' and p.proname = any (array['server_signing_package_record', 'server_my_signing_checklist', 'server_guide_upkeep_apply', 'server_guide_images_replaced']))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
@@ -966,7 +989,7 @@ begin
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              join (values ('notify_daily_checks_0023', 'notify_daily_checks'), ('sign_request_create_0044', 'sign_request_create'),
-                          ('ai_vision_gate_0042', 'ai_vision_gate'), ('ai_call_record_0042', 'ai_call_record'),
+                          ('ai_vision_gate_0042', 'ai_vision_gate'), ('ai_call_record_0042', 'ai_call_record'), ('va_booking_0031', 'va_booking'),
                           ('guide_admin_0044', 'guide_admin'), ('guides_admin_0044', 'guides_admin'), ('door_0046', 'door')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop

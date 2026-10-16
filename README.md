@@ -10,7 +10,7 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
 | `supabase/migrations/` | 49 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 31 test files (3,384 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/tests/` | 31 test files (3,387 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -121,7 +121,7 @@ cd emails && node check.mjs
 | `28_guides_manual_records.sql` | 0044: guides (access, drafts, history, publish, hide, banner, readers, PDFs, images), manual payments (partial, replay, Finance limit, debit stopped, receipt, void, renter charges, reconciliation), paper signatures for every document type and their effects, documents sent to sign, Forms A and B with the countersign, the owner checklist, staff agreements, privileges and row-level security | 130 |
 | `29_one_confirmation_email.sql` | 0045: no account email when a role is granted, the welcome once after the confirmation (owner over renter, none for staff or investors), no catalogue email asks to confirm, the live verification's sign-up functions | 25 |
 | `30_supply_manual_rentals.sql` | 0046 to 0048: supply types and partners, Add a car and the duplicate check, terms and splits by supply, rentals added by hand (Admin and assistant limits, clashes, payment modes, past rentals, agreements, emails), retire, restore, delete and sample cars, toll matching with placeholders and two rentals, the company statement by supply, the partner agreement, the official forms, the new guide chapters | 104 |
-| `31_signing_upkeep.sql` | 0047 and 0049: agreements generated from the records, signing packages and the signature evidence they keep, the owner's checklist, partner insurance reminders, guide upkeep (replacement, review, suggestion, the updated chapters), the vision model for guide review, the official form sources | 52 |
+| `31_signing_upkeep.sql` | 0047 and 0049: agreements generated from the records, signing packages and the signature evidence they keep, the owner's checklist, partner insurance reminders, guide upkeep (replacement, review, suggestion, the updated chapters), the vision model for guide review, the official form sources, Sales opening what its inbox lists | 55 |
 
 ## Rules for changes
 

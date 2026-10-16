@@ -156,6 +156,17 @@ select test.eq('context: the unit without its word, always ticked, no RIN yet', 
 select test.ok('transforms: the registry''s date style is offered', (app.form_templates(test.id('su_admin')) -> 'transforms') ? 'date:YYYY/MM/DD');
 select test.ok('forms: every draft names what each form is for and what it leaves blank', (select bool_and(notes like '%Left blank on purpose%') from pdf_templates where is_current));
 
+-- ================================================================ 6b. Sales opens what its inbox lists
+select test.mk_user('su_sales', 'va', 'sales');
+select test.mk_renter('su_rex');
+select test.mk_booking('SU-1', 'su_car', 'su_rex', '2027-03-10 10:00', '2027-03-12 10:00', 'pending_payment');
+select test.mk_booking('SU-2', 'su_car', 'su_rex', '2027-04-10 10:00', '2027-04-12 10:00', 'confirmed');
+select test.eq('sales: a booking waiting for payment opens, without the money', (select (v ->> 'status') || '/' || (v ? 'payments') || '/' || (v ->> 'va_function')
+  from app.va_booking(test.id('su_sales'), 'sales', '{"number": "SU-1"}') v), 'pending_payment/false/sales');
+select test.throws('sales: a confirmed booking someone else made stays closed', $$select app.va_booking(test.id('su_sales'), 'sales', '{"number": "SU-2"}')$$, 'requests and offers only');
+update bookings set added_by_staff = true, created_by = test.id('su_sales') where booking_number = 'SU-2';
+select test.eq('sales: a rental Sales added by hand opens', app.va_booking(test.id('su_sales'), 'sales', '{"number": "SU-2"}') ->> 'status', 'confirmed');
+
 -- ================================================================ 7. privileges
 select test.ok('privileges: the new tables are read by their signer or an Admin only (row-level security on)',
   (select bool_and(relrowsecurity) from pg_class where relname in ('signing_packages', 'signing_package_documents')));
