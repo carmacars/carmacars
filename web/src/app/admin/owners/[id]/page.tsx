@@ -11,6 +11,7 @@ import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
 import Link from 'next/link';
+import { Cosigners, type CosignerRow } from '@/features/admin/LegalActions';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';
 import { OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
@@ -33,6 +34,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
     // Forms C and D signed with witnesses (migration 0040)
     adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
+  const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
   const [checklist, paper, manual] = await Promise.all([
     door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
@@ -106,6 +108,8 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
           <section className="pt-card" aria-labelledby="ad-owner"><h2 className="d4" id="ad-owner">Owner</h2>
             <Dl rows={[['Address', [o.address_line1, o.city, o.province, o.postal_code].filter(Boolean).join(', ')], ['Corporation', o.corporation_name ? `${String(o.corporation_name)}, no. ${String(o.corporation_number ?? '')}` : ''], ['HST number', String(o.hst_number ?? '')], ['Licence', o.private?.licence_number ? `${o.private.licence_number} (${o.private.licence_province ?? 'ON'})` : ''], ['Date of birth', o.private?.date_of_birth ?? ''], ['Sign-in', o.user_email ?? 'No account'], ['Agreements', `Enrollment ${d.signing.enrollment ?? 'not prepared'}, title ${d.signing.title_holding ?? 'not prepared'}`], ['Still missing', o.missing.join(', ')]]} />
           </section>
+          <Card title="Owners in the Title Schedule" testId="owner-cosigners-card">
+            <Cosigners ownerId={id} ownerName={o.legal_name} rows={cosigners} locked={d.signing.enrollment === 'signed'} /></Card>
           <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>

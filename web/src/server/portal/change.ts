@@ -44,7 +44,7 @@ interface AmendmentRecord {
   amendment: { id: string; amendment_number: string; status: string; signed_document_id: string | null };
   record: { signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; consent_text: string; document_sha256: string } | null;
   /** CarmaCars' automatic countersignature (0051); none on an amendment signed before it. */
-  countersign?: { signer_name: string; signer_title: string | null; method: string; signed_at: string; consent_text: string } | null;
+  countersign?: { signer_name: string; signer_title: string | null; method: string; signed_at: string; consent_text: string; staff_attribution?: string | null } | null;
 }
 
 /** After the change is applied: the signed copy, with the signature and its record, stored once. */
@@ -69,7 +69,8 @@ export async function attachSignedAmendment(amendmentId: string, requestId: stri
     ['Unsigned document SHA-256', r.record.document_sha256],
     ['Statement agreed', r.record.consent_text],
     [`Renter: ${r.record.signer_name}`, `${when(r.record.signed_at)}; method ${r.record.method}${r.record.ip_address ? `; IP address ${r.record.ip_address}` : ''}${r.record.user_agent ? `; device ${r.record.user_agent}` : ''}`],
-    ...(r.countersign ? [[`CarmaCars: ${r.countersign.signer_name}${r.countersign.signer_title ? `, ${r.countersign.signer_title}` : ''}`, `${when(r.countersign.signed_at)}; method ${r.countersign.method}; ${r.countersign.consent_text}`]] : [])
+    ...(r.countersign ? [[`CarmaCars: ${r.countersign.signer_name}${r.countersign.signer_title ? `, ${r.countersign.signer_title}` : ''}`, `${when(r.countersign.signed_at)}; method ${r.countersign.method}; ${r.countersign.consent_text}`]] : []),
+    ...(r.countersign?.staff_attribution ? [[r.countersign.staff_attribution.split(':')[0]!, r.countersign.staff_attribution.split(':').slice(1).join(':').trim()]] : [])
   ] } });
   const sha = await sha256Hex(pdf);
   const key = `bookings/${f.booking.id}/amendments/${r.amendment.amendment_number}-signed.pdf`;

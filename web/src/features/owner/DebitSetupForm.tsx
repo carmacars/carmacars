@@ -85,7 +85,7 @@ export function DebitSetupForm({ ownerType, terms, replace, holderName = '' }: {
           {field('account', 'Account number', { inputMode: 'numeric', autoComplete: 'off' })}
         </div>
       ) : <p className="small">When you continue, Stripe, our payment processor, asks for your bank and shows this agreement again to confirm. Your bank details go to Stripe, not to us.</p>}
-      <MandateBlock kind={kind} terms={terms} withInvoice={false} id="ds-mandate-h" />
+      <MandateBlock kind={kind} terms={terms} id="ds-mandate-h" />
       <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="debit-setup-agree" /><span>I accept the pre-authorized debit agreement above.</span></label>
       {msg && <p className={`alert ${msg.kind === 'ok' ? 'alert--ok' : 'alert--error'}`} role="alert"><span>{msg.text}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={busy} data-testid="debit-setup-submit">{busy ? 'Sending' : fake ? 'Save the bank account' : 'Continue to my bank details'}</button>

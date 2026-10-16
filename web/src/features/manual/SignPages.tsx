@@ -10,7 +10,7 @@ import { viewAs } from '@/server/view-as';
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
 // note), one signature for all of them, and what is already signed. A single document has its own page too.
 type Open = { id: string; doc_type: string; title: string; document_id: string; sent_at: string; extra?: { summary?: SummaryRow[]; generated?: boolean } };
-type Signed = { id: string; doc_type: string; title: string; document_id: string | null; signed_document_id?: string | null; method: string; signed_on: string };
+type Signed = { id: string; doc_type: string; title: string; document_id: string | null; signed_document_id?: string | null; method: string; signed_on: string; awaiting_countersignature?: boolean };
 type Facts = { id: string; doc_type: string; title: string; status: string; signer_name: string; document_id: string; document_sha256: string; signed_at: string | null; method: string | null;
   signed_document_id: string | null; agreement_number: string | null; extra?: { summary?: SummaryRow[]; generated?: boolean } };
 const SR = { role: 'service_role' as const };
@@ -60,7 +60,7 @@ export async function SignList({ userId, base }: { userId: string; base: string 
       )}
       <section className="stack" aria-labelledby="sg-done"><h2 className="pt-section-title" id="sg-done">Signed</h2>
         {r.signed.length ? <ul className="ow-rows" data-testid="sign-done">{r.signed.map((x) => (
-          <li key={x.id}><span><b>{x.title}</b></span><span className="ow-meta"><span>Signed {x.method === 'paper' ? 'on paper' : 'here'} on {day(x.signed_on)}</span>
+          <li key={x.id}><span><b>{x.title}</b></span><span className="ow-meta"><span>Signed {x.method === 'paper' ? 'on paper' : 'here'} on {day(x.signed_on)}</span>{x.awaiting_countersignature && <span data-testid="awaiting-countersignature">Awaiting countersignature by CarmaCars</span>}
             {(x.signed_document_id ?? x.document_id) && <a className="link" href={`/sign-document/${x.signed_document_id ?? x.document_id}`}>{x.method === 'paper' ? 'Scan' : 'Signed copy'}</a>}</span></li>))}</ul>
           : <p className="pt-empty muted">Nothing signed yet.</p>}
       </section>

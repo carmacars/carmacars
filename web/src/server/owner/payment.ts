@@ -28,7 +28,8 @@ export async function invoiceFacts(invoiceId: string, by: string): Promise<Invoi
 export interface StartedInvoicePayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; method: 'card' | 'acss_debit'; publishableKey: string | null; ownerName: string; ownerEmail: string }
 
 /** One PaymentIntent per invoice, method, amount and attempt (the idempotency key), so a reload reuses it. */
-export async function invoiceIntent(f: InvoiceFacts, method: 'card' | 'acss_debit', ownerType: 'individual' | 'corporation'): Promise<Intent> {
+/** recurring false (the invoice page's second box unticked, 0053): a one-time debit, no mandate kept for the monthly fees. */
+export async function invoiceIntent(f: InvoiceFacts, method: 'card' | 'acss_debit', ownerType: 'individual' | 'corporation', recurring = true): Promise<Intent> {
   const p = await payments();
   const customerId = f.customer_id ?? f.saved.find((s) => s.customer_id)?.customer_id
     ?? (await p.createCustomer({ email: f.owner_email ?? '', name: f.owner_name, ownerId: f.owner_id, idempotencyKey: `owner-customer:${f.owner_id}` })).id;
@@ -36,9 +37,9 @@ export async function invoiceIntent(f: InvoiceFacts, method: 'card' | 'acss_debi
   const terms = (await debitTerms());
   return p.createInvoiceIntent({
     invoiceId: f.id, invoiceNumber: f.invoice_number, ownerId: f.owner_id, amountCents: f.balance_cents, customerId, method,
-    transactionType: ownerType === 'corporation' ? 'business' : 'personal', intervalDescription: terms.interval_description,
+    transactionType: ownerType === 'corporation' ? 'business' : 'personal', intervalDescription: terms.interval_description, recurring,
     description: `CarmaCars invoice ${f.invoice_number}, ${f.vehicle_name}`,
-    idempotencyKey: `owner-invoice:${f.id}:${method}:${f.balance_cents}:${attempt}`
+    idempotencyKey: `owner-invoice:${f.id}:${method}:${f.balance_cents}:${attempt}${method === 'acss_debit' && !recurring ? ':once' : ''}`
   });
 }
 
@@ -115,7 +116,8 @@ export async function settleInvoiceIntent(intentId: string, by: string | null, o
       card: i.card ? { brand: i.card.brand, last4: i.card.last4 } : null,
       bank: i.bank ? { name: i.bank.name, last4: i.bank.last4 } : null,
       failure_message: status === 'failed' ? (i.lastError ?? 'The payment did not go through.') : null,
-      save_method: true
+      // the recurring box (0053): unticked, the debit pays this invoice only and no mandate is kept
+      save_method: i.metadata.recurring !== 'false'
     },
     p_by: by ?? undefined
   }, SR)) as unknown as { ok: boolean; status: string; invoice_status: string };

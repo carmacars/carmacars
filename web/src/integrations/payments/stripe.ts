@@ -110,13 +110,20 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return { id: String(c.id) };
     },
     async createInvoiceIntent(r) {
+      const once = r.method === 'acss_debit' && r.recurring === false;
       const p: Params = {
-        amount: r.amountCents, currency: 'cad', customer: r.customerId, setup_future_usage: 'off_session',
+        amount: r.amountCents, currency: 'cad', customer: r.customerId,
         payment_method_types: [r.method], description: r.description,
-        metadata: { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice' },
+        metadata: { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice', recurring: once ? 'false' : 'true' },
         expand
       };
-      if (r.method === 'acss_debit') {
+      if (!once) p.setup_future_usage = 'off_session';
+      if (r.method === 'acss_debit' && once) {
+        // the one-time debit of this invoice (the legal review, 0053): a sporadic mandate, nothing kept for the monthly fees
+        p['payment_method_options[acss_debit][mandate_options][payment_schedule]'] = 'sporadic';
+        p['payment_method_options[acss_debit][mandate_options][transaction_type]'] = r.transactionType;
+        p['payment_method_options[acss_debit][verification_method]'] = 'automatic';
+      } else if (r.method === 'acss_debit') {
         // the debit agreement: variable amounts on a schedule (the debit and retry days of Program settings), confirmed by the owner in Stripe's form
         p['payment_method_options[acss_debit][mandate_options][payment_schedule]'] = 'interval';
         p['payment_method_options[acss_debit][mandate_options][interval_description]'] = r.intervalDescription ?? 'Monthly, on the debit day of your agreement, for the fees on your CarmaCars invoices';

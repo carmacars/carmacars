@@ -1,4 +1,5 @@
 import 'server-only';
+import { companySignature } from '@/server/signature-lines';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
@@ -74,10 +75,12 @@ export async function attachSignedCopy(bookingId: string, renterUserId: string):
   for (const d of f.drivers.filter((x) => x.role === 'additional')) await add('Additional Driver', d.full_name, rec.records.find((r) => r.signer_role === 'additional_driver' && r.signer_name === d.full_name));
   const cc = rec.records.find((r) => r.signer_role === 'carmacars');
   await add('CarmaCars', cc?.signer_name ?? 'CarmaCars', cc);
+  const company = await companySignature(rec.signature_request_id);
   const lines: string[][] = [
     ['Agreement', `${rec.agreement_number}, text version ${rec.template_version}`],
     ['Unsigned document SHA-256', rec.document_sha256],
-    ...rec.records.map((r) => [`${r.signer_role.replace('_', ' ')}: ${r.signer_name}`, `${when(r.signed_at)}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}`])
+    ...rec.records.map((r) => [`${r.signer_role.replace('_', ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}`]),
+    ...company.lines
   ];
   const pdf = await agreementPdf(blocksFor(f, rows), {
     title: `Signed rental agreement ${rec.agreement_number}`, createdAt: new Date(cc?.signed_at ?? Date.now()), images,

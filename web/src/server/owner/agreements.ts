@@ -1,4 +1,5 @@
 import 'server-only';
+import { companySignature } from '@/server/signature-lines';
 import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
 import { agreementPdf } from '@/features/agreement/pdf';
@@ -27,7 +28,8 @@ export interface PacketDoc { key: PacketKey; title: string; sha: string; blocks:
 export async function openOwnerPacket(ownerId: string, by: string): Promise<{ facts: OwnerAgreementFacts; docs: PacketDoc[] }> {
   const facts = await ownerAgreementFacts(ownerId, by);
   const keys = packetKeys(facts);
-  if (!keys.length) return { facts, docs: [] };
+  // signed by the owner, waiting for the other Owners of the Title Schedule (0053): nothing is opened again
+  if (!keys.length || facts.waiting_for_owners) return { facts, docs: [] };
   const s = await storage();
   const docs: PacketDoc[] = [];
   const open: Array<{ key: PacketKey; template_version: string; sha256: string; storage_path: string }> = [];
@@ -48,6 +50,8 @@ interface SignedResult {
   signed: Array<{ key: PacketKey; agreement_number: string | null; signature_request_id: string;
     records: Array<{ signer_role: string; signer_name: string; signer_title: string | null; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null }> }>;
   vehicles_signed: number; signer_name: string;
+  /** false while another Owner of the Title Schedule has not signed (0053): nothing is countersigned yet. */
+  complete?: boolean; waiting_for?: string[];
 }
 
 /** After signing: each signed copy with the signatures and the signature record, attached once. */
@@ -55,8 +59,9 @@ export async function attachOwnerSignedCopies(ownerId: string, by: string, resul
   const facts = await ownerAgreementFacts(ownerId, by);
   const s = await storage();
   for (const doc of result.signed) {
-    const owner = doc.records.find((r) => r.signer_role !== 'carmacars');
+    const owner = doc.records.find((r) => r.signer_role !== 'carmacars' && r.signer_name === facts.owner.signer_name) ?? doc.records.find((r) => r.signer_role !== 'carmacars');
     const cc = doc.records.find((r) => r.signer_role === 'carmacars');
+    const otherRecords = doc.records.filter((r) => r.signer_role !== 'carmacars' && r !== owner);
     const images = new Map<number, Uint8Array>();
     if (owner?.method === 'drawn' && owner.provider_signature) {
       const png = await s.get('agreements', owner.provider_signature).catch(() => null);
@@ -66,10 +71,13 @@ export async function attachOwnerSignedCopies(ownerId: string, by: string, resul
     const initials = owner?.initials ? Object.values(owner.initials)[0] : undefined;
     // the facts after signing carry the agreement date; the schedules shown are the ones this document covered
     const blocks = documentBlocks(doc.key === 'additional' ? { ...facts, schedules: facts.schedules.map((x) => (x.signature_request_id === doc.signature_request_id ? { ...x, signed_at: null } : x)) } : facts,
-      doc.key, { owner: row(facts.owner.owner_type === 'corporation' ? 'Owner (corporation)' : 'Owner (individual)', owner), carmacars: row('CarmaCars', cc), initials });
+      doc.key, { owner: row(facts.owner.owner_type === 'corporation' ? 'Owner (corporation)' : 'Owner (individual)', owner), carmacars: row('CarmaCars', cc), initials,
+        others: otherRecords.map((r) => row('Owner', r)) });
+    const company = await companySignature(doc.signature_request_id);
     const lines: string[][] = [
       ['Document', `${TITLES[doc.key]} ${doc.agreement_number ?? ''}, text version ${OWNER_TEMPLATE_VERSION}`],
-      ...doc.records.map((r) => [`${r.signer_role.replace(/_/g, ' ')}: ${r.signer_name}`, `${when(r.signed_at)}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}${r.initials ? `; initials ${Object.values(r.initials).join(', ')}` : ''}`])
+      ...doc.records.map((r) => [`${r.signer_role.replace(/_/g, ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}${r.initials ? `; initials ${Object.values(r.initials).join(', ')}` : ''}`]),
+      ...company.lines
     ];
     const pdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: footer(facts, doc.key) });
     const sha = await sha256Hex(pdf);

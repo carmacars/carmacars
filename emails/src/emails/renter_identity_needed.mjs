@@ -23,11 +23,11 @@ export default {
       'A selfie holding the licence next to your face',
     ),
     small('Every driver must be {{min_renter_age}} or older and hold a G2 or G licence that is valid past the return date.'),
-    h('Proof of coverage, one of these'),
+    h('Proof of coverage, or the Protection Plan: one of these'),
     list(
       '**OPCF 27 on your own auto policy.** Send the policy page or a letter from your insurer that shows it.',
       '**Credit card rental coverage.** Send the card\'s benefits certificate. The same card must pay for the rental and be your card on file.',
-      '{{#if coverage_for_sale}}**Coverage bought through CarmaCars.** Choose it on the upload page and we send you the terms first.{{else}}If you have neither, reply to this email before the due date and we will go through your options.{{/if}}',
+      '{{#if coverage_for_sale}}**The CarmaCars Protection Plan.** Choose it on the upload page and we send you the terms first.{{else}}If you have neither, reply to this email before the due date and we will go through your options.{{/if}}',
     ),
     button('Upload my documents', '@booking_verify'),
     small('Still missing: {{missing_items}}. A person on our team reviews what you send. We delete licence images and selfies {{id_retention_days}} days after the rental ends.'),

@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, charged to the saved card, or to be invoiced later. Not sent when staff tick "Do not email the renter", for a past rental, or for a payment link (the offer email carries the link).',
+  trigger: 'CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, to be charged to the saved card when the renter signs, or to be invoiced later. Not sent when staff tick "Do not email the renter", for a past rental, or for a payment link (the offer email carries the link).',
   timing: 'Immediate',
   subject: 'Booked: {{vehicle_name}}, {{pickup_date}}',
   preheader: 'Booking {{booking_number}}. {{payment_line}} Next: sign your rental agreement.',
@@ -24,17 +24,17 @@ export default {
       ['Kilometres included', '{{km_allowance}}, then {{overage_rate}} per km'],
       ['Security deposit', '{{deposit_amount}}, taken at pickup'],
     ),
-    notice('info', 'Sign your rental agreement', 'Please read and sign your rental agreement before pickup. It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.'),
+    notice('info', 'Sign your rental agreement', '{{sign_line}} It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.'),
     button('Sign my rental agreement', '@booking_sign'),
     when('needs_verification', [
-      p('We also need each driver\'s licence photos and a selfie, plus proof of coverage, by {{verify_by}}. You can upload them from your booking.'),
+      p('We also need each driver\'s licence photos and a selfie, plus proof of your coverage option, by {{verify_by}}. You can upload them from your booking.'),
     ]),
     when('has_balance', [
       small('{{balance_line}}'),
     ]),
   ],
   sample: {
-    payment_line: 'Paid by e-Transfer on Fri, Oct 16, 2026.', has_balance: false, balance_line: '',
+    payment_line: 'Your card is charged when you sign.', sign_line: 'Read and sign your rental agreement; your card is charged when you sign.', has_balance: false, balance_line: '',
     needs_verification: true, verify_by: 'Thu, Oct 22 at 10:00 am',
   },
 };

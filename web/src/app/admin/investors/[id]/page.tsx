@@ -7,6 +7,7 @@ import { door } from '@/server/door';
 import { PaperSignatureForm, PaperSignatureList, type PaperRow } from '@/features/manual/ManualRecords';
 import { SendGenerated, SendToSign, SignRequestList, type SignRequestRow } from '@/features/manual/SignRequests';
 import { $, Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
+import { InvestmentCountersign, type CountersignRow } from '@/features/admin/LegalActions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Investor', path: '/admin/investors', noindex: true, description: 'One investor.' });
@@ -17,8 +18,9 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
   const { read, user } = await page(`/admin/investors/${id}`);
   const i = await read<(R & { investments: R[]; returns: R[]; documents: R[]; payouts: R[] }) | null>('investor', { id });
   if (!i) notFound();
-  const [requests, paper] = await Promise.all([door<SignRequestRow[]>(user.id, 'ops_read', 'sign_requests', { investor: id }).catch(() => [] as SignRequestRow[]),
-    door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { investor: id }).catch(() => [] as PaperRow[])]);
+  const [requests, paper, countersign] = await Promise.all([door<SignRequestRow[]>(user.id, 'ops_read', 'sign_requests', { investor: id }).catch(() => [] as SignRequestRow[]),
+    door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { investor: id }).catch(() => [] as PaperRow[]),
+    door<CountersignRow[]>(user.id, 'ops_read', 'investment_countersign_state', { investor_id: id }).catch(() => [] as CountersignRow[])]);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const here = [`/admin/investors/${id}`];
   return (<>
@@ -32,7 +34,8 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
         <Table rows={i.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) }]} /></Card>
       <Card title="Investment agreement" testId="investor-signing">
         <div className="stack">
-          <p className="small">Send the agreement to sign in the investor portal (filled in from this record, or a PDF of your own), or record one signed on paper. Either way it counts as signed; CarmaCars is bound once the funds clear.</p>
+          <p className="small">Send the agreement to sign in the investor portal (filled in from this record, or a PDF of your own), or record one signed on paper. Either way it counts as signed by the investor. It is not countersigned automatically: the signing officer countersigns it here, and CarmaCars is bound once it has countersigned and the funds clear.</p>
+          <InvestmentCountersign investorId={id} rows={countersign} />
           <SignRequestList rows={requests} refresh={here} />
           <PaperSignatureList rows={paper} canVoid refresh={here} />
           <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>

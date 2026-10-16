@@ -24,6 +24,10 @@ export interface OwnerAgreementFacts {
   company: { trade_name: string; address: string | null; email: string | null; phone: string | null; signing_officer_name: string; signing_officer_title: string | null; install_fee_cents: number; hst_bps: number };
   agreements: Array<{ id: string; kind: 'enrollment' | 'title_holding'; agreement_number: string; status: string; agreement_date: string | null; signature_request_id: string | null; document_sha256: string | null }>;
   schedules: OwnerSchedule[];
+  /** The other Owners named in the Title Schedule (0053): each signs with their own link. */
+  cosigners?: Array<{ id: string; name: string; email: string; status: 'pending' | 'signed'; signed_at: string | null }>;
+  /** The portal owner has signed; the documents wait for the other Owners. */
+  waiting_for_owners?: boolean;
 }
 
 export const TITLES: Record<PacketKey, string> = {
@@ -31,7 +35,7 @@ export const TITLES: Record<PacketKey, string> = {
   title_holding: 'Title-Holding and Lease Agreement',
   additional: 'Additional Vehicle Schedule'
 };
-export const OWNER_SIGN_STATEMENT = 'I have read these documents and I sign them electronically, for myself and for every Owner named in them.';
+export const OWNER_SIGN_STATEMENT = 'I have read these documents and I sign them electronically.';
 export const CONFIRMATIONS = [
   { code: 'own_insurance', text: 'I keep my own insurance until CarmaCars confirms in writing (3.3).' },
   { code: 'fees_no_income', text: 'Fees are due every month, rented or not. No income is promised (2.3, 4.3).' },
@@ -97,13 +101,16 @@ function schedule1(s: OwnerSchedule): Block {
   ] };
 }
 
-export interface SignedBy { owner?: SignatureRow; carmacars?: SignatureRow; initials?: string }
+export interface SignedBy { owner?: SignatureRow; carmacars?: SignatureRow; initials?: string; others?: SignatureRow[] }
 
 function signatureRows(f: OwnerAgreementFacts, s?: SignedBy): SignatureRow[] {
   const ownerParty = f.owner.owner_type === 'corporation' ? `Owner (corporation), ${f.owner.signing_officer_title ?? 'signing officer'}` : 'Owner (individual)';
+  // every Owner named in the Title Schedule signs, each with their own link (0053)
+  const others = (f.cosigners ?? []).map((c) => s?.others?.find((o) => o.name === c.name) ?? { party: 'Owner', name: c.name, signature: '', when: '' });
   return [
     s?.owner ?? { party: ownerParty, name: f.owner.signer_name, signature: '', when: '' },
-    s?.carmacars ?? { party: 'CarmaCars', name: f.company.signing_officer_name, signature: 'Applied when the Owner signs', when: '' }
+    ...others,
+    s?.carmacars ?? { party: 'CarmaCars', name: f.company.signing_officer_name, signature: others.length ? 'Applied when the last Owner signs' : 'Applied when the Owner signs', when: '' }
   ];
 }
 

@@ -67,11 +67,15 @@
 
 4.3 CarmaCars charges each Vehicle's Fees on each Billing Date, from its Enrollment Date to its Exit Date, whether or not the Vehicle is rented, in repair or off the road. The Fees for a Vehicle's first and last month are pro-rated by day.
 
-4.4 If a charge fails, CarmaCars adds the Late Fee for each Vehicle affected and retries on the Retry Date. If the retry fails, it deducts the unpaid amount from the Owner's revenue.
+4.4 If an automatic pre-authorized debit of an invoice is returned for insufficient funds, CarmaCars adds the Late Fee to that invoice once and may re-present the debit once, for the original amount, within 30 days. The Late Fee is collected with the Owner's next debit or deducted from the Owner's next payout.
 
-4.5 Any balance left at the next Payout Date is a debt payable on demand. CarmaCars may deduct it from amounts payable for any of the Owner's Vehicles.
+4.5 **Set-off.** CarmaCars may deduct any amount the Owner owes under this Agreement from any payout due to the Owner for any Vehicle.
 
-4.6 CarmaCars may change the Fees on written notice of the Notice Period. The Owner may exit instead. A Revenue Share changes only in writing signed by both parties.
+4.6 **Arrears.** If an invoice remains unpaid 30 days after a failed re-presentment, CarmaCars may, on written notice, remove the Vehicle from the program and transfer its registration back to the Owner at the Owner's cost. Return of the Vehicle is not withheld for unpaid fees.
+
+4.7 Any balance left at the next Payout Date is a debt payable on demand. CarmaCars may deduct it from amounts payable for any of the Owner's Vehicles.
+
+4.8 CarmaCars may change the Fees on written notice of the Notice Period. The Owner may exit instead. A Revenue Share changes only in writing signed by both parties.
 
 ## 5. Tracker and killswitch
 
@@ -193,7 +197,7 @@
 
 16.1 Ontario law governs. Its courts in Toronto have exclusive jurisdiction.
 
-16.2 This Agreement, the Vehicle Schedule and the Title Agreement are the whole agreement about the Program and replace anything earlier, including under an earlier trade name. Changes must be in writing and signed by both parties, except under section 4.6. A change to rental terms is not a change to this Agreement.
+16.2 This Agreement, the Vehicle Schedule and the Title Agreement are the whole agreement about the Program and replace anything earlier, including under an earlier trade name. Changes must be in writing and signed by both parties, except under section 4.8. A change to rental terms is not a change to this Agreement.
 
 16.3 The Owner may not assign this Agreement without CarmaCars' written consent. CarmaCars may assign it to a buyer of its business. Each party keeps the other's Vehicle Schedule numbers confidential.
 
@@ -248,7 +252,7 @@ Vehicle Schedule to the Enrollment Agreement dated [●] between CarmaCars and [
 | Term | Value |
 | --- | --- |
 | Billing Date | 15th of each month |
-| Retry Date | 18th of that month |
+| Retry Date | on or after the 18th, within 30 days of the return |
 | Payout Date | 10th of each month |
 | Late Fee | $50 per Vehicle per failed charge |
 | Install Fee | $100 per Vehicle |

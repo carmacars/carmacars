@@ -127,6 +127,17 @@ test('an owner invoice by pre-authorized debit: acss_debit only, automatic captu
   assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'owner-invoice:i1:acss_debit:101700:0');
 });
 
+test('the invoice page with the recurring box unticked (0053): a one-time debit, a sporadic mandate, nothing saved', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method', capture_method: 'automatic', payment_method: null, latest_charge: null, metadata: { owner_invoice_id: 'i1', purpose: 'owner_invoice', recurring: 'false' } }) }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  await s.createInvoiceIntent({ invoiceId: 'i1', invoiceNumber: 'INV-1001', ownerId: 'o1', amountCents: 101700, customerId: 'cus_1', method: 'acss_debit', transactionType: 'business', recurring: false, description: 'Invoice INV-1001', idempotencyKey: 'owner-invoice:i1:acss_debit:101700:0:once' });
+  const body = decodeURIComponent(String(calls[0]!.init.body));
+  assert.doesNotMatch(body, /setup_future_usage/);
+  assert.match(body, /payment_method_options\[acss_debit\]\[mandate_options\]\[payment_schedule\]=sporadic/);
+  assert.doesNotMatch(body, /interval_description/);
+  assert.match(body, /metadata\[recurring\]=false/);
+});
+
 test('a settled debit reads the bank and the mandate from the charge', () => {
   const i = toIntent(pi({ status: 'succeeded', payment_method: { id: 'pm_a', type: 'acss_debit', acss_debit: { bank_name: 'TD', last4: '6789' } }, latest_charge: { id: 'py_1', payment_method_details: { type: 'acss_debit', acss_debit: { bank_name: 'TD', last4: '6789', mandate: 'mandate_1' } } } }));
   assert.equal(i.methodType, 'acss_debit');

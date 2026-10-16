@@ -236,7 +236,7 @@ I appoint 18122211 Canada Inc., operating as CarmaCars, as my attorney for each 
 - **Registry:** record the Onboarding Method, renew or replace the permit and plates, obtain vehicle records, and transfer the registration back to me or to a person I name in writing;
 - **Insurance:** add the Vehicle to and remove it from CarmaCars' fleet policy, manage claims and repairs, sign releases and endorse insurer payments;
 - **Tolls and tickets:** move a toll, ticket or offence notice to the person responsible; and
-- **Lien:** register and discharge a lien in my favour.
+- **Lien:** register a lien in my favour, and discharge it only once the registration of that Vehicle is back in my name or in the name of a person I named in writing.
 
 My attorney may not sell a Vehicle, borrow against it, transfer it to anyone else, or act for me in any other matter.
 

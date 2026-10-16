@@ -52,6 +52,8 @@ export interface InvoiceIntentRequest {
   transactionType: 'personal' | 'business';
   /** The debit schedule in words, from Program settings (app.owner_debit_terms). */
   intervalDescription?: string;
+  /** acss_debit: false is a one-time debit of this invoice only (a sporadic mandate, nothing kept for later debits). Default true. */
+  recurring?: boolean;
   description: string;
   idempotencyKey: string;
 }

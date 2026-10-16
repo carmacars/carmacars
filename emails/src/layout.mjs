@@ -201,6 +201,9 @@ function helpLine(email) {
   if (email.audience === 'investor') return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}.';
   return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.';
 }
+// The company line of the footer: an owner billing email names the payee of the pre-authorized debit ("<legal name>,
+// operating as CarmaCars", the legal review of October 16, 2026); every other email the business name.
+const companyLine = (email) => (email.audience === 'owner' && /<billing@/.test(email.from) ? '{{payee_name}}' : 'CarmaCars');
 // Public contact and social lines for renters, owners and investors (not on internal staff notices).
 const CONTACT_LINE = 'Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.';
 function reason(email) {
@@ -291,7 +294,7 @@ ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
 ${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}
-<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">CarmaCars{{#if company_address}}<br>{{company_address}}{{/if}}</div>
+<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${companyLine(email)}{{#if company_address}}<br>{{company_address}}{{/if}}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}{{#if instagram_url}} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a>{{/if}}{{#if tiktok_url}} &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>{{/if}}`}</div>
 </td></tr>
 </table>
@@ -315,7 +318,7 @@ export function textTemplate(email) {
     inlineText(helpLine(email)),
     reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time: {{unsubscribe_url}}\nWe act on it within 10 business days.' : ''),
     STAFF(email.audience) ? '' : CONTACT_LINE,
-    `CarmaCars\n{{#if company_address}}{{company_address}}\n{{/if}}${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
+    `${companyLine(email)}\n{{#if company_address}}{{company_address}}\n{{/if}}${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
   ];
   return parts.join('\n\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }

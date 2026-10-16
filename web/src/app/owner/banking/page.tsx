@@ -39,7 +39,7 @@ export default async function OwnerBanking() {
             )}
             {d.mandate && (
               <details className="ow-agreement" id="agreement" data-testid="pad-in-force"><summary className="link">The pre-authorized debit agreement you accepted</summary>
-                <MandateBlock kind={home.owner.owner_type === 'corporation' ? 'business' : 'personal'} terms={d.terms} withInvoice={false} id="ow-inforce-h" />
+                <MandateBlock kind={home.owner.owner_type === 'corporation' ? 'business' : 'personal'} terms={d.terms} id="ow-inforce-h" />
                 <p className="small muted">We emailed you a confirmation of it when your bank account was set up.</p>
               </details>
             )}

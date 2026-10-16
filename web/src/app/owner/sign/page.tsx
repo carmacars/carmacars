@@ -108,6 +108,11 @@ export default async function OwnerSign() {
         {docs.length > 0 && <p className="muted">Everything is filled in from what you already gave us. Check the values below, fix anything that is wrong, then sign once for all of them. It takes about a minute.</p>}
       </header>
       <SignProgress items={items} />
+      {f?.waiting_for_owners && (
+        <section className="ow-status" data-testid="owner-waiting-cosigners"><h2 className="d3">Signed by you</h2>
+          <p>Every Owner named in the Title Schedule signs. The agreements take effect when the last one signs; CarmaCars countersigns then.</p>
+          <ul>{(f.cosigners ?? []).map((c) => <li key={c.id}>{c.name}: {c.status === 'signed' ? 'signed' : 'waiting for their signature (we emailed them their own link)'}</li>)}</ul></section>
+      )}
       {!docs.length ? (
         <div className="pt-empty"><p className="muted">{home.vehicles.some((v) => v.onboarding_status === 'intake') ? 'We are preparing the terms for your vehicles. We email you when your documents are ready.' : 'Your signed documents are in Documents.'}</p>
           <Link prefetch={false} className="btn btn--primary" href="/owner/documents">Documents</Link></div>
@@ -130,7 +135,7 @@ export default async function OwnerSign() {
               {viewing ? <p className="small muted">Read only.</p> : (
                 <OwnerPackage docs={docs} signerName={signer} officials={officials} initials={enrollment}
                   statements={enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : []}
-                  consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment.`}
+                  consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device. ${(f?.cosigners ?? []).some((c) => c.status !== 'signed') ? `Every Owner named in the Title Schedule signs with their own link (${(f?.cosigners ?? []).map((c) => c.name).join(', ')}); CarmaCars countersigns when the last one signs.` : 'CarmaCars countersigns at the same moment.'}`}
                   button={docs.length > 1 ? `Sign all ${docs.length}` : 'Sign'} action={signOwnerPackage.bind(null, spec)} />
               )}
             </section>

@@ -35,7 +35,7 @@ async function myInvoice(number: string, userId: string) {
   return invoiceFacts(id, userId);
 }
 
-export async function startInvoicePayment(number: string, method: 'card' | 'acss_debit'): Promise<R<StartedInvoicePayment>> {
+export async function startInvoicePayment(number: string, method: 'card' | 'acss_debit', recurring = true): Promise<R<StartedInvoicePayment>> {
   try {
     const { user, home } = await owner();
     const f = await myInvoice(number, user.id);
@@ -44,7 +44,7 @@ export async function startInvoicePayment(number: string, method: 'card' | 'acss
     if (f.pending) return fail('A payment for this invoice is already processing. We will email you when it clears.', 'pending');
     if (!f.payable) return fail('This invoice cannot be paid online. Call us and we will help.', 'not_payable');
     if (method !== 'card' && method !== 'acss_debit') return fail('Choose card or pre-authorized debit.');
-    const i = await invoiceIntent(f, method, home.owner.owner_type);
+    const i = await invoiceIntent(f, method, home.owner.owner_type, method === 'card' || recurring !== false);
     const p = await payments();
     return { ok: true, data: { provider: p.name, intentId: i.id, clientSecret: i.clientSecret ?? '', amountCents: i.amountCents, method, publishableKey: publishableKey(), ownerName: home.owner.owner_type === 'corporation' ? home.owner.corporation_name ?? home.owner.legal_name : home.owner.legal_name, ownerEmail: home.owner.email ?? user.email } };
   } catch (e) { return fail(dbMessage(e)); }

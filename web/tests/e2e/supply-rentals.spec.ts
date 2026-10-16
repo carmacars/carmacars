@@ -303,7 +303,12 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await expect(page.locator('.pt__nav')).not.toContainText('Invoices');
   await check(page, 'partner home');
   await page.goto('/owner/partner-agreement', { waitUntil: 'networkidle' });
-  await expect(page.locator('#partner-agreement')).toContainText('Draft for lawyer review');
+  // the approved text (the legal review, 0053): no draft banner, sections 3 to 11
+  await expect(page.locator('#partner-agreement')).not.toContainText('Draft for lawyer review');
+  for (const h of ['3. Bookings and renters', '4. Money', '5. Insurance and condition', '6. Damage and claims', '7. Tolls and tickets',
+    '8. Information and non-circumvention', '9. Liability', '10. Ending the agreement', '11. General']) await expect(page.locator('#partner-agreement')).toContainText(h);
+  await expect(page.locator('#partner-agreement')).toContainText('the Partner will not rent directly to a renter CarmaCars introduced');
+  await expect(page.locator('#partner-agreement')).toContainText('the Protection Plan) are CarmaCars\' own');
   await expect(page.locator('#partner-agreement')).toContainText('25%');
   await check(page, 'partner agreement');
   const form = page.getByTestId('portal-sign-form');

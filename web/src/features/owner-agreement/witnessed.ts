@@ -1,8 +1,10 @@
-// Forms C and D of the Title Agreement, pre-filled from the owner's records (migration 0040). They stay on paper: the
-// forms call for witnesses (one for Form C, two for Form D) who sign in person, and Form D is a power of attorney,
-// which Ontario's Electronic Commerce Act leaves out of electronic signing. The owner prints the PDF (every spot to sign
-// or initial is marked, 0049), signs it with the witnesses and takes a photo of each page with the phone; staff review it.
-import { markdown, type Block } from '@/features/agreement/model';
+// Forms C and D of the Title Agreement, pre-filled from the owner's records (migration 0040). Form D stays on paper: it
+// calls for two witnesses who sign in person, and it is a power of attorney, which Ontario's Electronic Commerce Act
+// leaves out of electronic signing. The owner prints the PDF (every spot to sign or initial is marked, 0049), signs it
+// with the witnesses and takes a photo of each page with the phone; staff review it. Form C may also be signed on screen
+// (the legal review, 0053): the owner signs and initials, and the witness, in person on the same device, types their
+// name and the statement that they witnessed the owner sign in their presence.
+import { markdown, type Block, type SignatureRow } from '@/features/agreement/model';
 import { FORM_C, FORM_D, WITNESSED_FORMS_VERSION } from './forms.generated';
 
 export { WITNESSED_FORMS_VERSION };
@@ -15,6 +17,22 @@ export interface WitnessedFacts {
 }
 
 export const FORM_TITLE = { C: 'Form C: lender or lessor permission acknowledgment', D1: 'Form D: limited power of attorney' } as const;
+export const FORM_C_SCREEN_VERSION = `${WITNESSED_FORMS_VERSION}-screen`;
+export const witnessStatement = (owner: string) => `I witnessed ${owner} sign in my presence.`;
+
+/** Form C signed on screen: the same text, the initials and the two signatures (the owner's and the witness's). */
+export function screenFormCBlocks(f: WitnessedFacts, sig?: { owner?: SignatureRow; witness?: SignatureRow; initials?: string }): Block[] {
+  const blocks = witnessedBlocks({ ...f, code: 'C' })
+    .filter((b) => !(b.t === 'table' && b.head[0] === 'Signer'))
+    .map((b) => b.t === 'table' && b.head[0] === 'I acknowledge' ? { ...b, rows: b.rows.map((r) => [r[0]!, sig?.initials ?? 'Initialled when signed']) } : b);
+  const how = blocks.findIndex((b) => b.t === 'h3' && b.text === 'How to complete this form');
+  const blank = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: '' });
+  return [
+    ...blocks.slice(0, how < 0 ? blocks.length : how),
+    { t: 'signatures', rows: [sig?.owner ?? blank('Owner', f.owner.legal_name), sig?.witness ?? blank('Witness', 'Signs on screen beside the owner')] },
+    { t: 'p', text: `Witness statement: ${witnessStatement(f.owner.legal_name)}` }
+  ];
+}
 
 export function witnessedBlocks(f: WitnessedFacts): Block[] {
   const company = f.company.legal_name || f.company.brand;
@@ -50,7 +68,7 @@ export function witnessedBlocks(f: WitnessedFacts): Block[] {
     ...blocks,
     { t: 'h3', text: 'How to complete this form' },
     { t: 'ul', items: f.code === 'C'
-      ? ['Everything is filled in. Initial each spot marked INITIAL HERE.', 'Sign and date where it says SIGN HERE, in front of one adult witness, who signs and prints their name in the witness spot.', 'On your phone, open Documents in your owner portal and tap Take a photo: one photo of each page.']
+      ? ['Everything is filled in. Initial each spot marked INITIAL HERE.', 'Sign and date where it says SIGN HERE, in front of one adult witness, who signs and prints their name in the witness spot.', 'On your phone, open Documents in your owner portal and tap Take a photo: one photo of each page.', 'Or sign it on screen instead: open Documents and choose Sign on screen, with your witness beside you on the same device.']
       : ['Everything is filled in. Sign and date Part 1 where it says SIGN HERE, in front of two adult witnesses, who sign and print their names in their spots.', 'Leave Part 2 for CarmaCars: we sign it with our witness when we approve your form.', 'On your phone, open Documents in your owner portal and tap Take a photo: one photo of each page.'] }
   ];
 }

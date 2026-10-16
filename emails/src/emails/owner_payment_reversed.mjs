@@ -22,11 +22,12 @@ export default {
       ['Vehicle', '{{vehicle_name}}'],
       ['Now owing', '{{balance}}'],
     ),
+    p('No late fee applies. If this invoice has an automatic debit scheduled, it is debited on {{debit_date}} for {{balance}}; otherwise pay it from the invoice page.'),
     p('Please pay {{balance}} from the invoice page, or send it by e-Transfer with the invoice number in the message. Questions: reply to this email.'),
     button('View invoice', '@owner_invoice'),
   ],
   sample: {
     amount: '$350.00', invoice_number: 'INV-2026-11-0042', payment_method: 'cheque', payment_date: 'Tue, Nov 10, 2026',
-    void_reason: 'The bank returned the cheque (insufficient funds).', balance: '$350.00',
+    void_reason: 'The bank returned the cheque (insufficient funds).', balance: '$350.00', debit_date: 'Sun, Nov 15, 2026',
   },
 };

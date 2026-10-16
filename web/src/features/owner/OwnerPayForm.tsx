@@ -5,14 +5,15 @@ import { money } from '@/lib/format';
 import { fakeConfirmInvoiceCard, fakeConfirmInvoiceDebit, finalizeInvoicePayment, startInvoicePayment } from '@/server/actions/owner';
 import type { StartedInvoicePayment } from '@/server/owner/payment';
 import type { DebitTerms } from './types';
-import { mandateText, payeeRows } from './mandate.ts';
+import { mandateText, oneTimeText, payeeRows } from './mandate.ts';
 
 export { mandateText, payeeRows };
 
 // Paying an owner invoice: by card, or by Canadian pre-authorized debit. Card numbers and bank
 // details go into Stripe's own forms (the Payment Element, and Stripe's bank and mandate form for
-// the debit); locally the fake adapter stands in with Stripe's test numbers. The method used is
-// saved for the monthly fees on the 15th.
+// the debit); locally the fake adapter stands in with Stripe's test numbers. The debit has two boxes
+// (the legal review, 0053): the one-time debit of this invoice (required, with the waiver), and the
+// recurring agreement for the monthly fees (ticked to start with; unticked, no mandate is kept).
 interface Elements { create(type: 'payment', o?: unknown): { mount(el: HTMLElement): void; destroy(): void } }
 interface StripeJs {
   elements(o: { clientSecret: string; appearance?: unknown }): Elements;
@@ -31,11 +32,11 @@ function loadStripe(key: string): Promise<StripeJs> {
   });
 }
 
-export function MandateBlock({ kind, terms, withInvoice, id }: { kind: 'personal' | 'business'; terms: DebitTerms; withInvoice: boolean; id: string }) {
+export function MandateBlock({ kind, terms, id }: { kind: 'personal' | 'business'; terms: DebitTerms; withInvoice?: boolean; id: string }) {
   return (
     <section className="ow-mandate" aria-labelledby={id} tabIndex={0} data-testid="pad-agreement">
       <h3 id={id}>Pre-authorized debit agreement ({kind})</h3>
-      {mandateText(kind, terms, withInvoice).map((t, i) => <p key={i}>{t}</p>)}
+      {mandateText(kind, terms).map((t, i) => <p key={i}>{t}</p>)}
       <dl className="ow-payee" data-testid="pad-payee">{payeeRows(terms).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </section>
   );
@@ -50,18 +51,25 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
   const [card, setCard] = useState({ name: '', number: '', exp: '', cvc: '' });
   const [bank, setBank] = useState({ name: '', institution: '', transit: '', account: '' });
   const [agree, setAgree] = useState(false);
+  const [recurring, setRecurring] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ kind: 'error' | 'wait'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const stripe = useRef<{ js: StripeJs; elements: unknown } | null>(null);
   const mount = useRef<HTMLDivElement>(null);
 
+  const lastMethod = useRef<Method | null>(null);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!method) return;
     let live = true;
-    setP(null); setMsg(null); setErrors({});
-    startInvoicePayment(number, method).then(async (r) => {
+    // a new method starts the form again; the recurring box only asks for a new PaymentIntent (no mandate kept when unticked)
+    if (lastMethod.current !== method) { setP(null); setMsg(null); setErrors({}); }
+    lastMethod.current = method;
+    setLoading(true);
+    startInvoicePayment(number, method, method === 'acss_debit' ? recurring : true).then(async (r) => {
       if (!live) return;
+      setLoading(false);
       if (!r.ok) { setMsg({ kind: 'error', text: r.message }); if (r.code === 'paid' || r.code === 'pending') router.refresh(); return; }
       setP(r.data);
       if (r.data.provider === 'stripe' && r.data.publishableKey) {
@@ -72,9 +80,9 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
           stripe.current = { js, elements };
         } else stripe.current = { js, elements: null };
       }
-    }).catch(() => live && setMsg({ kind: 'error', text: 'The payment form did not load. Reload the page.' }));
+    }).catch(() => { if (live) { setLoading(false); setMsg({ kind: 'error', text: 'The payment form did not load. Reload the page.' }); } });
     return () => { live = false; };
-  }, [number, method, router]);
+  }, [number, method, recurring, router]);
 
   const finish = async (intentId: string) => {
     setMsg({ kind: 'wait', text: method === 'acss_debit' ? 'Debit authorized. Recording it.' : 'Card approved. Recording your payment.' });
@@ -96,7 +104,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
       if (!/^\d{3,4}$/.test(card.cvc)) fe.ccvc = 'Enter the 3 or 4 digits.';
     }
     if (method === 'acss_debit') {
-      if (!agree) fe.agree = 'Tick the box to accept the pre-authorized debit agreement.';
+      if (!agree) fe.agree = 'Tick the first box to authorize this one-time debit.';
       if (p.provider === 'fake') {
         if (!bank.name.trim()) fe.bname = 'Enter the account holder\'s name.';
         if (!/^\d{3}$/.test(bank.institution.trim())) fe.binst = 'The institution number is 3 digits.';
@@ -142,7 +150,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
         <legend className="label">How would you like to pay?</legend>
         <div className="ow-methods">
           <label className="option"><input type="radio" name="method" value="card" checked={method === 'card'} onChange={() => setMethod('card')} /><span className="option__title">Card</span><span className="option__body">Visa, Mastercard or American Express. Paid at once.</span></label>
-          <label className="option"><input type="radio" name="method" value="acss_debit" checked={method === 'acss_debit'} onChange={() => setMethod('acss_debit')} /><span className="option__title">Pre-authorized debit</span><span className="option__body">From a Canadian bank account. Clears in 3 to 5 business days{hasDebit ? '' : `, and sets up your fees by debit on the ${terms.debit_day_text}`}.</span></label>
+          <label className="option"><input type="radio" name="method" value="acss_debit" checked={method === 'acss_debit'} onChange={() => setMethod('acss_debit')} /><span className="option__title">Pre-authorized debit</span><span className="option__body">From a Canadian bank account. Clears in 3 to 5 business days{hasDebit ? '' : `, and can set up your fees by debit on the ${terms.debit_day_text}`}.</span></label>
         </div>
       </fieldset>
       {method && !p && !msg && <div className="skeleton sk-line" aria-hidden="true" />}
@@ -170,15 +178,20 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
               {input('bacct', 'Account number', bank.account, (v) => setBank({ ...bank, account: v }), { inputMode: 'numeric', autoComplete: 'off' })}
             </div>
           ) : <p className="small">When you continue, Stripe, our payment processor, asks for your bank and shows this agreement again to confirm. Your bank details go to Stripe, not to us.</p>}
-          <MandateBlock kind={ownerType === 'corporation' ? 'business' : 'personal'} terms={terms} withInvoice id="ow-mandate-h" />
           <div className={`field${errors.agree ? ' has-error' : ''}`}>
-            <label className="check"><input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); setErrors((x) => ({ ...x, agree: '' })); }} aria-invalid={!!errors.agree || undefined} aria-describedby="ow-agree-err" /><span>I accept the pre-authorized debit agreement above.</span></label>
+            <label className="check" data-testid="pad-one-time"><input type="checkbox" checked={agree} required onChange={(e) => { setAgree(e.target.checked); setErrors((x) => ({ ...x, agree: '' })); }} aria-invalid={!!errors.agree || undefined} aria-describedby="ow-agree-err" />
+              <span><b>One-time debit (required).</b> {oneTimeText(terms, money(p?.amountCents ?? amountCents, { cents: true }), number)}</span></label>
             <p className="error" role="alert" id="ow-agree-err">{errors.agree ?? ''}</p>
           </div>
+          <div className="field">
+            <label className="check" data-testid="pad-recurring"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+              <span><b>Recurring debit for my monthly fees.</b> I accept the pre-authorized debit agreement below. {hasDebit ? 'It replaces the bank account you have on file.' : `The first monthly debit is at least ${terms.notice_days} days from now, with notice first.`} Untick to pay this invoice only.</span></label>
+          </div>
+          {recurring && <MandateBlock kind={ownerType === 'corporation' ? 'business' : 'personal'} terms={terms} id="ow-mandate-h" />}
         </>
       )}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      {method && <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy}>{busy ? 'Sending' : method === 'card' ? `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}` : `Authorize debit of ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>}
+      {method && <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy || loading}>{busy ? 'Sending' : method === 'card' ? `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}` : `Authorize debit of ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>}
       <p className="pt-lock"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor" /></svg>Payments are processed by Stripe. We never see your full card or account number.</p>
     </form>
   );

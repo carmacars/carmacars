@@ -26,8 +26,10 @@ export interface DebitTerms {
   late_fee_rule: string;
   /** What a returned debit the owner started from an invoice page does (no Late Fee). */
   own_debit_rule: string;
-  /** The payee: the business name (the legal name only when the setting says so), address, phone and the billing email. */
+  /** The payee: "<company legal name>, operating as CarmaCars", address, phone and the billing email (the legal review, 0053). */
   payee: { name: string; address: string; phone: string; email: string };
+  /** The recurring pre-authorized debit agreement, one string per paragraph, for a personal and a business account (0053). */
+  agreement?: { personal: string[]; business: string[] };
 }
 export interface AutoDebit {
   enabled: boolean; mandate: boolean; bank: string | null; bank_last4: string | null; pending_setup: boolean; paused: boolean; paused_reason: string | null;

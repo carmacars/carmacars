@@ -1,10 +1,10 @@
-// The partner agreement (migration 0046): a short, plain-language agreement between CarmaCars and a partner rental
-// company whose cars CarmaCars rents out on commission. DRAFT FOR LAWYER REVIEW (the lawyer's copy is kept
-// outside this repository); change it here, bump PARTNER_AGREEMENT_VERSION, and partners sign the new version.
-// Filled from the partner record (app.partner_agreement_facts) and signed in the owner portal or on paper.
+// The partner agreement (migration 0046), the text approved in the legal review of October 16, 2026 (sections 3 to 11
+// replaced, no draft banner): a short, plain-language agreement between CarmaCars and a partner rental company whose
+// cars CarmaCars rents out on commission. Change it here, bump PARTNER_AGREEMENT_VERSION, and partners sign the new
+// version. Filled from the partner record (app.partner_agreement_facts) and signed in the owner portal or on paper.
 import { markdown, type Block, type SignatureRow } from '@/features/agreement/model';
 
-export const PARTNER_AGREEMENT_VERSION = 'partner-draft-2026-10-16';
+export const PARTNER_AGREEMENT_VERSION = 'partner-v2-2026-10-16';
 export const PARTNER_AGREEMENT_TITLE = 'Partner agreement';
 
 export interface PartnerFacts {
@@ -18,9 +18,7 @@ export interface PartnerFacts {
 }
 
 // The text. {{tokens}} are filled from the facts.
-export const PARTNER_AGREEMENT_MD = `**Draft for lawyer review. Not yet approved for use.**
-
-This agreement is between **{{company}}**, operating as {{brand}} ("CarmaCars"), and **{{partner}}** ("the Partner"), partner number {{partner_number}}.
+export const PARTNER_AGREEMENT_MD = `This agreement is between **{{company}}**, operating as {{brand}} ("CarmaCars"), and **{{partner}}** ("the Partner"), partner number {{partner_number}}.
 
 ## 1. What this agreement is for
 
@@ -32,47 +30,48 @@ The cars covered are the ones in the table below, and any car the Partner and Ca
 
 ## 3. Bookings and renters
 
-- CarmaCars sets the prices for renters, unless the Partner and CarmaCars agree otherwise in writing.
-- CarmaCars decides which bookings to accept and handles renters, payments, deposits, extensions and cancellations under its own rental terms.
-- The Partner keeps each car available for its confirmed bookings and tells CarmaCars at once if a car cannot be rented.
+CarmaCars acts as the Partner's agent to list the cars, take bookings, contract with renters, collect payments and deposits, and handle extensions and cancellations under CarmaCars' rental terms. CarmaCars sets renter prices unless the parties agree otherwise in writing. The Partner keeps each car available for its confirmed bookings and tells CarmaCars at once if a car cannot be rented.
 
 ## 4. Money
 
-- CarmaCars keeps a commission of **{{commission}}** of the rental revenue of each car (the rental charge and the kilometre overage), unless the table below gives a different commission for a car.
-- Fees CarmaCars charges renters for its own services (such as delivery, administration fees and coverage CarmaCars sells) are CarmaCars' own.
-- Tolls, tickets and damage during a rental are charged to the renter where the law and the rental terms allow. Tolls and tickets when the Partner had the car are the Partner's.
-- CarmaCars sends the Partner a statement for each month and pays the Partner's share by bank transfer or e-Transfer on or about day {{payout_day}} of the next month. A refund or chargeback after a payout comes off the next statement.
-- HST is added to payments where the Partner gives CarmaCars its HST number.
+CarmaCars keeps a commission of {{commission}} of each car's rental revenue (the rental charge and the kilometre overage) unless the table gives another rate for a car. Fees CarmaCars charges renters for its own services (delivery, administration fees and the Protection Plan) are CarmaCars' own. CarmaCars sends the Partner a statement for each month and pays the Partner's share by bank transfer or e-Transfer on or about the {{payout_day}} of the next month. Refunds, chargebacks, uncollected damage and deposit shortfalls on a car come off that car's next statements. CarmaCars charges HST on its commission; the Partner remits HST on the rental revenue as the supplier to the renter.
 
-## 5. Insurance and the cars' condition
+## 5. Insurance and condition
 
-- The Partner keeps each car insured for rental use at its own cost and keeps the insurance in force. Its insurance on file: {{insurance}}.
-- The Partner sends CarmaCars proof of insurance when asked and when it renews, and tells CarmaCars at once if the insurance ends or changes.
-- The Partner keeps each car safe, legal, clean and maintained, with valid plates and permit.
+The Partner keeps each car insured at its own cost under a policy that permits rental to the public through CarmaCars as agent, and has told its insurer. Policy on file: {{insurance}}. The Partner sends proof of insurance when asked and at renewal, and tells CarmaCars at once if the insurance lapses or changes. The Partner warrants that no lender, lessor or other person's consent is needed to rent the cars, or that it has been obtained. The Partner keeps each car safe, legal, clean and maintained, with valid plates and permit.
 
 ## 6. Damage and claims
 
-If a car is damaged during a rental, CarmaCars collects what it can from the renter under its rental terms and helps the Partner with the claim. The Partner's insurer handles claims under the Partner's policy. CarmaCars is not responsible for damage it did not cause.
+CarmaCars pursues the renter under its rental terms and passes recovered amounts to the Partner, less the commission on any recovered rental charges. Claims are handled under the Partner's policy. CarmaCars is not liable for damage, loss or injury it did not cause.
 
-## 7. Information
+## 7. Tolls and tickets
 
-CarmaCars keeps renters' personal information private and shares with the Partner only what the Partner needs for a car. Each party keeps the other's business information confidential.
+Within 2 business days of a request, CarmaCars gives the Partner the renter's name, licence details and rental dates so the Partner can transfer a toll, ticket or offence notice. Tolls and tickets during a rental are the renter's; when the Partner had the car, the Partner's.
 
-## 8. Ending the agreement
+## 8. Information and non-circumvention
 
-Either party may end this agreement with 30 days' written notice. Bookings confirmed before the end are completed, and CarmaCars pays what is owed on the final statement.
+CarmaCars shares with the Partner only the renter information needed for a car. Each party keeps the other's business information confidential. During this agreement and for 12 months after it ends, the Partner will not rent directly to a renter CarmaCars introduced.
 
-## 9. General
+## 9. Liability
 
-This is the whole agreement about the cars below. A change must be in writing and agreed by both parties. The laws of Ontario apply. Signing electronically or on paper has the same effect.`;
+Neither party is liable to the other for lost profits or indirect loss. Each party's liability to the other is limited to the commissions paid or payable under this agreement in the 12 months before the claim, except for a breach of section 5 or 8 or an indemnity. The Partner indemnifies CarmaCars against claims arising from a car's condition, the Partner's insurance or a missing consent. CarmaCars indemnifies the Partner against claims arising from CarmaCars' handling of renters and payments.
 
+## 10. Ending the agreement
+
+Either party may end this agreement with 30 days' written notice. CarmaCars may end it at once if a car's insurance lapses or the Partner breaches section 5. Bookings confirmed before the end are completed, and CarmaCars pays what is owed on the final statement.
+
+## 11. General
+
+This is the whole agreement about the cars below. A change must be in writing and agreed by both parties. The laws of Ontario apply. A dispute goes first to mediation in Toronto; failing that, to the Ontario courts. Signing electronically or on paper has the same effect.`;
+
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
 const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
 
 export function partnerAgreementBlocks(f: PartnerFacts, sig?: { partner?: SignatureRow; carmacars?: SignatureRow }): Block[] {
   const company = f.company.legal_name || f.company.brand;
-  const insurance = f.insurance.company ? `${f.insurance.company}${f.insurance.policy ? `, policy ${f.insurance.policy}` : ''}${f.insurance.expiry ? `, expiring ${f.insurance.expiry}` : ''}` : 'to be provided before the first rental';
-  const body = markdown(PARTNER_AGREEMENT_MD, { company, brand: f.company.brand, partner: f.partner.legal_name || f.partner.business_name, partner_number: f.partner_number,
-    commission: pct(f.commission_bps), payout_day: String(f.payout_day), insurance });
+  const insurance = f.insurance.company ? `${f.insurance.company}${f.insurance.policy ? `, policy ${f.insurance.policy}` : ''}${f.insurance.expiry ? `, expiring ${f.insurance.expiry}` : ''}` : 'none yet, to be provided before the first rental';
+  const body = markdown(PARTNER_AGREEMENT_MD.replace(/^## /gm, '### '), { company, brand: f.company.brand, partner: f.partner.legal_name || f.partner.business_name, partner_number: f.partner_number,
+    commission: pct(f.commission_bps), payout_day: ordinal(f.payout_day), insurance });
   const blank = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: '' });
   return [
     { t: 'title', text: PARTNER_AGREEMENT_TITLE },

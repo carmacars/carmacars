@@ -55,13 +55,15 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
     const drawnPath = input.method === 'drawn' ? await storeDrawnSignature(user.id, input.drawn!) : null;
     const meta = await requestMeta();
     const signed: Array<{ signature_request_id: string; title: string; consent_text: string }> = [];
+    let waiting: string[] = [];
     if (spec.packet.length) {
       const consent = `${OWNER_SIGN_STATEMENT} One signature for: ${titles.join('; ')}.`;
       const res = (await rpc('owner_sign_agreements', { p_owner: home.owner.id, p_by: user.id, p: {
         typed_name: input.method === 'typed' ? input.typedName!.trim() : null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: consent,
         initials: enrollment ? Object.fromEntries(CONFIRMATIONS.map((c) => [c.code, initials])) : null,
         documents: spec.packet.map((d) => ({ key: d.key, sha256: d.sha })) } }, SR)) as unknown as SignedResult;
-      try { await attachOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy', e); }
+      if (res.complete === false) waiting = res.waiting_for ?? [];
+      else { try { await attachOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy', e); } }
       for (const d of res.signed) {
         const title = spec.packet.find((p) => p.key === d.key)?.title ?? d.key;
         signed.push({ signature_request_id: d.signature_request_id, title, consent_text: consentFor(title, titles) });
@@ -75,7 +77,9 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
     await recordPackage(user.id, home.kind === 'partner' ? 'partner' : 'owner', input, signed, `One signature for ${titles.length} document${titles.length > 1 ? 's' : ''}: ${titles.join('; ')}.`);
     for (const p of ['/owner', '/owner/sign', '/owner/documents', '/owner/partner-agreement']) revalidatePath(p);
     return { ok: true, data: { signed: signed.length, next: spec.next && SAFE_NEXT.test(spec.next) ? spec.next : '/owner?signed=1',
-      message: `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. CarmaCars countersigned, and your signed copies are in Documents.` } };
+      message: waiting.length
+        ? `Signed. The agreements take effect when every Owner has signed: we sent ${waiting.join(' and ')} their own link. CarmaCars countersigns then, and the signed copies go to Documents.`
+        : `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. CarmaCars countersigned, and your signed copies are in Documents.` } };
   } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }
 }
 

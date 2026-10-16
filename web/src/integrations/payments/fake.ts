@@ -98,7 +98,8 @@ export function fakePayments(): FakePayments {
     },
     async createInvoiceIntent(r) {
       const i = once(r.idempotencyKey, () => {
-        const x = blank(r.amountCents, { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice' }, r.customerId);
+        const x = blank(r.amountCents, { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice',
+          recurring: r.method === 'acss_debit' && r.recurring === false ? 'false' : 'true' }, r.customerId);
         x.methodType = r.method;
         return x;
       });
