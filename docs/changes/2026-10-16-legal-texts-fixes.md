@@ -90,3 +90,14 @@ Booking are not concerned.
 Listed in the lawyer pack, section 8: an owner with no debit on file gets no Late Fee; the one-time debit from an invoice
 page happens before any confirmation can be sent; cancellation with no notice period; retry "from the 18th"; Stripe's
 hosted mandate beside our own texts; the void notice; and the Program settings that still need the mailing address.
+
+## Deploy and checks
+
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 38926915672 | Green |
+| Deploy with the full suite | 38927579030 | Green: end to end, crawl, SEO and emails passed; 0051 applied on the live database |
+| verify, full | 38940196478 | Green. Runs 38931391791, 38933419722, 38933829719, 38935480590 and 38937693382 before it each failed sign-in or page steps on 30-second timeouts while the Worker answered 503 with Error 1102 (29 to 47 an hour; 304 in 24 hours) |
+
+Locally before the push: the database suite (3,418 assertions), the unit tests, `emails/check.mjs` (15 checks), the
+text check, lint, types and the generated types, and every end-to-end spec at 375 and 1440 (175 passed).
