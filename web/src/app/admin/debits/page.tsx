@@ -4,6 +4,8 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, d, Kv, PageHead, Table, Tiles, t } from '@/features/admin/ui';
 
+const ord = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
+
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner debits', path: '/admin/debits', noindex: true, description: 'The automatic monthly pre-authorized debit of owner invoices.' });
 
@@ -38,10 +40,11 @@ export default async function OwnerDebits() {
     ]} />
     <Card title="How it runs" testId="debit-policy">
       <Kv rows={[
-        ['Debit day', `The ${s.debit_day}th of each month (billing_day), from ${String(s.run_hour).padStart(2, '0')}:00 Toronto time`],
+        ['Debit day', `The ${ord(s.debit_day)} of each month (billing_day), from ${String(s.run_hour).padStart(2, '0')}:00 Toronto time`],
         ['Notice', `${s.notice_days} days before, by email, listing every invoice and the total`],
         ['Invoices debited', s.kinds.map((k) => k.replace(/_/g, ' ')).join(', ')],
-        ['Returned debit', `Late Fee ${$(s.late_fee_cents)} once; ${s.max_attempts > 1 ? `up to ${s.max_attempts} attempts, the first retry from day ${s.retry_day} of the month, then ${s.retry_gap_days} days apart` : 'no retry'}; after the last one the invoice is in arrears`],
+        ['Returned for insufficient funds', `The ${$(s.late_fee_cents)} Late Fee once, as its own invoice line, collected with the next scheduled debit. ${s.max_attempts > 1 ? `One retry of the original amount only, on the later of day ${s.retry_day} and ${s.retry_gap_days} business days after the return, never more than 30 days after the debit. A failed retry puts the invoice in arrears` : 'No retry: the Late Fee and the amount are deducted from the next payout'}`],
+        ['Returned for any other reason', 'No retry and no Late Fee. The invoice\'s automatic debit is paused, an Admin gets a task and an email, and the owner is asked to pay from the invoice page or update the bank account'],
         ['One debit per invoice', 'Each attempt is its own PaymentIntent with its own idempotency key, never more than the notice said']
       ]} />
     </Card>

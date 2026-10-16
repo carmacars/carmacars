@@ -51,7 +51,7 @@ export default async function Partner({ params }: { params: Promise<{ id: string
             {p.portal_user_id ? <><ViewAsButton user={p.portal_user_id} portal="owner" testId="partner-view-as" /><PasswordLinkButton userId={p.portal_user_id} /></>
               : <InviteRecordButton role="owner" recordId={p.owner_id} email={p.email} name={p.business_name} testId="partner-invite" />}
           </div>
-          {p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`/admin/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Print the partner agreement</a> (draft for lawyer review) to sign on paper.</p>}
+          {p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`/admin/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Print the partner agreement</a> to sign on paper.</p>}
           {p.agreement_status !== 'signed' && <PaperSignatureForm docs={[{ doc_type: 'partner_agreement', target_id: id, label: 'Partner agreement', signer: p.contact_name ?? p.business_name }]} today={today} refresh={refresh} testId="partner-paper" />}
           {p.agreement_document_id && <p className="small"><Link prefetch={false} className="link" href={`/admin/documents/${p.agreement_document_id}`}>Open the signed agreement</Link></p>}
         </Card>

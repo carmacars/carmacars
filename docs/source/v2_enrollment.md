@@ -105,7 +105,7 @@
 
 7.1 CarmaCars sets the Rental Agreement, Managed Vehicle rates and all rental rules, and may refuse any booking.
 
-7.2 Every Renter must hold a G2 or full G licence, be at least the Minimum Renter Age, and have OPCF 27 coverage on an active automobile policy, credit card rental coverage or coverage bought through CarmaCars.
+7.2 Every Renter must hold a G2 or full G licence, be at least the Minimum Renter Age, and have OPCF 27 coverage on an active automobile policy, credit card rental coverage or the CarmaCars Protection Plan.
 
 7.3 Damage under the Deductible is billed to the Renter at cost. Above it, a claim is made and the Renter is billed the Deductible. Each Rental, and each renewal, is a separate transaction within the Maximum Rental Length.
 
@@ -113,7 +113,7 @@
 
 8.1 **Owner Revenue** for a booking is the Rental Charge plus mileage overage fees, less every Referral Kickback on that booking. A Renter who returns late is charged the Rental Charge for each extra day, which is Owner Revenue.
 
-8.2 Late return, delivery and pickup, fuel, cleaning and young driver fees, coverage sold to Renters, and toll and ticket admin fees belong to CarmaCars alone, in every Management Mode.
+8.2 Late return, delivery and pickup, fuel, cleaning and young driver fees, the Protection Plan sold to Renters, and toll and ticket admin fees belong to CarmaCars alone, in every Management Mode.
 
 8.3 A **Referral Kickback** is the Kickback Rate on the Rental Charge of a new Renter's first Rental, earned by an Owner or a CarmaCars field staff member who referred that Renter before booking. Every kickback is deducted from that booking before Owner Revenue is calculated, even on another Owner's Vehicle. An Owner's is paid with that Owner's next payout. An Owner earns none on the Owner's own Vehicles. None applies to a renewal or a Self-Managed rental.
 
