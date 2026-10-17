@@ -1,5 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 
 export const db = () => postgres(process.env.DATABASE_URL ?? 'postgresql://postgres@127.0.0.1:54322/carmacars', { max: 1, onnotice: () => {} });
 
@@ -35,4 +37,13 @@ export async function pdfText(body: Buffer | Uint8Array): Promise<string> {
   }
   await doc.destroy();
   return out.replace(/\s+/g, ' ');
+}
+
+/** A fixture's stored file in the local storage the server reads (scripts/serve.mjs runs in web/): a one-page PDF, so
+ *  a document row a test inserts opens like a real one (the crawl requests every document link it finds). */
+export function storeFixturePdf(bucket: string, key: string) {
+  const dir = process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage');
+  const file = path.join(dir, bucket, key);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 }

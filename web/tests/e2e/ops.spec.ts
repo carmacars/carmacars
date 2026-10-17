@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, pdfText } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf } from './helpers';
 
 // Migration 0040 end to end, at 375 and 1440, with the fake providers of the local stack:
 // - an Admin proposes a change to a confirmed booking (a day longer); the renter reviews it, signs the amendment
@@ -96,6 +96,7 @@ async function confirmBooking(sql: Sql, booking: string, admin: string) {
   await sql`select app.approve_offer(b.id, b.current_offer_version, (select user_id from renters where id = b.renter_id)) from bookings b where b.id = ${booking}`;
   const doc = randomUUID(); const sig = randomUUID(); const ra = randomUUID();
   await sql`insert into documents (id, kind, storage_bucket, storage_path, booking_id, sha256) values (${doc}, 'rental_agreement', 'agreements', ${`bookings/${booking}/agreement.pdf`}, ${booking}, ${'1'.repeat(64)})`;
+  storeFixturePdf('agreements', `bookings/${booking}/agreement.pdf`);
   await sql`insert into signature_requests (id, document_id, provider, provider_envelope, status, completed_at) values (${sig}, ${doc}, 'builtin', ${`env-${booking}`}, 'completed', now())`;
   await sql`insert into rental_agreements (id, booking_id, agreement_number, template_version, document_id, document_sha256, signature_request_id, status, countersigner_name, renter_signed_at, completed_at)
             values (${ra}, ${booking}, ${`RA-${tag().toUpperCase()}`}, 'rental-e2e', ${doc}, ${'1'.repeat(64)}, ${sig}, 'completed', 'Casey Staff', now(), now())`;

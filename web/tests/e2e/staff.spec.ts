@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, watch, storeFixturePdf } from './helpers';
 
 // The staff and investor portals end to end (migration 0031). A customer service assistant reviews a
 // request and sends the offer; a finance assistant asks for a refund above their limit and it becomes an
@@ -86,6 +86,7 @@ async function confirmBooking(sql: Sql, booking: string, admin: string) {
   await sql`select app.approve_offer(b.id, b.current_offer_version, (select user_id from renters where id = b.renter_id)) from bookings b where b.id = ${booking}`;
   const doc = randomUUID(); const sig = randomUUID();
   await sql`insert into documents (id, kind, storage_bucket, storage_path, booking_id) values (${doc}, 'rental_agreement', 'agreements', ${`bookings/${booking}/agreement.pdf`}, ${booking})`;
+  storeFixturePdf('agreements', `bookings/${booking}/agreement.pdf`);
   await sql`insert into signature_requests (id, document_id, provider, provider_envelope, status, completed_at) values (${sig}, ${doc}, 'esign', ${`env-${booking}`}, 'completed', now())`;
   await sql`update bookings set signature_request_id = ${sig}, agreement_document_id = ${doc} where id = ${booking}`;
   await sql`insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
@@ -329,6 +330,11 @@ test('field: a full handover with every photo and the renter signature, then a l
   await expect(page.getByTestId('damage-D1')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('closeup-D1').setInputFiles({ name: 'd1.png', mimeType: 'image/png', buffer: PNG });
   await expect(page.getByTestId('damage-D1')).toContainText('Close-up taken', { timeout: 30_000 });
+  // contrast is read once the pointer has left the buttons and Next has finished its transition (a run on October 17
+  // caught it mid-transition)
+  await page.mouse.move(0, 0);
+  await expect(page.getByTestId('next')).toBeEnabled();
+  await page.waitForTimeout(400);
   await check(page, 'field damage');
   await next(page, 'Belongings');
   await next(page, 'Renter reviews and signs');
