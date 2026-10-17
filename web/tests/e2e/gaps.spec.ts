@@ -11,7 +11,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 // switcher, the scorecard, the field checklists, report, referrals, profile and web app manifest, and an
 // investor's yearly download. Every page is checked with axe, for overflow and with the copy rules.
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const STORE = process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage');
@@ -305,10 +305,14 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   // the function switcher: customer service, also covering Fleet
   await expect(page.getByTestId('fn-switch')).toBeVisible();
   await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet operations' }).click();
-  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Daily checks', { timeout: 15_000 });
+  // the menu in groups (October 16, 2026): Daily checks is in Field work
+  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Field work', { timeout: 15_000 });
+  if (await page.getByTestId('nav-menu').isVisible()) await page.getByTestId('nav-menu').click();
+  await page.locator('nav[aria-label="Assistant"]').getByTestId('nav-group-field').click();
+  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Daily checks');
   await page.goto('/va/checks'); await expect(page.getByTestId('check-opening')).toBeVisible();
   await page.getByTestId('fn-switch').getByRole('button', { name: 'Customer service and growth' }).click();
-  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Find a renter', { timeout: 15_000 });
+  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Renters', { timeout: 15_000 });
   // a quote by Sales
   const sp = await ctx(browser, phone);
   await signIn(sp, sales.email, '/va');

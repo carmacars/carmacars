@@ -91,11 +91,16 @@ cd emails && node check.mjs
 | `0049_simple_signing_guide_upkeep.sql` | Signing packages (one signature for several documents, each keeping its own signature record), the signer's own checklist ("2 of 3 signed"), investor and staff agreements generated from the records, partner insurance reminders, guide upkeep (changed screenshots replaced, sections flagged for review, suggested text from Workers AI), the guide chapters updated for these features (`docs/changes/2026-10-16-supply-manual-rentals-signing.md`) |
 | `0050_guide_upkeep_one_version.sql` | Guide upkeep raises each guide's version once per run, not once per screenshot |
 | `0051_legal_texts_fixes.sql` | The defects found while collecting the legal texts: one Late Fee rule (Enrollment Agreement 4.4) in every text, the settings in words for every email (no typed 15th), PAD notice days at least 10, CarmaCars' own PAD confirmation email, the booking amendment countersigned, paper countersignatures dated when recorded, rentals added by hand awaiting signature until signed (`docs/changes/2026-10-16-legal-texts-fixes.md`) |
+| `0052_owner_settings.sql` | The company's settings for the legal texts: the mailing address (2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2), the street address of the lot (1570 Midland Ave, Toronto, ON, which will change), the signing officer (Abbas Al-Mashita, Director) and the date of the standing authorization |
+| `0053_legal_review.sql` | The owner's legal review: the payee "[company legal name], operating as CarmaCars", the retry and the $50.00 Late Fee only for insufficient funds (Enrollment Agreement 4.4), other returns paused with a task, the countersignature under the standing authorization, every Owner named in the Title Schedule signing with their own link, Form C on screen with the witness, a rental added with the saved card charged when the renter signs, the Protection Plan as coverage option 3, the investment awaiting countersignature, 16 emails (`docs/changes/2026-10-16-legal-review-admin-redesign.md`) |
+| `0054_admin_access_samples_applications.sql` | Admin access only for rent@carmacars.ca (and the automated test account), sample photos for a listing without photos, the To do list and search of the admin portal, the owner applications inbox (approve, ask for something, decline), 2 emails |
+| `0055_guides_update_themselves.sql` | The guides keep up by themselves: the runs after each deploy, a section rewritten from the code's facts published with its old text kept for a one-click revert, the guides rewritten for this release |
 
 ## Test files
 
 | File | Covers | Assertions |
 | --- | --- | --- |
+| `00_owner_settings.sql` | 0052: the company's addresses, the signing officer and the date of the standing authorization | 3 |
 | `01_rules.sql` | The pricing and billing functions against the worked examples | 119 |
 | `02_owner_month.sql` | A full owner month: invoices, split, statement, payout | 91 |
 | `03_flows.sql` | Status flows and what each step requires | 120 |
@@ -125,6 +130,9 @@ cd emails && node check.mjs
 | `30_supply_manual_rentals.sql` | 0046 to 0048: supply types and partners, Add a car and the duplicate check, terms and splits by supply, rentals added by hand (Admin and assistant limits, clashes, payment modes, past rentals, agreements, emails), retire, restore, delete and sample cars, toll matching with placeholders and two rentals, the company statement by supply, the partner agreement, the official forms, the new guide chapters | 104 |
 | `31_signing_upkeep.sql` | 0047 and 0049: agreements generated from the records, signing packages and the signature evidence they keep, the owner's checklist, partner insurance reminders, guide upkeep (replacement, review, suggestion, the updated chapters), the vision model for guide review, the official form sources, Sales opening what its inbox lists, one guide version per upkeep run (0050) | 56 |
 | `32_legal_texts.sql` | 0051: the one Late Fee rule and what the code does, the settings in words, the PAD notice days, the PAD confirmation, rentals added by hand awaiting signature | 27 |
+| `33_legal_review.sql` | 0053: insufficient funds (Late Fee once, the same amount again within 30 days) and other returns (no retry, paused, a task and an email), the payee in every owner billing email, the countersignature, two owners, Form C on screen, the charge on signing, staff rentals not charged, the investment awaiting countersignature | 55 |
+| `34_admin_redesign.sql` | 0054: Admin access in the database, sample photos (body type, make and model, publishing without the plate gate, real photos replacing them), To do, search (a booking number with its dash), the applications inbox end to end with its emails | 47 |
+| `35_guides_keep_up.sql` | 0055: the runs and their commit, the sections a run reads, an automatic change published or kept as a suggestion (an Admin's draft is never overwritten), the revert, the admin reads, new chapters, this release's chapters (the newer screenshot kept) | 41 |
 
 ## Rules for changes
 

@@ -12,7 +12,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 // the second step. Every page visited is checked with axe, for overflow and with the copy rules.
 const SHOTS = 'test-results/staff';
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 // a 1 x 1 PNG: the page re-encodes it as JPEG before the upload, as it does with a camera photo
@@ -142,7 +142,7 @@ test('va: customer service reviews a request from the queue and sends the offer'
   const page = await ctx(browser, phone);
   const errors = watch(page);
   await signIn(page, cs.email, '/va');
-  await expect(page.getByRole('heading', { name: 'Queue', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible();
   await check(page, 'va queue');
   await page.screenshot({ path: `${SHOTS}/va-queue-${info.project.name}.png`, fullPage: true });
   await page.goto('/va/today'); await expect(page.getByTestId('digest')).toBeVisible(); await check(page, 'va today');
@@ -417,6 +417,6 @@ test('two-step sign-in: an Admin enrols an authenticator app and signs in with t
   await p2.getByTestId('totp-code').fill(totp(secret));
   await p2.getByTestId('totp-submit').click();
   await p2.waitForURL((u) => u.pathname === '/admin', { timeout: 15_000 });
-  await expect(p2.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible();
+  await expect(p2.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible();
   await sql.end();
 });

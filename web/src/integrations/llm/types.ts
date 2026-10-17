@@ -4,12 +4,14 @@
 export type JsonSchema = Record<string, unknown>;
 
 export interface GenerateRequest {
-  task: 'listing_draft';
+  task: 'listing_draft' | 'guide_rewrite';
   system: string;
   /** The user message: the facts and the instructions for this one item. */
   prompt: string;
   schema: JsonSchema;
   maxOutputTokens: number;
+  /** 0.4 unless given (a guide rewrite uses 0.1: it should change as little as it can). */
+  temperature?: number;
 }
 
 export interface Usage { inputTokens: number; outputTokens: number; neurons: number }

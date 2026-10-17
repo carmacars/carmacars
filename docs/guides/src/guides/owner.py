@@ -47,7 +47,13 @@ def build():
         f'Tap {B("All of these")} for the three confirmations (your initials are filled in), then press {B("Sign all")}. Your name on file is your signature; prefer to draw it? Press {B("Draw instead")}. One signature covers every document, in about a minute.',
         'Pay the upfront invoice: the first and last month\'s insurance fee for each car (see chapter 4).',
         'Upload what each car\'s checklist asks for: the ownership permit, the lender\'s permission if it is financed or leased, and insurance.',
-        'Print Forms C and D (filled in for you), sign them in front of witnesses and take a photo of each page with your phone (see chapter 5).',
+        'Sign Forms C and D (filled in for you) with witnesses: Form C on screen with your witness beside you, or on paper; Form D on paper, with a photo of each page from your phone (see chapter 5).',
+    ])
+    g.task('If we need a little more', 'Sometimes we need one more document before we can approve your application, for example the ownership permit or the insurance slip.')
+    g.steps([
+        'You get an email, and Home shows "We need a little more" with the list and any note from our team.',
+        f'Upload what is asked, or write Your answer, and press {B("Send my answer")}.',
+        'We review it within 1 business day. Once we approve your application, you get an email and Home shows Check and sign.',
     ])
 
     # ---------------------------------------------------------------- 2
@@ -119,11 +125,14 @@ def build():
     g.flow([('Notice day', '10 days before: your invoices and one email with the total'),
             ('The 15th', 'Each invoice is debited from your account'),
             ('Cleared', 'The invoice shows Paid and you get a receipt'),
-            ('Returned?', 'A $50 Late Fee once, then a retry from the 18th')])
+            ('Insufficient funds?', 'A $50.00 Late Fee once, and the same amount tried again within 30 days')])
     g.bullets([
         'A debit is never more than its notice said. Each invoice shows "will be debited on" with the date.',
-        'After two returned debits the invoice is in arrears and we contact you.',
+        'If your bank returns a debit for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.',
+        'Returned for another reason (for example a closed account)? We do not try again and add no Late Fee. We pause your debit and email you: pay the invoice from its page, or set up a new account under Banking.',
+        'Returned again after the retry? The invoice is in arrears and we contact you.',
         'You can always pay an invoice by card from its page before the debit day.',
+        'On your bank statement the debit shows our company\'s legal name, operating as CarmaCars.',
     ])
 
     g.task('Set up the automatic debit', 'Do this once. Without it, we email you on each notice day to set it up.')
@@ -161,7 +170,7 @@ def build():
     # ---------------------------------------------------------------- 5
     g.chapter('Documents and forms',
               'Your signed agreements, uploads and government forms are under Documents. Some forms are '
-              'filled for you; Forms C and D are signed on paper with witnesses.',
+              'filled for you; Forms C and D are signed with witnesses.',
               blurb='Agreements, government forms, Forms C and D, and official forms filled for you.')
     g.task('Sign everything at once',
            'Everything you sign on screen is in one place: Home shows how many are signed ("2 of 5 signed") and opens it with Check and sign.')
@@ -170,13 +179,23 @@ def build():
         f'Check the key values: your name, address, each car with its VIN and plate, your fees and Revenue Share. Something wrong? Press {B("Fix")} next to it, change it, and come back.',
         'Open any document to read it word for word: the agreements, the schedules, Forms A and B, and the official registry forms that are ready.',
         f'Tap {B("All of these")} for the statements the agreement asks you to initial (your initials are filled in), then press {B("Sign all")}.',
-        'Your name on file is your signature. One signature is applied to each document; CarmaCars countersigns at once and every signed copy is in Documents.',
+        'Your name on file is your signature. One signature is applied to each document; CarmaCars countersigns at the same moment and every signed copy is in Documents.',
     ])
+    g.tip('A car with a second owner on its ownership? Each owner named in the Title Schedule signs. The other owner gets their own link by email and signs the same documents on their phone or computer. '
+          'The agreements take effect when the last owner signs; CarmaCars countersigns then.', label='Two owners')
     g.tip('Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed: they are in the same package. You can also sign one on its own page from Documents.', label='Good to know')
     g.tip('Signed one of your documents on paper instead? Send us the scan. Once we record it, Documents shows it as Signed on paper and we do not ask again.')
 
-    g.task('Forms C and D, signed with witnesses',
-           'Form D is a limited power of attorney (two witnesses). Form C is the lender or lessor permission for a financed or leased car (one witness).')
+    g.task('Form C on screen, with your witness beside you',
+           'Form C is the lender or lessor permission for a financed or leased car. It needs one witness, and you can sign it on screen when your witness is with you.')
+    g.steps([
+        'Open Documents. Under Forms to sign with witnesses, press Sign Form C on screen instead.',
+        'Initial each of the three acknowledgments, and type Your initials.',
+        'Sign: draw your signature in the box, or use your name.',
+        f'Hand the device to your witness, another adult. They type their full name and tick the statement "I witnessed (your name) sign in my presence." Press {B("Sign Form C")}.',
+    ], shot=S('owner/16-form-c-screen-desktop', 40, 1180, 830, 2160, hdr=False, pins=[(2, 85, 1313), (3, 300, 1720), (4, 90, 1986)]), fig_w=3.6)
+    g.task('Forms C and D on paper, signed with witnesses',
+           'Form D is a limited power of attorney (two witnesses), signed on paper. Form C can be signed on paper too, with one witness.')
     g.steps([
         f'Open Documents. Under Forms to sign with witnesses, press {B("Print the form")}. It is filled in, and every spot to sign or initial is marked SIGN HERE or INITIAL HERE.',
         'Sign it in front of your witnesses. They sign and print their names in their spots.',
@@ -184,7 +203,7 @@ def build():
         f'On your phone, press {B("Take a photo of the signed page")}: one photo of each page. A PDF scan works too ({B("Or choose a file")}).',
     ], shot=S('owner/12-forms-c-d-desktop', 0, 330, 1440, 1000, pins=[(1, 310, 499), (3, 1000, 634), (4, 1000, 706)]))
     g.tip('We check the photo and approve it, or send it back with what to fix. You get an email either way, and the page shows the status.')
-    g.tip('Why paper for these two? The forms need witnesses who sign in person, and Form D is a power of attorney, which cannot be signed electronically in Ontario.', label='Good to know')
+    g.tip('Why paper for Form D? It is a power of attorney, which cannot be signed electronically in Ontario, and its two witnesses sign in person.', label='Good to know')
 
     g.task('Government forms filled for you',
            'Each car\'s registry forms are prepared from your records. Until we load the official PDF, you get a data sheet with the values.')
@@ -250,11 +269,11 @@ def build():
                   ('Profile', 'Contact details, password')],
         top_tasks=[('Sign everything at once', f'{P("Home", "Check and sign")}'),
                    ('Set up the monthly debit', f'{P("Banking", "Set up pre-authorized debit")}'),
-                   ('Pay an invoice now', f'{P("Invoices", "the invoice", "Pay $...")}'),
+                   ('Pay an invoice now', f'{B("Invoices")}, the invoice, then {B("Pay $...")}'),
                    ('Payout details', f'{P("Banking", "Where we pay you")}'),
-                   ('Forms C and D', f'{P("Documents", "Take a photo of the signed page")}'),
+                   ('Forms C and D', f'{P("Documents", "Sign Form C on screen instead")} or {B("Take a photo of the signed page")}'),
                    ('Book your own car', f'{P("Bookings", "Book my own car")}'),
-                   ('New listing photos', f'{P("Vehicles", "the car", "Take new photos")}'),
-                   ('Leave the program', f'{P("Vehicles", "the car", "Give notice")}')],
-        extra_problems=[('A debit was returned', 'You get an email with the reason. Pay the invoice from its page, or keep money in the account for the retry.')])
+                   ('New listing photos', f'{B("Vehicles")}, the car, then {B("Take new photos")}'),
+                   ('Leave the program', f'{B("Vehicles")}, the car, then {B("Give notice")}')],
+        extra_problems=[('A debit was returned', 'You get an email with the reason. Insufficient funds: keep the money in the account for the retry, or pay the invoice from its page. Any other reason: pay from the invoice\'s page or set up a new account under Banking.')])
     return g

@@ -18,7 +18,7 @@ import { sampleForm } from '../../src/features/official-forms/fill';
 //   and signs it on screen
 // - Program settings explain the one turnaround; the vehicle page says the tracker connection is coming soon
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const tag = () => `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
 const VIN_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789';

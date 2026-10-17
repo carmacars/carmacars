@@ -21,14 +21,14 @@ export function workersAi(ai: AiBinding, model = DRAFT_MODEL, timeoutMs = 60_000
   return {
     name: 'workers-ai',
     model,
-    async generate<T>(req: { system: string; prompt: string; schema: Record<string, unknown>; maxOutputTokens: number }): Promise<GenerateResult<T>> {
+    async generate<T>(req: { system: string; prompt: string; schema: Record<string, unknown>; maxOutputTokens: number; temperature?: number }): Promise<GenerateResult<T>> {
       let raw: unknown;
       try {
         raw = await Promise.race([
           ai.run(model, {
             messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.prompt }],
             response_format: { type: 'json_schema', json_schema: req.schema },
-            max_tokens: req.maxOutputTokens, temperature: 0.4
+            max_tokens: req.maxOutputTokens, temperature: req.temperature ?? 0.4
           }),
           new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('timeout'), { name: 'TimeoutError' })), timeoutMs))
         ]);

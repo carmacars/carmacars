@@ -203,6 +203,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      actions: write   # the last step starts the guides workflow (the guides keep up with the portals, 0055)
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -297,3 +300,11 @@ jobs:
         working-directory: web
         continue-on-error: true
         run: $RUN "Guide PDFs" node scripts/guides-pdf.mjs --base "$APP_URL" --committed
+      - name: The guides keep up (the guides workflow, after a deploy; it stops at once when web/src and docs/guides did not change)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run guides.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f auto=true
+          echo "::notice title=guides::started the guides workflow (auto) for ${GITHUB_SHA::7}: screenshots, the text of the sections that changed, the PDFs"

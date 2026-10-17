@@ -44,6 +44,8 @@ def build():
         'Say whether you got independent legal advice, and tick the risk acknowledgment (Schedule C). Your initials are filled in.',
         f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}). The signed copy is on the same page.',
     ])
+    g.para('Once you sign, the agreement shows "Awaiting countersignature by CarmaCars" under Signed. CarmaCars\'s signing officer countersigns it; '
+           'the agreement binds CarmaCars once it is countersigned and your funds have cleared. You get the countersigned copy on the same page.')
     g.tip('Signed on paper instead? Once we record it, it shows under Signed with the scan.')
 
     g.chapter('How your returns work',
@@ -144,7 +146,7 @@ def build():
         nav_rows=[('Investments', 'Each investment, returns, next payment'),
                   ('Statements', 'One per month; PDF, ZIP and CSV by year'),
                   ('Profile and notices', 'Contact details, notices, transfers, two-step sign-in')],
-        top_tasks=[('See what you earned', f'{P("Statements", "a month")}'),
+        top_tasks=[('See what you earned', f'{B("Statements")}, then a month'),
                    ('Keep a statement', f'{B("Download PDF")}'),
                    ('A whole year', f'{P("Statements", "Download a year")}'),
                    ('Paid monthly or reinvested', f'{B("Send the notice")}'),

@@ -71,7 +71,7 @@ def build():
               pins=[(6, 300, 476), (7, 300, 927), (8, 545, 1166)]), fig_w=3.9)
     g.steps([
         'Step 3: choose your Licence class, for example Ontario G2.',
-        'Choose how the car is covered: Option 1, 2 or 3. You can change this any time before pickup.',
+        'Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup.',
         'Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.',
         'Add extras such as Winter tires or Baby seats, and anything we should know.',
         f'Press {B("Review request")}.',
@@ -137,6 +137,13 @@ def build():
     g.warn('See "This car was just taken"? Someone confirmed the same car first. The authorization on your card is '
            'released, and we offer you another car or other dates.')
 
+    g.task('A rental we booked for you', 'Booked by phone, in person or through a partner? We add the rental and you sign it online.')
+    g.steps([
+        'You get an email: "Read and sign your rental agreement; your card is charged when you sign."',
+        'Open it. Check the car, the dates and the price, and read the agreement.',
+        f'Press {B("Accept and sign")}. If we have your card on file, it is charged at that moment, not before, and the agreement is countersigned by CarmaCars as soon as you sign.',
+    ])
+
     # ---------------------------------------------------------------- 4
     g.chapter('Before pickup',
               'Your booking is confirmed. A few things are left: your licence photos, a selfie and proof of '
@@ -160,8 +167,8 @@ def build():
         f'Coverage for damage to the car: add what your option asks for, then press {B("Upload proof")}.',
     ], shot=S('renter/09-verify-desktop', 0, 280, 1440, 1440,
               pins=[(2, 267, 1012), (3, 720, 991), (4, 1170, 991), (5, 720, 1382)]), fig_w=6.2)
-    g.tip('For Option 2 (your credit card coverage), add the card issuer, the last four digits and the card benefits '
-          'certificate. It must be the card you paid with. We delete licence and face photos 90 days after your rental ends.')
+    g.tip('For Option 1, add the policy page or insurer letter that shows OPCF 27. For Option 2 (your credit card coverage), add the card issuer, the last four digits and the card benefits '
+          'certificate; it must be the card you paid with. For Option 3, we send the Protection Plan\'s terms and activate it once it is paid. We delete licence and face photos 90 days after your rental ends.')
 
     g.task('Additional drivers', 'Each additional driver signs the agreement with their own link.')
     g.steps([
@@ -206,7 +213,8 @@ def build():
         f'Anything more to pay is charged to your Card on File. If the card is declined, press {B("Pay and apply the change")}.',
         f'To say no, press {B("Decline this change")}. Your booking stays as it was.',
     ])
-    g.tip('You have 48 hours to answer, and we send one reminder. The signed amendment is saved under Documents.')
+    g.tip('You have 48 hours to answer, and we send one reminder. CarmaCars signs the amendment at the moment you sign it, and the signed copy is saved under Documents. '
+          'If the change costs less, the refund goes back to your card within 10 business days after the amendment is signed.')
 
     g.task('Cancel a booking')
     g.steps([
@@ -263,7 +271,7 @@ def build():
                   ('Documents', 'Agreements, receipts, statements, uploads'),
                   ('Notifications', 'Notices and your email choices'),
                   ('Profile', 'Contact details, drivers, Card on File')],
-        top_tasks=[('Request a car', f'{P("Find a car", "a car", "Request to book")}'),
+        top_tasks=[('Request a car', f'{B("Find a car")}, the car, then {B("Request to book")}'),
                    ('Approve an offer', f'{P("Trips", "Review offer", "Approve and continue")}'),
                    ('Sign and pay', f'{B("All four")}, {B("Sign and continue to payment")}, then {B("Pay $...")}'),
                    ('Upload documents', f'{P("Your booking", "Licence and coverage")}'),

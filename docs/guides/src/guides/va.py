@@ -6,7 +6,7 @@ def build():
         key='va', title='VA Portal Guide', short='VA',
         promise='Your queue, your tools and your targets, for every function.',
         cover_shot=S('va-cs/01-queue-phone', 0, 595, 390, 1350),
-        audience='staff', signin_url='carmacars.ca/sign-in?next=/va', lands_on='Queue, the tasks of your function')
+        audience='staff', signin_url='carmacars.ca/sign-in?next=/va', lands_on='To do, the tasks of your function')
 
     g.start_page(
         who='CarmaCars assistants (VAs) in Customer service, Finance, Fleet and Sales. Read chapter 1, then the chapter '
@@ -16,7 +16,7 @@ def build():
               'An authenticator app on your phone, if your Admin turns on two-step sign-in'],
         first_steps=[
             f'Open the invitation email and press its link within 24 hours. Choose a password of 8 characters or more and press {B("Save the new password")}.',
-            f'You land in your portal, on {B("Queue")}, working as your main function.',
+            f'You land in your portal, on {B("To do")}, working as your main function.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password, then {B("Sign in")}.',
             f'Link expired? Press {B("Send me a new link")} on the page it opens, or ask an Admin for a password link.',
         ],
@@ -26,10 +26,17 @@ def build():
 
     # ---------------------------------------------------------------- 1
     g.chapter('Your workday',
-              'Every function works the same way: start on Queue, take the oldest task, finish it, and check Today '
-              'for pickups and returns.',
-              blurb='The queue, task actions, Today, switching functions and your scorecard.')
-    g.task('The queue', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
+              'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
+              'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
+              blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
+    g.task('The menu', 'My work comes first: To do, Today and My scorecard. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.table([
+        ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Owner forms)'],
+        ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
+        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar)'],
+        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar), Renters (Find a renter)'],
+    ], head=['Function', 'Groups and pages'])
+    g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
     g.steps([
         'The top line shows your function and how many tasks are open.',
         'Filter: All, Mine, Unassigned or Waiting; Any time, Overdue, Due today or Escalated; and by type.',
@@ -51,7 +58,7 @@ def build():
     g.task('Today')
     g.steps([
         'Today lists pickups and returns, and what is due, for your function.',
-        f'Press a booking number to open it. {B("Queue")} takes you back to your tasks.',
+        f'Press a booking number to open it. {B("To do")} takes you back to your tasks.',
     ], shot=S('va-cs/02-today-desktop', 0, 60, 1440, 760, pins=[(1, 300, 160)]))
 
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
@@ -62,12 +69,12 @@ def build():
     ])
 
     g.task('Several functions? Switch with Working as')
-    g.para(f'If you cover more than one function, {B("Working as")} at the top of the rail lists them: Customer service, '
-           'Finance, Fleet and Sales. Choose one; the rail, the queue and Today change to that function.')
+    g.para(f'If you cover more than one function, {B("Working as")} above the menu lists them: Customer service, '
+           'Finance, Fleet and Sales. Choose one; the menu, To do and Today change to that function.')
 
     g.task('Your scorecard')
     g.steps([
-        f'Open {B("Scorecard")} at the bottom of the rail.',
+        f'Open {P("My work", "My scorecard")}.',
         'By week shows each measure, its target and your result for each week.',
         'A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.',
     ], shot=S('va-sales/05-scorecard-desktop', 0, 60, 1440, 420, pins=[(1, 60, 203), (2, 900, 270)]))
@@ -254,15 +261,15 @@ def build():
               'Customer service and Sales add rentals that come in by phone, at the counter, from Turo, a partner or an '
               'insurer. The rental is confirmed and on the calendar at once.',
               blurb='Choose the car and dates, find the renter, price it, record how it is paid.')
-    g.task('Add a rental', f'Open {B("Add a rental")} on your rail.')
+    g.task('Add a rental', f'Open {P("Bookings", "Add a rental")}.')
     g.steps([
         'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
         'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
         f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code; a price typed by hand is for Admins.',
-        f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card")}.',
+        f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}.',
         f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
     ])
-    g.tip('The renter signs the rental agreement in their portal before pickup. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.')
+    g.tip('The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Shared tools',
@@ -281,17 +288,17 @@ def build():
     ], shot=S('va-cs/07-renters-desktop', 210, 60, 1440, 300, pins=[(1, 1050, 143)]))
 
     g.reference(
-        nav_rows=[('Queue', 'Your function\'s tasks, oldest due first'),
+        nav_rows=[('To do', 'Your function\'s tasks, oldest due first'),
                   ('Today', 'Pickups, returns, what is due'),
-                  ('Working as', 'Switch function (top of the rail)'),
+                  ('Working as', 'Switch function (above the menu)'),
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
                   ('Finance', 'Payments, Tolls and tickets, Reconciliation, Turo trips'),
                   ('Fleet', 'Field jobs, Daily checks, Photo reviews, Listings, Similar cars'),
                   ('Sales', 'Requests and offers, New quote, Owner leads'),
-                  ('Scorecard', 'Your results by week')],
-        top_tasks=[('Take a task', f'{P("Queue", "Take it")}, then {B("Done")}'),
-                   ('Send an offer', f'{P("Requests", "booking", "Send the offer")}'),
-                   ('Quote a caller', f'{P("New quote", "Create the request")}'),
+                  ('My scorecard', 'Your results by week')],
+        top_tasks=[('Take a task', f'{P("My work", "To do")}, {B("Take it")}, then {B("Done")}'),
+                   ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
+                   ('Quote a caller', f'{P("Bookings", "New quote")}, then {B("Create the request")}'),
                    ('Review Forms C and D', f'{P("Owner forms", "Approve")}'),
                    ('Read a toll notice', f'{P("Tolls and tickets", "Read a notice")}'),
                    ('Issue a refund', f'{B("Request the refund")}, {B("Issue the refund")}'),

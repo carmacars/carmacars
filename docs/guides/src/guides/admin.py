@@ -6,14 +6,14 @@ def build():
         key='admin', title='Admin Portal Guide', short='Admin',
         promise='Run every booking, car, owner and dollar of CarmaCars from one place.',
         cover_shot=S('admin/01-today-phone', 0, 595, 390, 1350),
-        audience='admins', signin_url='carmacars.ca/sign-in?next=/admin', lands_on='Today, the Admin dashboard')
+        audience='admins', signin_url='carmacars.ca/sign-in?next=/admin', lands_on='To do, the list of what needs you')
 
     g.start_page(
-        who='CarmaCars Admins: the owner of the business and anyone an Admin invites with the Admin role. '
-            'Admin sees and changes everything, and can open any other portal as one of its people.',
-        need=['Your Admin email address. The owner\'s account is rent@carmacars.ca',
+        who='The CarmaCars Admin: the owner of the business, signed in as rent@carmacars.ca. '
+            'Admin sees and changes everything, and can open any other portal as one of its people. Staff work in the staff portal instead.',
+        need=['The Admin email address: rent@carmacars.ca. Only that address can hold the Admin role (Admin > Settings > Admin access lists it)',
               'Access to that inbox (links work for 24 hours, once)',
-              'A computer for most work. Admin also works on a phone, with the menu as one scrolling strip'],
+              'A computer for most work. Admin also works on a phone, with the whole menu behind one Menu button'],
         first_steps=[
             f'First time? Go to {U("carmacars.ca/reset-password")}, enter your Admin email and press {B("Send the link")}.',
             f'Open the email "Reset your CarmaCars password" within 24 hours and press {B("Choose a new password")}.',
@@ -26,33 +26,40 @@ def build():
 
     # ---------------------------------------------------------------- 1
     g.chapter('Getting around Admin',
-              'Admin opens on Today: what needs you now. The rail on the left groups every screen into '
-              'Operate, Fleet, Money, Recover, People and Setup.',
-              blurb='Today, the rail, keyboard shortcuts and your other portals.')
-    g.task('Today', 'Start every shift here.')
+              'Admin opens on To do: what needs you now, most urgent first. The menu groups every screen into seven groups: '
+              'Today, Bookings, Cars, Owners and partners, Money, People and Settings. Search finds any booking, car or person.',
+              blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
+    g.task('To do', 'Start every shift here. Each line counts what is waiting and has one button to deal with it.')
     g.steps([
-        'Alerts: site setup still to finish, failed scheduled jobs and email use. Each has a link to fix it.',
-        'The tiles count requests waiting, offers out, late returns, failed payments and fleet use.',
-        'Requests waiting, pickups and returns today, late returns and money this month.',
-        f'Press {B("Work the requests")} to go straight to the queue, or {B("Calendar")} for the master calendar.',
-    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 1000,
-              pins=[(1, 1395, 227), (2, 348, 400), (3, 715, 530), (4, 1160, 118)]))
-    g.task('The rail', 'On a phone the rail becomes one scrolling strip at the top.')
+        'The list is in order of urgency: owner applications, booking requests, changes renters asked for, failed payments, agreements to countersign, tolls, listings, plates not checked, insurance and cars using sample photos.',
+        'Press the button on a line to go straight to that work. A line with nothing waiting moves to the bottom, under "more with nothing waiting".',
+        'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
+        f'Press {B("Overview")} for the money, fleet and queue figures and the alerts.',
+    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
+    g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
-        ['Operate', 'Today, Requests, Bookings, Calendar, Tasks'],
-        ['Fleet', 'Vehicles, Listings, Similar cars, Bulk rates'],
-        ['Money', 'Payments and refunds, Insurer invoices, Owner invoices, Owner debits, Owner statements, Payouts, Company statements, Expenses, Reconciliation'],
-        ['Recover', 'Tolls and tickets, Damage, Incidents and claims'],
-        ['People', 'Portals and sign-in, Staff, Owners, Owner forms, Investors, Reviews, Email, Audit log'],
-        ['Setup', 'Settings'],
-    ], head=['Group', 'Screens'])
-    g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the page\'s search box.')
+        ['Today', 'To do, Overview, Tasks'],
+        ['Bookings', 'Requests, Bookings, Calendar, Add a rental, Damage, Incidents and claims, Reviews'],
+        ['Cars', 'Vehicles, Listings, Similar cars, Retire or delete, Rates for many cars'],
+        ['Owners and partners', 'Applications, Owners, Partners, Owner forms, Paid and signed'],
+        ['Money', 'Owner invoices, Owner debits, Payments and refunds, Owner statements, Company statements, Payouts, Tolls and tickets, Insurer invoices, Reconciliation, Expenses'],
+        ['People', 'Renters, Staff, Investors, Portals and view as'],
+        ['Settings', 'All settings, Site, Program, Forms, Guides, Emails, Email log, Sample photos, Audit log'],
+    ], head=['Group', 'Pages'])
+    g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
+    g.task('Search', 'The search box sits at the top of the menu, on every page.')
+    g.steps([
+        'Type a booking number (CC-1042), a plate, a VIN, or a name or email address.',
+        f'Press {B("Search")} (or Enter). Results come in groups: bookings, cars, owners, partners and renters. Open one to go to its page.',
+    ], shot=S('admin/32-search-desktop', 0, 0, 1440, 420, pins=[(1, 107, 190), (2, 1368, 197)]))
+    g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box.')
     g.table([
-        ['g t', 'Today', 'g v', 'Vehicles'],
+        ['g t', 'To do', 'g v', 'Vehicles'],
         ['g r', 'Requests', 'g l', 'Listings'],
-        ['g b', 'Bookings', 'g m', 'Money'],
-        ['g c', 'Calendar', 'g o', 'Tolls'],
-        ['g k', 'Tasks', 'g s', 'Settings'],
+        ['g b', 'Bookings', 'g a', 'Applications'],
+        ['g c', 'Calendar', 'g o', 'Owners'],
+        ['g k', 'Tasks', 'g m', 'Payments and refunds'],
+        ['g s', 'All settings', '/', 'Search'],
     ], head=['Keys', 'Opens', 'Keys', 'Opens'], cls='keys')
 
     # ---------------------------------------------------------------- 2
@@ -60,22 +67,22 @@ def build():
               'Let people in, help them back in when they are locked out, and see exactly what they see. '
               'Every step is recorded in the audit log.',
               blurb='Portals and sign-in, invitations, password links, View as, staff and scorecards.')
-    g.task('Portals and sign-in', f'Open {P("People", "Portals and sign-in")}. Every portal has a card.')
+    g.task('Portals and sign-in', f'Open {P("People", "Portals and view as")}. Every portal has a card.')
     g.steps([
         f'Each card links to {B("Its sign-in page")}, the address to send that person.',
         'Choose a person in the list on the card.',
         f'Press {B("Open as this person")} to see that portal as they see it.',
     ], shot=S('admin/27-portals-desktop', 0, 0, 1440, 820, pins=[(1, 949, 248), (2, 836, 323), (3, 743, 374)]))
 
-    g.task('Invite a person', 'Invitations work for every role. The person gets our invitation email and chooses a password.')
+    g.task('Invite a person', 'Invitations work for staff, field staff, owners and investors. The person gets our invitation email and chooses a password.')
     g.steps([
-        'Under Invite a person, choose the Role: Admin, Staff (assistant), Field staff, Owner on file or Investor on file.',
+        'Under Invite a person, choose the Role: Staff (assistant), Field staff, Owner on file or Investor on file. Admin is not offered: only rent@carmacars.ca can be an Admin.',
         'Fill in the Name and Email.',
         'For staff, pick the Main function, and tick Also covers for any other function they help with. For field staff, pick the Field function.',
         f'Press {B("Invite")}. The link in the email works for 24 hours.',
     ], shot=S('admin/27-portals-desktop', 210, 880, 1440, 1240, pins=[(1, 441, 1027), (2, 825, 1027), (3, 441, 1120), (4, 330, 1196)]))
     g.tip('Someone who already signs in gets the new role at once, with no email. Owners and investors must be on file first: '
-          'Admin > Owners and Admin > Investors also have a one-click invite for a record without a sign-in.')
+          'Owners and partners > Owners and People > Investors also have a one-click invite for a record without a sign-in.')
 
     g.task('Send a password link', 'For anyone who forgot their password or let their invitation expire.')
     g.steps([
@@ -92,19 +99,26 @@ def build():
     ], shot=S('admin/28-view-as-desktop', 0, 0, 1440, 620, pins=[(1, 700, 28), (3, 1360, 28)]))
     g.warn('Can\'t change anything in Admin? You may still be viewing as someone. Look for the red banner and press Exit.')
 
-    g.task('The audit log', f'{P("People", "Audit log")} shows who changed what, and when.')
+    g.task('The audit log', f'{P("Settings", "Audit log")} shows who changed what, and when.')
     g.steps([
         'Changes lists every change with the person, the action, the table and the record. Data access lists lookups of private data.',
         'Every View as is recorded (view_as_start), with the person viewed.',
         'Search by table, record id or value.',
     ], shot=S('admin/29-audit-desktop', 0, 0, 1440, 560, pins=[(1, 325, 174), (2, 562, 260), (3, 1290, 116)]))
 
-    g.task('Staff and roles', f'{P("Settings", "Staff and roles")} (also under {P("People", "Staff")}).')
+    g.task('Staff and roles', f'{P("People", "Staff")} opens Staff and roles.')
     g.steps([
         f'Invite staff here too: Role, Name, Email, Main function and Also covers, then {B("Invite")}.',
         f'Each row has {B("Send password link")}, {B("View as (...)")} and Limits (how much they may approve or refund).',
         f'Press {B("End access")} to close their staff portal at once. {B("Restore")} undoes it.',
     ], shot=S('admin/26-staff-desktop', 0, 0, 1440, 780, pins=[(1, 300, 460), (2, 1360, 676), (3, 1199, 722)]))
+
+    g.task('Admin access', f'{P("Settings", "All settings")}, then Admin access. Who may hold the Admin role.')
+    g.steps([
+        'The list holds rent@carmacars.ca, and verify-admin@carmacars.ca, the automated test account the site\'s nightly checks sign in with.',
+        'Below it: everyone who holds the Admin role now. Each must be on the list; the database refuses the Admin role to any other address.',
+        'Change the list only if the business\'s Admin address changes.',
+    ])
 
     g.task('Staff scorecards', 'See how each assistant is doing against the targets.')
     g.steps([
@@ -118,7 +132,7 @@ def build():
               'Every booking starts as a request. You check it, adjust it and send the offer. After that, the booking '
               'page holds the money, documents, changes and history.',
               blurb='Answer a request with an offer, run a booking, and propose a change.')
-    g.task('The request queue', f'Open {B("Requests")}. The oldest waiting request is at the top.')
+    g.task('The request queue', f'Open {P("Bookings", "Requests")}. The oldest waiting request is at the top.')
     g.steps([
         'Filter by New, Waiting on the renter, Pushed back, Offer out, Signing and payment, or Offer expired.',
         'Waiting shows how long the renter has waited. Open a booking number to answer it.',
@@ -140,7 +154,7 @@ def build():
     g.tip(f'After the offer is out: {B("Withdraw to edit")} takes it back, {B("Send again, later expiry")} gives the renter more time, '
           f'and {B("Renter approved by phone")} records a yes given on a call.')
 
-    g.task('A booking', 'Open Bookings, then a booking number.')
+    g.task('A booking', f'Open {P("Bookings", "Bookings")}, then a booking number. Or type the number in the search box.')
     g.steps([
         'Tabs: Overview, Money, Changes, History, and Drivers and documents.',
         'Overview shows the trip, the renter, what is still missing for the handover, and the price.',
@@ -178,7 +192,7 @@ def build():
     ])
     g.tip('After every confirmed trip a cleaning block holds the car for its turnaround time. It follows changes and '
           'extensions and goes away with a cancellation. Remove it from the side panel if the car is ready sooner; that time is then free.')
-    g.task('A car\'s own calendar', f'{P("Vehicles", "the car", "Calendar")}')
+    g.task('A car\'s own calendar', f'{P("Cars", "Vehicles")}, then the car, then its Calendar tab.')
     g.steps([
         'The Calendar tab shows only this car, with its bookings and blocks.',
         f'Turnaround between trips on this car shows the time used. Press {B("Change")} to give this car its own time.',
@@ -189,16 +203,16 @@ def build():
               'Vehicles is the fleet. Listings is the pipeline that turns a car into a page on carmacars.ca: '
               'photos, copy, a duplicate check and a covered plate on every public photo.',
               blurb='Vehicles, the listing pipeline, similar cars and covering licence plates.')
-    g.task('Vehicles')
+    g.task('Vehicles', f'{P("Cars", "Vehicles")}')
     g.steps([
         'Filter by status and mode. Each row shows the plate, class, owner, mode, status, listing and daily rate.',
-        f'Search by plate, model or owner. {B("Bulk rate change")} changes rates of many cars at once.',
+        f'Search by plate, model or owner. {P("Cars", "Rates for many cars")} changes the rates of many cars at once.',
         'Open a car for its tabs: Overview, Rates, Fees and coverage, Calendar, Listing, and Owner, documents, tracker.',
     ], shot=S('admin/08-vehicles-desktop', 0, 0, 1440, 900, pins=[(1, 267, 174), (2, 1203, 116), (3, 1060, 350)]))
     g.tip('The Tracker card on a car says "Coming soon": live location, the remote immobilize request and mileage from '
           'the tracker need the tracker company\'s connection first.', label='Coming soon')
 
-    g.task('The listing pipeline', f'Open {B("Listings")}. A draft waiting for review shows Needs review.')
+    g.task('The listing pipeline', f'Open {P("Cars", "Listings")}. A draft waiting for review shows Needs review.')
     g.steps([
         'Each row shows the car, plate, state, photos and the pipeline\'s progress.',
         f'Press {B("Start a listing")} to begin one for a car that has none.',
@@ -233,12 +247,27 @@ def build():
     g.warn('Publishing waits for a plate decision on every public photo ("Cover the licence plate or mark it not visible on every '
            'public photo first"). Listings already live show "Plate not checked" until someone checks them.')
 
+    g.task('A listing without photos yet: sample photos', 'A car can be listed before its photos are taken. Until then the site shows a sample photo.')
+    g.steps([
+        'Submit the listing without photos. The listing copy is still written for you from the car\'s details.',
+        'The car page and the car\'s card show a sample photo, captioned "Sample photo", so renters know it is not this car. Staff see "Using sample photos" on the car and in Listings.',
+        'Publishing does not wait for a plate check: a sample photo has no plate.',
+        'Add the real photos when they are taken. Once real photos are approved they replace the sample at once; nothing else to do.',
+    ])
+    g.task('Sample photos', f'{P("Settings", "Sample photos")}. The pictures a car shows until its real photos are in.')
+    g.steps([
+        'Every body type has a built-in picture (sedan, SUV, truck, van, coupe, hatchback, electric car).',
+        f'Add your own: choose the Body type, and a Make and Model if the photo is of that exact model, pick the Photo, and press {B("Add the photo")}.',
+        f'The most specific photo wins: make and model, then make and body type, then body type. {B("Turn off")} or {B("Delete")} a photo you no longer want.',
+        'Cars using sample photos lists the cars still waiting for real photos. It is also a line on To do.',
+    ], shot=S('admin/36-sample-photos-desktop', 0, 160, 1440, 900, pins=[(4, 386, 323)]))
+
     # ---------------------------------------------------------------- 5b
     g.chapter('Partners, company cars and rentals added by hand',
               'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. '
               'You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.',
               blurb='Add a car, partners, add a rental, retire or delete a car, sample cars and tolls with two rentals.')
-    g.task('Add a car', f'{P("Vehicles", "Add a car")}. First choose who supplies it.')
+    g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. First choose who supplies it.')
     g.steps([
         B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
         f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
@@ -248,7 +277,7 @@ def build():
     g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
-    g.task('Partners', f'{P("People", "Partners")}. Partner rental companies whose cars we rent out on commission.')
+    g.task('Partners', f'{P("Owners and partners", "Partners")}. Partner rental companies whose cars we rent out on commission.')
     g.steps([
         f'Press {B("Add a partner")}: business and legal name, contacts, HST number, commission and insurance with its expiry date.',
         'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).',
@@ -256,24 +285,24 @@ def build():
         f'Portal: {B("Invite to the owner portal")} gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.',
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
     ])
-    g.warn('The partner agreement is a draft for lawyer review. Use it only once it is approved.')
 
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
     g.steps([
         'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
         'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
         'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
-        f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card")} or {B("Unpaid: invoice later")}.',
+        f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card when the renter signs")} or {B("Unpaid: invoice later")}.',
         f'Press {B("Check the calendar and the price")}. Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
     ])
-    g.tip('The rental is confirmed and on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. '
+    g.tip('The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. '
+          'With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. '
           f'On the booking, {B("Verified in person")} records a licence checked at the counter. A past rental is recorded as completed.')
 
-    g.task('Retire or delete a car', f'{P("Vehicles", "the car")}, then {B("Retire or delete")}.')
+    g.task('Retire or delete a car', f'{P("Cars", "Retire or delete")}, or the car\'s own page.')
     g.steps([
         f'{B("Retire this car")} takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. {B("Restore")} brings it back.',
         f'{B("Delete this car")} removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.',
-        f'{P("Vehicles", "Sample cars")}, then {B("Delete all sample cars")}, deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.',
+        f'On the same page, {B("Delete all sample cars")} deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.',
     ])
 
     g.task('Tolls when two rentals overlap')
@@ -282,21 +311,32 @@ def build():
 
     # ---------------------------------------------------------------- 6
     g.chapter('Owners and onboarding',
-              'Owners apply on the site. You approve them, set their terms, and check their forms. '
-              'Their page shows everything about them in one place.',
-              blurb='Applications, terms, an owner\'s page, sign-in help and Forms C and D.')
-    g.task('Owner applications', f'{P("People", "Owners")}')
+              'Owners apply on the site with List your car. Every application waits for you in one place, Applications: '
+              'approve it, ask the owner for something, or decline it. Approved owners sign and pay in their portal.',
+              blurb='Applications, an owner\'s page, paid and signed, and Forms C and D.')
+    g.task('Applications', f'{P("Owners and partners", "Applications")}. Every owner application, newest first.')
+    g.steps([
+        'The chips filter by status: New, Waiting on owner, Approved, Declined, or All. New applications also show on To do.',
+        'Each row shows the application number, the owner, the car, how many of the four checks are done, and when they applied.',
+        'Open an application to decide.',
+    ], shot=S('admin/33-applications-desktop', 0, 0, 1440, 640, pins=[(1, 530, 254), (2, 700, 340), (3, 285, 340)]))
+    g.task('Decide on an application', 'One page holds everything: the owner, the car, the uploads, the four checks and the notes.')
+    g.steps([
+        'Check the driver\'s licence, the ownership, the insurance and the lender or lessor. Mark each one Checked, fine, Problem or Not needed.',
+        f'Press {B("Approve")}. The owner becomes active, the car gets its terms from the standard grid, the first and last month\'s invoices are issued, and the owner gets an email to sign and pay in the owner portal.',
+        f'Missing something? Press {B("Ask for something")}, tick what you need (for example the ownership permit or the insurance slip), add a message if you like, and press {B("Send to the owner")}. The owner gets an email and a task in their portal; the application shows Waiting on owner until they answer.',
+        f'Not a fit? Press {B("Decline")}, write the Reason the owner reads, and press {B("Decline the application")}. The owner is emailed for each car.',
+    ], shot=S('admin/34-application-desktop', 0, 160, 1440, 900, pins=[(1, 1050, 633), (2, 1064, 436), (3, 1220, 436), (4, 1050, 491)]))
+    g.tip(f'Notes on the page are for staff only: {B("Add note")} keeps a line on the record. When the owner answers a request, their answer is in the notes and the application is New again.')
+    g.task('Owners', f'{P("Owners and partners", "Owners")}. Every owner, with their cars and where onboarding stands.')
     g.steps([
         'Each owner shows their application, how many cars, and where onboarding stands.',
         f'{B("View as (owner portal)")} shows their portal. {B("Send password link")} helps them sign in.',
         f'Invite an owner on file: fill in Name and Email under Invite an owner, then press {B("Send invitation")}.',
     ], shot=S('admin/12-owners-desktop', 0, 0, 1440, 560, pins=[(1, 590, 240), (2, 539, 276), (3, 1114, 462)]))
-    g.task('Approve an application and set terms')
-    g.steps([
-        f'Open the application and press {B("Approve and set terms")} (or {B("Set terms (standard grid)")}).',
-        'The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready, with one signature) and pays the upfront invoice.',
-        f'Paid another way? On the invoice, press {B("Record payment")} (see Paid and signed, below).',
-    ])
+    g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready). '
+           'The confirmations to tick, then one signature: CarmaCars countersigns at the same moment, under the signing officer\'s standing authorization. '
+           'A car with a second owner on the ownership waits for that owner too: they get their own link by email and sign the same documents.')
     g.task('An owner\'s page', 'Open an owner from Owners. The details are in the right-hand column.')
     g.steps([
         'Upfront invoices: issue the first and last month\'s insurance fee for each car whose terms are set.',
@@ -306,7 +346,7 @@ def build():
         f'Further down: {B("View as (owner portal)")}, {B("Send password link")} and {B("Send a sign-in link to the owner portal")}.',
     ], shot=S('admin/13-owner-desktop', 1010, 280, 1420, 1310, hdr=False, pins=[(1, 1111, 325), (2, 1076, 619), (3, 1139, 1034), (4, 1097, 1290)]))
 
-    g.task('Paid and signed', f'{P("People", "Owners")}, then {B("Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
+    g.task('Paid and signed', f'{P("Owners and partners", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
         f'Open {B("Checklist and quick actions")}. Each line says Signed in the portal, Signed on paper, Paid by e-Transfer, Not signed, and so on.',
@@ -318,7 +358,7 @@ def build():
            'A paper signature counts as signed everywhere: the checklist, onboarding and the owner portal. The scan is kept privately with the owner\'s documents.')
     g.warn(f'Recorded the wrong thing, or a cheque bounced? Press {B("Void")} beside it and give the reason. The invoice owes that amount again and the owner is told; a voided signature makes the item open again. Only an Admin can void.')
 
-    g.task('Forms C and D', f'{P("People", "Owner forms")}. Owners print them filled in, sign in front of witnesses and send a photo of each page from their phone.')
+    g.task('Forms C and D', f'{P("Owners and partners", "Owner forms")}. Form C is signed on screen in the owner portal, with the witness on the same screen. Form D (and Form C on paper, if the owner prefers) is printed, signed in front of witnesses, and sent as a photo of each page.')
     g.steps([
         'Each row shows the owner, the form, the witnesses and when it was uploaded.',
         'Press Open to read the photo or scan. Check each marked spot is signed or initialled.',
@@ -339,11 +379,11 @@ def build():
     ], shot=S('admin/14-owner-invoices-desktop', 0, 0, 1440, 1060, pins=[(1, 1200, 237), (2, 600, 378), (3, 418, 460), (4, 743, 894)]))
 
     g.task('The automatic debit', 'The debit runs by itself. Your job is to watch for returned debits and owners without a mandate.')
-    g.flow([('Notice day', 'The 5th: invoices issued, one notice per owner'),
+    g.flow([('Notice day', 'Invoices issued, one notice per owner, 10 days before'),
             ('Debit day', 'The 15th from 6:00: one debit per invoice'),
-            ('Results', 'Cleared: paid. Returned: $50 Late Fee once'),
-            ('Retry', 'From the 18th: the second and last try'),
-            ('Arrears', 'Returned again: a task and an email to you')])
+            ('Cleared', 'The invoice is paid'),
+            ('Returned, insufficient funds', 'The $50.00 Late Fee is added once; the same amount is tried again within 30 days'),
+            ('Returned for another reason', 'No retry and no Late Fee: the debit pauses and you get a task')])
     g.steps([
         'The tiles show the next debit day and notice day, scheduled, processing, cleared and returned debits.',
         'How it runs explains the policy in words, read from Program settings.',
@@ -355,8 +395,11 @@ def build():
         'Run log: each notice and debit run, with its counts.',
         'Notices sent: who was told what, for which debit day.',
     ], shot=S('admin/15-owner-debits-desktop', 210, 940, 1440, 1460, pins=[(5, 345, 1015), (6, 335, 1212), (7, 400, 1407)]))
-    g.warn('A debit is never more than its notice said. An owner with no mandate gets an email on the notice day and you get a '
-           'task; nothing is debited for them. Change the days, retries and Late Fee under Debit settings (Program settings).')
+    g.para('Insufficient funds: the $50.00 Late Fee is added to that invoice once and collected with the owner\'s next debit, and the original amount is tried again within 30 days, '
+           'as section 4.4 of the Enrollment Agreement sets out. The retry is never more than the original amount. Returned again: the invoice is in arrears and you get a task.')
+    g.warn('Returned for any other reason (account closed, payment stopped, no authorization): there is no retry and no Late Fee. The owner\'s debit pauses, '
+           'the owner gets an email asking them to fix the account or pay another way, and you get a task. A debit is never more than its notice said. '
+           'An owner with no mandate gets an email on the notice day and you get a task; nothing is debited for them.')
 
     g.task('Owner statements', f'{P("Money", "Owner statements")}')
     g.steps([
@@ -380,7 +423,7 @@ def build():
               'Toll notices and tickets arrive by mail and email. Read them into the system, check each line against '
               'the notice, and the matching, charges and emails follow.',
               blurb='The work queue, reading a notice, checking its lines and charging the right person.')
-    g.task('The work queue', f'{P("Recover", "Tolls and tickets")}')
+    g.task('The work queue', f'{P("Money", "Tolls and tickets")}')
     g.steps([
         'Filter the queue: Unmatched, Needs review, Matched not charged, Owner not billed, Staff, Charged not notified, Disputed.',
         'Each toll shows its notice, kind, issuer, plate, when, amount and who it was matched to.',
@@ -447,7 +490,8 @@ def build():
     g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are made from the person\'s record and signed in their own portal, or on paper.')
     g.steps([
         f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send the agreement to sign")}. Check the values it is filled with (amount, yearly percentage, dates, exemption) and press {B("Send to sign")}.',
-        f'Staff: open {P("Settings", "Staff and roles")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Rate, hours and the other values start from the staff profile and Program settings; change any before sending.',
+        f'Once the investor signs, the agreement shows {B("Awaiting countersignature")} on the investor\'s page and on To do. It is not countersigned automatically: check it and press {B("Countersign")}. CarmaCars is bound once it has countersigned and the funds clear.',
+        f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Rate, hours and the other values start from the staff profile and Program settings; change any before sending.',
         'They get a notice, check the key values and sign in their portal in a few taps (their name is the signature, or they draw it). The signed copy is filed with their documents.',
         f'Your own PDF instead? {B("Send a PDF to sign")} still works.',
         f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',
@@ -462,12 +506,14 @@ def build():
         f'Press {B("Publish version")} (the next number). The portals show the new version at once.',
         'The stored PDF is printed again by the guides-pdf workflow. Until then the guide says the web guide has newer edits.',
     ])
-    g.task('Keeping the screenshots current', 'The guides workflow retakes every screenshot and replaces the ones whose screen changed.')
+    g.task('The guides keep up by themselves', 'After every update of the site that changes the portals, the guides are checked without anyone asking.')
     g.steps([
-        f'A guide with screens that changed shows {B("To review")}; the section shows {B("Needs review")} with the screenshot before and now (the new one is already in the guide).',
-        f'Read the text against the new screenshot. Press {B("Suggest a text update")} for a suggestion from Workers AI, then {B("Use this text as the draft")} or {B("Dismiss the suggestion")}.',
-        f'Press {B("Mark reviewed")}, then {B("Publish version")} when the text is right, and run guides-pdf for the PDFs.',
+        'Every screenshot is taken again on the new version of the site. One whose screen changed replaces the old one in the guide.',
+        'The text of each section whose screen changed, or that names a button the portals no longer show, is rewritten from the portal\'s own labels and menu, checked, and published. The PDFs of those guides are printed again.',
+        f'Such a section says {B("Changed automatically on")} and the date, in the list of guides and in the guide\'s editor. Not right? Open the section and press {B("Revert")}: the text it replaced comes back, published at once.',
+        f'A rewrite that did not pass the checks is not published. Its section shows {B("Needs review")} with the suggested text: press {B("Use this text as the draft")} or {B("Dismiss the suggestion")}, then {B("Mark reviewed")}.',
     ])
+    g.tip('The card "The guides keep up by themselves" at the top of Guides lists the last runs: when, how many screenshots were replaced, how many sections were rewritten or wait for review, and how many PDFs were printed.')
 
     g.task('Insurers and the other lists')
     g.steps([
@@ -480,7 +526,7 @@ def build():
     g.chapter('Email, backups and site health',
               'Keep an eye on email use against the daily limit, the nightly backup and the occasional error page.',
               blurb='The email outbox and daily limit, suppressions, backups and Error 1102.')
-    g.task('Email', f'{P("People", "Email")}')
+    g.task('Email', f'{P("Settings", "Email log")}')
     g.steps([
         'The banner shows today\'s emails against the daily limit. From 80, Admins get a notice; near the limit, digests and marketing wait first and booking and sign-in emails are held last.',
         'Filter the Outbox: All, Queued, Held, Sent, Failed, Suppressed or Skipped.',
@@ -492,7 +538,7 @@ def build():
     g.bullets([
         'The database is backed up every night, encrypted, kept for 30 days and test-restored on the spot.',
         'Every Monday the newest backup is checked again: it must be under 30 hours old and restore cleanly.',
-        'Nothing is emailed. A failed backup shows as a failed scheduled job under Alerts on Today. Tell your developer the same day.',
+        'Nothing is emailed. A failed backup shows as a failed scheduled job under Alerts on the Overview. Tell your developer the same day.',
         'Keep a copy of the backup key in the company password manager. Without it no backup can be read.',
     ])
 
@@ -501,23 +547,21 @@ def build():
            'Moving to the Workers Paid plan removes it.')
 
     g.reference(
-        nav_rows=[('Today', 'Alerts and what needs you now'),
-                  ('Requests', 'Answer requests with offers'),
-                  ('Bookings', 'Overview, Money, Changes, History'),
-                  ('Calendar', 'Every car; drag, block, unblock'),
-                  ('Vehicles, Listings', 'Fleet and listing pipeline'),
-                  ('Owner invoices, debits', 'Fees and the 15th debit'),
-                  ('Owner statements', 'Build, approve, issue'),
-                  ('Tolls and tickets', 'Read a notice, work queue'),
-                  ('Portals and sign-in', 'Invite, password links, View as'),
-                  ('Settings', 'Site, program, forms, insurers')],
-        top_tasks=[('Send an offer', f'{P("Requests", "booking", "Send the offer")}'),
-                   ('Change a booking', f'{P("Booking", "Changes", "Send to the renter")}'),
+        nav_rows=[('To do', 'What needs you now, most urgent first'),
+                  ('Search', 'Any booking, plate, VIN, name or email'),
+                  ('Bookings', 'Requests, bookings, the calendar, adding a rental'),
+                  ('Cars', 'Vehicles, listings, sample photos'),
+                  ('Owners and partners', 'Applications, owners, partners, owner forms'),
+                  ('Money', 'Owner invoices and debits, payments, statements, tolls'),
+                  ('People', 'Renters, staff, investors, View as'),
+                  ('Settings', 'Site, program, forms, guides, emails, audit log')],
+        top_tasks=[('Answer an application', f'{P("Owners and partners", "Applications")}, then {B("Approve")}, {B("Ask for something")} or {B("Decline")}'),
+                   ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
+                   ('Change a booking', f'The booking\'s Changes tab, then {B("Send to the renter")}'),
                    ('Publish a listing', f'{B("Cover the plate")}, then {B("Approve and publish")}'),
-                   ('Let someone in', f'{P("Portals and sign-in", "Invite")}'),
+                   ('Let someone in', f'{P("People", "Portals and view as")}, then {B("Invite")}'),
                    ('Help someone sign in', f'{B("Send password link")}'),
-                   ('See what they see', f'{B("Open as this person")}'),
-                   ('Read a toll notice', f'{P("Tolls and tickets", "Read a notice")}'),
+                   ('Read a toll notice', f'{P("Money", "Tolls and tickets")}, then {B("Read a notice")}'),
                    ('Monthly statements', f'{B("Build all for a month")}, Approve, Issue')],
         extra_problems=[('You can\'t change anything', 'You are viewing as someone. Press Exit on the red banner.'),
                         ('Asked for a 6-digit code', 'Open your authenticator app. Lost phone: remove the factor in the Supabase dashboard.')])

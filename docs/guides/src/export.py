@@ -37,7 +37,9 @@ def md_text(s):
     s = s or ''
     s = re.sub(r'<b class="ui[^"]*">(.*?)</b>', r'**\1**', s)
     s = re.sub(r'<span class="url">(.*?)</span>', r'`\1`', s)
-    s = re.sub(r'<span class="path">(.*?)</span>', lambda m: ' > '.join('**' + p + '**' for p in re.findall(r'<span>(.*?)</span>', m.group(1))), s)
+    # a path through the menus ends with its last part's </span> and its own: P('Money', 'Owner debits') is **Money** > **Owner debits**
+    s = re.sub(r'<span class="path">((?:<span>.*?</span>(?:<i class="sep">.*?</i>)?)+)</span>',
+               lambda m: ' > '.join('**' + p + '**' for p in re.findall(r'<span>(.*?)</span>', m.group(1))), s)
     s = re.sub(r'</?(b|strong)>', '**', s)
     s = re.sub(r'</?(i|em)>', '*', s)
     s = re.sub(r'<br\s*/?>', ' ', s)
@@ -180,7 +182,8 @@ class MdGuide(lib.Guide):
         self.cur = sec
         self._add('### Where things are\n\n| Item | What it is for |\n| --- | --- |\n' +
                   '\n'.join(f'| **{md_text(a)}** | {md_text(b)} |' for a, b in nav_rows))
-        self._add('### Top tasks\n\n' + '\n'.join(f'{i + 1}. **{md_text(a)}** {md_text(b)}' for i, (a, b) in enumerate(top_tasks)))
+        # a task's name in italics: it names a task of this guide, not a button (the label check reads bold words as buttons)
+        self._add('### Top tasks\n\n' + '\n'.join(f'{i + 1}. *{md_text(a)}:* {md_text(b)}' for i, (a, b) in enumerate(top_tasks)))
         probs = [
             ('A link says it expired', f'Links in our emails work for 24 hours, once. Press {lib.B("Send me a new link")} on that page.'),
             ('"Error 1102" on a page', 'A short limit on our web host. Reload the page. You are still signed in.'),

@@ -546,10 +546,14 @@ end $$;
 -- asked for, until the owner answers.
 create or replace function app.owner_application_task(p_by uuid) returns jsonb
 language sql stable security definer set search_path = public, app as $$
+  -- waiting on the owner: the task; answered in the last three days: a thank-you note in its place, until CarmaCars decides
   select (select jsonb_build_object('id', a.id, 'application_number', a.application_number, 'requested_at', a.requested_at, 'message', a.request_message,
+            'answered', a.status = 'new',
             'items', (select coalesce(jsonb_agg(e ->> 'label'), '[]'::jsonb) from jsonb_array_elements(app.application_request_items()) e where e ->> 'code' = any (a.requested_items)))
             from owner_applications a join owners o on o.id = a.owner_id
-           where (o.user_id = p_by) and a.status = 'waiting_on_owner' order by a.requested_at desc limit 1)
+           where (o.user_id = p_by) and (a.status = 'waiting_on_owner'
+                  or (a.status = 'new' and a.owner_replied_at >= a.requested_at and a.owner_replied_at > now() - interval '3 days'))
+           order by a.requested_at desc limit 1)
 $$;
 
 -- ================================================================ 3. To do, search
@@ -619,13 +623,13 @@ begin
         select jsonb_build_object('title', b.booking_number, 'sub', concat_ws(' · ', r.legal_name, app.vehicle_name(b.vehicle_id), replace(b.status::text, '_', ' ')),
                                   'href', '/admin/bookings/' || b.booking_number) x
           from bookings b left join renters r on r.id = b.renter_id
-         where upper(b.booking_number) like '%' || n || '%' or lower(coalesce(b.agreement_number, '')) like l
+         where (n <> '' and upper(regexp_replace(b.booking_number, '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%') or lower(coalesce(b.agreement_number, '')) like l
          order by b.pickup_at desc limit 8) s), '[]'::jsonb)),
     jsonb_build_object('key', 'cars', 'label', 'Cars', 'rows', coalesce((select jsonb_agg(x) from (
         select jsonb_build_object('title', app.vehicle_name(v.id), 'sub', concat_ws(' · ', 'plate ' || nullif(v.plate, ''), 'VIN ' || v.vin, replace(v.status::text, '_', ' ')),
                                   'href', '/admin/vehicles/' || v.id) x
           from vehicles v
-         where (n <> '' and (upper(coalesce(v.plate, '')) like '%' || n || '%' or upper(coalesce(v.vin, '')) like '%' || n || '%'))
+         where (n <> '' and (upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%' or upper(coalesce(v.vin, '')) like '%' || n || '%'))
             or lower(concat_ws(' ', v.year::text, v.make, v.model)) like l or lower(coalesce(v.fleet_number, '')) like l
          order by v.created_at desc limit 8) s), '[]'::jsonb)),
     jsonb_build_object('key', 'owners', 'label', 'Owners', 'rows', coalesce((select jsonb_agg(x) from (

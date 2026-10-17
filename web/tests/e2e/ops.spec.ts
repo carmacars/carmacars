@@ -15,7 +15,7 @@ import { acceptCookies, db, noOverflow } from './helpers';
 // - field staff take the listing photos inside the photo-shoot job and submits them
 // Every page is checked with axe, for overflow and with the copy rules.
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
@@ -217,8 +217,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await expect(rp.getByTestId('change-reason')).toContainText('keep the car one more day');
     await expect(rp.getByTestId('change-money')).toContainText('Extra to pay');
     await check(rp, 'renter change page');
-    // the amendment says CarmaCars signs it automatically, in the name of the staff member who proposed it (0051)
-    await expect(rp.locator('body')).toContainText('CarmaCars signs this amendment electronically, in the name of');
+    // the amendment says CarmaCars signs it at the moment the renter signs (the legal review, 0053); no staff member is named as signer
+    await expect(rp.locator('body')).toContainText('CarmaCars signs this amendment electronically at the moment the Renter signs it.');
     await rp.getByTestId('change-accept').click();
     await expect(rp.getByText('Tick the statement to sign.').first()).toBeVisible();
     await rp.getByTestId('amend-agree').check();
@@ -234,9 +234,10 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
       from bookings b where b.id = ${req.booking_id}`;
     expect(new Date(after!.return_at as string).getTime()).toBe(later.getTime());
     expect(after).toMatchObject({ st: 'applied', amend: 'signed/true' });
-    const [cs] = await sql`select r.method, r.signer_role, r.signer_title from booking_amendments a join signature_records r on r.id = a.countersignature_record_id
+    const [cs] = await sql`select r.method, r.signer_role, r.signer_title, r.signer_name from booking_amendments a join signature_records r on r.id = a.countersignature_record_id
       where a.change_request_id = ${cr!.id} and a.status = 'signed'`;
-    expect(cs, 'CarmaCars countersigned the amendment').toMatchObject({ method: 'automatic', signer_role: 'carmacars', signer_title: 'for CarmaCars' });
+    // countersigned by the signing officer under the standing authorization, not by the staff member (0053)
+    expect(cs, 'CarmaCars countersigned the amendment').toMatchObject({ method: 'automatic', signer_role: 'carmacars', signer_title: 'Director', signer_name: 'Abbas Al-Mashita' });
     expect(after!.pay).toBe(`succeeded:${cr!.diff}`);
     // the signed amendment downloads as a PDF from the booking's documents
     const link = rp.getByTestId('doc-rental_amendment').last();

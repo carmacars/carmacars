@@ -12,7 +12,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 // with axe (no serious or critical issue), for horizontal overflow and with the copy rules.
 const SHOTS = 'test-results/owner';
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -230,8 +230,11 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.locator('#ow-btransit').fill('12345');
   await page.locator('#ow-bacct').fill('1234567');
   await page.getByRole('button', { name: /Authorize debit/ }).click();
-  await expect(page.locator('#ow-agree-err')).toContainText('accept the pre-authorized debit');
-  await page.locator('label:has-text("I accept the pre-authorized debit agreement")').click();
+  // two boxes (the legal review, 0053): the one-time debit is required; the recurring debit is ticked and can be unticked
+  await expect(page.locator('#ow-agree-err')).toContainText('Tick the first box to authorize this one-time debit.');
+  await expect(page.getByTestId('pad-one-time')).toContainText('I waive pre-notification and any waiting period for this one-time debit.');
+  await expect(page.getByTestId('pad-recurring').locator('input')).toBeChecked();
+  await page.getByTestId('pad-one-time').locator('input').check();
   await page.getByRole('button', { name: /Authorize debit/ }).click();
   await expect(page.getByTestId('invoice-pending')).toContainText('processing', { timeout: 20_000 });
   const [pend] = await sql`select d.processor_payment_id pid, p.status from payments p join payment_processor_details d on d.payment_id = p.id where p.owner_invoice_id = ${invoices[1]!.id}`;

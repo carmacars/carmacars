@@ -40,7 +40,14 @@ export function fakeText(): TextGenerator {
   return {
     name: 'fake',
     model: 'fake-draft-v1',
-    async generate<T>(req: { prompt: string }): Promise<GenerateResult<T>> {
+    async generate<T>(req: { prompt: string; task?: string }): Promise<GenerateResult<T>> {
+      // a guide section to rewrite (0055): each missing button renamed to its closest label, nothing invented
+      if (req.task === 'guide_rewrite') {
+        if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
+        // imported only here: the unit tests load this file without the app's path aliases
+        const { fakeRewrite } = await import('../../features/guides/upkeep');
+        return { ok: true, data: fakeRewrite(req.prompt) as T, model: 'fake-draft-v1', usage: { inputTokens: req.prompt.length / 4, outputTokens: 400, neurons: 0 } };
+      }
       const m = /<facts>([\s\S]*?)<\/facts>/.exec(req.prompt);
       let facts: Facts = {};
       try { facts = JSON.parse(m?.[1] ?? '{}') as Facts; } catch { /* empty facts */ }

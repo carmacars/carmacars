@@ -177,3 +177,14 @@ export async function resolveGuideReview(portal: string, sectionId: string, acti
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }
+
+/** Undo a section's automatic change (migration 0055): the text it replaced comes back, published at once. */
+export async function revertGuideAuto(portal: string, sectionId: string): Promise<R<{ version: number }>> {
+  try {
+    const { user, aal } = await me();
+    if (!isGuidePortal(portal)) return { ok: false, code: 'invalid', message: 'Unknown guide.' };
+    const r = await door<{ version: number }>(user.id, 'ops_do', 'guide_auto_revert', { id: sectionId }, aal);
+    refresh(portal);
+    return { ok: true, data: { version: r.version } };
+  } catch (e) { return fail(e); }
+}

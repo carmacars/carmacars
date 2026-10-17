@@ -12,7 +12,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 // built with its ties. Every admin page visited is checked with axe, for overflow and with the copy rules.
 const SHOTS = 'test-results/admin';
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211|Canada Inc\b/i, 'numbered company name'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 
@@ -95,7 +95,9 @@ test('admin: dashboard, review a request, adjust, re-price, send the offer, the 
   const errors = watch(page);
 
   const ap = await adminCtx(browser, vp(phone), a.email);
-  await expect(ap.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible();
+  await expect(ap.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible();
+  await expect(ap.getByTestId('todo-requests')).toBeVisible();
+  await ap.goto('/admin/overview', { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('dash-requests')).toBeVisible();
   await ap.screenshot({ path: `${SHOTS}/dashboard-${info.project.name}.png`, fullPage: true });
   await check(ap, 'dashboard');

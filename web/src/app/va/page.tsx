@@ -8,7 +8,7 @@ import { QueueLive } from '@/features/va/QueueLive';
 import { signCount } from '@/features/manual/SignPages';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Queue', path: '/va', noindex: true, description: 'The assistant\'s work queue.' });
+export const metadata = pageMeta({ title: 'To do', path: '/va', noindex: true, description: 'The assistant\'s work queue.' });
 
 // One queue per function (05-va.md section 1.1): the open tasks, by priority then due time. Each task
 // opens the screen where it is done.
@@ -26,7 +26,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   return (
     <>
       <QueueLive open={all.length} />
-      <PageHead title="Queue" kicker={`${FN_LABEL[fn]} · ${all.length} open`}><Link prefetch={false} className="btn btn--ghost btn--sm" href="/va/today">Today</Link></PageHead>
+      <PageHead title="To do" kicker={`${FN_LABEL[fn]} · ${all.length} open`}><Link prefetch={false} className="btn btn--ghost btn--sm" href="/va/today">Today</Link></PageHead>
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="va-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/va/sign">Read and sign</Link></span></p>}
       <Filters base="/va" name="tab" value={tab} sp={sp} options={[['all', `All (${all.length})`], ['mine', `Mine (${count('mine')})`], ['unassigned', `Unassigned (${count('unassigned')})`], ['waiting', `Waiting (${count('waiting')})`]]} />
       <Filters base="/va" name="only" value={sp.only ?? ''} sp={sp} options={[['', 'Any time'], ['overdue', 'Overdue'], ['today', 'Due today'], ['escalated', 'Escalated']]} />

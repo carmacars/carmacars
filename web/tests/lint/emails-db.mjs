@@ -128,7 +128,8 @@ for (const e of cat.emails.filter((x) => !codes.length || codes.includes(x.code)
   try { subject = renderText(e.subject, values); html = render(th, values); text = renderText(tt, values); } catch (err) { bad(e.code, `does not render (${src}): ${err.message}`); continue; }
   if (/\{\{|\}\}/.test(html + text + subject)) bad(e.code, 'a merge tag is left in the email');
   if (/[—–]/.test(html.replace(/<style[\s\S]*?<\/style>/g, '') + text + subject)) bad(e.code, 'long dash in the email');
-  if (/18122211|Canada Inc/i.test(html + text)) bad(e.code, 'numbered company name');
+  // the payee of owner billing is "<legal name>, operating as CarmaCars" (the legal review, 0053); the number alone never shows
+  if (/18122211|Canada Inc/i.test((html + text).replace(/18122211 Canada Inc\.?,? (?:operating as|o\/a) CarmaCars/gi, 'CarmaCars'))) bad(e.code, 'numbered company name');
   if (/\bCarma[ -]Cars\b|\bCarmacars\b(?!\.ca)/.test(text + subject)) bad(e.code, 'brand misspelled');
   for (const v of e.variables) {
     const x = values[v.name];

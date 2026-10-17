@@ -3721,6 +3721,10 @@ export type Database = {
           suggestion_md: string | null;
           suggestion_at: string | null;
           suggestion_model: string | null;
+          auto_updated_at: string | null;
+          auto_update_reason: string | null;
+          auto_update_run: string | null;
+          auto_prev: Json | null;
         };
         Insert: {
           id?: string;
@@ -3752,6 +3756,10 @@ export type Database = {
           suggestion_md?: string | null;
           suggestion_at?: string | null;
           suggestion_model?: string | null;
+          auto_updated_at?: string | null;
+          auto_update_reason?: string | null;
+          auto_update_run?: string | null;
+          auto_prev?: Json | null;
         };
         Update: {
           id?: string;
@@ -3783,6 +3791,52 @@ export type Database = {
           suggestion_md?: string | null;
           suggestion_at?: string | null;
           suggestion_model?: string | null;
+          auto_updated_at?: string | null;
+          auto_update_reason?: string | null;
+          auto_update_run?: string | null;
+          auto_prev?: Json | null;
+        };
+        Relationships: [];
+      };
+      guide_upkeep_runs: {
+        Row: {
+          id: string;
+          run: string;
+          sha: string | null;
+          status: string;
+          images: number;
+          sections_rewritten: number;
+          sections_flagged: number;
+          pdfs: number;
+          result: Json;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          run: string;
+          sha?: string | null;
+          status?: string;
+          images?: number;
+          sections_rewritten?: number;
+          sections_flagged?: number;
+          pdfs?: number;
+          result?: Json;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          run?: string;
+          sha?: string | null;
+          status?: string;
+          images?: number;
+          sections_rewritten?: number;
+          sections_flagged?: number;
+          pdfs?: number;
+          result?: Json;
+          started_at?: string;
+          finished_at?: string | null;
         };
         Relationships: [];
       };
@@ -13216,10 +13270,14 @@ export type Database = {
       server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
       server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_guide_auto_update: { Args: { p: Json }; Returns: Json };
       server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };
       server_guide_print_content: { Args: { p_portal: string }; Returns: Json };
       server_guide_upkeep_apply: { Args: { p: Json }; Returns: Json };
+      server_guide_upkeep_last_sha: { Args: never; Returns: string };
+      server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
+      server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };

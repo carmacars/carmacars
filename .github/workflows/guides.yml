@@ -11,6 +11,14 @@ name: guides
 # as the guides crop it and compared with the image the live guide shows (a perceptual difference above 3%). A changed
 # one is sent to carmacars.ca's job endpoint: stored, put in place of the old image in the guides (drafts and published
 # copies), and its sections flagged "needs review" in Admin > Settings > Guides. Run guides-pdf afterwards for the PDFs.
+#
+# The guides keep up by themselves (auto = true; migration 0055): the deploy job of ci.yml starts this workflow after
+# every successful deploy. The first job stops it within a minute when nothing under web/src or docs/guides changed
+# since the commit of the last finished run. Otherwise: the screenshots as above, then the text of every section whose
+# screenshot changed or that names a button no screen shows any more is rewritten by Workers AI, held to facts read from
+# the code (web/scripts/portal-facts.mjs), and published when it passes the checks (Admin > Settings > Guides shows
+# "Changed automatically on <date>" with a Revert); then the PDFs of the guides that changed are printed again
+# (web/scripts/guides-pdf.mjs, as guides-pdf.yml does), and the run is recorded with its commit.
 on:
   workflow_dispatch:
     inputs:
@@ -22,9 +30,53 @@ on:
         description: Compare with the live guides and replace the screenshots that changed (flagged for review)
         type: boolean
         default: true
+      rewrite:
+        description: Also rewrite the text of the sections that changed or name missing buttons (Workers AI, published when it passes the checks)
+        type: boolean
+        default: false
+      auto:
+        description: After a deploy (ci.yml starts it) - skip when nothing changed, rewrite the text, print the PDFs, record the run
+        type: boolean
+        default: false
+
+concurrency:
+  group: guides
+  cancel-in-progress: false
 
 jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.c.outputs.run }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Anything to do?
+        id: c
+        run: |
+          if [ "${{ inputs.auto }}" != true ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          echo "::add-mask::$L"
+          T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
+          echo "::add-mask::$T"
+          LAST=$(curl -sS https://carmacars.ca/api/jobs/guide-upkeep-run -H "Authorization: Bearer $T" | jq -r '.sha // empty')
+          if [ -n "$LAST" ] && git cat-file -e "$LAST^{commit}" 2>/dev/null && git diff --quiet "$LAST" HEAD -- web/src docs/guides/src; then
+            echo "::notice title=guides::nothing under web/src or docs/guides/src changed since ${LAST::7}: the guides are up to date"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=guides::changes since ${LAST:-the first run}: ${{ github.sha }}"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   shots:
+    needs: check
+    if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     defaults:
@@ -87,18 +139,37 @@ jobs:
           BASE_URL=http://localhost:3000 ../.github/ci-run.sh "Screenshots" node scripts/guide-shots.mjs --out "$RUNNER_TEMP/guides" ${{ inputs.portals && format('--portals {0}', inputs.portals) || '' }}
           jq -r '"\(.screens | length) screenshots, \(.problems | length) problems"' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::notice title=guides::/'
           jq -r '.problems[:10][]' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::warning title=guides::/'
-      - name: Guide upkeep (replace changed screenshots in the live guides, flag their sections for review)
-        if: ${{ inputs.upkeep }}
+      - name: The link key (the jobs' token is derived from it)
+        if: ${{ inputs.upkeep || inputs.auto }}
         run: |
-          python3 -c 'import PIL' 2>/dev/null || sudo apt-get install -y -q python3-pil > /dev/null
           L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
             --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
           if [ -z "$L" ]; then echo "::error title=guide upkeep::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
           echo "::add-mask::$L"
-          LINK_SIGNING_KEY="$L" ../.github/ci-run.sh "Guide upkeep" node scripts/guide-upkeep.mjs --shots "$RUNNER_TEMP/guides" --out "$RUNNER_TEMP/guides/upkeep" --apply --base https://carmacars.ca --run "${{ github.run_id }}" | tee "$RUNNER_TEMP/upkeep.txt"
+          echo "LINK_SIGNING_KEY=$L" >> "$GITHUB_ENV"
+      - name: Guide upkeep (replace changed screenshots in the live guides; with the text, rewrite the sections that changed)
+        if: ${{ inputs.upkeep || inputs.auto }}
+        run: |
+          python3 -c 'import PIL' 2>/dev/null || sudo apt-get install -y -q python3-pil > /dev/null
+          W="${{ (inputs.rewrite || inputs.auto) && '--rewrite' || '' }}"
+          ../.github/ci-run.sh "Guide upkeep" node scripts/guide-upkeep.mjs --shots "$RUNNER_TEMP/guides" --out "$RUNNER_TEMP/upkeep" --apply $W --base https://carmacars.ca --run "${{ github.run_id }}" | tee "$RUNNER_TEMP/upkeep.txt"
           sed 's/^/::notice title=guide upkeep::/' "$RUNNER_TEMP/upkeep.txt"
-          cp "$RUNNER_TEMP/guides/upkeep/report.json" "$RUNNER_TEMP/guides/upkeep.json"
-          rm -rf "$RUNNER_TEMP/guides/upkeep"
+          cp "$RUNNER_TEMP/upkeep/report.json" "$RUNNER_TEMP/guides/upkeep.json"
+          # the guides whose published text changed in this run: their PDFs are printed again
+          P=$(jq -r '[(.applied[]? | select(.ok) | .name | if startswith("public-") then "renter" elif startswith("va-") then "va" else split("-")[0] end), (.rewritten[]?.portal)] | unique | join(",")' "$RUNNER_TEMP/upkeep/report.json")
+          echo "GUIDE_PORTALS=$P" >> "$GITHUB_ENV"
+      - name: The PDFs of the guides that changed
+        if: ${{ inputs.auto && env.GUIDE_PORTALS != '' }}
+        run: |
+          ../.github/ci-run.sh "Guide PDFs" node scripts/guides-pdf.mjs --base https://carmacars.ca --out "$RUNNER_TEMP/pdf" --portals "$GUIDE_PORTALS" | tee "$RUNNER_TEMP/pdf.txt"
+          sed 's/^/::notice title=guides-pdf::/' "$RUNNER_TEMP/pdf.txt"
+          echo "GUIDE_PDFS=$(ls "$RUNNER_TEMP/pdf"/*.pdf 2>/dev/null | wc -l)" >> "$GITHUB_ENV"
+      - name: Record the run
+        if: ${{ inputs.auto }}
+        run: node scripts/guide-upkeep.mjs --finish --out "$RUNNER_TEMP/upkeep" --run "${{ github.run_id }}" --sha "${{ github.sha }}" --pdfs "${GUIDE_PDFS:-0}" --base https://carmacars.ca | sed 's/^/::notice title=guides::/'
+      - name: Record the failed run
+        if: ${{ failure() && inputs.auto && env.LINK_SIGNING_KEY != '' }}
+        run: node scripts/guide-upkeep.mjs --finish --status failed --out "$RUNNER_TEMP/upkeep" --run "${{ github.run_id }}" --sha "${{ github.sha }}" --base https://carmacars.ca || true
       - name: Upload to deploy-reports/guides/<date>
         run: |
           set -euo pipefail

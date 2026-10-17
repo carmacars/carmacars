@@ -10,12 +10,22 @@
 // (a different aspect ratio is a change), and the mean difference of the pixels decides (default above 3%), so a new
 // date or a name of the same length on a screen is not a change, while a moved button, a new field or a new section is.
 // --apply needs the jobs' token (LINK_SIGNING_KEY, as guides-pdf.mjs). Without --apply it only reports.
+//
+// The text keeps up too (migration 0055). With --rewrite, after the screenshots: every section whose screenshot changed in
+// this run, or that names a button no screen of this commit shows (the label check), is sent to the rewrite job with its
+// facts, read from the code (portal-facts.mjs: the portal's menu, the labels of the screens the section shows, and for
+// each missing button the closest labels that exist). The job asks Workers AI for the new text and publishes it when it
+// passes the checks (kept as a suggestion to review when it does not). At most --max sections a run (default 15).
+//   node scripts/guide-upkeep.mjs --last-sha --base <url>                   prints the commit of the last finished run
+//   node scripts/guide-upkeep.mjs --finish --run <id> --sha <sha> [--pdfs n] --base <url>   records the run as done
 import { createHmac } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { portalFacts, screenLabels } from './portal-facts.mjs';
+import { closestLabels, missingLabels, navPathProblems, sectionAddresses } from '../src/features/guides/upkeep.ts';
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.resolve(WEB, '..');
@@ -27,8 +37,8 @@ const THRESHOLD = Number(arg('--threshold', '0.03'));
 const APPLY = process.argv.includes('--apply');
 const BASE = (arg('--base', process.env.APP_URL ?? 'http://localhost:3000') ?? '').replace(/\/$/, '');
 const RUN = arg('--run', process.env.GITHUB_RUN_ID ?? `local-${new Date().toISOString().slice(0, 10)}`);
-if (!SHOTS) { console.error('--shots <dir> is required'); process.exit(2); }
-fs.mkdirSync(path.join(OUT, 'img'), { recursive: true });
+const REWRITE = process.argv.includes('--rewrite');
+const MAX = Number(arg('--max', '15'));
 
 function token() {
   let key = process.env.LINK_SIGNING_KEY;
@@ -36,6 +46,23 @@ function token() {
   if (!key) throw new Error('LINK_SIGNING_KEY is not set');
   return createHmac('sha256', key).update('carmacars-listing-worker-v1').digest('hex');
 }
+const job = async (p, init = {}) => {
+  const r = await fetch(`${BASE}${p}`, { ...init, headers: { authorization: `Bearer ${token()}`, ...(init.body ? { 'content-type': 'application/json' } : {}), ...(init.headers ?? {}) } });
+  if (!r.ok) throw new Error(`${init.method ?? 'GET'} ${p}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+};
+
+if (process.argv.includes('--last-sha')) { console.log((await job('/api/jobs/guide-upkeep-run')).sha ?? ''); process.exit(0); }
+if (process.argv.includes('--finish')) {
+  const prev = fs.existsSync(path.join(OUT, 'report.json')) ? JSON.parse(fs.readFileSync(path.join(OUT, 'report.json'), 'utf8')) : {};
+  const r = await job('/api/jobs/guide-upkeep-run', { method: 'POST', body: JSON.stringify({ run: RUN, sha: arg('--sha', ''), status: arg('--status', 'done'),
+    images: prev.applied?.filter((x) => x.ok).length ?? 0, sections_rewritten: prev.rewritten?.length ?? 0, sections_flagged: prev.flagged?.length ?? 0,
+    pdfs: Number(arg('--pdfs', '0')) || 0, result: { changed: (prev.changed ?? []).map((c) => c.name), rewritten: prev.rewritten ?? [], flagged: prev.flagged ?? [] } }) });
+  console.log(`guide upkeep run ${RUN} recorded: ${r.run.status}, ${r.run.images} screenshots, ${r.run.sections_rewritten} sections rewritten, ${r.run.sections_flagged} to review, ${r.run.pdfs} PDFs`);
+  process.exit(0);
+}
+if (!SHOTS) { console.error('--shots <dir> is required'); process.exit(2); }
+fs.mkdirSync(path.join(OUT, 'img'), { recursive: true });
 
 // 1. crop the new screens as the guides do
 execFileSync('python3', ['export.py'], { cwd: SRC, stdio: ['ignore', 'pipe', 'inherit'],
@@ -85,6 +112,44 @@ for (const name of fs.readdirSync(path.join(OUT, 'img')).filter((n) => n.endsWit
     report.applied.push({ name, ok: !!j.ok, sections: j.sections ?? 0, url: j.url ?? null, status: r.status });
   }
 }
+// 4. the text: sections whose screenshot changed, and sections naming buttons no screen shows
+report.rewritten = []; report.flagged = []; report.label_problems = [];
+if (REWRITE && APPLY) {
+  const facts = portalFacts();
+  const labels = facts.labels;
+  const plain = labels.filter((l) => !l.startsWith('~'));
+  const navOf = (portal) => (portal === 'renter' ? [...facts.nav.renter] : facts.nav[portal] ?? []);
+  const { sections } = await job(`/api/jobs/guide-rewrite?run=${encodeURIComponent(RUN)}`);
+  const targets = [];
+  for (const s of sections) {
+    if (s.is_hidden) continue;
+    const missing = missingLabels(s.body_md, labels);
+    const paths = navPathProblems(s.body_md, navOf(s.portal));
+    if (missing.length || paths.length) report.label_problems.push({ portal: s.portal, slug: s.slug, missing, paths });
+    const changed = (s.images_changed ?? []).length > 0;
+    if (!changed && !missing.length && !paths.length) continue;
+    const reason = [changed ? 'A screenshot in this section changed' : '', missing.length ? `It names buttons the portals no longer show (${missing.slice(0, 3).join(', ')})` : '',
+      paths.length ? `Its menu paths do not match the menu (${paths.slice(0, 3).join('; ')})` : ''].filter(Boolean).join('; ');
+    targets.push({ s, missing, reason });
+  }
+  for (const { s, missing, reason } of targets.slice(0, MAX)) {
+    const screen = [...new Set([...screenLabels(facts, sectionAddresses(s.body_md)).filter((l) => !l.startsWith('~')), ...navOf(s.portal).flatMap((g) => [g.group, ...g.links])])];
+    const pool = screen.length > 20 ? screen : plain;
+    const sectionFacts = { portal: s.portal, nav: navOf(s.portal).map((g) => ({ group: g.group, links: g.links })), screen_labels: screen,
+      missing: missing.map((label) => ({ label, closest: closestLabels(label, pool).length ? closestLabels(label, pool) : closestLabels(label, plain) })) };
+    try {
+      const r = await job('/api/jobs/guide-rewrite', { method: 'POST', body: JSON.stringify({ section_id: s.id, run: RUN, reason, facts: sectionFacts, labels }) });
+      const item = { portal: s.portal, slug: s.slug, result: r.result ?? (r.ok ? 'unknown' : 'model'), summary: r.summary ?? r.message ?? '', problems: r.problems ?? [] };
+      (r.result === 'updated' ? report.rewritten : report.flagged).push(item);
+    } catch (e) { report.flagged.push({ portal: s.portal, slug: s.slug, result: 'error', summary: String(e.message ?? e).slice(0, 200), problems: [] }); }
+  }
+  if (targets.length > MAX) report.flagged.push(...targets.slice(MAX).map(({ s }) => ({ portal: s.portal, slug: s.slug, result: 'later', summary: `more than ${MAX} sections this run: the next run takes it`, problems: [] })));
+}
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
 console.log(`${report.compared} screenshots compared: ${report.unchanged} unchanged, ${report.changed.length} changed${APPLY ? `, ${report.applied.filter((x) => x.ok).length} replaced in the guides` : ' (report only)'}; ${report.skipped.length} skipped`);
 for (const c of report.changed) console.log(`changed: ${c.name} (${Math.round(c.diff * 100)}% different)`);
+if (REWRITE) {
+  console.log(`text: ${report.rewritten.length} sections rewritten and published, ${report.flagged.length} kept to review; ${report.label_problems.length} sections named missing buttons`);
+  for (const x of report.rewritten) console.log(`rewritten: ${x.portal}/${x.slug}: ${x.summary}`);
+  for (const x of report.flagged) console.log(`to review: ${x.portal}/${x.slug} (${x.result}): ${[x.summary, ...x.problems].filter(Boolean).join('; ').slice(0, 240)}`);
+}

@@ -78,6 +78,12 @@ select test.eq('to do: the items, in order', (select string_agg(i ->> 'key', ','
 select test.throws('to do: Admins only', $$select test.ar_read('ar_cs', 'admin_todo')$$, '');
 select test.eq('search: a plate finds the car', (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', jsonb_build_object('q', (select plate from vehicles where id = test.id('vehicle:ARS')))) -> 'groups') g where g ->> 'key' = 'cars'),
   '/admin/vehicles/' || test.id('vehicle:ARS'));
+select test.mk_renter('ARB');
+select test.mk_booking('CC-98765', 'ARS', 'ARB', '2027-12-01 10:00', '2027-12-03 10:00', 'requested');
+select test.eq('search: a booking number as written, with its dash, finds the booking',
+  (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', '{"q":"CC-98765"}') -> 'groups') g where g ->> 'key' = 'bookings'),
+  '/admin/bookings/CC-98765');
+select test.eq('search: only punctuation searches no bookings', (select jsonb_array_length(g -> 'rows') from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', '{"q":"--"}') -> 'groups') g where g ->> 'key' = 'bookings'), 0);
 select test.eq('search: an owner''s name finds the owner', (select jsonb_array_length(g -> 'rows') > 0 from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', '{"q":"Ar Owen"}') -> 'groups') g where g ->> 'key' = 'owners'), true);
 select test.eq('search: results grouped as bookings, cars, owners, partners, renters', (select string_agg(g ->> 'key', ',') from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', '{"q":"zz"}') -> 'groups') g),
   'bookings,cars,owners,partners,renters');
@@ -109,10 +115,10 @@ select test.eq('applications: asked for something: Waiting on owner, the owner''
   (select a.status from owner_applications a where a.id = test.ar_app()) || '/' || (select count(*) from app_events e where e.code = 'owner_application_info_requested' and e.entity_id = test.ar_app())
   || '/' || jsonb_array_length(public.server_owner_application_task(test.id('ar_ana')) -> 'items'), 'waiting_on_owner/1/2');
 select public.server_application_owner_reply(test.id('ar_ana'), jsonb_build_object('id', test.ar_app(), 'reply', 'I uploaded both under my vehicle.'));
-select test.eq('applications: the owner''s answer brings it back as New, with a task for an Admin and no portal task left',
+select test.eq('applications: the owner''s answer brings it back as New, with a task for an Admin; the portal shows a thank-you, not the task',
   (select a.status || '/' || (a.owner_reply is not null) from owner_applications a where a.id = test.ar_app()) || '/'
-  || (select count(*) from tasks t where t.related_id = test.ar_app() and t.task_type = 'owner_application_reply') || '/' || coalesce(public.server_owner_application_task(test.id('ar_ana'))::text, 'none'),
-  'new/true/1/none');
+  || (select count(*) from tasks t where t.related_id = test.ar_app() and t.task_type = 'owner_application_reply') || '/' || coalesce(public.server_owner_application_task(test.id('ar_ana')) ->> 'answered', 'none'),
+  'new/true/1/true');
 select test.throws('applications: another person cannot answer for the owner', format($$select public.server_application_owner_reply(%L, %L)$$, test.id('ar_cs'), jsonb_build_object('id', test.ar_app(), 'reply', 'x')), 'Not found');
 insert into test.ar select 'approve', test.ar_do('ar_admin', 'application_approve', jsonb_build_object('id', test.ar_app()));
 select test.eq('applications: approve: the owner is active, the car has its terms (documents to sign), the first and last month''s invoice, the owner emailed',

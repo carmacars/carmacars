@@ -416,6 +416,8 @@ async function ownerPortal(browser, ids) {
   const inv = await one(sql`select invoice_number from owner_invoices where owner_id = ${o.id} order by (status in ('issued', 'failed')) desc, created_at desc limit 1`);
   const st = await one(sql`select id from owner_statements where owner_id = ${o.id} and status in ('approved', 'paid', 'sent') order by statement_month desc limit 1`);
   const form = await one(sql`select f.id from government_form_fills f where f.owner_id = ${o.id} and f.pdf_template_id is not null and f.superseded_at is null order by f.generated_at desc nulls last limit 1`).catch(() => null);
+  counters.owner = Object.fromEntries(['home', 'vehicles', 'vehicle', 'calendar', 'invoices', 'invoice', 'banking', 'statements', 'statement', 'payouts', 'documents', 'forms-c-d',
+    'official-form', 'notifications', 'profile', 'form-c-screen'].map((n, i) => [n, i + 1]));
   await both(P, 'owner', 'home', '/owner', 'Home: the next thing to do (sign, pay, upload), your cars, money this month, the next debit.');
   await both(P, 'owner', 'vehicles', '/owner/vehicles', 'Vehicles: each car, its status and its next step.');
   await both(P, 'owner', 'vehicle', () => v && `/owner/vehicles/${v.id}`, 'A vehicle: status, fees, the onboarding checklist, uploads, bookings, invoices, exit notice.');
@@ -437,6 +439,21 @@ async function ownerPortal(browser, ids) {
     'owner', 'official-form', (k) => `/owner/documents/forms/${k}/official`, offDesc);
   await both(P, 'owner', 'notifications', '/owner/notifications', 'Messages and notices from CarmaCars.');
   await both(P, 'owner', 'profile', '/owner/profile', 'Profile: contact details and password.');
+  // October 16, 2026 (0053): Form C signed on screen, with the witness on the same screen
+  // a financed or leased car whose Form C is still to sign: this owner's, or another owner's on the stack (on this local stack only, an
+  // approved Form C is set aside for the picture)
+  const fc = await one(sql`select v.id vehicle_id, u.id user_id, u.email, (v.owner_id = ${o.id}) mine from vehicles v join vehicle_schedules s on s.vehicle_id = v.id and s.superseded_by is null
+                            join owners ow on ow.id = v.owner_id join users u on u.id = ow.user_id
+                            where s.title_status in ('financed', 'leased') and v.status not in ('exited', 'declined', 'total_loss')
+                            order by (v.owner_id = ${o.id}) desc, v.created_at limit 1`).catch(() => null);
+  if (fc) {
+    await sql`update owner_agreement_forms set status = 'replaced' where form_code = 'C' and vehicle_id = ${fc.vehicle_id} and status in ('approved', 'uploaded')`.catch(() => undefined);
+    if (!fc.mine) await sql`insert into local_auth.users (id, email, password_hash) values (${fc.user_id}, ${fc.email}, ${hash(PW)})
+                            on conflict (id) do update set password_hash = excluded.password_hash`;
+    const FP = fc.mine ? P : [await session(browser, 'desktop', fc.email), await session(browser, 'phone', fc.email)];
+    await both(FP, 'owner', 'form-c-screen', `/owner/documents/form-c/${fc.vehicle_id}`, 'Form C on screen: you sign, then your witness signs on the same screen.');
+    if (!fc.mine) for (const x of FP) await x.context().close();
+  } else problems.push('owner/form-c-screen: no financed or leased car on the stack');
   await d.context().close(); await m.context().close();
 }
 
@@ -464,6 +481,10 @@ async function investorPortal(browser, ids) {
 }
 
 async function adminPortal(browser, ids) {
+  // fixed numbers: a screen with no record to show must not move the numbers of the ones after it (the guides name the files)
+  counters.admin = Object.fromEntries(['today', 'requests', 'booking-review', 'booking', 'booking-changes', 'calendar', 'vehicle-calendar', 'vehicles', 'listings', 'listing-review',
+    'plate-editor', 'owners', 'owner', 'owner-invoices', 'owner-debits', 'statements', 'statement', 'company-statements', 'tolls', 'tolls-read', 'tolls-review', 'owner-forms',
+    'email', 'settings', 'program-settings', 'staff', 'portals', 'view-as', 'audit', 'overview', 'menu', 'search', 'applications', 'application', 'renters', 'sample-photos'].map((n, i) => [n, i + 1]));
   const email = (await one(sql`select email from users where id = ${ids.admin}`)).email;
   const d = await session(browser, 'desktop', email); const m = await session(browser, 'phone', email); const P = [d, m];
   const req = await one(sql`select booking_number from bookings where status = 'requested' order by created_at desc limit 1`);
@@ -520,6 +541,17 @@ async function adminPortal(browser, ids) {
     await d.request.post('/api/view-as/exit', { maxRedirects: 0 });
   } catch (e) { problems.push(`admin/view-as: ${e.message}`); }
   await both(P, 'admin', 'audit', '/admin/audit', 'Audit log: who changed what, including every View as.');
+  // October 16, 2026 (0054): the menu in seven groups, the Overview, search, Applications, Renters, sample photos
+  const app = await one(sql`select id from owner_applications order by (status = 'new') desc, created_at desc limit 1`).catch(() => null);
+  await both(P, 'admin', 'overview', '/admin/overview', 'Overview: money this month, the fleet, the queues and the alerts.');
+  await both(P, 'admin', 'menu', '/admin/requests', 'The menu: seven groups, the current one open; on a phone behind one Menu button.', async (page) => {
+    if (page.viewportSize().width < 800) { await page.getByTestId('nav-menu').click(); await page.waitForTimeout(300); }
+  });
+  await both(P, 'admin', 'search', () => conf && `/admin/search?q=${encodeURIComponent(conf.booking_number)}`, 'Search: bookings, cars, owners, partners and renters in one box.');
+  await both(P, 'admin', 'applications', '/admin/applications', 'Applications: every owner application, New, Waiting on owner, Approved, Declined.');
+  await both(P, 'admin', 'application', () => app && `/admin/applications/${app.id}`, 'One application: the checks, Approve, Ask for something, Decline.');
+  await both(P, 'admin', 'renters', '/admin/renters', 'Renters: everyone who books, with their trips.');
+  await both(P, 'admin', 'sample-photos', '/admin/settings/sample-photos', 'Sample photos: the pictures a listing shows until its real photos are in.');
   await d.context().close(); await m.context().close();
 }
 
