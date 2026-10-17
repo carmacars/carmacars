@@ -11,12 +11,17 @@ const LABELS: Record<string, string> = {
   plate_cover_style: 'Default way to cover a plate (cover, pixelate or blur)', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',
-  owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)', owner_debit_show_legal_name: 'Name the legal company (not only the business name) as the payee in the PAD agreement and its confirmation',
+  owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',
+  street_address: 'Street address (pickup and returns)', signing_officer_authorized_on: 'Signing officer: date of the standing authorization',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',
+  street_address: 'Where renters pick up and return cars. This address will change: update it here and every page, email and agreement uses the new one. Nothing else holds it.',
+  mailing_address: 'The company mailing address. Marketing emails, the PAD agreement and its confirmation print it.',
+  signing_officer_name: 'Signs every automatic countersignature for the company and countersigns investment agreements.',
+  signing_officer_authorized_on: 'Printed in every automatic countersignature. A new signing officer takes the date the change is saved.',
   owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',

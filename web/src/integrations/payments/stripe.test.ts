@@ -2,7 +2,7 @@
 //   node --test --experimental-strip-types src/integrations/payments/stripe.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formEncode, stripeAdapter, StripeError, toIntent } from './stripe.ts';
+import { bankReasonCode, formEncode, stripeAdapter, StripeError, toIntent } from './stripe.ts';
 import { signStripePayload, verifyStripeSignature } from './signature.ts';
 
 type Call = { url: string; init: RequestInit };
@@ -197,4 +197,18 @@ test('the invoice mandate uses the schedule in words from settings', async () =>
   await stripeAdapter('sk_test_abc', f).createInvoiceIntent({ invoiceId: 'i1', invoiceNumber: 'INV-1', ownerId: 'o1', amountCents: 100, customerId: 'cus_1', method: 'acss_debit',
     transactionType: 'personal', intervalDescription: 'On the 15th of each month, notice 10 days before', description: 'x', idempotencyKey: 'k' });
   assert.match(decodeURIComponent(String(calls[0]!.init.body)).replace(/\+/g, ' '), /interval_description\]=On the 15th of each month, notice 10 days before/);
+});
+
+// Stripe test mode, October 16, 2026: the account-closed PAD test method fails with the generic
+// "payment_intent_payment_attempt_failed" on the PaymentIntent and "bank_cannot_process" on the charge
+test('a failed debit records the bank reason the charge keeps, not the generic PaymentIntent code', () => {
+  assert.equal(bankReasonCode('payment_intent_payment_attempt_failed', 'generic_decline', 'bank_cannot_process'), 'bank_cannot_process');
+  assert.equal(bankReasonCode('payment_intent_payment_attempt_failed', 'generic_decline', 'insufficient_funds'), 'insufficient_funds');
+  assert.equal(bankReasonCode('insufficient_funds', 'generic_decline', 'insufficient_funds'), 'insufficient_funds');
+  assert.equal(bankReasonCode('card_declined', 'insufficient_funds', 'card_declined'), 'card_declined');
+  assert.equal(bankReasonCode(null, null, null), null);
+  const i = toIntent({ id: 'pi_1', status: 'requires_payment_method', amount: 100, metadata: {},
+    last_payment_error: { code: 'payment_intent_payment_attempt_failed', message: 'The customer\'s bank could not process this payment.' },
+    latest_charge: { id: 'py_1', failure_code: 'insufficient_funds' } });
+  assert.equal(i.lastErrorCode, 'insufficient_funds');
 });

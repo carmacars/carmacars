@@ -71,7 +71,9 @@ export function intentFacts(pi: Obj): Obj {
     intent_id: pi.id, status: pi.status, charge_id: typeof pi.latest_charge === 'string' ? pi.latest_charge : charge?.id ?? null,
     mandate_id: (typeof pi.mandate === 'string' ? pi.mandate : null) ?? acss?.mandate ?? null,
     bank: acss ? { name: acss.bank_name ?? null, last4: acss.last4 ?? null } : null,
-    error_code: err?.code ?? err?.decline_code ?? charge?.failure_code ?? null,
+    // the charge keeps the bank's reason when Stripe's error is the generic "payment_intent_payment_attempt_failed"
+    error_code: (charge?.failure_code && (!err?.code || err.code === 'payment_intent_payment_attempt_failed') ? charge.failure_code : null)
+      ?? err?.code ?? err?.decline_code ?? charge?.failure_code ?? null,
     error_message: err?.message ?? charge?.failure_message ?? null
   };
 }

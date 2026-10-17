@@ -96,6 +96,11 @@ select test.eq('not NSF: an Admin is alerted (task and exception email) and the 
   || (select count(*) from app_events e where e.entity_id = (test.att('inv_c')).id and e.code = 'staff_owner_debit_exception') || '/'
   || (select count(*) from app_events e where e.entity_id = (test.att('inv_c')).id and e.code = 'owner_debit_returned') || '/'
   || (select count(*) from app_events e where e.entity_id = (test.inv('inv_c')).id and e.code = 'owner_payment_failed'), '1/1/1/0');
+select test.eq('not NSF: the invoice keeps no retry date (0056) and the Admin task reads the reason once',
+  coalesce((test.inv('inv_c')).retry_on::text, 'none') || '/' || (select (detail like '%has been closed. It is not retried%')::text from tasks t where t.related_id = (test.inv('inv_c')).id and t.task_type = 'owner_debit_returned'),
+  'none/true');
+select test.eq('the finance task for a failed debit no longer says "retry on the 18th" (0056)',
+  (select description from task_rules where task_type = 'debit_failed') like 'Insufficient funds: the Late Fee is added and the original amount is tried once more within 30 days.%', true);
 select app.process_events(100000);
 select test.eq('not NSF: the owner''s email names the debit and the bank''s reason',
   (select (payload ->> 'debit_date') || ' / ' || (payload ->> 'bank_reason') from notification_outbox where code = 'owner_debit_returned' and entity_id = (test.att('inv_c')).id),

@@ -95,6 +95,7 @@ cd emails && node check.mjs
 | `0053_legal_review.sql` | The owner's legal review: the payee "[company legal name], operating as CarmaCars", the retry and the $50.00 Late Fee only for insufficient funds (Enrollment Agreement 4.4), other returns paused with a task, the countersignature under the standing authorization, every Owner named in the Title Schedule signing with their own link, Form C on screen with the witness, a rental added with the saved card charged when the renter signs, the Protection Plan as coverage option 3, the investment awaiting countersignature, 16 emails (`docs/changes/2026-10-16-legal-review-admin-redesign.md`) |
 | `0054_admin_access_samples_applications.sql` | Admin access only for rent@carmacars.ca (and the automated test account), sample photos for a listing without photos, the To do list and search of the admin portal, the owner applications inbox (approve, ask for something, decline), 2 emails |
 | `0055_guides_update_themselves.sql` | The guides keep up by themselves: the runs after each deploy, a section rewritten from the code's facts published with its old text kept for a one-click revert, the guides rewritten for this release |
+| `0056_debit_return_checks.sql` | Found by the Stripe test-mode run of the legal review: a debit returned for another reason than insufficient funds keeps no retry date on the invoice, the Admin task prints the bank's reason once, and the finance task for a failed debit states the new rule |
 
 ## Test files
 

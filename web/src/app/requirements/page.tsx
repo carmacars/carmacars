@@ -69,7 +69,7 @@ export default async function Requirements() {
               <table className="data cov-table"><thead><tr><th scope="col">Option</th><th scope="col">What it is</th><th scope="col">What we need from you</th><th scope="col">What we check</th></tr></thead><tbody>
                 <tr><th scope="row">1. OPCF 27</th><td>Rental vehicle coverage on your own active auto policy</td><td>The policy page or an insurer letter showing OPCF 27</td><td>It is active to your return date and covers this car and every driver</td></tr>
                 <tr><th scope="row">2. Credit card</th><td>Rental car coverage that comes with your credit card</td><td>The card’s benefits certificate</td><td>The same card pays for the rental, and the benefit covers this class of car and the length of the trip</td></tr>
-                <tr><th scope="row">3. Through {s.brand_name}</th><td>Coverage you buy with your booking, supplied by a third-party provider on its own terms</td><td>Payment for it. We send the provider’s terms before you buy.</td><td>We activate it and confirm. Priced in your offer, by car and driver age.</td></tr>
+                <tr><th scope="row">3. Protection Plan</th><td>The {s.brand_name} Protection Plan, added to your booking. A third-party provider supplies it on its own terms</td><td>Payment for it. We send the provider’s terms before you buy.</td><td>We activate it and confirm. Priced in your offer, by car and driver age.</td></tr>
               </tbody></table>
             </div>
             <p className="small muted measure">For options 1 and 2 it is your job to check that the coverage really applies to the car, the rental and every driver. No confirmed option at pickup counts as cancelling at that moment. {s.brand_name} is not an insurer.</p>

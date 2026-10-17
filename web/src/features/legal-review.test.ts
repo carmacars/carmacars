@@ -116,8 +116,11 @@ test('string search: no bare "CarmaCars" payee in the PAD agreement, the confirm
 test('string search: the renter Protection Plan is never called insurance or coverage, and the provider is never named', () => {
   const renterFacing = [...files(path.join(ROOT, 'web/src/app')), ...files(path.join(ROOT, 'web/src/features')), ...files(path.join(ROOT, 'emails/src/emails')),
     path.join(ROOT, 'web/scripts/content/site-content.json'), path.join(ROOT, 'docs/source/v2_rental.md'), path.join(ROOT, 'docs/source/website_terms_policies.md')];
-  const bad = /(coverage|insurance)[^.\n"]{0,30}(bought|sold|purchased|offered) (through|by|from) (CarmaCars|us)|(buy|purchase|add) (rental )?(coverage|insurance) (through|from) (CarmaCars|us|you)|Coverage Option 3|coverage sold through/i;
+  const bad = /(coverage|insurance) you (buy|add|get) with your booking|(coverage|insurance)[^.\n"]{0,30}(bought|sold|purchased|offered) (through|by|from) (CarmaCars|us)|(buy|purchase|add) (rental )?(coverage|insurance) (through|from) (CarmaCars|us|you)|Coverage Option 3|coverage sold through/i;
   const hits = renterFacing.flatMap((f) => readFileSync(f, 'utf8').split('\n').map((l, i) => [f, i + 1, l] as const)).filter(([, , l]) => bad.test(l));
   assert.deepEqual(hits.map(([f, n]) => `${path.relative(ROOT, f)}:${n}`), []);
   assert.match(read('web/src/features/booking/Estimate.tsx'), /case 'coverage_sold': return \{ k: 'Protection Plan' \}/);
+  // the requirements page's third option (found by the review of October 16: it said "Coverage you buy with your booking")
+  assert.match(read('web/src/app/requirements/page.tsx'), /<th scope="row">3\. Protection Plan<\/th><td>The \{s\.brand_name\} Protection Plan, added to your booking\./);
+  assert.doesNotMatch(read('web/src/app/requirements/page.tsx'), /Coverage you buy/);
 });

@@ -80,3 +80,11 @@ test('helpers: nested form encoding, the facts of a PaymentIntent, which errors 
   assert.equal(new StripeCallError('x', 409, 'idempotency_key_in_use').permanent, false);
   assert.equal(new StripeCallError('x', 0, null).permanent, false);
 });
+
+test('a returned debit records the charge reason when the PaymentIntent error is the generic one (Stripe test mode)', () => {
+  const f = intentFacts({ id: 'pi_2', status: 'requires_payment_method',
+    last_payment_error: { code: 'payment_intent_payment_attempt_failed', decline_code: 'generic_decline', message: 'The customer\'s bank could not process this payment.' },
+    latest_charge: { id: 'py_2', failure_code: 'bank_cannot_process', failure_message: 'The customer\'s bank could not process this payment.' } });
+  assert.equal(f.error_code, 'bank_cannot_process');
+  assert.equal(intentFacts({ id: 'pi_3', status: 'requires_payment_method', last_payment_error: { code: 'insufficient_funds' }, latest_charge: { id: 'py_3', failure_code: 'insufficient_funds' } }).error_code, 'insufficient_funds');
+});
