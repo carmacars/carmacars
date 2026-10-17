@@ -15,6 +15,7 @@ verified.
 | Stripe test mode | The Admin task printed the bank's reason with two full stops | 0056 |
 | Review | The finance task "Owner debit failed" still said "Late Fee added; retry on the 18th" | 0056 (new wording below) |
 | String search (wider than the unit test) | The requirements page called the Protection Plan "Coverage you buy with your booking" | New wording below; the unit test's search now catches that phrase |
+| CI (crawl, deploy run 38998998148) | Two fixtures inserted agreement rows without files | The e2e fixtures store a one-page PDF (`storeFixturePdf`) |
 | Section 6 test 4 (signed PDF) | The signature block of every signed PDF said "Signed electronically for CarmaCars", cut to three lines; only the signature record had the approved wording | The block prints the stored countersignature wording in full (`companySignature().text`); signature rows grow to fit (`web/src/features/agreement/pdf.ts`) |
 | Section 6 test 6 (staff-added rental) | After "Accept and sign" no signed copy was filed for a rental staff added (only the payment step filed it, and these rentals have none) | The signing action files the signed copy for a rental staff added. Live: no such rental exists yet, so nothing to file again |
 | Settings | No help text said the street address will change; the obsolete "show legal name" switch was still on Program settings | Help text on the street address, mailing address and signing officer; the authorization date shows under Company; the obsolete switch is hidden (0053 always names the legal company) |
@@ -141,7 +142,7 @@ methods; Stripe accepted the new mandate description as the interval description
 | --- | --- |
 | Database (`scripts/test.sh`) | 3575 passed, 0 failed |
 | Unit (`npm run test:unit`) | 116 passed |
-| End to end, 375 and 1440 | CI full job of each deploy (see runs); locally `legal-admin-redesign.spec.ts`, `ops.spec.ts`, `owner.spec.ts` all passed |
+| End to end, 375 and 1440 | CI run 39001206135: 191 passed, 15 skipped; locally `legal-admin-redesign.spec.ts`, `ops.spec.ts`, `owner.spec.ts`, `staff.spec.ts` passed |
 | Emails (`emails/check.mjs`) | all 15 checks passed |
 | Text check, lint, types | passed |
 
@@ -153,8 +154,11 @@ methods; Stripe accepted the new mandate description as the interval description
 | 38996481983 | Push CI, 0056 | success |
 | 38996866445 | Deploy of 1132d66 (0056 live) | success |
 | 38998280729 | Push CI, signed PDFs and e2e | success |
-| 38998998148 | Deploy of 27b6adb | RESULT_DEPLOY |
-| VERIFY_ID | Verify, full | RESULT_VERIFY |
+| 38998998148 | Deploy of 27b6adb | failed in `full` before deploying: one axe contrast read on the field damage step mid-transition (phone), and the crawl opened a fixture agreement whose file the test never stored (`/admin/documents/<id>` 404); both are test fixes in 99ebd8d |
+| 39001201503 | Push CI, 99ebd8d | success |
+| 39001206135 | Deploy of 99ebd8d (everything above live) | success: 191 passed, 15 skipped at 375 and 1440; crawl, SEO and emails 0 problems |
+| 39003462921, 39004113541 | Verify, full | failed: one live page load timed out after 30 s each time (va_fleet sign-in, then owner sign-up), with Error 1102 answers in the same hour (36 in the hour, 410 in 24 hours); every other check passed |
+| 39005349177 | Verify, full | success: public pages, nonce, sign-in as every portal, view as (writes refused), invitation, recovery and sign-up links, guides, SEO |
 
 ## 7. Open
 
