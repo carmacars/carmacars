@@ -40,7 +40,7 @@ export function InviteRecordButton({ role, recordId, email, name, testId }: { ro
 type Rec = { id: string; name: string; email: string | null };
 const FNS: Array<[string, string]> = [['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet'], ['finance', 'Finance']];
 
-export function InviteForm({ owners = [], investors = [], roles = ['va', 'field', 'admin', 'owner', 'investor'], testId = 'invite-form' }: { owners?: Rec[]; investors?: Rec[]; roles?: string[]; testId?: string }) {
+export function InviteForm({ owners = [], investors = [], roles = ['va', 'field', 'owner', 'investor'], testId = 'invite-form' }: { owners?: Rec[]; investors?: Rec[]; roles?: string[]; testId?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [f, setF] = useState({ email: '', full_name: '', role: roles[0] ?? 'va', va_function: 'cs', cover: [] as string[], field_function: 'driver', owner_id: '', investor_id: '' });
@@ -69,10 +69,9 @@ export function InviteForm({ owners = [], investors = [], roles = ['va', 'field'
           <select className="select" id="inv-r" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
             {roles.includes('va') && <option value="va">Staff (assistant)</option>}
             {roles.includes('field') && <option value="field">Field staff</option>}
-            {roles.includes('admin') && <option value="admin">Admin</option>}
             {roles.includes('owner') && <option value="owner">Owner on file</option>}
             {roles.includes('investor') && <option value="investor">Investor on file</option>}
-          </select>{err('role')}</div>
+          </select>{err('role')}<p className="small muted">Admin access is only through rent@carmacars.ca (Settings &gt; Staff and roles &gt; Admin access).</p></div>
         {f.role === 'owner' && <div className="field ad-field"><label className="label" htmlFor="inv-o">Owner</label>
           <select className="select" id="inv-o" value={f.owner_id} onChange={(e) => pickRecord('owner', e.target.value)} aria-invalid={!!errs.owner_id || undefined}>
             <option value="">{owners.length ? 'Choose an owner without a sign-in' : 'Every owner on file has a sign-in'}</option>

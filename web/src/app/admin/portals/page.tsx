@@ -48,7 +48,7 @@ export default async function Portals({ searchParams }: { searchParams: Promise<
     </Card>
     <Card title={`People who can sign in${q ? `: "${q}"` : ''}`} aside={<Search action="/admin/portals" value={q} placeholder="Name or email" />}>
       {d.people.length >= d.limit && <p className="small muted">Showing the first {d.limit}: staff, then owners and investors, then renters. Search by name or email to find anyone else; the pickers above follow the search.</p>}
-      <Table<Person & Record<string, unknown>> testId="portal-people" rows={d.people as Array<Person & Record<string, unknown>>} empty="No one matches." cols={[
+      <Table<Person & Record<string, unknown>> testId="portal-people" rows={d.people as Array<Person & Record<string, unknown>>} empty="No one matches. Search by name or email, or invite the person below." cols={[
         { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' },
         { key: 'portals', label: 'Portals', render: (p) => badges(p).join(', ') || 'None' },
         { key: 'status', label: 'Status' },

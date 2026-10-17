@@ -20,7 +20,7 @@ export default async function Requests({ searchParams }: { searchParams: Promise
     <>
       <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting`} />
       <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
-      <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting." cols={[
+      <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting. New booking requests from the website show up here to price and offer." cols={[
         { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > 120 ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
         { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> },

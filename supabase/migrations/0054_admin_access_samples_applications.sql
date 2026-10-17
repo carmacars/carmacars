@@ -647,6 +647,13 @@ begin
          order by r.created_at desc limit 8) s), '[]'::jsonb))));
 end $$;
 
+-- The rail's counts (0036) carry the new applications too.
+alter function app.admin_rail_counts(uuid) rename to admin_rail_counts_0036;
+create or replace function app.admin_rail_counts(p_admin uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select app.admin_rail_counts_0036(p_admin) || jsonb_build_object('applications', (select count(*) from owner_applications where status = 'new'))
+$$;
+
 -- ================================================================ 5. the emails' values
 alter function app.notification_payload(text, app_events, jsonb) rename to ntf_payload_0053;
 create or replace function app.notification_payload(p_code text, p_event app_events, p_to jsonb) returns jsonb
@@ -730,7 +737,7 @@ begin
               'sample_body_key', 'vehicle_uses_sample_photos', 'vehicle_sample_photos', 'submit_listing_intake', 'listing_photo_problems', 'publish_listing',
               'public_listing_photos', 'public_listing_row', 'vehicles_using_sample_photos', 'sample_photos_read', 'sample_photo_save', 'sample_photo_delete',
               'application_view', 'applications_list', 'application_check', 'application_note', 'application_request', 'application_owner_reply',
-              'application_decline', 'application_approve', 'owner_application_task', 'admin_todo', 'admin_search', 'ops54', 'door']))
+              'application_decline', 'application_approve', 'owner_application_task', 'admin_todo', 'admin_search', 'ops54', 'door', 'admin_rail_counts']))
         or (n.nspname = 'public' and p.proname = any (array['server_owner_application_task', 'server_application_owner_reply']))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
@@ -749,7 +756,7 @@ begin
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              join (values ('ntf_payload_0053', 'notification_payload'), ('door_0053', 'door'), ('submit_listing_intake_0022', 'submit_listing_intake'), ('publish_listing_0042', 'publish_listing'),
                           ('listing_photo_problems_0022', 'listing_photo_problems'), ('public_listing_photos_0022', 'public_listing_photos'),
-                          ('public_listing_row_0022', 'public_listing_row')) m(old_name, new_name)
+                          ('public_listing_row_0022', 'public_listing_row'), ('admin_rail_counts_0036', 'admin_rail_counts')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;

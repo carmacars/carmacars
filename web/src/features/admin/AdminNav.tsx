@@ -1,47 +1,52 @@
-'use client';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense } from 'react';
+import { GroupNav, type NavGroup } from './GroupNav';
 
-// The admin portal's rail: grouped links on a desktop, one scrolling strip on a phone. Keyboard: "g"
-// then a letter goes to a section (t today, r requests, b bookings, c calendar, v vehicles, l listings,
-// m money, o tolls, k tasks, s settings); "/" focuses the page's search.
-export const NAV: Array<[string, Array<[string, string, string?]>]> = [
-  ['Operate', [['/admin', 'Today', 't'], ['/admin/requests', 'Requests', 'r'], ['/admin/bookings', 'Bookings', 'b'], ['/admin/calendar', 'Calendar', 'c'], ['/admin/tasks', 'Tasks', 'k']]],
-  ['Fleet', [['/admin/vehicles', 'Vehicles', 'v'], ['/admin/listings', 'Listings', 'l'], ['/admin/similar-cars', 'Similar cars'], ['/admin/vehicles/bulk-rates', 'Bulk rates']]],
-  ['Money', [['/admin/money', 'Payments and refunds', 'm'], ['/admin/insurer-invoices', 'Insurer invoices'], ['/admin/invoices', 'Owner invoices'], ['/admin/debits', 'Owner debits'], ['/admin/statements', 'Owner statements'], ['/admin/payouts', 'Payouts'], ['/admin/reports', 'Company statements'], ['/admin/expenses', 'Expenses'], ['/admin/reconciliation', 'Reconciliation']]],
-  ['Recover', [['/admin/tolls', 'Tolls and tickets', 'o'], ['/admin/damages', 'Damage'], ['/admin/incidents', 'Incidents and claims']]],
-  ['People', [['/admin/portals', 'Portals and sign-in'], ['/admin/settings/staff', 'Staff'], ['/admin/owners', 'Owners'], ['/admin/partners', 'Partners'], ['/admin/owner-forms', 'Owner forms'], ['/admin/investors', 'Investors'], ['/admin/reviews', 'Reviews'], ['/admin/messages', 'Email'], ['/admin/audit', 'Audit log']]],
-  ['Setup', [['/admin/settings', 'Settings', 's']]]
+// The admin portal's navigation (October 16, 2026: the owner found 31 links "super difficult to navigate"): seven groups
+// with plain names, every page still one tap away. The pages keep their addresses, so links in emails and bookmarks work.
+export const GROUPS: NavGroup[] = [
+  { key: 'today', label: 'Today', links: [
+    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Tasks', key: 'k' }] },
+  { key: 'bookings', label: 'Bookings', links: [
+    { href: '/admin/requests', label: 'Requests', key: 'r' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
+    { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/damages', label: 'Damage' }, { href: '/admin/incidents', label: 'Incidents and claims' },
+    { href: '/admin/reviews', label: 'Reviews' }] },
+  { key: 'cars', label: 'Cars', links: [
+    { href: '/admin/vehicles', label: 'Vehicles', key: 'v' }, { href: '/admin/listings', label: 'Listings', key: 'l' }, { href: '/admin/similar-cars', label: 'Similar cars' },
+    { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }] },
+  { key: 'owners', label: 'Owners and partners', links: [
+    { href: '/admin/applications', label: 'Applications', key: 'a' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/partners', label: 'Partners' },
+    { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' }] },
+  { key: 'money', label: 'Money', links: [
+    { href: '/admin/invoices', label: 'Owner invoices' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' },
+    { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/reports', label: 'Company statements' }, { href: '/admin/payouts', label: 'Payouts' },
+    { href: '/admin/tolls', label: 'Tolls and tickets' }, { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/reconciliation', label: 'Reconciliation' },
+    { href: '/admin/expenses', label: 'Expenses' }] },
+  { key: 'people', label: 'People', links: [
+    { href: '/admin/renters', label: 'Renters' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/investors', label: 'Investors' },
+    { href: '/admin/portals', label: 'Portals and view as' }] },
+  { key: 'settings', label: 'Settings', links: [
+    { href: '/admin/settings', label: 'All settings', key: 's' }, { href: '/admin/settings/site', label: 'Site' }, { href: '/admin/settings/program', label: 'Program' },
+    { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/guides', label: 'Guides' }, { href: '/admin/settings/email', label: 'Emails' },
+    { href: '/admin/messages', label: 'Email log' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 
-export function AdminNav({ counts }: { counts: Record<string, number> }) {
-  const path = usePathname();
-  const router = useRouter();
-  const active = (href: string) => href === '/admin' ? path === '/admin' : path === href || (path.startsWith(`${href}/`) && !NAV.some(([, l]) => l.some(([h]) => h !== href && h.startsWith(`${href}/`) && path.startsWith(h))));
-  useEffect(() => {
-    let g = false; let t: ReturnType<typeof setTimeout> | undefined;
-    const keys = new Map(NAV.flatMap(([, l]) => l.filter((x) => x[2]).map((x) => [x[2]!, x[0]] as [string, string])));
-    const on = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === '/') { const s = document.querySelector<HTMLInputElement>('[data-shortcut="/"]'); if (s) { e.preventDefault(); s.focus(); } return; }
-      if (g) { const href = keys.get(e.key); g = false; if (href) { e.preventDefault(); router.push(href); } return; }
-      if (e.key === 'g') { g = true; clearTimeout(t); t = setTimeout(() => { g = false; }, 900); }
-    };
-    window.addEventListener('keydown', on);
-    return () => window.removeEventListener('keydown', on);
-  }, [router]);
+/** Every page the navigation reaches (kept for the crawl and the guide's quick reference). */
+export const NAV: Array<[string, Array<[string, string, string?]>]> = GROUPS.map((g) => [g.label, g.links.map((l) => [l.href, l.label, l.key] as [string, string, string?])]);
+
+export function AdminSearch() {
   return (
-    <nav className="ad-nav" aria-label="Admin">
-      {NAV.map(([group, links]) => (
-        <div key={group} style={{ display: 'contents' }}>
-          <h2>{group}</h2>
-          <ul>{links.map(([href, text]) => (
-            <li key={href} style={{ display: 'contents' }}><Link prefetch={false} href={href} aria-current={active(href) ? 'page' : undefined}>{text}{counts[href] ? <span className="pt__count">{counts[href]}</span> : null}</Link></li>
-          ))}</ul>
-        </div>
-      ))}
-    </nav>
+    <form className="gn-search" action="/admin/search" role="search" data-testid="admin-search">
+      <label className="vh" htmlFor="gn-q">Search bookings, cars, owners, partners and renters</label>
+      <input className="input" id="gn-q" name="q" type="search" placeholder="Search: booking, plate, VIN, name, email" data-shortcut="/" autoComplete="off" />
+      <button className="btn btn--ghost btn--sm" type="submit">Search</button>
+    </form>
+  );
+}
+
+export function AdminNav({ counts }: { counts: Record<string, number> }) {
+  return (
+    <Suspense fallback={<nav className="gn" aria-label="Admin" />}>
+      <GroupNav groups={GROUPS} counts={counts} label="Admin" testId="admin-nav" />
+    </Suspense>
   );
 }

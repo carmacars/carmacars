@@ -1,7 +1,9 @@
 // Shapes of what the public database functions return (0022, 0025, 0027). The functions are the
 // contract; these types describe their JSON.
 
-export interface Photo { path: string; variants: { width: number; path: string; format?: string }[]; alt: string; width?: number; height?: number; shot?: string; label?: string; is_cover?: boolean }
+export interface Photo { path: string; variants?: { width: number; path: string; format?: string }[] | null; alt: string; width?: number; height?: number; shot?: string; label?: string; is_cover?: boolean;
+  /** A sample photo (migration 0054): the car has no real photo yet; the page says "Sample photo". */
+  sample?: boolean }
 
 export interface CarRow {
   vehicle_id: string; slug: string; path: string; canonical_path: string; headline: string | null;

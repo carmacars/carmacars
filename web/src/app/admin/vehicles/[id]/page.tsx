@@ -41,13 +41,15 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
   const [partners, owners] = tab === 'overview' ? await Promise.all([door<Array<{ id: string; business_name: string }>>(user.id, 'ops_read', 'partners').catch(() => []), adminOwners(user)]) : [[], []];
+  // a car with no real photo shows sample photos on its listing (0054)
+  const usingSamples = ((await door<Array<{ vehicle_id: string }>>(user.id, 'ops_read', 'vehicles_using_samples').catch(() => [])) ?? []).some((x) => x.vehicle_id === id);
   const supplier = v.supply_type === 'company' ? 'Company fleet'
     : v.supply_type === 'partner' && v.partner ? <Link prefetch={false} className="link" href={`/admin/partners/${v.partner.id}`}>{v.partner.business_name}</Link>
     : v.owner ? <Link prefetch={false} className="link" href={`/admin/owners/${v.owner.id}`}>{v.owner.legal_name}</Link> : 'no owner';
   return (
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/vehicles">Vehicles</Link> · {v.fleet_number ?? ''} {v.plate} · {supplier}</>}
-        title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}</>}>
+        title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and coverage'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
@@ -134,6 +136,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       {tab === 'listing' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Listing">
+            {usingSamples && <p className="alert alert--warn" role="note" data-testid="vehicle-using-samples"><span className="alert__title">Using sample photos</span><span>This car has no real photos yet, so its listing shows sample photos, marked &quot;Sample photo&quot; on the site. It can be published as it is. Real photos replace the samples as soon as they are approved. <Link prefetch={false} className="link" href="/admin/settings/sample-photos">Sample photos</Link></span></p>}
             {v.listing ? <Kv rows={[['Status', <Badge key="s" s={String(v.listing.status)} />], ['Address', slug ? <Link prefetch={false} key="l" className="link" href={`/cars/${slug}`}>/cars/{slug}</Link> : ''], ['Headline', String(v.listing.headline ?? '')], ['Published', t(v.listing.published_at)], ['Unpublished', `${t(v.listing.unpublished_at)} ${String(v.listing.unpublished_reason ?? '')}`], ['Sample car', v.is_sample ? 'Yes: a placeholder, hidden from search engines' : 'No']]} /> : <p className="small muted">No listing yet.</p>}
             <div className="ad-actions">
               {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}

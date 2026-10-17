@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1067" viewBox="0 0 1600 1067">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f7"/><stop offset="0.72" stop-color="#ececec"/><stop offset="1" stop-color="#dedede"/></linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b4f"/><stop offset="1" stop-color="#26272a"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="1067" fill="url(#bg)"/>
+  <rect x="0" y="806" width="1600" height="267" fill="#e2e2e3"/>
+  <ellipse cx="805" cy="812" rx="645" ry="34" fill="url(#shadow)"/>
+  <rect x="120" y="840" width="1360" height="6" fill="#D0111B"/>
+  <polygon points="230,790 230,380 1040,370 1230,560 1360,610 1390,690 1385,790" fill="url(#paint)" stroke="#26272a" stroke-width="26" stroke-linejoin="round"/>
+  <polygon points="1010,550 1035,410 1095,410 1190,550" fill="#a9b4bd" stroke="#a9b4bd" stroke-width="10" stroke-linejoin="round" opacity="0.92"/>
+  
+  
+  <polygon points="300,430 900,430 900,560 300,560" fill="none" stroke="#5b5c60" stroke-width="6"/>
+  
+  <line x1="1365" y1="685" x2="1383" y2="685" stroke="#f2f2f2" stroke-width="14" stroke-linecap="round"/>
+  
+    <circle cx="440" cy="706" r="114" fill="#e9e9ea"/>
+    <circle cx="440" cy="706" r="100" fill="#151515"/>
+    <circle cx="440" cy="706" r="56" fill="#c9cacc"/>
+    <circle cx="440" cy="706" r="18" fill="#7b7c80"/>
+    <circle cx="1170" cy="706" r="114" fill="#e9e9ea"/>
+    <circle cx="1170" cy="706" r="100" fill="#151515"/>
+    <circle cx="1170" cy="706" r="56" fill="#c9cacc"/>
+    <circle cx="1170" cy="706" r="18" fill="#7b7c80"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="48" y="963" width="330" height="58" fill="#000" opacity="0.78"/>
+    <text x="72" y="1003" font-size="30" font-weight="700" fill="#fff">Sample photo</text>
+    <text x="1552" y="1003" font-size="28" font-weight="700" fill="#6b6c70" text-anchor="end">Van</text>
+  </g>
+</svg>

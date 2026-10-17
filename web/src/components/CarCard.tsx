@@ -15,6 +15,7 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
     <article className="car-card">
       <div className="car-card__media photo photo--32">
         <CarImage p={c.cover} />
+        {c.cover?.sample && <span className="car-card__sample" data-testid="sample-photo-caption">Sample photo</span>}
         {booked && <span className="badge badge--hatch car-card__flag">Booked for your dates</span>}
       </div>
       <div className="car-card__body">

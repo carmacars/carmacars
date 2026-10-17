@@ -22,7 +22,7 @@ export default async function Partners() {
         <Act ops action="partner_save" label="Add a partner" variant="primary" testId="partner-add" go="/admin/partners/{id}" fields={PARTNER_FIELDS({})} />
       </PageHead>
       <p className="small muted">A partner rental company supplies cars that CarmaCars rents out. CarmaCars keeps its commission; the partner gets the rest on a monthly statement and payout, like an owner but with no fees. Partners may use the owner portal to see their cars, bookings, statements and payouts and to sign the partner agreement.</p>
-      <Table<P> testId="partners" rows={rows} rowKey={(r) => r.id} empty="No partners yet." cols={[
+      <Table<P> testId="partners" rows={rows} rowKey={(r) => r.id} empty="No partners yet. Press Add a partner to add a rental company whose cars CarmaCars rents out." cols={[
         { key: 'business_name', label: 'Partner', render: (r) => <Link prefetch={false} className="link" href={`/admin/partners/${r.id}`}>{r.business_name}</Link> },
         { key: 'partner_number', label: 'No.' }, { key: 'contact_name', label: 'Contact' },
         { key: 'vehicles', label: 'Cars', num: true },

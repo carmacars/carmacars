@@ -22,7 +22,7 @@ export default async function Audit({ searchParams }: { searchParams: Promise<Re
   return (<>
     <PageHead title="Audit log" kicker={`${count} entries`}><Search action="/admin/audit" value={sp.q} placeholder="Table, record id, value" /></PageHead>
     <Tabs current={`/admin/audit?tab=${tab}`} items={[['/admin/audit?tab=changes', 'Changes'], ['/admin/audit?tab=access', 'Data access']]} />
-    {tab === 'access' ? <Table<R> rows={rows} empty="No entries." cols={Object.keys(rows[0] ?? { at: 1 }).slice(0, 7).map((k) => ({ key: k, label: k.replace(/_/g, ' ') }))} />
-      : <Table<R> testId="audit" rows={rows} empty="No entries." cols={[{ key: 'at', label: 'When', render: (r) => t(r.at) }, { key: 'actor_name', label: 'Who', render: (r) => String(r.actor_name ?? r.actor_db_role ?? '') }, { key: 'action', label: 'Action' }, { key: 'entity_table', label: 'Table' }, { key: 'entity_id', label: 'Record' }, { key: 'diff', label: 'Change', className: 'wrap', render: (r) => diff(r.before, r.after) }]} />}
+    {tab === 'access' ? <Table<R> rows={rows} empty="No entries match. Clear a filter, or search for a booking number or an email address." cols={Object.keys(rows[0] ?? { at: 1 }).slice(0, 7).map((k) => ({ key: k, label: k.replace(/_/g, ' ') }))} />
+      : <Table<R> testId="audit" rows={rows} empty="No entries match. Clear a filter, or search for a booking number or an email address." cols={[{ key: 'at', label: 'When', render: (r) => t(r.at) }, { key: 'actor_name', label: 'Who', render: (r) => String(r.actor_name ?? r.actor_db_role ?? '') }, { key: 'action', label: 'Action' }, { key: 'entity_table', label: 'Table' }, { key: 'entity_id', label: 'Record' }, { key: 'diff', label: 'Change', className: 'wrap', render: (r) => diff(r.before, r.after) }]} />}
   </>);
 }

@@ -34,7 +34,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       <Filters base="/admin/vehicles" name="supply" value={sp.supply ?? ''} options={[['', 'Every supplier'], ['program_owner', 'Program owners'], ['company', 'CarmaCars-owned'], ['partner', 'Partners']]} sp={sp} />
       <Filters base="/admin/vehicles" name="retired" value={sp.retired ?? ''} options={[['', 'In the fleet'], ['only', 'Retired'], ['show', 'All, retired too']]} sp={sp} />
       <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
-      <Table<V> testId="vehicles" caption="Vehicles" rows={rows} empty="No vehicles yet." cols={[
+      <Table<V> testId="vehicles" caption="Vehicles" rows={rows} empty="No vehicles yet. Press Add a car to add one, or approve an owner application." cols={[
         { key: 'fleet_number', label: 'No.' },
         { key: 'name', label: 'Vehicle', render: (v) => <Link prefetch={false} className="link" href={`/admin/vehicles/${v.id}`}>{v.name}</Link> },
         { key: 'plate', label: 'Plate' }, { key: 'class', label: 'Class' }, { key: 'owner_name', label: 'Supplied by', render: (v) => <>{v.owner_name}<span className="small muted"> · {v.supply_label}</span></> },

@@ -7,7 +7,7 @@ import { when } from '@/features/agreement/model';
 // portals (portal.css, owner.css, admin.css); money and times exactly as the database stored them.
 export type Col<T> = { key: string; label: string; num?: boolean; render?: (r: T) => ReactNode; className?: string };
 
-export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here.', caption, rowKey, testId }: {
+export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here yet.', caption, rowKey, testId }: {
   cols: Array<Col<T>>; rows: T[]; empty?: string; caption?: string; rowKey?: (r: T, i: number) => string; testId?: string;
 }) {
   if (!rows.length) return <p className="ad-empty" data-testid={testId ? `${testId}-empty` : undefined}>{empty}</p>;

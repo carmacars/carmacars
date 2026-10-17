@@ -32,6 +32,8 @@ export default async function Listing({ params }: { params: Promise<{ id: string
         {l.listing?.status === 'published' && <Act action="listing_unlist" payload={{ vehicle: l.vehicle_id }} label="Unlist" variant="danger" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
       </PageHead>
       {l.reason && <p className="pt-note small">{l.reason}</p>}
+      {(((await door<Array<{ vehicle_id: string }>>(user.id, 'ops_read', 'vehicles_using_samples').catch(() => [])) ?? []).some((x) => x.vehicle_id === l.vehicle_id)) &&
+        <p className="alert alert--warn" role="note" data-testid="listing-using-samples-note"><span className="alert__title">Using sample photos</span><span>No real photo is approved yet, so the listing shows sample photos, marked &quot;Sample photo&quot; on the site. You can publish it as it is: the photo problems below apply once real photos are added. The licence plate check does not apply to sample photos.</span></p>}
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/admin/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/admin/listings/${id}`]} />}
       {flags.length > 0 && <Card title="Similar cars on file" testId="listing-similar"><SimilarityTable rows={flags} base="/admin" refresh={[`/admin/listings/${id}`]} showVehicle={false} /></Card>}

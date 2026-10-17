@@ -16,7 +16,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
   return (<>
     <PageHead title="Payouts" />
     <Filters base="/admin/payouts" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['cancelled', 'Cancelled']]} />
-    <Table<R> testId="payouts" rows={rows} empty="No payouts." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'payee', label: 'Payee', render: (r) => String(r.owner_name ?? r.investor_name ?? r.payee_type) }, { key: 'kind', label: 'Kind' },
+    <Table<R> testId="payouts" rows={rows} empty="No payouts yet. They are made when an owner statement is approved." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'payee', label: 'Payee', render: (r) => String(r.owner_name ?? r.investor_name ?? r.payee_type) }, { key: 'kind', label: 'Kind' },
       { key: 'statement', label: 'Statement', render: (r) => r.owner_statement_id ? <Link prefetch={false} className="link" href={`/admin/statements/${String(r.owner_statement_id)}`}>open</Link> : null },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'scheduled_for', label: 'Scheduled', render: (r) => d(r.scheduled_for) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
       { key: 'reference', label: 'Reference' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) },

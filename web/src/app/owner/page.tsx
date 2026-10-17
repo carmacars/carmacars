@@ -5,6 +5,7 @@ import { day, InvoiceRows, VehicleCard } from '@/features/owner/Blocks';
 import { requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
 import { TRACKER_LATER } from '@/features/owner/types';
+import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noindex: true, description: 'Your vehicles, agreements, invoices, statements and payouts with CarmaCars.' });
@@ -14,6 +15,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
   // what is left to sign on screen (0049): one package on /owner/sign
   const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { items: Array<{ status: string; how: string; label: string }>; done: number; total: number } | null;
+  // what CarmaCars asked for on an application (0054), until the owner answers
+  const appTask = (await rpc('server_owner_application_task', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
   const due = home.invoices.filter((i) => i.payable);
   const pending = home.invoices.filter((i) => i.pending && i.status !== 'paid');
@@ -31,6 +34,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
       {sp.signed && <p className="alert alert--ok" role="status"><span className="alert__title">Signed</span><span>Thank you. Your signed agreements are in Documents.</span></p>}
       {sp.applied && <p className="alert alert--ok" role="status"><span className="alert__title">Application received</span><span>We reply within 1 business day with the terms for each vehicle.</span></p>}
       <header className="stack"><p className="pt-kicker">{partner ? `Partner portal · ${partner.partner_number}` : 'Owner portal'}</p><h1 className="d2">Hello, {home.owner.first_name}</h1></header>
+      {appTask && <ApplicationTask t={appTask} />}
       {!home.vehicles.length ? (
         partner ? <div className="pt-empty" data-testid="partner-no-cars"><p className="d4">No cars yet</p><p className="muted">CarmaCars adds your cars once we agree which ones join. Questions? Reply to any of our emails.</p>{partner.agreement_status !== 'signed' && <Link prefetch={false} className="btn btn--primary" href="/owner/partner-agreement">Read and sign your partner agreement</Link>}</div>
         : <div className="pt-empty"><p className="d4">Add your first vehicle</p><p className="muted">Apply once and add every vehicle you want to enrol.</p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add a vehicle</Link></div>

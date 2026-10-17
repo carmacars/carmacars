@@ -355,6 +355,8 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 .car-card:hover .car-card__media img { transform: scale(1.035); }
 .car-card .plate { position: absolute; left: var(--s-3); bottom: var(--s-3); }
 .car-card__flag { position: absolute; right: var(--s-3); top: var(--s-3); }
+/* a sample photo (0054): a small honest caption on the photo */
+.car-card__sample { position: absolute; left: var(--s-2); bottom: var(--s-2); padding: 2px 8px; background: rgba(0, 0, 0, 0.78); color: var(--white); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.02em; }
 .car-card__body { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem var(--s-4); padding: var(--s-4) 0 0; align-items: start; }
 .car-card__name { font: 700 1.3125rem/1.1 var(--font-display); letter-spacing: -0.02em; }
 .car-card__name a { text-decoration: none; color: inherit; }

@@ -12,6 +12,7 @@ import { SECTIONS } from '../sections';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
+import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -70,6 +71,34 @@ export default async function Section({ params }: { params: Promise<{ section: s
           </details>))}</Card>))}
       <Card title="Add a block"><SaveForm table="site_content_blocks" label="Add" fields={[{ name: 'block_key', label: 'Key', required: true }, { name: 'page', label: 'Page', required: true }, { name: 'kind', label: 'Kind', type: 'select', options: [['text', 'Text'], ['rich_text', 'Rich text'], ['faq', 'FAQ'], ['list', 'List']], required: true, value: 'text' }, { name: 'body', label: 'Text', type: 'textarea' }, { name: 'is_published', label: 'Published', type: 'bool', value: true }]} /></Card>
     </>);
+  case 'sample-photos': {
+    // a car listed without real photos shows sample photos (0054): the library, the built-in pictures, the cars using them
+    const sp = await door<{ photos: Array<{ id: string; body_type: string | null; make: string | null; model: string | null; path: string; alt: string; active: boolean }>; builtin: string[];
+      using: Array<{ vehicle_id: string; vehicle: string; listing_status: string | null; body_key: string; photos: Array<{ path: string; alt: string }> }> }>(user.id, 'ops_read', 'sample_photos');
+    return (<>{head}
+      <p className="small muted">A car with no real photos can still be listed and published. Until real photos are added and approved, its listing shows sample photos, marked &quot;Sample photo&quot; on the site. Real photos replace them automatically. The licence plate check does not apply to sample photos.</p>
+      <Card title={`Cars using sample photos (${sp.using.length})`} testId="sample-using">
+        <Table rows={sp.using as unknown as R[]} rowKey={(r) => String(r.vehicle_id)} empty="Every car has real photos." cols={[
+          { key: 'photo', label: 'Shows', render: (r) => { const ph = (r.photos as Array<{ path: string; alt: string }>)[0]; return ph ? <SampleThumb path={ph.path} alt={ph.alt} /> : ''; } },
+          { key: 'vehicle', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${String(r.vehicle_id)}`}>{String(r.vehicle)}</Link> },
+          { key: 'listing_status', label: 'Listing', render: (r) => <Badge s={String(r.listing_status ?? 'none')} /> },
+          { key: 'body_key', label: 'Body type', render: (r) => label(r.body_key) },
+          { key: 'act', label: 'Next', render: (r) => <Link prefetch={false} className="link small" href={`/admin/vehicles/${String(r.vehicle_id)}?tab=listing`}>Add real photos</Link> }]} />
+      </Card>
+      <Card title="Add a sample photo" testId="sample-add-card"><SampleUpload /></Card>
+      <Card title={`Library (${sp.photos.length})`} testId="sample-library">
+        <Table rows={sp.photos as unknown as R[]} empty="No library photos yet. Cars show the built-in picture of their body type." cols={[
+          { key: 'path', label: 'Photo', render: (r) => <SampleThumb path={String(r.path)} alt={String(r.alt)} /> },
+          { key: 'for', label: 'Used for', render: (r) => [r.make, r.model].filter(Boolean).join(' ') || label(r.body_type) },
+          { key: 'body_type', label: 'Body type', render: (r) => label(r.body_type) || 'any' },
+          { key: 'active', label: 'On', render: (r) => (r.active ? 'Yes' : 'No') },
+          { key: 'act', label: 'Actions', render: (r) => <SampleRowActions id={String(r.id)} active={!!r.active} /> }]} />
+      </Card>
+      <Card title="Built-in pictures">
+        <div className="ad-chip-row">{sp.builtin.map((b) => <figure key={b} style={{ margin: 0 }}><SampleThumb path={`/sample-photos/${b}.jpg`} alt={`Built-in sample picture: ${label(b)}`} /><figcaption className="small muted">{label(b)}</figcaption></figure>)}</div>
+      </Card>
+    </>);
+  }
   case 'forms':
     return (<>{head}<OfficialForms d={await door<FormsData>(user.id, 'ops_read', 'form_templates')} /></>);
   case 'program': {
@@ -130,7 +159,18 @@ export default async function Section({ params }: { params: Promise<{ section: s
     </>);
   case 'staff':
     return (<>{head}
-      <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>.</p><InviteForm roles={['va', 'field', 'admin']} testId="staff-invite" /></Card>
+      <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['va', 'field']} testId="staff-invite" /></Card>
+      {await (async () => {
+        const acc = await door<{ allowed: string[]; test: string[]; holders: Array<{ email: string; name: string | null; allowed: boolean; test: boolean }> }>(user.id, 'ops_read', 'admin_access').catch(() => null);
+        if (!acc) return null;
+        return (
+          <Card title="Admin access" testId="admin-access">
+            <p className="small">Only these addresses can hold the Admin role. The database refuses it for anyone else, and invitations do not offer it.</p>
+            <AdminAccessForm allowed={acc.allowed} />
+            <p className="small muted">Automated test account: {acc.test.join(', ')}. The live verification (the verify workflow) signs in with it to check the Admin pages; it is on the email suppression list and its password is scrambled after each run. It is not a person and cannot be removed here.</p>
+            <ul className="ad-list" data-testid="admin-holders">{acc.holders.map((h) => <li key={h.email}><span>{h.email}{h.name ? ` (${h.name})` : ''}</span><span className="small">{h.test ? 'automated test account' : h.allowed ? 'allowed' : 'not on the list'}</span></li>)}</ul>
+          </Card>);
+      })()}
       <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
         { key: 'fn', label: 'Function', render: (r) => { const p = r.profile as R | null; if (!p) return ''; const cover = (p.cover_functions as string[] | null) ?? []; return `${label(p.va_function ?? p.field_function)}${cover.length ? ` (also ${cover.map(label).join(', ')})` : ''}`; } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },

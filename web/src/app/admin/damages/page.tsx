@@ -21,7 +21,7 @@ export default async function Damages() {
         { name: 'location', label: 'Where on the car', required: true }, { name: 'description', label: 'What it is', type: 'textarea', required: true },
         { name: 'cost_kind', label: 'Cost', type: 'select', options: [['estimate', 'Estimate'], ['invoice', 'Invoice']] }, { name: 'cost_cents', label: 'Amount', type: 'money' }, { name: 'shop_name', label: 'Shop' }]} />
     </PageHead>
-    <Card title="Work queue"><Table<R> testId="damages" rows={rows} empty="No damage waiting." cols={[{ key: 'intake_number', label: 'Intake', render: (r) => <Link prefetch={false} className="link" href={`/admin/damages/${String(r.id)}`}>{String(r.intake_number)}</Link> },
+    <Card title="Work queue"><Table<R> testId="damages" rows={rows} empty="No damage waiting. Damage found at a return or reported later shows up here to cost and charge." cols={[{ key: 'intake_number', label: 'Intake', render: (r) => <Link prefetch={false} className="link" href={`/admin/damages/${String(r.id)}`}>{String(r.intake_number)}</Link> },
       { key: 'bucket', label: 'Queue', render: (r) => <Badge s="open">{label(r.bucket)}</Badge> }, { key: 'vehicle_name', label: 'Vehicle' }, { key: 'found_at', label: 'Found', render: (r) => t(r.found_at) }, { key: 'location', label: 'Where' },
       { key: 'cost_cents', label: 'Cost', num: true, render: (r) => $(r.cost_cents) }, { key: 'matched', label: 'Matched', render: (r) => <>{label(r.matched_to)} {r.booking_number ? <BookingLink n={r.booking_number} /> : null}</> }, { key: 'age_days', label: 'Age (days)', num: true }]} /></Card>
   </>);

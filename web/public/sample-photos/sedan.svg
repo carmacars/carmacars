@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1067" viewBox="0 0 1600 1067">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f7"/><stop offset="0.72" stop-color="#ececec"/><stop offset="1" stop-color="#dedede"/></linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b4f"/><stop offset="1" stop-color="#26272a"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="1067" fill="url(#bg)"/>
+  <rect x="0" y="806" width="1600" height="267" fill="#e2e2e3"/>
+  <ellipse cx="810" cy="812" rx="620" ry="34" fill="url(#shadow)"/>
+  <rect x="120" y="840" width="1360" height="6" fill="#D0111B"/>
+  <polygon points="255,790 250,700 290,640 455,605 640,470 930,465 1085,600 1330,640 1372,700 1368,790" fill="url(#paint)" stroke="#26272a" stroke-width="26" stroke-linejoin="round"/>
+  <polygon points="505,600 660,492 905,488 1035,598" fill="#a9b4bd" stroke="#a9b4bd" stroke-width="10" stroke-linejoin="round" opacity="0.92"/>
+  <line x1="770" y1="490" x2="770" y2="600" stroke="#3a3b3f" stroke-width="16"/>
+  
+  
+  
+  <line x1="1348" y1="685" x2="1366" y2="685" stroke="#f2f2f2" stroke-width="14" stroke-linecap="round"/>
+  
+    <circle cx="470" cy="710" r="110" fill="#e9e9ea"/>
+    <circle cx="470" cy="710" r="96" fill="#151515"/>
+    <circle cx="470" cy="710" r="54" fill="#c9cacc"/>
+    <circle cx="470" cy="710" r="17" fill="#7b7c80"/>
+    <circle cx="1150" cy="710" r="110" fill="#e9e9ea"/>
+    <circle cx="1150" cy="710" r="96" fill="#151515"/>
+    <circle cx="1150" cy="710" r="54" fill="#c9cacc"/>
+    <circle cx="1150" cy="710" r="17" fill="#7b7c80"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="48" y="963" width="330" height="58" fill="#000" opacity="0.78"/>
+    <text x="72" y="1003" font-size="30" font-weight="700" fill="#fff">Sample photo</text>
+    <text x="1552" y="1003" font-size="28" font-weight="700" fill="#6b6c70" text-anchor="end">Sedan</text>
+  </g>
+</svg>

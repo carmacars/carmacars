@@ -63,7 +63,7 @@ export default async function OwnerDebits() {
       ]} />
     </Card>
     <Card title="Owners">
-      <Table testId="debit-owners" rows={x.owners} rowKey={(r) => String(r.id)} empty="No owner has an invoice yet." cols={[
+      <Table testId="debit-owners" rows={x.owners} rowKey={(r) => String(r.id)} empty="No owner has an invoice yet. Fee invoices appear here on the notice day each month." cols={[
         { key: 'name', label: 'Owner', render: (r) => <><Link prefetch={false} className="link" href={`/admin/owners/${String(r.id)}`}>{String(r.name)}</Link>{r.is_test ? <> <Badge s="draft">test</Badge></> : null}</> },
         { key: 'mandate', label: 'Debit agreement', render: (r) => r.mandate ? `Active, ending ${String(r.bank_last4 ?? '')}` : <Badge s="failed">None</Badge> },
         { key: 'open_invoices', label: 'Open invoices', num: true },
@@ -86,7 +86,7 @@ export default async function OwnerDebits() {
         { key: 'act', label: '', render: (r) => <Act action="owner_debit_resume" payload={{ invoice: r.id }} label="Resume" refresh={R} /> }]} />
     </Card>}
     <Card title="Results">
-      <Table testId="debit-recent" rows={x.recent} rowKey={(r) => String(r.id)} empty="No debit has settled yet." cols={[
+      <Table testId="debit-recent" rows={x.recent} rowKey={(r) => String(r.id)} empty="No debit has settled yet. Results appear here a few business days after the debit day." cols={[
         { key: 'at', label: 'When', render: (r) => t(r.at) },
         { key: 'owner_name', label: 'Owner' }, { key: 'invoice_number', label: 'Invoice', render: inv },
         { key: 'attempt_no', label: 'Attempt', num: true }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },
