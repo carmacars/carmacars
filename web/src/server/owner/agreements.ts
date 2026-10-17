@@ -67,13 +67,13 @@ export async function attachOwnerSignedCopies(ownerId: string, by: string, resul
       const png = await s.get('agreements', owner.provider_signature).catch(() => null);
       if (png) images.set(0, png);
     }
-    const row = (party: string, r: typeof owner): SignatureRow => ({ party, name: r?.signer_name ?? '', signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? 'Signed electronically for CarmaCars' : 'Drawn signature') : '', when: r ? when(r.signed_at) : '' });
+    const company = await companySignature(doc.signature_request_id);
+    const row = (party: string, r: typeof owner): SignatureRow => ({ party, name: r?.signer_name ?? '', signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? (company.text ?? 'Signed electronically for CarmaCars') : 'Drawn signature') : '', when: r ? when(r.signed_at) : '' });
     const initials = owner?.initials ? Object.values(owner.initials)[0] : undefined;
     // the facts after signing carry the agreement date; the schedules shown are the ones this document covered
     const blocks = documentBlocks(doc.key === 'additional' ? { ...facts, schedules: facts.schedules.map((x) => (x.signature_request_id === doc.signature_request_id ? { ...x, signed_at: null } : x)) } : facts,
       doc.key, { owner: row(facts.owner.owner_type === 'corporation' ? 'Owner (corporation)' : 'Owner (individual)', owner), carmacars: row('CarmaCars', cc), initials,
         others: otherRecords.map((r) => row('Owner', r)) });
-    const company = await companySignature(doc.signature_request_id);
     const lines: string[][] = [
       ['Document', `${TITLES[doc.key]} ${doc.agreement_number ?? ''}, text version ${OWNER_TEMPLATE_VERSION}`],
       ...doc.records.map((r) => [`${r.signer_role.replace(/_/g, ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}${r.initials ? `; initials ${Object.values(r.initials).join(', ')}` : ''}`]),

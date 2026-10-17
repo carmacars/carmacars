@@ -114,7 +114,7 @@ async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: s
   if (r.doc_type === 'form_a' || r.doc_type === 'form_b') {
     const code = r.doc_type === 'form_a' ? 'A' : 'B';
     const facts = await formABFacts(userId, code);
-    blocks = screenFormBlocks(facts, { owner: row, carmacars: { party: code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: 'Signed electronically for CarmaCars', when: when(rec.signed_at) } });
+    blocks = screenFormBlocks(facts, { owner: row, carmacars: { party: code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? 'Signed electronically for CarmaCars', when: when(rec.signed_at) } });
   } else if (r.doc_type === 'form_c' && r.vehicle_id) {
     const facts = (await rpc('server_witnessed_form_facts', { p_by: userId, p_code: 'C', p_vehicle: r.vehicle_id }, SR)) as unknown as WitnessedFacts;
     const w = company.witness;
@@ -122,7 +122,7 @@ async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: s
       initials: rec.initials ? Object.values(rec.initials)[0] : undefined });
   } else if (r.doc_type === 'partner_agreement') {
     const facts = await partnerFacts(userId);
-    blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: 'Signed electronically for CarmaCars', when: when(rec.signed_at) } })
+    blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? 'Signed electronically for CarmaCars', when: when(rec.signed_at) } })
       : [{ t: 'title', text: r.title }, { t: 'signatures', rows: [row] }];
   } else {
     blocks = [{ t: 'title', text: `${r.title}: signature` }, { t: 'p', text: 'This page records the signature of the document named below. The document itself is filed beside it, unchanged.' },

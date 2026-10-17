@@ -62,20 +62,20 @@ export async function attachSignedCopy(bookingId: string, renterUserId: string):
   const f = await agreementFacts(bookingId, renterUserId);
   const s = await storage();
   const rows: SignatureRow[] = [];
+  const company = await companySignature(rec.signature_request_id);
   const images = new Map<number, Uint8Array>();
   const add = async (party: string, name: string, r: SigningRecord['records'][number] | undefined) => {
     if (r?.method === 'drawn' && r.provider_signature) {
       const png = await s.get('agreements', r.provider_signature).catch(() => null);
       if (png) images.set(rows.length, png);
     }
-    rows.push({ party, name, signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? 'Signed electronically for CarmaCars' : 'Drawn signature') : 'Not yet accepted', when: r ? when(r.signed_at) : '' });
+    rows.push({ party, name, signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? (company.text ?? 'Signed electronically for CarmaCars') : 'Drawn signature') : 'Not yet accepted', when: r ? when(r.signed_at) : '' });
   };
   const renterRec = rec.records.find((r) => r.signer_role === 'renter');
   await add('Renter', renterRec?.signer_name ?? f.renter?.legal_name ?? '', renterRec);
   for (const d of f.drivers.filter((x) => x.role === 'additional')) await add('Additional Driver', d.full_name, rec.records.find((r) => r.signer_role === 'additional_driver' && r.signer_name === d.full_name));
   const cc = rec.records.find((r) => r.signer_role === 'carmacars');
   await add('CarmaCars', cc?.signer_name ?? 'CarmaCars', cc);
-  const company = await companySignature(rec.signature_request_id);
   const lines: string[][] = [
     ['Agreement', `${rec.agreement_number}, text version ${rec.template_version}`],
     ['Unsigned document SHA-256', rec.document_sha256],

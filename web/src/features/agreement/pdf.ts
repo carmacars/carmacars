@@ -123,11 +123,13 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
     y += 6;
     rows.forEach((r, i) => {
       const img = images.get(i);
-      const h = img ? 46 : 26;
+      // every line of each cell (the countersignature's approved wording runs to several lines): the row grows to fit
+      const cells = [r.party, r.name, img ? '' : r.signature, r.when].map((c, k) => wrap(c, size, widths[k]! - 8));
+      const h = Math.max(img ? 46 : 26, 10 + Math.max(...cells.map((c) => c.length)) * 11);
       need(h);
       let xx = M;
-      [r.party, r.name, img ? '' : r.signature, r.when].forEach((c, k) => {
-        wrap(c, size, widths[k]! - 8).slice(0, 3).forEach((l, j) => drawLine(l, xx + 4, y - 12 - j * 11, size));
+      cells.forEach((ls, k) => {
+        ls.forEach((l, j) => drawLine(l, xx + 4, y - 12 - j * 11, size));
         xx += widths[k]!;
       });
       if (img) {

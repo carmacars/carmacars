@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 
 // Migration 0040 end to end, at 375 and 1440, with the fake providers of the local stack:
 // - an Admin proposes a change to a confirmed booking (a day longer); the renter reviews it, signs the amendment
@@ -244,6 +244,14 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     const pdf = await rp.request.get(await link.getAttribute('href') as string);
     expect(pdf.status()).toBe(200);
     expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
+    // the signed PDF: the corporate countersignature in the signing officer's name, with the approved wording, in the
+    // signature block and the record; the staff member only as "Proposed by" (the legal review, section 6)
+    const text = await pdfText(await pdf.body());
+    // in the signature block and in the signature record
+    expect(text.match(/Signed electronically for [^,]+, operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(text).toContain('CarmaCars signs this amendment electronically at the moment the Renter signs it.');
+    expect(text).toMatch(/Proposed by /);
+    expect(text).not.toContain('Signed electronically for CarmaCars ');
     await rp.goto('/account/documents');
     await expect(rp.locator('table')).toContainText('Signed booking amendment');
     // the renter has the signed copy by email; the owner hears the car is booked longer; the cleaning block moved

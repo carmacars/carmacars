@@ -61,7 +61,7 @@ export async function attachSignedAmendment(amendmentId: string, requestId: stri
   const signatures: SignatureRow[] = [
     { party: 'Renter', name: r.record.signer_name, signature: r.record.method === 'typed' ? `Typed: ${r.record.typed_name ?? r.record.signer_name}` : 'Drawn signature', when: when(r.record.signed_at) },
     r.countersign
-      ? { party: 'CarmaCars', name: r.countersign.signer_name, signature: 'Signed electronically for CarmaCars', when: when(r.countersign.signed_at) }
+      ? { party: 'CarmaCars', name: r.countersign.signer_name, signature: r.countersign.consent_text || 'Signed electronically for CarmaCars', when: when(r.countersign.signed_at) }
       : { party: 'CarmaCars', name: f.company.brand, signature: 'Proposed or approved by CarmaCars staff', when: when(f.change.created_at) }
   ];
   const pdf = await renderAmendment(f, { signatures, images, record: { heading: 'Signature record', lines: [

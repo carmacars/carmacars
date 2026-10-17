@@ -12,7 +12,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import { findBooking, requireUser } from '@/server/portal/data';
-import { openAgreement } from '@/server/portal/agreement';
+import { attachSignedCopy, openAgreement } from '@/server/portal/agreement';
 import { bookingIntent, paymentFacts, reasonMessage, settleIntent, type SettleResult } from '@/server/portal/payment';
 import { consentTexts } from '@/server/booking-data';
 import { attachSignedAmendment, changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
@@ -166,6 +166,9 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     const added = (b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
     let declined: string | null = null;
     if (added) declined = await chargeAddedRental(b.id, number, userId);
+    // a rental staff added is confirmed already, so no payment step files the signed copy: file it now (the signed PDF
+    // with the countersignature and "Added by", found by the legal review's section 6 test)
+    if (added) { try { await attachSignedCopy(b.id, userId); } catch (e) { console.error('signed copy', e); } }
     refresh(number);
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');
     // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned

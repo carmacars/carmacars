@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 
 // The legal review and the admin redesign of October 16, 2026 (migrations 0052 to 0055), end to end at 375 and 1440:
 //   the admin portal's To do home, its seven menu groups (one Menu button on a phone), search and the keyboard; Admin access
@@ -311,7 +311,49 @@ test('legal: a rental added with the saved card is charged only when the renter 
   await rp.getByRole('button', { name: 'Accept and sign' }).click();
   await rp.waitForURL(new RegExp(`/account/bookings/${number}(\\?|$)`), { timeout: 30_000 });
   await expect.poll(paid, { timeout: 20_000 }).toBe(1);
+  // the signed rental agreement: countersigned by the signing officer with the approved wording; the staff member who
+  // added the rental appears only as "Added by" (the legal review, section 6)
+  const signedText = async () => {
+    await rp.goto(`/account/bookings/${number}`, { waitUntil: 'networkidle' });
+    for (const href of await rp.getByTestId('doc-rental_agreement').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))) {
+      const r = await rp.request.get(href);
+      if (r.status() !== 200) continue;
+      const t = await pdfText(await r.body());
+      if (t.includes('Signature record')) return t;
+    }
+    return '';
+  };
+  let text = '';
+  await expect.poll(async () => (text = await signedText()).length, { timeout: 30_000, intervals: [1000, 3000, 5000] }).toBeGreaterThan(0);
+  // in the signature block and in the signature record
+  expect(text.match(/Signed electronically for [^,]+, operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  expect(text).toContain(`Added by ${admin.name}`);
+  expect(text).not.toMatch(new RegExp(`carmacars: ${admin.name}`, 'i'));
   await rp.context().close(); await page.context().close();
+  await sql.end();
+});
+
+test('legal: an investment agreement shows "Awaiting countersignature" until the Admin countersigns', async ({ browser }) => {
+  const sql = db();
+  const admin = await mkUser(sql, 'admin', 'Lr Officer');
+  const inv = await mkUser(sql, 'plain', `Ivy Investor${tag()}`);
+  const [iv] = await sql`insert into investors (user_id, legal_name, investor_type, email, status) values (${inv.id}, ${inv.name}, 'individual', ${inv.email}, 'prospect') returning id`;
+  const sha = randomBytes(32).toString('hex');
+  const [req] = await sql`select public.door(${admin.id}::uuid, null, 'ops_do', 'sign_request_create', ${sql.json({ doc_type: 'investment_agreement', investor_id: iv!.id,
+    exemption_category: 'accredited_investor', document: { path: `investors/${iv!.id}/ia.pdf`, sha256: sha } })}) r`;
+  await sql`select public.sign_request_sign(${inv.id}::uuid, ${(req!.r as { id: string }).id}::uuid, ${sql.json({ typed_name: inv.name, consent_text: 'I agree', document_sha256: sha, legal_advice_choice: 'declined', initials: 'II' })})`;
+  const countersigned = async () => (await sql`select count(*)::int n from signature_records r join investment_agreements a on a.signature_request_id = r.signature_request_id where a.investor_id = ${iv!.id} and r.signer_role = 'carmacars'`)[0]!.n;
+  expect(await countersigned(), 'no automatic countersignature').toBe(0);
+  const page = await ctx(browser);
+  await signIn(page, admin.email, '/admin');
+  await page.goto(`/admin/investors/${iv!.id}`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('awaiting-countersignature')).toHaveText('Awaiting countersignature');
+  await check(page, 'investment awaiting countersignature');
+  await page.getByTestId('countersign').click();
+  await expect(page.getByTestId('countersigned')).toContainText('Fully signed.', { timeout: 20_000 });
+  await expect(page.getByTestId('awaiting-countersignature')).toHaveCount(0);
+  expect(await countersigned()).toBe(1);
+  await page.context().close();
   await sql.end();
 });
 
