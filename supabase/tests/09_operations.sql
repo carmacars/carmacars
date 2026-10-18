@@ -136,9 +136,9 @@ insert into test.rq_ids values ('opB', app.request_booking(test.id('renter:op_r2
   'standard', null, 'phone', test.id('rq_cs'), null, null, 'delivered', 'picked_up', '12 Elm St, Toronto', '12 Elm St, Toronto'));
 select test.eq('C the spec''s first example: Thursday to Sunday is $100 + $120 + $120 = $340',
   (select rental_charge_cents || '/' || deposit_cents from bookings where id = test.b('opA')), '34000/100000');
-select test.eq('C the new request task takes its queue, priority and due time from its rule (0025: the 2-hour reply target)',
+select test.eq('C the new request task takes its queue, priority and due time from its rule (0057: the first reply target, 5 minutes)',
   (select queue || '/' || priority || '/' || sla_minutes || '/' || (due_at is not null) || '/' || completion_rule from tasks
-    where booking_id = test.b('opA') and task_type = 'booking_request'), 'cs/high/120/true/offer_sent_or_declined');
+    where booking_id = test.b('opA') and task_type = 'booking_request'), 'cs/high/5/true/offer_sent_or_declined');
 select test.op_confirm('opA', 'op_r1');
 select test.op_confirm('opB', 'op_r2');
 select test.eq('C a confirmed booking the renter collects gets no automatic job', (select count(*) from field_jobs where booking_id = test.b('opA')), 0::bigint);

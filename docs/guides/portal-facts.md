@@ -187,14 +187,15 @@ Every function starts with **Queue** (the function's tasks, oldest due first: "T
 | Customer service | Requests; New quote; Renter messages; Find a renter; Calendar; Listings; Similar cars; Owners and enquiries; Owner forms; Scorecard |
 | Finance | Payments, deposits, refunds; Tolls and tickets (with "Read a notice" and reading profiles); Reconciliation; Turo trips; Find a renter; Calendar; Scorecard |
 | Fleet | Field jobs; Daily checks; Photo reviews; Calendar; Listings; Similar cars; Find a renter; Scorecard |
-| Sales | Requests and offers; New quote; Owner leads; Calendar; Scorecard |
+| Sales | My sales; Requests and offers; New quote; Add a rental; Owner leads; Calendar; Scorecard |
 
 Main tasks:
 
 - **Customer service, answer a request:** Requests > the booking > Review tab, as an Admin does ("Adjust the booking", "Save changes", "Send the offer"); "Approve (within my limit)"; "Approve and send the pay link". New quote for a caller: fill the trip and the renter, "Create the request". Renter messages: reply, "Send". Find a renter: search, "Open with a reason" (the reason is kept in the access log). Owner forms: "Approve" or "Send back".
 - **Finance:** Payments, deposits, refunds: "Request the refund" (above your limit it goes to an Admin), "Issue the refund". Tolls as the Admin does (Read a notice, Confirm and import, "Match again", "Dispute"). Reconciliation: "Record a processor payout", "Match". Turo trips: "Add a trip" or "Import".
 - **Fleet:** Field jobs: "Schedule" (kind, car, when, place, field staff, instructions), "Assign", "Reassign", "Move", "Cancel". Daily checks: "Opening check", "Closing check". Photo reviews after a return: "Review done" or "Ask for a re-shoot". Similar cars: "Not a duplicate" or "Same car". Listings: review and the plate editor as an Admin does.
-- **Sales:** Owner leads: "Take it", "Update" (status and the reason when closed). Requests and offers, New quote as customer service.
+- **Sales:** Owner leads: "Take it", "Update" (status and the reason when closed). Requests and offers, New quote and Add a rental as customer service. My sales (October 18, 2026): "By week" or "By month"; tiles for quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due; By week (or By month); Follow-ups due; Deals; How it is counted. Tracking only, no commission.
+- **First reply target:** 5 minutes (Program settings, "First reply target for customer service and sales (minutes)"): booking requests, enquiries, changes renters ask for and renter messages are due 5 minutes after they come in; the scorecard targets read it. Renters are still told "within 2 hours" (Site settings, Reply wording).
 - **Late return panel** (on a late booking): "Log a call", "Send T13", "Send T14 (final notice)", "Request disable", "Open an incident".
 
 ## Field portal (`/field`)

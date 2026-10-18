@@ -9,8 +9,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 51 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 32 test files (3,418 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 57 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | 37 test files (3,651 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -96,6 +96,7 @@ cd emails && node check.mjs
 | `0054_admin_access_samples_applications.sql` | Admin access only for rent@carmacars.ca (and the automated test account), sample photos for a listing without photos, the To do list and search of the admin portal, the owner applications inbox (approve, ask for something, decline), 2 emails |
 | `0055_guides_update_themselves.sql` | The guides keep up by themselves: the runs after each deploy, a section rewritten from the code's facts published with its old text kept for a one-click revert, the guides rewritten for this release |
 | `0056_debit_return_checks.sql` | Found by the Stripe test-mode run of the legal review: a debit returned for another reason than insufficient funds keeps no retry date on the invoice, the Admin task prints the bank's reason once, and the finance task for a failed debit states the new rule |
+| `0057_sales_tracking.sql` | The owner's decisions of October 18, 2026: the first reply target for customer service and sales (5 minutes, Program settings `request_response_target_minutes`) drives the first-reply task due times, countdowns, scorecard targets and staff screens; staff agreement defaults by function (monthly pay, full or part time, days and hours); sales tracking (`bookings.sales_staff_id`, My sales, Admin > Staff > Sales, the team's month on the Overview, reassignment by an Admin) (`docs/changes/2026-10-18-sales-tracking.md`) |
 
 ## Test files
 
@@ -134,6 +135,7 @@ cd emails && node check.mjs
 | `33_legal_review.sql` | 0053: insufficient funds (Late Fee once, the same amount again within 30 days) and other returns (no retry, paused, a task and an email), the payee in every owner billing email, the countersignature, two owners, Form C on screen, the charge on signing, staff rentals not charged, the investment awaiting countersignature | 55 |
 | `34_admin_redesign.sql` | 0054: Admin access in the database, sample photos (body type, make and model, publishing without the plate gate, real photos replacing them), To do, search (a booking number with its dash), the applications inbox end to end with its emails | 47 |
 | `35_guides_keep_up.sql` | 0055: the runs and their commit, the sections a run reads, an automatic change published or kept as a suggestion (an Admin's draft is never overwritten), the revert, the admin reads, new chapters, this release's chapters (the newer screenshot kept) | 41 |
+| `36_sales_tracking.sql` | 0057: the first reply target (task due times, countdown, scorecard, a change by an Admin, the customer promise unchanged), staff agreement defaults by function, who a booking is credited to (quote, offer, rental added, never a website request by itself), Sales adding a rental within its limits, reassignment, booked revenue (discounts, refunds, cancellations), My sales, a staff member's sales, the team's month, privileges | 76 |
 
 ## Rules for changes
 

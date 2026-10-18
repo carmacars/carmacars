@@ -28,7 +28,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 ## 3. Pay
 
-3.1 CarmaCars pays the Rate in Schedule A for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A.
+3.1 CarmaCars pays the Rate in Schedule A. A monthly Rate covers the Coverage Hours of each month: a part month, and Coverage Hours missed without CarmaCars' approval, are paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A.
 
 3.2 The Rate is your whole payment. There are no benefits, overtime, vacation pay, commissions or expenses unless CarmaCars agrees in writing first.
 
@@ -113,8 +113,9 @@ Name: [●]. Signature: [●]. Date: [●]
 | --- | --- |
 | Contractor | [●] (legal name), [●] (country), [●] (email) |
 | Role | [●] (one of the four roles below) |
+| Schedule | [●] (full time or part time): [●] days a week, [●] hours a day |
 | Coverage Hours (Toronto time) | [●] (days and times), [●] hours a week |
-| Rate | [●] an hour, in [●] (currency) |
+| Rate | [●] (a month or an hour), in [●] (currency) |
 | Start Date | [●] |
 | CarmaCars notice email | [●] |
 | Payment Method | Through [●] (hiring platform) |

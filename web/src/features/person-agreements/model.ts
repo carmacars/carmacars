@@ -23,7 +23,7 @@ export interface StaffFacts {
   company: Company;
 }
 /** The values an Admin confirms before sending (a field the record does not hold starts from the settings' defaults). */
-export interface Field { key: string; label: string; value: string; hint?: string; required?: boolean }
+export interface Field { key: string; label: string; value: string; hint?: string; required?: boolean; options?: Array<[string, string]> }
 
 const ON_SIGNATURE = 'given electronically (see the signature record)';
 const DATE_SIGNED = 'the date of the electronic signature';
@@ -31,6 +31,11 @@ const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('
 const VA_ROLE: Record<string, string> = { finance: 'Finance and Billing Coordinator', fleet: 'Fleet Operations Coordinator', cs: 'Customer Service Coordinator', sales: 'Sales Coordinator' };
 const FIELD_ROLE: Record<string, string> = { driver: 'Driver', detailer: 'Detailer', driver_detailer: 'Driver and detailer', both: 'Driver and detailer' };
 const companyName = (c: Company) => c.legal_name || c.brand;
+const num = (v: string | undefined) => !!v && /^\d+(\.\d+)?$/.test(v.trim());
+/** "350.00 a month, in USD" or "6.00 an hour, in USD" (a monthly Rate since 0057). */
+export const rateWords = (v: Record<string, string>) => `${v.rate ?? ''} ${v.pay_basis === 'hourly' ? 'an hour' : 'a month'}, in ${v.currency ?? ''}`;
+/** "Full time: 6 days a week, 10 hours a day". */
+export const scheduleWords = (v: Record<string, string>) => `${v.schedule === 'part_time' ? 'Part time' : 'Full time'}: ${v.days_per_week ?? ''} days a week, ${v.hours_per_day ?? ''} hours a day`;
 
 /** Replace the second cell of the table row whose first cell starts with the label. */
 function row(md: string, label: string, value: string): string {
@@ -106,12 +111,18 @@ export function staffFields(f: StaffFacts): Field[] {
   const s = f.staff;
   const d = f.defaults;
   if (s.staff_type === 'va') {
+    // pay, schedule and hours start from the defaults of the person's function (Program settings, 0057)
+    const perWeek = num(d.days_per_week) && num(d.hours_per_day) ? String(+(Number(d.days_per_week) * Number(d.hours_per_day)).toFixed(2)) : (d.hours_per_week ?? '');
     return [
       { key: 'country', label: 'Country', value: d.country ?? '', required: true },
-      { key: 'coverage', label: 'Coverage Hours (Toronto time)', value: d.coverage ?? '', required: true },
-      { key: 'hours_per_week', label: 'Hours a week', value: d.hours_per_week ?? '', required: true },
-      { key: 'rate', label: 'Rate an hour', value: d.rate ?? '', required: true, hint: 'For example 6.00' },
+      { key: 'pay_basis', label: 'Pay', value: d.pay_basis ?? '', required: true, options: [['monthly', 'A month'], ['hourly', 'An hour']] },
+      { key: 'rate', label: 'Rate', value: d.rate ?? '', required: true, hint: 'For example 350.00 a month, or 6.00 an hour' },
       { key: 'currency', label: 'Currency', value: d.currency ?? '', required: true },
+      { key: 'schedule', label: 'Schedule', value: d.schedule ?? '', required: true, options: [['full_time', 'Full time'], ['part_time', 'Part time']] },
+      { key: 'days_per_week', label: 'Days a week', value: d.days_per_week ?? '', required: true },
+      { key: 'hours_per_day', label: 'Hours a day', value: d.hours_per_day ?? '', required: true },
+      { key: 'hours_per_week', label: 'Hours a week', value: perWeek, required: true, hint: 'Days a week times hours a day, unless agreed otherwise' },
+      { key: 'coverage', label: 'Coverage Hours: days and times (Toronto time)', value: d.coverage ?? '', required: true },
       { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
       { key: 'platform', label: 'Hiring platform (payment)', value: d.platform ?? '', required: true },
       { key: 'pay_timing', label: 'Payment timing', value: d.pay_timing ?? '', required: true },
@@ -121,7 +132,7 @@ export function staffFields(f: StaffFacts): Field[] {
   return [
     { key: 'address', label: 'Home address', value: '', required: true },
     { key: 'licence', label: 'Driver\'s licence number', value: '', required: true },
-    { key: 'wage', label: 'Hourly Wage ($)', value: d.wage ?? '', required: true },
+    { key: 'wage', label: 'Hourly Wage (CA$)', value: d.wage ?? '', required: true, hint: 'For example 18.00' },
     { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
     { key: 'vehicle_types', label: 'Vehicle types authorized', value: d.vehicle_types ?? '', required: true },
     { key: 'pay_dates', label: 'Pay Dates', value: d.pay_dates ?? '', required: true },
@@ -140,8 +151,9 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
     let md = signatureLines(VA_MD, c, s.full_name);
     md = row(md, 'Contractor', `${s.full_name} (legal name), ${v.country ?? ''} (country), ${s.email ?? ''} (email)`);
     md = row(md, 'Role', VA_ROLE[s.va_function ?? ''] ?? (s.va_function ?? ''));
+    md = row(md, 'Schedule', scheduleWords(v));
     md = row(md, 'Coverage Hours', `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`);
-    md = row(md, 'Rate', `${v.rate ?? ''} an hour, in ${v.currency ?? ''}`);
+    md = row(md, 'Rate', rateWords(v));
     md = row(md, 'Start Date', v.start ?? '');
     md = row(md, 'CarmaCars notice email', c.email ?? '');
     md = row(md, 'Payment Method', `Through ${v.platform ?? ''}`);
@@ -172,7 +184,8 @@ export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ 
   const base = s.staff_type === 'va' ? null : '/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
   return s.staff_type === 'va'
     ? [{ label: 'Contractor', value: `${s.full_name}, ${v.country ?? ''}, ${s.email ?? ''}`, fix: base }, { label: 'Role', value: VA_ROLE[s.va_function ?? ''] ?? '', fix: null },
-       { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null }, { label: 'Rate', value: `${v.rate ?? ''} an hour, in ${v.currency ?? ''}`, fix: null },
+       { label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
+       { label: 'Rate', value: rateWords(v), fix: null },
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
     : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: `Ontario Class G, number ${v.licence ?? ''}`, fix: null },
        { label: 'Role', value: FIELD_ROLE[s.field_function ?? ''] ?? '', fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },

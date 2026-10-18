@@ -5,13 +5,15 @@ import { GroupNav, type NavGroup } from '@/features/admin/GroupNav';
 // portal): their work first, then the screens of their function in a few groups. The pages keep their addresses.
 export type Fn = 'finance' | 'fleet' | 'cs' | 'sales';
 const WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today' }, { href: '/va/scorecard', label: 'My scorecard' }] };
+// Sales also sees its own sales (0057): quotes, offers, bookings confirmed and booked revenue
+const SALES_WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today' }, { href: '/va/scorecard', label: 'My scorecard' }, { href: '/va/my-sales', label: 'My sales' }] };
 export const VA_GROUPS: Record<Fn, NavGroup[]> = {
   cs: [WORK,
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests', key: 'r' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
     { key: 'renters', label: 'Renters', links: [{ href: '/va/messages', label: 'Messages' }, { href: '/va/renters', label: 'Find a renter' }] },
     { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owners and enquiries' }, { href: '/va/owner-forms', label: 'Owner forms' }] }],
-  sales: [WORK,
+  sales: [SALES_WORK,
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owner leads' }] }],
   finance: [WORK,

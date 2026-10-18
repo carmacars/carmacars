@@ -29,10 +29,10 @@ def build():
               'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
               'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
-    g.task('The menu', 'My work comes first: To do, Today and My scorecard. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.task('The menu', 'My work comes first: To do, Today and My scorecard (Sales also has My sales). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
         ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Owner forms)'],
-        ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
+        ['Sales', 'My work (also My sales), Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
         ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar), Renters (Find a renter)'],
     ], head=['Function', 'Groups and pages'])
@@ -77,6 +77,7 @@ def build():
         f'Open {P("My work", "My scorecard")}.',
         'By week shows each measure, its target and your result for each week.',
         'A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.',
+        'The first reply target is 5 minutes: a new booking request, an enquiry, a change the renter asked for or a renter message is due 5 minutes after it comes in. An Admin sets it in Program settings, and the target column shows the one in force.',
     ], shot=S('va-sales/05-scorecard-desktop', 0, 60, 1440, 420, pins=[(1, 60, 203), (2, 900, 270)]))
 
     # ---------------------------------------------------------------- 2
@@ -97,7 +98,7 @@ def build():
         f'Add a message and press {B("Send the offer")}. Within your limit you can also use {B("Approve (within my limit)")} or {B("Approve and send the pay link")}.',
         f'Can\'t do it? {B("Decline")} with Reason and any alternative. Need to know more? {B("Ask the renter")}.',
     ], shot=S('va-cs/04-booking-review-desktop', 0, 60, 1440, 1060, pins=[(3, 1000, 300), (4, 1380, 1040)]))
-    g.tip('Aim to send the offer within 15 minutes of the request. That is the "Quote sent" measure on your scorecard.')
+    g.tip('Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.')
 
     g.task('New quote for a caller')
     g.steps([
@@ -242,12 +243,27 @@ def build():
               'You turn enquiries into bookings and owners into fleet: requests and offers, quotes for callers, '
               'and owner leads.',
               blurb='Requests and offers, new quotes and owner leads.')
-    g.para('Your rail: Queue, Today, Requests and offers, New quote, Owner leads, Calendar and Scorecard.')
+    g.para('Your menu: To do, Today, My scorecard and My sales, then Requests and offers, New quote, Add a rental, Calendar and Owner leads.')
     g.task('Requests, offers and new quotes')
     g.steps([
         f'{B("Requests and offers")}: the same queue customer service works. Answer requests and follow offers out.',
         f'{B("New quote")}: price a car for a caller and press {B("Create the request")}, as in chapter 2.',
     ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 380, 172)]))
+    g.tip('Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.')
+    g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales only. Nothing here is a commission: it is for tracking.')
+    g.steps([
+        f'The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press {B("By month")} for months, {B("By week")} for weeks.',
+        'By week (or By month) lists each period with the same figures, newest first.',
+        'Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.',
+        'Deals lists every booking you created, added or sent an offer on in the last 180 days, with its status and what it counts. Open a request, an offer or a rental you added from its number.',
+    ])
+    g.table([
+        ['Credited to you', 'A quote you created, a rental you added, or a website request whose first offer you sent. An Admin can give a deal to someone else.'],
+        ['Quotes created, offers sent, rentals added', 'Counted on the day they happened.'],
+        ['Bookings confirmed, booked revenue', 'Counted on the day the booking was confirmed.'],
+        ['Conversion', 'Of the deals credited to you in the period, the share confirmed so far.'],
+        ['Booked revenue', 'The rental charge before tax, after discounts. A cancelled booking counts only what was kept; refunds come off.'],
+    ], head=['Figure', 'How it is counted'])
     g.task('Owner leads')
     g.steps([
         'Owner leads: each enquiry with the name, contact, car and status.',
@@ -268,6 +284,7 @@ def build():
         f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code; a price typed by hand is for Admins.',
         f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}.',
         f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
+        'A rental you add is credited to you. In Sales it shows in My sales as a rental you added, and as a booking confirmed once it is confirmed.',
     ])
     g.tip('The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.')
 
@@ -294,11 +311,13 @@ def build():
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
                   ('Finance', 'Payments, Tolls and tickets, Reconciliation, Turo trips'),
                   ('Fleet', 'Field jobs, Daily checks, Photo reviews, Listings, Similar cars'),
-                  ('Sales', 'Requests and offers, New quote, Owner leads'),
+                  ('Sales', 'Requests and offers, New quote, Add a rental, Owner leads'),
+                  ('My sales', 'Sales: your quotes, offers, bookings and booked revenue'),
                   ('My scorecard', 'Your results by week')],
         top_tasks=[('Take a task', f'{P("My work", "To do")}, {B("Take it")}, then {B("Done")}'),
                    ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
                    ('Quote a caller', f'{P("Bookings", "New quote")}, then {B("Create the request")}'),
+                   ('See your sales', f'{P("My work", "My sales")}, then {B("By week")} or {B("By month")}'),
                    ('Review Forms C and D', f'{P("Owner forms", "Approve")}'),
                    ('Read a toll notice', f'{P("Tolls and tickets", "Read a notice")}'),
                    ('Issue a refund', f'{B("Request the refund")}, {B("Issue the refund")}'),

@@ -113,7 +113,10 @@ export function SendGenerated({ docType, who, refresh }: { docType: 'investment_
       <div className="ad-fields">
         {fields.map((f) => (
           <div key={f.key} className="field ad-field"><label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>
-            <input className="input" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`} />
+            {f.options ? (
+              <select className="select" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`}>
+                <option value="">Choose</option>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            ) : <input className="input" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`} />}
             {f.hint && <p className="hint">{f.hint}</p>}</div>
         ))}
         {docType === 'investment_agreement' && (

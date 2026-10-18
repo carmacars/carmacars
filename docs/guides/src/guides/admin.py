@@ -34,7 +34,7 @@ def build():
         'The list is in order of urgency: owner applications, booking requests, changes renters asked for, failed payments, agreements to countersign, tolls, listings, plates not checked, insurance and cars using sample photos.',
         'Press the button on a line to go straight to that work. A line with nothing waiting moves to the bottom, under "more with nothing waiting".',
         'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
-        f'Press {B("Overview")} for the money, fleet and queue figures and the alerts.',
+        f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
     ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
     g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
@@ -123,9 +123,23 @@ def build():
     g.task('Staff scorecards', 'See how each assistant is doing against the targets.')
     g.steps([
         f'On a staff member\'s row in Staff and roles, press {B("Scorecard")}.',
-        'By week shows each measure (for example quote sent within 15 minutes) and the result for each week.',
+        'By week shows each measure (for example quote sent within 5 minutes) and the result for each week.',
         'A task meets its target when it is done by its due time. Daily checks count when done by 9:00 and 18:00.',
     ], shot=S('va-sales/05-scorecard-desktop', 210, 120, 1440, 470, pins=[(2, 470, 270)]))
+
+    g.task('Sales by staff member', 'See each person\'s quotes, offers, rentals added, bookings confirmed and booked revenue. It is tracking only: the staff agreements allow no commission.')
+    g.steps([
+        f'On a staff member\'s row in Staff and roles, press {B("Sales")}. Press {B("By week")} or {B("By month")}.',
+        'The tiles show the current week or month. By week (or By month) lists each period: quotes created, offers sent, rentals added, bookings confirmed, conversion and booked revenue.',
+        'Follow-ups due lists their open deals with the next step. Deals lists each booking they created, added or sent an offer on, with what it counts.',
+        f'A deal credited to the wrong person? Press {B("Reassign")} beside it, choose who and write the reason.',
+        f'The whole team: {P("Today", "Overview")}, the Sales card at the bottom. Choose another month and press {B("Show")}.',
+    ])
+    g.table([
+        ['Credited to', 'Whoever created the quote or added the rental; for a website request, whoever sent its first offer. An Admin can reassign it.'],
+        ['Conversion', 'Of the deals credited in the period, the share confirmed so far.'],
+        ['Booked revenue', 'The rental charge before tax, after discounts, for bookings confirmed in the period. A cancelled booking counts only what was kept; refunds come off.'],
+    ], head=['Figure', 'How it is counted'])
 
     # ---------------------------------------------------------------- 3
     g.chapter('Requests, offers and bookings',
@@ -135,7 +149,7 @@ def build():
     g.task('The request queue', f'Open {P("Bookings", "Requests")}. The oldest waiting request is at the top.')
     g.steps([
         'Filter by New, Waiting on the renter, Pushed back, Offer out, Signing and payment, or Offer expired.',
-        'Waiting shows how long the renter has waited. Open a booking number to answer it.',
+        'Waiting shows how long the renter has waited; red means past the first reply target (5 minutes, set in Program settings). Open a booking number to answer it.',
     ], shot=S('admin/02-requests-desktop', 0, 0, 1440, 820, pins=[(1, 267, 174), (2, 365, 260)]))
 
     g.task('Answer a request with an offer')
@@ -169,6 +183,11 @@ def build():
         'Write the Reason, for the renter. They read it.',
         f'Press {B("Preview the price")}, then {B("Send to the renter")}.',
     ], shot=S('admin/05-booking-changes-desktop', 210, 230, 1440, 760, pins=[(1, 369, 311), (2, 640, 392), (3, 822, 543), (4, 590, 618)]))
+    g.task('Who a booking is credited to', 'Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.')
+    g.steps([
+        'A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.',
+        f'To give it to someone else, press {B("Reassign")}, choose who (or Nobody) and write the reason. The booking\'s history keeps it, and the deal stays in the same week and month.',
+    ])
     g.tip('The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to '
           'their Card on File; a lower price raises a refund for your approval.')
 
@@ -474,6 +493,8 @@ def build():
     g.steps([
         'Turnaround between trips: the time held between two trips. The cleaning block after a trip is this time.',
         'Settings come in groups such as Company, Booking requests and offers, Owner debits and statement emails, Deposits, Delivery, Owners and fleet, and Tolls and damage. Open one to see its fields.',
+        'First reply target for customer service and sales (minutes), under Booking requests and offers: 5 by default. New booking requests, enquiries, changes renters ask for and renter messages are due that many minutes after they come in; the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) is separate.',
+        f'Staff agreement defaults by function, at the bottom: pay (a month or an hour), the rate, full or part time, days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Press {B("Save the defaults")}.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
@@ -491,7 +512,7 @@ def build():
     g.steps([
         f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send the agreement to sign")}. Check the values it is filled with (amount, yearly percentage, dates, exemption) and press {B("Send to sign")}.',
         f'Once the investor signs, the agreement shows {B("Awaiting countersignature")} on the investor\'s page and on To do. It is not countersigned automatically: check it and press {B("Countersign")}. CarmaCars is bound once it has countersigned and the funds clear.',
-        f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Rate, hours and the other values start from the staff profile and Program settings; change any before sending.',
+        f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Pay, schedule, hours and the other values start from the staff profile and the defaults of their function in Program settings; change any before sending.',
         'They get a notice, check the key values and sign in their portal in a few taps (their name is the signature, or they draw it). The signed copy is filed with their documents.',
         f'Your own PDF instead? {B("Send a PDF to sign")} still works.',
         f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',

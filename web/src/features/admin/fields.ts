@@ -12,6 +12,7 @@ const LABELS: Record<string, string> = {
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',
+  request_response_target_minutes: 'First reply target for customer service and sales (minutes)',
   street_address: 'Street address (pickup and returns)', signing_officer_authorized_on: 'Signing officer: date of the standing authorization',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
@@ -22,13 +23,14 @@ const HINTS: Record<string, string> = {
   mailing_address: 'The company mailing address. Marketing emails, the PAD agreement and its confirmation print it.',
   signing_officer_name: 'Signs every automatic countersignature for the company and countersigns investment agreements.',
   signing_officer_authorized_on: 'Printed in every automatic countersignature. A new signing officer takes the date the change is saved.',
+  request_response_target_minutes: 'Booking requests, enquiries, offer changes and renter messages are due this many minutes after they come in (5 by default, counted in opening hours). The task due times, the countdown, the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) and the late-request alert to staff are separate settings.',
   owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',
   ai_vision_daily_neurons: 'Cloudflare gives 10,000 neurons a day free, shared with the listing copy. A scanned page uses about 100 to 300.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30] };
+const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

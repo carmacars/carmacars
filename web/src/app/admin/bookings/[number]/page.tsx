@@ -15,6 +15,8 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
 
 type R = Record<string, unknown>;
+type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string }> };
+const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a rental they added', offer: 'the first offer they sent', admin: 'given by an Admin' };
 type Detail = B & R & {
   renter: { id: string; legal_name: string; email: string; mobile: string | null; identity_status: string; is_blocked: boolean; bookings: number } | null;
   offers: R[]; events: R[]; history: R[]; emails: R[]; payments: R[]; refunds: R[]; deposit: R | null; statements: R[]; documents: R[];
@@ -32,6 +34,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
     read<Detail | null>('booking', { number: n }), list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }),
     list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }), read<{ program: { offer_expiry_hours: number } }>('settings')]);
   if (!b) notFound();
+  // who the booking is credited to for sales tracking, and who an Admin may give it to (0057)
+  const credit = await read<SalesCredit>('booking_sales', { booking: b.id }).catch(() => null);
   const driverLinks = sp.tab === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   const base = `/admin/bookings/${encodeURIComponent(n)}`;
   // payments received another way and documents signed on paper (migration 0044)
@@ -74,7 +78,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
             <Card title="The request as sent">
               <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
                 ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>],
-                ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet']]} />
+                ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'],
+                ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']]} />
             </Card>
             <Card title="Competing for these dates" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
               {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
@@ -90,6 +95,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
               ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
               ...(b.added_by_staff ? [['Added by hand', <span key="a" data-testid="booking-added">{b.added_mode === 'past' ? 'A past rental recorded by staff' : 'Added by staff'}; source {label(b.source)}; payment: {label(b.payment_mode)}{b.do_not_email ? '; renter not emailed' : ''}{b.clash_override_reason ? `; added over a clash: ${String(b.clash_override_reason)}` : ''}</span>] as [string, React.ReactNode]] : []),
+              ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
           <Card title="Price">
@@ -154,5 +160,18 @@ export default async function Booking({ params, searchParams }: { params: Promis
         </div>
       )}
     </>
+  );
+}
+
+// The credit line with the Admin's Reassign (a reason is kept in the booking's history; 0057).
+function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: string; refresh: string[] }) {
+  const opts: Array<[string, string]> = [['', 'Choose who'], ...c.options.map((o) => [o.id, `${o.name} (${label(o.function)})`] as [string, string]), ['none', 'Nobody']];
+  return (
+    <span data-testid="booking-sales-credit">
+      {c.staff_id ? <><Link prefetch={false} className="link" href={`/admin/staff/${c.staff_id}/sales`}>{c.name}</Link>, {HOW[c.how ?? ''] ?? ''}{c.how === 'admin' && c.by ? ` (${c.by})` : ''}; counts {$(c.revenue_cents)}</>
+        : c.how === 'admin' ? 'Nobody (an Admin removed the credit)' : 'Nobody yet: the first offer sent credits its sender'}{' '}
+      <Act action="sales_reassign" payload={{ booking }} label="Reassign" testId="booking-sales-reassign" refresh={refresh} done="Reassigned."
+        fields={[{ name: 'staff', label: 'Credit it to', type: 'select', options: opts, required: true }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
+    </span>
   );
 }

@@ -1,5 +1,6 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
+import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { $, ago, Badge, BookingLink, Filters, PageHead, Table, t } from '@/features/admin/ui';
 
@@ -12,16 +13,17 @@ const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_
 
 // The request inbox (03-admin.md section 3): oldest first until each is offered or declined.
 export default async function Requests({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read }, sp] = await Promise.all([page('/admin/requests'), searchParams]);
-  const all = await read<Req[]>('requests');
+  const [{ read, user }, sp] = await Promise.all([page('/admin/requests'), searchParams]);
+  // the first reply target (Program settings, 5 minutes by default; 0057) marks a request waiting too long
+  const [all, target] = await Promise.all([read<Req[]>('requests'), door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target').catch(() => ({ minutes: 5, words: '5 minutes' }))]);
   const state = sp.state ?? '';
   const rows = all.filter((r) => !state || r.state === state);
   return (
     <>
-      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting`} />
+      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`} />
       <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting. New booking requests from the website show up here to price and offer." cols={[
-        { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > 120 ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },
+        { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > target.minutes ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
         { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> },
         { key: 'vehicle', label: 'Car' },

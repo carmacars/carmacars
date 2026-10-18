@@ -1200,6 +1200,10 @@ export type Database = {
           payment_mode: string | null;
           do_not_email: boolean;
           clash_override_reason: string | null;
+          sales_staff_id: string | null;
+          sales_source: string | null;
+          sales_attributed_at: string | null;
+          sales_attributed_by: string | null;
         };
         Insert: {
           id?: string;
@@ -1317,6 +1321,10 @@ export type Database = {
           payment_mode?: string | null;
           do_not_email?: boolean;
           clash_override_reason?: string | null;
+          sales_staff_id?: string | null;
+          sales_source?: string | null;
+          sales_attributed_at?: string | null;
+          sales_attributed_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1434,6 +1442,10 @@ export type Database = {
           payment_mode?: string | null;
           do_not_email?: boolean;
           clash_override_reason?: string | null;
+          sales_staff_id?: string | null;
+          sales_source?: string | null;
+          sales_attributed_at?: string | null;
+          sales_attributed_by?: string | null;
         };
         Relationships: [];
       };

@@ -13,6 +13,7 @@ import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
+import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -104,7 +105,8 @@ export default async function Section({ params }: { params: Promise<{ section: s
   case 'program': {
     // turnaround_block_minutes always equals the turnaround (0042): one setting is shown; owner_debit_show_legal_name is no
     // longer used (0053: the payee is always the legal name, operating as CarmaCars)
-    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name'].includes(k));
+    // staff_agreement_defaults has its own form below, by function (0057)
+    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults'].includes(k));
     const used = new Set<string>();
     return (<>{head}
       <p className="small muted">Saving writes a new dated row from today; the rows before it stay as they were. In force since {d(s.program.effective_from)}; {s.program_rows.length} dated rows.</p>
@@ -112,6 +114,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}
+      <Card title="Staff agreement defaults by function" testId="staff-defaults"><StaffDefaults value={(s.program.staff_agreement_defaults ?? {}) as StaffDefaultsValue} /></Card>
     </>);
   }
   case 'fees':
@@ -183,6 +186,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
           {(r.profile as R | null) && <SaveFormLimits id={String(r.id)} p={r.profile as R} />}
           {(r.profile as R | null)?.va_function ? <>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>
+            <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/sales`} data-testid={`sales-${String(r.email)}`}>Sales</Link>
             <Act action="staff_cover" payload={{ user: r.id }} label="Covers" testId={`cover-${String(r.id)}`} refresh={['/admin/settings/staff']} fields={[{ name: 'functions', label: 'Also covers (finance, fleet, cs, sales; comma separated)', type: 'list',
               value: ((r.profile as R).cover_functions as string[] | null) ?? [] }]} /></> : null}
           {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />

@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { pct } from '@/lib/format';
 import { page } from '@/server/admin/api';
 import { $, ago, BookingLink, Card, PageHead, t, Tiles, label } from '@/features/admin/ui';
+import { TeamSales, type Team } from '@/features/va/TeamSales';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Overview', path: '/admin/overview', noindex: true, description: 'Money, fleet, approvals and queues at a glance.' });
@@ -28,9 +29,11 @@ type Dash = {
 
 // The overview (03-admin.md section 1; the To do list is the home page since October 16, 2026): needs you, today, money
 // and fleet. Every card has its own zero state.
-export default async function AdminOverview() {
-  const { read } = await page('/admin/overview');
-  const d = await read<Dash>('dashboard');
+export default async function AdminOverview({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ read }, sp] = await Promise.all([page('/admin/overview'), searchParams]);
+  const [d, team] = await Promise.all([read<Dash>('dashboard'),
+    read<Team>('team_sales', { month: /^\d{4}-\d{2}$/.test(sp.sales_month ?? '') ? sp.sales_month : '' }).catch(() => null)]);
+  const target = d.target_minutes >= 60 && d.target_minutes % 60 === 0 ? `${d.target_minutes / 60}-hour` : `${d.target_minutes}-minute`;
   const over = d.requests.filter((r) => !r.awaiting_renter && r.waiting_minutes > d.target_minutes).length;
   return (
     <>
@@ -41,7 +44,7 @@ export default async function AdminOverview() {
         </Card>
       )}
       <Tiles items={[
-        { k: 'Requests waiting', v: d.requests.length, sub: over ? `${over} past the ${d.target_minutes / 60}-hour target` : `target ${d.target_minutes / 60} hours`, href: '/admin/requests', warn: over > 0 },
+        { k: 'Requests waiting', v: d.requests.length, sub: over ? `${over} past the ${target} first reply target` : `first reply target ${d.target_minutes} min`, href: '/admin/requests', warn: over > 0 },
         { k: 'Offers out', v: d.offers.length, href: '/admin/requests?state=offer_out' },
         { k: 'Late returns', v: d.late.length, warn: d.late.length > 0, href: '/admin/bookings?status=on_rent' },
         { k: 'Payments failed', v: d.payments_failed.length, warn: d.payments_failed.length > 0, href: '/admin/money?status=failed' },
@@ -50,7 +53,7 @@ export default async function AdminOverview() {
       ]} />
       <div className="ad-cols ad-cols--3">
         <div className="stack">
-          <Card title="Requests waiting" testId="dash-requests" aside={<span className="small muted">target {d.target_minutes} min</span>}>
+          <Card title="Requests waiting" testId="dash-requests" aside={<span className="small muted">first reply target {d.target_minutes} min</span>}>
             {d.requests.length ? <ul className="ad-list">{d.requests.slice(0, 8).map((r) => (
               <li key={r.booking_number}><span><BookingLink n={r.booking_number} /> {r.renter}</span>
                 <span className={!r.awaiting_renter && r.waiting_minutes > d.target_minutes ? 'ad-late' : 'small'}>{r.awaiting_renter ? 'waiting on renter' : ago(r.waiting_minutes)}</span>
@@ -107,6 +110,7 @@ export default async function AdminOverview() {
           </Card>
         </div>
       </div>
+      {team && <TeamSales team={team} />}
     </>
   );
 }
