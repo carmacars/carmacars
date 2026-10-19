@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 152,
+  "count": 154,
   "emails": [
     {
       "code": "account_password_reset",
@@ -2144,6 +2144,107 @@
       ],
       "template_html": "templates/renter_change_request_received.html",
       "template_text": "templates/renter_change_request_received.txt"
+    },
+    {
+      "code": "renter_chat_transcript",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A live chat on the site closes (the visitor ends it, a staff member closes it, or the visitor left contact details after hours and asked for a copy) and the visitor gave an email address in it. One email to that address with the conversation. Transactional: it is the copy the visitor asked for.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your chat with CarmaCars ({{chat_number}})",
+      "preheader": "A copy of your conversation of {{chat_date}}.",
+      "sample_subject": "Your chat with CarmaCars (LC-1042)",
+      "variables": [
+        {
+          "name": "chat_date",
+          "type": "string",
+          "sample": "October 19, 2026"
+        },
+        {
+          "name": "chat_number",
+          "type": "string",
+          "sample": "LC-1042"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "messages",
+          "type": "list",
+          "sample": [
+            {
+              "who": "You",
+              "time": "2:14 PM",
+              "text": "Is the Tesla free next weekend?"
+            },
+            {
+              "who": "CarmaCars assistant",
+              "time": "2:14 PM",
+              "text": "Yes, the 2023 Tesla Model 3 is free from Saturday to Sunday. The total is $287.67 including HST, with a $1,000.00 Deposit."
+            },
+            {
+              "who": "Maya",
+              "time": "2:16 PM",
+              "text": "I sent you an offer for those dates. It is in your email."
+            }
+          ],
+          "fields": [
+            "who",
+            "time",
+            "text"
+          ]
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_chat_transcript.html",
+      "template_text": "templates/renter_chat_transcript.txt"
     },
     {
       "code": "renter_comeback_1m",
@@ -13763,6 +13864,58 @@
       ],
       "template_html": "templates/staff_change_request_received.html",
       "template_text": "templates/staff_change_request_received.txt"
+    },
+    {
+      "code": "staff_chat_waiting",
+      "audience": "staff_va_cs",
+      "also_sent_to": [
+        "staff_va_sales",
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "A visitor in live chat needs a person (they asked, or the assistant handed over: a complaint, damage, an accident, a payment, a question it could not answer, or the day's AI allowance is used). Sent only to staff on shift (Live chat or Live visitors open in the last minutes) who turned on \"Email me when a chat waits\" in Live chat. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Live chat {{chat_number}} waits for you: {{visitor_name}}",
+      "preheader": "{{chat_reason}}. Reply within the first reply target.",
+      "sample_subject": "Live chat LC-1042 waits for you: Visitor from Toronto, phone",
+      "variables": [
+        {
+          "name": "chat_number",
+          "type": "string",
+          "sample": "LC-1042"
+        },
+        {
+          "name": "chat_page",
+          "type": "string",
+          "sample": "Car page"
+        },
+        {
+          "name": "chat_reason",
+          "type": "string",
+          "sample": "asked for a person"
+        },
+        {
+          "name": "chat_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/va/chat"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "visitor_name",
+          "type": "string",
+          "sample": "Visitor from Toronto, phone"
+        }
+      ],
+      "template_html": "templates/staff_chat_waiting.html",
+      "template_text": "templates/staff_chat_waiting.txt"
     },
     {
       "code": "staff_digest_eod_va_cs",

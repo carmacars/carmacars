@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>152 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>57</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>12</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>154 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>58</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (57)</h2>
+<h2 id="renter">Renter (58)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -145,6 +145,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The renter asks for a change: on an open offer the current booking_offers row becomes change_requested (booking status offered); on a booking with status confirmed a change request is logged.</div>
 <div class="ln"><a href="../dist/renter_change_request_received.html">HTML</a><a href="../dist/renter_change_request_received.txt">Text</a><a href="../shots/renter_change_request_received.desktop.png">Desktop</a><a href="../shots/renter_change_request_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_chat_transcript.html"><img loading="lazy" src="../shots/renter_chat_transcript.desktop.png" alt="Screenshot of renter_chat_transcript"></a><div class="b">
+<div class="code">renter_chat_transcript</div><div class="sub">Your chat with CarmaCars (LC-1042)</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A live chat on the site closes (the visitor ends it, a staff member closes it, or the visitor left contact details after hours and asked for a copy) and the visitor gave an email address in it. One email to that address with the conversation. Transactional: it is the copy the visitor asked for.</div>
+<div class="ln"><a href="../dist/renter_chat_transcript.html">HTML</a><a href="../dist/renter_chat_transcript.txt">Text</a><a href="../shots/renter_chat_transcript.desktop.png">Desktop</a><a href="../shots/renter_chat_transcript.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_comeback_1m.html"><img loading="lazy" src="../shots/renter_comeback_1m.desktop.png" alt="Screenshot of renter_comeback_1m"></a><div class="b">
 <div class="code">renter_comeback_1m</div><div class="sub">15% off your next rental, Maya</div>
@@ -822,7 +828,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_listing_similarity.html">HTML</a><a href="../dist/staff_listing_similarity.txt">Text</a><a href="../shots/staff_listing_similarity.desktop.png">Desktop</a><a href="../shots/staff_listing_similarity.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_cs">Staff: VA customer service (12)</h2>
+<h2 id="staff_va_cs">Staff: VA customer service (13)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_booking_request_new.html"><img loading="lazy" src="../shots/staff_booking_request_new.desktop.png" alt="Screenshot of staff_booking_request_new"></a><div class="b">
 <div class="code">staff_booking_request_new</div><div class="sub">New request CC-10482: 2024 Honda Civic Sport, Fri, Oct 23, 2026</div>
@@ -841,6 +847,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">A booking change request row is created by a renter. Queued for the next customer service digest. Sent immediately instead when the pickup is less than 48 hours away or the booking is on_rent.</div>
 <div class="ln"><a href="../dist/staff_change_request_received.html">HTML</a><a href="../dist/staff_change_request_received.txt">Text</a><a href="../shots/staff_change_request_received.desktop.png">Desktop</a><a href="../shots/staff_change_request_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_chat_waiting.html"><img loading="lazy" src="../shots/staff_chat_waiting.desktop.png" alt="Screenshot of staff_chat_waiting"></a><div class="b">
+<div class="code">staff_chat_waiting</div><div class="sub">Live chat LC-1042 waits for you: Visitor from Toronto, phone</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A visitor in live chat needs a person (they asked, or the assistant handed over: a complaint, damage, an accident, a payment, a question it could not answer, or the day's AI allowance is used). Sent only to staff on shift (Live chat or Live visitors open in the last minutes) who turned on &quot;Email me when a chat waits&quot; in Live chat. Immediate.</div>
+<div class="ln"><a href="../dist/staff_chat_waiting.html">HTML</a><a href="../dist/staff_chat_waiting.txt">Text</a><a href="../shots/staff_chat_waiting.desktop.png">Desktop</a><a href="../shots/staff_chat_waiting.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_digest_eod_va_cs.html"><img loading="lazy" src="../shots/staff_digest_eod_va_cs.desktop.png" alt="Screenshot of staff_digest_eod_va_cs"></a><div class="b">
 <div class="code">staff_digest_eod_va_cs</div><div class="sub">Customer service end of day: 4 items open, Tue, Oct 20</div>

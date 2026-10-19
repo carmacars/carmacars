@@ -21,8 +21,13 @@ export default async function VaLayout({ children }: { children: React.ReactNode
   const viewing = await viewAs();
   let open = 0;
   let needsAddress = false;
+  let chat = 0;
   if (user && roles?.va) {
     try { open = Number((await door<{ open: number }>(user.id, 'va_read', 'digest')).open) || 0; } catch { open = 0; }
+    // chats waiting for a person (0060), for customer service and Sales
+    if (roles.va === 'cs' || roles.va === 'sales') {
+      try { chat = Number((await door<{ waiting: number }>(user.id, 'va_read', 'chat_counts')).waiting) || 0; } catch { chat = 0; }
+    }
     // the first sign-in (0059): the home address, asked on every page until it is in
     needsAddress = !viewing && (await homeAddressOf(user.id, 'va')).missing;
   }
@@ -39,7 +44,7 @@ export default async function VaLayout({ children }: { children: React.ReactNode
                 <ul className="ad-fn__list">{roles.va_functions!.map((f) => (
                   <li key={f}><form action={switchFunction.bind(null, f)}><button type="submit" className={`btn btn--sm ${f === roles.va ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={f === roles.va}>{FN_LABEL[f]}</button></form></li>
                 ))}</ul></nav>)}
-            <VaNav fn={roles.va} open={open} />
+            <VaNav fn={roles.va} open={open} chat={chat} />
           </aside>
         ) : <div />}
         <div className="ad__main">{needsAddress ? <HomeAddressCard portal="va" /> : null}{roles?.va && user ? <GuideBanner portal="va" userId={user.id} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>

@@ -4,6 +4,7 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
+import '@/features/live/live.css';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicles', path: '/admin/vehicles', noindex: true, description: 'The fleet.' });
@@ -15,7 +16,8 @@ type V = { id: string; fleet_number: string | null; name: string; plate: string 
 // The fleet (03-admin.md section 8.1).
 export default async function Vehicles({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ read, user }, sp] = await Promise.all([page('/admin/vehicles'), searchParams]);
-  const [all, settings] = await Promise.all([read<V[]>('vehicles'), door<{ sample_cars: number }>(user.id, 'ops_read', 'supply_settings').catch(() => ({ sample_cars: 0 }))]);
+  const [all, settings, viewed] = await Promise.all([read<V[]>('vehicles'), door<{ sample_cars: number }>(user.id, 'ops_read', 'supply_settings').catch(() => ({ sample_cars: 0 })),
+    read<Array<{ vehicle_id: string; car: string; views_today: number; views_7d: number; looking_now: number; requests_7d: number }>>('most_viewed', { days: 7, limit: 5 }).catch(() => [])]);
   const s = (sp.q ?? '').toLowerCase();
   const rows = all.filter((v) => (!sp.status || v.status === sp.status) && (!sp.mode || v.management_mode === sp.mode)
     && (!sp.supply || v.supply_type === sp.supply) && (sp.retired === 'show' ? true : sp.retired === 'only' ? !!v.retired_at : !v.retired_at) && (!s || `${v.name} ${v.plate} ${v.fleet_number} ${v.owner_name}`.toLowerCase().includes(s)));
@@ -34,6 +36,11 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       <Filters base="/admin/vehicles" name="supply" value={sp.supply ?? ''} options={[['', 'Every supplier'], ['program_owner', 'Program owners'], ['company', 'CarmaCars-owned'], ['partner', 'Partners']]} sp={sp} />
       <Filters base="/admin/vehicles" name="retired" value={sp.retired ?? ''} options={[['', 'In the fleet'], ['only', 'Retired'], ['show', 'All, retired too']]} sp={sp} />
       <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
+      {viewed.length > 0 && (
+        <details className="pt-card ad-card" data-testid="most-viewed-cars"><summary className="link">Most viewed cars this week</summary>
+          <ol className="lt-list">{viewed.map((c) => <li key={c.vehicle_id}><Link prefetch={false} className="link" href={`/admin/vehicles/${c.vehicle_id}`}>{c.car}</Link> <span className="small muted">{c.views_7d} views, {c.views_today} today, {c.requests_7d} requests{c.looking_now ? `, ${c.looking_now} looking now` : ''}</span></li>)}</ol>
+          <p className="small"><Link prefetch={false} className="link" href="/admin/live">Live visitors</Link></p>
+        </details>)}
       <Table<V> testId="vehicles" caption="Vehicles" rows={rows} empty="No vehicles yet. Press Add a car to add one, or approve an owner application." cols={[
         { key: 'fleet_number', label: 'No.' },
         { key: 'name', label: 'Vehicle', render: (v) => <Link prefetch={false} className="link" href={`/admin/vehicles/${v.id}`}>{v.name}</Link> },

@@ -6,6 +6,8 @@ import { default as handler } from './.open-next/worker.js';
 import { cspHeader, newNonce, securityHeaders } from './src/lib/security/csp';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from './src/lib/security/view-as-guard';
 import { refreshSession } from './src/lib/auth/edge-refresh';
+import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
+import { MAX_BEACON_BYTES, cleanBeacon, ipKey, isBot } from './src/lib/track/shared';
 
 type Env = Record<string, unknown>;
 
@@ -44,6 +46,37 @@ async function workerToken(secret: string): Promise<string> {
   return Array.from(mac, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Live visitors (migration 0060): the site's beacon, answered here before the app is loaded, so a batch of page
+// views costs well under a millisecond of the Worker's time and one call to the database. Bots are dropped; the city
+// comes from Cloudflare; the network address only feeds a salted rate-limit key; the signed-in user's own token goes
+// with the call (an expired one falls back to an anonymous call).
+async function track(request: Request, env: Env): Promise<Response | null> {
+  const sbUrl = env.NEXT_PUBLIC_SUPABASE_URL, sbKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (typeof sbUrl !== 'string' || typeof sbKey !== 'string' || !sbUrl) return null;
+  const headers = { 'content-type': 'application/json', 'cache-control': 'no-store', ...securityHeaders() };
+  const reply = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers });
+  const origin = request.headers.get('origin');
+  if (origin && new URL(origin).host !== new URL(request.url).host) return reply({ ok: false }, 403);
+  const ua = request.headers.get('user-agent');
+  if (isBot(ua, env.TRACK_ALLOW_HEADLESS === '1')) return reply({ ok: true, bot: true });
+  const text = await request.text();
+  if (text.length > MAX_BEACON_BYTES) return reply({ ok: false }, 413);
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { return reply({ ok: false }, 400); }
+  const b = cleanBeacon(raw, ua);
+  if (!b) return reply({ ok: false }, 400);
+  const cf = ((request as unknown as { cf?: Record<string, unknown> }).cf ?? {});
+  const geo = { city: cf.city ?? null, region: cf.regionCode ?? null, country: cf.country ?? null,
+    ip_key: await ipKey(request.headers.get('cf-connecting-ip'), sbKey.slice(-24)) };
+  const token = readSession(parseCookieHeader(request.headers.get('cookie')))?.session.access_token;
+  const call = (bearer: string) => fetch(`${sbUrl.replace(/\/$/, '')}/rest/v1/rpc/track_ingest`, {
+    method: 'POST', headers: { apikey: sbKey, authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ p: b, p_geo: geo }) });
+  let r = await call(token ?? sbKey);
+  if (token && (r.status === 401 || r.status === 403)) r = await call(sbKey);
+  return new Response(r.ok ? await r.text() : JSON.stringify({ ok: false }), { status: r.ok ? 200 : 502, headers });
+}
+
 const worker = {
   // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every five minutes): the listing pipeline's
   // sweep and, hourly, the statement emails, through the app's own protected routes so they run with the
@@ -63,6 +96,7 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/media/')) return media(request, env, path);
+    if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env); if (t) return t; }
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());

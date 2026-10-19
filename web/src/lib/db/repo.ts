@@ -77,7 +77,7 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */
 export const BROWSER_FUNCTIONS = new Set<FnName>([
-  'public_vehicle_calendar', 'quote_booking', 'search_available', 'record_cookie_choice', 'cookie_choice', 'handover_places'
+  'public_vehicle_calendar', 'quote_booking', 'search_available', 'record_cookie_choice', 'cookie_choice', 'handover_places', 'chat_poll', 'chat_typing'
 ]);
 
 export type { Json };

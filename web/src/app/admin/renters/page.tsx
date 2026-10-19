@@ -19,7 +19,7 @@ export default async function Renters({ searchParams }: { searchParams: Promise<
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link>
       </PageHead>
       <Table<Row> testId="renters" caption="Renters" rows={res.rows} empty={sp.q ? `No renter matches "${sp.q}". Search by part of the name, the email or the phone number.` : 'No renters yet. They appear here after their first booking request, or when you add a rental.'} cols={[
-        { key: 'legal_name', label: 'Renter', render: (r) => <Link prefetch={false} className="link" href={`/admin/bookings?q=${encodeURIComponent(r.email ?? r.legal_name)}`}>{r.legal_name}</Link> },
+        { key: 'legal_name', label: 'Renter', render: (r) => <><Link prefetch={false} className="link" href={`/admin/renters/${r.id}`}>{r.legal_name}</Link> <Link prefetch={false} className="small link" href={`/admin/bookings?q=${encodeURIComponent(r.email ?? r.legal_name)}`}>bookings</Link></> },
         { key: 'email', label: 'Email' }, { key: 'mobile', label: 'Phone' },
         { key: 'identity_status', label: 'Identity', render: (r) => <Badge s={r.identity_status} /> },
         { key: 'is_blocked', label: 'Blocked', render: (r) => (r.is_blocked ? 'Yes' : 'No') },

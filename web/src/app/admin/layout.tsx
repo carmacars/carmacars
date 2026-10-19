@@ -6,6 +6,7 @@ import { signOut } from '@/server/actions/auth';
 import { AdminNav, AdminSearch } from '@/features/admin/AdminNav';
 import { adminGate } from '@/server/admin/data';
 import { rpc } from '@/lib/db/repo';
+import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 
@@ -22,6 +23,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       const c = (await rpc('admin_rail_counts', { p_admin: user.id }, { role: 'service_role' })) as unknown as Record<'requests' | 'listings' | 'statements' | 'tolls' | 'refunds' | 'applications', number>;
       counts = { '/admin/requests': c.requests, '/admin/listings': c.listings, '/admin/statements': c.statements, '/admin/tolls': c.tolls, '/admin/money': c.refunds, '/admin/applications': c.applications ?? 0 };
     } catch { counts = {}; }
+    // chats waiting for a person (0060)
+    try { counts['/admin/chat'] = Number((await door<{ waiting: number }>(user.id, 'admin_read', 'chat_counts')).waiting) || 0; } catch { /* no count */ }
   }
   return (
     <div className="ad">

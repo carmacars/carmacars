@@ -1,0 +1,27 @@
+CarmaCars  |  Live chat {{chat_number}}
+
+========================================
+
+[Live chat]
+A visitor is waiting for a person
+
+{{visitor_name}} needs a reply in live chat. The assistant has stopped answering this conversation.
+
+Chat: {{chat_number}}
+Why: {{chat_reason}}
+Page: {{chat_page}}
+
+Open Live chat:
+{{chat_url}}
+
+You get this email because you turned on "Email me when a chat waits" in Live chat and you are on shift. Turn it off there.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

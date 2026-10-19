@@ -18,6 +18,8 @@ export function neuronsFor(model: string, inputTokens: number, outputTokens: num
 }
 
 export function workersAi(ai: AiBinding, model = DRAFT_MODEL, timeoutMs = 60_000): TextGenerator {
+  model ||= DRAFT_MODEL;
+  timeoutMs ||= 60_000;
   return {
     name: 'workers-ai',
     model,
@@ -34,7 +36,7 @@ export function workersAi(ai: AiBinding, model = DRAFT_MODEL, timeoutMs = 60_000
         ]);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (e instanceof Error && e.name === 'TimeoutError') return { ok: false, reason: 'timeout', message: 'The model did not answer within 60 seconds' };
+        if (e instanceof Error && e.name === 'TimeoutError') return { ok: false, reason: 'timeout', message: `The model did not answer within ${Math.round(timeoutMs / 1000)} seconds` };
         // 4006: the daily free allocation is used up (Workers Free); 3036/429: rate limited
         if (/4006|neuron|allocation|429|3036|rate limit/i.test(msg)) return { ok: false, reason: 'quota', message: msg.slice(0, 300) };
         return { ok: false, reason: 'unavailable', message: msg.slice(0, 300) };

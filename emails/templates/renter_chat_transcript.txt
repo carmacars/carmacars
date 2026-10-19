@@ -1,0 +1,31 @@
+CarmaCars  |  Live chat {{chat_number}}
+
+========================================
+
+[Live chat]
+A copy of your chat
+
+Hi {{first_name}}. Here is your conversation with CarmaCars of {{chat_date}}. Reply to this email if anything is still open.
+
+{{#each messages}}
+  From: {{who}} | Time: {{time}} | Message: {{text}}
+{{/each}}
+
+See our cars:
+https://carmacars.ca/cars
+
+Prices in a chat come from our booking system for the dates asked. Nothing is booked until you approve an offer, sign and pay.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

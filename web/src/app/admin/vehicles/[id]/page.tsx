@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import '@/features/live/live.css';
+import { CarInterest, type Interest } from '@/features/live/CarInterest';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { pageMeta } from '@/features/seo/meta';
@@ -37,6 +39,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const rc = v.rate_card ?? {};
   const P = { vehicle: id };
   const refresh = [base, '/admin/vehicles'];
+  // interest in the car on the site (0060)
+  const interest = tab === 'overview' ? await read<Interest>('vehicle_interest', { vehicle_id: id }).catch(() => null) : null;
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
@@ -98,6 +102,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <DeleteCar vehicleId={id} name={v.name} plate={v.plate} blockers={v.delete_blockers} />
           </Card>
           <Card title="Bookings"><Table rows={v.bookings} empty="No bookings in the last 120 days." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) }, { key: 'renter', label: 'Renter' }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }]} /></Card>
+          <Card title="Interest on the site" testId="vehicle-interest"><CarInterest i={interest} /></Card>
         </div>
       )}
       {tab === 'rates' && (

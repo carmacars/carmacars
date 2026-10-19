@@ -4,7 +4,7 @@
 export type JsonSchema = Record<string, unknown>;
 
 export interface GenerateRequest {
-  task: 'listing_draft' | 'guide_rewrite';
+  task: 'listing_draft' | 'guide_rewrite' | 'chat';
   system: string;
   /** The user message: the facts and the instructions for this one item. */
   prompt: string;

@@ -9,6 +9,7 @@ import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
+import { SiteAssist } from '@/features/live/SiteAssist';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main id="main" tabIndex={-1}>{children}</main>
         <Footer s={s} reply={replyText(s)} />
         <Effects />
+        <SiteAssist />
       </body>
     </html>
   );

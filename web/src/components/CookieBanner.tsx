@@ -49,6 +49,8 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
     const v: Choice = { version: w.version, choice, analytics: on };
     writeCookie(CHOICE, encodeURIComponent(JSON.stringify(v)));
     setShow(false); dialog.current?.close();
+    // the site's own beacon (Live visitors, 0060) follows the choice at once
+    window.dispatchEvent(new CustomEvent('cc:consent', { detail: { analytics: on } }));
     browserRpc('record_cookie_choice', { p_visitor_id: visitorId(), p_choice: choice, p_wording_version: w.version, p_analytics: on, p_user_agent: navigator.userAgent.slice(0, 300) })
       .catch(() => { /* the choice is kept in the browser; the record is retried on the next change */ });
     toast(on ? 'Saved. Analytics cookies are on.' : 'Saved. Only necessary cookies are used.');
