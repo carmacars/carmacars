@@ -37,7 +37,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
-    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: 'other_way', method: 'e_transfer',
+    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }), baby_seats: '0' });
   const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: field });
   const [q, setQ] = useState('');
@@ -108,7 +108,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       </section>
     );
   }
-  const modes = quote?.payment_modes ?? (isAdmin ? ['other_way', 'link', 'card', 'unpaid'] : ['other_way', 'link', 'card']);
+  const modes = quote?.payment_modes ?? (isAdmin ? ['other_way', 'link', 'card', 'unpaid'] : field ? ['link', 'card'] : ['other_way', 'link', 'card']);
   const card = renter?.card ?? quote?.card ?? null;
   return (
     <form className="ad-form stack" noValidate data-testid="manual-rental" onSubmit={(e) => { e.preventDefault(); submit(); }}>

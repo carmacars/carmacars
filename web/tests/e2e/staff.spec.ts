@@ -155,6 +155,7 @@ test('va: customer service reviews a request from the queue and sends the offer'
   await page.getByLabel('Message to the renter').fill('Your car is ready for these dates.');
   await check(page, 'va review');
   await page.screenshot({ path: `${SHOTS}/va-review-${info.project.name}.png`, fullPage: true });
+  await page.getByTestId('choice-for_carmacars').check(); // 0058: the sender's choice on a website request
   await page.getByTestId('review-send').click();
   await expect(page.getByRole('status').filter({ hasText: 'Offer sent' })).toBeVisible({ timeout: 15_000 });
   const [b] = await sql`select b.status::text s, (select sent_by from booking_offers o where o.booking_id = b.id order by version desc limit 1) by from bookings b where b.id = ${req.booking_id}`;

@@ -324,6 +324,7 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   await sp.locator('#q-name').fill('Quinn Caller');
   await sp.locator('#q-email').fill(`quinn.${Date.now()}.${phone ? 'p' : 'd'}@example.test`);
   await sp.locator('#q-mobile').fill('647-555-0177'); await sp.locator('#q-dob').fill('1985-02-03');
+  await sp.getByTestId('choice-sourced').check(); // 0058: "I sourced this client" or "Entered for CarmaCars"
   await sp.getByTestId('quote-create').click();
   await sp.waitForURL(/\/va\/bookings\/[^/]+\?tab=review/, { timeout: 20_000 });
   await check(sp, 'va quote booking');

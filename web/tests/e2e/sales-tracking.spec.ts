@@ -98,7 +98,7 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-quote')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('mr-free')).toBeVisible();
-  await expect(page.getByTestId('mr-rental_charge')).toHaveCount(0);
+  await expect(page.getByTestId('mr-custom-price')).toContainText('Rental charge from the rate sheet');
   const renterName = `Riley Walkin ${tag()}`;
   await page.getByTestId('mr-full_name').fill(renterName);
   await page.getByTestId('mr-email').fill(`riley.${tag()}@example.test`);
@@ -107,6 +107,7 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   await page.getByTestId('mr-licence_expiry').fill('2031-01-31');
   await page.getByTestId('mr-mode-link').check();
   await check(page, 'sales add a rental, priced');
+  await page.getByTestId('choice-sourced').check();
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });
   const number = (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
@@ -141,12 +142,13 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   await page.getByTestId('sales-deals').getByRole('link', { name: number }).click();
   await page.waitForURL(new RegExp(`/va/bookings/${number}`));
   await expect(page.locator('body')).toContainText(number);
-  // customer service has no My sales
+  // customer service has My sales too since 0058 (its commissions)
   const cs = await mkUser(sql, 'va', `Casey Service ${tag()}`, 'cs');
   const cp = await ctx(browser);
   await signIn(cp, cs.email, '/va');
   const r = await cp.goto('/va/my-sales');
-  expect(r?.status()).toBe(404);
+  expect(r?.status()).toBe(200);
+  await expect(cp.getByTestId('commissions')).toBeVisible();
   await cp.context().close();
   await page.context().close();
   await sql.end();

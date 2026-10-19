@@ -270,8 +270,9 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
     if (await page.getByTestId('mr-free').isVisible()) { free = true; break; }
   }
   expect(free).toBe(true);
-  // an assistant sees no hand-typed price and no clash override
-  await expect(page.getByTestId('mr-rental_charge')).toHaveCount(0);
+  // an assistant may type a price with its reason (0058), and has no clash override
+  await expect(page.getByTestId('mr-rental_charge')).toBeVisible();
+  await expect(page.getByTestId('mr-clash_reason')).toHaveCount(0);
   await page.getByTestId('mr-full_name').fill(`Casey Caller ${tag()}`);
   await page.getByTestId('mr-email').fill(`casey.${tag()}@example.test`);
   await page.getByTestId('mr-mobile').fill('4165550199');
@@ -279,6 +280,7 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   await page.getByTestId('mr-licence_expiry').fill('2030-01-31');
   // a payment link goes by email, so "do not email" stays off for it
   await page.getByTestId('mr-mode-link').check();
+  await page.getByTestId('choice-for_carmacars').check();
   await check(page, 'va add a rental, priced');
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });

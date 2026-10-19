@@ -913,6 +913,8 @@ export type Database = {
           segment_days: number | null;
           segment_starts_at: string | null;
           segment_ends_at: string | null;
+          staff_commission_cents: number;
+          staff_commission_adjusted_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -947,6 +949,8 @@ export type Database = {
           segment_days?: number | null;
           segment_starts_at?: string | null;
           segment_ends_at?: string | null;
+          staff_commission_cents?: number;
+          staff_commission_adjusted_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -981,6 +985,8 @@ export type Database = {
           segment_days?: number | null;
           segment_starts_at?: string | null;
           segment_ends_at?: string | null;
+          staff_commission_cents?: number;
+          staff_commission_adjusted_cents?: number;
         };
         Relationships: [];
       };
@@ -1204,6 +1210,20 @@ export type Database = {
           sales_source: string | null;
           sales_attributed_at: string | null;
           sales_attributed_by: string | null;
+          sales_sourced: boolean;
+          sales_choice: string | null;
+          sales_choice_by: string | null;
+          sales_choice_at: string | null;
+          sales_claim_by: string | null;
+          sales_claim_at: string | null;
+          rate_sheet_rental_cents: number | null;
+          custom_price_reason: string | null;
+          custom_price_by: string | null;
+          custom_price_at: string | null;
+          price_flags: string[];
+          price_reviewed_at: string | null;
+          price_reviewed_by: string | null;
+          price_review_note: string | null;
         };
         Insert: {
           id?: string;
@@ -1325,6 +1345,20 @@ export type Database = {
           sales_source?: string | null;
           sales_attributed_at?: string | null;
           sales_attributed_by?: string | null;
+          sales_sourced?: boolean;
+          sales_choice?: string | null;
+          sales_choice_by?: string | null;
+          sales_choice_at?: string | null;
+          sales_claim_by?: string | null;
+          sales_claim_at?: string | null;
+          rate_sheet_rental_cents?: number | null;
+          custom_price_reason?: string | null;
+          custom_price_by?: string | null;
+          custom_price_at?: string | null;
+          price_flags?: string[];
+          price_reviewed_at?: string | null;
+          price_reviewed_by?: string | null;
+          price_review_note?: string | null;
         };
         Update: {
           id?: string;
@@ -1446,6 +1480,20 @@ export type Database = {
           sales_source?: string | null;
           sales_attributed_at?: string | null;
           sales_attributed_by?: string | null;
+          sales_sourced?: boolean;
+          sales_choice?: string | null;
+          sales_choice_by?: string | null;
+          sales_choice_at?: string | null;
+          sales_claim_by?: string | null;
+          sales_claim_at?: string | null;
+          rate_sheet_rental_cents?: number | null;
+          custom_price_reason?: string | null;
+          custom_price_by?: string | null;
+          custom_price_at?: string | null;
+          price_flags?: string[];
+          price_reviewed_at?: string | null;
+          price_reviewed_by?: string | null;
+          price_review_note?: string | null;
         };
         Relationships: [];
       };
@@ -6745,6 +6793,7 @@ export type Database = {
           late_fee_cents: number | null;
           amount_cents: number;
           owner_credit_id: string | null;
+          staff_commission_cents: number;
         };
         Insert: {
           id?: string;
@@ -6773,6 +6822,7 @@ export type Database = {
           late_fee_cents?: number | null;
           amount_cents: number;
           owner_credit_id?: string | null;
+          staff_commission_cents?: number;
         };
         Update: {
           id?: string;
@@ -6801,6 +6851,7 @@ export type Database = {
           late_fee_cents?: number | null;
           amount_cents?: number;
           owner_credit_id?: string | null;
+          staff_commission_cents?: number;
         };
         Relationships: [];
       };
@@ -8002,6 +8053,14 @@ export type Database = {
           owner_debit_show_legal_name: boolean;
           signing_officer_authorized_on: string | null;
           signing_officer_user_id: string | null;
+          staff_commission_bps: number;
+          sales_tier_low_bps: number;
+          sales_tier_mid_bps: number;
+          sales_tier_high_bps: number;
+          sales_tier_mid_days: number;
+          sales_tier_high_days: number;
+          custom_price_floor_daily_cents: number | null;
+          custom_price_max_discount_bps: number;
         };
         Insert: {
           id?: string;
@@ -8216,6 +8275,14 @@ export type Database = {
           owner_debit_show_legal_name?: boolean;
           signing_officer_authorized_on?: string | null;
           signing_officer_user_id?: string | null;
+          staff_commission_bps?: number;
+          sales_tier_low_bps?: number;
+          sales_tier_mid_bps?: number;
+          sales_tier_high_bps?: number;
+          sales_tier_mid_days?: number;
+          sales_tier_high_days?: number;
+          custom_price_floor_daily_cents?: number | null;
+          custom_price_max_discount_bps?: number;
         };
         Update: {
           id?: string;
@@ -8430,6 +8497,14 @@ export type Database = {
           owner_debit_show_legal_name?: boolean;
           signing_officer_authorized_on?: string | null;
           signing_officer_user_id?: string | null;
+          staff_commission_bps?: number;
+          sales_tier_low_bps?: number;
+          sales_tier_mid_bps?: number;
+          sales_tier_high_bps?: number;
+          sales_tier_mid_days?: number;
+          sales_tier_high_days?: number;
+          custom_price_floor_daily_cents?: number | null;
+          custom_price_max_discount_bps?: number;
         };
         Relationships: [];
       };
@@ -9648,6 +9723,129 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_commission_payouts: {
+        Row: {
+          id: string;
+          staff_id: string;
+          method: string;
+          reference: string | null;
+          paid_on: string;
+          pay_period: string | null;
+          amount_cents: number;
+          note: string | null;
+          recorded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          method: string;
+          reference?: string | null;
+          paid_on: string;
+          pay_period?: string | null;
+          amount_cents: number;
+          note?: string | null;
+          recorded_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          method?: string;
+          reference?: string | null;
+          paid_on?: string;
+          pay_period?: string | null;
+          amount_cents?: number;
+          note?: string | null;
+          recorded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_commissions: {
+        Row: {
+          id: string;
+          booking_id: string;
+          staff_id: string;
+          kind: string;
+          clawback_of: string | null;
+          scheme: string | null;
+          month: string;
+          rental_days: number;
+          tier_days: number | null;
+          base_cents: number;
+          rate_bps: number;
+          amount_cents: number;
+          status: string;
+          reason: string | null;
+          note: string | null;
+          earned_at: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          payout_id: string | null;
+          paid_at: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          admin_reversed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          staff_id: string;
+          kind?: string;
+          clawback_of?: string | null;
+          scheme?: string | null;
+          month: string;
+          rental_days?: number;
+          tier_days?: number | null;
+          base_cents?: number;
+          rate_bps?: number;
+          amount_cents?: number;
+          status: string;
+          reason?: string | null;
+          note?: string | null;
+          earned_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          payout_id?: string | null;
+          paid_at?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          admin_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          staff_id?: string;
+          kind?: string;
+          clawback_of?: string | null;
+          scheme?: string | null;
+          month?: string;
+          rental_days?: number;
+          tier_days?: number | null;
+          base_cents?: number;
+          rate_bps?: number;
+          amount_cents?: number;
+          status?: string;
+          reason?: string | null;
+          note?: string | null;
+          earned_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          payout_id?: string | null;
+          paid_at?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          admin_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       staff_digest_items: {
         Row: {
           id: string;
@@ -9721,6 +9919,9 @@ export type Database = {
           created_at: string;
           updated_at: string;
           cover_functions: Database["public"]["Enums"]["va_function"][];
+          commission_bps: number | null;
+          home_address: string | null;
+          home_postal_code: string | null;
         };
         Insert: {
           user_id: string;
@@ -9737,6 +9938,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           cover_functions?: Database["public"]["Enums"]["va_function"][];
+          commission_bps?: number | null;
+          home_address?: string | null;
+          home_postal_code?: string | null;
         };
         Update: {
           user_id?: string;
@@ -9753,6 +9957,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           cover_functions?: Database["public"]["Enums"]["va_function"][];
+          commission_bps?: number | null;
+          home_address?: string | null;
+          home_postal_code?: string | null;
         };
         Relationships: [];
       };
