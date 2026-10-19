@@ -12,7 +12,6 @@ import { acceptCookies, db, noOverflow } from './helpers';
 // open one alert (To do, Site health, one email to the alert address of Program settings, a test address here),
 // a fourth sends nothing more, and a pass resolves it with one recovery email.
 const PW = 'correct horse battery';
-const STAFF = '00000000-0000-4000-8000-0000000000c5';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 
@@ -67,10 +66,12 @@ test('Calendar sync: Fleet adds a calendar link, its trip blocks the car at once
   const fleet = await account(sql, 'fleet');
   const { a, b } = await twoCars(sql);
   // a block far ahead on car A (a day of its own per width); car A's CarmaCars link carries it as "Booked"
-  const start = new Date(Date.now() + (500 + (isPhone() ? 0 : 7) + Math.floor(Math.random() * 100) * 14) * 86_400_000);
+  // (within the 18 months a calendar link covers)
+  const start = new Date(Date.now() + (300 + (isPhone() ? 0 : 7) + Math.floor(Math.random() * 15) * 14) * 86_400_000);
   start.setUTCHours(14, 0, 0, 0);
   const end = new Date(start.getTime() + 2 * 86_400_000);
   await sql`delete from calendar_feeds where vehicle_id = ${b.id}`;
+  await sql`delete from vehicle_calendar_blocks where vehicle_id = ${a.id} and note = 'e2e calendar sync'`;
   const [blk] = await sql`insert into vehicle_calendar_blocks (vehicle_id, reason, starts_at, ends_at, note) values (${a.id}, 'service', ${start.toISOString()}, ${end.toISOString()}, 'e2e calendar sync') returning id`;
   const base = test.info().project.use.baseURL ?? 'http://localhost:3000';
   const link = `${base}/api/ical/${a.token}.ics?for=all`;
@@ -169,8 +170,9 @@ test('Admin: a clash with a confirmed booking on To do and Calendar sync; the si
   await sql`select app.process_events(1000)`;
   const to = await sql`select distinct to_address from notification_outbox where entity_id = ${alert!.id}`;
   expect(to.map((r) => r.to_address).every((a) => a === 'site.alerts.e2e@example.test')).toBe(true);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.goto('/admin', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('check-sign_in')).toHaveAttribute('data-status', 'ok');
+  await expect(page.getByTestId('todo-site_alerts')).toHaveCount(0);
 
   // clean up: the link goes, the clash closes
   await sql`delete from calendar_feeds where id = ${feed!.id}`;
@@ -194,12 +196,12 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
     consents: { terms: { accepted: true, version: 'e2e', text: 'I agree.' }, privacy: { accepted: true, version: 'e2e', text: 'I agree.' }, marketing: { opted_in: false, version: 'e2e', text: 'No.' } },
     details: { source: 'e2e' }
   };
-  const [sub] = await sql`select public.submit_booking_request(${sql.json(req)}, '203.0.113.9', 'e2e', ${r.id}) v`;
+  const [sub] = await sql`select public.submit_booking_request(${sql.json(req)}, ${`198.51.100.${1 + Math.floor(Math.random() * 250)}`}, 'e2e', ${r.id}) v`;
   const v = sub!.v as { ok: boolean; booking_id: string; booking_number: string; message?: string };
   expect(v.ok, v.message).toBe(true);
-  await sql`select app.send_offer(${v.booking_id}, ${STAFF}, null, null)`;
-  await sql`update bookings set offer_expires_at = now() + interval '4 days' where id = ${v.booking_id}`;
-  await sql`update booking_offers set expires_at = now() + interval '4 days' where booking_id = ${v.booking_id} and status = 'sent'`;
+  const staff = await account(sql, 'admin');
+  // the offer is open for 4 days (its own expiry reminder would cover its last hours)
+  await sql`select app.send_offer(${v.booking_id}, ${staff.id}, null, now() + interval '4 days')`;
 
   // she opens the offer and leaves without answering (recorded for her own booking page, no analytics needed)
   const page = await ctx(browser);
@@ -221,8 +223,13 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
   const [early] = await sql`select app.job_booking_recovery(${new Date(sig!.first_at.getTime() + 60 * 60_000).toISOString()}::timestamptz) as r`;
   expect(early!.r).not.toMatch(/sent [1-9]/);
   await sql`select app.job_booking_recovery(${at.toISOString()}::timestamptz)`;
-  await sql`select app.process_events(1000)`;
-  const [ob] = await sql`select id, status, to_address, category, payload ->> 'booking_number' as n from notification_outbox where code = 'renter_recovery_offer' and booking_id = ${v.booking_id}`;
+  // the job and the event processing are shared with the other width's test: wait for the row
+  let ob: { id: string; status: string; to_address: string; category: string; n: string } | undefined;
+  for (let i = 0; i < 20 && !ob; i++) {
+    await sql`select app.process_events(1000)`;
+    [ob] = (await sql`select id, status, to_address, category, payload ->> 'booking_number' as n from notification_outbox where code = 'renter_recovery_offer' and booking_id = ${v.booking_id}`) as unknown as typeof ob[];
+    if (!ob) await page.waitForTimeout(500);
+  }
   expect(`${ob?.status} ${ob?.to_address} ${ob?.category} ${ob?.n}`).toBe(`queued ${r.email} transactional ${v.booking_number}`);
 
   // she approves the offer before the reminder goes out: the series stops and the reminder is not sent

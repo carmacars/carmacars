@@ -30,6 +30,9 @@ and the audit job 13, in parallel). The workflows now spend minutes only where t
 | `forms-fetch` | Run workflow | Downloads the official ServiceOntario PDFs, reads their fields, stores them | about 1 |
 | `guides-pdf` | Run workflow | Prints each published guide and stores its PDF | about 4 (1 with `committed`) |
 
+The site check of migration 0062 (pages, emails, jobs, backup and Stripe every 5 minutes) runs inside Supabase with
+pg_cron and pg_net, and calendar sync in a Supabase Edge Function: neither uses Actions minutes.
+
 Caches keep the repeat cost down: npm (`actions/setup-node`), the Playwright browser (`~/.cache/ms-playwright`,
 keyed on the lock file) and the Next.js build cache (`web/.next/cache`). The database suite uses the PostgreSQL 16
 that the runner image already has.
