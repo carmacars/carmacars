@@ -22,7 +22,8 @@
 .pt-kicker { font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
 .pt-card--dark .pt-kicker { color: var(--grey-400); }
 
-.pt-split { display: grid; gap: var(--s-5); align-items: start; }
+.pt-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+.pt-split > * { min-width: 0; }
 @media (min-width: 64rem) {
   .pt-split { grid-template-columns: minmax(0, 1fr) 24rem; }
   .pt-split__aside { position: sticky; top: calc(var(--header-h) + var(--s-4)); }
@@ -211,7 +212,7 @@
 .pk-statements { display: grid; gap: var(--s-2); padding-left: var(--s-2); }
 .sg-progress__bar { height: 6px; border-radius: 3px; background: var(--grey-200); overflow: hidden; }
 .sg-progress__bar span { display: block; height: 100%; background: var(--red-600); }
-.sg-summary > div { display: grid; grid-template-columns: minmax(7rem, 40%) 1fr; gap: var(--s-2); }
+.sg-summary > div { display: grid; grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr); gap: var(--s-2); }
 .sg-summary dd { margin: 0; overflow-wrap: anywhere; }
 .sg-docs details { border-top: 1px solid var(--grey-200); padding: var(--s-2) 0; }
 .sg-docs summary { cursor: pointer; font-weight: 600; }
