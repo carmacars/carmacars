@@ -42,7 +42,7 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
           <div className="pt-card__head"><h2 className="d4" id="lv-sig">Signals in the last 24 hours</h2></div>
           {!data.signals.length ? <p className="small muted">No signals yet.</p> : (
             <ul className="lv-sigs">{data.signals.map((s, i) => (
-              <li key={`${s.kind}-${i}`}><span className={`lv-badge lv-badge--${s.kind}`}>{s.label}</span> <span className="small">{s.who}</span> <span className="small muted">{agoWords(s.at)}</span>
+              <li key={`${s.kind}-${i}`}><span className={`lv-badge lv-badge--${s.kind}`}>{s.label}</span> <span className="small">{s.who}</span> <span className="small muted" suppressHydrationWarning>{agoWords(s.at)}</span>
                 {s.task_id ? <span className="small muted"> · follow-up task raised</span> : null}</li>))}</ul>)}
         </section>
         <section className="pt-card ad-card" aria-labelledby="lv-cars" data-testid="most-viewed">

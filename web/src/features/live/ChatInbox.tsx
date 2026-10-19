@@ -60,7 +60,7 @@ export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal:
                     {c.status === 'waiting' && c.waiting_minutes !== null && <span className={`small ${c.waiting_minutes >= c.target_minutes ? 'lc-late' : 'muted'}`}>{c.waiting_minutes} min (target {c.target_minutes})</span>}
                     {c.assigned_name && <span className="small muted">{c.assigned_name}</span>}</span>
                   <span className="small muted lc-item__last">{c.visitor_typing ? 'typing' : c.last ?? ''}</span>
-                  <span className="small muted">{c.number} · {agoWords(c.last_message_at)}{c.online ? ' · on the site' : ''}</span>
+                  <span className="small muted" suppressHydrationWarning>{c.number} · {agoWords(c.last_message_at)}{c.online ? ' · on the site' : ''}</span>
                 </button>
               </li>))}</ul>)}
         </nav>
@@ -156,7 +156,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
           {c.email && <div><dt>Email</dt><dd>{c.email}</dd></div>}
           {c.phone && <div><dt>Phone</dt><dd>{c.phone}</dd></div>}
           <div><dt>Started on</dt><dd>{c.page ?? 'the site'}{c.car ? `: ${c.car}` : ''}</dd></div>
-          {s && <div><dt>Now</dt><dd>{c.online ? `${s.current_page ?? 'the site'}${s.car ? `: ${s.car}` : ''}` : `left ${agoWords(s.last_seen_at)}`}</dd></div>}
+          {s && <div><dt>Now</dt><dd suppressHydrationWarning>{c.online ? `${s.current_page ?? 'the site'}${s.car ? `: ${s.car}` : ''}` : `left ${agoWords(s.last_seen_at)}`}</dd></div>}
           {s && <div><dt>This visit</dt><dd>{s.page_views} pages, visit {s.visit_number}{s.city ? `, ${s.city}` : ''}{s.device ? `, ${s.device}` : ''}</dd></div>}
         </dl>
         {s && s.signals.length > 0 && <p className="lv-badges">{s.signals.map((g, i) => <span key={i} className={`lv-badge lv-badge--${g.kind}`}>{g.label}</span>)}</p>}
