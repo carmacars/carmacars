@@ -369,9 +369,9 @@
     }
   ],
   "cookies": {
-    "version": "2026-10-08",
+    "version": "2026-10-19",
     "title": "Cookies on CarmaCars",
-    "text": "We use necessary cookies to keep the site working and your bookings secure. With your consent we also use analytics cookies to see how the site is used, so we can improve it.",
+    "text": "We use necessary cookies to keep the site working, your bookings secure and live chat running. With your consent we also measure visits ourselves (pages and cars viewed, approximate city, device), so our team can help you and we can improve the site. No third-party analytics.",
     "accept": "Accept all",
     "necessary": "Necessary only",
     "prefs": "Preferences",
@@ -381,16 +381,16 @@
         "code": "necessary_cookies",
         "name": "Necessary",
         "always": true,
-        "text": "Sign-in, security and your booking request. Always on."
+        "text": "Sign-in, security, your booking request and live chat. When you are signed in or open one of our email links, we note when you open your own offer, proposal or pay page. Always on."
       },
       {
         "code": "analytics_cookies",
         "name": "Analytics",
         "always": false,
-        "text": "Counts visits and pages viewed, so we can see what to improve. Off unless you turn it on."
+        "text": "Records the pages and cars you view, the dates you search and the site that sent you, with your approximate city and device. Our team sees it while you browse. Off unless you turn it on."
       }
     ]
   },
   "carma_line": "Drive your carma.",
-  "legal_last_updated": "October 8, 2026"
+  "legal_last_updated": "October 19, 2026"
 }

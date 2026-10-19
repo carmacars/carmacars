@@ -44,7 +44,7 @@ export function pageContext(path: string): { slug?: string; bn?: string; kind: s
 }
 
 const listeners = new Set<(r: BeaconReply) => void>();
-export function onBeaconReply(f: (r: BeaconReply) => void) { listeners.add(f); return () => listeners.delete(f); }
+export function onBeaconReply(f: (r: BeaconReply) => void) { listeners.add(f); return () => { listeners.delete(f); }; }
 
 let queue: Ev[] = [];
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -109,6 +109,8 @@ function view() {
   // the outbox row an email link carries (?m=), also inside a sign-in page's next=
   let m = q.get('m');
   if (!m) { const next = q.get('next'); if (next) m = new URLSearchParams(next.split('?')[1] ?? '').get('m'); }
+  // kept by the Worker through a sign-in redirect (cookie cc_m), read once
+  if (!m) { const c = readCookie('cc_m'); if (c && UUID.test(c)) { m = c; document.cookie = 'cc_m=; path=/; max-age=0'; } }
   if (m && UUID.test(m)) {
     push({ k: 'email_link_opened', path, m, bn: ctx.bn });
     if (q.get('m')) { q.delete('m'); history.replaceState(history.state, '', `${path}${q.size ? '?' + q : ''}${location.hash}`); }

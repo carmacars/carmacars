@@ -2,7 +2,7 @@
 import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { agoWords, clock, EVENT_WORDS, liveDo, liveRead, STATUS_WORDS, type ChatMsg, type ChatRow, type Inbox, type Thread } from './staff';
+import { agoWords, clock, EVENT_WORDS, liveDo, liveRead, STATUS_WORDS, type ChatMsg, type Inbox, type Thread } from './staff';
 
 // Admin > Bookings > Live chat and the assistants' Live chat (migration 0060): every conversation, the assistant's or a
 // person's, with the visitor's visit beside it. Take over (the assistant stops), reply, hand back, close; typing and

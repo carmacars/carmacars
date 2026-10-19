@@ -215,9 +215,10 @@ alter table leads add constraint leads_kind_check check (kind in ('owner_program
 
 insert into task_rules (task_type, queue, title, priority, due_kind, due_amount, description) values
   ('visitor_follow_up', 'sales', 'Follow up a visitor', 'normal', 'opening_minutes', 60, 'A buying signal of a known visitor (Live visitors): call or message them'),
-  ('live_chat_waiting', 'cs', 'A visitor asked for a person in live chat', 'high', 'first_reply', null, 'Reply in Live chat within the first reply target'),
-  ('chat_request', 'sales', 'Booking request from live chat', 'high', 'first_reply', null, 'The chat assistant collected a request: quote it or call back'),
-  ('chat_contact', 'cs', 'Reply to a chat left after hours', 'normal', 'first_reply', null, 'The visitor left contact details while nobody was on shift')
+  -- due at the first reply target in force when raised (app.task_due('first_reply'), given by the raising function)
+  ('live_chat_waiting', 'cs', 'A visitor asked for a person in live chat', 'high', 'opening_minutes', 5, 'Reply in Live chat within the first reply target'),
+  ('chat_request', 'sales', 'Booking request from live chat', 'high', 'opening_minutes', 5, 'The chat assistant collected a request: quote it or call back'),
+  ('chat_contact', 'cs', 'Reply to a chat left after hours', 'normal', 'opening_minutes', 5, 'The visitor left contact details while nobody was on shift')
 on conflict (task_type) do update set queue = excluded.queue, title = excluded.title, priority = excluded.priority,
   due_kind = excluded.due_kind, due_amount = excluded.due_amount, description = excluded.description;
 
@@ -408,6 +409,10 @@ begin
     -- without analytics consent: the known customer's own booking pages and the chat only
     if s.consent <> 'analytics' and not (v_transactional and (v_booking is not null or v_kind = 'chat_opened' or (v_kind = 'email_link_opened' and v_known is not null))) then continue; end if;
     if v_kind in ('offer_viewed', 'change_viewed', 'pay_viewed', 'pay_left') and v_booking is null then v_kind := 'page_view'; end if;
+    if v_kind = 'email_link_opened' and v_booking is null and v_known is not null then
+      v_booking := nullif(v_known ->> 'booking_id', '')::uuid;
+      select * into b from bookings where id = v_booking;
+    end if;
     insert into visitor_events (session_id, kind, path, vehicle_id, booking_id, ms, data)
     values (v_sid, v_kind, v_path, v_vehicle, v_booking,
             case when (e ->> 'ms') ~ '^\d{1,9}$' then least((e ->> 'ms')::integer, 86400000) end,
@@ -484,7 +489,7 @@ begin
   end if;
   -- an offer opened (page or email link) and not answered
   for r in select e.booking_id, count(*) as n from visitor_events e join visitor_sessions o on o.id = e.session_id
-            where o.visitor_id = s.visitor_id and e.kind in ('offer_viewed', 'email_link_opened') and e.booking_id is not null
+            where (o.visitor_id = s.visitor_id or o.renter_id = s.renter_id) and e.kind in ('offer_viewed', 'email_link_opened') and e.booking_id is not null
               and (e.kind = 'offer_viewed' or e.data ->> 'code' ~ 'offer')
             group by e.booking_id loop
     if exists (select 1 from bookings b where b.id = r.booking_id and b.status = 'offered') then
@@ -495,7 +500,7 @@ begin
   end loop;
   -- the change proposal opened N times without an answer
   for r in select e.booking_id, count(*) as n from visitor_events e join visitor_sessions o on o.id = e.session_id
-            where o.visitor_id = s.visitor_id and e.kind = 'change_viewed' and e.booking_id is not null group by e.booking_id loop
+            where (o.visitor_id = s.visitor_id or o.renter_id = s.renter_id) and e.kind = 'change_viewed' and e.booking_id is not null group by e.booking_id loop
     if r.n >= ps.visitor_proposal_opens and exists (select 1 from booking_change_requests c where c.booking_id = r.booking_id and c.status = 'proposed') then
       perform app.visitor_signal_put('proposal:' || r.booking_id || ':' || (select c.id from booking_change_requests c where c.booking_id = r.booking_id and c.status = 'proposed' limit 1),
         s, 'proposal_opened', format('Opened the change proposal %s', case r.n when 2 then 'twice' else r.n || ' times' end), r.booking_id, null, r.n::integer);
@@ -545,7 +550,7 @@ create or replace function app.job_visitor_followups(p_now timestamptz default n
 language plpgsql security definer set search_path = public, app as $$
 declare
   ps program_settings := app.settings(app.local_date(p_now));
-  g record;
+  x record;
   v_task uuid;
   v_title text;
   v_queue text;
@@ -563,38 +568,38 @@ begin
     from visitor_signals g
    where g.task_id = t.id and g.resolved_at is not null and t.status in ('open', 'in_progress', 'waiting') and t.task_type = 'visitor_follow_up';
   if not ps.visitor_followup_tasks then return 'off'; end if;
-  for g in select vs.*, s.known_name, s.known_email, b.booking_number, b.sales_staff_id, r.legal_name, r.mobile, r.email as renter_email
+  for x in select vs.*, s.known_name, s.known_email, b.booking_number, b.sales_staff_id, r.legal_name, r.mobile, r.email as renter_email
              from visitor_signals vs
              left join visitor_sessions s on s.id = vs.session_id
              left join bookings b on b.id = vs.booking_id
              left join renters r on r.id = vs.renter_id
             where vs.resolved_at is null and vs.task_id is null and vs.kind <> 'returning'
               and (vs.renter_id is not null or s.known_email is not null) loop
-    v_contact := coalesce(g.legal_name, g.known_name, g.known_email, 'the visitor');
+    v_contact := coalesce(x.legal_name, x.known_name, x.known_email, 'the visitor');
     v_title := null; v_queue := 'cs';
-    if g.kind = 'offer_opened' and g.first_at <= p_now - make_interval(hours => ps.visitor_offer_no_answer_hours) then
-      v_title := format('Call or message %s: opened offer %s %s, no answer for %s hours', v_contact, g.booking_number,
-                        case when g.times > 1 then case g.times when 2 then 'twice' else g.times || ' times' end else 'once' end,
-                        floor(extract(epoch from p_now - g.first_at) / 3600)::integer);
-      v_queue := case when g.sales_staff_id is not null and app.user_va_has(g.sales_staff_id, 'sales') then 'sales' else 'cs' end;
-    elsif g.kind = 'pay_left' and g.last_at <= p_now - make_interval(mins => ps.visitor_pay_left_minutes) then
-      v_title := format('Call or message %s: left the pay page for %s without paying', v_contact, g.booking_number);
-    elsif g.kind = 'proposal_opened' then
-      v_title := format('Call or message %s: opened the change proposal for %s %s times, no answer yet', v_contact, g.booking_number, g.times);
-    elsif g.kind = 'request_stopped' and g.last_at <= p_now - make_interval(mins => ps.visitor_request_stopped_minutes) then
-      v_title := format('Call or message %s: started a booking request%s and stopped', v_contact, coalesce(' for the ' || app.vehicle_name(g.vehicle_id), ''));
+    if x.kind = 'offer_opened' and x.first_at <= p_now - make_interval(hours => ps.visitor_offer_no_answer_hours) then
+      v_title := format('Call or message %s: opened offer %s %s, no answer for %s hours', v_contact, x.booking_number,
+                        case when x.times > 1 then case x.times when 2 then 'twice' else x.times || ' times' end else 'once' end,
+                        floor(extract(epoch from p_now - x.first_at) / 3600)::integer);
+      v_queue := case when x.sales_staff_id is not null and app.user_va_has(x.sales_staff_id, 'sales') then 'sales' else 'cs' end;
+    elsif x.kind = 'pay_left' and x.last_at <= p_now - make_interval(mins => ps.visitor_pay_left_minutes) then
+      v_title := format('Call or message %s: left the pay page for %s without paying', v_contact, x.booking_number);
+    elsif x.kind = 'proposal_opened' then
+      v_title := format('Call or message %s: opened the change proposal for %s %s times, no answer yet', v_contact, x.booking_number, x.times);
+    elsif x.kind = 'request_stopped' and x.last_at <= p_now - make_interval(mins => ps.visitor_request_stopped_minutes) then
+      v_title := format('Call or message %s: started a booking request%s and stopped', v_contact, coalesce(' for the ' || app.vehicle_name(x.vehicle_id), ''));
       v_queue := 'sales';
-    elsif g.kind = 'viewing_spree' then
-      v_title := format('Reach out to %s: %s', v_contact, lower(left(g.label, 1)) || substr(g.label, 2));
+    elsif x.kind = 'viewing_spree' then
+      v_title := format('Reach out to %s: %s', v_contact, lower(left(x.label, 1)) || substr(x.label, 2));
       v_queue := 'sales';
     end if;
     if v_title is null then continue; end if;
     v_task := app.raise_task(p_type => 'visitor_follow_up', p_title => left(v_title, 200),
       p_detail => format('Signal on Live visitors: %s. Contact: %s%s. Mark the task done when you reached them; it closes by itself when they answer or pay.',
-                         g.label, coalesce(g.mobile, 'no phone'), coalesce(', ' || coalesce(g.renter_email, g.known_email), '')),
-      p_booking => g.booking_id, p_vehicle => g.vehicle_id, p_renter => g.renter_id, p_queue => v_queue,
-      p_related_table => 'visitor_signals', p_related_id => g.id, p_dedupe => 'visitor:' || g.dedupe_key);
-    update visitor_signals set task_id = v_task where id = g.id;
+                         x.label, coalesce(x.mobile, 'no phone'), coalesce(', ' || coalesce(x.renter_email, x.known_email), '')),
+      p_booking => x.booking_id, p_vehicle => x.vehicle_id, p_renter => x.renter_id, p_queue => v_queue,
+      p_related_table => 'visitor_signals', p_related_id => x.id, p_dedupe => 'visitor:' || x.dedupe_key);
+    update visitor_signals set task_id = v_task where id = x.id;
     v_n := v_n + 1;
   end loop;
   return 'raised ' || v_n;
@@ -983,7 +988,7 @@ begin
   if c.status in ('waiting', 'human') then
     return jsonb_build_object('ok', true, 'status', c.status, 'on_shift', v_online > 0, 'offline', c.offline, 'has_contact', c.email is not null or c.phone is not null);
   end if;
-  v_task := app.raise_task(p_type => 'live_chat_waiting',
+  v_task := app.raise_task(p_type => 'live_chat_waiting', p_due_at => app.task_due('first_reply', null),
     p_title => left(format('Live chat %s: %s asked for a person', c.number, app.visitor_chat_name(c)), 200),
     p_detail => format('Reason: %s. Open Live chat to reply.', coalesce(nullif(p_reason, ''), 'asked for a person')),
     p_renter => c.renter_id, p_vehicle => c.vehicle_id, p_related_table => 'chat_conversations', p_related_id => c.id, p_dedupe => 'chat:' || c.id);
@@ -1037,7 +1042,7 @@ begin
   insert into chat_messages (conversation_id, sender, body, meta)
   values (c.id, 'system', format('Thanks%s. We will reply to %s.', coalesce(', ' || split_part(c.name, ' ', 1), ''), coalesce(c.email, c.phone)), '{"contact": true}');
   if c.status = 'waiting' and c.offline then
-    v_task := app.raise_task(p_type => 'chat_contact', p_title => left(format('Reply to %s (live chat %s, left after hours)', coalesce(c.name, c.email, c.phone), c.number), 200),
+    v_task := app.raise_task(p_type => 'chat_contact', p_due_at => app.task_due('first_reply', null), p_title => left(format('Reply to %s (live chat %s, left after hours)', coalesce(c.name, c.email, c.phone), c.number), 200),
       p_detail => format('Contact: %s. The conversation is in Live chat.', concat_ws(', ', c.email, c.phone)),
       p_renter => c.renter_id, p_related_table => 'chat_conversations', p_related_id => c.id, p_dedupe => 'chat-contact:' || c.id);
   end if;
@@ -1075,7 +1080,7 @@ begin
     update visitor_sessions set known_name = coalesce(known_name, v_name), known_email = coalesce(known_email, v_email), renter_id = coalesce(renter_id, c.renter_id),
            identified_by = coalesce(identified_by, 'chat') where id = c.session_id;
   end if;
-  v_task := app.raise_task(p_type => 'chat_request',
+  v_task := app.raise_task(p_type => 'chat_request', p_due_at => app.task_due('first_reply', null),
     p_title => left(format('Booking request from live chat %s: %s%s%s', c.number, v_name, coalesce(', ' || app.vehicle_name(v_vehicle), ''),
                            coalesce(', ' || (p ->> 'pickup') || ' to ' || (p ->> 'return'), '')), 200),
     p_detail => format('Contact: %s, %s. Make a quote (New quote) and send the offer. Choose "I sourced this client" only if you handled this chat.%s', v_email, v_phone,

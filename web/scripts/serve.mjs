@@ -73,6 +73,9 @@ http.createServer((req, res) => {
   if (isAdminArea(pathname)) headers['x-cc-admin-area'] = '1';
   const up = http.request({ host: '127.0.0.1', port: INNER, method: req.method, path: req.url, headers }, (r) => {
     const h = { ...r.headers, ...security };
+    // the email link's outbox row, kept through a sign-in redirect for the beacon (src/lib/track/shared.ts emailLinkCookie)
+    const mm = req.method === 'GET' && pathname.startsWith('/account/bookings/') ? /[?&]m=([0-9a-f-]{36})(?:&|$)/.exec(req.url || '') : null;
+    if (mm) h['set-cookie'] = [...[].concat(r.headers['set-cookie'] ?? []), `cc_m=${mm[1]}; Path=/; Max-Age=3600; SameSite=Lax`];
     const type = String(r.headers['content-type'] || '');
     const html = type.includes('text/html');
     const accept = String(req.headers['accept-encoding'] || '');

@@ -73,7 +73,8 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Rental records: bookings, signed agreements, proof of coverage, condition report photos, incident reports, and toll and ticket records | To run the rental, prove the vehicle's condition, handle claims and collect what is owed |
 | Messages: emails, texts and portal messages with us | To serve you and keep a record |
 | Owner information: business and HST details, vehicle, ownership, lender and insurance documents, and banking details | To enrol vehicles, prepare registration forms, bill fees and pay payouts |
-| Site data: IP address, device, pages viewed and cookies | To secure and improve the Site |
+| Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
+| Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 
@@ -107,6 +108,8 @@ Some service providers and our remote staff are outside Canada, including in the
 | Identification images and face data | 90 days after the rental ends, or after the check if you do not rent |
 | Tracker data | 12 months |
 | Rental, payment and owner records, including condition reports and messages | 7 years |
+| Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
+| Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
 | Marketing contact details | Until you unsubscribe |
 
 We keep information longer only while a claim, dispute, unpaid amount or legal duty requires it. We then delete or anonymise it.
@@ -126,6 +129,12 @@ You may ask to see the personal information we hold about you and to have it cor
 ### 10. Cookies and analytics
 
 Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used and are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.
+
+We measure visits ourselves, with no third-party analytics. With your consent we record the pages and cars you view, the dates you search, the booking steps you start or finish, the site that sent you, your type of device and an approximate city worked out from your connection. We do not store your network address for this. Our customer service and sales staff see this while you are on the Site, and use it to help you, for example to answer a question about a car you are looking at. Without your consent we record none of it, except what follows.
+
+Two things are recorded without the analytics choice, because they are part of the service you asked for. When you open live chat, we keep the conversation and the page you were on. When you are signed in, or open a link from one of our emails, we record when you open your offer, a change we proposed, the agreement or the pay page for your own booking, so we can follow up if something is stuck.
+
+Live chat is answered first by an automated assistant that uses our own information about cars, prices and policies, and then by our staff. The assistant does not make decisions about you; a person reviews anything it collects. Chat conversations are kept with your rental records if you are a customer, and otherwise for 12 months. If you give an email address in the chat, we can email you a copy of the conversation.
 
 ### 11. Marketing messages
 

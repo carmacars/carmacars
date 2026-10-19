@@ -18,6 +18,16 @@ const LABELS: Record<string, string> = {
   sales_tier_mid_days: 'Sales: rental days in a month for the middle tier', sales_tier_high_days: 'Sales: rental days in a month for the top tier (the month\'s target)',
   custom_price_floor_daily_cents: 'Price typed by hand: floor a day (empty: no floor)', custom_price_max_discount_bps: 'Price typed by hand: flag a discount from the rate sheet above',
   street_address: 'Street address (pickup and returns)', signing_officer_authorized_on: 'Signing officer: date of the standing authorization',
+  visitor_tracking_enabled: 'Live visitors: record visits on the site', visitor_events_keep_days: 'Live visitors: keep page views and events (days)',
+  visitor_live_minutes: 'Live visitors: "on the site now" means seen in the last (minutes)', visitor_spree_cars: 'Signal "Viewing spree": cars viewed',
+  visitor_spree_minutes: 'Signal "Viewing spree": within (minutes)', visitor_offer_no_answer_hours: 'Follow-up: offer opened, no answer after (hours)',
+  visitor_proposal_opens: 'Signal: change proposal opened this many times', visitor_returning_visits: 'Signal "Returning visitor": visits in 7 days',
+  visitor_pay_left_minutes: 'Follow-up: pay page left without paying, after (minutes)', visitor_request_stopped_minutes: 'Follow-up: booking request started and stopped, after (minutes)',
+  visitor_followup_tasks: 'Raise follow-up tasks from the signals of known visitors', chat_enabled: 'Live chat on the site and portals',
+  chat_ai_enabled: 'Live chat: the AI assistant answers first', chat_ai_model: 'Live chat: Workers AI model', chat_ai_daily_neurons: 'Live chat: AI neurons a day',
+  chat_ai_total_daily_neurons: 'Live chat: stop the AI when all Workers AI use of the day reaches (neurons)', chat_ai_max_replies: 'Live chat: AI replies in one chat before a person takes it',
+  chat_greeting_seconds: 'Live chat: greet visitors on a car page after (seconds, 0 is off)', chat_greeting_text: 'Live chat: the greeting',
+  chat_shift_minutes: 'Live chat: staff count as on shift when active within (minutes)', chat_keep_days: 'Live chat: keep chats of visitors who are not customers (days)',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -35,7 +45,11 @@ const HINTS: Record<string, string> = {
   owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',
-  ai_vision_daily_neurons: 'Cloudflare gives 10,000 neurons a day free, shared with the listing copy. A scanned page uses about 100 to 300.'
+  ai_vision_daily_neurons: 'Cloudflare gives 10,000 neurons a day free, shared with the listing copy. A scanned page uses about 100 to 300.',
+  chat_ai_daily_neurons: 'One assistant reply uses about 100 to 250 neurons (a quote takes two model calls); a typical chat about 600. 6,000 a day is about 10 chats. When it is used up, chats wait for a person ("A person will reply shortly"). Cloudflare gives 10,000 neurons a day free, shared with the listing copy, the guides and the vision model.',
+  chat_greeting_seconds: 'Off (0) by default. When set, a small message bubble offers help on car pages; the visitor opens the chat only if they press Reply.',
+  visitor_events_keep_days: 'The privacy policy says 90 days. Change it only with the lawyer. The daily counts per car (no personal information) are kept.',
+  chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
 const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30], request_response_target_minutes: [1, 1440] };

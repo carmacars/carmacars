@@ -25,7 +25,8 @@ async function post<T>(body: Record<string, unknown>): Promise<T> {
 export function ChatWidget() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const [conv, setConv] = useState<Conv | null>(null);
+  // a conversation already going in this browser (the widget only renders in the browser)
+  const [conv, setConv] = useState<Conv | null>(() => { const t = store.get(); return t && /^[0-9a-f]{64}$/.test(t) ? { token: t, number: '', status: 'ai' } : null; });
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,7 +42,7 @@ export function ChatWidget() {
   const log = useRef<HTMLDivElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const openRef = useRef(open);
-  openRef.current = open;
+  useEffect(() => { openRef.current = open; }, [open]);
 
   const merge = useCallback((p: Poll) => {
     if (!p.ok) { if (p.error === 'not_found') { store.set(null); setConv(null); setMsgs([]); lastId.current = 0; } return; }
@@ -62,14 +63,8 @@ export function ChatWidget() {
     try { merge(await browserRpc<Poll>('chat_poll', { p_token: token, p_after: lastId.current })); } catch { /* next tick */ }
   }, [merge]);
 
-  // a conversation already going in this browser
-  useEffect(() => {
-    const t = store.get();
-    if (t && /^[0-9a-f]{64}$/.test(t)) {
-      setConv({ token: t, number: '', status: 'ai' });
-      void poll(t);
-    }
-  }, [poll]);
+  const restored = useRef(conv?.token);
+  useEffect(() => { if (restored.current) void poll(restored.current); }, [poll]);
 
   // the beacon's answer: the chat's settings, and a chat a staff member started
   useEffect(() => onBeaconReply((r) => {
@@ -101,7 +96,7 @@ export function ChatWidget() {
   }, [conv, open, poll]);
 
   useEffect(() => { setChatOpen(Boolean(conv && conv.status !== 'closed')); }, [conv]);
-  useEffect(() => { if (open) { setUnread(0); requestAnimationFrame(() => input.current?.focus()); } }, [open]);
+  useEffect(() => { if (open) requestAnimationFrame(() => input.current?.focus()); }, [open]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [msgs, typing, open]);
 
   const start = async (opts: { greeting?: boolean; token?: string } = {}) => {
@@ -121,6 +116,7 @@ export function ChatWidget() {
 
   const openChat = async (from?: 'greeting' | 'invite') => {
     setOpen(true);
+    setUnread(0);
     const b = bubble;
     setBubble(null);
     if (from === 'invite' && b?.token) { await start({ token: b.token }); return; }

@@ -7,7 +7,7 @@ import { cspHeader, newNonce, securityHeaders } from './src/lib/security/csp';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from './src/lib/security/view-as-guard';
 import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
-import { MAX_BEACON_BYTES, cleanBeacon, ipKey, isBot } from './src/lib/track/shared';
+import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './src/lib/track/shared';
 
 type Env = Record<string, unknown>;
 
@@ -121,6 +121,8 @@ const worker = {
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(securityHeaders())) headers.set(k, v);
     for (const c of setCookies) headers.append('set-cookie', c);
+    // the email link's outbox row, kept through a sign-in redirect for the beacon (Live visitors, 0060)
+    if (request.method === 'GET' && path.startsWith('/account/bookings/')) { const m = emailLinkCookie(request.url, true); if (m) headers.append('set-cookie', m); }
     if (!type.includes('text/html')) return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     const nonce = newNonce();
     headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true }));

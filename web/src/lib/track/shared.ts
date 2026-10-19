@@ -64,3 +64,12 @@ export async function ipKey(ip: string | null, salt: string): Promise<string | n
 }
 
 export const MAX_BEACON_BYTES = 16_384;
+
+/** An email link into the renter portal (?m=<outbox row>) may meet a sign-in redirect that drops the query: the Worker
+ *  entry (and the local server) keep the id for an hour in a first-party cookie the beacon reads once. */
+export function emailLinkCookie(url: string, secure: boolean): string | null {
+  const u = new URL(url);
+  const m = u.searchParams.get('m');
+  if (!/^\/account\/bookings\//.test(u.pathname) || !m || !UUID.test(m)) return null;
+  return `cc_m=${m}; Path=/; Max-Age=3600; SameSite=Lax${secure ? '; Secure' : ''}`;
+}

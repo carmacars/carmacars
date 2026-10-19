@@ -80,6 +80,15 @@ async function attachments(r: Row): Promise<Array<{ filename: string; content: s
   return out;
 }
 
+// Live visitors (migration 0060): a renter's links into their own booking pages carry this outbox row's id (?m=), so
+// the site can tell "opened the offer email" and who the visitor is (app.visitor_from_email_link). Only links to the
+// renter portal's booking pages, in the rendered email; never signed file links, sign-in or unsubscribe links.
+const PORTAL_LINK = /(https:\/\/(?:www\.)?carmacars\.ca\/account\/bookings\/[A-Za-z0-9-]+(?:\/[a-z-]+)?)(#[\w-]+)?(?=["'\s<)\]]|$)/g;
+function tagLinks(r: { id: string; code: string; category: string }, body: string): string {
+  if (/^(staff_|owner_|investor_|insurer_|account_)/.test(r.code) || r.category !== 'transactional') return body;
+  return body.replace(PORTAL_LINK, (_m, path: string, hash?: string) => `${path}?m=${r.id}${hash ?? ''}`);
+}
+
 const fromHeader = (a: string | null) => {
   const addr = a || 'hello@carmacars.ca';
   return addr.includes('<') ? addr : `CarmaCars <${addr}>`;
@@ -105,8 +114,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     const values = { ...(await senderValues(r)), ...r.payload };
     let html: string, text: string;
     try {
-      html = render(r.template_html, values);
-      text = renderText(r.template_text, values);
+      html = tagLinks(r, render(r.template_html, values));
+      text = tagLinks(r, renderText(r.template_text, values));
     } catch (e) {
       throw Object.assign(new Error('Template: ' + (e as Error).message), { permanent: true });
     }
