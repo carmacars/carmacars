@@ -246,6 +246,22 @@ jobs:
         run: |
           if [ "$STORAGE_PROVIDER" = supabase ]; then $RUN "Photos" scripts/deploy/supabase.sh storage photos
           else $RUN "Photos" scripts/deploy/cloudflare.sh photos; fi
+      - name: The database answers quickly (after new migrations)
+        run: |
+          # Deploy runs 39289461880 and 39310793167 failed while building, right after migrations were applied: reads that
+          # take about 75 ms were cancelled at the anon role's 3 s statement timeout. Every DDL statement of a migration
+          # asks the database API to reload its schema cache, and the small database stays busy for a few minutes after
+          # a large migration. The build starts once five reads in a row answer within a second (at most 10 minutes).
+          ok=0; t0=$(date +%s)
+          while [ $(( $(date +%s) - t0 )) -lt 600 ]; do
+            out=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' -X POST "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/rpc/site_settings_public" \
+              -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" -H 'content-type: application/json' -d '{}' --max-time 10 || true)
+            code=${out%% *}; secs=${out##* }
+            if [ "$code" = 200 ] && awk "BEGIN { exit !($secs < 1) }"; then ok=$((ok + 1)); else ok=0; fi
+            [ "$ok" -ge 5 ] && break
+            sleep 5
+          done
+          echo "::notice title=deploy::Database API ready after $(( $(date +%s) - t0 )) s (last read: $out, $ok fast in a row)"
       - name: Build the Worker
         working-directory: web
         run: |

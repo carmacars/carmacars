@@ -72,8 +72,18 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
   }
   const rest: CallOptions = { ...opts };
   delete rest.skipViewAs;
+  // While `next build` pre-renders the public pages, each build worker reads the same public rows (settings, page
+  // texts, the fleet, the footer links) once instead of once per page: about 145 reads became about 35, so a slow
+  // moment of the database touches fewer of them (deploy run 39310793167). Never used for a visitor's request.
+  if (role === 'anon' && !accessToken && process.env.NEXT_PHASE === 'phase-production-build') {
+    const key = `${fn}:${JSON.stringify(a)}`;
+    let p = buildReads.get(key);
+    if (!p) { p = b.call(fn, a, { ...rest, role }); buildReads.set(key, p); p.catch(() => buildReads.delete(key)); }
+    return (await p) as ReturnsOf<F>;
+  }
   return (await b.call(fn, a, { ...rest, role, accessToken })) as ReturnsOf<F>;
 }
+const buildReads = new Map<string, Promise<unknown>>();
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */
 export const BROWSER_FUNCTIONS = new Set<FnName>([
