@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 import '@/features/live/live.css';
 import { CarInterest, type Interest } from '@/features/live/CarInterest';
 import { notFound } from 'next/navigation';
@@ -151,6 +152,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
             </div>
           </Card>
+          <CarCopyPanel d={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: id }).catch(() => null)} slug={slug} />
         </div>
       )}
       {tab === 'records' && (

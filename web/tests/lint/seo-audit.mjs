@@ -4,7 +4,10 @@
 // self-serving ratings, one h1 and no skipped heading levels, alt text on every image, a sitemap with every
 // indexable page and nothing else, robots.txt keeping out the private paths (and those paths sending
 // noindex), links from home and the fleet to every car and model hub, a real 404, and redirects for cars
-// that left the fleet. Fails on any problem; writes reports/seo.json.
+// that left the fleet. Since 0061 also: the sitemap index and its parts (lastmod, car photos), hreflang en-CA, the
+// WebSite node with its search, the business address, landing pages (FAQ, list of cars, noindex below the threshold,
+// never in the sitemap then), guides (Article with author, publisher and dates), ratings only on a car with its
+// reviews shown, the IndexNow key file and the footer's location links. Fails on any problem; writes reports/seo.json.
 //   BASE_URL=http://localhost:3000 node tests/lint/seo-audit.mjs [--site https://carmacars.ca]
 import fs from 'node:fs';
 
@@ -22,7 +25,7 @@ const decode = (s) => s?.replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").re
 const robots = (await get('/robots.txt')).body;
 const SITE = process.argv[i + 1] && i > 0 ? process.argv[i + 1] : /Sitemap: (\S+)\/sitemap\.xml/.exec(robots)?.[1] ?? BASE;
 const disallow = [...robots.matchAll(/^Disallow: (\S+)/gm)].map((m) => m[1]);
-const PRIVATE = ['/account', '/owner', '/investor', '/admin', '/va', '/field', '/api/', '/book', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/unsubscribe', '/files/', '/d/', '/sign/', '/r/'];
+const PRIVATE = ['/choose-portal', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/api/', '/book', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/unsubscribe', '/files/', '/d/', '/sign/', '/r/'];
 for (const p of PRIVATE) if (!disallow.some((d) => p.startsWith(d))) bad('robots.txt', `does not disallow ${p}`);
 if (!/^Sitemap: https?:\/\/\S+\/sitemap\.xml$/m.test(robots)) bad('robots.txt', 'no sitemap line');
 for (const p of ['/account', '/owner', '/admin', '/va', '/field', '/investor', '/book/x', '/two-step', '/unsubscribe']) {
@@ -32,7 +35,23 @@ for (const p of ['/account', '/owner', '/admin', '/va', '/field', '/investor', '
   if (!/noindex/.test(tag) && !metaNo && r.status < 300) bad(p, 'private path without noindex');
 }
 const sm = (await get('/sitemap.xml')).body;
-const smUrls = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+const smUrls = [];
+if (/<sitemapindex/.test(sm)) {
+  const parts = [...sm.matchAll(/<sitemap><loc>([^<]+)<\/loc>(?:<lastmod>([^<]+)<\/lastmod>)?<\/sitemap>/g)];
+  report.sitemapParts = parts.map((m) => m[1]);
+  if (parts.length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
+  for (const [, loc, lastmod] of parts) {
+    if (lastmod && Number.isNaN(Date.parse(lastmod))) bad('sitemap', `${loc} has an unreadable lastmod`);
+    const part = await get(new URL(loc).pathname);
+    if (part.status !== 200 || !/<urlset/.test(part.body)) { bad('sitemap', `${loc} answers ${part.status}`); continue; }
+    if (/sitemap-cars/.test(loc) && /<url>/.test(part.body) && !/<image:image>/.test(part.body)) bad('sitemap', 'car entries carry no photos (image sitemap)');
+    for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);
+    smUrls.push(...[...part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&')));
+  }
+} else {
+  bad('sitemap', '/sitemap.xml is not a sitemap index');
+  smUrls.push(...[...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]));
+}
 const paths = smUrls.map((u) => new URL(u).pathname);
 report.sitemap = paths.length;
 for (const u of smUrls) if (!u.startsWith(SITE)) bad('sitemap', `${u} is not on ${SITE}`);
@@ -45,10 +64,14 @@ const fleetHtml = (await get('/cars')).body;
 const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"/g)].map((m) => m[1]);
 const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p)));
 const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
+// landing pages and guides: those in the sitemap and every one the hubs link to (a use page under the threshold is noindex)
+const hubHtml = (await get('/car-rental')).body + (await get('/guides')).body;
+const landing = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/car-rental\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/car-rental\/[^/]+$/.test(p)));
+const guides = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/guides\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/guides\/[^/]+$/.test(p)));
 report.noindex = [];
 const titles = new Map(); const descs = new Map();
 const extra = ['/investors'];
-for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs])]) {
+for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, ...guides])]) {
   const r = await get(p);
   const rec = { status: r.status };
   report.pages[p] = rec;
@@ -64,8 +87,9 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs])]) {
     if (paths.includes(p)) bad(p, 'in the sitemap but noindex');
     if (canon) bad(p, 'noindex page with a canonical link');
     report.noindex.push(p);
-    if (!cars.has(p) && !hubs.has(p)) continue;
+    if (!cars.has(p) && !hubs.has(p) && !landing.has(p)) continue;
   }
+  if (indexable && !new RegExp(`<link rel="alternate" hrefLang="en-CA" href="${(SITE + (p === '/' ? '' : p)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'i').test(h)) bad(p, 'no hreflang en-CA alternate');
   if (!title) bad(p, 'no title'); else { if (title.length > 70) bad(p, `title ${title.length} characters (over 70): ${title}`); titles.set(title, [...(titles.get(title) ?? []), p]); }
   if (!desc) bad(p, 'no meta description'); else { if (desc.length < 70 || desc.length > 170) bad(p, `description ${desc.length} characters (70 to 170)`); descs.set(desc, [...(descs.get(desc) ?? []), p]); }
   if (indexable && canon !== SITE + (p === '/' ? '' : p) && canon !== SITE + p) bad(p, `canonical ${canon} (want ${SITE}${p === '/' ? '' : p})`);
@@ -78,10 +102,32 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs])]) {
   for (const s of ld) { try { const j = JSON.parse(s); nodes.push(...(j['@graph'] ?? [j])); } catch (e) { bad(p, 'JSON-LD does not parse: ' + String(e).slice(0, 80)); } }
   const types = nodes.flatMap((n) => [].concat(n['@type'] ?? []));
   rec.ld = types;
-  const txt = JSON.stringify(nodes);
-  if (/aggregateRating|"review"/i.test(txt)) bad(p, 'JSON-LD carries ratings or reviews of our own business or cars (self-serving)');
+  // ratings: never on the business or the site; on a car only with its own reviews shown on the page
+  for (const n of nodes) {
+    const ty = [].concat(n['@type'] ?? []);
+    if (!(n.aggregateRating || n.review)) continue;
+    if (!ty.includes('Car')) bad(p, `JSON-LD rating on ${ty.join('/')} (self-serving)`);
+    else if (!/id="h-rv"/.test(h) || Number(n.aggregateRating?.reviewCount ?? 0) < 1) bad(p, 'Car rating without the reviews shown on the page');
+  }
   if (/18122211|Canada Inc/i.test(h)) bad(p, 'numbered company name in the page');
   if (p === '/' && !types.includes('AutoRental')) bad(p, 'no AutoRental (business) node');
+  if (p === '/') {
+    const biz = nodes.find((n) => [].concat(n['@type']).includes('AutoRental'));
+    if (biz && !(biz.address?.streetAddress && biz.address?.postalCode && biz.telephone)) bad(p, 'business node without the street address, postal code or phone');
+    const site = nodes.find((n) => [].concat(n['@type']).includes('WebSite'));
+    if (!site?.potentialAction?.target) bad(p, 'no WebSite node with its SearchAction');
+  }
+  if (!types.includes('WebSite')) bad(p, 'no WebSite node');
+  if (landing.has(p)) {
+    if (!types.includes('ItemList')) bad(p, 'landing page without the list of its cars');
+    if (/id="h-faq"/.test(h) && !types.includes('FAQPage')) bad(p, 'landing page FAQ without FAQPage');
+    if (!indexable && paths.includes(p)) bad(p, 'noindex landing page in the sitemap');
+  }
+  if (guides.has(p)) {
+    const art = nodes.find((n) => [].concat(n['@type']).includes('Article'));
+    if (!art) bad(p, 'guide without an Article node');
+    else for (const k of ['headline', 'datePublished', 'dateModified', 'author', 'publisher', 'image']) if (!art[k]) bad(p, `Article without ${k}`);
+  }
   if (p !== '/' && !types.includes('BreadcrumbList')) bad(p, 'no BreadcrumbList');
   if (cars.has(p)) {
     if (!types.includes('Car')) bad(p, 'no Car node');
@@ -119,6 +165,24 @@ for (const pg of Object.values(report.pages)) for (const l of pg.links ?? []) {
   }
 }
 
+// the footer links every indexable location page; the hub links every indexable landing page
+const footer = new Set(report.pages['/']?.links ?? []);
+for (const l of landing) if (report.pages[l] && !/noindex/.test(report.pages[l].robots ?? '') && !footer.has(l) && !(report.pages['/car-rental']?.links ?? []).includes(l)) bad('linking', `${l} has no link from the footer or /car-rental`);
+
+// the IndexNow key file at the root (the key from the robots-side database when there is one)
+if (!process.env.NO_DB) {
+  try {
+    const { default: postgres } = await import('postgres');
+    const db = postgres(process.env.DATABASE_URL ?? 'postgresql://postgres@127.0.0.1:54322/carmacars', { max: 1, connect_timeout: 3, onnotice: () => {} });
+    const [{ k }] = await db`select indexnow_key k from site_settings limit 1`;
+    await db.end();
+    const r = await get(`/${k}.txt`);
+    if (r.status !== 200 || r.body.trim() !== k) bad('indexnow', `/${k}.txt answers ${r.status}`);
+    report.indexnow = 'key file ok';
+  } catch { /* no local database */ }
+}
+if ((await get('/0123456789abcdef0123456789abcdef.txt')).status !== 404) bad('indexnow', 'a wrong key file does not answer 404');
+
 // ------------------------------------------------------------------ 404 and removed cars
 const nf = await get('/no-such-page-' + Date.now());
 if (nf.status !== 404) bad('404', `unknown path answers ${nf.status}`);
@@ -146,6 +210,6 @@ for (const [src, want] of moved) {
 report.problems = problems;
 fs.mkdirSync('reports', { recursive: true });
 fs.writeFileSync('reports/seo.json', JSON.stringify(report, null, 2));
-console.log(`seo: ${Object.keys(report.pages).length} pages (${cars.size} cars, ${hubs.size} model hubs), sitemap ${paths.length} entries, ${report.noindex.length} noindex (sample cars and their model pages)`);
+console.log(`seo: ${Object.keys(report.pages).length} pages (${cars.size} cars, ${hubs.size} model hubs, ${landing.size} landing pages, ${guides.size} guides), sitemap ${paths.length} entries in ${report.sitemapParts?.length ?? 1} files, ${report.noindex.length} noindex (sample cars, their model pages, landing pages under the threshold)`);
 if (problems.length) { console.log(problems.join('\n')); console.log(`seo: FAILED, ${problems.length} problems`); process.exit(1); }
 console.log('seo: 0 problems');

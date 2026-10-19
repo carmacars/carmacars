@@ -279,7 +279,7 @@ def build():
     g.steps([
         'Pipeline shows each step done, such as photo sizes, copy draft and backgrounds.',
         f'Similar cars on file lists possible duplicates. Press {B("Not a duplicate")} or {B("Same car")}. An open flag stops publishing.',
-        'Check the copy: headline, description, features, questions, search title and description.',
+        'The copy is written by itself from the car\'s facts and published when it passes the checks: nothing to type. To change a line, press Change; that field is then locked and kept by every new version.',
         'Under Photos, each public photo shows its plate state: Plate not checked, Plate covered or No plate visible.',
     ], shot=S('admin/10-listing-review-desktop', 0, 0, 1440, 1100, pins=[(1, 297, 183), (2, 1240, 522), (3, 286, 1175), (4, 1078, 1175)]))
 
@@ -581,6 +581,37 @@ def build():
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
 
     # ---------------------------------------------------------------- 9
+    g.chapter('Search: car pages, landing pages and guides',
+              'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
+              'by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review '
+              'anything. You can still change any line; what you change is kept.',
+              blurb='Car copy written by itself, landing pages, guides, search engines, business listings and IndexNow.')
+    g.task('The copy of a car', f'{P("Cars", "Vehicles")}, then the car, then its Listing tab. The same card is on the listing review.')
+    g.steps([
+        'The card says who wrote the text: a plain copy from the car\'s facts while the written copy is prepared (usually minutes), then Workers AI.',
+        'Every field is shown: search title and description, heading, introduction, highlights, good for, what\'s included, pickup and delivery, requirements, questions and the photo descriptions.',
+        f'To change a field press {B("Change")}, then {B("Save and lock")}. A locked field is kept by every new version. {B("Unlock")} lets it be written again.',
+        f'{B("Write again")} asks for a new version now. A new version is also written by itself when the car\'s facts change: its rates, specs, area or photos.',
+    ])
+    g.tip('The checks refuse long dashes, sales words, the numbered company, any number that is not in the car\'s facts (a price, a seat '
+          'count) and equipment the facts do not list. A version that fails is asked again with the problems named; if it still fails, the '
+          'page keeps its current text and it is tried again later.', label='Good to know')
+    g.task('Landing pages and guides', f'{P("Settings", "All settings")}, then Search.')
+    g.steps([
+        'Today: the Workers AI used for search copy and in all, and IndexNow (addresses waiting and sent).',
+        'Car copy: every real car, who wrote its text, and whether its facts changed since.',
+        'Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).',
+        f'Open {B("Edit")} on a page or a guide to change its text. Edited fields are locked. {B("Write again")} asks for a new version; on a guide, the brief says what it must cover.',
+    ])
+    g.task('Search engines and business listings', f'{P("Settings", "All settings")}, then Site settings.')
+    g.steps([
+        'Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.',
+        'Business name, address and phone: the exact text for every listing, and the description and categories.',
+        f'Business listings: press {B("Copy")} beside each line and paste it into Google Business Profile, Bing Places, Apple Business Connect, Yelp, Yellow Pages and Facebook. Tick each one when it is done.',
+    ])
+    g.tip('Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit '
+          'carmacars.ca/sitemap.xml once in Search Console.', label='Good to know')
+
     g.chapter('Settings',
               'Settings change the public site and the rules of the program at once. Program settings are kept '
               'as dated rows, so earlier values stay on record.',

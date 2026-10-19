@@ -5,6 +5,7 @@ import { vaPage } from '@/server/va';
 import { withOriginalUrls } from '@/server/listing-photos';
 import { SimilarityTable, type Flag } from '@/features/admin/Similarity';
 import { Card } from '@/features/admin/ui';
+import type { CarCopyData } from '@/features/seo/CarCopyPanel';
 import { ListingReview, type Plates } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
@@ -33,7 +34,7 @@ export default async function VaListing({ params }: { params: Promise<{ id: stri
       {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/va/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/va/listings/${id}`]} />}
       {flags.length > 0 && <Card title="Similar cars on file" testId="listing-similar"><SimilarityTable rows={flags} base="/va" refresh={[`/va/listings/${id}`]} showVehicle={false} /></Card>}
-      <ListingReview l={await withOriginalUrls(l)} plates={plates} />
+      <ListingReview l={await withOriginalUrls(l)} plates={plates} copy={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: l.vehicle_id }, aal).catch(() => null)} />
     </>
   );
 }

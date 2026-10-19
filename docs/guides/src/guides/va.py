@@ -229,7 +229,7 @@ def build():
     g.task('Listings and covering plates')
     g.steps([
         f'Open {B("Listings")}. A draft waiting shows Needs review. Open it.',
-        'Check the copy and photos. On each public photo, cover the plate or mark it not visible.',
+        'The copy is written by itself (change a line only if you must: it is then kept). Check the photos: on each public photo, cover the plate or mark it not visible.',
     ], shot=S('va-fleet/05-listings-desktop', 210, 60, 1440, 400, pins=[(1, 880, 227)]))
     g.steps([
         f'Press {B("Cover the plate")}. Check the suggested box; {B("Suggest the plate")} asks again.',

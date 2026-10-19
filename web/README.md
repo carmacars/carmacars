@@ -229,6 +229,21 @@ Change record: `../docs/changes/0033_gap_close.md`.
 
 Email links (`../emails/src/links.mjs`) that are sections of a page here redirect to that page (`next.config.ts`, `EMAIL_PATHS`).
 
+## Search (migration 0061)
+
+Change record: `../docs/changes/2026-10-19-seo.md`.
+
+| Piece | Where |
+| --- | --- |
+| Car copy | `src/features/seo/copy.ts` (structure, prompts, checks), `worker.ts` (the job), `src/server/seo-job.ts` (wiring, IndexNow), `POST /api/jobs/seo` (the Worker's cron, every five minutes, with the listing worker's token), `CarCopyPanel.tsx` on the listing review and the vehicle's Listing tab |
+| Landing pages | `/car-rental` and `/car-rental/[slug]` (`public.seo_page`, `public.seo_pages_public`, the footer's `public.seo_links`) |
+| Guides | `/guides` and `/guides/[slug]` (`public.article`, Markdown rendered with `src/features/guides/markdown.ts`, tokens from `getTokens`) |
+| Launch copy | `scripts/content/seo-content.json`, seeded by `scripts/seed.mjs`; sharing images by `node scripts/og-pages.mjs` (`public/og/pages`, `public/og/guides`, `src/features/seo/og-images.json`) |
+| Sitemaps and root files | `/sitemap.xml` (index) and `/sitemap-{pages,cars,landing,guides}.xml` (`src/features/seo/sitemap.ts`); `/<IndexNow key>.txt` and the Google verification file through `/api/site-file/[name]` (rewrites in `next.config.ts`) |
+| Admin | Settings > Search; Settings > Site: Search engines, Business name, address and phone, Business listings (`src/features/seo/SeoAdmin.tsx`, `src/server/actions/seo.ts`) |
+
+`LLM_PROVIDER=fake` writes the copy from the facts (`src/integrations/llm/fake.ts`), so the job runs locally and in the tests.
+
 ## Worker size
 
 The free plan takes a Worker of at most 3 MB compressed. The upload is minified (`"minify": true` in `wrangler.jsonc`) and
@@ -287,7 +302,7 @@ tests/lint/                 link checker, copy lint, Lighthouse, role crawl, SEO
 | `npm run test:e2e` | Playwright (needs `npm run build` and the local stack) |
 | `npm run check:links`, `check:copy`, `check:lighthouse` | Against a running server (`BASE_URL`, default `http://localhost:3000`) |
 | `npm run check:crawl` | Crawls every page anonymous and signed in as each role (renter, owner, investor, admin, each assistant function, field): no 404 or 5xx, no button without a handler, no toggle that does nothing or throws, no console error or failed request, no overflow at 375 and 1440, the copy rules. Local stack (it gives the accounts a known password; `--fresh` makes bare ones). `--per-shape 1` samples one page per shape (CI) |
-| `npm run check:seo` | Every public page and car page: titles and descriptions (unique, lengths), canonical, Open Graph and Twitter cards, JSON-LD (business, car, breadcrumbs, no ratings), headings, alt text, sitemap and robots, links from home and the fleet, 404, redirects of removed cars |
+| `npm run check:seo` | Every public page, car page, landing page and guide: titles and descriptions (unique, lengths), canonical and hreflang, Open Graph and Twitter cards, JSON-LD (business with its address, WebSite with its search, car, breadcrumbs, landing page lists and FAQ, Article; ratings only on a car with its reviews shown), headings, alt text, the sitemap index and its parts, robots, links from home, the fleet, the footer and the hub, the IndexNow key file, 404, redirects of removed cars |
 | `npm run check:emails` | Every catalogue email rendered with the payload the database built (latest outbox row; `--test-db` adds the kept database of `scripts/test.sh`; `--samples` the catalogue samples): variables, links (signed ones verify), images, plain text, from and reply-to, 375 and 640 screenshots in `reports/emails/`, then unsubscribe end to end |
 
 ## Environment variables

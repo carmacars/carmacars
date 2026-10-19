@@ -1,0 +1,42 @@
+/* Landing pages, the car rental hub and the guides (migration 0061). Same tokens and components as the rest of the site. */
+.landing__h1 { max-width: 20ch; }
+.page-head .lead + .lead { margin-top: var(--s-3); }
+.landing__cta { margin-top: var(--s-5); }
+.landing__body { padding-bottom: var(--section); }
+.landing__sec p + p { margin-top: 0; }
+.landing__cols { display: grid; gap: var(--s-5); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 48rem) { .landing__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.linklist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.linklist li { min-width: 0; overflow-wrap: anywhere; }
+.alert--info { border: 1px solid var(--line); background: var(--grey-100); }
+.hub-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 40rem) { .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .hub-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.hub-card { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--line); background: var(--white); height: 100%; text-decoration: none; color: var(--text); }
+.hub-card:hover { border-color: var(--black); }
+.hub-card h3 { font: 700 1.2rem/1.15 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+.hub-card p { margin: 0; font-size: var(--fs-sm); color: var(--text-2); }
+.hub-card .num { font-weight: 700; color: var(--text); }
+/* an article: the guides' Markdown classes, read as a page */
+.art { padding-block: var(--s-7) var(--section); }
+.art__grid { display: grid; gap: var(--s-7); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 64rem) { .art__grid { grid-template-columns: minmax(0, 1fr) 18rem; } }
+.art__body { max-width: 44rem; min-width: 0; }
+.art__body .gd-task { scroll-margin-top: calc(var(--header-h) + 1rem); }
+.art__body .gd-h2 { font: 700 var(--fs-d3, 1.6rem)/1.15 var(--font-display); letter-spacing: -0.025em; margin: var(--s-7) 0 var(--s-3); }
+.art__body .gd-h3 { font: 700 1.15rem/1.2 var(--font-display); margin: var(--s-5) 0 var(--s-2); }
+.art__body .gd-p { margin: 0 0 var(--s-4); line-height: 1.6; }
+.art__body .gd-ul, .art__body .gd-stepblock ol { list-style: disc; margin: 0 0 var(--s-4); padding-left: 1.25rem; display: grid; gap: var(--s-2); line-height: 1.55; }
+.art__body .gd-a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.art__aside { display: grid; gap: var(--s-5); align-content: start; min-width: 0; }
+.art__aside > section { border-top: var(--bw) solid var(--black); padding-top: var(--s-3); }
+.art__aside h2 { font: 700 1rem/1.2 var(--font-text); margin: 0 0 var(--s-3); }
+.art__meta { font-size: var(--fs-xs); color: var(--grey-400); margin-top: var(--s-4); }
+.art-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-5); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 48rem) { .art-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.art-list a { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--line); text-decoration: none; color: var(--text); height: 100%; background: var(--white); }
+.art-list a:hover { border-color: var(--black); }
+.art-list h2 { font: 700 1.25rem/1.15 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+.art-list p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); }
+.art-list .art-kicker { font: 700 var(--fs-2xs)/1 var(--font-text); letter-spacing: 0.12em; text-transform: uppercase; color: var(--red-600); }
+.art__body .gd-stepblock ol { list-style: decimal; }

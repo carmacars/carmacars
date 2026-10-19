@@ -89,6 +89,8 @@ const worker = {
     const run = (path: string) => ctx.waitUntil(handler.fetch(new Request(`${base.replace(/\/$/, '')}${path}`, { method: 'POST', headers: auth }), env, ctx)
       .then((r: Response) => r.text()).catch(() => undefined));
     run('/api/jobs/listing');
+    // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
+    run('/api/jobs/seo');
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
   },

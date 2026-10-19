@@ -45,6 +45,10 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   const [trans, setTrans] = useState(p.get('trans') ?? 'any');
   const [max, setMax] = useState(() => { const m = Number(p.get('max')); return m >= minP && m <= maxP ? m : maxP; });
   const [sort, setSort] = useState(p.get('sort') ?? 'featured');
+  // the site search box (the WebSite SearchAction of 0061): words matched against make, model, trim, class and body
+  const [q, setQ] = useState(() => (p.get('q') ?? '').trim().slice(0, 60));
+  const qText = q;
+  const words = useMemo(() => qText.toLowerCase().split(/\s+/).filter(Boolean), [qText]);
   const [showBooked, setShowBooked] = useState(false);
   const [res, setRes] = useState<{ key: string; avail: Map<string, Avail> | null; failed: boolean } | null>(null);
   const [panel, setPanel] = useState(false);
@@ -79,9 +83,10 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
     if (trans !== 'any') q.set('trans', trans);
     if (max < maxP) q.set('max', String(max));
     if (sort !== 'featured') q.set('sort', sort);
+    if (qText) q.set('q', qText);
     const s = q.toString();
     if (sync) window.history.replaceState(null, '', `/cars${s ? '?' + s : ''}`);
-  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP]);
+  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP, qText]);
 
   useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
 
@@ -93,6 +98,7 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
       if (seats === '2' && st !== 2) ok = false; if (seats === '5' && st < 5) ok = false; if (seats === '7' && st < 7) ok = false;
       if (trans !== 'any' && c.transmission !== trans) ok = false;
       if (c.daily_rate_cents / 100 > max) ok = false;
+      if (words.length) { const hay = [c.year, c.make, c.model, c.trim, c.body_style, c.fuel, ...c.classes.map((k) => labels[k] ?? k)].join(' ').toLowerCase(); if (!words.every((w) => hay.includes(w))) ok = false; }
       const a = avail?.get(c.vehicle_id);
       const busy = ok && hasDates && avail !== null && !a;
       const sortPrice = a ? a.rental_charge_cents : c.daily_rate_cents;
@@ -104,7 +110,7 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
       seats: (x, y) => (y.c.seats ?? 0) - (x.c.seats ?? 0) || x.sortPrice - y.sortPrice, featured: (x, y) => x.i - y.i
     };
     return list.sort((x, y) => Number(x.busy) - Number(y.busy) || (by[sort] ?? by.featured!)(x, y));
-  }, [cars, cls, seats, trans, max, avail, hasDates, sort]);
+  }, [cars, cls, seats, trans, max, avail, hasDates, sort, words, labels]);
 
   const shown = rows.filter((r) => r.ok && (!r.busy || showBooked));
   const free = shown.filter((r) => !r.busy).length;
@@ -113,10 +119,11 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
     ...cls.map((k) => ['cls:' + k, labels[k] ?? k] as [string, string]),
     ...(seats !== 'any' ? [['seats', seats === '2' ? '2 seats' : `${seats}+ seats`] as [string, string]] : []),
     ...(trans !== 'any' ? [['trans', trans] as [string, string]] : []),
-    ...(max < maxP ? [['max', `Up to ${money(max * 100)}`] as [string, string]] : [])
+    ...(max < maxP ? [['max', `Up to ${money(max * 100)}`] as [string, string]] : []),
+    ...(qText ? [['q', `"${qText}"`] as [string, string]] : [])
   ];
-  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setMax(maxP); };
-  const removeChip = (k: string) => { if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else setMax(maxP); };
+  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setMax(maxP); setQ(''); };
+  const removeChip = (k: string) => { if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else if (k === 'q') setQ(''); else setMax(maxP); };
   const carHref = (slug: string) => {
     if (!hasDates) return `/cars/${slug}`;
     const q = new URLSearchParams({ from: dates.from, to: dates.to, tf, tt });

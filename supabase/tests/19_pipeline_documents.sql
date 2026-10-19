@@ -96,7 +96,7 @@ select public.server_listing_result((x ->> 'id')::uuid, test.pd_answer(x)) from 
 create temp table pd_c2 as select public.server_listing_claim('pd-worker', 100) c;
 select test.eq('worker: after the decode the draft is claimed with the decoded facts, the staff notes and the copy rules',
   (select (x -> 'facts' ->> 'trim') || '/' || (x ->> 'staff_notes') || '/' || (x -> 'copy_rules' -> 'headline_chars' ->> 0) || '/' || (x -> 'classes' ? 'premium')
-     from pd_c2, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'draft_copy'), '4MATIC/Panoramic roof/40/true');
+     from pd_c2, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'draft_copy'), '4MATIC/Panoramic roof/20/true');  -- 0061: headings from 20 characters
 select test.eq('worker: the draft job never carries the VIN, plate or owner',
   (select (x ? 'vin' and x ->> 'vin' is not null)::text || '/' || (x::text like '%' || (select plate from vehicles where id = test.id('vehicle:pdV')) || '%')::text
      from pd_c2, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'draft_copy'), 'false/false');

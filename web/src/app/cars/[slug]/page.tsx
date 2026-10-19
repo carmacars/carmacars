@@ -9,7 +9,8 @@ import { JsonLd } from '@/components/JsonLd';
 import { BookBar, CarBooking } from '@/features/car/CarBooking';
 import { Gallery } from '@/features/car/Gallery';
 import { carFaq, perDayFees } from '@/features/car/faq';
-import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
@@ -41,16 +42,20 @@ export async function generateMetadata({ params }: Params) {
   // The listing's own SEO text when it is a usable length, else built from the car; the longest parts are
   // dropped first so the title stays near 60 characters and the description near 155.
   const fit = (max: number, ...tries: string[]) => tries.map((x) => fill(x, t).replace(/\s+/g, ' ').trim()).find((x) => x.length <= max) ?? fill(tries[tries.length - 1]!, t);
-  const title = c.seo_title && c.seo_title.length >= 20 && c.seo_title.length <= 70 ? c.seo_title
+  // the written copy (0061) first; then the listing's own search text; then one built from the car
+  const title = c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
+    : c.seo_title && c.seo_title.length >= 20 && c.seo_title.length <= 70 ? c.seo_title
     : fit(65, `Rent a ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}} | {{brand}}`);
   const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
-  const description = c.seo_description && c.seo_description.length >= 70 && c.seo_description.length <= 170 ? c.seo_description
+  const description = c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
+    : c.seo_description && c.seo_description.length >= 70 && c.seo_description.length <= 170 ? c.seo_description
     : fit(160, `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
       `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
       `Rent the ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
   return seoMeta({
     title, description,
-    path: c.canonical_path, image: c.photos[0] ? (/^https?:/.test(photoUrl(c.photos[0].path)) ? photoUrl(c.photos[0].path) : siteUrl() + photoUrl(c.photos[0].path)) : null,
+    path: c.canonical_path, image: c.photos[0] ? absUrl(c.photos[0].path) : null,
+    imageSize: c.photos[0]?.width && c.photos[0]?.height ? [c.photos[0].width, c.photos[0].height] : undefined, imageAlt: c.photos[0]?.alt ?? undefined,
     noindex: !c.indexable
   });
 }
@@ -61,10 +66,10 @@ const DRIVE: Record<string, string> = { 'All-wheel drive': 'AllWheelDriveConfigu
 export default async function CarPage({ params }: Params) {
   const { slug } = await params;
   const c = await load(slug);
-  const [s, f, t, fleet, classes, cover, places, terms] = await Promise.all([
+  const [s, f, t, fleet, classes, cover, places, terms, links] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), listItems<Opt>('home.coverage_options'),
     rpc('handover_places', { p_vehicle: c.vehicle_id }) as unknown as Promise<{ owner_location: boolean; area: string | null } | null>,
-    perDayFees(c.vehicle_id)
+    perDayFees(c.vehicle_id), getSeoLinks()
   ]);
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((k) => [k.code, k.label]));
@@ -75,7 +80,15 @@ export default async function CarPage({ params }: Params) {
   const similar = fleet.filter((x) => x.slug !== c.slug)
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
     .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
-  const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name(c)]];
+  const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name(c), c.model_hub_path], [[c.year, name(c), c.trim].filter(Boolean).join(' ')]];
+  const copy = c.copy ?? null;
+  const rv = c.reviews ?? { count: 0, average: null, min_for_rating: 3, items: [] };
+  // the landing pages this car belongs on (only those that may be indexed), for the links under the car
+  const has = (k: string) => c.classes.includes(k);
+  const want = new Set(['toronto', 'car-delivery', 'monthly', 'weekly', ...(has('suv') ? ['suv'] : []), ...(has('luxury') || has('premium') || has('exotic') ? ['luxury'] : []),
+    ...((c.seats ?? 0) >= 7 ? ['minivan'] : []), ...(['electric', 'hybrid', 'plug_in_hybrid'].includes(c.fuel) ? ['electric'] : []), ...(has('economy') || has('standard') ? ['economy'] : []),
+    ...(c.allows_18_to_20 ? ['young-drivers'] : [])]);
+  const landing = links.filter((l) => want.has(l.slug));
   const url = siteUrl() + c.canonical_path;
   const abs = (p: string) => (/^https?:/.test(photoUrl(p)) ? photoUrl(p) : siteUrl() + photoUrl(p));
   const consumption = typeof c.specs.consumption === 'string' ? c.specs.consumption : null;
@@ -87,6 +100,12 @@ export default async function CarPage({ params }: Params) {
     fuelType: FUEL_LABEL[c.fuel] ?? c.fuel, vehicleTransmission: c.transmission ?? undefined,
     ...(c.drivetrain && DRIVE[c.drivetrain] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[c.drivetrain]}` } : {}),
     seatingCapacity: c.seats ?? undefined, numberOfDoors: c.doors ?? undefined, itemCondition: 'https://schema.org/UsedCondition',
+    ...(rv.count >= rv.min_for_rating && rv.average !== null ? {
+      // only this car's own reviews, collected on the site after a completed rental and shown in full on this page
+      aggregateRating: { '@type': 'AggregateRating', ratingValue: String(rv.average), reviewCount: rv.count, bestRating: 5, worstRating: 1 },
+      review: rv.items.slice(0, 5).map((r) => ({ '@type': 'Review', author: { '@type': 'Person', name: r.name ?? 'Renter' }, datePublished: r.month,
+        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 }, ...(r.body ? { reviewBody: r.body } : {}), ...(r.title ? { name: r.title } : {}) }))
+    } : {}),
     offers: {
       '@type': 'Offer', url, businessFunction: 'http://purl.org/goodrelations/v1#LeaseOut', priceCurrency: 'CAD', price: (c.daily_rate_cents / 100).toFixed(2),
       priceSpecification: [['DAY', c.daily_rate_cents, 'per day'], ['WEE', c.weekly_rate_cents, 'per week'], ['MON', c.monthly_rate_cents, `per ${f.max_rental_days} days`]].map(([u, p, txt]) => ({ '@type': 'UnitPriceSpecification', price: ((p as number) / 100).toFixed(2), priceCurrency: 'CAD', unitCode: u, unitText: txt, valueAddedTaxIncluded: false })),
@@ -106,9 +125,9 @@ export default async function CarPage({ params }: Params) {
           <Gallery name={name(c)} photos={c.photos} />
           <div className="car-top__info">
             <p className="row"><span className="small muted">{classText}</span></p>
-            <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>
+            {copy?.h1 ? <h1 className="d2 car-top__name">{copy.h1}</h1> : <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>}
             <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `, ${c.colour}` : ''}. For rent in {s.city}.</p>
-            {c.description && <p className="car-top__blurb">{c.description}</p>}
+            {(copy?.intro ?? c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
             <dl className="keyspecs">
               <div><dt>Seats</dt><dd className="num">{c.seats}</dd></div>
               <div><dt>Gearbox</dt><dd>{c.transmission === 'Automatic' ? 'Auto' : c.transmission}</dd></div>
@@ -125,11 +144,19 @@ export default async function CarPage({ params }: Params) {
       </section>
 
       <nav className="car-nav" aria-label="On this page"><div className="wrap"><ul>
-        {[['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
+        {[...(copy ? [['about', 'About']] : []), ['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
       </ul></div></nav>
 
       <div className="wrap car-body">
         <div className="car-body__main">
+          {copy && (
+            <section id="about" className="car-sec" aria-labelledby="h-about">
+              <h2 className="d2" id="h-about">About this {c.model}</h2>
+              {copy.highlights.length > 0 && <><h3 className="d4">Highlights</h3><ul className="featlist">{copy.highlights.map((x) => <li key={x}>{x}</li>)}</ul></>}
+              {copy.good_for.length > 0 && <><h3 className="d4">Good for</h3><ul className="featlist">{copy.good_for.map((x) => <li key={x}>{x}</li>)}</ul></>}
+              {copy.included.length > 0 && <><h3 className="d4">What&apos;s included</h3><ul className="featlist">{copy.included.map((x) => <li key={x}>{x}</li>)}</ul></>}
+            </section>
+          )}
           <section id="rates" className="car-sec" aria-labelledby="h-rates">
             <h2 className="d2" id="h-rates">Rates</h2>
             <dl className="rates">
@@ -183,6 +210,7 @@ export default async function CarPage({ params }: Params) {
 
           <section id="need" className="car-sec" aria-labelledby="h-need">
             <h2 className="d2" id="h-need">What you need</h2>
+            {copy && copy.requirements.length > 0 && <ul className="featlist">{copy.requirements.map((x) => <li key={x}>{x}</li>)}</ul>}
             <table className="spec"><tbody>
               <tr><th scope="row">Age</th><td>{F('{{minAge}} or older at pickup')}</td></tr>
               <tr><th scope="row">Licence</th><td>{F('Ontario {{licence}}, valid for the whole rental')}</td></tr>
@@ -202,7 +230,8 @@ export default async function CarPage({ params }: Params) {
           </section>
 
           <section id="delivery" className="car-sec" aria-labelledby="h-del">
-            <h2 className="d2" id="h-del">Delivery</h2>
+            <h2 className="d2" id="h-del">Pickup and delivery</h2>
+            {copy?.pickup_delivery && <p className="measure">{copy.pickup_delivery}</p>}
             <table className="spec"><tbody>
               <tr><th scope="row">Delivered to an address</th><td><span className="num">{money(c.delivery_fee_cents)}</span> plus distance from our location</td></tr>
               <tr><th scope="row">Picked up from you at the end</th><td><span className="num">{money(c.pickup_fee_cents)}</span> plus distance</td></tr>
@@ -224,6 +253,17 @@ export default async function CarPage({ params }: Params) {
             <p className="small muted measure">{F('The first row that fits applies. A non-refundable booking takes {{nonRef}} off the rental charge and is not refunded if you cancel. If we cancel, you get everything back.')} <Link className="link" href="/cancellation-policy">Cancellation policy</Link>.</p>
           </section>
 
+          {rv.count > 0 && (
+            <section id="reviews" className="car-sec" aria-labelledby="h-rv">
+              <h2 className="d2" id="h-rv">Reviews of this car</h2>
+              <p className="small muted">{rv.count} {rv.count === 1 ? 'review' : 'reviews'} from renters of this car{rv.average !== null ? `, ${rv.average} out of 5 on average` : ''}. Every review comes from a completed rental and is published in full.</p>
+              <ul className="linklist">{rv.items.map((r, i) => (
+                <li key={i}><p><b>{r.rating} out of 5</b>{r.title ? `: ${r.title}` : ''}</p>{r.body && <p className="small">{r.body}</p>}
+                  <p className="xs muted">{r.name ?? 'A renter'}, {new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(r.month))}</p>
+                  {r.reply && <p className="small muted">Our reply: {r.reply}</p>}</li>))}</ul>
+            </section>
+          )}
+
           <section id="questions" className="car-sec" aria-labelledby="h-q">
             <h2 className="d2" id="h-q">Questions about the {c.model}</h2>
             <Faq items={faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }))} />
@@ -233,6 +273,7 @@ export default async function CarPage({ params }: Params) {
 
       <section className="section on-grey" aria-labelledby="h-sim">
         <div className="wrap">
+          {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : l.name}</Link></li>)}</ul></nav>}
           <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} /></li>)}</ul>
         </div>

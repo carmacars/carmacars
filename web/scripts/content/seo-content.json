@@ -1,0 +1,2143 @@
+{
+ "_note": "Landing pages and articles of migration 0061, written for launch and checked by src/features/seo/copy.ts (copy.test.ts). Seeded by scripts/seed.mjs: added, and updated only while a row is still the seed's own (source seed, nothing locked).",
+ "tokens": [
+  "addDrvPct",
+  "adminClaim",
+  "adminOther",
+  "airports",
+  "baby",
+  "babyCap",
+  "billDay",
+  "brand",
+  "c1",
+  "c2",
+  "c3",
+  "cEarly",
+  "cGrace",
+  "cLate",
+  "callHours",
+  "carma",
+  "city",
+  "clean",
+  "cleanHeavy",
+  "declined",
+  "deductible",
+  "delMax",
+  "delMin",
+  "depLead",
+  "depMax",
+  "depMin",
+  "depTiers",
+  "email",
+  "evPer",
+  "fuelFee",
+  "fuelPct",
+  "fullAge",
+  "grace",
+  "graceShort",
+  "hiddenHours",
+  "holdDays",
+  "holdbackDays",
+  "hours",
+  "hst",
+  "keyFee",
+  "kmChoices",
+  "lateHr",
+  "licence",
+  "listDays",
+  "maxDays",
+  "maxDaysLess1",
+  "minAge",
+  "minDaily",
+  "nonRef",
+  "notice",
+  "noticeDays",
+  "offerHours",
+  "overMax",
+  "overMin",
+  "ownerReply",
+  "payoutDay",
+  "pet",
+  "phone",
+  "referralPct",
+  "refundDays",
+  "region",
+  "releaseDays",
+  "reply",
+  "replyShort",
+  "reportHours",
+  "roadside",
+  "serviceArea",
+  "smoke",
+  "tagline",
+  "ticketFee",
+  "tollFee",
+  "turnaround",
+  "verifyHours",
+  "weekFrom",
+  "weekFromLess1",
+  "winter",
+  "winterCap",
+  "ydA",
+  "ydB",
+  "youngA",
+  "youngB"
+ ],
+ "pages": [
+  {
+   "slug": "toronto",
+   "kind": "location",
+   "name": "Toronto",
+   "sort_order": 10,
+   "facts": {
+    "areas": [
+     "Downtown",
+     "North York",
+     "Scarborough",
+     "Etobicoke",
+     "East York",
+     "York"
+    ],
+    "highways": [
+     "401",
+     "427",
+     "400",
+     "404",
+     "Gardiner Expressway",
+     "Don Valley Parkway"
+    ],
+    "transit": [
+     "TTC subway Line 1",
+     "TTC subway Line 2",
+     "Union Station"
+    ],
+    "toll_road": "407 ETR runs north of the city and bills by camera",
+    "nearby": [
+     "downtown-toronto",
+     "north-york",
+     "scarborough",
+     "etobicoke",
+     "pearson-airport-yyz"
+    ],
+    "lat": 43.6532,
+    "lng": -79.3832
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto by the day, week or month. Delivery to your door anywhere in the city, or pickup from us. Request with no payment up front.",
+    "h1": "Car rental in Toronto",
+    "intro": "CarmaCars is a Toronto car rental company with a small fleet of cars we know well. You choose a car on this page, send a request with your dates, and we confirm the car and the price before you pay anything. We hand every car over in person, at our location or at your address in any part of the city, from the waterfront to the 401 and from Etobicoke to Scarborough. Rent for a day, a week or up to {{maxDays}} days at a time.",
+    "sections": [
+     {
+      "heading": "How renting works in Toronto",
+      "body": "Pick a car below and enter your dates. Your request costs nothing and does not hold the car. We check the dates, then send an offer with the full price, the deposit and the kilometres included. If you approve it, you sign the rental agreement online and pay, and the car is booked. Before pickup we check your licence and identity. On the day, we meet you with the car, walk around it with you and note its condition, so nobody argues about a scratch later."
+     },
+     {
+      "heading": "Getting around the city",
+      "body": "The 401 crosses the top of the city, the Gardiner Expressway and the Don Valley Parkway bring you downtown, and the 427, the 400 and the 404 run north toward the suburbs. Traffic is heaviest on weekday mornings and late afternoons, so plan airport runs and moves with time to spare. The 407 ETR north of the city has no toll booths: cameras read the plate, and the toll comes to us later. We pass it on at cost with a {{tollFee}} administration fee for each toll notice."
+     },
+     {
+      "heading": "Delivery or pickup",
+      "body": "Collecting the car from our location costs nothing. Delivery to a home, an office, a hotel or a condo lobby anywhere in Toronto costs the delivery fee shown on each car's page. Tell us the address and a time in your request and we confirm both in your offer. For a condo or an office tower, add the visitor parking or the loading dock details, so the handover takes minutes rather than a search for parking."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car in Toronto with a G2 licence?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car. Drivers {{minAge}} and older can rent, and drivers under {{fullAge}} pay a young driver fee for each day."
+     },
+     {
+      "question": "Do you deliver anywhere in Toronto?",
+      "answer": "Yes. We deliver to any address in the city for the car's delivery fee, and we can collect the car from you at the end."
+     },
+     {
+      "question": "Do I pay when I send a request?",
+      "answer": "No. The request is free and does not hold the car. You pay only after we confirm the car and the price and you approve the offer."
+     },
+     {
+      "question": "How are 407 ETR tolls billed?",
+      "answer": "The toll is billed to the car's plate and comes to us. We charge you the toll at cost plus {{tollFee}} for each notice, on a statement after the rental."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "downtown-toronto",
+   "kind": "location",
+   "name": "Downtown Toronto",
+   "sort_order": 20,
+   "facts": {
+    "areas": [
+     "Financial District",
+     "Entertainment District",
+     "King West",
+     "St. Lawrence",
+     "Distillery District",
+     "CityPlace",
+     "Harbourfront"
+    ],
+    "landmarks": [
+     "CN Tower",
+     "Rogers Centre",
+     "Scotiabank Arena",
+     "St. Lawrence Market",
+     "Union Station"
+    ],
+    "roads": [
+     "Gardiner Expressway",
+     "Lake Shore Boulevard",
+     "Don Valley Parkway"
+    ],
+    "parking": "Green P municipal garages and lots, visitor parking in condo buildings, hotel valet",
+    "coverage_options": 3,
+    "nearby": [
+     "union-station",
+     "billy-bishop-airport-ytz",
+     "toronto"
+    ],
+    "lat": 43.6487,
+    "lng": -79.3817
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Downtown Toronto | CarmaCars",
+    "meta_description": "Rent a car in downtown Toronto with delivery to your condo, hotel or office. No counter and no line: we hand the car over to you in person.",
+    "h1": "Car rental in downtown Toronto",
+    "intro": "Downtown is where a car is hardest to pick up and easiest to do without, until the day you need one. We bring the car to you instead: to a condo lobby in CityPlace, a hotel on Front Street, an office in the Financial District or a loft in the Distillery District. You send a request with the address and the time, we confirm the car and the price, and a member of our team meets you with it. No rental counter, no shuttle and no line.",
+    "sections": [
+     {
+      "heading": "Handovers in the core",
+      "body": "Downtown streets are tight, so a good handover is planned. Tell us whether there is visitor parking, a loading dock, a hotel valet lane or a laneway where we can stop for a few minutes. We walk around the car with you, take photos of its condition, check your licence and the card you paid with, and show you the controls. Then the car is yours. At the end of the rental we can collect it from the same place, or you can return it to our location."
+     },
+     {
+      "heading": "Parking and driving downtown",
+      "body": "Most condo buildings have a few visitor spaces that need a permit from the concierge, and Green P runs municipal garages and lots across the core. Street parking is metered and limited in time, and rush hour rules on main streets mean a parked car can be towed. Read the signs before you leave the car. To get out of the core, the Gardiner Expressway runs west along the lake and the Don Valley Parkway runs north. Lake Shore Boulevard is the slower road beside the Gardiner."
+     },
+     {
+      "heading": "Weekend trips from downtown",
+      "body": "Many downtown renters live without a car and rent one for a weekend at a cottage, a trip to see family or a big shopping run. Book a car that leaves on Friday and comes back on Sunday or Monday, and we can deliver it to your building on Friday evening. Each car's page shows its weekend day rate and the kilometres included, added up over the whole trip."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you deliver the car to my condo?",
+      "answer": "Yes. Give us the address and tell us about visitor parking or the loading area, and we meet you there at the time we agree."
+     },
+     {
+      "question": "Where do I park a rental car downtown?",
+      "answer": "Visitor parking in your building, a Green P garage or lot, or a metered street space within its time limit. Fines and towing charges during the rental are the renter's."
+     },
+     {
+      "question": "Can I return the car downtown?",
+      "answer": "Yes. We can collect it from your address at the end for the car's return pickup fee, or you can bring it back to our location at no charge."
+     },
+     {
+      "question": "Do I need my own insurance policy?",
+      "answer": "Third-party liability coverage is included in the rate. For damage to the car you choose one of three options before pickup, explained on our requirements page."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "north-york",
+   "kind": "location",
+   "name": "North York",
+   "sort_order": 30,
+   "facts": {
+    "areas": [
+     "Yonge and Sheppard",
+     "North York Centre",
+     "Willowdale",
+     "Bayview Village",
+     "Don Mills",
+     "York University"
+    ],
+    "landmarks": [
+     "Yorkdale Shopping Centre",
+     "Fairview Mall",
+     "Mel Lastman Square"
+    ],
+    "highways": [
+     "401",
+     "404",
+     "400",
+     "Don Valley Parkway",
+     "Allen Road"
+    ],
+    "rental_day": "24 hours from the pickup time",
+    "transit": [
+     "Line 1",
+     "Line 4 Sheppard"
+    ],
+    "nearby": [
+     "toronto",
+     "vaughan",
+     "richmond-hill",
+     "markham"
+    ],
+    "lat": 43.7615,
+    "lng": -79.4111
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in North York | CarmaCars",
+    "meta_description": "Rent a car in North York with delivery to Willowdale, Don Mills, York University and more. Daily, weekly and monthly rates on every car.",
+    "h1": "Car rental in North York",
+    "intro": "North York sits on both sides of the 401, which makes it a good base for a rental: Yorkdale, the 400 and the airport to the west, the 404 and Markham to the east. We deliver to homes and condos around Yonge and Sheppard, Willowdale, Bayview Village and Don Mills, and to the York University area. Pick a car below, send a request with your dates and address, and we confirm everything before you pay.",
+    "sections": [
+     {
+      "heading": "Delivery in North York",
+      "body": "Many of our North York renters live in the condo towers along Yonge Street between Sheppard and Finch. Visitor parking there is short, so tell us the building's rules when you send your request. For houses in Willowdale or Don Mills we can meet you in the driveway. The car's delivery fee covers the trip to you, and we can collect it again at the end of the rental."
+     },
+     {
+      "heading": "Highways and transit",
+      "body": "The 401 runs through the middle of North York and is one of the busiest highways in North America, so give yourself time at rush hour. The 404 and the Don Valley Parkway start where they meet the 401 near Don Mills, and Allen Road links the 401 with midtown. If you arrive by subway, Line 1 stops at Sheppard-Yonge and North York Centre, and Line 4 runs east along Sheppard to Don Mills. We can meet you near a station when that is easier."
+     },
+     {
+      "heading": "Longer rentals",
+      "body": "Students near York University and people between leases often rent for a few weeks at a time. A rental of {{weekFrom}} days or more is priced at the weekly rate, and up to {{maxDays}} days at the monthly rate, whichever costs less. When a monthly rental ends you can renew it with a new agreement, and the deposit carries over."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver to York University?",
+      "answer": "Yes. We deliver to residences and nearby homes, and we can agree a meeting point on campus when parking is hard."
+     },
+     {
+      "question": "Can I pick up the car near a subway station?",
+      "answer": "Yes. Tell us which station suits you and we agree a place nearby where the car can stop safely."
+     },
+     {
+      "question": "Is there a minimum rental length?",
+      "answer": "One day. A day is 24 hours from your pickup time."
+     },
+     {
+      "question": "How do I return the car?",
+      "answer": "We collect it from your address for the car's return pickup fee, or you bring it back to our location at no charge."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "scarborough",
+   "kind": "location",
+   "name": "Scarborough",
+   "sort_order": 40,
+   "facts": {
+    "areas": [
+     "Scarborough City Centre",
+     "Agincourt",
+     "Malvern",
+     "Guildwood",
+     "Birch Cliff",
+     "Cliffside"
+    ],
+    "landmarks": [
+     "Scarborough Town Centre",
+     "Toronto Zoo",
+     "Scarborough Bluffs",
+     "University of Toronto Scarborough"
+    ],
+    "highways": [
+     "401",
+     "Kingston Road",
+     "Don Valley Parkway"
+    ],
+    "transit": [
+     "Line 2 to Kennedy",
+     "Scarborough GO stations"
+    ],
+    "nearby": [
+     "toronto",
+     "markham",
+     "north-york"
+    ],
+    "lat": 43.7764,
+    "lng": -79.2318
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Scarborough | CarmaCars",
+    "meta_description": "Rent a car in Scarborough with delivery to your home or a meeting point near Scarborough Town Centre. Request with no payment up front.",
+    "h1": "Car rental in Scarborough",
+    "intro": "Scarborough is big, spread out and built around the car, and the transit gaps show the moment you need to get to the zoo, the Bluffs or a relative across town. We deliver rental cars to homes in Agincourt, Malvern, Guildwood and Birch Cliff, and to meeting points near Scarborough Town Centre. Choose a car below and send a request; you pay only after we confirm the car and the price.",
+    "sections": [
+     {
+      "heading": "Where we meet you",
+      "body": "For a house we usually meet you in the driveway. For an apartment building, tell us about visitor parking. If neither works, the large parking areas around Scarborough Town Centre make an easy place to hand over a car. We check your licence and card, walk around the car with you and show you how everything works."
+     },
+     {
+      "heading": "Driving from Scarborough",
+      "body": "The 401 crosses Scarborough from east to west and takes you downtown by the Don Valley Parkway or north to Markham and beyond. Kingston Road follows the lake toward the Bluffs and Guildwood. Line 2 of the subway ends at Kennedy station, so a car is often the quickest way to the eastern edge of the city, the Toronto Zoo and the Rouge."
+     },
+     {
+      "heading": "Family trips and big shopping runs",
+      "body": "If you are moving furniture, collecting family from the airport or heading out for a day at the zoo, filter the cars below by seats and size. Each car's page lists its seats, its luggage space where we have measured it, and the kilometres included each day."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver in Scarborough?",
+      "answer": "Yes, to any address, for the car's delivery fee. We can also meet you at an agreed spot near Scarborough Town Centre."
+     },
+     {
+      "question": "Can young drivers rent in Scarborough?",
+      "answer": "Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and each car's page says whether it takes drivers aged {{youngA}}. Drivers under {{fullAge}} pay a young driver fee for each day."
+     },
+     {
+      "question": "Can I drive the car outside Toronto?",
+      "answer": "Yes, anywhere in Ontario. Leaving the province needs our written agreement first, so ask in your request."
+     },
+     {
+      "question": "What happens if the car breaks down?",
+      "answer": "Roadside assistance is included around the clock. Call the number on your agreement and we arrange help."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "etobicoke",
+   "kind": "location",
+   "name": "Etobicoke",
+   "sort_order": 50,
+   "facts": {
+    "areas": [
+     "Humber Bay",
+     "Mimico",
+     "Islington Village",
+     "The Kingsway",
+     "Rexdale",
+     "Long Branch"
+    ],
+    "landmarks": [
+     "Sherway Gardens",
+     "Humber Bay Park",
+     "Woodbine"
+    ],
+    "highways": [
+     "427",
+     "Gardiner Expressway",
+     "QEW",
+     "401",
+     "409",
+     "407 ETR"
+    ],
+    "transit": [
+     "Kipling station",
+     "Islington station",
+     "Mimico GO"
+    ],
+    "airport": "Pearson is next door",
+    "nearby": [
+     "toronto",
+     "pearson-airport-yyz",
+     "mississauga"
+    ],
+    "lat": 43.6205,
+    "lng": -79.5132
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Etobicoke | CarmaCars",
+    "meta_description": "Rent a car in Etobicoke, close to Pearson and the 427. Delivery to Humber Bay, Mimico, Islington and Rexdale, or pickup from us.",
+    "h1": "Car rental in Etobicoke",
+    "intro": "Etobicoke is the corner of Toronto closest to Pearson airport and the highways west, which makes it a good place to start a rental. We deliver to the condo towers at Humber Bay Shores, houses in Mimico, Islington Village and The Kingsway, and homes up in Rexdale. Pick a car below, send your dates and address, and we confirm the car and the price before you pay.",
+    "sections": [
+     {
+      "heading": "The highways on your doorstep",
+      "body": "The 427 runs north from the Gardiner Expressway and the QEW to the 401 and the 409, which leads straight to Pearson. That puts Mississauga, Oakville and the airport within easy reach, and downtown is a short drive east along the Gardiner when traffic is light. The 407 ETR starts north of the airport: it has no booths, and tolls are billed to the car's plate after the trip."
+     },
+     {
+      "heading": "Delivery to Humber Bay and Mimico",
+      "body": "The towers along Lake Shore Boulevard at Humber Bay Shores have busy driveways and short visitor parking. Tell us your building's rules and we time the handover so it takes a few minutes. For houses in Mimico, Long Branch and The Kingsway we meet you at the door. Subway riders can meet us near Kipling or Islington station."
+     },
+     {
+      "heading": "Renting before a flight",
+      "body": "If you live in Etobicoke and fly from Pearson, you can rent a car that ends at the airport, or keep it for the trip there and back. Delivery to the airport is priced in your offer, and an airport surcharge may apply."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you deliver to Humber Bay Shores?",
+      "answer": "Yes. Tell us the building and the visitor parking rules, and we meet you at the time we agree."
+     },
+     {
+      "question": "Is Etobicoke close to Pearson?",
+      "answer": "Yes. The 427 and the 409 take you to the airport, and we can deliver a car there or collect it there."
+     },
+     {
+      "question": "How do I pay?",
+      "answer": "After we confirm the car and the price, you approve the offer, sign the agreement online and pay with a credit card in your name."
+     },
+     {
+      "question": "Is there a deposit?",
+      "answer": "Yes. Each car's page shows its deposit. It is taken about {{depLead}} before pickup, never when you book."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "mississauga",
+   "kind": "location",
+   "name": "Mississauga",
+   "sort_order": 60,
+   "facts": {
+    "areas": [
+     "City Centre",
+     "Port Credit",
+     "Streetsville",
+     "Meadowvale",
+     "Erin Mills",
+     "Malton",
+     "Cooksville"
+    ],
+    "landmarks": [
+     "Square One Shopping Centre",
+     "Port Credit harbour"
+    ],
+    "highways": [
+     "401",
+     "403",
+     "410",
+     "QEW",
+     "407 ETR"
+    ],
+    "transit": [
+     "MiWay",
+     "GO Lakeshore West",
+     "GO Milton line"
+    ],
+    "airport": "Toronto Pearson is in Mississauga",
+    "nearby": [
+     "pearson-airport-yyz",
+     "brampton",
+     "oakville",
+     "etobicoke"
+    ],
+    "lat": 43.589,
+    "lng": -79.6441
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Mississauga | CarmaCars",
+    "meta_description": "Rent a car in Mississauga with delivery to Square One, Port Credit, Meadowvale and more. Request online with no payment up front.",
+    "h1": "Car rental in Mississauga",
+    "intro": "CarmaCars delivers rental cars across Mississauga, from the towers around Square One to the houses of Streetsville, Meadowvale and Erin Mills, and down to Port Credit by the lake. There is no counter to visit: send a request with your dates and address, we confirm the car and the price, and we hand the car to you in person. Rent for a day, a week or a month.",
+    "sections": [
+     {
+      "heading": "Delivery across Mississauga",
+      "body": "Mississauga is wide, so tell us the exact address and a time window in your request. We meet you in your driveway, your building's visitor parking or an office parking lot. At the end of the rental we can collect the car from the same address, or you can bring it back to our location in Toronto at no charge. The delivery fee for each car is on its page."
+     },
+     {
+      "heading": "Highways and the airport",
+      "body": "The 401, the 403 and the 410 meet in the north of the city, the QEW runs along the lake through Port Credit, and the 407 ETR crosses the north end. The 407 ETR has no booths: cameras read the plate and the toll comes to us after the trip, and we pass it on at cost with a {{tollFee}} fee for each notice. Toronto Pearson sits inside Mississauga, so airport drop-offs are short from most neighbourhoods."
+     },
+     {
+      "heading": "Who rents with us in Mississauga",
+      "body": "Families with visitors from abroad, people whose own car is in the shop, and workers on a project for a few weeks. For longer stays, a rental of {{weekFrom}} days or more uses the weekly rate and up to {{maxDays}} days the monthly rate, whichever costs less."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver to Square One?",
+      "answer": "Yes. We can meet you at an address near Square One or in a parking area we agree on."
+     },
+     {
+      "question": "Can I return the car in Toronto?",
+      "answer": "Yes. Bring it to our location at no charge, or we collect it from your Mississauga address for the car's return pickup fee."
+     },
+     {
+      "question": "Can I use the 407 ETR?",
+      "answer": "Yes. The toll is billed to the car's plate. We charge you the toll at cost plus {{tollFee}} for each notice after the rental."
+     },
+     {
+      "question": "Who can rent?",
+      "answer": "Drivers {{minAge}} and older with an Ontario {{licence}} licence and a credit card in their name."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "brampton",
+   "kind": "location",
+   "name": "Brampton",
+   "sort_order": 70,
+   "facts": {
+    "areas": [
+     "Downtown Brampton",
+     "Bramalea",
+     "Springdale",
+     "Heart Lake",
+     "Mount Pleasant",
+     "Castlemore"
+    ],
+    "landmarks": [
+     "Bramalea City Centre",
+     "Gage Park",
+     "Chinguacousy Park"
+    ],
+    "highways": [
+     "410",
+     "401",
+     "407 ETR",
+     "427"
+    ],
+    "transit": [
+     "Brampton Transit Züm",
+     "GO Kitchener line"
+    ],
+    "nearby": [
+     "mississauga",
+     "vaughan",
+     "pearson-airport-yyz"
+    ],
+    "lat": 43.7315,
+    "lng": -79.7624
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Brampton | CarmaCars",
+    "meta_description": "Rent a car in Brampton with delivery to Bramalea, Springdale, Heart Lake and Mount Pleasant. Daily, weekly and monthly rental, confirmed before you pay.",
+    "h1": "Car rental in Brampton",
+    "intro": "Brampton runs on the 410 and the 407 ETR, and a household often needs a second car for a few days or weeks. We deliver rental cars to homes in Bramalea, Springdale, Heart Lake, Mount Pleasant and Castlemore, and to meeting points near Bramalea City Centre. Send a request with your dates and address. We confirm the car and the price, then you sign and pay online.",
+    "sections": [
+     {
+      "heading": "Delivery to your driveway",
+      "body": "Most Brampton handovers happen in a driveway. We arrive at the agreed time, walk around the car with you, take photos of its condition, check your licence and card, and show you the controls. When the rental ends we collect the car from the same address, or you can bring it back to our location at no charge."
+     },
+     {
+      "heading": "Roads and tolls",
+      "body": "The 410 runs north and south through the middle of the city and joins the 401 to the south. The 407 ETR crosses Brampton and is often the fastest way east or west, but it is a toll road with no booths. Tolls are billed to the car's plate and passed on to you at cost with a {{tollFee}} fee for each notice. If you would rather avoid tolls, the 401 is free."
+     },
+     {
+      "heading": "Rentals for visiting family",
+      "body": "Many Brampton renters book a larger car while relatives visit, for airport pickups and trips across the GTA. Pearson is a short drive south. Filter the cars below by seats, and see each car's page for its luggage space, rates and kilometres included."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver in Brampton?",
+      "answer": "Yes, to any address, for the car's delivery fee shown on its page."
+     },
+     {
+      "question": "Can I avoid 407 ETR tolls?",
+      "answer": "Yes. Use the 401 and the 410, which are free. Any 407 ETR toll is charged at cost plus {{tollFee}} for each notice."
+     },
+     {
+      "question": "Can someone else drive the car?",
+      "answer": "Yes. Add each driver to your request. Every driver meets the same rules and signs the agreement, and there is a daily fee for each additional driver."
+     },
+     {
+      "question": "Can I keep the car for a month?",
+      "answer": "Yes. A single booking can run up to {{maxDays}} days, and you can renew it with a new agreement."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "vaughan",
+   "kind": "location",
+   "name": "Vaughan",
+   "sort_order": 80,
+   "facts": {
+    "areas": [
+     "Woodbridge",
+     "Maple",
+     "Thornhill",
+     "Concord",
+     "Kleinburg",
+     "Vaughan Metropolitan Centre"
+    ],
+    "landmarks": [
+     "Canada's Wonderland",
+     "Vaughan Mills"
+    ],
+    "highways": [
+     "400",
+     "407 ETR",
+     "427",
+     "Highway 7"
+    ],
+    "transit": [
+     "Line 1 to Vaughan Metropolitan Centre",
+     "Viva",
+     "GO Barrie line"
+    ],
+    "nearby": [
+     "north-york",
+     "richmond-hill",
+     "brampton"
+    ],
+    "lat": 43.8361,
+    "lng": -79.4983
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Vaughan | CarmaCars",
+    "meta_description": "Rent a car in Vaughan with delivery to Woodbridge, Maple, Thornhill and Concord, or meet us near Vaughan Metropolitan Centre station.",
+    "h1": "Car rental in Vaughan",
+    "intro": "Vaughan is where the subway ends and the 400 and the 407 ETR meet, and it is easy to reach with a car and hard without one. We deliver rental cars to homes in Woodbridge, Maple, Thornhill, Concord and Kleinburg, and we can meet you near Vaughan Metropolitan Centre station if you ride Line 1 up from the city. Choose a car below and send your request; you pay only after we confirm.",
+    "sections": [
+     {
+      "heading": "Meet us at the end of the line",
+      "body": "If you live in Toronto without a car, taking Line 1 north to Vaughan Metropolitan Centre and picking up a car there puts you on the 400 and Highway 7 in minutes. Tell us in your request that you are coming by subway, and we agree a place near the station where the car can stop."
+     },
+     {
+      "heading": "Days out and cottage weekends",
+      "body": "Canada's Wonderland and Vaughan Mills are close by, and the 400 is the main road north to cottage country. For a long weekend, look at each car's weekend day rate and the kilometres included: the allowance is added up over the whole rental, so a long drive on Saturday can be balanced by a short day on Sunday."
+     },
+     {
+      "heading": "Tolls on the 407 ETR",
+      "body": "The 407 ETR crosses Vaughan from east to west. It has no toll booths: a camera reads the plate and the toll is billed to us after the trip. We charge it to you at cost plus {{tollFee}} for each notice, on a statement after the rental. Highway 7 runs beside it for free."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I pick up a car near the Vaughan subway station?",
+      "answer": "Yes. Tell us your arrival time and we agree a meeting point near Vaughan Metropolitan Centre station."
+     },
+     {
+      "question": "Can I take the car to cottage country?",
+      "answer": "Yes, anywhere in Ontario. Check the kilometres included on the car's page and plan the trip around them."
+     },
+     {
+      "question": "Do you deliver to Woodbridge and Maple?",
+      "answer": "Yes, to any address in Vaughan, for the car's delivery fee."
+     },
+     {
+      "question": "What do I need at pickup?",
+      "answer": "Your original licence and the credit card you paid with. We check both before we hand over the keys."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "markham",
+   "kind": "location",
+   "name": "Markham",
+   "sort_order": 90,
+   "facts": {
+    "areas": [
+     "Unionville",
+     "Markham Village",
+     "Cornell",
+     "Milliken",
+     "Thornhill",
+     "Downtown Markham"
+    ],
+    "landmarks": [
+     "Pacific Mall",
+     "CF Markville",
+     "Main Street Unionville"
+    ],
+    "highways": [
+     "404",
+     "407 ETR",
+     "Highway 7",
+     "401"
+    ],
+    "transit": [
+     "GO Stouffville line",
+     "Viva",
+     "YRT"
+    ],
+    "nearby": [
+     "richmond-hill",
+     "scarborough",
+     "north-york"
+    ],
+    "lat": 43.8561,
+    "lng": -79.337
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Markham | CarmaCars",
+    "meta_description": "Rent a car in Markham with delivery to Unionville, Cornell, Milliken and Markham Village. Weekly and monthly rates, confirmed before you pay.",
+    "h1": "Car rental in Markham",
+    "intro": "Markham stretches from the 401 edge of Scarborough up past the 407 ETR, with the 404 on its west side and Highway 7 through the middle. We deliver rental cars to homes and offices in Unionville, Markham Village, Cornell, Milliken and Downtown Markham. Pick a car below, send your dates and the address, and we confirm the car and the price before you pay anything.",
+    "sections": [
+     {
+      "heading": "Business and longer stays",
+      "body": "Markham has a large technology and office district, and many of our renters here are on work projects or between cars. A rental of {{weekFrom}} days or more is priced at the weekly rate, and up to {{maxDays}} days at the monthly rate. We can deliver to an office parking lot during the working day."
+     },
+     {
+      "heading": "Getting around Markham",
+      "body": "Highway 7 and the 407 ETR run east and west across the city, the 404 runs north and south, and the 401 is just to the south. Transit covers the main corridors with Viva and YRT buses and the GO Stouffville line, but many trips, such as an evening at Main Street Unionville or a run to Pacific Mall, are easier by car."
+     },
+     {
+      "heading": "The handover",
+      "body": "We meet you at the address you give us, walk around the car with you and photograph its condition, check your licence and card, and show you the controls. At the end of the rental we collect it from you, or you can bring it back to our location at no charge."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver to offices in Markham?",
+      "answer": "Yes. We can meet you in an office parking lot at a time that suits your working day."
+     },
+     {
+      "question": "How are tolls charged if I use the 407 ETR?",
+      "answer": "At cost, plus {{tollFee}} for each toll notice, on a statement after the rental."
+     },
+     {
+      "question": "Can I renew a monthly rental?",
+      "answer": "Yes. Before the rental ends we prepare a new agreement for the next period, and the deposit carries over."
+     },
+     {
+      "question": "Do I need a credit card?",
+      "answer": "Yes, a credit card in the renter's name, for the payment and the deposit."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "richmond-hill",
+   "kind": "location",
+   "name": "Richmond Hill",
+   "sort_order": 100,
+   "facts": {
+    "areas": [
+     "Richmond Hill Centre",
+     "Oak Ridges",
+     "Mill Pond",
+     "Bayview Hill",
+     "Elgin Mills"
+    ],
+    "landmarks": [
+     "Hillcrest Mall",
+     "Lake Wilcox"
+    ],
+    "highways": [
+     "404",
+     "407 ETR",
+     "Yonge Street",
+     "Highway 7"
+    ],
+    "transit": [
+     "Viva Blue",
+     "GO Richmond Hill line"
+    ],
+    "nearby": [
+     "vaughan",
+     "markham",
+     "north-york"
+    ],
+    "lat": 43.8828,
+    "lng": -79.4403
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Richmond Hill | CarmaCars",
+    "meta_description": "Rent a car in Richmond Hill with delivery to Oak Ridges, Mill Pond, Bayview Hill and Elgin Mills. Request online, pay only after we confirm.",
+    "h1": "Car rental in Richmond Hill",
+    "intro": "Richmond Hill grew up along Yonge Street, and today it runs from Highway 7 and the 407 ETR north to Lake Wilcox and Oak Ridges. We deliver rental cars to homes in Mill Pond, Bayview Hill, Elgin Mills and Oak Ridges, and to condos near Richmond Hill Centre. Choose a car below and send a request with your dates and address. We confirm the car and the price, then you sign and pay online.",
+    "sections": [
+     {
+      "heading": "Delivery along Yonge Street",
+      "body": "Most of the city is a short drive from Yonge Street. For a house we meet you in the driveway, and for a condo near Highway 7 we use visitor parking. Tell us the details in your request, and we confirm the time in your offer. We walk around the car with you and photograph its condition before you leave."
+     },
+     {
+      "heading": "Roads north and south",
+      "body": "The 404 on the east side of the city is the fastest way downtown or north toward Newmarket, and the 407 ETR crosses the south end. The 407 ETR has no booths, so the toll is billed to the car's plate and comes to us. We pass it on at cost with {{tollFee}} for each notice. Yonge Street and Bayview Avenue are free and slower."
+     },
+     {
+      "heading": "When your own car is off the road",
+      "body": "If your car is being repaired after a collision, you may be able to rent a replacement while it is in the shop. The insurance replacement page explains what we need from you and from your adjuster. We can bill your insurer directly for the days your adjuster approves, and deliver the car to your home or to the body shop."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver in Oak Ridges?",
+      "answer": "Yes, to any address in Richmond Hill, for the car's delivery fee."
+     },
+     {
+      "question": "Can I pick up the car from you instead?",
+      "answer": "Yes. Collecting the car from our location costs nothing."
+     },
+     {
+      "question": "How many kilometres are included?",
+      "answer": "Each car's page shows its daily allowance. It is multiplied by the days you book and used however you like across the trip."
+     },
+     {
+      "question": "What if I return the car late?",
+      "answer": "Tell us as early as you can. A late return is charged under the late return rules on each car's page and in the agreement."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "oakville",
+   "kind": "location",
+   "name": "Oakville",
+   "sort_order": 110,
+   "facts": {
+    "areas": [
+     "Downtown Oakville",
+     "Bronte",
+     "Glen Abbey",
+     "River Oaks",
+     "Joshua Creek",
+     "Palermo"
+    ],
+    "landmarks": [
+     "Oakville harbour",
+     "Bronte Creek Provincial Park",
+     "Sheridan College"
+    ],
+    "highways": [
+     "QEW",
+     "403",
+     "407 ETR"
+    ],
+    "transit": [
+     "Oakville GO",
+     "Bronte GO",
+     "GO Lakeshore West"
+    ],
+    "nearby": [
+     "mississauga",
+     "pearson-airport-yyz",
+     "etobicoke"
+    ],
+    "lat": 43.4675,
+    "lng": -79.6877
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental in Oakville | CarmaCars",
+    "meta_description": "Rent a car in Oakville with delivery to Downtown Oakville, Bronte, Glen Abbey and River Oaks, or a meeting point at Oakville GO.",
+    "h1": "Car rental in Oakville",
+    "intro": "Oakville sits on the lake between Mississauga and Burlington, with the QEW along the south, the 403 through the middle and the 407 ETR across the north. We deliver rental cars to homes in Downtown Oakville, Bronte, Glen Abbey, River Oaks and Joshua Creek. If you commute on the GO train, we can also meet you near Oakville or Bronte GO station. You pay only after we confirm the car and the price.",
+    "sections": [
+     {
+      "heading": "Meeting at the GO station",
+      "body": "Coming from downtown Toronto, the GO Lakeshore West line stops at Oakville and Bronte stations. Tell us your train in the request, and we agree a place near the station where the car can stop for the handover. It is a simple way to start a weekend in Niagara or the escarpment without driving out of the city first."
+     },
+     {
+      "heading": "The QEW, the 403 and the 407 ETR",
+      "body": "The QEW is the direct road to Niagara and to Toronto, and it is busy at rush hour. The 403 links Oakville with Mississauga and Hamilton, and the 407 ETR is a toll road across the north end. Tolls are billed to the car's plate after the trip, and we pass them on at cost with a {{tollFee}} fee for each notice."
+     },
+     {
+      "heading": "Delivery to your home",
+      "body": "For a house we meet you in the driveway. We check your licence and card, walk around the car with you and photograph its condition. At the end of the rental we can collect it from the same address, or you can bring it back to our location at no charge."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me at Oakville GO?",
+      "answer": "Yes. Tell us your arrival time and we agree a meeting point near the station."
+     },
+     {
+      "question": "Can I drive to Niagara Falls?",
+      "answer": "Yes. The car can go anywhere in Ontario. Crossing into the United States needs our written agreement first."
+     },
+     {
+      "question": "Do you deliver to Bronte and Glen Abbey?",
+      "answer": "Yes, to any address in Oakville, for the car's delivery fee."
+     },
+     {
+      "question": "What is included in the price?",
+      "answer": "Third-party liability coverage, roadside assistance and the kilometres shown on each car's page. HST is added."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "pearson-airport-yyz",
+   "kind": "location",
+   "name": "Toronto Pearson Airport (YYZ)",
+   "sort_order": 120,
+   "facts": {
+    "airport_code": "YYZ",
+    "terminal_count": 2,
+    "terminals": [
+     "Terminal 1",
+     "Terminal 3"
+    ],
+    "links": [
+     "Terminal Link train",
+     "UP Express to Union Station"
+    ],
+    "highways": [
+     "427",
+     "401",
+     "409",
+     "407 ETR"
+    ],
+    "city": "Mississauga",
+    "nearby": [
+     "mississauga",
+     "etobicoke",
+     "brampton",
+     "union-station"
+    ],
+    "lat": 43.6777,
+    "lng": -79.6248
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental at Toronto Pearson Airport (YYZ) | CarmaCars",
+    "meta_description": "Rent a car delivered to Toronto Pearson (YYZ), Terminal 1 or Terminal 3. No rental counter: we meet you with the car at the agreed time.",
+    "h1": "Car rental at Toronto Pearson Airport",
+    "intro": "Pearson has two passenger terminals, Terminal 1 and Terminal 3, and most travellers rent from a counter after a long walk and a line. CarmaCars works differently: you send a request with your flight details, we confirm the car, the price and the meeting point, and we bring the car to you. You can also end a rental at Pearson before you fly. Airport delivery is priced in your offer, and an airport surcharge may apply.",
+    "sections": [
+     {
+      "heading": "How an airport handover works",
+      "body": "Tell us your airline, flight and terminal in the request. Before pickup we confirm the meeting point and a phone number to call when you land. Flights change, so message us if yours is early or late. When you meet us, we check your licence and the card you paid with, walk around the car with you and note its condition. Ending a rental at Pearson works the same way in reverse: we agree the time and place, and collect the car from you."
+     },
+     {
+      "heading": "Leaving the airport",
+      "body": "The 427 runs south from the airport toward Etobicoke and downtown by the Gardiner Expressway, the 401 runs east and west just to the south, and the 409 links the terminals with both. The 407 ETR is close to the north and is a toll road without booths: the toll is billed to the car's plate and passed on to you at cost with {{tollFee}} for each notice."
+     },
+     {
+      "heading": "Travelling without a car first",
+      "body": "If you would rather collect the car in the city, the UP Express train runs between Pearson and Union Station, and the Terminal Link train connects Terminal 1 and Terminal 3. We can deliver the car to your hotel or home instead, and you skip the airport handover entirely."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you have a counter at Pearson?",
+      "answer": "No. We bring the car to you at a meeting point we confirm before pickup, or deliver it to your hotel or home."
+     },
+     {
+      "question": "What if my flight is delayed?",
+      "answer": "Message us with the new arrival time. We plan the handover around your flight, as agreed in your offer."
+     },
+     {
+      "question": "Can I return the car at the airport?",
+      "answer": "Yes. We collect it at Pearson at a time and place we agree. The airport fee is shown in your offer."
+     },
+     {
+      "question": "Which terminal do you serve?",
+      "answer": "Both Terminal 1 and Terminal 3. Tell us your terminal in the request."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "billy-bishop-airport-ytz",
+   "kind": "location",
+   "name": "Billy Bishop Airport (YTZ)",
+   "sort_order": 130,
+   "facts": {
+    "airport_code": "YTZ",
+    "access": [
+     "pedestrian tunnel from Eireann Quay",
+     "short ferry"
+    ],
+    "street": "Eireann Quay at the foot of Bathurst Street",
+    "nearby": [
+     "downtown-toronto",
+     "union-station",
+     "toronto"
+    ],
+    "lat": 43.6275,
+    "lng": -79.3962
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental at Billy Bishop Airport (YTZ) | CarmaCars",
+    "meta_description": "Rent a car delivered to Billy Bishop Toronto City Airport. We meet you on the mainland at Eireann Quay with the car, at a time agreed in advance.",
+    "h1": "Car rental at Billy Bishop Airport",
+    "intro": "Billy Bishop Toronto City Airport is on the Toronto Islands, a few minutes from downtown, and there are no cars on the island side. Passengers reach the mainland through the pedestrian tunnel or on the short ferry, and arrive at Eireann Quay at the foot of Bathurst Street. That is where we meet you with your rental car, at the time we confirm in your offer. Airport delivery is priced in your offer.",
+    "sections": [
+     {
+      "heading": "Meeting at Eireann Quay",
+      "body": "Send your flight details in the request. We confirm the meeting time and a phone number to call when you come through the tunnel. The quay is busy with taxis and pickups, so we keep the handover short: a check of your licence and card, a walk around the car with photos of its condition, and the keys."
+     },
+     {
+      "heading": "Driving from the waterfront",
+      "body": "From Bathurst Street you are a few minutes from the Gardiner Expressway and Lake Shore Boulevard, which take you west toward Etobicoke and Mississauga or east to the Don Valley Parkway. Downtown traffic can be slow at rush hour, so leave time if you have a meeting to reach."
+     },
+     {
+      "heading": "Ending your rental before a flight",
+      "body": "We can also collect the car at Eireann Quay before you fly out. Agree the time with us in advance, leave room for the walk through the tunnel and security, and we take the car from there. Leave the fuel at the level it had at pickup and take your things out before you hand over the keys, so the handover takes only a few minutes."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me at Billy Bishop Airport?",
+      "answer": "Yes, on the mainland side at Eireann Quay, where the tunnel and the ferry arrive."
+     },
+     {
+      "question": "Can I return the car at Billy Bishop?",
+      "answer": "Yes. We collect it at Eireann Quay at a time we agree in advance."
+     },
+     {
+      "question": "Is there an airport fee?",
+      "answer": "Airport delivery is priced in your offer, and an airport surcharge may apply."
+     },
+     {
+      "question": "Can you deliver to a downtown hotel instead?",
+      "answer": "Yes. Many travellers prefer delivery to their hotel after they check in."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "union-station",
+   "kind": "location",
+   "name": "Union Station",
+   "sort_order": 140,
+   "facts": {
+    "street": "Front Street",
+    "links": [
+     "GO Transit",
+     "VIA Rail",
+     "UP Express to Pearson",
+     "TTC Line 1"
+    ],
+    "nearby": [
+     "downtown-toronto",
+     "billy-bishop-airport-ytz",
+     "pearson-airport-yyz"
+    ],
+    "lat": 43.6453,
+    "lng": -79.3806
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental near Union Station Toronto | CarmaCars",
+    "meta_description": "Rent a car near Union Station in downtown Toronto. Arrive by GO, VIA Rail or UP Express, and we meet you nearby with the car.",
+    "h1": "Car rental near Union Station",
+    "intro": "Union Station on Front Street is where GO trains, VIA Rail, the UP Express from Pearson and subway Line 1 all meet. If you arrive by train and need a car for the rest of the trip, we can meet you close to the station with it, at a time we confirm in your offer. Send a request with your train and arrival time, and we confirm the car, the price and the meeting point before you pay.",
+    "sections": [
+     {
+      "heading": "A meeting point that works",
+      "body": "Front Street in front of the station is busy and has very little space to stop, so we agree a nearby place where a car can wait safely for a few minutes. We send the details with your offer, along with a number to call when you arrive. The handover is quick: your licence and card, a walk-around with photos of the car's condition, and the keys."
+     },
+     {
+      "heading": "Arriving by train",
+      "body": "VIA Rail trains arrive from Ottawa, Montreal and Windsor, GO trains from across the region, and the UP Express from Pearson. Trains run late sometimes, so message us if yours does and we adjust the time. If you would rather not drive downtown at all, we can deliver the car to your hotel or home instead."
+     },
+     {
+      "heading": "Leaving downtown",
+      "body": "From Union Station the Gardiner Expressway is a few blocks south, and the Don Valley Parkway is to the east. At rush hour it can take a while to get out of the core, so a handover in the evening or at the weekend is often the faster start."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me at Union Station?",
+      "answer": "Yes, at a nearby meeting point we confirm with your offer, where the car can stop safely."
+     },
+     {
+      "question": "Can I return the car downtown?",
+      "answer": "Yes. We can collect it near Union Station or at your address, as agreed in your offer."
+     },
+     {
+      "question": "What do I need to bring?",
+      "answer": "Your original licence and the credit card you paid with."
+     },
+     {
+      "question": "Can I take the car to Montreal?",
+      "answer": "The car stays in Ontario unless we agree in writing first. Ask in your request."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "monthly",
+   "kind": "use",
+   "name": "Monthly car rental",
+   "sort_order": 210,
+   "facts": {
+    "rule": "one booking runs up to {{maxDays}} days and can be renewed with a new agreement",
+    "price_rule": "trips of {{weekFrom}} to {{maxDaysLess1}} days are capped at the monthly rate",
+    "deposit": "carries over when you renew",
+    "nearby": [
+     "weekly",
+     "insurance-replacement",
+     "car-delivery"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Monthly Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a car by the month in Toronto. Monthly rates on every car, delivery to your door, and a simple renewal when the month ends.",
+    "h1": "Monthly car rental in Toronto",
+    "intro": "A monthly rental fills the gap when you have just moved to Toronto, your own car is off the road, or you need a car for a work project. Every car below has a monthly rate for {{maxDays}} days, shown on its card and its page. You send a request with your dates, we confirm the car and the price, and we deliver the car to your door. When the month ends, you can renew it for another month.",
+    "sections": [
+     {
+      "heading": "How the monthly price works",
+      "body": "A single booking runs for up to {{maxDays}} days. A trip of {{weekFrom}} to {{maxDaysLess1}} days never costs more than the car's monthly rate, so you are not penalised for booking a little less than a month. The kilometres included are the car's daily allowance multiplied by the days you book, and you can use them however you like across the month. HST is added to the rate."
+     },
+     {
+      "heading": "Renewing at the end of the month",
+      "body": "Before the rental ends, tell us you want to keep the car. We prepare a new agreement for the next period at the rate in force, you sign it online, and the next payment is taken. The deposit carries over, so there is nothing to hand back and collect again. If you need a different car for the next month, we can swap it at the renewal."
+     },
+     {
+      "heading": "Who rents by the month",
+      "body": "Newcomers waiting for their own car, people between leases, contract workers, students and families with visitors who stay for weeks. If your car is being repaired after a claim, see the insurance replacement page: your insurer may pay part or all of the rental."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is there a minimum length for a monthly rental?",
+      "answer": "No. Any trip of {{weekFrom}} to {{maxDaysLess1}} days is capped at the monthly rate, and a full booking is {{maxDays}} days."
+     },
+     {
+      "question": "Can I rent for longer than a month?",
+      "answer": "Yes. Each booking is up to {{maxDays}} days, and you renew it with a new agreement before it ends."
+     },
+     {
+      "question": "How is the deposit handled on a monthly rental?",
+      "answer": "For rentals longer than {{holdDays}} days the deposit is charged and refunded after the return. When you renew, it carries over."
+     },
+     {
+      "question": "Are kilometres limited?",
+      "answer": "Each car has a daily allowance, added up over the whole rental. Extra kilometres are charged at the rate on the car's page."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "weekly",
+   "kind": "use",
+   "name": "Weekly car rental",
+   "sort_order": 220,
+   "facts": {
+    "rule": "trips of {{weekFrom}} days or more use the weekly rate; trips of 1 to {{weekFromLess1}} days are capped at the weekly rate",
+    "nearby": [
+     "monthly",
+     "weekend",
+     "car-delivery"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Weekly Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a car for a week in Toronto. Weekly rates on every car, kilometres added up over the trip, and delivery to your door.",
+    "h1": "Weekly car rental in Toronto",
+    "intro": "A week is the most common length for a rental with us: a visit from family, a road trip around Ontario, or a stretch of work outside the city. Every car below shows its weekly rate. Send a request with your dates, we confirm the car and the full price, and you pay only after you approve it. We deliver the car to your home, hotel or office, or you collect it from our location at no charge.",
+    "sections": [
+     {
+      "heading": "The weekly cap",
+      "body": "A short rental can get expensive at the daily rate, so we cap it. A trip of 1 to {{weekFromLess1}} days never costs more than the car's weekly rate, and a trip of {{weekFrom}} days or more is priced from the weekly rate. Your offer shows exactly which rate applies to each day, before you pay."
+     },
+     {
+      "heading": "Kilometres for a week away",
+      "body": "Each car has a daily allowance of kilometres, and for a week it is added up: the allowance times the days you book. Drive a long way on the first day and a little on the rest, and you stay within it. Past the allowance, each extra kilometre is charged at the rate on the car's page."
+     },
+     {
+      "heading": "A week out of the city",
+      "body": "The car can go anywhere in Ontario: Niagara, Muskoka, Ottawa, Prince Edward County or Georgian Bay. Crossing into Quebec or the United States needs our written agreement first, so say so in your request if you plan to. Before a long trip, check the kilometres included on the car's page and plan your stops: a week covers a lot of ground, but a drive to Ottawa and back uses a good part of it."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is a weekly rental cheaper than paying by the day?",
+      "answer": "Usually. A trip of 1 to {{weekFromLess1}} days is capped at the weekly rate, so you never pay more than a week's price for a shorter trip."
+     },
+     {
+      "question": "Can I extend a weekly rental?",
+      "answer": "Yes. Ask for an extension before your return time. We price it, and you pay before the current return time."
+     },
+     {
+      "question": "Can I return the car early?",
+      "answer": "You can, but the rental charge for the booked days is not reduced. The agreement explains early returns."
+     },
+     {
+      "question": "Do you deliver for weekly rentals?",
+      "answer": "Yes. Delivery to your address costs the car's delivery fee, shown on its page."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "weekend",
+   "kind": "use",
+   "name": "Weekend car rental",
+   "sort_order": 230,
+   "facts": {
+    "rule": "a day that starts on Friday or Saturday uses the weekend day rate",
+    "rental_day": "24 hours from the pickup time",
+    "nearby": [
+     "weekly",
+     "car-delivery",
+     "downtown-toronto"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Weekend Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a car for the weekend in Toronto. Delivery on Friday evening, return on Sunday or Monday, and the weekend rate shown on every car.",
+    "h1": "Weekend car rental in Toronto",
+    "intro": "A weekend rental is how many people in Toronto get out of the city without owning a car: a cottage, a wedding, a family visit or a day at the beach. We can deliver the car to you on Friday evening and collect it on Sunday night or Monday morning. Every car below shows its weekend day rate, which applies to days that start on a Friday or a Saturday.",
+    "sections": [
+     {
+      "heading": "How weekend pricing works",
+      "body": "A rental day is 24 hours from your pickup time. A day that starts on a Friday or a Saturday is charged at the car's weekend day rate, and other days at the daily rate. Your offer lists each day and the rate applied, so you see the full price before you pay. HST is added."
+     },
+     {
+      "heading": "Book early for long weekends",
+      "body": "Long weekends in summer and the holidays fill up first, and a request does not hold the car until you approve, sign and pay. Send your request as early as you can, and approve the offer when it comes. If someone else confirms the same car and dates first, we offer you another car or other dates."
+     },
+     {
+      "heading": "Delivery on Friday, collection on Sunday",
+      "body": "Tell us in your request when you want the car and where. For a condo, include the visitor parking details. On Sunday or Monday we can collect it from the same address for the car's return pickup fee, or you can bring it back to our location at no charge."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Which days count as weekend days?",
+      "answer": "Any rental day that starts on a Friday or a Saturday is charged at the weekend day rate."
+     },
+     {
+      "question": "Can I pick up on Friday evening?",
+      "answer": "Yes. Choose your pickup time in the request, and we confirm it in your offer."
+     },
+     {
+      "question": "Does a request hold the car for the weekend?",
+      "answer": "No. The car is booked once you approve the offer, sign and pay."
+     },
+     {
+      "question": "Can I take the car to a cottage?",
+      "answer": "Yes, anywhere in Ontario. Check the kilometres included on the car's page."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "young-drivers",
+   "kind": "use",
+   "name": "Car rental for young drivers",
+   "sort_order": 240,
+   "facts": {
+    "rule": "drivers {{minAge}} and older with an Ontario {{licence}} licence; a young driver fee for each day under {{fullAge}}",
+    "bands": [
+     "{{youngA}}",
+     "{{youngB}}"
+    ],
+    "band_count": 2,
+    "coverage_options": 3,
+    "toll_road": "407 ETR",
+    "nearby": [
+     "monthly",
+     "weekly",
+     "economy"
+    ]
+   },
+   "match": {
+    "young": true
+   },
+   "copy": {
+    "seo_title": "Young Driver Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto as a young driver. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, with a young driver fee for each day.",
+    "h1": "Car rental for young drivers in Toronto",
+    "intro": "Many rental companies turn away young drivers or limit them to a few cars. At CarmaCars, drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and almost every car in the fleet takes drivers aged {{youngA}}. Drivers under {{fullAge}} pay a young driver fee for each day of the rental, with no maximum, and each car's page shows its own fee. The cars below take drivers aged {{youngA}} too.",
+    "sections": [
+     {
+      "heading": "What young drivers pay",
+      "body": "There are two age bands: {{youngA}} and {{youngB}}. The usual fee is {{ydA}} a day for the first band and {{ydB}} a day for the second, and some cars have their own. The fee is added for each day of the rental and appears as its own line in your offer, so you see the total before you pay. Additional drivers under {{fullAge}} pay it too."
+     },
+     {
+      "heading": "What you need",
+      "body": "An Ontario {{licence}} licence, valid for the whole rental, and a credit card in your own name for the payment and the deposit. Before pickup we check your licence and identity with photos you upload, and at the handover we check the original licence and card. For damage to the car you need one of three coverage options before pickup, described on our requirements page."
+     },
+     {
+      "heading": "Tips for a first rental",
+      "body": "Walk around the car with us at the handover and point out any mark you see: we photograph it, so nobody blames you for it later. Return the car with the same fuel or charge it had, keep to the kilometres included, and avoid the 407 ETR unless you are happy to pay its tolls plus {{tollFee}} for each notice."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car at {{minAge}} in Toronto?",
+      "answer": "Yes, on the cars whose page says drivers {{youngA}} are accepted, with an Ontario {{licence}} licence and a credit card in your name."
+     },
+     {
+      "question": "How much is the young driver fee?",
+      "answer": "Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}, with no maximum. Each car's page shows its fee."
+     },
+     {
+      "question": "Can I rent with a G2 licence?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car."
+     },
+     {
+      "question": "Can I use a debit card?",
+      "answer": "No. The payment and the deposit need a credit card in the renter's name."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "car-delivery",
+   "kind": "use",
+   "name": "Car rental delivery",
+   "sort_order": 250,
+   "facts": {
+    "rule": "delivery to any address for the car's delivery fee, collection at the end for the return pickup fee, pickup from our location at no charge",
+    "places": [
+     "homes",
+     "condos",
+     "hotels",
+     "offices",
+     "Toronto Pearson",
+     "Billy Bishop"
+    ],
+    "nearby": [
+     "pearson-airport-yyz",
+     "downtown-toronto",
+     "weekend"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental Delivery in Toronto | CarmaCars",
+    "meta_description": "Have a rental car delivered to your home, condo, hotel or office in Toronto and the GTA, and collected again when you are done.",
+    "h1": "Car rental with delivery in Toronto",
+    "intro": "Most people in Toronto who rent a car do not want to cross the city to fetch it. With CarmaCars you do not have to: we deliver the car to your home, condo, hotel or office, anywhere in Toronto and the GTA, and collect it again at the end. Each car's page shows its delivery fee and its return pickup fee. Collecting the car from our location yourself costs nothing.",
+    "sections": [
+     {
+      "heading": "How delivery works",
+      "body": "Add your address and a time window to the request. We confirm both in the offer, with the delivery fee in the price. On the day, a member of our team arrives with the car, checks your licence and the card you paid with, walks around the car with you while we photograph its condition, and shows you the controls. It takes about fifteen minutes."
+     },
+     {
+      "heading": "Condos, hotels and offices",
+      "body": "For a condo, tell us whether there is visitor parking and how the concierge handles it. For a hotel, the valet lane or a nearby lot usually works. For an office, a parking lot or the loading area. The better we know the place, the faster the handover. We can also deliver to Toronto Pearson and to Billy Bishop airport, priced in your offer."
+     },
+     {
+      "heading": "Collection at the end",
+      "body": "When the rental ends we can collect the car from the same address or another one, for the car's return pickup fee. Leave it with the fuel or charge it had at pickup, and take your things out. We check the car with you, or after you leave if you are not there, and photograph it again."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How much does delivery cost?",
+      "answer": "Each car's page shows its delivery fee and its return pickup fee. Airport delivery is priced in your offer."
+     },
+     {
+      "question": "Do you deliver outside Toronto?",
+      "answer": "Yes, across the GTA, including Mississauga, Brampton, Vaughan, Markham, Richmond Hill and Oakville."
+     },
+     {
+      "question": "Can I collect the car myself instead?",
+      "answer": "Yes. Picking the car up at our location costs nothing."
+     },
+     {
+      "question": "Do I have to be there when you collect the car?",
+      "answer": "It is best if you are, so we can check it together. If you cannot be, tell us in advance and we agree where to leave the keys."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "insurance-replacement",
+   "kind": "use",
+   "name": "Insurance replacement car rental",
+   "sort_order": 260,
+   "facts": {
+    "rule": "we can bill your insurance company directly when your adjuster approves the rental",
+    "adjuster_provides": [
+     "claim number",
+     "authorized days",
+     "daily limit"
+    ],
+    "renter_provides": [
+     "licence",
+     "credit card for the deposit",
+     "signature"
+    ],
+    "nearby": [
+     "monthly",
+     "car-delivery"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Insurance Replacement Car Rental in Toronto | CarmaCars",
+    "meta_description": "A replacement car while yours is in the shop after a claim. We can bill your insurer directly, and deliver the car to you or the body shop.",
+    "h1": "Replacement car rental while yours is in the shop",
+    "intro": "When your car is being repaired after a collision or a theft, your auto policy may pay for a replacement car. CarmaCars can bill your insurance company directly for the days your adjuster approves, deliver the car to your home or the body shop, and collect it when your own car is ready. You pay only what your insurer does not cover, such as the deposit or days beyond the approval.",
+    "sections": [
+     {
+      "heading": "What we need from your adjuster",
+      "body": "Ask your adjuster for the claim number, the number of days they approve and the daily amount they will pay. Send us those with your request, or ask the adjuster or the body shop to contact us. We confirm the car and the dates and send the invoice for the approved part to the insurer."
+     },
+     {
+      "heading": "What we need from you",
+      "body": "The same as any rental: a valid Ontario {{licence}} licence, a credit card in your name for the deposit, and your signature on the rental agreement. If the repair takes longer than the approval, tell us and your adjuster early. Extra days are yours to pay unless the insurer extends the approval."
+     },
+     {
+      "heading": "Delivery to you or the shop",
+      "body": "We can bring the car to your home, your work or the body shop, so you are not left without a car between the drop-off and the pickup. When the repair is done, we collect our car from wherever suits you."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Will my insurance pay for a rental car?",
+      "answer": "It depends on your policy and the claim. Many policies include a replacement vehicle while your car is repaired. Your adjuster can tell you what you are covered for."
+     },
+     {
+      "question": "Can you bill my insurer directly?",
+      "answer": "Yes, for the days and the daily amount your adjuster approves. You pay the deposit and anything the insurer does not cover."
+     },
+     {
+      "question": "Can you deliver the car to the body shop?",
+      "answer": "Yes, to any address in Toronto and the GTA, for the car's delivery fee."
+     },
+     {
+      "question": "What if the repair takes longer?",
+      "answer": "Ask your adjuster to extend the approval. Days past the approval are charged to you at the car's rates."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "suv",
+   "kind": "use",
+   "name": "SUV rental",
+   "sort_order": 270,
+   "facts": {
+    "rule": "cars in the SUV class",
+    "uses": [
+     "families",
+     "luggage",
+     "winter roads",
+     "cottage trips"
+    ],
+    "seats": "compact SUVs carry 4 or 5 people; most of ours seat 5; for more than 5 see the 7-seat cars",
+    "nearby": [
+     "minivan",
+     "luxury",
+     "weekend"
+    ]
+   },
+   "match": {
+    "classes": [
+     "suv"
+    ]
+   },
+   "copy": {
+    "seo_title": "SUV Rental in Toronto | CarmaCars",
+    "meta_description": "Rent an SUV in Toronto for family trips, airport runs and winter driving. Every SUV shows its seats, rates and kilometres, with delivery to your door.",
+    "h1": "SUV rental in Toronto",
+    "intro": "An SUV is the car most people want when there are bags, children, skis or a long drive involved. The SUVs below are the ones in our fleet now, each with its own photos, seats, rates and calendar. Send a request with your dates, we confirm the car and the price, and we deliver it to your door or you collect it from our location.",
+    "sections": [
+     {
+      "heading": "Choosing the right SUV",
+      "body": "Compact SUVs are easy to park downtown and carry four or five people with their bags. Larger SUVs have more room behind the back seats, and some have all-wheel drive, which helps on snowy side streets and cottage roads. Each car's page lists its seats, its drive and the luggage it takes where we have measured it."
+     },
+     {
+      "heading": "Winter trips",
+      "body": "From December to March, roads north of the city can be snowy. Winter tires make a real difference, and you can ask for them in your request; the fee is on each car's page. Leave extra time, keep the windows and lights clear, and check the forecast before a drive to cottage country."
+     },
+     {
+      "heading": "Family and luggage",
+      "body": "Tell us in the request if you need a baby seat. We charge {{baby}} a day for each one, capped at {{babyCap}}. For more than five people, look at our minivans and seven-seat cars instead. Remember that a full car with roof bags or a cargo box uses more fuel, and that the car comes back with the fuel it had at pickup."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do your SUVs have all-wheel drive?",
+      "answer": "Some do. Each car's page lists its drive."
+     },
+     {
+      "question": "Can I get winter tires on an SUV?",
+      "answer": "Ask for them in your request. The winter tire fee is {{winter}} a day, capped at {{winterCap}}."
+     },
+     {
+      "question": "How many people fit in an SUV?",
+      "answer": "Most of ours seat five. Each car's page shows its seats."
+     },
+     {
+      "question": "Can you deliver an SUV to the airport?",
+      "answer": "Yes. Airport delivery is priced in your offer."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "luxury",
+   "kind": "use",
+   "name": "Luxury car rental",
+   "sort_order": 280,
+   "facts": {
+    "rule": "cars in the premium, luxury and exotic classes",
+    "coverage_options": 3,
+    "makes": [
+     "Mercedes-Benz",
+     "BMW",
+     "Porsche"
+    ],
+    "nearby": [
+     "suv",
+     "weekend",
+     "downtown-toronto"
+    ]
+   },
+   "match": {
+    "classes": [
+     "premium",
+     "luxury",
+     "exotic"
+    ]
+   },
+   "copy": {
+    "seo_title": "Luxury Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a luxury or premium car in Toronto for a wedding, a business trip or a weekend. Real photos, clear prices and delivery to your door.",
+    "h1": "Luxury car rental in Toronto",
+    "intro": "Sometimes the car is part of the occasion: a wedding, an important client, an anniversary weekend or simply a car you have always wanted to drive. The premium and luxury cars below are in our fleet now, each with photos of that very car, its rates, its deposit and its calendar. Send a request, and we confirm the car and the price before you pay anything.",
+    "sections": [
+     {
+      "heading": "What is different about a luxury rental",
+      "body": "Premium and luxury cars carry a higher deposit, shown on each car's page and taken about {{depLead}} before pickup, never when you book. The same rules for drivers apply: an Ontario {{licence}} licence, a credit card in your name, and one of the three coverage options for damage before pickup."
+     },
+     {
+      "heading": "Weddings and events",
+      "body": "For a wedding, tell us the date, the addresses and whether the car will be parked for photos. We can deliver it to the venue or your home and collect it afterwards. Decorations that could mark the paint, such as tape or ribbons tied to the body, are best discussed with us first."
+     },
+     {
+      "heading": "Delivery in person",
+      "body": "We hand the car over in person, wherever you are in Toronto or the GTA, with a walk-around and photos of its condition. It is a good moment to ask how the car's features work before you set off. At the end of the rental we collect the car from you, or you bring it back to our location at no charge, and we check it with you again."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is the deposit higher for luxury cars?",
+      "answer": "Yes. Each car's page shows its deposit. It is taken about {{depLead}} before pickup and released after the return."
+     },
+     {
+      "question": "Can I rent a luxury car for a wedding?",
+      "answer": "Yes. Tell us the date and the addresses, and we can deliver the car to the venue or your home."
+     },
+     {
+      "question": "Are young drivers allowed?",
+      "answer": "Drivers {{minAge}} and older can rent, with a young driver fee under {{fullAge}}. Some cars do not take drivers aged {{youngA}}: each page says so."
+     },
+     {
+      "question": "Can I see the actual car?",
+      "answer": "Yes. The photos on each car's page are of that car."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "minivan",
+   "kind": "use",
+   "name": "Minivan and 7-seater rental",
+   "sort_order": 290,
+   "facts": {
+    "rule": "cars with seven or more seats",
+    "seats_min": 7,
+    "seats": "7 or 8 seats; for groups of more than 5; one car instead of 2",
+    "uses": [
+     "families",
+     "groups",
+     "airport runs with luggage"
+    ],
+    "nearby": [
+     "suv",
+     "car-delivery",
+     "pearson-airport-yyz"
+    ]
+   },
+   "match": {
+    "seats_min": 7
+   },
+   "copy": {
+    "seo_title": "Minivan and 7-Seater Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a minivan or a 7-seat car in Toronto for family trips, groups and airport runs. Delivery to your door, prices confirmed before you pay.",
+    "h1": "Minivan and 7-seater rental in Toronto",
+    "intro": "When there are more than five of you, a minivan or a seven-seat car saves taking two cars. The cars below have seven or more seats, with room for luggage behind the third row in most of them. Send a request with your dates, we confirm the car and the price, and we deliver it to your door or you collect it from our location.",
+    "sections": [
+     {
+      "heading": "Space for people and bags",
+      "body": "A minivan's sliding doors make it easy to get children into the third row and load bags in a tight driveway. With all seats in use, luggage space behind the third row is limited, so for an airport run with seven people and seven suitcases, check each car's page for its luggage space. Baby seats are {{baby}} a day each, capped at {{babyCap}}, and you can ask for them in your request."
+     },
+     {
+      "heading": "Family visits and group trips",
+      "body": "Our minivans are often booked when relatives visit from abroad, for weddings and for group trips to Niagara or a cottage. A week of {{weekFrom}} days or more is priced at the weekly rate, which usually works out better than several daily rentals."
+     },
+     {
+      "heading": "Additional drivers",
+      "body": "On a long drive it helps to share the wheel. Add each driver to your request: every driver meets the same rules and signs the agreement, and each one adds {{addDrvPct}} of the daily rate per day. Only the drivers named in the agreement may drive the car, so add everyone who will take a turn before pickup."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in a minivan?",
+      "answer": "Seven or eight, depending on the car. Each car's page shows its seats."
+     },
+     {
+      "question": "Can I get baby seats?",
+      "answer": "Yes. Ask in your request. Each baby seat is {{baby}} a day, capped at {{babyCap}}."
+     },
+     {
+      "question": "Can you deliver a minivan to the airport?",
+      "answer": "Yes. Airport delivery is priced in your offer."
+     },
+     {
+      "question": "Can more than one person drive?",
+      "answer": "Yes. Add each driver to the request. Every driver meets the same rules and signs the agreement."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "electric",
+   "kind": "use",
+   "name": "Electric and hybrid car rental",
+   "sort_order": 300,
+   "facts": {
+    "rule": "cars that are electric, hybrid or plug-in hybrid",
+    "charging": "return the car with the charge it had; recharging is {{evPer}} for each 10% of battery plus {{fuelFee}}",
+    "nearby": [
+     "economy",
+     "monthly",
+     "weekly"
+    ]
+   },
+   "match": {
+    "fuels": [
+     "electric",
+     "hybrid",
+     "plug_in_hybrid"
+    ]
+   },
+   "copy": {
+    "seo_title": "Electric and Hybrid Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent an electric or hybrid car in Toronto. See each car's charging and fuel details, rates and kilometres, with delivery to your door.",
+    "h1": "Electric and hybrid car rental in Toronto",
+    "intro": "An electric or hybrid car is a good way to try driving without gas, or to keep fuel costs down on a longer rental. The cars below are the electric, plug-in hybrid and hybrid cars in our fleet now, each with its own page, rates and calendar. Send a request with your dates, and we confirm the car and the price before you pay.",
+    "sections": [
+     {
+      "heading": "Charging an electric rental",
+      "body": "Return an electric car with the charge it had at pickup. If it comes back lower, recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee. Public chargers are common in Toronto, at shopping centres, parking garages and along the highways. Ask us at the handover how the car's charging port and cable work."
+     },
+     {
+      "heading": "Hybrids need no charging",
+      "body": "A regular hybrid fills up with gas like any other car and charges its own battery as you drive. A plug-in hybrid can be charged for a short electric range and runs on gas after that. Return either one with the fuel it had at pickup."
+     },
+     {
+      "heading": "Winter and range",
+      "body": "Cold weather shortens an electric car's range, so plan longer winter trips with a charging stop. Pre-heating the car while it is plugged in helps, and so does keeping the cabin a little cooler on the highway. A hybrid is not affected in the same way, which makes it the easier choice for a long winter drive."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do I have to return an electric car fully charged?",
+      "answer": "No. Return it with the charge it had at pickup."
+     },
+     {
+      "question": "What if I return it with less charge?",
+      "answer": "Recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee."
+     },
+     {
+      "question": "Do hybrids need to be plugged in?",
+      "answer": "A regular hybrid never does. A plug-in hybrid can be, but it also runs on gas."
+     },
+     {
+      "question": "Are there electric cars in the fleet now?",
+      "answer": "The cars on this page are the electric and hybrid cars available now. When none are listed, see all cars."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "economy",
+   "kind": "use",
+   "name": "Economy car rental",
+   "sort_order": 310,
+   "facts": {
+    "rule": "cars in the economy and standard classes",
+    "seats": 5,
+    "weekly_cap": "trips of 1 to {{weekFromLess1}} days are capped at the weekly rate",
+    "nearby": [
+     "young-drivers",
+     "weekly",
+     "monthly"
+    ]
+   },
+   "match": {
+    "classes": [
+     "economy",
+     "standard"
+    ]
+   },
+   "copy": {
+    "seo_title": "Economy Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent an economy or compact car in Toronto at the lowest rates in our fleet. Easy to park, delivered to your door, prices confirmed before you pay.",
+    "h1": "Economy car rental in Toronto",
+    "intro": "An economy car does most of what people in Toronto need a car for: errands, commuting, a trip to see family and the drive back from IKEA. They are easy to park on city streets and in condo garages, and they cost the least to rent. The cars below are our economy and standard cars, lowest daily rate first. Send a request and we confirm the car and the price before you pay.",
+    "sections": [
+     {
+      "heading": "What you get",
+      "body": "Our economy and standard cars are compact sedans and hatchbacks with seats for five and room in the trunk for a few bags. Each car's page lists its seats, its gearbox and the kilometres included each day. Every one comes with third-party liability coverage and roadside assistance, and we hand it over in person with a walk-around of the car."
+     },
+     {
+      "heading": "Keeping the cost down",
+      "body": "Book for a week if you need the car for more than a few days: trips of 1 to {{weekFromLess1}} days are capped at the weekly rate. Choose the non-refundable option in your request to take {{nonRef}} off the rental charge, if your plans are fixed. And collect the car from our location to skip the delivery fee."
+     },
+     {
+      "heading": "Who rents economy cars",
+      "body": "Students, newcomers to Toronto, young drivers and anyone who wants a simple car for a few days. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, with a young driver fee under {{fullAge}}. If you are new to driving in Toronto, a small car is also the easiest one to park on a busy street or in a tight condo garage."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Which car costs the least to rent?",
+      "answer": "The first car listed on this page has the lowest daily rate in our fleet right now."
+     },
+     {
+      "question": "Is there a discount for paying up front?",
+      "answer": "Yes. A non-refundable booking takes {{nonRef}} off the rental charge. It is not refunded if you cancel."
+     },
+     {
+      "question": "Can I rent an economy car for a month?",
+      "answer": "Yes. Every car has a monthly rate for {{maxDays}} days."
+     },
+     {
+      "question": "Do economy cars have automatic transmissions?",
+      "answer": "Each car's page shows its transmission."
+     }
+    ]
+   }
+  }
+ ],
+ "articles": [
+  {
+   "slug": "renting-a-car-in-toronto-as-a-young-driver",
+   "sort_order": 10,
+   "topic": "drivers",
+   "title": "Renting a car in Toronto as a young driver",
+   "seo_title": "Renting a Car in Toronto as a Young Driver",
+   "description": "Who can rent at {{minAge}} or under {{fullAge}} in Toronto, the young driver fee, the licence and card you need, and how to avoid surprises.",
+   "summary": "Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent from CarmaCars. Here is what it costs and what to bring.",
+   "body_md": "Renting a car under 25 in Toronto has a reputation for being hard or expensive. Many companies set the minimum age at 21 or 25, and some only let younger drivers take a few small cars. CarmaCars rents to drivers {{minAge}} and older, on almost every car in the fleet. This guide explains the rules, the fees and the small things that make a first rental go smoothly.\n\n## Who can rent\n\nYou can rent if you are {{minAge}} or older on the day of pickup and hold an Ontario {{licence}} licence that is valid for the whole rental. A G2 licence is fine: you do not need your full G. Your licence must be the original card, not a photo, and the name on it must match the name on the booking and the credit card.\n\nEach car's page says whether it takes drivers aged {{youngA}}. Almost all of them do. If a car does not, the request form tells you before you send it.\n\n## The young driver fee\n\nDrivers under {{fullAge}} pay a young driver fee for each day of the rental. There are two age bands:\n\n- Ages {{youngA}}: usually {{ydA}} a day\n- Ages {{youngB}}: usually {{ydB}} a day\n\nSome cars have their own fee, shown on the car's page. There is no maximum, so a long rental adds up. The fee is a separate line in your offer, and you see the total before you pay anything. If you add another driver under {{fullAge}}, the fee applies to them as well.\n\n## What you need before pickup\n\nYou need a credit card in your own name. It pays for the rental and holds the deposit, which is taken about {{depLead}} before pickup, never when you book. Debit cards and prepaid cards are not accepted, and a parent's card cannot be used for your rental.\n\nBefore pickup we check your identity. You upload photos of the front and back of your licence and a selfie, and a member of our team compares them. It takes a few minutes of your time, and it means the handover itself is quick.\n\nFor damage to the car, you need one of three coverage options in place before pickup. Our requirements page explains each one. Third-party liability coverage is already included in the rate.\n\n## On the day\n\nWe meet you with the car, at our location or at your address. We check your original licence and the card you paid with, then walk around the car together. Point out every mark you see, even a small one: we photograph each one, and those photos protect you at the return. Ask about anything you are unsure of, such as how to open the fuel door or connect your phone.\n\n## Avoiding surprise charges\n\nMost extra charges on a first rental come from a few things:\n\n- **Fuel.** Return the car with the same fuel it had at pickup. If it is lower, we refuel it at the pump price plus {{fuelPct}}, plus a {{fuelFee}} service fee.\n- **Tolls.** The 407 ETR has no booths. Cameras read the plate and the toll is billed to us weeks later. We charge it at cost plus {{tollFee}} for each notice. Most map apps have an option to avoid tolls.\n- **Kilometres.** Each car includes a daily allowance, added up over the rental. Past it, each kilometre costs between {{overMin}} and {{overMax}}, depending on the car.\n- **Late returns.** Tell us early if you are running late. The agreement explains how a late return is charged.\n- **Parking and speeding tickets.** They are yours, plus {{ticketFee}} for each one we process.\n\n## Adding a second driver\n\nIf a friend or partner will share the driving, add them to your request. Every driver meets the same rules: the age, an Ontario {{licence}} licence and the identity check. Each additional driver costs {{addDrvPct}} of the daily rate for each day, and a driver under {{fullAge}} also pays the young driver fee. Only drivers named on the agreement may drive the car, so add everyone before pickup.\n\n## If something goes wrong\n\nRoadside assistance is included around the clock. If the car breaks down, get to a safe place and call the number on your agreement. After a collision, make sure everyone is safe, call the police if anyone is hurt, take photos, and tell us as soon as you can. Young drivers are not treated differently here: the same rules and the same deductible of {{deductible}} apply to everyone.\n\n## Getting the best price\n\nBook a week rather than a few separate days: a trip of 1 to {{weekFromLess1}} days is capped at the weekly rate. If your plans are fixed, the non-refundable option takes {{nonRef}} off the rental charge. And if you can collect the car from our location, you save the delivery fee.\n",
+   "faq": [
+    {
+     "question": "Can I rent a car at {{minAge}} in Toronto?",
+     "answer": "Yes, with an Ontario {{licence}} licence and a credit card in your name, on any car whose page says drivers aged {{youngA}} are accepted."
+    },
+    {
+     "question": "Does a G2 licence work for renting?",
+     "answer": "Yes. We accept an Ontario {{licence}} licence."
+    },
+    {
+     "question": "Is there a maximum on the young driver fee?",
+     "answer": "No. It is charged for each day of the rental."
+    },
+    {
+     "question": "Can my parents pay with their card?",
+     "answer": "No. The credit card must be in the renter's name, because it also holds the deposit."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/young-drivers",
+     "label": "Cars for young drivers"
+    },
+    {
+     "href": "/requirements",
+     "label": "Requirements in full"
+    },
+    {
+     "href": "/car-rental/economy",
+     "label": "Economy cars"
+    }
+   ],
+   "brief": "Young drivers: who can rent, the age bands and fee, the licence, card and identity check, the handover, and the common extra charges. Fees as tokens."
+  },
+  {
+   "slug": "407-etr-tolls-in-a-rental-car",
+   "sort_order": 20,
+   "topic": "driving",
+   "title": "407 ETR tolls in a rental car: what you pay and how it is billed",
+   "seo_title": "407 ETR Tolls in a Rental Car: How Billing Works",
+   "description": "How the 407 ETR bills a rental car without a transponder, why the toll arrives weeks later, what CarmaCars charges, and how to avoid tolls in the GTA.",
+   "summary": "The 407 ETR has no toll booths. Here is how its tolls reach a rental car, and what we charge you for them.",
+   "body_md": "The 407 ETR is the toll highway that crosses the top of the Greater Toronto Area, from Burlington in the west to the Durham Region in the east. It is often the fastest way around the city at rush hour. It also has no toll booths at all, which surprises many people driving a rental for the first time. This guide explains how the tolls work and what you pay when you use it in a CarmaCars car.\n\n## How the 407 ETR charges\n\nThere are no gates and no booths. Cameras on gantries above the road photograph the licence plate of every vehicle that enters and leaves. The highway's operator then bills the vehicle's registered owner by mail.\n\nA trip on the 407 ETR is usually made up of:\n\n- a toll for each kilometre, which depends on the section of highway, the time of day and the day of the week,\n- a charge for each trip,\n- a camera charge, because a rental car does not have a transponder.\n\nThe rates change, and the operator publishes them on its own website. For a short hop the total is modest; for a long trip at rush hour it can be a meaningful part of a day's rental.\n\n## How the toll reaches you\n\nBecause the car is registered to us, the bill comes to us, often several weeks after your rental. We match each toll notice to the booking that had the car at that date and time, and charge it to you at cost, plus a {{tollFee}} administration fee for each notice. The charge appears on a statement after the rental, and the card on file pays it.\n\nThat is why a toll can show up long after you returned the car. It is not an error: the highway simply bills slowly.\n\n## How to avoid tolls\n\nYou never have to use the 407 ETR. The 401 runs parallel to it, a little further south, and it is free. Most map apps have a setting to avoid toll roads; switch it on before you set off and the route will keep you off the 407 ETR.\n\nSigns at every entrance ramp show that the 407 ETR is a toll road, usually in blue and with the highway's own logo. If you see one and do not want to pay, take the next free road instead.\n\n## When the 407 ETR is worth it\n\nIf you are crossing the GTA at rush hour, for example from Pearson to Markham or from Oakville to Vaughan, the 407 ETR can save a lot of time. For an airport run with a flight to catch, many renters decide that the toll is worth paying. Just know that it will arrive later, with the {{tollFee}} fee added.\n\n## Checking a toll charge\n\nEach toll we charge shows the date and time of the trip and the amount on the notice, so you can match it to your own plans. If a toll does not look like yours, for example a trip on a day you had already returned the car, tell us. We check the booking and the times, and remove a charge that belongs to someone else.\n\n## Other charges that arrive after a rental\n\nTolls are not the only thing that can reach us after you return the car. Parking tickets and camera speeding or red light tickets are also sent to the registered owner. We match them to your booking and charge them to you, plus {{ticketFee}} for each ticket we process. If you think a ticket is wrong, tell us: we can give you what you need to dispute it.\n",
+   "faq": [
+    {
+     "question": "Does a rental car have a 407 ETR transponder?",
+     "answer": "No. The highway reads the plate with cameras, and the toll is billed to us after the trip."
+    },
+    {
+     "question": "How much does CarmaCars charge for 407 ETR tolls?",
+     "answer": "The toll at cost, plus {{tollFee}} for each toll notice, on a statement after the rental."
+    },
+    {
+     "question": "Why did a toll charge arrive weeks after my rental?",
+     "answer": "The highway's operator bills the car's owner by mail, often weeks later. We charge it once the notice reaches us."
+    },
+    {
+     "question": "How do I avoid the 407 ETR?",
+     "answer": "Use the 401 instead, and switch on the avoid tolls setting in your map app."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/toronto",
+     "label": "Car rental in Toronto"
+    },
+    {
+     "href": "/car-rental/mississauga",
+     "label": "Car rental in Mississauga"
+    },
+    {
+     "href": "/faq",
+     "label": "Questions about renting"
+    }
+   ],
+   "brief": "407 ETR: how camera tolling works for a car without a transponder, the parts of a toll, how notices reach us and what we charge, how to avoid it, other later charges. No toll rates (they change)."
+  },
+  {
+   "slug": "what-you-need-to-rent-a-car-in-toronto",
+   "sort_order": 30,
+   "topic": "drivers",
+   "title": "What you need to rent a car in Toronto",
+   "seo_title": "What You Need to Rent a Car in Toronto",
+   "description": "The licence, card, age, identity check, deposit and coverage you need to rent a car in Toronto, and how a CarmaCars rental goes from request to return.",
+   "summary": "A checklist of everything you need for a CarmaCars rental, and the order things happen in.",
+   "body_md": "Renting a car should not involve surprises at the counter. With CarmaCars there is no counter, but there are still a few things you need before we hand you the keys. This checklist covers all of them, in the order they come up.\n\n## Before you send a request\n\n- **Age.** You must be {{minAge}} or older. Drivers under {{fullAge}} pay a young driver fee for each day.\n- **Licence.** An Ontario {{licence}} licence, valid for the whole rental. Bring the original card on the day.\n- **Credit card.** A credit card in your own name, for the payment and the deposit. Debit and prepaid cards are not accepted.\n\nSending a request is free. It does not hold the car and takes no payment. Choose a car, enter your dates, tell us whether you want delivery, and send it.\n\n## The offer\n\nWe check the dates and send you an offer with the full price: the rental charge, any fees, HST at {{hst}}, the deposit and the kilometres included. An offer stays open for {{offerHours}} hours. If you approve it, you sign the rental agreement online and pay, and the car is booked for you. Until then, someone else can book the same car.\n\n## The identity check\n\nBefore pickup you upload photos of the front and back of your licence and a selfie. A member of our team compares them and confirms your identity. Every additional driver does the same. Do this as soon as you have booked, so there is time to fix a blurry photo.\n\n## Coverage for damage\n\nThird-party liability coverage is included in every rental. For damage to the car itself you need one of three options in place before pickup:\n\n1. Coverage under your own auto policy that extends to a rental car.\n2. Rental car coverage from your credit card, where the card offers it.\n3. The CarmaCars Protection Plan.\n\nOur requirements page explains each option and what to show us. If the car is damaged, repairs under {{deductible}} are billed at cost, and from {{deductible}} we claim on our fleet policy and you pay the {{deductible}} deductible.\n\n## The deposit\n\nEach car has a deposit, shown on its page. It is taken about {{depLead}} before pickup, never when you book. For rentals of {{holdDays}} days or less it is a hold on your card; for longer rentals it is charged and refunded. We release the balance within {{releaseDays}} after you return the car.\n\n## At pickup\n\nWe meet you with the car at our location or at your address. Bring your original licence and the card you paid with. We walk around the car together and photograph its condition, note the fuel and the kilometres, and show you the controls.\n\n## Additional drivers\n\nAnyone else who will drive must be on the booking. Every driver meets the same rules, does the identity check and signs the agreement. Each additional driver adds {{addDrvPct}} of the daily rate for each day.\n\n## If your plans change\n\nYou can cancel from your account. Within {{cGrace}} hours of booking, when pickup is {{cEarly}} hours or more away, you get {{c1}} back. Otherwise {{cEarly}} hours or more before pickup returns {{c2}}, and {{cLate}} to {{cEarly}} hours before returns {{c3}}. Less than {{cLate}} hours before pickup, or a no-show, is not refunded. A non-refundable booking is not refunded at all, in exchange for its {{nonRef}} discount.\n\n## At return\n\nBring the car back at the agreed time with the same fuel or charge it had at pickup, and take your things out. We check it with you and photograph it again. Tolls and tickets that arrive later are charged to the card on file with their administration fees.\n",
+   "faq": [
+    {
+     "question": "Can I rent a car without a credit card?",
+     "answer": "No. A credit card in the renter's name is needed for the payment and the deposit."
+    },
+    {
+     "question": "Do I need my own car insurance to rent?",
+     "answer": "Liability coverage is included. For damage to the car you need one of three options, and one of them is the CarmaCars Protection Plan, so you do not need your own policy."
+    },
+    {
+     "question": "How long does an offer stay open?",
+     "answer": "{{offerHours}} hours. The car is booked once you approve, sign and pay."
+    },
+    {
+     "question": "When do I get my deposit back?",
+     "answer": "We release the balance within {{releaseDays}} after you return the car."
+    }
+   ],
+   "links": [
+    {
+     "href": "/requirements",
+     "label": "Requirements in full"
+    },
+    {
+     "href": "/how-it-works",
+     "label": "How it works"
+    },
+    {
+     "href": "/cars",
+     "label": "All cars"
+    }
+   ],
+   "brief": "What you need: age, licence, credit card, the request and offer, identity check, the three coverage options (Protection Plan named as such), deposit, pickup and return. Fees and rules as tokens."
+  },
+  {
+   "slug": "car-rental-at-pearson-airport",
+   "sort_order": 40,
+   "topic": "airports",
+   "title": "Car rental at Pearson Airport: how delivery and return work",
+   "seo_title": "Car Rental at Pearson Airport: Delivery and Return",
+   "description": "How CarmaCars delivers a rental car to Toronto Pearson, what to send with your request, what happens if your flight is late, and how to return the car.",
+   "summary": "No counter and no shuttle: we bring the car to you at Pearson, at a meeting point confirmed in advance.",
+   "body_md": "Toronto Pearson is the busiest airport in Canada, and picking up a rental there usually means a walk, a line at a counter and a shuttle to a parking lot. CarmaCars does not have a counter at the airport. Instead, we bring the car to you at a meeting point we confirm before you land. This guide explains how it works.\n\n## Before you fly\n\nSend a request for the car you want, with your pickup date and time, and choose delivery to the airport. In the notes, add:\n\n- your airline and flight number,\n- your terminal, if you know it,\n- a phone number that works when you land.\n\nWe send an offer with the full price. Airport delivery is priced in the offer, and an airport surcharge may apply. Once you approve the offer, sign and pay, the car is booked. Do the identity check before you travel, so nothing is left to do at the airport.\n\n## When you land\n\nBefore pickup we confirm the meeting point and the number to call. When you have your bags, call or message us. A member of our team meets you with the car, checks your original licence and the card you paid with, and walks around the car with you while we photograph its condition. Then the keys are yours.\n\n## If your flight is late\n\nFlights are delayed all the time. Message us with the new arrival time as soon as you know it, and we adjust the handover. If the delay is long, we may agree a new time with you.\n\n## Driving away from Pearson\n\nThe airport sits between the 427, the 401 and the 409. The 427 takes you south toward Etobicoke and downtown by the Gardiner Expressway, and the 401 runs east and west. The 407 ETR is close by to the north: it is a toll road with no booths, and its tolls are billed to us and passed on at cost with {{tollFee}} for each notice. If you would rather avoid tolls, switch on the avoid tolls setting in your map app before you leave.\n\n## Returning the car before a flight\n\nYou can end your rental at Pearson too. Agree a time and a meeting point with us, and leave plenty of time before your flight. Return the car with the fuel or charge it had at pickup, and check the seats and the trunk for your things. We check the car with you, and you head to the terminal.\n\n## Choosing a car for an airport run\n\nThink about luggage before you choose. Each car's page lists its seats and, where we have measured it, how many large bags fit in the trunk. A family of four with four big suitcases usually needs an SUV or a minivan rather than a compact car. If you need a baby seat, ask for it in your request: each one is {{baby}} a day, capped at {{babyCap}}.\n\n## Kilometres and fuel\n\nIf you are flying in for a week and driving across Ontario, check the kilometres included on the car's page. The daily allowance is added up over the rental, so a long first day is fine. Return the car with the fuel or charge it had at pickup, and fill up near the airport before the return rather than on the way out of the city.\n\n## Other ways to start\n\nIf you would rather not drive at the airport at all, take the UP Express train to Union Station and have us meet you near the station, or have the car delivered to your hotel after you check in. Each of these is priced in your offer.\n",
+   "faq": [
+    {
+     "question": "Do you have a rental counter at Pearson?",
+     "answer": "No. We bring the car to you at a meeting point we confirm before your flight lands."
+    },
+    {
+     "question": "Is there an airport fee?",
+     "answer": "Airport delivery is priced in your offer, and an airport surcharge may apply."
+    },
+    {
+     "question": "What if my flight is delayed?",
+     "answer": "Message us with the new arrival time and we adjust the handover."
+    },
+    {
+     "question": "Can I return the car at the airport?",
+     "answer": "Yes, at a time and meeting point we agree in advance."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/pearson-airport-yyz",
+     "label": "Car rental at Pearson"
+    },
+    {
+     "href": "/car-rental/union-station",
+     "label": "Car rental near Union Station"
+    },
+    {
+     "href": "/delivery",
+     "label": "How delivery works"
+    }
+   ],
+   "brief": "Pearson airport: request with flight details, the offer and airport fee, meeting at landing, delays, highways from the airport and the 407 ETR, returning before a flight, alternatives. No invented procedures."
+  },
+  {
+   "slug": "monthly-vs-weekly-car-rental",
+   "sort_order": 50,
+   "topic": "pricing",
+   "title": "Monthly vs weekly car rental in Toronto: which costs less",
+   "seo_title": "Monthly vs Weekly Car Rental in Toronto",
+   "description": "How CarmaCars prices rentals of a week, a few weeks and a month, where the weekly and monthly caps apply, and how kilometres, deposits and renewals work.",
+   "summary": "A plain explanation of the weekly and monthly caps, and how to pick the length that costs least.",
+   "body_md": "If you need a car for more than a few days, the length you book can change the price a lot. CarmaCars uses four rates for every car: a daily rate, a weekend day rate, a weekly rate and a monthly rate. This guide explains how they fit together, so you can choose the cheapest way to book.\n\n## The four rates\n\nEach car's page shows its rates:\n\n- **Daily:** for days that start Monday to Thursday, and Sunday.\n- **Weekend day:** for days that start on a Friday or a Saturday.\n- **Weekly:** the price of a week.\n- **Monthly:** the price of {{maxDays}} days, the longest single booking.\n\nA rental day is 24 hours from your pickup time, and a part day counts as a day.\n\n## The weekly cap\n\nA short trip at the daily rate can cost more than a week. So we cap it: a trip of 1 to {{weekFromLess1}} days never costs more than the car's weekly rate. If you need a car for five days, check the weekly rate before you book. You may find the week costs the same, and you get the extra days for nothing.\n\n## The monthly cap\n\nThe same rule applies above a week. A trip of {{weekFrom}} to {{maxDaysLess1}} days never costs more than the car's monthly rate. If you need a car for three weeks, the monthly rate may be the better deal, and you can keep the car for the full {{maxDays}} days.\n\nYour offer shows exactly which rate applies to each day, so you always see the final number before you pay.\n\n## Kilometres over a longer rental\n\nEach car has a daily kilometre allowance. Over a rental, it is multiplied by the number of days you book and shared across the whole trip. On a monthly rental, that is a lot of driving: a long road trip in the first week is fine as long as the total stays within the allowance. Past it, extra kilometres are charged at the rate on the car's page, between {{overMin}} and {{overMax}} each depending on the car.\n\n## Deposits on longer rentals\n\nFor rentals of {{holdDays}} days or less, the deposit is a hold on your card. For longer rentals it is charged and refunded after you return the car, within {{releaseDays}}. When you renew a monthly rental, the deposit carries over.\n\n## Renewing a monthly rental\n\nA single booking can run for up to {{maxDays}} days. If you need the car longer, tell us before the rental ends. We prepare a new agreement for the next period at the rate in force, you sign it online, and the next payment is taken. You keep the same car unless you ask to change.\n\n## When weekly makes more sense\n\nIf you are not sure how long you need the car, book the shorter period and extend it. An extension is priced before you pay, and it must be paid before the current return time. For anything past about three weeks, compare the weekly and monthly totals in the offer: the cap does the work for you.\n\n## Saving a little more\n\nIf your dates are fixed, choose the non-refundable option when you send your request. It takes {{nonRef}} off the rental charge, but it is not refunded if you cancel. And if you can collect the car from our location, you save the delivery fee.\n",
+   "faq": [
+    {
+     "question": "Is a monthly rental cheaper than four weekly rentals?",
+     "answer": "Usually. A trip of {{weekFrom}} to {{maxDaysLess1}} days is capped at the monthly rate, and a full booking is {{maxDays}} days."
+    },
+    {
+     "question": "What is the longest single rental?",
+     "answer": "{{maxDays}} days. You can renew with a new agreement before it ends."
+    },
+    {
+     "question": "Are kilometres unlimited on a monthly rental?",
+     "answer": "No. Each car has a daily allowance, added up over the rental. Extra kilometres are charged at the car's rate."
+    },
+    {
+     "question": "Does the deposit carry over when I renew?",
+     "answer": "Yes. It stays in place for the next period."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/monthly",
+     "label": "Monthly car rental"
+    },
+    {
+     "href": "/car-rental/weekly",
+     "label": "Weekly car rental"
+    },
+    {
+     "href": "/cars",
+     "label": "All cars and rates"
+    }
+   ],
+   "brief": "Pricing: the four rates, the weekly and monthly caps, kilometres, deposits, renewal, the non-refundable discount. Use tokens for every rule number."
+  },
+  {
+   "slug": "winter-driving-in-ontario-in-a-rental-car",
+   "sort_order": 60,
+   "topic": "driving",
+   "title": "Winter driving in Ontario in a rental car",
+   "seo_title": "Winter Driving in Ontario in a Rental Car",
+   "description": "How to drive a rental car safely through an Ontario winter: winter tires, clearing snow, trips north of Toronto, electric cars in the cold and more.",
+   "summary": "Practical advice for renting and driving in snow, ice and cold, from the people who hand the cars over.",
+   "body_md": "An Ontario winter can turn a short drive into a slow one. Snow, ice and early darkness change how a car behaves and how long a trip takes. Most winter rentals go without a problem, and a little preparation makes the difference. This guide covers what we see most often at handovers.\n\n## Winter tires\n\nAll-season tires lose grip as the temperature drops. Winter tires stay softer in the cold and grip much better on snow and ice. If you are driving outside the city, in the snow belts north of Toronto, or early in the morning on untreated roads, ask for winter tires in your request. The fee is {{winter}} a day, capped at {{winterCap}} for the rental.\n\n## Before you set off\n\n- Clear all the snow and ice from the windows, the mirrors, the lights and the roof. Snow sliding off the roof onto the windshield can blind you at the first stop.\n- Check that the washer fluid works. Salt spray covers a windshield in minutes on the highway.\n- Make sure there is a snow brush in the car. Ask at the handover if you do not see one.\n- Turn on the headlights, not just the daytime running lights, so you are seen from behind.\n\n## On the road\n\nLeave much more space than usual between you and the car in front. Brake and turn gently, and slow down well before corners and ramps. Bridges and overpasses freeze before the road around them. If the car starts to slide, look and steer where you want to go, and do not stamp on the brakes.\n\nCheck road conditions before a longer trip. Ontario 511 shows closures and conditions on provincial highways. Snow squalls off the Great Lakes can bring sudden whiteouts, especially north of Barrie and along the 401 west of the city.\n\n## Electric and hybrid cars in the cold\n\nCold weather shortens an electric car's range, sometimes by a lot. Plan longer winter trips with a charging stop, and keep some margin. Pre-heating the car while it is plugged in saves battery for the road. Return the car with the charge it had at pickup: recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee. A hybrid is less affected by the cold and needs no charging.\n\n## Choosing a car for winter\n\nIf your trip takes you out of the city, a car with all-wheel drive and a little more ground clearance copes better with unploughed side roads and cottage driveways. Each car's page lists its drive. All-wheel drive helps the car move off and stay straight, but it does not help it stop: winter tires matter more than the drive.\n\n## Parking in a snowstorm\n\nWhen the City of Toronto declares a major snowstorm, parking is banned on the streets marked as snow routes, and cars left there can be ticketed and towed. Check the signs where you park, and move the car if a storm is coming. Tickets and towing during a rental are the renter's, plus {{ticketFee}} for each ticket we process.\n\n## If something goes wrong\n\nRoadside assistance is included in every rental, around the clock. If the car breaks down or gets stuck, get to a safe place and call the number on your agreement. If there is a collision, make sure everyone is safe, call the police if anyone is hurt or the road is blocked, and tell us as soon as you can. Take photos of the scene and of the other car's plate.\n\n## The car stays in Ontario\n\nThe car can go anywhere in Ontario. Driving into Quebec or the United States needs our written agreement first, so ask in your request if your plans include it.\n",
+   "faq": [
+    {
+     "question": "Can I get winter tires on a rental car?",
+     "answer": "Yes. Ask in your request. The fee is {{winter}} a day, capped at {{winterCap}}."
+    },
+    {
+     "question": "Do electric cars work in winter?",
+     "answer": "Yes, with less range in the cold. Plan a charging stop on longer trips."
+    },
+    {
+     "question": "What do I do if the car gets stuck in snow?",
+     "answer": "Get somewhere safe and call roadside assistance, which is included around the clock."
+    },
+    {
+     "question": "Can I drive the rental to a ski hill in Quebec?",
+     "answer": "Only with our written agreement first. Ask in your request."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/suv",
+     "label": "SUV rental"
+    },
+    {
+     "href": "/car-rental/electric",
+     "label": "Electric and hybrid cars"
+    },
+    {
+     "href": "/requirements",
+     "label": "Requirements"
+    }
+   ],
+   "brief": "Winter: winter tires and the fee, preparing the car, driving on snow and ice, Ontario 511, electric cars in the cold, roadside assistance and collisions, staying in Ontario. No legal claims about tire laws."
+  },
+  {
+   "slug": "insurance-replacement-rental-while-your-car-is-repaired",
+   "sort_order": 70,
+   "topic": "insurance",
+   "title": "Getting a rental car while yours is being repaired",
+   "seo_title": "A Replacement Rental While Your Car Is Repaired",
+   "description": "How a replacement rental works in Ontario when your car is in the shop after a claim, what your adjuster may approve, and how CarmaCars bills your insurer.",
+   "summary": "When your own car is off the road after a claim, your auto policy may pay for a rental. Here is how it usually works.",
+   "body_md": "After a collision or a theft, the repair can take days or weeks. Your auto policy may pay for a replacement car in the meantime, and CarmaCars can bill your insurer directly for the part it approves. This guide explains how it usually works in Ontario and what to ask your adjuster. Your own policy and your adjuster have the final word on what is covered.\n\n## Is a rental covered?\n\nIt depends on the claim and your policy:\n\n- **If another driver was at fault**, your own insurer usually handles your claim for the damage to your car, and that can include a replacement car while it is repaired.\n- **If you were at fault, or no other driver was involved**, a rental is usually covered only if your policy includes loss of use coverage, an optional endorsement many drivers add.\n\nAsk your adjuster early: whether a rental is covered, for how many days, and up to what amount a day. Those three answers decide how much the insurer pays.\n\n## What to send us\n\nWhen you send your request, add in the notes:\n\n- your insurance company and the claim number,\n- your adjuster's name and how to reach them,\n- the number of days approved and the daily amount, if you know them.\n\nWe confirm the car and the dates with you, contact the adjuster if needed, and send the invoice for the approved part to the insurer.\n\n## What you still provide\n\nA replacement rental is still a rental. You need an Ontario {{licence}} licence, a credit card in your name for the deposit, and your signature on the rental agreement. You also need coverage for damage to our car before pickup, one of the three options on our requirements page; your adjuster can tell you whether your own policy extends to the rental.\n\n## What you may pay yourself\n\nThe insurer pays what it approves. You pay anything beyond that, for example:\n\n- days after the approval ends, if the repair runs late and the approval is not extended,\n- a car above the daily amount the insurer allows,\n- fuel, tolls, tickets and other charges during the rental.\n\nIf the repair is taking longer, tell your adjuster and us before the approval ends. Extra days are yours to pay unless the insurer extends the approval.\n\n## Choosing the car\n\nAdjusters often approve a car of a size similar to yours, up to a daily amount. Tell us the amount, and we suggest cars within it. If you want a larger car, you can pay the difference yourself; the offer shows what the insurer pays and what you pay.\n\n## Delivery to you or the body shop\n\nWe can deliver the car to your home, your work or the body shop, so you are not left without a car between drop-off and pickup. When your own car is ready, we collect ours from wherever suits you, or you bring it back to our location at no charge.\n\n## Returning the car\n\nReturn the car with the fuel it had at pickup, and take your things out. We check it with you and photograph it, as at pickup. Charges that arrive later, such as tolls or parking tickets, are yours, not the insurer's, and are charged to the card on file with their administration fees.\n",
+   "faq": [
+    {
+     "question": "Will my insurance pay for a rental while my car is repaired?",
+     "answer": "Often, if another driver was at fault or your policy includes loss of use coverage. Your adjuster can confirm what you are covered for."
+    },
+    {
+     "question": "Can CarmaCars bill my insurer directly?",
+     "answer": "Yes, for the days and the daily amount your adjuster approves."
+    },
+    {
+     "question": "Do I still need a credit card?",
+     "answer": "Yes, in your name, for the deposit and any charges the insurer does not cover."
+    },
+    {
+     "question": "What if the repair takes longer than approved?",
+     "answer": "Ask your adjuster to extend the approval. Extra days are yours to pay unless it is extended."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/insurance-replacement",
+     "label": "Insurance replacement rental"
+    },
+    {
+     "href": "/car-rental/car-delivery",
+     "label": "Car rental delivery"
+    },
+    {
+     "href": "/requirements",
+     "label": "Requirements"
+    }
+   ],
+   "brief": "Insurance replacement: when a rental is usually covered in Ontario (no-fault vs at fault, loss of use), what to ask the adjuster, what we need, what the renter pays, delivery to the body shop. Hedged: the policy and adjuster decide."
+  },
+  {
+   "slug": "driving-from-toronto-to-niagara-falls-or-montreal",
+   "sort_order": 80,
+   "topic": "trips",
+   "title": "Driving from Toronto to Niagara Falls, Ottawa or Montreal in a rental car",
+   "seo_title": "Road Trips from Toronto: Niagara Falls, Ottawa, Montreal",
+   "description": "Routes and driving times from Toronto to Niagara Falls, Ottawa and Montreal in a rental car, with kilometres, tolls, fuel and the rules on leaving Ontario.",
+   "summary": "Three of the most popular drives from Toronto, with what to check before you book the car.",
+   "body_md": "A rental car is the easiest way to see more of Ontario than a train or a bus allows. Niagara Falls is an easy day trip, Ottawa is a long day or a relaxed weekend, and Montreal is a proper road trip. This guide covers the routes, the time on the road and the rental rules that matter for each.\n\n## Niagara Falls\n\nNiagara Falls is about 130 km from downtown Toronto. The usual route is the Gardiner Expressway west to the QEW, then the QEW around the end of Lake Ontario past Hamilton and St. Catharines. Without traffic it takes about an hour and a half; on a summer Friday or a holiday weekend it can take much longer, so leave early.\n\nParking near the falls is busy in summer. The wine region of Niagara-on-the-Lake is close by and makes a good stop on the way back.\n\nThe falls sit on the border with the United States. The car must not cross into the United States unless we have agreed in writing first.\n\n## Ottawa\n\nOttawa is about 450 km from Toronto, most of it on the 401 east, then the 416 north from near Prescott. Plan on four and a half to five hours with a stop. The 401 between Toronto and Kingston is busy with trucks; Kingston and the Thousand Islands are good places to break the trip.\n\nA return trip to Ottawa is about 900 km. Check the kilometres included on the car's page, multiply by the days you book, and make sure the total covers the drive.\n\n## Montreal\n\nMontreal is about 540 km from Toronto by the 401, which becomes Autoroute 20 at the Quebec border. It takes around five and a half to six hours with a stop. Montreal is in Quebec, so driving there needs our written agreement before the trip. Ask for it in your request and we confirm it in your offer.\n\nRoad signs in Quebec are in French. Turning right on a red light is not allowed on the island of Montreal.\n\n## Kilometres\n\nEach car includes a daily kilometre allowance, added up over the whole rental. A long drive on one day is fine as long as the total stays within the allowance. Past it, each kilometre costs between {{overMin}} and {{overMax}}, depending on the car. For a long trip, a car with a higher daily allowance, or an extra day on the booking, can cost less than the extra kilometres.\n\n## Tolls and fuel\n\nThe QEW and the 401 are free. The 407 ETR is a toll road with no booths, and its tolls are billed to us and charged to you at cost plus {{tollFee}} for each notice. Switch on the avoid tolls setting in your map app if you would rather not use it.\n\nReturn the car with the fuel or charge it had at pickup. If it is lower, refuelling costs the pump price plus {{fuelPct}}, plus a {{fuelFee}} service fee, so a quick stop before the return usually saves money.\n\n## Sharing the driving\n\nOn a long trip it helps to take turns. Add every driver to your request: each one meets the same rules, signs the agreement and adds {{addDrvPct}} of the daily rate for each day. Only drivers named on the agreement may drive.\n",
+   "faq": [
+    {
+     "question": "Can I drive a rental car from Toronto to Montreal?",
+     "answer": "Yes, with our written agreement before the trip, because the car normally stays in Ontario. Ask in your request."
+    },
+    {
+     "question": "Can I take the rental car into the United States?",
+     "answer": "Only with our written agreement first."
+    },
+    {
+     "question": "How far is Niagara Falls from Toronto?",
+     "answer": "About 130 km, or about an hour and a half without traffic."
+    },
+    {
+     "question": "What happens if I go over the kilometres included?",
+     "answer": "Each extra kilometre is charged at the rate on the car's page, between {{overMin}} and {{overMax}}."
+    }
+   ],
+   "links": [
+    {
+     "href": "/car-rental/weekend",
+     "label": "Weekend car rental"
+    },
+    {
+     "href": "/car-rental/weekly",
+     "label": "Weekly car rental"
+    },
+    {
+     "href": "/car-rental/oakville",
+     "label": "Car rental in Oakville"
+    }
+   ],
+   "brief": "Road trips: Niagara Falls (about 130 km by the QEW, about 90 minutes), Ottawa (about 450 km by the 401 and the 416, 4.5 to 5 hours), Montreal (about 540 km by the 401 and A-20, 5.5 to 6 hours); leaving Ontario needs written agreement; kilometres, tolls, fuel, additional drivers."
+  }
+ ]
+}

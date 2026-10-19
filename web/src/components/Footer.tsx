@@ -6,7 +6,10 @@ import { CookiePrefsButton } from './CookieBanner';
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
-export function Footer({ s, reply }: { s: SiteSettings; reply: string }) {
+type Link_ = { slug: string; kind: string; name: string; path: string };
+export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: string; links?: Link_[] }) {
+  const places = links.filter((l) => l.kind === 'location');
+  const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
   return (
     <footer className="site-footer on-dark">
@@ -21,7 +24,13 @@ export function Footer({ s, reply }: { s: SiteSettings; reply: string }) {
             <li><Link prefetch={false} href="/cars">Fleet</Link></li><li><Link prefetch={false} href="/how-it-works">How it works</Link></li>
             <li><Link prefetch={false} href="/requirements">Requirements and coverage</Link></li><li><Link prefetch={false} href="/delivery">Delivery</Link></li>
             <li><Link prefetch={false} href="/book">Request to book</Link></li>
+            {uses.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
+            <li><Link prefetch={false} href="/guides">Guides</Link></li>
           </ul></nav>
+          {places.length > 0 && <nav aria-label="Locations"><h2>Locations</h2><ul>
+            {places.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
+            <li><Link prefetch={false} href="/car-rental">All areas</Link></li>
+          </ul></nav>}
           <div className="footer-contact"><h2>Talk to us</h2><ul>
             {s.phone && <li><a href={`tel:${s.phone}`}>{s.phone_display}</a><span>Phone and 24-hour roadside line</span></li>}
             {s.whatsapp && <li><a href={waLink(s.whatsapp)} rel="noopener">WhatsApp</a></li>}

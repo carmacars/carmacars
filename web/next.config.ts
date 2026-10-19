@@ -44,6 +44,13 @@ const config: NextConfig = {
       ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : [])
     ];
   },
+  // the files search engines ask for at the root (0061): the IndexNow key file and the Google verification file
+  async rewrites() {
+    return [
+      { source: '/:name([a-f0-9]{32}\\.txt)', destination: '/api/site-file/:name' },
+      { source: '/:name(google[a-z0-9]{6,40}\\.html)', destination: '/api/site-file/:name' }
+    ];
+  },
   async redirects() {
     // The prototype's file names, in case one was shared.
     return [

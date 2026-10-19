@@ -5,6 +5,7 @@
 import type { TextGenerator } from '../../integrations/llm/types.ts';
 import type { PhotoOut, PhotoProcessor } from '../../integrations/photos/types.ts';
 import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDraft, systemPrompt, userPrompt, type CopyRules, type Draft } from './prompt.ts';
+import { plainDraft } from '../seo/copy.ts';
 
 export const PRESET = 'brand_background_v1';
 export const BACKDROP_PATH = 'site/backdrop/brand_background_v1.png';
@@ -50,6 +51,9 @@ export interface WorkerDeps {
     putPublic(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
   };
   now?(): number;
+  /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
+   *  facts without calling the model, so no neurons are spent twice. */
+  plainCopy?: boolean;
 }
 
 export interface RunSummary { claimed: number; succeeded: number; failed: number; held: { photos: boolean; copy: boolean }; due: number; errors: string[] }
@@ -126,6 +130,11 @@ function rulesOf(j: JobContext): CopyRules {
 
 async function draft(d: WorkerDeps, j: JobContext, b: Budget, used: { neurons: number }): Promise<JobResult> {
   const facts = j.facts ?? {};
+  if (d.plainCopy) {
+    const p = plainDraft(facts as Parameters<typeof plainDraft>[0]);
+    return { ok: true, provider: 'carmacars', units: 0, unit: 'neurons', cost_microusd: 0,
+      output: { ...p, faq: p.faq, model: 'plain', prompt_version: 'plain-v1', problems: [] } };
+  }
   const rules = rulesOf(j);
   const classes = j.classes ?? [];
   let best: Draft | null = null;

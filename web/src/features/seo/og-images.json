@@ -1,0 +1,39 @@
+{
+ "pages": [
+  "toronto",
+  "downtown-toronto",
+  "north-york",
+  "scarborough",
+  "etobicoke",
+  "mississauga",
+  "brampton",
+  "vaughan",
+  "markham",
+  "richmond-hill",
+  "oakville",
+  "pearson-airport-yyz",
+  "billy-bishop-airport-ytz",
+  "union-station",
+  "monthly",
+  "weekly",
+  "weekend",
+  "young-drivers",
+  "car-delivery",
+  "insurance-replacement",
+  "suv",
+  "luxury",
+  "minivan",
+  "electric",
+  "economy"
+ ],
+ "guides": [
+  "renting-a-car-in-toronto-as-a-young-driver",
+  "407-etr-tolls-in-a-rental-car",
+  "what-you-need-to-rent-a-car-in-toronto",
+  "car-rental-at-pearson-airport",
+  "monthly-vs-weekly-car-rental",
+  "winter-driving-in-ontario-in-a-rental-car",
+  "insurance-replacement-rental-while-your-car-is-repaired",
+  "driving-from-toronto-to-niagara-falls-or-montreal"
+ ]
+}

@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>162 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>62</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>163 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>63</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (62)</h2>
+<h2 id="renter">Renter (63)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -223,6 +223,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A renter statement for a returned booking is issued (statement sent_at is set by Finance), which captures charges from the deposit and releases the balance. Due within 7 business days of check-in. (Message template T9.)</div>
 <div class="ln"><a href="../dist/renter_final_statement.html">HTML</a><a href="../dist/renter_final_statement.txt">Text</a><a href="../shots/renter_final_statement.desktop.png">Desktop</a><a href="../shots/renter_final_statement.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_google_review_request.html"><img loading="lazy" src="../shots/renter_google_review_request.desktop.png" alt="Screenshot of renter_google_review_request"></a><div class="b">
+<div class="code">renter_google_review_request</div><div class="sub">Would you review CarmaCars on Google?</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Program settings google_review_delay_days (3 by default) after booking status becomes closed, only when the Google place id is set in Site settings (app.notify_google_reviews, migration 0061). The same rules as renter_review_request: not unsubscribed, nothing unpaid or open on the renter, and a booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is sent only after a staff member answers yes to the review request decision. Never depends on the rating the renter gave, and offers nothing for a review. One per booking. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="ln"><a href="../dist/renter_google_review_request.html">HTML</a><a href="../dist/renter_google_review_request.txt">Text</a><a href="../shots/renter_google_review_request.desktop.png">Desktop</a><a href="../shots/renter_google_review_request.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_identity_approved.html"><img loading="lazy" src="../shots/renter_identity_approved.desktop.png" alt="Screenshot of renter_identity_approved"></a><div class="b">
 <div class="code">renter_identity_approved</div><div class="sub">You are verified. All set for Fri, Oct 23, 2026</div>

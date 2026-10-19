@@ -7,13 +7,14 @@ import { fieldsFrom } from '@/features/admin/fields';
 import { LogoUpload } from '@/features/admin/SettingsClient';
 import { InviteForm, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
-import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/ui';
+import { $, Badge, Card, Kv, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { SECTIONS } from '../sections';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
+import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -26,7 +27,9 @@ const SITE_GROUPS: Array<[string, string[]]> = [
   ['Brand and tagline', ['brand_name', 'tagline', 'wordmark_text', 'logo_alt', 'logo_width', 'logo_height', 'site_url']],
   ['Contact', ['phone', 'phone_display', 'whatsapp', 'whatsapp_display', 'roadside_phone', 'roadside_phone_display', 'public_email', 'owners_email', 'mailing_address', 'street_address', 'show_street_address']],
   ['Hours and handover', ['opening_hours_text', 'handover_any_time', 'handover_slots', 'city', 'region', 'service_area', 'delivery_area_text', 'delivery_areas', 'airport_delivery']],
-  ['Social, reviews and search', ['social_links', 'google_place_id', 'review_source', 'reply_wording', 'seo_default_title', 'seo_title_suffix', 'seo_default_description', 'listing_time_promise', 'featured_mode']]
+  ['Social, reviews and search', ['social_links', 'google_place_id', 'review_source', 'reply_wording', 'seo_default_title', 'seo_title_suffix', 'seo_default_description', 'listing_time_promise', 'featured_mode']],
+  ['Search engines', ['google_site_verification', 'google_verification_file', 'bing_site_verification']],
+  ['Business name, address and phone', ['business_name', 'business_street', 'business_city', 'business_region', 'business_postal_code', 'business_latitude', 'business_longitude', 'business_categories', 'business_description']]
 ];
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
@@ -42,6 +45,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
+  ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
@@ -62,6 +66,18 @@ export default async function Section({ params }: { params: Promise<{ section: s
       {s.problems.length > 0 && <Card title="Still missing" tone="warn"><ul className="small">{s.problems.map((p) => <li key={p.field}>{p.message}</li>)}</ul></Card>}
       {SITE_GROUPS.map(([title, keys]) => <Card key={title} title={title}><SaveForm table="site_settings" rowKey="singleton" testId={`site-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.site, keys, { featured_mode: [['random', 'Random'], ['manual', 'Chosen by hand']] })} /></Card>)}
       <Card title="Logo"><p className="small muted">Light: {String(s.site.logo_light_file_key ?? 'none, the wordmark is shown')}. Dark: {String(s.site.logo_dark_file_key ?? 'none')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="light" /><LogoUpload which="dark" /></div></Card>
+      <Card title="Search engines: how to verify" testId="search-verify"><ol className="small">
+        <li>Google Search Console: add the property https://carmacars.ca, choose <b>HTML tag</b>, and paste only the content value (the part inside content=&quot;...&quot;) into Google site verification above. Or choose <b>HTML file</b> and type the file name (for example google1234abcd.html) into Google verification file: the site answers it at its root.</li>
+        <li>Bing Webmaster Tools: import from Search Console, or choose the meta tag and paste its content into Bing site verification.</li>
+        <li>Then submit the sitemap https://carmacars.ca/sitemap.xml in both. IndexNow tells Bing about changes by itself (key file: /{String(s.site.indexnow_key ?? '')}.txt).</li>
+      </ol></Card>
+      <Card title="Business listings" testId="business-listings-card">
+        <BusinessListings listings={(s.site.business_listings ?? {}) as Record<string, Listing>} nap={[
+          ['Name', String(s.site.business_name ?? s.site.brand_name ?? '')],
+          ['Address', [s.site.business_street, [s.site.business_city, s.site.business_region].filter(Boolean).join(', ') + (s.site.business_postal_code ? ` ${String(s.site.business_postal_code)}` : '')].filter(Boolean).join(', ')],
+          ['Phone', String(s.site.phone_display ?? s.site.phone ?? '')], ['Website', String(s.site.site_url ?? '')], ['Hours', String(s.site.opening_hours_text ?? '')],
+          ['Categories', ((s.site.business_categories as string[] | null) ?? []).join(', ')], ['Description', String(s.site.business_description ?? '')]]} />
+      </Card>
       <Card title="Browser icon and sharing image"><p className="small muted">Icon: {String(s.site.favicon_file_key ?? 'none, the drawn stand-in is shown')}. Sharing image: {String(s.site.og_image_file_key ?? 'none, the built-in image is used')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="favicon" /><LogoUpload which="og" /></div></Card>
     </>);
   case 'content':
@@ -99,6 +115,36 @@ export default async function Section({ params }: { params: Promise<{ section: s
       </Card>
       <Card title="Built-in pictures">
         <div className="ad-chip-row">{sp.builtin.map((b) => <figure key={b} style={{ margin: 0 }}><SampleThumb path={`/sample-photos/${b}.jpg`} alt={`Built-in sample picture: ${label(b)}`} /><figcaption className="small muted">{label(b)}</figcaption></figure>)}</div>
+      </Card>
+    </>);
+  }
+  case 'search': {
+    type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
+      neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
+    const o = await door<Ov>(user.id, 'admin_read', 'seo_overview');
+    return (<>{head}
+      <p className="small muted">The car pages, the landing pages and the guides are written by Workers AI from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
+      <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
+        ['IndexNow', `${o.indexnow.waiting} addresses waiting, ${o.indexnow.sent_7d} sent in 7 days${o.indexnow.last?.at ? `, last ${t(o.indexnow.last.at)} (${String(o.indexnow.last.status ?? '')})` : ''}`],
+        ['Landing pages for a use', `indexed with ${o.min_real_cars} or more real matching cars (Program settings)`]]} /></Card>
+      <Card title={`Car copy (${o.cars.length} real cars)`} testId="seo-cars"><Table rows={o.cars} rowKey={(r) => String(r.vehicle_id)} empty="No real car yet. Sample cars keep their sample text." cols={[
+        { key: 'vehicle', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${String(r.vehicle_id)}?tab=listing`}>{String(r.vehicle)}</Link> },
+        { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'source', label: 'Written by', render: (r) => (r.source === 'ai' ? 'Workers AI' : 'Plain copy (waiting)') },
+        { key: 'h1', label: 'Heading', render: (r) => String(r.h1 ?? '') }, { key: 'published_at', label: 'Published', render: (r) => t(r.published_at) },
+        { key: 'locked', label: 'Locked', render: (r) => ((r.locked as string[]) ?? []).join(', ') }, { key: 'up', label: 'Facts', render: (r) => (r.up_to_date ? 'Up to date' : 'Changed: rewriting') }]} /></Card>
+      <Card title={`Landing pages (${o.pages.length})`} testId="seo-pages">
+        <Table rows={o.pages as unknown as R[]} rowKey={(r) => String(r.slug)} cols={[
+          { key: 'name', label: 'Page', render: (r) => <a className="link" href={String(r.path)} target="_blank" rel="noopener">{String(r.name)}</a> }, { key: 'kind', label: 'Kind', render: (r) => (r.kind === 'location' ? 'Place' : 'Use') },
+          { key: 'indexable', label: 'In search', render: (r) => (r.indexable ? 'Yes' : `No: ${String(r.real_cars)} real cars of ${o.min_real_cars}`) }, { key: 'car_count', label: 'Cars', num: true },
+          { key: 'source', label: 'Written by', render: (r) => ({ seed: 'Launch copy', ai: 'Workers AI', staff: 'An Admin' } as Record<string, string>)[String(r.source)] ?? String(r.source) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />
+        {o.pages.map((p) => <details key={p.slug}><summary className="link">Edit {p.name}</summary><PageEditor p={p} /></details>)}
+      </Card>
+      <Card title={`Guides (${o.articles.length})`} testId="seo-articles">
+        <Table rows={o.articles as unknown as R[]} rowKey={(r) => String(r.slug)} cols={[
+          { key: 'title', label: 'Guide', render: (r) => <a className="link" href={String(r.path)} target="_blank" rel="noopener">{String(r.title)}</a> }, { key: 'is_published', label: 'Published', render: (r) => yes(r.is_published) },
+          { key: 'source', label: 'Written by', render: (r) => ({ seed: 'Launch copy', ai: 'Workers AI', staff: 'An Admin' } as Record<string, string>)[String(r.source)] ?? String(r.source) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
+          { key: 'content_updated_at', label: 'Updated', render: (r) => t(r.content_updated_at) }]} />
+        {o.articles.map((a) => <details key={a.slug}><summary className="link">Edit {a.title}</summary><ArticleEditor a={a} /></details>)}
       </Card>
     </>);
   }

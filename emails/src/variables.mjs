@@ -56,6 +56,7 @@ export const SAMPLES = {
   supporting_document_url: v('https://carmacars.ca/files/sample-supporting-record', 'Signed link to the supporting record: notice, photos, receipt or estimate.'),
 
   // Account
+  google_review_url: v('https://search.google.com/local/writereview?placeid=ChIJsample', 'The Google review form of the Business Profile (site_settings.google_place_id).'),
   reset_url: v('https://carmacars.ca/account/reset-password?token=sample', 'One-time link from the sign-in service.'),
   sign_in_url: v('https://carmacars.ca/account/sign-in?token=sample', 'One-time link from the sign-in service.'),
   link_expiry: v('60 minutes', 'How long the one-time link stays valid.'),

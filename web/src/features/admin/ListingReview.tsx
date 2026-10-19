@@ -5,8 +5,9 @@ import { photoUrl } from '@/lib/photo';
 import { staffDo } from '@/server/actions/staff-tools';
 import { PlateEditor } from '@/features/listing/PlateEditor';
 import { useDoor } from './door';
+import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 
-// Review a listing (09-listing-pipeline.md section 6): the copy draft (edit in place), every photo
+// Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
 type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null;
@@ -18,11 +19,9 @@ export type L = { id: string; vehicle_id: string; state: string; reason: string 
   draft: { id: string; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null; lint_problems: string[] | null; proposed_classes: string[] | null } | null;
   photos: Photo[]; jobs: Array<Record<string, unknown>>; problems: { copy: string[] | null; photos: string[] | null; specs: string[] | null; missing_shots: string[] | null } };
 
-export function ListingReview({ l, plates }: { l: L; plates?: Plates | null }) {
+export function ListingReview({ l, plates, copy }: { l: L; plates?: Plates | null; copy?: CarCopyData | null }) {
   const { act: adminAct } = useDoor();
   const router = useRouter();
-  const src = l.draft?.headline ? l.draft : l.listing;
-  const [c, setC] = useState({ headline: src?.headline ?? '', description: src?.description ?? '', features: (src?.features ?? []).join('\n'), faq: (src?.faq ?? []).map((f) => `${f.question} | ${f.answer}`).join('\n'), seo_title: src?.seo_title ?? '', seo_description: src?.seo_description ?? '' });
   const [ph, setPh] = useState<Record<string, string>>({});
   const [cover, setCover] = useState<string | null>(l.photos.find((p) => p.is_cover)?.id ?? null);
   const [note, setNote] = useState('');
@@ -33,19 +32,14 @@ export function ListingReview({ l, plates }: { l: L; plates?: Plates | null }) {
   const plateCheck = (p: Photo) => !!plates && !plates.private_shots.includes(p.shot_type) && !!p.processed_path && ['processed', 'approved'].includes(p.status) && (ph[p.id] ?? '') !== 'reject';
   const toCheck = l.photos.filter((p) => plateCheck(p) && p.plate_status === 'unchecked');
   const reviewable = ['needs_review', 'approved'].includes(l.state);
+  // the copy is written and published by the search job (0061); the review sends only the photo decisions
   const edits = (publish: boolean) => ({
-    listing: { headline: c.headline, description: c.description, features: c.features.split('\n').map((x) => x.trim()).filter(Boolean),
-      faq: c.faq.split('\n').map((x) => x.split('|')).filter((x) => x[0]?.trim() && x[1]?.trim()).map(([q, a]) => ({ question: q!.trim(), answer: a!.trim() })), seo_title: c.seo_title, seo_description: c.seo_description },
     photos: l.photos.map((p) => ({ photo_id: p.id, decision: ph[p.id] ?? undefined, cover: cover === p.id })).filter((p) => p.decision || p.cover), publish });
   const go = (approve: boolean, publish = true) => start(async () => {
     const r = await adminAct<{ state?: string; slug?: string }>('listing_review', { intake: l.id, approve, edits: edits(publish), note: approve ? null : note }, [`/admin/listings/${l.id}`, '/admin/listings']);
     setRes(r.ok ? { ok: true, text: approve ? (publish ? 'Approved and published.' : 'Approved.') : 'Sent back with your note.' } : { ok: false, text: r.message });
     if (r.ok) router.refresh();
   });
-  const T = (k: keyof typeof c, label: string, rows = 1) => (
-    <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`lr-${k}`}>{label}</label>
-      {rows > 1 ? <textarea className="input ad-textarea" id={`lr-${k}`} rows={rows} value={c[k]} disabled={!reviewable} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
-        : <input className="input" id={`lr-${k}`} value={c[k]} disabled={!reviewable} onChange={(e) => setC({ ...c, [k]: e.target.value })} />}</div>);
   const problems = [...(l.problems.copy ?? []), ...(l.problems.photos ?? []), ...(l.problems.specs ?? []), ...(l.problems.missing_shots ?? []).map((s) => `missing photo: ${s.replace(/_/g, ' ')}`),
     ...(plates?.required && toCheck.length ? [`licence plate not covered or marked "no plate visible": ${toCheck.map((p) => p.shot_label ?? p.shot_type).join(', ')}`] : [])];
   const noneVisible = () => start(async () => {
@@ -55,10 +49,8 @@ export function ListingReview({ l, plates }: { l: L; plates?: Plates | null }) {
   return (
     <div className="ad-cols ad-cols--main" data-testid="listing-review">
       <div className="stack">
-        <section className="pt-card ad-card ad-form" aria-labelledby="lr-copy"><h2 className="d4" id="lr-copy">Copy</h2>
-          <div className="ad-fields">{T('headline', 'Headline')}{T('description', 'Description', 6)}{T('features', 'Features (one a line)', 5)}{T('faq', 'Questions (question | answer, one a line)', 5)}{T('seo_title', 'Search title')}{T('seo_description', 'Search description', 2)}</div>
-          {l.draft?.lint_problems?.length ? <p className="small muted">Draft notes: {l.draft.lint_problems.join('; ')}</p> : null}
-        </section>
+        {copy ? <CarCopyPanel d={copy} slug={l.listing?.slug} />
+          : <section className="pt-card ad-card" aria-labelledby="lr-copy"><h2 className="d4" id="lr-copy">Copy</h2><p className="small muted">Written automatically from the car&apos;s facts once the car is saved. Nothing to type.</p></section>}
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
           {plates && <p className="small muted">Every photo that goes on the website needs its licence plate covered, or a check that no plate can be read{plates.required ? ' before the listing is published' : ''}. The photo as it was is kept privately.</p>}
           {plates && toCheck.length > 1 && <p className="row">{!sure

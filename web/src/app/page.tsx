@@ -9,6 +9,7 @@ import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
+import { getSeoLinks } from '@/features/seo/data';
 import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 
@@ -27,9 +28,9 @@ type Row = { label: string; text: string };
 type Opt = { title: string; body: string };
 
 export default async function Home() {
-  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner] = await Promise.all([
+  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, links] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), faqItems('home.faq'), listItems<Step>('home.how_steps'),
-    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner')
+    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'), getSeoLinks()
   ]);
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
@@ -38,7 +39,7 @@ export default async function Home() {
   const airportsShort = f.airports.map((a) => a.name.replace(/ (International|Toronto City) Airport$/, '')).join(' and ');
   return (
     <div className="p-home">
-      <JsonLd graph={[businessLd(s, siteUrl()), { '@type': 'WebSite', url: siteUrl(), name: s.brand_name }, faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
+      <JsonLd graph={[businessLd(s, siteUrl(), { areas: links.filter((l) => l.kind === 'location' && !/airport|station/i.test(l.slug)).map((l) => l.name) }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
       <section className="hero on-dark">
         <div className="hero__media"><SlotPicture p={hero} eager /></div>
         <div className="wrap hero__inner">

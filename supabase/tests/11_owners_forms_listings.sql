@@ -572,7 +572,7 @@ update program_settings set listing_min_photos = 20 where id = (app.settings()).
 select test.throws('K refused under the minimum number of photos in the settings', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'at least 20 needed');
 update program_settings set listing_min_photos = 10 where id = (app.settings()).id;
 update vehicle_listings set headline = 'Too short' where vehicle_id = test.id('vehicle:oflC');
-select test.throws('K refused with copy that breaks the rules', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'Headline must be 40 to 70 characters');
+select test.throws('K refused with copy that breaks the rules', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'Headline must be 20 to 70 characters');  -- 0061: the written copy's heading
 update vehicle_listings set headline = 'Elevate your drive in a 2023 Mercedes-Benz C 300 sedan' where vehicle_id = test.id('vehicle:oflC');
 select test.throws('K refused with a banned phrase from the settings', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'Remove the phrase "elevate"');
 update vehicle_listings set headline = 'A 2023 Mercedes-Benz C 300 with all-wheel drive and heated seats' where vehicle_id = test.id('vehicle:oflC');

@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 162,
+  "count": 163,
   "emails": [
     {
       "code": "account_password_reset",
@@ -3589,6 +3589,111 @@
       ],
       "template_html": "templates/renter_final_statement.html",
       "template_text": "templates/renter_final_statement.txt"
+    },
+    {
+      "code": "renter_google_review_request",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "Program settings google_review_delay_days (3 by default) after booking status becomes closed, only when the Google place id is set in Site settings (app.notify_google_reviews, migration 0061). The same rules as renter_review_request: not unsubscribed, nothing unpaid or open on the renter, and a booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is sent only after a staff member answers yes to the review request decision. Never depends on the rating the renter gave, and offers nothing for a review. One per booking. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.",
+      "timing": "google_review_delay_days after the booking closes",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Would you review CarmaCars on Google?",
+      "preheader": "A line or two helps other renters choose.",
+      "sample_subject": "Would you review CarmaCars on Google?",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "google_review_url",
+          "type": "url",
+          "sample": "https://search.google.com/local/writereview?placeid=ChIJsample",
+          "note": "The Google review form of the Business Profile (site_settings.google_place_id)."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        },
+        {
+          "name": "vehicle_image_url",
+          "type": "url",
+          "sample": "",
+          "note": "Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_google_review_request.html",
+      "template_text": "templates/renter_google_review_request.txt"
     },
     {
       "code": "renter_identity_approved",

@@ -97,6 +97,33 @@ async function seedContent(tx) {
   return blocks.length;
 }
 
+// ---------------------------------------------------------------- landing pages and articles (0061)
+// Added in every environment; a row is updated from this file only while it is still the seed's own (source seed,
+// nothing locked): an Admin's edit or a rewrite by the search job is never overwritten.
+async function seedSeo(tx) {
+  const has = await tx`select to_regclass('public.seo_pages') is not null as ok`;
+  if (!has[0].ok) return 'skipped: no 0061';
+  const seo = JSON.parse(fs.readFileSync(path.join(WEB, 'scripts/content/seo-content.json'), 'utf8'));
+  for (const p of seo.pages) {
+    await tx`insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source, status)
+             values (${p.slug}, ${p.kind === 'use' ? 'use' : 'location'}, ${p.name}, ${p.sort_order}, ${tx.json(p.facts)}, ${tx.json(p.match)}, ${tx.json(p.copy)}, 'seed', 'published')
+             on conflict (slug) do update set name = excluded.name, sort_order = excluded.sort_order, facts = excluded.facts, match = excluded.match,
+               copy = excluded.copy, copy_facts_hash = null, status = 'published'
+             where seo_pages.source = 'seed' and cardinality(seo_pages.locked) = 0 and (seo_pages.copy, seo_pages.facts, seo_pages.match) is distinct from (excluded.copy, excluded.facts, excluded.match)`;
+  }
+  // the seed's copy was written from these facts
+  await tx`update seo_pages set copy_facts_hash = facts_hash, status = 'published' where source = 'seed' and copy_facts_hash is null`;
+  for (const a of seo.articles) {
+    await tx`insert into articles (slug, title, seo_title, description, summary, body_md, faq, links, topic, sort_order, brief, source, status)
+             values (${a.slug}, ${a.title}, ${a.seo_title}, ${a.description}, ${a.summary}, ${a.body_md}, ${tx.json(a.faq)}, ${tx.json(a.links)}, ${a.topic}, ${a.sort_order}, ${a.brief}, 'seed', 'published')
+             on conflict (slug) do update set title = excluded.title, seo_title = excluded.seo_title, description = excluded.description, summary = excluded.summary,
+               body_md = excluded.body_md, faq = excluded.faq, links = excluded.links, topic = excluded.topic, sort_order = excluded.sort_order, brief = excluded.brief
+             where articles.source = 'seed' and cardinality(articles.locked) = 0
+               and (articles.body_md, articles.title, articles.description, articles.faq, articles.links) is distinct from (excluded.body_md, excluded.title, excluded.description, excluded.faq, excluded.links)`;
+  }
+  return { pages: seo.pages.length, articles: seo.articles.length };
+}
+
 // ---------------------------------------------------------------- sample cars
 const SHOT = { lead: 'front_left', side: 'left', rear34: 'rear_left', front: 'front', rear: 'rear', dash: 'dashboard', seats: 'front_seats', wheel: 'wheel' };
 const FUEL = { Gasoline: 'gasoline', Electric: 'electric', Hybrid: 'hybrid', Diesel: 'diesel' };
@@ -223,10 +250,11 @@ try {
   const result = await sql.begin(async (tx) => {
     await tx`select set_config('app.request_id', 'seed', true)`;
     const blocks = await seedContent(tx);
-    if (contentOnly) return { blocks };
+    const seo = await seedSeo(tx);
+    if (contentOnly) return { blocks, seo };
     const already = await tx`select count(*)::int as n from vehicle_listings`;
-    if (already[0].n > 0) return { blocks, sample: 'skipped: cars exist' };
-    return { blocks, ...(await seedSample(tx)) };
+    if (already[0].n > 0) return { blocks, seo, sample: 'skipped: cars exist' };
+    return { blocks, seo, ...(await seedSample(tx)) };
   });
   if (!contentOnly && !production) copyPhotos();
   console.log('seed:', JSON.stringify(result));

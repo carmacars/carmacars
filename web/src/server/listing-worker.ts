@@ -38,6 +38,7 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
       return { provider: a.provider, result: { ...a.result } };
     },
     text: await textGenerator(),
+    plainCopy: true,
     photos: await photoProcessor(read),
     files: {
       privateUrl: async (path) => { const u = absolute(await s.signedDownloadUrl('vehicle-originals', path, 900)); issued.set(u, { bucket: 'vehicle-originals', path }); return u; },

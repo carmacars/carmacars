@@ -17,9 +17,10 @@ export const dynamicParams = true;
 type Hub = { make: string; model: string; path: string; min_daily_rate_cents: number; indexable?: boolean; cars: CarRow[] };
 type Params = { params: Promise<{ hub: string }> };
 
+// Rendered on the first visit and kept for the hour (revalidate), not at build time: the build does not wait on the
+// database for pages a visitor or the search job renders anyway (deploy run 39289461880 stopped on one).
 export async function generateStaticParams() {
-  const hubs = (await rpc('model_hubs', {})) as unknown as { path: string }[];
-  return hubs.map((h) => ({ hub: h.path.replace(/^\/rent\//, '') }));
+  return [];
 }
 async function load(hub: string) {
   const h = (await rpc('model_hub', { p_hub: hub })) as unknown as Hub | null;

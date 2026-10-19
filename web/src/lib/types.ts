@@ -19,6 +19,11 @@ export interface CarRow {
 export interface CarPage extends CarRow {
   description: string | null; features: string[]; faq: { question: string; answer: string }[];
   specs: Record<string, unknown>; seo_title: string | null; seo_description: string | null; indexable: boolean; photos: Photo[];
+  // 0061: the written copy (features/seo/copy.ts) and the car's own published reviews
+  copy?: { seo_title: string; meta_description: string; h1: string; intro: string; highlights: string[]; good_for: string[]; included: string[];
+    pickup_delivery: string; requirements: string[]; faq: { question: string; answer: string }[] } | null;
+  reviews?: { count: number; average: number | null; min_for_rating: number;
+    items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null }> };
 }
 
 export interface SiteSettings {
@@ -31,6 +36,9 @@ export interface SiteSettings {
   google_place_id: string | null; hst_number: string | null; listing_time_promise: string | null; featured_mode: string;
   seo: { title_suffix: string | null; default_title: string | null; default_description: string | null };
   airport_delivery: boolean | null; delivery_area_text: string | null;
+  // 0061: search engine verification and the business name, address and phone for the structured data
+  google_site_verification?: string | null; bing_site_verification?: string | null;
+  business?: { name: string; street: string | null; city: string | null; region: string | null; postal_code: string | null; country: string; latitude: number | null; longitude: number | null };
 }
 
 export interface Fee { label: string; unit: string; amount_cents: number | null; cap_cents: number | null; percent_bps: number | null; grace_minutes: number | null }

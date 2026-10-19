@@ -143,7 +143,8 @@ test('listing: an owner lists a car on a phone; the pipeline drafts and edits; a
     const state = await waitFor(async () => (await sql`select state from listing_intakes where id = ${intake!.id}`)[0]!.state as string, (s) => s === 'needs_review');
     expect(state).toBe('needs_review');
     const [d] = await sql`select model, prompt_version, headline, needs_rewrite from listing_drafts where intake_id = ${intake!.id}`;
-    expect([d!.model, d!.prompt_version, d!.needs_rewrite]).toEqual(['fake-draft-v1', 'listing-draft-v1', false]);
+    // the draft step stores a plain copy without the model (0061): the search job writes the real copy
+    expect([d!.model, d!.prompt_version, d!.needs_rewrite]).toEqual(['plain', 'plain-v1', false]);
     const [c] = await sql`select count(*)::int as n from provider_calls where intake_id = ${intake!.id}`;
     expect(c!.n).toBeGreaterThan(14);
     await phone.reload();

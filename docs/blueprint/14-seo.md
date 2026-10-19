@@ -1,5 +1,14 @@
 # 14. SEO plan
 
+> **Changed by migration 0061 (October 19, 2026, the owner's decisions; `docs/changes/2026-10-19-seo.md`).** Listing copy,
+> landing pages and guides are written by Workers AI from the database's facts and published by themselves when they pass
+> the checks (lengths, house style, no number or claim the facts do not support, no near copy of another page); a person
+> may edit and nobody has to. This replaces the rules below that machine-written text is never published without a
+> person's edit (sections 1, 4, 17, 20). Landing pages live at `/car-rental/<slug>` (places and uses side by side), a use
+> page is indexed only with enough real matching cars, and FAQPage markup is used on landing pages and guides (no rich
+> result is expected; it describes the visible questions). The sitemap is an index of four files; sitemap pings are not
+> sent (Google retired its endpoint), IndexNow is.
+
 Owner: workstream B (`src/features/seo/`, `src/app/(public)/`, `content/`). The owner's goal: every car page should rank highly, and CarmaCars should become the top-ranking car rental company in Canada. This file is the plan to pursue that, and section 19 is the honest statement of what code can and cannot deliver.
 
 Google guidance cited here was read on October 7, 2026. Links are in section 22. Where a recommendation is our judgment rather than Google's documentation, it says so.

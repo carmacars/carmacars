@@ -263,12 +263,14 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
     }
   }
   expect((await sql`select state from listing_intakes where id = ${ik!.id}`)[0]!.state).toBe('needs_review');
-  const headline = `Quiet, quick and ready for the highway ${Date.now() % 10000}`;
+  // a sample car's short sample text would not pass the listing lint; this one carries a full text (a real car's copy is
+  // written by the search job, 0061)
+  await sql`update vehicle_listings set description = ${words} where vehicle_id = ${lc!.id}`;
   await ap.goto(`/admin/listings/${ik!.id}`, { waitUntil: 'networkidle' });
   await check(ap, 'listing review');
-  await ap.getByLabel('Headline', { exact: true }).fill(headline);
-  const marker = `reviewed${Date.now() % 100000}`;
-  await ap.getByLabel('Description', { exact: true }).fill(`${words} ${marker}`);
+  // the copy is written by itself (0061): the review has no copy text boxes, only the copy card
+  await expect(ap.getByTestId('listing-review').locator('#lr-headline, #lr-description')).toHaveCount(0);
+  const [before] = await sql`select headline, description from vehicle_listings where vehicle_id = ${lc!.id}`;
   // every public photo needs a plate decision before publishing (0042): the sample photos show no plate
   await ap.getByTestId('plates-none-visible').click();
   await ap.getByTestId('plates-none-visible-yes').click();
@@ -277,8 +279,9 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await expect(ap.getByText('Approved and published.')).toBeVisible({ timeout: 15_000 });
   expect((await sql`select state from listing_intakes where id = ${ik!.id}`)[0]!.state).toBe('published');
   await pub.goto(`/cars/${lc!.slug}`, { waitUntil: 'networkidle' });
-  await expect(pub.locator('body')).toContainText(marker);
-  expect((await sql`select headline from vehicle_listings where vehicle_id = ${lc!.id}`)[0]!.headline).toBe(headline);
+  expect(await pub.locator('h1').count()).toBe(1);
+  // approving sends no copy: the listing's text is what it was (a sample car keeps its sample text)
+  expect((await sql`select headline from vehicle_listings where vehicle_id = ${lc!.id}`)[0]!.headline).toBe(before!.headline);
 
   // ---------------------------------------------------------------- a toll statement imported, a match confirmed, charged
   const tc = await freeCar(sql, -12, 5, [car!.slug, lc!.slug]);
