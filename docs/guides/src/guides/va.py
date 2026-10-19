@@ -29,12 +29,12 @@ def build():
               'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
               'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
-    g.task('The menu', 'My work comes first: To do, Today and My scorecard (Sales also has My sales). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
         ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Owner forms)'],
-        ['Sales', 'My work (also My sales), Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
-        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar)'],
-        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar), Renters (Find a renter)'],
+        ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
+        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote)'],
+        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar), Renters (Find a renter), Rentals (Add a rental, New quote)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
     g.steps([
@@ -250,8 +250,9 @@ def build():
         f'{B("New quote")}: price a car for a caller and press {B("Create the request")}, as in chapter 2.',
     ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 380, 172)]))
     g.tip('Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.')
-    g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales only. Nothing here is a commission: it is for tracking.')
+    g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales and commissions only.')
     g.steps([
+        'Commissions comes first. In Sales your rate depends on the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%. The bar shows your days against the target of 100, and says when your rate rises.',
         f'The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press {B("By month")} for months, {B("By week")} for weeks.',
         'By week (or By month) lists each period with the same figures, newest first.',
         'Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.',
@@ -263,7 +264,9 @@ def build():
         ['Bookings confirmed, booked revenue', 'Counted on the day the booking was confirmed.'],
         ['Conversion', 'Of the deals credited to you in the period, the share confirmed so far.'],
         ['Booked revenue', 'The rental charge before tax, after discounts. A cancelled booking counts only what was kept; refunds come off.'],
+        ['Rental days (Sales)', 'The days of the completed, paid rentals you sourced that end in the month. The month\'s tier applies to all of that month\'s rentals.'],
     ], head=['Figure', 'How it is counted'])
+    g.tip('Sales commissions are approved after the month ends, when the month\'s tier is known. A refund that drops the month under a tier lowers every commission of that month; anything already paid comes off your next payment.')
     g.task('Owner leads')
     g.steps([
         'Owner leads: each enquiry with the name, contact, car and status.',
@@ -274,19 +277,41 @@ def build():
 
     # ---------------------------------------------------------------- 5b
     g.chapter('Add a rental by hand',
-              'Customer service and Sales add rentals that come in by phone, at the counter, from Turo, a partner or an '
-              'insurer. The rental is confirmed and on the calendar at once.',
+              'Every function adds rentals that come in by phone, at the counter, from Turo, a partner, an insurer or '
+              'someone you know. The rental is confirmed and on the calendar at once.',
               blurb='Choose the car and dates, find the renter, price it, record how it is paid.')
     g.task('Add a rental', f'Open {P("Bookings", "Add a rental")}.')
     g.steps([
         'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
         'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
-        f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code; a price typed by hand is for Admins.',
+        f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code.',
+        'To charge another price, type the rental charge and the reason. The rate-sheet price stays on the booking. A price far under the rate sheet is flagged for an Admin to review, but the rental is still added.',
         f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}.',
+        f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}.',
         f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
-        'A rental you add is credited to you. In Sales it shows in My sales as a rental you added, and as a booking confirmed once it is confirmed.',
+        'A rental you add is credited to you and shows in My sales as a rental you added. If you sourced it, its commission shows there too.',
     ])
     g.tip('The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.')
+
+    # ---------------------------------------------------------------- 5c
+    g.chapter('Commissions',
+              'Every function earns a commission on the rentals it sources: a renter you found yourself. Say so when you '
+              'enter the rental, the quote or the offer.',
+              blurb='I sourced this client, your rate, when it is earned, approved and paid.')
+    g.task('Mark who found the client', f'Every rental, quote and offer you enter asks: {B("I sourced this client")} or {B("Entered for CarmaCars")}.')
+    g.steps([
+        f'Choose {B("I sourced this client")} when you found the renter yourself: someone you know, your own post or your own outreach.',
+        f'Choose {B("Entered for CarmaCars")} when the renter came to CarmaCars: the website, the phone line, a walk-in, a partner.',
+        'A website request earns nothing by itself. If you sourced it anyway, choose I sourced this client on its offer: an Admin decides.',
+    ])
+    g.table([
+        ['Sales', 'By the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all of that month\'s rentals'],
+        ['Customer service, finance, fleet', '10%'],
+        ['How much', 'The rate on the rental charge before tax, after discounts, less refunds'],
+        ['When earned', 'When the rental is completed and paid in full. Never on a cancelled, refunded, unpaid or charged-back rental, or on your own or a household rental'],
+        ['Paid', 'After an Admin approves it, by transfer or on your pay statement. My sales shows each step: not earned yet, pending approval, approved, paid, reversed'],
+    ], head=['', 'Commission'])
+    g.tip('A refund or chargeback after a commission was paid comes off your next payment. Your staff agreement has the full rule.')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Shared tools',
@@ -312,12 +337,14 @@ def build():
                   ('Finance', 'Payments, Tolls and tickets, Reconciliation, Turo trips'),
                   ('Fleet', 'Field jobs, Daily checks, Photo reviews, Listings, Similar cars'),
                   ('Sales', 'Requests and offers, New quote, Add a rental, Owner leads'),
-                  ('My sales', 'Sales: your quotes, offers, bookings and booked revenue'),
+                  ('Add a rental, New quote', 'Every function'),
+                  ('My sales', 'Your commissions, quotes, offers, bookings and booked revenue'),
                   ('My scorecard', 'Your results by week')],
         top_tasks=[('Take a task', f'{P("My work", "To do")}, {B("Take it")}, then {B("Done")}'),
                    ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
                    ('Quote a caller', f'{P("Bookings", "New quote")}, then {B("Create the request")}'),
                    ('See your sales', f'{P("My work", "My sales")}, then {B("By week")} or {B("By month")}'),
+                   ('Claim a client you found', f'{B("I sourced this client")} when you add the rental or send the offer'),
                    ('Review Forms C and D', f'{P("Owner forms", "Approve")}'),
                    ('Read a toll notice', f'{P("Tolls and tickets", "Read a notice")}'),
                    ('Issue a refund', f'{B("Request the refund")}, {B("Issue the refund")}'),

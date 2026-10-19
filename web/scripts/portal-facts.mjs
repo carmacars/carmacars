@@ -85,8 +85,8 @@ function nav() {
   const f = (p) => read(path.join(SRC, p));
   const admin = navFromGroups(f('features/admin/AdminNav.tsx'), 'GROUPS');
   const vaCode = f('features/va/VaNav.tsx');
-  // My work, and Sales' My work with My sales (0057)
-  const work = [...vaCode.matchAll(/const \w*WORK[^=]*= (\{[\s\S]*?\] \});/g)].map((m) => m[1]).join(' ');
+  // My work with My sales (0057 for Sales, 0058 for every function), and the Rentals group (Add a rental, New quote; 0058)
+  const work = [...vaCode.matchAll(/const (?:\w*WORK|SELL)[^=]*= (\{[\s\S]*?\] \});/g)].map((m) => m[1]).join(' ');
   const va = [];
   for (const g of navFromGroups(`X ${work} ${vaCode.slice(vaCode.indexOf('VA_GROUPS'))}`, 'X')) if (!va.some((x) => x.group === g.group && x.links.join() === g.links.join())) va.push(g);
   const inv = fs.existsSync(path.join(SRC, 'app/investor/layout.tsx')) ? f('app/investor/layout.tsx') : '';

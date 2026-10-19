@@ -138,6 +138,7 @@ Navigation (the left rail; on a phone one scrolling strip):
 | | Similar cars | Possible duplicate listings: "Not a duplicate" or "Same car". |
 | | Bulk rates | Change rates of many cars at once ("Preview"). |
 | Money | Payments and refunds | Payments, refunds to approve, deposits. |
+| | Staff commissions | (0058) By person (the month, not earned yet, pending approval, approved, paid): "Approve", "Record a payment" (e-Transfer, bank transfer, Wise, cash, the monthly pay statement, another way; reference, date); each commission ("Approve", "Reverse"); Payments made; Prices to review ("Mark reviewed"); Sourcing claims ("Credit them", "Not theirs"). Nothing is paid automatically. |
 | | Insurer invoices | Invoices to insurers for insurer-billed bookings. |
 | | Owner invoices | Fee invoices: "Run the monthly invoices", "Issue all tracker invoices"; record an offline payment ("Mark paid"). |
 | | Owner debits | The debit policy, next notice and debit days, scheduled and processing debits, owners and mandates ("Pause", "Resume", "Send a notice now"), results, the run log, notices. |
@@ -184,9 +185,9 @@ Every function starts with **Queue** (the function's tasks, oldest due first: "T
 
 | Function | Navigation (after Queue and Today) |
 | --- | --- |
-| Customer service | Requests; New quote; Renter messages; Find a renter; Calendar; Listings; Similar cars; Owners and enquiries; Owner forms; Scorecard |
-| Finance | Payments, deposits, refunds; Tolls and tickets (with "Read a notice" and reading profiles); Reconciliation; Turo trips; Find a renter; Calendar; Scorecard |
-| Fleet | Field jobs; Daily checks; Photo reviews; Calendar; Listings; Similar cars; Find a renter; Scorecard |
+| Customer service | My sales; Requests; New quote; Add a rental; Renter messages; Find a renter; Calendar; Listings; Similar cars; Owners and enquiries; Owner forms; Scorecard |
+| Finance | My sales; Payments, deposits, refunds; Tolls and tickets (with "Read a notice" and reading profiles); Reconciliation; Turo trips; Find a renter; Calendar; Add a rental; New quote; Scorecard |
+| Fleet | My sales; Field jobs; Daily checks; Photo reviews; Calendar; Listings; Similar cars; Find a renter; Add a rental; New quote; Scorecard |
 | Sales | My sales; Requests and offers; New quote; Add a rental; Owner leads; Calendar; Scorecard |
 
 Main tasks:
@@ -194,7 +195,8 @@ Main tasks:
 - **Customer service, answer a request:** Requests > the booking > Review tab, as an Admin does ("Adjust the booking", "Save changes", "Send the offer"); "Approve (within my limit)"; "Approve and send the pay link". New quote for a caller: fill the trip and the renter, "Create the request". Renter messages: reply, "Send". Find a renter: search, "Open with a reason" (the reason is kept in the access log). Owner forms: "Approve" or "Send back".
 - **Finance:** Payments, deposits, refunds: "Request the refund" (above your limit it goes to an Admin), "Issue the refund". Tolls as the Admin does (Read a notice, Confirm and import, "Match again", "Dispute"). Reconciliation: "Record a processor payout", "Match". Turo trips: "Add a trip" or "Import".
 - **Fleet:** Field jobs: "Schedule" (kind, car, when, place, field staff, instructions), "Assign", "Reassign", "Move", "Cancel". Daily checks: "Opening check", "Closing check". Photo reviews after a return: "Review done" or "Ask for a re-shoot". Similar cars: "Not a duplicate" or "Same car". Listings: review and the plate editor as an Admin does.
-- **Sales:** Owner leads: "Take it", "Update" (status and the reason when closed). Requests and offers, New quote and Add a rental as customer service. My sales (October 18, 2026): "By week" or "By month"; tiles for quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due; By week (or By month); Follow-ups due; Deals; How it is counted. Tracking only, no commission.
+- **Sales:** Owner leads: "Take it", "Update" (status and the reason when closed). Requests and offers, New quote and Add a rental as customer service. My sales (October 18, 2026): "By week" or "By month"; tiles for quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due; By week (or By month); Follow-ups due; Deals; How it is counted. Commissions (October 18, 2026, 0058): the month's rental days against the target of 100 with the tier (10%, 15% from 50 days, 20% from 100), totals (Earned, Pending approval, Approved, Paid, Reversed, Not earned yet) and each commission with its status.
+- **Every function (0058):** Add a rental and New quote, each with a price typed by hand and its reason, and the required choice "I sourced this client" or "Entered for CarmaCars" (also on an offer for a website request: a claim an Admin decides). My sales with the commissions (flat 10% outside Sales).
 - **First reply target:** 5 minutes (Program settings, "First reply target for customer service and sales (minutes)"): booking requests, enquiries, changes renters ask for and renter messages are due 5 minutes after they come in; the scorecard targets read it. Renters are still told "within 2 hours" (Site settings, Reply wording).
 - **Late return panel** (on a late booking): "Log a call", "Send T13", "Send T14 (final notice)", "Request disable", "Open an incident".
 
@@ -210,7 +212,9 @@ Main tasks:
 | --- | --- |
 | My jobs | Today's jobs in order (handovers, returns, deliveries, moves, photo shoots); each card shows the kind, time, car, plate, place ("Open in maps"). "Start a move" / "End the move" for car moves. |
 | Report | Report an incident, damage, a breakdown or a ticket, with photos ("Take a photo", "Send the report"). |
-| Referrals | Your referral link ("Copy the link") and its QR code. |
+| Add a rental | A rental for a renter you found (0058): the renter's details typed, a payment link or the saved card, a price typed with its reason, "I sourced this client" or "Entered for CarmaCars", "Add the rental". |
+| My sales | Your rentals and commissions (10%), each with its status. |
+| Referrals | Your referral link ("Copy the link") and its QR code. A booking made with it counts as a rental you sourced. |
 | Profile | "Save my phone", "Set up two-step sign-in", "Change my password", "Sign out". |
 
 **A handover:** the job > "Acknowledge" > "Start". The ready check lists what must be done first (signed, paid, ID checked, deposit); if something fails, "Stop: do not release the car". Then each step with "Next" and "Back": Car ready ("Yes"/"No"), Is this the renter?, Original licence, Card on File, Odometer, Fuel or charge, Keys ("+" and "−"), Photo set (19 photos in order, "Take", "Retake"; the count shows "19 of 19 photos taken · all uploaded"), Damage (tap the car diagram, "Add the damage"), Tracker, Renter reviews, Signatures (the renter signs, then you), and "Hand over the keys". Done: "Handed over. The rental has started."

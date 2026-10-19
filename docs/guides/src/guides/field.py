@@ -35,7 +35,7 @@ def build():
               blurb='Your job list, a job card, maps and car moves.')
     g.task('Your job list')
     g.steps([
-        f'The menu: {B("My jobs")}, {B("Report")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
+        f'The menu: {B("My jobs")}, {B("Report")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
         'Each card: the kind, the time, the status, the car and plate.',
         f'Press {B("Open the job")} to start.',
@@ -132,9 +132,10 @@ def build():
     g.tip('Keep other cars\' plates out of the frame. The reviewer covers this car\'s plate before the listing goes live.')
 
     # ---------------------------------------------------------------- 5
-    g.chapter('Report, referrals and profile',
-              'Report anything that happens on the road, share your referral link, and keep your details up to date.',
-              blurb='Report an incident, your referral link and your profile.')
+    g.chapter('Report, rentals, referrals and profile',
+              'Report anything that happens on the road, add a rental for a renter you found, share your referral link, '
+              'and keep your details up to date.',
+              blurb='Report an incident, add a rental, commissions, your referral link and your profile.')
     g.task('Report something')
     g.steps([
         f'Open {B("Report")} and choose the Car.',
@@ -144,9 +145,22 @@ def build():
     ], shot=S('field/03-report-phone', 0, 595, 390, 1500, pins=[(1, 360, 820), (2, 360, 895), (3, 360, 1340), (4, 360, 1480)]))
     g.warn('In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 647-575-3377 before you send the report.')
 
+    g.task('Add a rental for a renter you found')
+    g.steps([
+        f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email.',
+        f'Press {B("Check the calendar and the price")}. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.',
+        f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. You never take payment yourself.',
+        f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}, then press {B("Add the rental")}.',
+    ])
+    g.task('Commissions')
+    g.steps([
+        'You earn 10% of the rental charge (before tax, after discounts, less refunds) of each rental you sourced: one you added and marked I sourced this client, or a booking made with your referral link.',
+        'It is earned when the rental is completed and paid in full, then an Admin approves it and it is paid on your pay date.',
+        f'{B("My sales")} shows each commission: not earned yet, pending approval, approved, paid or reversed. A refund after payment comes off a later commission.',
+    ])
     g.task('Referrals and profile')
     g.steps([
-        f'{B("Referrals")}: your own referral link. Press {B("Copy the link")}, or let someone scan its QR code.',
+        f'{B("Referrals")}: your own referral link. Press {B("Copy the link")}, or let someone scan its QR code. A booking made with it counts as a rental you sourced.',
         f'{B("Profile")}: {B("Save my phone")}, {B("Set up two-step sign-in")}, {B("Change my password")} and {B("Sign out")}.',
     ], shot=S('field/04-profile-phone', 0, 595, 390, 1440, pins=[(2, 365, 1113)]))
 
@@ -154,6 +168,8 @@ def build():
         nav_rows=[('My jobs', 'Today and Tomorrow, in order; Vehicle moves'),
                   ('A job', 'Open in maps, Acknowledge, Start'),
                   ('Report', 'Damage, warning light, collision, ticket, lost property'),
+                  ('Add a rental', 'A renter you found: a payment link or the saved card'),
+                  ('My sales', 'Your rentals and commissions'),
                   ('Referrals', 'Your link and QR code'),
                   ('Profile', 'Phone, two-step sign-in, password, Sign out')],
         top_tasks=[('Start a job', f'{B("Open the job")}, {B("Acknowledge")}, {B("Start")}'),
@@ -162,7 +178,8 @@ def build():
                    ('Take a car back', f'Every step, then {B("Complete the return")}'),
                    ('Shoot listing photos', f'{B("Take photo")}, then {B("Submit for listing")}'),
                    ('Move a car', f'{B("Start a move")}, then {B("End the move")}'),
-                   ('Report an incident', f'{P("Report", "Send the report")}')],
+                   ('Report an incident', f'{P("Report", "Send the report")}'),
+                   ('Add a rental', f'{B("Add a rental")}, {B("I sourced this client")}, {B("Add the rental")}')],
         extra_problems=[('A photo did not upload', f'Check your signal, then press {B("Send again")}.'),
                         ('The renter does not match', 'Do not hand over. Press Stop and call us.')])
     return g

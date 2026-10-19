@@ -31,7 +31,7 @@ def build():
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
     g.task('To do', 'Start every shift here. Each line counts what is waiting and has one button to deal with it.')
     g.steps([
-        'The list is in order of urgency: owner applications, booking requests, changes renters asked for, failed payments, agreements to countersign, tolls, listings, plates not checked, insurance and cars using sample photos.',
+        'The list is in order of urgency: owner applications, booking requests, changes renters asked for, failed payments, agreements to countersign, tolls, listings, plates not checked, insurance, cars using sample photos, staff commissions to approve and to pay, prices typed by hand to review, and staff who say they sourced a website request.',
         'Press the button on a line to go straight to that work. A line with nothing waiting moves to the bottom, under "more with nothing waiting".',
         'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
         f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
@@ -42,7 +42,7 @@ def build():
         ['Bookings', 'Requests, Bookings, Calendar, Add a rental, Damage, Incidents and claims, Reviews'],
         ['Cars', 'Vehicles, Listings, Similar cars, Retire or delete, Rates for many cars'],
         ['Owners and partners', 'Applications, Owners, Partners, Owner forms, Paid and signed'],
-        ['Money', 'Owner invoices, Owner debits, Payments and refunds, Owner statements, Company statements, Payouts, Tolls and tickets, Insurer invoices, Reconciliation, Expenses'],
+        ['Money', 'Owner invoices, Owner debits, Payments and refunds, Owner statements, Company statements, Payouts, Staff commissions, Tolls and tickets, Insurer invoices, Reconciliation, Expenses'],
         ['People', 'Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings, Site, Program, Forms, Guides, Emails, Email log, Sample photos, Audit log'],
     ], head=['Group', 'Pages'])
@@ -127,12 +127,13 @@ def build():
         'A task meets its target when it is done by its due time. Daily checks count when done by 9:00 and 18:00.',
     ], shot=S('va-sales/05-scorecard-desktop', 210, 120, 1440, 470, pins=[(2, 470, 270)]))
 
-    g.task('Sales by staff member', 'See each person\'s quotes, offers, rentals added, bookings confirmed and booked revenue. It is tracking only: the staff agreements allow no commission.')
+    g.task('Sales by staff member', 'See each person\'s commissions, quotes, offers, rentals added, bookings confirmed and booked revenue.')
     g.steps([
         f'On a staff member\'s row in Staff and roles, press {B("Sales")}. Press {B("By week")} or {B("By month")}.',
         'The tiles show the current week or month. By week (or By month) lists each period: quotes created, offers sent, rentals added, bookings confirmed, conversion and booked revenue.',
         'Follow-ups due lists their open deals with the next step. Deals lists each booking they created, added or sent an offer on, with what it counts.',
-        f'A deal credited to the wrong person? Press {B("Reassign")} beside it, choose who and write the reason.',
+        f'A deal credited to the wrong person, or marked sourced when it was not? Press {B("Reassign")} beside it, choose who, say whether they sourced the client, and write the reason.',
+        f'{B("Commission rate")} gives this person their own flat rate (empty: the Program settings). {B("Reverse")} beside a commission stops it, for example for a household rental found later.',
         f'The whole team: {P("Today", "Overview")}, the Sales card at the bottom. Choose another month and press {B("Show")}.',
     ])
     g.table([
@@ -186,7 +187,10 @@ def build():
     g.task('Who a booking is credited to', 'Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.')
     g.steps([
         'A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.',
-        f'To give it to someone else, press {B("Reassign")}, choose who (or Nobody) and write the reason. The booking\'s history keeps it, and the deal stays in the same week and month.',
+        f'To give it to someone else, press {B("Reassign")}, choose who (or Nobody), say whether they sourced the client and write the reason. The booking\'s history and the audit log keep it, and the deal stays in the same week and month.',
+        'Sourced means the staff member chose I sourced this client when they entered it, it came with a field staff referral link, or you credited it. Only a sourced booking earns a staff commission. A website request earns none unless you credit someone.',
+        f'Someone said they sourced a website request? The credit line shows the claim: press {B("Credit them")} or {B("Not theirs")}, with a reason.',
+        f'A price typed by hand shows beside the rate-sheet price, with the reason. A price under the floor or past the discount limit is flagged: press {B("Mark reviewed")} once you have looked at it.',
     ])
     g.tip('The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to '
           'their Card on File; a lower price raises a refund for your approval.')
@@ -429,6 +433,26 @@ def build():
     g.figure(S('admin/17-statement-desktop', 0, 0, 1440, 520, pins=[(3, 1238, 118)]),
              note='An approved statement: the owner gets it by email with the PDF on the 10th, and payouts follow under Payouts.')
 
+    g.task('Staff commissions', f'{P("Money", "Staff commissions")}. Nothing is paid automatically.')
+    g.flow([('Not earned yet', 'The rental is ahead, or not paid in full'),
+            ('Pending approval', 'Completed and paid in full; a Sales month once it has ended'),
+            ('Approved', 'You approved it; the staff member is told'),
+            ('Paid', 'You recorded the payment; the staff member is told'),
+            ('Reversed', 'Cancelled, refunded or charged back; after payment it comes off the next payment')])
+    g.steps([
+        'By person shows each staff member\'s month (Sales: rental days of 100 and the tier), what is not earned yet, pending approval, approved and paid.',
+        f'Press {B("Approve")} on a person (everything that may be approved now) or on one commission.',
+        f'Press {B("Record a payment")}: choose how it was paid (e-Transfer, bank transfer, Wise, cash, the monthly pay statement or another way), the reference and the date.',
+        f'{B("Prices to review")} lists prices typed by hand; {B("Sourcing claims")} lists staff who say they sourced a website request; {B("Payments made")} lists each payment.',
+    ])
+    g.table([
+        ['Sales', 'By rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all that month\'s rentals'],
+        ['Customer service, finance, fleet, field staff', '10% (also the field referral fee)'],
+        ['Base', 'The rental charge before tax, after discounts, less refunds'],
+        ['On the owner statement', 'An owner\'s car: deducted with the kickbacks before Owner Revenue, its own line on the statement. A partner\'s car: from CarmaCars\' commission. A CarmaCars-owned car: a CarmaCars expense'],
+    ], head=['', 'Commission'])
+    g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
+
     g.task('Company statements', 'CarmaCars\' own monthly statement, in twelve sections.')
     g.steps([
         'Choose the month. The tiles show revenue, fees, refunds, expenses and the company net.',
@@ -494,6 +518,7 @@ def build():
         'Turnaround between trips: the time held between two trips. The cleaning block after a trip is this time.',
         'Settings come in groups such as Company, Booking requests and offers, Owner debits and statement emails, Deposits, Delivery, Owners and fleet, and Tolls and damage. Open one to see its fields.',
         'First reply target for customer service and sales (minutes), under Booking requests and offers: 5 by default. New booking requests, enquiries, changes renters ask for and renter messages are due that many minutes after they come in; the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) is separate.',
+        'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%).',
         f'Staff agreement defaults by function, at the bottom: pay (a month or an hour), the rate, full or part time, days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Press {B("Save the defaults")}.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
