@@ -144,8 +144,10 @@ After every successful production deploy the deploy job starts `guides.yml` with
    screens the section shows, the closest labels to each missing one). Workers AI (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
    temperature 0.1) rewrites it. The checks (every screenshot line kept, every button named exists, no em dash, the brand
    spelled CarmaCars, a sensible length, no task heading lost, the text renders) decide: published at once, with the old
-   text kept, or kept as a suggestion under To review. An Admin's unpublished draft is never overwritten. At most 15
-   sections a run.
+   text kept. Since 0059 (docs/changes/2026-10-19-guides-auto-sales-commission-only.md) nothing waits for review: a
+   section an Admin edited or drafted is published too (the draft goes into the history), a failing rewrite is asked
+   again more strictly (three attempts), and if it still fails only the button names are fixed, the old text stays and
+   the next run takes the section again. At most 15 sections a run.
 4. The PDFs of the guides that changed are printed again, and the run is recorded with its commit.
 
 Admin > Settings > Guides shows "Changed automatically on <date>" for each guide and section, the last runs, and Revert

@@ -11,7 +11,7 @@ Hire three at launch: two full-time coordinators and a 20-hour finance coordinat
 | Finance and Billing | 5, 11, 14, 20 | 3 (deposit), 6 (payment), 7 (refund), 9 (billing), 12 (upfront fees), 16 (final account), 19 (payout match) | Mon to Fri 9:00–13:00, plus the 1st, 10th and 15th | 20 |
 | Fleet Operations | 8, 10, 16, 17, 19; opens 9 | 3, 4, 18 (dispatches Field, reviews photos); 12, 13 (after signature) | Fri to Tue 8:30–18:00 | 40 |
 | Customer Service and Growth | 1, 2, 6, 7 (log), 12 (to signature), 13, 15 | 17 (publish), 19 (inbox) | Wed to Sun 9:00–18:00 | 40 |
-| Sales (optional) | None; works procedure 1 steps 1 to 4 under CS | Quote follow-up, business and long-term outreach | Thu to Sun 13:00–18:00 | 20 |
+| Sales (optional) | None; works procedure 1 steps 1 to 4 under CS | Quote follow-up, business and long-term outreach | Flexible: they choose (most enquiries come Thu to Sun afternoons) | Flexible |
 
 - Assumes CarmaCars opens seven days. Toronto 9:00–18:00 is 21:00–06:00 in Manila until November 1, then 22:00–07:00.
 - Cover: CS runs Fleet on Wednesday and Thursday; Fleet runs CS on Monday and Tuesday. Both work Friday to Sunday.
@@ -37,9 +37,11 @@ Budget US$2,250 to $2,950 a month for the three launch hires.
 | Finance and Billing | 6.00–8.00 | 20 | 520–695 |
 | Fleet Operations | 5.00–6.50 | 40 | 865–1,125 |
 | Customer Service and Growth | 5.00–6.50 | 40 | 865–1,125 |
-| Sales (optional) | 5.00–7.00 | 20 | 435–605 |
+| Sales (optional) | None: commission only | Flexible | Commission only |
 
-Month = hourly rate × weekly hours × 4.33. The agreement allows no commission, which will narrow the sales applicant pool.
+Month = hourly rate × weekly hours × 4.33, for the three hourly roles.
+
+**Sales pay: commission only.** No salary, no hourly rate, no set days or hours. Sales earns a share of the rental charge (before tax, after discounts, less refunds) of each rental they sourced, once it is completed and paid in full: 10% under 50 rental days in the calendar month, 15% from 50 days, 20% from 100 days, the month's rate applying to all of that month's rentals. An Admin approves each commission before it is paid; a refund or chargeback after payment comes off the next payment. None on cancelled, refunded, unpaid or charged-back rentals, own or household rentals. The staff agreement's Schedule A says "Commission only" and section 3.4 sets the rule. Every other role also earns 10% on rentals they source, on top of their rate. Sales costs nothing until rentals close, but a commission-only role draws fewer and more sales-minded applicants: expect a longer search.
 
 Basis, all read October 6, 2026: Filipino applicants asked a median of $714 a month full-time (about $4.10 an hour), $893 for bookkeeping and $800 for customer service and admin. Staffing firms quote $5 to $10 an hour for the same roles. The ranges sit above the asking median because the shifts are Manila nights and weekends and Finance carries trust; that premium is a judgement, not a sourced figure.
 
@@ -77,15 +79,15 @@ Must have: two years of phone and chat support for North American customers; neu
 
 To apply: answer the five questions, give your hourly rate and a two-minute voice recording introducing yourself.
 
-**Sales Coordinator, 20 hours a week, US$5–7 an hour**
+**Sales Coordinator, commission only, flexible hours**
 
-CarmaCars is a Toronto car rental company launching October 15. You turn enquiries into bookings. You follow up every quote, answer price questions from our rate sheet, chase tentative holds before they expire, and contact businesses and long-term renters who need a car for weeks at a time. Hourly pay, no commission.
+CarmaCars is a Toronto car rental company launching October 15. You turn enquiries into bookings. You follow up every quote, answer price questions from our rate sheet, chase tentative holds before they expire, and contact businesses and long-term renters who need a car for weeks at a time. Commission only: 10% to 20% of the rental charge of every rental you source, rising with the rental days you close each month, paid once the rental is completed and paid. No salary and no set hours.
 
-Hours: Thursday to Sunday, 13:00–18:00 Toronto time (night in Manila).
+Hours: you choose. Most enquiries come Thursday to Sunday afternoons, Toronto time (night in Manila).
 
-Must have: two years of sales follow-up or appointment setting by phone and chat for North American customers; confident spoken English; persistence without pressure; you quote only what the rate sheet allows; your own computer, headset, backup internet and power. Write your hourly rate in words, not figures. You may not work for another car rental business serving Ontario. Independent contractor, 30-day paid trial.
+Must have: two years of sales follow-up or appointment setting by phone and chat for North American customers; confident spoken English; persistence without pressure; you quote only what the rate sheet allows; your own computer, headset, backup internet and power. Write in words, not figures, how many rentals a month you expect to close. You may not work for another car rental business serving Ontario. Independent contractor, 30-day trial.
 
-To apply: answer the five questions, state your rate, and send a two-minute voice recording selling a product you know.
+To apply: answer the five questions and send a two-minute voice recording selling a product you know.
 
 ## 4. Screening
 
@@ -95,11 +97,11 @@ To apply: answer the five questions, state your rate, and send a two-minute voic
 2. Describe one mistake you made with a customer's money or booking. How was it found, and what did you do?
 3. Which three tools did you use most in your last role, and what did you do in each?
 4. Which clients will you keep alongside us? Is any a vehicle rental business?
-5. Your rate in US dollars an hour, your earliest start date, and two clients we may call.
+5. Your rate in US dollars an hour (Sales: the rentals a month you expect to close), your earliest start date, and two clients we may call.
 
 Reject any application that missed the post's hidden instruction.
 
-**Paid test tasks.** One hour, paid at the role's rate, with the relevant procedure pages. Pass mark for every test: 16 out of 20.
+**Paid test tasks.** One hour, paid at the role's rate, with the relevant procedure pages. Sales has no rate: agree a flat fee for the test before it starts. Pass mark for every test: 16 out of 20.
 
 **Finance: build the November owner statement.** One Owner, not registered for HST, has two Managed vehicles. Each is on a $450 Insurance Fee, $25 Tracker Fee and 35% Revenue Share. Build the statement paid December 10.
 
@@ -269,7 +271,7 @@ Score each measure as the share of cases that met its target. Under 90% two week
 - [ ] Move file and account ownership to Admin; forward their email
 - [ ] Finance: review 30 days of refunds, releases, payouts and payee changes
 - [ ] Get written confirmation that Confidential Information is returned or deleted
-- [ ] Approve and pay final hours
+- [ ] Approve and pay final hours and the commissions earned (Sales: commissions only)
 - [ ] Remind in writing: confidentiality continues, and non-solicitation runs 12 months
 
 ## Sources

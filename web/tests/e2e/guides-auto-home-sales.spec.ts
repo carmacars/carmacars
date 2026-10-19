@@ -54,12 +54,14 @@ function jobToken() {
 
 test('guides: a passing rewrite is published over an Admin\'s draft, a failing one keeps the old text, nothing to review', async ({ browser }) => {
   const sql = db();
+  const published = await sql`select version from guides where portal = 'field'`;
+  test.skip(!(published[0]?.version > 0), 'the field guide is not published on this database (npm run db:seed publishes the guides)');
   const admin = await mkUser(sql, 'admin', 'Ga Admin');
   const slugA = `ga-auto-${tag()}`; const slugB = `ga-kept-${tag()}`;
-  const published = 'Open your jobs and press **Start the job now**.\n';
+  const live = 'Open your jobs and press **Start the job now**.\n';
   const draft = 'My own draft, not published yet. Press **Start the job now**.\n';
   const [a] = await sql`insert into guide_sections (portal, kind, sort_order, slug, title, body_md, draft_version, published_title, published_md, published_html, published_hidden, published_version, published_at)
-    values ('field', 'chapter', 991, ${slugA}, 'Ga auto chapter', ${draft}, 2, 'Ga auto chapter', ${published}, '<p>Old</p>', false, 1, now()) returning id`;
+    values ('field', 'chapter', 991, ${slugA}, 'Ga auto chapter', ${draft}, 2, 'Ga auto chapter', ${live}, '<p>Old</p>', false, 1, now()) returning id`;
   const keptMd = 'Press **Ring the bell twice**.\n';
   const [b] = await sql`insert into guide_sections (portal, kind, sort_order, slug, title, body_md, draft_version, published_title, published_md, published_html, published_hidden, published_version, published_at)
     values ('field', 'chapter', 992, ${slugB}, 'Ga kept chapter', ${keptMd}, 1, 'Ga kept chapter', ${keptMd}, '<p>Bell</p>', false, 1, now()) returning id`;
