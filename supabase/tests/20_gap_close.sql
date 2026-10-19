@@ -265,10 +265,14 @@ select test.throws('quotes: a lead needs a date of birth',
          test.id('gc_sales'), test.id('vehicle:gcV'), (now() + interval '50 days')::text, (now() + interval '52 days')::text), 'date of birth');
 
 -- ---------------------------------------------------------------- 10. the scorecard
+-- hours ago, squeezed into this Toronto week when the run is in the first hours of a Monday (the order is kept)
+create or replace function test.gc_ago(p_hours numeric) returns timestamptz language sql stable as $$
+  select now() - interval '1 hour' * p_hours
+         * least(1, extract(epoch from now() - app.local_midnight(date_trunc('week', app.today())::date)) / (6 * 3600.0)) $$;
 insert into tasks (queue, task_type, title, status, due_at, assigned_to, completed_by, completed_at) values
-  ('cs', 'booking_request', 'on time', 'done', now() - interval '2 hours', test.id('gc_cs'), test.id('gc_cs'), now() - interval '3 hours'),
-  ('cs', 'booking_request', 'late', 'done', now() - interval '5 hours', test.id('gc_cs'), test.id('gc_cs'), now() - interval '1 hour'),
-  ('cs', 'verify_renter', 'overdue', 'open', now() - interval '1 hour', test.id('gc_cs'), null, null);
+  ('cs', 'booking_request', 'on time', 'done', test.gc_ago(2), test.id('gc_cs'), test.id('gc_cs'), test.gc_ago(3)),
+  ('cs', 'booking_request', 'late', 'done', test.gc_ago(5), test.id('gc_cs'), test.id('gc_cs'), test.gc_ago(1)),
+  ('cs', 'verify_renter', 'overdue', 'open', test.gc_ago(1), test.id('gc_cs'), null, null);
 create temp table gc_sc as select public.door(test.id('gc_cs'), null, 'va_read', 'scorecard', jsonb_build_object('weeks', 2)) r;
 select test.eq('scorecard: this week''s measures for customer service: first reply 2 of 3 (the renter message answered above counts), verification 0 of 1',
   (select string_agg((m ->> 'met') || '/' || (m ->> 'total'), ',') from gc_sc, jsonb_array_elements(r -> 'weeks' -> -1 -> 'measures') m
