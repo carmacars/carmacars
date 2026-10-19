@@ -1,0 +1,31 @@
+CarmaCars  |  Site check
+
+========================================
+
+[Site alert]
+{{check_label}}
+
+Our site check found a problem at {{alert_opened}}. You get another email when it recovers.
+
+Check: {{check_label}}
+What we found: {{alert_detail}}
+Since: {{alert_opened}}
+Failed checks in a row: {{failures}}
+
+Open Admin:
+https://carmacars.ca/admin
+
+What to do
+{{alert_advice}}
+
+Sent by the site check. Change the address in Program settings, "Site check".
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

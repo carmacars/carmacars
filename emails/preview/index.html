@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>154 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>58</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>15</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>8</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>162 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>62</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (58)</h2>
+<h2 id="renter">Renter (62)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -301,6 +301,30 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The pickup field job for a confirmed booking has an assigned staff member and the pickup is 3 hours away. Sent earlier, at once, if the job is assigned inside that window, and sent again if the place, time or staff member changes after sending.</div>
 <div class="ln"><a href="../dist/renter_pickup_details.html">HTML</a><a href="../dist/renter_pickup_details.txt">Text</a><a href="../shots/renter_pickup_details.desktop.png">Desktop</a><a href="../shots/renter_pickup_details.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_recovery_change.html"><img loading="lazy" src="../shots/renter_recovery_change.desktop.png" alt="Screenshot of renter_recovery_change"></a><div class="b">
+<div class="code">renter_recovery_change</div><div class="sub">Your answer to the change to booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking recovery job (every 15 minutes): the renter opened a change staff proposed to their booking and has not answered it after recovery_change_hours (Program settings, 4 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent when the deadline is within the change reminder hours (that reminder covers it), outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once the change is accepted, declined or expires.</div>
+<div class="ln"><a href="../dist/renter_recovery_change.html">HTML</a><a href="../dist/renter_recovery_change.txt">Text</a><a href="../shots/renter_recovery_change.desktop.png">Desktop</a><a href="../shots/renter_recovery_change.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_recovery_offer.html"><img loading="lazy" src="../shots/renter_recovery_offer.desktop.png" alt="Screenshot of renter_recovery_offer"></a><div class="b">
+<div class="code">renter_recovery_offer</div><div class="sub">Still thinking about the 2024 Honda Civic Sport?</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking recovery job (every 15 minutes): the renter opened their offer (page or email link) and has not answered it after recovery_offer_hours (Program settings, 4 by default). At most recovery_max_emails (2) per offer, the second after recovery_second_hours (24). Not sent when the offer expires within 7 hours (the expiry reminder covers it) or an expiry reminder went in the last 12 hours, outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter (an assigned task, a chat with a person, a message from staff). Stops once the offer is answered, expires or is withdrawn.</div>
+<div class="ln"><a href="../dist/renter_recovery_offer.html">HTML</a><a href="../dist/renter_recovery_offer.txt">Text</a><a href="../shots/renter_recovery_offer.desktop.png">Desktop</a><a href="../shots/renter_recovery_offer.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_recovery_pay.html"><img loading="lazy" src="../shots/renter_recovery_pay.desktop.png" alt="Screenshot of renter_recovery_pay"></a><div class="b">
+<div class="code">renter_recovery_pay</div><div class="sub">One step left to book the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.</div>
+<div class="ln"><a href="../dist/renter_recovery_pay.html">HTML</a><a href="../dist/renter_recovery_pay.txt">Text</a><a href="../shots/renter_recovery_pay.desktop.png">Desktop</a><a href="../shots/renter_recovery_pay.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_recovery_request.html"><img loading="lazy" src="../shots/renter_recovery_request.desktop.png" alt="Screenshot of renter_recovery_request"></a><div class="b">
+<div class="code">renter_recovery_request</div><div class="sub">Your request for the 2024 Honda Civic Sport is not sent yet</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Booking recovery job (every 15 minutes): a signed-in or known renter started a booking request on the site and stopped without sending it, recovery_request_hours ago (Program settings, 2 by default), and has sent no request since. Marketing: only with the renter's express marketing consent and never after they unsubscribed. At most recovery_max_emails (2), the second after recovery_second_hours (24), and one such reminder series per renter in 7 days. Not sent outside the hours set for these emails or while a staff member is already handling the renter. Stops once they send a request.</div>
+<div class="ln"><a href="../dist/renter_recovery_request.html">HTML</a><a href="../dist/renter_recovery_request.txt">Text</a><a href="../shots/renter_recovery_request.desktop.png">Desktop</a><a href="../shots/renter_recovery_request.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_refund_issued.html"><img loading="lazy" src="../shots/renter_refund_issued.desktop.png" alt="Screenshot of renter_refund_issued"></a><div class="b">
 <div class="code">renter_refund_issued</div><div class="sub">Refund of $113.00 sent, booking CC-10482</div>
@@ -627,7 +651,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (15)</h2>
+<h2 id="staff_admin">Staff: admin (17)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
@@ -707,6 +731,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">Payouts job on the 10th at 08:00: approved owner payouts are due to be sent by bank transfer that day. Also on the 15th at 08:00 for investor returns due on the Payment Date. One email to both admins and finance. If the run is not approved yet, the email says so.</div>
 <div class="ln"><a href="../dist/staff_payouts_due.html">HTML</a><a href="../dist/staff_payouts_due.txt">Text</a><a href="../shots/staff_payouts_due.desktop.png">Desktop</a><a href="../shots/staff_payouts_due.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/staff_site_alert.html"><img loading="lazy" src="../shots/staff_site_alert.desktop.png" alt="Screenshot of staff_site_alert"></a><div class="b">
+<div class="code">staff_site_alert</div><div class="sub">Site alert: Home page</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Site check (every 5 minutes, from the database): a page or service failed its check repeatedly (the home page, a car page, sign-in or the site's health check answers an error or Error 1102, or does not answer), emails are failing or stuck, a scheduled job failed, the nightly backup failed or is late, or Stripe webhooks are failing. Sent to the alert address in Program settings (uptime_alert_email), once per problem; a second problem of the same kind within the cooldown is shown on Admin &gt; To do without another email. Immediate.</div>
+<div class="ln"><a href="../dist/staff_site_alert.html">HTML</a><a href="../dist/staff_site_alert.txt">Text</a><a href="../shots/staff_site_alert.desktop.png">Desktop</a><a href="../shots/staff_site_alert.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_site_recovered.html"><img loading="lazy" src="../shots/staff_site_recovered.desktop.png" alt="Screenshot of staff_site_recovered"></a><div class="b">
+<div class="code">staff_site_recovered</div><div class="sub">Recovered: Home page</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Site check: a problem that sent a site alert passed its check again. One email per alert that was emailed, to the same address. Immediate.</div>
+<div class="ln"><a href="../dist/staff_site_recovered.html">HTML</a><a href="../dist/staff_site_recovered.txt">Text</a><a href="../shots/staff_site_recovered.desktop.png">Desktop</a><a href="../shots/staff_site_recovered.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/staff_statements_ready_for_approval.html"><img loading="lazy" src="../shots/staff_statements_ready_for_approval.desktop.png" alt="Screenshot of staff_statements_ready_for_approval"></a><div class="b">
 <div class="code">staff_statements_ready_for_approval</div><div class="sub">November owner statements are ready for approval</div>
 <div class="tags"><span>Transactional</span></div>
@@ -777,13 +813,25 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_toll_ticket_unmatched.html">HTML</a><a href="../dist/staff_toll_ticket_unmatched.txt">Text</a><a href="../shots/staff_toll_ticket_unmatched.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_unmatched.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_fleet">Staff: VA fleet (8)</h2>
+<h2 id="staff_va_fleet">Staff: VA fleet (10)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_breakdown_reported.html"><img loading="lazy" src="../shots/staff_breakdown_reported.desktop.png" alt="Screenshot of staff_breakdown_reported"></a><div class="b">
 <div class="code">staff_breakdown_reported</div><div class="sub">BREAKDOWN: 2024 Honda Civic Sport, booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An incident row of type breakdown is created (a call to the 24-hour line is logged, or the renter reports it in the portal). Sent to the on-call Fleet person. Immediate.</div>
 <div class="ln"><a href="../dist/staff_breakdown_reported.html">HTML</a><a href="../dist/staff_breakdown_reported.txt">Text</a><a href="../shots/staff_breakdown_reported.desktop.png">Desktop</a><a href="../shots/staff_breakdown_reported.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_calendar_conflict.html"><img loading="lazy" src="../shots/staff_calendar_conflict.desktop.png" alt="Screenshot of staff_calendar_conflict"></a><div class="b">
+<div class="code">staff_calendar_conflict</div><div class="sub">Double booking: 2024 Mercedes-Benz C 300 on Turo and CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Calendar sync (every 10 minutes by default): a trip or block imported from another platform (Turo, Getaround or another calendar link) overlaps a confirmed or on-rent CarmaCars booking of the same car, turnaround included. One email per imported event and booking; it also raises an urgent Fleet task and shows on the Admin To do. Immediate.</div>
+<div class="ln"><a href="../dist/staff_calendar_conflict.html">HTML</a><a href="../dist/staff_calendar_conflict.txt">Text</a><a href="../shots/staff_calendar_conflict.desktop.png">Desktop</a><a href="../shots/staff_calendar_conflict.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_calendar_feed_failing.html"><img loading="lazy" src="../shots/staff_calendar_feed_failing.desktop.png" alt="Screenshot of staff_calendar_feed_failing"></a><div class="b">
+<div class="code">staff_calendar_feed_failing</div><div class="sub">Calendar link not working: 2024 Mercedes-Benz C 300 on Turo</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Calendar sync: an imported calendar link (Turo, Getaround or another platform) failed this many times in a row (calendar_feed_alert_failures in Program settings, 3 by default). Sent once per run of failures; it also raises a Fleet task. The trips already imported stay on the calendar until the link works again. Immediate.</div>
+<div class="ln"><a href="../dist/staff_calendar_feed_failing.html">HTML</a><a href="../dist/staff_calendar_feed_failing.txt">Text</a><a href="../shots/staff_calendar_feed_failing.desktop.png">Desktop</a><a href="../shots/staff_calendar_feed_failing.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_digest_eod_va_fleet.html"><img loading="lazy" src="../shots/staff_digest_eod_va_fleet.desktop.png" alt="Screenshot of staff_digest_eod_va_fleet"></a><div class="b">
 <div class="code">staff_digest_eod_va_fleet</div><div class="sub">Fleet end of day: 2 items open, Tue, Oct 20</div>

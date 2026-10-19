@@ -1,0 +1,28 @@
+CarmaCars  |  Site check
+
+========================================
+
+[Site check]
+{{check_label}} works again
+
+The problem we emailed you about at {{alert_opened}} has passed.
+
+Check: {{check_label}}
+Problem: {{alert_detail}}
+Working again: {{alert_resolved}}
+How long: {{alert_duration}}
+
+Open Admin:
+https://carmacars.ca/admin
+
+Sent by the site check. Nothing else to do.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

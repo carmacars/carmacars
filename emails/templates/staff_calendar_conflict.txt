@@ -1,0 +1,31 @@
+CarmaCars  |  Calendar sync
+
+========================================
+
+[Calendar clash]
+The same car is booked twice
+
+The {{platform}} calendar of the {{vehicle_name}} has a booking that overlaps CarmaCars booking {{booking_number}}. Decide which one keeps the car now.
+
+Car: {{vehicle_name}}
+{{platform}}: {{external_start}} to {{external_end}}
+What it says: {{external_summary}}
+CarmaCars booking: {{booking_number}}: {{booking_start}} to {{booking_end}}
+
+Open calendar sync:
+{{calendar_url}}
+
+IMPORTANT: What to do
+Cancel or move one of the two trips, or swap the CarmaCars booking to another car. The task closes by itself once the dates no longer overlap.
+
+The turnaround between trips counts as part of each trip.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

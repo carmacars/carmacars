@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 154,
+  "count": 162,
   "emails": [
     {
       "code": "account_password_reset",
@@ -5138,6 +5138,381 @@
       ],
       "template_html": "templates/renter_pickup_details.html",
       "template_text": "templates/renter_pickup_details.txt"
+    },
+    {
+      "code": "renter_recovery_change",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Booking recovery job (every 15 minutes): the renter opened a change staff proposed to their booking and has not answered it after recovery_change_hours (Program settings, 4 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent when the deadline is within the change reminder hours (that reminder covers it), outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once the change is accepted, declined or expires.",
+      "timing": "Some hours after the proposal was opened",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Your answer to the change to booking {{booking_number}}",
+      "preheader": "Answer by {{accept_by}}. If you do nothing, your booking stays as it is.",
+      "sample_subject": "Your answer to the change to booking CC-10482",
+      "variables": [
+        {
+          "name": "accept_by",
+          "type": "string",
+          "sample": "Sat, Oct 24 at 10:00 am"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_recovery_change.html",
+      "template_text": "templates/renter_recovery_change.txt"
+    },
+    {
+      "code": "renter_recovery_offer",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Booking recovery job (every 15 minutes): the renter opened their offer (page or email link) and has not answered it after recovery_offer_hours (Program settings, 4 by default). At most recovery_max_emails (2) per offer, the second after recovery_second_hours (24). Not sent when the offer expires within 7 hours (the expiry reminder covers it) or an expiry reminder went in the last 12 hours, outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter (an assigned task, a chat with a person, a message from staff). Stops once the offer is answered, expires or is withdrawn.",
+      "timing": "Some hours after the offer was opened",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Still thinking about the {{vehicle_name}}?",
+      "preheader": "Your offer is open until {{offer_expires_at}}. Questions? Reply to this email.",
+      "sample_subject": "Still thinking about the 2024 Honda Civic Sport?",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "offer_expires_at",
+          "type": "string",
+          "sample": "Wed, Oct 21 at 2:15 pm"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "pickup_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "total_amount",
+          "type": "string",
+          "sample": "$468.95",
+          "note": "Total due at booking, HST included."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_recovery_offer.html",
+      "template_text": "templates/renter_recovery_offer.txt"
+    },
+    {
+      "code": "renter_recovery_pay",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.",
+      "timing": "An hour after the pay page was left",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "One step left to book the {{vehicle_name}}",
+      "preheader": "Your card is not charged until you finish. Need help? Reply to this email.",
+      "sample_subject": "One step left to book the 2024 Honda Civic Sport",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "pickup_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "total_amount",
+          "type": "string",
+          "sample": "$468.95",
+          "note": "Total due at booking, HST included."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_recovery_pay.html",
+      "template_text": "templates/renter_recovery_pay.txt"
+    },
+    {
+      "code": "renter_recovery_request",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "Booking recovery job (every 15 minutes): a signed-in or known renter started a booking request on the site and stopped without sending it, recovery_request_hours ago (Program settings, 2 by default), and has sent no request since. Marketing: only with the renter's express marketing consent and never after they unsubscribed. At most recovery_max_emails (2), the second after recovery_second_hours (24), and one such reminder series per renter in 7 days. Not sent outside the hours set for these emails or while a staff member is already handling the renter. Stops once they send a request.",
+      "timing": "Some hours after a request was started",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your request for the {{vehicle_name}} is not sent yet",
+      "preheader": "Pick up where you left off. It takes two minutes.",
+      "sample_subject": "Your request for the 2024 Honda Civic Sport is not sent yet",
+      "variables": [
+        {
+          "name": "car_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/cars/mercedes-benz-c300"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_recovery_request.html",
+      "template_text": "templates/renter_recovery_request.txt"
     },
     {
       "code": "renter_refund_issued",
@@ -11934,6 +12309,102 @@
       "template_text": "templates/staff_payouts_due.txt"
     },
     {
+      "code": "staff_site_alert",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Site check (every 5 minutes, from the database): a page or service failed its check repeatedly (the home page, a car page, sign-in or the site's health check answers an error or Error 1102, or does not answer), emails are failing or stuck, a scheduled job failed, the nightly backup failed or is late, or Stripe webhooks are failing. Sent to the alert address in Program settings (uptime_alert_email), once per problem; a second problem of the same kind within the cooldown is shown on Admin > To do without another email. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Site alert: {{check_label}}",
+      "preheader": "{{alert_detail}}",
+      "sample_subject": "Site alert: Home page",
+      "variables": [
+        {
+          "name": "alert_advice",
+          "type": "string",
+          "sample": "Open carmacars.ca on your phone. If it does not load, tell your developer."
+        },
+        {
+          "name": "alert_detail",
+          "type": "string",
+          "sample": "Answered 503 with Error 1102 (the web host stopped the page)."
+        },
+        {
+          "name": "alert_opened",
+          "type": "string",
+          "sample": "Mon, Oct 19 at 2:10 pm"
+        },
+        {
+          "name": "check_label",
+          "type": "string",
+          "sample": "Home page"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "failures",
+          "type": "string",
+          "sample": "3"
+        }
+      ],
+      "template_html": "templates/staff_site_alert.html",
+      "template_text": "templates/staff_site_alert.txt"
+    },
+    {
+      "code": "staff_site_recovered",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Site check: a problem that sent a site alert passed its check again. One email per alert that was emailed, to the same address. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Recovered: {{check_label}}",
+      "preheader": "Working again since {{alert_resolved}}, after {{alert_duration}}.",
+      "sample_subject": "Recovered: Home page",
+      "variables": [
+        {
+          "name": "alert_detail",
+          "type": "string",
+          "sample": "Answered 503 with Error 1102 (the web host stopped the page)."
+        },
+        {
+          "name": "alert_duration",
+          "type": "string",
+          "sample": "25 minutes"
+        },
+        {
+          "name": "alert_opened",
+          "type": "string",
+          "sample": "Mon, Oct 19 at 2:10 pm"
+        },
+        {
+          "name": "alert_resolved",
+          "type": "string",
+          "sample": "Mon, Oct 19 at 2:35 pm"
+        },
+        {
+          "name": "check_label",
+          "type": "string",
+          "sample": "Home page"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        }
+      ],
+      "template_html": "templates/staff_site_recovered.html",
+      "template_text": "templates/staff_site_recovered.txt"
+    },
+    {
       "code": "staff_statements_ready_for_approval",
       "audience": "staff_admin",
       "category": "transactional",
@@ -13072,6 +13543,136 @@
       ],
       "template_html": "templates/staff_breakdown_reported.html",
       "template_text": "templates/staff_breakdown_reported.txt"
+    },
+    {
+      "code": "staff_calendar_conflict",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Calendar sync (every 10 minutes by default): a trip or block imported from another platform (Turo, Getaround or another calendar link) overlaps a confirmed or on-rent CarmaCars booking of the same car, turnaround included. One email per imported event and booking; it also raises an urgent Fleet task and shows on the Admin To do. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Double booking: {{vehicle_name}} on {{platform}} and {{booking_number}}",
+      "preheader": "{{platform}} has the car from {{external_start}} to {{external_end}}.",
+      "sample_subject": "Double booking: 2024 Mercedes-Benz C 300 on Turo and CC-10482",
+      "variables": [
+        {
+          "name": "booking_end",
+          "type": "string",
+          "sample": "Mon, Oct 26 at 9:00 am"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "booking_start",
+          "type": "string",
+          "sample": "Sat, Oct 24 at 9:00 am"
+        },
+        {
+          "name": "calendar_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/calendar-sync"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "external_end",
+          "type": "string",
+          "sample": "Sun, Oct 25 at 10:00 am"
+        },
+        {
+          "name": "external_start",
+          "type": "string",
+          "sample": "Fri, Oct 23 at 10:00 am"
+        },
+        {
+          "name": "external_summary",
+          "type": "string",
+          "sample": "Turo trip"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "sample": "Turo"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Mercedes-Benz C 300",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_calendar_conflict.html",
+      "template_text": "templates/staff_calendar_conflict.txt"
+    },
+    {
+      "code": "staff_calendar_feed_failing",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Calendar sync: an imported calendar link (Turo, Getaround or another platform) failed this many times in a row (calendar_feed_alert_failures in Program settings, 3 by default). Sent once per run of failures; it also raises a Fleet task. The trips already imported stay on the calendar until the link works again. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Calendar link not working: {{vehicle_name}} on {{platform}}",
+      "preheader": "{{failures}} failed tries in a row. {{feed_error}}",
+      "sample_subject": "Calendar link not working: 2024 Mercedes-Benz C 300 on Turo",
+      "variables": [
+        {
+          "name": "calendar_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/calendar-sync"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "failures",
+          "type": "string",
+          "sample": "3"
+        },
+        {
+          "name": "feed_error",
+          "type": "string",
+          "sample": "The platform answered 404 (not found)."
+        },
+        {
+          "name": "last_success",
+          "type": "string",
+          "sample": "Mon, Oct 19 at 2:10 pm"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "sample": "Turo"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Mercedes-Benz C 300",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_calendar_feed_failing.html",
+      "template_text": "templates/staff_calendar_feed_failing.txt"
     },
     {
       "code": "staff_digest_eod_va_fleet",

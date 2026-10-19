@@ -1,0 +1,33 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Your offer]
+Your offer is still open
+
+You looked at our offer for the {{vehicle_name}}, {{first_name}}. It is open until {{offer_expires_at}}. If something is not right, tell us and we will adjust it.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Total to pay now: {{total_amount}}
+HST included. Nothing is charged until you approve, sign and pay.
+
+Review the offer:
+https://carmacars.ca/account/bookings/{{booking_number}}/offer
+
+Want other dates or a different car? Ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change) or reply to this email. Not interested any more? Do nothing; the offer simply expires.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

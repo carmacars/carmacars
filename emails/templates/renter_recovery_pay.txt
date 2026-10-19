@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Almost booked]
+You are one step away
+
+You approved our offer for the {{vehicle_name}}, {{first_name}}, but the payment was not finished. The car is booked only when you sign and pay.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+To pay now: {{total_amount}}
+HST included. The security deposit is separate and taken at pickup.
+
+Finish and pay:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+
+Did the card not go through? Try another credit card in your name, or reply to this email and we will help.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

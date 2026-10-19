@@ -1,0 +1,28 @@
+CarmaCars  |  Calendar sync
+
+========================================
+
+[Calendar sync]
+A calendar link stopped working
+
+We could not read the {{platform}} calendar of the {{vehicle_name}} {{failures}} times in a row. New trips on {{platform}} are not blocking the car on CarmaCars until it works again.
+
+Car: {{vehicle_name}}
+Platform: {{platform}}
+Last error: {{feed_error}}
+Last good sync: {{last_success}}
+
+Open calendar sync:
+{{calendar_url}}
+
+Copy the calendar link from {{platform}} again and paste it over the old one. A link changes when it is reset on the platform.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

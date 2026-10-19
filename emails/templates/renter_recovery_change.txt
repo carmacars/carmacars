@@ -1,0 +1,30 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Change to your booking]
+We are waiting for your answer
+
+You opened the change we proposed to your booking of the {{vehicle_name}}, {{first_name}}. Please accept or decline it by {{accept_by}}.
+
+Booking: {{booking_number}}
+Answer by: {{accept_by}}
+
+Review and answer:
+https://carmacars.ca/account/bookings/{{booking_number}}/change
+
+Questions about the change? Reply to this email. If you do not answer, your booking stays exactly as it is.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

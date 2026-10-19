@@ -1,0 +1,30 @@
+CarmaCars  |  Your request
+
+========================================
+
+[Your request]
+You did not finish your request
+
+You started a booking request for the {{vehicle_name}}, {{first_name}}, but it was not sent. Pick up where you left off: a person checks it and sends you an offer.
+
+Finish the request:
+{{car_url}}
+
+- Sending a request is free. Nothing is charged until you approve our offer, sign and pay.
+- Questions about the car or the dates? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you agreed to get CarmaCars offers by email.
+Unsubscribe at any time: {{unsubscribe_url}}
+We act on it within 10 business days.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
