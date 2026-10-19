@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blanksIn, investmentMarkdown, investmentSummary, investorFields, staffFields, staffMarkdown, staffSummary, type InvestorFacts, type StaffFacts } from './model.ts';
+import { blanksIn, investmentMarkdown, investmentSummary, investorFields, missingRequired, staffFields, staffMarkdown, staffSummary, type InvestorFacts, type StaffFacts } from './model.ts';
 
 // Agreements generated from the records (migration 0049): every blank of the source document is filled, the values
 // land in Schedule A, and the signature lines say the signature is given electronically.
@@ -83,8 +83,41 @@ test('the VA agreement: pay and schedule fields from the function, an hourly rat
   const hourly = staffMarkdown(f, fill(f, { pay_basis: 'hourly', rate: '6.00' }));
   assert.match(hourly, /\| Rate \| 6\.00 an hour, in USD \|/);
   assert.equal(blanksIn(hourly), 0);
-  assert.deepEqual(staffSummary(cs, fill(cs)).map((r) => r.label), ['Contractor', 'Role', 'Schedule', 'Coverage Hours', 'Rate', 'Start Date', 'Paid through']);
-  // sales has no defaults yet: the Admin fills them before sending
-  const sales = { ...f, staff: { ...f.staff, va_function: 'sales' }, defaults: { country: 'Philippines', currency: 'USD', pay_basis: '', rate: '', schedule: '', days_per_week: '', hours_per_day: '' } };
-  assert.deepEqual(staffFields(sales).filter((x) => x.required && !x.value).map((x) => x.key), ['pay_basis', 'rate', 'schedule', 'days_per_week', 'hours_per_day', 'hours_per_week', 'coverage', 'platform', 'pay_timing', 'trial_days']);
+  assert.deepEqual(staffSummary(cs, fill(cs)).map((r) => r.label), ['Contractor', 'Role', 'Pay', 'Schedule', 'Coverage Hours', 'Rate', 'Start Date', 'Paid through']);
+  assert.match(md, /\| Pay \| The Rate below and the commission in section 3\.4 \|/);
+  // a function with no defaults: the Admin fills them before sending
+  const blank = { ...f, defaults: { country: 'Philippines', currency: 'USD', pay_basis: '', rate: '', schedule: '', days_per_week: '', hours_per_day: '' } };
+  assert.deepEqual(missingRequired(staffFields(blank), fill(blank)).length, 10);
+});
+
+test('the VA agreement for Sales: commission only, no Rate, no hours, a clear commission clause (0059)', () => {
+  const f = staff('va');
+  const sales: StaffFacts = { ...f, staff: { ...f.staff, va_function: 'sales' },
+    defaults: { country: 'Philippines', currency: 'USD', pay_basis: 'commission', rate: '', schedule: 'flexible', days_per_week: '', hours_per_day: '', coverage: 'Days and times as set in the weekly roster',
+      platform: 'OnlineJobs.ph', pay_timing: 'every two weeks', trial_days: '30' } };
+  const fields = staffFields(sales);
+  const v = fill(sales);
+  assert.deepEqual(missingRequired(fields, v), [], 'the Rate, schedule and hours are not asked');
+  assert.deepEqual(fields.filter((x) => x.hiddenWhen).map((x) => x.key), ['rate', 'schedule', 'days_per_week', 'hours_per_day', 'hours_per_week', 'coverage']);
+  const md = staffMarkdown(sales, v);
+  assert.equal(blanksIn(md), 0);
+  assert.match(md, /\| Role \| Sales Coordinator \|/);
+  assert.match(md, /\| Pay \| Commission only, under section 3\.4: no Rate, no set days or hours \|/);
+  assert.doesNotMatch(md, /^\| (Rate|Schedule|Coverage Hours)/m, 'no pay or hours rows that make no sense');
+  assert.match(md, /If Schedule A says the Pay is commission only, there is no Rate and there are no Coverage Hours: you are paid only the commission in section 3\.4/);
+  assert.match(md, /3\.4 \*\*Commission\.\*\*/);
+  assert.match(md, /In the Sales role, the rate depends on the rental days/);
+  assert.match(md, /and the commissions earned under section 3\.4, up to the end date/);
+  assert.deepEqual(staffSummary(sales, v).map((r) => r.label), ['Contractor', 'Role', 'Pay', 'Start Date', 'Paid through']);
+  // the same person on a monthly Rate still gets the hours rows
+  const monthly = staffMarkdown(sales, { ...v, pay_basis: 'monthly', rate: '300.00', schedule: 'full_time', days_per_week: '5', hours_per_day: '8', hours_per_week: '40' });
+  assert.match(monthly, /\| Rate \| 300\.00 a month, in USD \|/);
+  assert.equal(blanksIn(monthly), 0);
+});
+
+test('the field agreement: the home address the staff member entered is filled in (0059)', () => {
+  const f = staff('field');
+  const withHome: StaffFacts = { ...f, staff: { ...f.staff, home_address: '12 Queen Street, Toronto, M5H 2N2' } };
+  assert.equal(staffFields(withHome).find((x) => x.key === 'address')!.value, '12 Queen Street, Toronto, M5H 2N2');
+  assert.match(staffMarkdown(withHome, fill(withHome, { licence: 'C1234' })), /12 Queen Street, Toronto, M5H 2N2 \(address\)/);
 });

@@ -28,9 +28,9 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 ## 3. Pay
 
-3.1 CarmaCars pays the Rate in Schedule A. A monthly Rate covers the Coverage Hours of each month: a part month, and Coverage Hours missed without CarmaCars' approval, are paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A.
+3.1 CarmaCars pays the Rate in Schedule A. A monthly Rate covers the Coverage Hours of each month: a part month, and Coverage Hours missed without CarmaCars' approval, are paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A. If Schedule A says the Pay is commission only, there is no Rate and there are no Coverage Hours: you are paid only the commission in section 3.4, you choose when you work, and what this agreement says about the Rate and the Coverage Hours does not apply to you.
 
-3.2 The Rate and the commission in section 3.4 are your whole payment. There are no benefits, overtime, vacation pay or expenses unless CarmaCars agrees in writing first.
+3.2 The Rate (if any) and the commission in section 3.4 are your whole payment. There are no benefits, overtime, vacation pay or expenses unless CarmaCars agrees in writing first.
 
 3.3 CarmaCars may deduct from any payment an amount you owe it under this agreement.
 
@@ -93,7 +93,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 7.3 CarmaCars may suspend your access to the Systems at any time.
 
-7.4 When this agreement ends, you stop using the Systems, hand over every password and account, return or delete all Confidential Information and confirm in writing that you have done so. CarmaCars pays for approved time up to the end date and owes nothing more.
+7.4 When this agreement ends, you stop using the Systems, hand over every password and account, return or delete all Confidential Information and confirm in writing that you have done so. CarmaCars pays for approved time, and the commissions earned under section 3.4, up to the end date and owes nothing more.
 
 7.5 Sections 4, 6 and 8 continue after this agreement ends.
 
@@ -121,6 +121,7 @@ Name: [●]. Signature: [●]. Date: [●]
 | --- | --- |
 | Contractor | [●] (legal name), [●] (country), [●] (email) |
 | Role | [●] (one of the four roles below) |
+| Pay | [●] (the Rate below and the commission in section 3.4, or commission only) |
 | Schedule | [●] (full time or part time): [●] days a week, [●] hours a day |
 | Coverage Hours (Toronto time) | [●] (days and times), [●] hours a week |
 | Rate | [●] (a month or an hour), in [●] (currency) |

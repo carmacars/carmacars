@@ -4,7 +4,7 @@ import { storage } from '@/integrations/storage';
 import { agreementPdf } from '@/features/agreement/pdf';
 import { markdown, type Block } from '@/features/agreement/model';
 import { sha256Hex } from '@/server/links';
-import { blanksIn, forBlocks, investmentMarkdown, investmentSummary, investorFields, PERSON_AGREEMENTS_VERSION, staffFields, staffMarkdown, staffSummary, staffTitle,
+import { blanksIn, forBlocks, investmentMarkdown, missingRequired, investmentSummary, investorFields, PERSON_AGREEMENTS_VERSION, staffFields, staffMarkdown, staffSummary, staffTitle,
   type Field, type InvestorFacts, type StaffFacts } from '@/features/person-agreements/model';
 
 // Agreements generated from the records (migration 0049): the investor's investment agreement and the staff member's
@@ -35,7 +35,7 @@ export async function sendGenerated(userId: string, aal: 'aal1' | 'aal2' | null,
   exemption: { category: string; paragraph: string }): Promise<{ id: string; blanks: number }> {
   const f = await facts(userId, aal, kind, who);
   const required = kind === 'investment_agreement' ? investorFields(f as InvestorFacts, exemption) : staffFields(f as StaffFacts);
-  const missing = required.filter((x) => x.required && !(values[x.key] ?? '').trim()).map((x) => x.label);
+  const missing = missingRequired(required, values);
   if (missing.length) throw new Error(`Fill in: ${missing.join(', ')}.`);
   let md: string; let title: string; let summary: Array<{ label: string; value: string; fix?: string | null }>; let heading: Block[];
   if (kind === 'investment_agreement') {

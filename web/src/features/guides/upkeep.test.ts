@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { closestLabels, fakeRewrite, guideLabels, imageLines, missingLabels, normLabel, rewriteProblems, rewritePrompt, sectionAddresses } from './upkeep.ts';
+import { closestLabels, fakeRewrite, guideLabels, imageLines, labelOnlyRewrite, missingLabels, normLabel, REWRITE_ATTEMPTS, rewriteProblems, rewritePrompt, sectionAddresses, strictNote } from './upkeep.ts';
 // @ts-expect-error a plain script (web/scripts), no types
 import { checkSections, committedSections } from '../../../scripts/guide-labels.mjs';
 // @ts-expect-error a plain script (web/scripts), no types
@@ -83,5 +83,20 @@ describe('a rewrite', () => {
     const r = fakeRewrite(prompt);
     expect(r.body_md).toContain('Press **Approve**.');
     expect(rewriteProblems(before, r.body_md + '\n', ['Approve'])).toEqual([]);
+  });
+  it('asks again more strictly, with the problems of the last answer (0059)', () => {
+    const facts = { portal: 'admin', nav: [], screen_labels: ['Approve'], missing: [{ label: 'Approve and set terms', closest: ['Approve'] }] };
+    expect(rewritePrompt('Owners', before, facts, 'x')).notToContain('STRICT MODE');
+    expect(rewritePrompt('Owners', before, facts, 'x', 2, ['an em dash'])).toContain('Your last answer failed these checks: an em dash.');
+    expect(rewritePrompt('Owners', before, facts, 'x', 3, ['a task heading is missing'])).toContain('STRICT MODE');
+    expect(strictNote(3, [])).toContain('character for character');
+    expect(REWRITE_ATTEMPTS).toBe(3);
+  });
+  it('as a last resort fixes only the button names in the old text (0059)', () => {
+    const r = labelOnlyRewrite(before, [{ label: 'Approve and set terms', closest: ['Approve'] }, { label: 'Gone', closest: [] }]);
+    expect(r.body_md).toBe(before.replace('**Approve and set terms**', '**Approve**'));
+    expect(r.renamed).toEqual(['Approve and set terms is now Approve']);
+    expect(rewriteProblems(before, r.body_md, ['Approve'])).toEqual([]);
+    expect(labelOnlyRewrite(before, []).renamed).toEqual([]);
   });
 });

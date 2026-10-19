@@ -97,7 +97,7 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
           ...(rowAction ? [{ key: 'act', label: 'Actions', render: (r: CommissionRow & Record<string, unknown>) => rowAction(r) }] : [])]} />
       <ul className="small">
         <li>A commission counts on a rental {own ? 'you' : 'they'} marked &quot;I sourced this client&quot;, or that an Admin credited. It is the rate on the rental charge before tax, after discounts, less refunds.</li>
-        <li>It is earned when the rental is completed and paid in full. None is earned on a cancelled, refunded, unpaid or charged-back rental, or on {own ? 'your' : 'their'} own or household rental.</li>
+        <li>It is earned when the rental is completed and paid in full. None is earned on a cancelled, refunded, unpaid or charged-back rental, or on {own ? 'your' : 'their'} own or household rental. {own ? 'Your' : 'Their'} home address must be in {own ? 'your' : 'their'} profile: until it is, a commission waits as not earned yet.</li>
         <li>An Admin approves each commission (a Sales month after it ends), then records the payment. A refund or chargeback after payment is taken off the next payment.</li>
       </ul>
     </Card>
