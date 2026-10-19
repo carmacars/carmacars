@@ -5,7 +5,7 @@
 // so the unit tests run it with a stub model and stub tools (agent.test.ts).
 import { centsIn, checkReply, escalationFor, ESCALATION_WORDS, money, tidy, type Escalation, type ReplyContext } from './guardrails.ts';
 
-export interface FleetCar { slug: string; name: string; class: string; seats: number; transmission: string; fuel: string; area?: string; daily_rate_cents: number; weekly_rate_cents?: number; deposit_cents: number; km_per_day?: number; young_18_20?: boolean; vehicle_id: string; taking_requests?: boolean }
+export interface FleetCar { slug: string; name: string; class: string; seats: number; transmission: string; fuel: string; area?: string; daily_rate_cents: number; weekly_rate_cents?: number; deposit_cents: number; km_per_day?: number; young_18_20?: boolean; vehicle_id: string; taking_requests?: boolean; sample?: boolean }
 export interface ChatFacts {
   today: string; weekday: string;
   site: { brand?: string; city?: string; phone?: string; email?: string | null; hours?: string; reply?: string; service_area?: string; delivery_area?: string | null };
@@ -56,7 +56,7 @@ const pct = (bps?: number) => (typeof bps === 'number' ? `${bps / 100}%` : '');
 export function factsText(f: ChatFacts): string {
   const r = f.rules, c = r.cancellation ?? {};
   const cars = f.fleet.filter((x) => x.taking_requests !== false).map((x) =>
-    `${x.slug} | ${x.name} | ${x.class}, ${x.seats} seats, ${x.transmission}, ${x.fuel} | from ${money(x.daily_rate_cents)} a day | Deposit ${money(x.deposit_cents)}${x.km_per_day ? ` | ${x.km_per_day} km a day included` : ''}${x.young_18_20 ? ' | drivers 18 to 20 allowed' : ''}${x.area ? ` | ${x.area}` : ''}`).join('\n');
+    `${x.slug} | ${x.name} | ${x.class}, ${x.seats} seats, ${x.transmission}, ${x.fuel} | from ${money(x.daily_rate_cents)} a day | Deposit ${money(x.deposit_cents)}${x.km_per_day ? ` | ${x.km_per_day} km a day included` : ''}${x.young_18_20 ? ' | drivers 18 to 20 allowed' : ''}${x.area ? ` | ${x.area}` : ''}${x.sample ? ' | EXAMPLE CAR (a sample, not a real car: never quote or promise it; take a request and say we will suggest a similar real car)' : ''}`).join('\n');
   const fees = Object.values(r.fees ?? {}).filter((x) => typeof x.amount_cents === 'number')
     .map((x) => `${x.label}: ${money(x.amount_cents!)}${x.unit === 'per_day' ? ' a day' : ''}${x.cap_cents ? `, up to ${money(x.cap_cents)}` : ''}`).join('; ');
   return [

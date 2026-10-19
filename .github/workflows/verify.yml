@@ -98,6 +98,18 @@ jobs:
             jq -r '"- config: \(.signup_config | tostring)"' "$R"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite, auth link and sign-up notices)"; exit "$status"; fi
+      - name: Real cars not on the site yet, and the sample cars (0065)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"
+          F="$RUNNER_TEMP/verify/cars-not-public.json"
+          curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select app.cars_not_public() as cars, app.sample_cars_state() as samples"}' > "$F"
+          # car names and the steps left only (no plate, no owner): one notice per car, at most 9
+          jq -r '.[0].samples | "sample cars: \(.public) of \(.cars) on the site; enquiries \(.enquiries) (\(.open_enquiries) new)"' "$F" | sed 's/^/::notice title=sample cars::/'
+          jq -r '.[0].cars[:9][] | "\(.name) (\(.status)): \(.gates | map(.label) | join(", ")). Next: \(.next)\(if .sample_photos then " [sample photos]" else "" end)"' "$F" | sed 's/^/::notice title=not public::/'
+          { echo "## Real cars not on the site yet"; echo; jq -r '.[0].cars[] | "- **\(.name)** (\(.status)): " + (.gates | map("\(.label): \(.action)") | join("; "))' "$F"; } >> "$GITHUB_STEP_SUMMARY"
       - name: SEO of the live site (seo-audit.mjs against carmacars.ca)
         if: ${{ always() && inputs.full }}
         continue-on-error: true

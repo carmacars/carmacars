@@ -8,6 +8,7 @@ import { LogoUpload } from '@/features/admin/SettingsClient';
 import { InviteForm, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { $, Badge, Card, Kv, PageHead, Table, d, t, label } from '@/features/admin/ui';
+import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { SECTIONS } from '../sections';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
@@ -61,9 +62,14 @@ export default async function Section({ params }: { params: Promise<{ section: s
   const classOpts = (s.classes as Array<{ code: string; label: string }>).map((c) => [c.code, c.label] as [string, string]);
 
   switch (section) {
-  case 'site':
+  case 'site': {
+    const samples = await door<{ public: number; cars: number; catalogue: number; open_enquiries: number }>(user.id, 'ops_read', 'sample_cars_state').catch(() => null);
     return (<>{head}
       {s.problems.length > 0 && <Card title="Still missing" tone="warn"><ul className="small">{s.problems.map((p) => <li key={p.field}>{p.message}</li>)}</ul></Card>}
+      {samples && <Card title="Sample cars" testId="site-sample-cars">
+        <p className="small muted">The {samples.catalogue} example cars the site started with, so the fleet does not look empty while the real cars are listed. On the site they are marked &quot;Example car&quot;, stay out of search engines and the sitemap, and a request on one becomes an enquiry for customer service to suggest a similar real car (never a booking). Now {samples.public} on the site{samples.open_enquiries ? `, ${samples.open_enquiries} enquiries waiting` : ''}.</p>
+        <SampleCarsToggle publicCount={samples.public} />
+      </Card>}
       {SITE_GROUPS.map(([title, keys]) => <Card key={title} title={title}><SaveForm table="site_settings" rowKey="singleton" testId={`site-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.site, keys, { featured_mode: [['random', 'Random'], ['manual', 'Chosen by hand']] })} /></Card>)}
       <Card title="Logo"><p className="small muted">Light: {String(s.site.logo_light_file_key ?? 'none, the wordmark is shown')}. Dark: {String(s.site.logo_dark_file_key ?? 'none')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="light" /><LogoUpload which="dark" /></div></Card>
       <Card title="Search engines: how to verify" testId="search-verify"><ol className="small">
@@ -80,6 +86,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
       </Card>
       <Card title="Browser icon and sharing image"><p className="small muted">Icon: {String(s.site.favicon_file_key ?? 'none, the drawn stand-in is shown')}. Sharing image: {String(s.site.og_image_file_key ?? 'none, the built-in image is used')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="favicon" /><LogoUpload which="og" /></div></Card>
     </>);
+  }
   case 'content':
     return (<>{head}
       <p className="small muted">Text may carry tokens such as {'{{phone}}'} that are filled from settings. An unpublished block is not shown.</p>

@@ -123,3 +123,13 @@ export async function savePartnerPayout(form: FormData): Promise<R<{ id: string 
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }
+
+/** Show or hide the sample cars (0065): Show recreates the 20 from the catalogue or puts them back; Hide is one click, never refused. */
+export async function sampleCars(action: 'sample_cars_show' | 'sample_cars_hide'): Promise<R<{ added?: number; shown?: number; hidden?: number; state: { public: number; cars: number } }>> {
+  try {
+    const { user, aal } = await me();
+    const r = await door<{ added?: number; shown?: number; hidden?: number; state: { public: number; cars: number } }>(user.id, 'ops_do', action, {}, aal);
+    rebuild(['/admin/vehicles', '/admin/vehicles/samples', '/admin/settings/site', '/admin', ...PUBLIC, '/car-rental/[slug]', '/book/[slug]']);
+    return { ok: true, data: r };
+  } catch (e) { return fail(e); }
+}

@@ -2,13 +2,16 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Card, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { door } from '@/server/door';
 import '@/features/live/live.css';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicles', path: '/admin/vehicles', noindex: true, description: 'The fleet.' });
 
+type Gate = { code: string; label: string; action: string; who: string | null };
+type NotPublic = { vehicle_id: string; name: string; status: string; gates: Gate[]; next: string | null; sample_photos: boolean };
 type V = { id: string; fleet_number: string | null; name: string; plate: string | null; owner_name: string | null; management_mode: string; status: string; listing_status: string | null;
   daily_rate_cents: number | null; next_booking: { booking_number: string; pickup_at: string } | null; tracker_seen: string | null; in_arrears: boolean; on_fleet_policy: boolean; class: string | null;
   supply_type: string; supply_label: string; partner_id: string | null; retired_at: string | null; is_sample: boolean };
@@ -18,6 +21,9 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
   const [{ read, user }, sp] = await Promise.all([page('/admin/vehicles'), searchParams]);
   const [all, settings, viewed] = await Promise.all([read<V[]>('vehicles'), door<{ sample_cars: number }>(user.id, 'ops_read', 'supply_settings').catch(() => ({ sample_cars: 0 })),
     read<Array<{ vehicle_id: string; car: string; views_today: number; views_7d: number; looking_now: number; requests_7d: number }>>('most_viewed', { days: 7, limit: 5 }).catch(() => [])]);
+  // 0065: the sample cars on the site, and why each real car is not on the site yet
+  const [samples, notPublic] = await Promise.all([door<{ public: number; cars: number }>(user.id, 'ops_read', 'sample_cars_state').catch(() => null),
+    door<NotPublic[]>(user.id, 'ops_read', 'cars_not_public').catch(() => [] as NotPublic[])]);
   const s = (sp.q ?? '').toLowerCase();
   const rows = all.filter((v) => (!sp.status || v.status === sp.status) && (!sp.mode || v.management_mode === sp.mode)
     && (!sp.supply || v.supply_type === sp.supply) && (sp.retired === 'show' ? true : sp.retired === 'only' ? !!v.retired_at : !v.retired_at) && (!s || `${v.name} ${v.plate} ${v.fleet_number} ${v.owner_name}`.toLowerCase().includes(s)));
@@ -29,6 +35,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/vehicles/new" data-testid="add-car-link">Add a car</Link>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
         {settings.sample_cars > 0 && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/samples" data-testid="sample-cars-link">Sample cars ({settings.sample_cars})</Link>}
+        {samples && <SampleCarsToggle publicCount={samples.public} compact />}
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Filters base="/admin/vehicles" name="status" value={sp.status ?? ''} options={[['', 'All'], ...statuses.map((x) => [x, x.replace(/_/g, ' ')] as [string, string])]} sp={sp} />
@@ -36,6 +43,14 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       <Filters base="/admin/vehicles" name="supply" value={sp.supply ?? ''} options={[['', 'Every supplier'], ['program_owner', 'Program owners'], ['company', 'CarmaCars-owned'], ['partner', 'Partners']]} sp={sp} />
       <Filters base="/admin/vehicles" name="retired" value={sp.retired ?? ''} options={[['', 'In the fleet'], ['only', 'Retired'], ['show', 'All, retired too']]} sp={sp} />
       <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
+      {notPublic.length > 0 && (
+        <Card title={`Not on the site yet (${notPublic.length})`} testId="cars-not-public">
+          <p className="small muted">Each real car with what is left before it is on the site, the next step first. A car without photos shows sample photos once it is listed.</p>
+          <ul className="lt-list">{notPublic.map((c) => (
+            <li key={c.vehicle_id} data-testid="car-not-public"><Link prefetch={false} className="link" href={`/admin/vehicles/${c.vehicle_id}`}>{c.name}</Link>{' '}
+              <span className="small">Next: {c.next ?? 'nothing'}{c.gates.length > 1 ? ` (then ${c.gates.slice(1).map((g) => g.label.toLowerCase()).join(', ')})` : ''}</span>
+              {c.sample_photos && <span className="ad-flag">sample photos</span>}</li>))}</ul>
+        </Card>)}
       {viewed.length > 0 && (
         <details className="pt-card ad-card" data-testid="most-viewed-cars"><summary className="link">Most viewed cars this week</summary>
           <ol className="lt-list">{viewed.map((c) => <li key={c.vehicle_id}><Link prefetch={false} className="link" href={`/admin/vehicles/${c.vehicle_id}`}>{c.car}</Link> <span className="small muted">{c.views_7d} views, {c.views_today} today, {c.requests_7d} requests{c.looking_now ? `, ${c.looking_now} looking now` : ''}</span></li>)}</ol>

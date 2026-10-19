@@ -101,6 +101,14 @@ def build():
     ], shot=S('va-cs/04-booking-review-desktop', 0, 60, 1440, 1060, pins=[(3, 1000, 300), (4, 1380, 1040)]))
     g.tip('Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.')
 
+    g.task('An enquiry on an example car', 'Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.')
+    g.steps([
+        'The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.',
+        f'Find a real car of the same kind and price that is free for those dates, and make a {B("New quote")} for it.',
+        'Call or email the person with the car and the price, then mark the task done.',
+    ])
+    g.tip('Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.')
+
     g.task('New quote for a caller')
     g.steps([
         f'Open {B("New quote")}. Choose the Car, the Pickup and Return (at least 2 hours from now).',

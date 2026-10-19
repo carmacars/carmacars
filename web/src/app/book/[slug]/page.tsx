@@ -19,7 +19,14 @@ export async function generateMetadata({ params }: Params) {
 }
 export default async function BookCar({ params }: Params) {
   const { slug } = await params;
-  const props = await wizardProps(slug);
+  const [props, fleet] = await Promise.all([wizardProps(slug), getFleet()]);
   if (!props.cars.some((c) => c.slug === slug)) notFound();
-  return <div className="p-request"><Suspense fallback={null}><RequestWizard {...props} /></Suspense></div>;
+  const car = fleet.find((c) => c.slug === slug);
+  return (
+    <div className="p-request">
+      {/* a sample car (0065): the request goes to customer service as an enquiry for a similar real car */}
+      {car?.is_sample && <div className="wrap"><p className="alert" role="note" data-testid="example-car-request-note"><span className="alert__title">Example car</span><span>The {car.make} {car.model} is an example of the cars we rent. Send your dates and details as usual: we reply with a similar real car and its price. Nothing is booked or charged.</span></p></div>}
+      <Suspense fallback={null}><RequestWizard {...props} /></Suspense>
+    </div>
+  );
 }

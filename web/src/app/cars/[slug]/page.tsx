@@ -124,7 +124,7 @@ export default async function CarPage({ params }: Params) {
         <div className="car-top__grid">
           <Gallery name={name(c)} photos={c.photos} />
           <div className="car-top__info">
-            <p className="row"><span className="small muted">{classText}</span></p>
+            <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
             {copy?.h1 ? <h1 className="d2 car-top__name">{copy.h1}</h1> : <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>}
             <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `, ${c.colour}` : ''}. For rent in {s.city}.</p>
             {(copy?.intro ?? c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
@@ -137,7 +137,9 @@ export default async function CarPage({ params }: Params) {
             <div className="car-top__cta">
               <p className="car-top__price"><span className="small muted">From</span> <b className="num">{money(c.daily_rate_cents)}</b> <span className="small muted">a day</span></p>
               {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--warn"><span>Not taking requests right now.</span></p>}
-              <p className="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>
+              {c.is_sample
+                ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>
+                : <p className="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>}
             </div>
           </div>
         </div>

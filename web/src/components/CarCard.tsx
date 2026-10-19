@@ -7,7 +7,7 @@ export const carName = (c: Pick<CarRow, 'make' | 'model'>) => `${c.make} ${c.mod
 export const classLabel = (codes: string[], labels: Record<string, string>) => codes.map((c) => labels[c] ?? c).join(', ');
 
 // The car card of prototype/DESIGN.md: 3:2 photo, name and price in Inter Display, spec line.
-// When the fleet has dates, `price` and `unit` carry the quote from the database.
+// When the fleet has dates, `price` and `unit` carry the quote from the database. A sample car (0065) says "Example car".
 export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked = false }: {
   c: CarRow; labels: Record<string, string>; tag?: 'h2' | 'h3'; href?: string; price?: string; unit?: string; booked?: boolean;
 }) {
@@ -16,6 +16,7 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
       <div className="car-card__media photo photo--32">
         <CarImage p={c.cover} />
         {c.cover?.sample && <span className="car-card__sample" data-testid="sample-photo-caption">Sample photo</span>}
+        {c.is_sample && <span className="car-card__example" data-testid="example-car-badge" title="An example of the cars we rent: ask and we suggest a similar real car">Example car</span>}
         {booked && <span className="badge badge--hatch car-card__flag">Booked for your dates</span>}
       </div>
       <div className="car-card__body">

@@ -17,6 +17,34 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
   const [s, f, t] = await Promise.all([getSettings(), getFacts(), getTokens()]);
   const F = (x: string) => fill(x, t);
   const bookings = f.email_aliases.bookings;
+  // a request on a sample car (0065) is an enquiry: EQ-1001, answered with a similar real car
+  if (/^EQ-/i.test(number)) return (
+    <div className="p-conf" data-page="confirmation">
+      <section className="page-head on-dark conf-head">
+        <div className="wrap">
+          <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your enquiry number</span></p>
+          <h1 className="d1" data-testid="enquiry-sent">Enquiry sent<ConfName number={number} />.</h1>
+          <p className="lead">The car you chose is an example of the cars we rent. A person at {s.brand_name} is finding a similar real car for your dates. Nothing is booked or charged.</p>
+        </div>
+      </section>
+      <section className="section">
+        <div className="wrap grid">
+          <div className="c-7 stack-lg">
+            <h2 className="d2">What happens next</h2>
+            <ol className="seq">
+              <li><div><h3>We find a similar real car</h3><p>{F('The same kind of car at a similar price, free for your dates. {{reply}}, day or night.')}</p><span className="seq__who">{s.brand_name}</span></div></li>
+              <li><div><h3>You get the car and its price</h3><p>By email<ConfEmail number={number} /> or by phone, with every fee and HST. If you like it, we send the offer to approve.</p><span className="seq__who">{s.brand_name}</span></div></li>
+              <li><div><h3>You decide</h3><p>Nothing is booked until you approve, sign and pay. If it is not right, tell us and we look again.</p><span className="seq__who">You</span></div></li>
+            </ol>
+          </div>
+          <aside className="c-4 s-8 stack-lg" aria-label="Your enquiry">
+            <div className="stack"><h2 className="d4">Questions?</h2><p className="small">{bookings && <>Email <a className="link" href={`mailto:${bookings}`}>{bookings}</a> with your enquiry number</>}{s.phone && <>, or call <a className="link" href={`tel:${s.phone}`}>{s.phone_display}</a></>}.</p></div>
+            <p className="row"><Link className="btn" href="/cars">Back to the fleet</Link></p>
+          </aside>
+        </div>
+      </section>
+    </div>
+  );
   return (
     <div className="p-conf" data-page="confirmation">
       <section className="page-head on-dark conf-head">

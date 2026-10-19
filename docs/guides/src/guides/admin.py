@@ -403,6 +403,22 @@ def build():
         f'On the same page, {B("Delete all sample cars")} deletes every sample car that meets the rule at once, with its requests. Type DELETE SAMPLE CARS to confirm; the ones kept show why, with the booking numbers.',
     ])
 
+    g.task('Sample cars on the site', f'{P("Cars", "Vehicles")}, or {P("Settings", "Site")}. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.')
+    g.steps([
+        f'{B("Hide sample cars")} takes every sample car off the site in one click. Nothing stops it: not an enquiry, not an old request.',
+        f'{B("Show sample cars")} puts the 20 back, with their photos and rates. Ones that were deleted are made again.',
+        'On the site each one is marked "Example car". They never appear in search engines or the sitemap.',
+        'A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.',
+    ])
+    g.tip('Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.')
+
+    g.task('Why a car is not on the site yet', f'{P("Cars", "Vehicles")}, the card Not on the site yet.')
+    g.steps([
+        'Every real car that is not on the site is listed with its next step first: the owner\'s signature, the upfront payment, the registry visit, the tracker, the insurer\'s confirmation, the rates, the listing review.',
+        'Do the step named, or ask the person it waits on. The car comes off the list once it is on the site.',
+        'A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.',
+    ])
+
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')

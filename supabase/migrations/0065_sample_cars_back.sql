@@ -85,7 +85,7 @@ begin
 end $$;
 
 -- One catalogue car: added when missing (vehicle, signed schedule, fee terms, classes, rates, young driver fees, listing,
--- photos as static files of the site), restored and published when it is there. Returns 'added', 'shown' or 'kept'.
+-- photos as static files of the site: no file in the photo bucket), restored and published when it is there. Returns 'added', 'shown' or 'kept'.
 create or replace function app.sample_car_show_one(p_slug text, p_by uuid) returns text
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -159,7 +159,7 @@ begin
   for ph in select * from jsonb_array_elements(c -> 'photos') loop
     insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, width, height,
                                 variants, background_status, is_public, approved_at)
-    values (v, ph ->> 'shot', ph ->> 'shot', ph ->> 'path', ph ->> 'path', 'approved', j, j = 0, ph ->> 'alt', (ph ->> 'width')::integer,
+    values (v, ph ->> 'shot', ph ->> 'shot', 'original' || (ph ->> 'path'), ph ->> 'path', 'approved', j, j = 0, ph ->> 'alt', (ph ->> 'width')::integer,
             (ph ->> 'height')::integer, '[]'::jsonb, 'done', true, now());
     j := j + 1;
   end loop;
@@ -212,6 +212,11 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- ================================================================ 3. a request on a sample car is an enquiry
+-- The local stack's sample cars (web/scripts/seed.mjs without --production) keep taking real bookings: the end-to-end
+-- tests book them. Everywhere else a sample car is never booked.
+alter table vehicles add column sample_bookable boolean not null default false;
+comment on column vehicles.sample_bookable is
+  'A sample car that takes real bookings: only the local stack''s seed sets it, for the end-to-end tests (0065). Otherwise a request on a sample car is an enquiry and no booking is created on it.';
 alter table leads drop constraint if exists leads_kind_check;
 alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car'));
 create sequence sample_enquiry_seq start 1001;
@@ -274,18 +279,18 @@ end $$;
 create or replace function public.submit_booking_request(p_request jsonb, p_ip inet default null, p_user_agent text default null, p_user uuid default null)
 returns jsonb language plpgsql set search_path = public, app as $$
 begin
-  if exists (select 1 from vehicles v where v.id = nullif(p_request ->> 'vehicle_id', '')::uuid and v.is_sample) then
+  if exists (select 1 from vehicles v where v.id = nullif(p_request ->> 'vehicle_id', '')::uuid and v.is_sample and not v.sample_bookable) then
     return app.sample_car_enquiry(p_request, p_ip, p_user_agent, p_user);
   end if;
   return app.submit_booking_request(p_request, p_ip, p_user_agent, p_user);
 end $$;
 
 -- No booking on a sample car, from anywhere (a request, Add a rental, a quote turned into an offer). The local seed's
--- sample calendar (request id 'seed') is the only exception.
+-- sample calendar (request id 'seed') and its bookable sample cars are the only exceptions.
 create or replace function app.bookings_no_sample_car() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
-  if exists (select 1 from vehicles v where v.id = new.vehicle_id and v.is_sample)
+  if exists (select 1 from vehicles v where v.id = new.vehicle_id and v.is_sample and not v.sample_bookable)
      and coalesce(current_setting('app.request_id', true), '') <> 'seed' then
     raise exception 'This is an example car (a sample car), not a real one: it cannot be booked. Choose a real car' using errcode = '23514';
   end if;
@@ -298,7 +303,7 @@ create trigger bookings_no_sample_car before insert or update of vehicle_id on b
 alter function app.server_chat_facts() rename to server_chat_facts_0060;
 create or replace function app.server_chat_facts() returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  select jsonb_set(f, '{fleet}', coalesce((select jsonb_agg(c || jsonb_build_object('sample', coalesce(v.is_sample, false)) order by n)
+  select jsonb_set(f, '{fleet}', coalesce((select jsonb_agg(c || jsonb_build_object('sample', coalesce(v.is_sample and not v.sample_bookable, false)) order by n)
                                              from jsonb_array_elements(f -> 'fleet') with ordinality x(c, n)
                                              left join vehicles v on v.id = nullif(c ->> 'vehicle_id', '')::uuid), '[]'::jsonb))
     from (select app.server_chat_facts_0060() as f) s
@@ -328,6 +333,7 @@ begin
   if v.management_mode = 'turo_only' then
     return jsonb_build_array(jsonb_build_object('code', 'turo_only', 'label', 'Turo only', 'action', 'None: a Turo-only car is not listed on the website', 'who', 'carmacars'));
   end if;
+  if exists (select 1 from public_vehicle_listings p where p.vehicle_id = v.id) then return '[]'::jsonb; end if;
   select * into l from vehicle_listings where vehicle_id = v.id;
   -- onboarding: each open step of the checklist except the photos and the listing (sample photos stand in; the listing is below)
   if v.status = 'onboarding' then
@@ -350,9 +356,6 @@ begin
     g := g || jsonb_build_object('code', 'rates', 'label', 'No rates', 'action', 'Set the rates (Admin > Cars > the car > Rates)', 'who', 'carmacars');
   end if;
   v_problems := app.listing_spec_problems(v.id);
-  if cardinality(v_problems) > 0 then
-    g := g || jsonb_build_object('code', 'details', 'label', 'Listing details missing', 'action', 'Fill in: ' || array_to_string(v_problems, ', '), 'who', 'carmacars');
-  end if;
   if (app.settings()).listing_plate_check_required and not app.vehicle_uses_sample_photos(v.id) then
     select array_agg(coalesce(st.label, ph.shot_type) order by st.seq, ph.sort_order) into v_open
       from vehicle_photos ph join listing_shot_types st on st.code = ph.shot_type
@@ -365,7 +368,9 @@ begin
   if l.id is null or l.status not in ('published', 'paused') then
     g := g || jsonb_build_object('code', 'listing', 'label', case when l.publish_at > now() then 'Listing scheduled' else 'Listing not published' end,
                                  'action', case when l.publish_at > now() then 'Nothing: it publishes on ' || app.fmt_day(app.local_date(l.publish_at))
-                                                else 'Review and publish the listing (Admin > Cars > Listings); it shows sample photos until real photos are approved' end,
+                                                else 'Review and publish the listing (Admin > Cars > Listings)'
+                                                     || case when cardinality(v_problems) > 0 then ', filling in ' || lower(array_to_string(v_problems, ', ')) else '' end
+                                                     || case when app.vehicle_uses_sample_photos(v.id) then '; it shows sample photos until real photos are approved' else '' end end,
                                  'who', 'carmacars');
   elsif l.status = 'paused' then
     g := g || jsonb_build_object('code', 'paused', 'label', 'Listing paused', 'action', 'Resume the listing', 'who', 'carmacars');
@@ -463,3 +468,272 @@ begin
     perform app.sample_cars_show(null);
   end if;
 end $$;
+
+-- ================================================================ 7. the guides for this release
+-- GUIDES SAMPLE CARS START (generated by supabase/seed/sample_cars_gen_guides.mjs from docs/guides/content; do not edit by hand)
+select app.guide_release_section('admin', 'partners-company-cars-and-rentals-added-by-hand', 'chapter', 'fleet-and-listings', 'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.
+
+## Add a car
+
+**Cars** > **Vehicles**, then **Add a car**. First choose who supplies it.
+
+1. **A program owner''s car**: choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.
+2. **CarmaCars-owned (company fleet)**: no owner. All of its revenue is CarmaCars'' and it shows in the company statement as company fleet.
+3. **A partner rental company''s car**: choose the partner. Leave the commission empty to use the partner''s, or type one for this car.
+4. Type the VIN, the plate and the details, and the rates if you have them. Press **Add the car**.
+
+> Tip: The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.
+
+On a car''s page, **Who supplies the car** shows the supplier and the commission, and changes them. Vehicles filters by supply type.
+
+## Partners
+
+**Owners and partners** > **Partners**. Partner rental companies whose cars we rent out on commission.
+
+1. Press **Add a partner**: business and legal name, contacts, HST number, commission and insurance with its expiry date.
+2. Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).
+3. Banking (Admins only): **Save the payout account** for the account we pay the partner into. The account number is stored encrypted. Press **Verify** once checked.
+4. Portal: **Invite to the owner portal** gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.
+5. Signed on paper? Press **Print the partner agreement**, then record the signed scan under Record a paper signature.
+
+## Add a rental by hand
+
+**Bookings** > **Add a rental**. For phone, walk-in, Turo, partner and insurer bookings.
+
+1. Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.
+2. Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.
+3. Check the price: the car''s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.
+4. Choose Where it came from and how it is paid: **Paid another way**, **Send a payment link**, **Charge the saved card when the renter signs** or **Unpaid: invoice later**.
+5. Press **Check the calendar and the price**. Tick **Do not email the renter** if they should not get the confirmation. Press **Add the rental**.
+
+> Tip: The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. On the booking, **Verified in person** records a licence checked at the counter. A past rental is recorded as completed.
+
+## Retire or delete a car
+
+**Cars** > **Retire or delete**, or the car''s own page.
+
+1. **Retire this car** takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. **Restore** brings it back.
+2. **Delete this car** removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.
+3. On the same page, **Delete all sample cars** deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.
+
+## Tolls when two rentals overlap
+
+Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.
+', 'Partners, company cars and rentals added by hand', 'Add a car, partners, add a rental, retire or delete a car, sample cars and tolls with two rentals.',
+  'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.
+
+## Add a car
+
+**Cars** > **Vehicles**, then **Add a car**. First choose who supplies it.
+
+1. **A program owner''s car**: choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.
+2. **CarmaCars-owned (company fleet)**: no owner. All of its revenue is CarmaCars'' and it shows in the company statement as company fleet.
+3. **A partner rental company''s car**: choose the partner. Leave the commission empty to use the partner''s, or type one for this car.
+4. Type the VIN, the plate and the details, and the rates if you have them. Press **Add the car**.
+
+> Tip: The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.
+
+On a car''s page, **Who supplies the car** shows the supplier and the commission, and changes them. Vehicles filters by supply type.
+
+## Partners
+
+**Owners and partners** > **Partners**. Partner rental companies whose cars we rent out on commission.
+
+1. Press **Add a partner**: business and legal name, contacts, HST number, commission and insurance with its expiry date.
+2. Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).
+3. Banking (Admins only): **Save the payout account** for the account we pay the partner into. The account number is stored encrypted. Press **Verify** once checked.
+4. Portal: **Invite to the owner portal** gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.
+5. Signed on paper? Press **Print the partner agreement**, then record the signed scan under Record a paper signature.
+
+## Add a rental by hand
+
+**Bookings** > **Add a rental**. For phone, walk-in, Turo, partner and insurer bookings.
+
+1. Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.
+2. Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.
+3. Check the price: the car''s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.
+4. Choose Where it came from and how it is paid: **Paid another way**, **Send a payment link**, **Charge the saved card when the renter signs** or **Unpaid: invoice later**.
+5. Press **Check the calendar and the price**. Tick **Do not email the renter** if they should not get the confirmation. Press **Add the rental**.
+
+> Tip: The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. On the booking, **Verified in person** records a licence checked at the counter. A past rental is recorded as completed.
+
+## Retire or delete a car
+
+**Cars** > **Retire or delete**, or the car''s own page.
+
+1. **Retire this car** takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. **Restore** brings it back.
+2. **Delete this car** removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.
+3. On the same page, **Delete all sample cars** deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.
+
+## Sample cars on the site
+
+**Cars** > **Vehicles**, or **Settings** > **Site**. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.
+
+1. **Hide sample cars** takes every sample car off the site in one click. Nothing stops it: not an enquiry, not an old request.
+2. **Show sample cars** puts the 20 back, with their photos and rates. Ones that were deleted are made again.
+3. On the site each one is marked "Example car". They never appear in search engines or the sitemap.
+4. A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.
+
+> Tip: Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.
+
+## Why a car is not on the site yet
+
+**Cars** > **Vehicles**, the card Not on the site yet.
+
+1. Every real car that is not on the site is listed with its next step first: the owner''s signature, the upfront payment, the registry visit, the tracker, the insurer''s confirmation, the rates, the listing review.
+2. Do the step named, or ask the person it waits on. The car comes off the list once it is on the site.
+3. A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.
+
+## Tolls when two rentals overlap
+
+Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.
+',
+  '<p class="gd-p">A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.</p><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-car" data-gd-task><h2 class="gd-h2">Add a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then <b class="gd-ui">Add a car</b>. First choose who supplies it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">A program owner&#39;s car</b>: choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">CarmaCars-owned (company fleet)</b>: no owner. All of its revenue is CarmaCars&#39; and it shows in the company statement as company fleet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">A partner rental company&#39;s car</b>: choose the partner. Leave the commission empty to use the partner&#39;s, or type one for this car.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Type the VIN, the plate and the details, and the rates if you have them. Press <b class="gd-ui">Add the car</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.</div></aside><p class="gd-p">On a car&#39;s page, <b class="gd-ui">Who supplies the car</b> shows the supplier and the commission, and changes them. Vehicles filters by supply type.</p></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-partners" data-gd-task><h2 class="gd-h2">Partners</h2><p class="gd-p"><b class="gd-ui">Owners and partners</b> &gt; <b class="gd-ui">Partners</b>. Partner rental companies whose cars we rent out on commission.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press <b class="gd-ui">Add a partner</b>: business and legal name, contacts, HST number, commission and insurance with its expiry date.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Banking (Admins only): <b class="gd-ui">Save the payout account</b> for the account we pay the partner into. The account number is stored encrypted. Press <b class="gd-ui">Verify</b> once checked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Portal: <b class="gd-ui">Invite to the owner portal</b> gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Signed on paper? Press <b class="gd-ui">Print the partner agreement</b>, then record the signed scan under Record a paper signature.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-rental-by-hand" data-gd-task><h2 class="gd-h2">Add a rental by hand</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Add a rental</b>. For phone, walk-in, Turo, partner and insurer bookings.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check the price: the car&#39;s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Choose Where it came from and how it is paid: <b class="gd-ui">Paid another way</b>, <b class="gd-ui">Send a payment link</b>, <b class="gd-ui">Charge the saved card when the renter signs</b> or <b class="gd-ui">Unpaid: invoice later</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Check the calendar and the price</b>. Tick <b class="gd-ui">Do not email the renter</b> if they should not get the confirmation. Press <b class="gd-ui">Add the rental</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. On the booking, <b class="gd-ui">Verified in person</b> records a licence checked at the counter. A past rental is recorded as completed.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-retire-or-delete-a-car" data-gd-task><h2 class="gd-h2">Retire or delete a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Retire or delete</b>, or the car&#39;s own page.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Retire this car</b> takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. <b class="gd-ui">Restore</b> brings it back.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Delete this car</b> removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the same page, <b class="gd-ui">Delete all sample cars</b> deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-sample-cars-on-the-site" data-gd-task><h2 class="gd-h2">Sample cars on the site</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, or <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Site</b>. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Hide sample cars</b> takes every sample car off the site in one click. Nothing stops it: not an enquiry, not an old request.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Show sample cars</b> puts the 20 back, with their photos and rates. Ones that were deleted are made again.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the site each one is marked &quot;Example car&quot;. They never appear in search engines or the sitemap.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-why-a-car-is-not-on-the-site-yet" data-gd-task><h2 class="gd-h2">Why a car is not on the site yet</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, the card Not on the site yet.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Every real car that is not on the site is listed with its next step first: the owner&#39;s signature, the upfront payment, the registry visit, the tracker, the insurer&#39;s confirmation, the rates, the listing review.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Do the step named, or ask the person it waits on. The car comes off the list once it is on the site.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-tolls-when-two-rentals-overlap" data-gd-task><h2 class="gd-h2">Tolls when two rentals overlap</h2><p class="gd-p">Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.</p></section>');
+select app.guide_release_section('va', 'customer-service', 'chapter', 'your-workday', 'You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter''s first person.
+
+Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.
+
+## Answer a request
+
+1. Open **Requests**. Filter by New, Waiting on the renter, Pushed back, Offer out or Offer expired.
+2. Waiting shows how long the renter has waited. Open the booking number.
+
+![](/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg "desktop; size: 1440 640; address: carmacars.ca/va/requests; pins: 1 27.1 17.5, 2 52.8 32.8")
+
+3. On the Review tab, check the request: the car is free, the renter, the places.
+4. Press **Adjust the booking** to change the car, dates, places, price or extras, then **Save changes**.
+5. Add a message and press **Send the offer**. Within your limit you can also use **Approve (within my limit)** or **Approve and send the pay link**.
+6. Can''t do it? **Decline** with Reason and any alternative. Need to know more? **Ask the renter**.
+
+![](/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg "desktop; size: 1440 1000; address: carmacars.ca/va/bookings/CC-10056?tab=review; pins: 3 69.4 24.0, 4 95.8 98.0")
+
+> Tip: Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.
+
+## New quote for a caller
+
+1. Open **New quote**. Choose the Car, the Pickup and Return (at least 2 hours from now).
+2. Choose how the lead came in, then the caller''s Full legal name, Email, Mobile and Date of birth.
+3. Set the Licence class and Damage cover, and note places, extras and what they asked.
+4. Press **Create the request**. It opens like any request; send the offer from there.
+
+![](/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg "desktop; size: 1220 1260; address: carmacars.ca/va/quotes/new; pins: 1 72.1 15.6, 2 72.1 41.7, 3 72.1 72.7, 4 63.9 85.5")
+
+## Renter messages and Find a renter
+
+1. **Renter messages** lists the latest messages with their booking. Open the booking to reply, then press **Send**.
+2. **Find a renter**: search by name, email, phone or booking number.
+3. To open a renter''s private details, press **Open with a reason**. The reason is kept in the access log.
+
+![](/guides/img/va-cs-06-messages-desktop-3441fa91.jpg "desktop; size: 1440 260; address: carmacars.ca/va/messages; pins: 1 32.6 48.5")
+
+## Owner forms (Forms C and D)
+
+1. Open **Owner forms**. Each row is a scan an owner uploaded, with the witnesses and the status.
+2. Press Open to read the scan. Check every page is there and signed, with each witness''s signature and name.
+3. Press **Approve**, or **Send back** with What to fix (the owner reads this).
+
+![](/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg "desktop; size: 1440 300; address: carmacars.ca/va/owner-forms; pins: 2 68.6 36.7, 3 76.7 36.7")
+
+## A rental agreement signed on paper
+
+1. Open the booking. Under Signed on paper, press **Record paper signature**.
+2. Choose the Rental agreement, or the booking change the renter signed.
+3. Check Signed by and Date signed, and upload the scan of every signed page.
+4. Press **Record signature**. It counts as signed, and the renter is not asked to sign again.
+
+## A change to a confirmed booking
+
+On a booking''s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press **Preview the price**, then **Send to the renter**. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.
+
+## A late return
+
+A booking past its return time shows the late return panel. Work it in order:
+
+| Button | When |
+| --- | --- |
+| **Log a call** | Record each call to the renter and what they said. |
+| **Send T13** | The first late notice email. |
+| **Send T14 (final notice)** | The final notice. |
+| **Request disable** | Ask an Admin to approve disabling the car. |
+| **Open an incident** | When the car is not coming back as planned. |
+', 'Customer service', 'Requests and offers, new quotes, renter messages, find a renter, owner forms, late returns.',
+  'You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter''s first person.
+
+Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.
+
+## Answer a request
+
+1. Open **Requests**. Filter by New, Waiting on the renter, Pushed back, Offer out or Offer expired.
+2. Waiting shows how long the renter has waited. Open the booking number.
+
+![](/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg "desktop; size: 1440 640; address: carmacars.ca/va/requests; pins: 1 27.1 17.5, 2 52.8 32.8")
+
+3. On the Review tab, check the request: the car is free, the renter, the places.
+4. Press **Adjust the booking** to change the car, dates, places, price or extras, then **Save changes**.
+5. Add a message and press **Send the offer**. Within your limit you can also use **Approve (within my limit)** or **Approve and send the pay link**.
+6. Can''t do it? **Decline** with Reason and any alternative. Need to know more? **Ask the renter**.
+
+![](/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg "desktop; size: 1440 1000; address: carmacars.ca/va/bookings/CC-10056?tab=review; pins: 3 69.4 24.0, 4 95.8 98.0")
+
+> Tip: Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.
+
+## An enquiry on an example car
+
+Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.
+
+1. The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.
+2. Find a real car of the same kind and price that is free for those dates, and make a **New quote** for it.
+3. Call or email the person with the car and the price, then mark the task done.
+
+> Tip: Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.
+
+## New quote for a caller
+
+1. Open **New quote**. Choose the Car, the Pickup and Return (at least 2 hours from now).
+2. Choose how the lead came in, then the caller''s Full legal name, Email, Mobile and Date of birth.
+3. Set the Licence class and Damage cover, and note places, extras and what they asked.
+4. Press **Create the request**. It opens like any request; send the offer from there.
+
+![](/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg "desktop; size: 1220 1260; address: carmacars.ca/va/quotes/new; pins: 1 72.1 15.6, 2 72.1 41.7, 3 72.1 72.7, 4 63.9 85.5")
+
+## Renter messages and Find a renter
+
+1. **Renter messages** lists the latest messages with their booking. Open the booking to reply, then press **Send**.
+2. **Find a renter**: search by name, email, phone or booking number.
+3. To open a renter''s private details, press **Open with a reason**. The reason is kept in the access log.
+
+![](/guides/img/va-cs-06-messages-desktop-3441fa91.jpg "desktop; size: 1440 260; address: carmacars.ca/va/messages; pins: 1 32.6 48.5")
+
+## Owner forms (Forms C and D)
+
+1. Open **Owner forms**. Each row is a scan an owner uploaded, with the witnesses and the status.
+2. Press Open to read the scan. Check every page is there and signed, with each witness''s signature and name.
+3. Press **Approve**, or **Send back** with What to fix (the owner reads this).
+
+![](/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg "desktop; size: 1440 300; address: carmacars.ca/va/owner-forms; pins: 2 68.6 36.7, 3 76.7 36.7")
+
+## A rental agreement signed on paper
+
+1. Open the booking. Under Signed on paper, press **Record paper signature**.
+2. Choose the Rental agreement, or the booking change the renter signed.
+3. Check Signed by and Date signed, and upload the scan of every signed page.
+4. Press **Record signature**. It counts as signed, and the renter is not asked to sign again.
+
+## A change to a confirmed booking
+
+On a booking''s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press **Preview the price**, then **Send to the renter**. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.
+
+## A late return
+
+A booking past its return time shows the late return panel. Work it in order:
+
+| Button | When |
+| --- | --- |
+| **Log a call** | Record each call to the renter and what they said. |
+| **Send T13** | The first late notice email. |
+| **Send T14 (final notice)** | The final notice. |
+| **Request disable** | Ask an Admin to approve disabling the car. |
+| **Open an incident** | When the car is not coming back as planned. |
+',
+  '<p class="gd-p">You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter&#39;s first person.</p><p class="gd-p">Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.</p><section class="gd-task" id="customer-service-answer-a-request" data-gd-task><h2 class="gd-h2">Answer a request</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Requests</b>. Filter by New, Waiting on the renter, Pushed back, Offer out or Offer expired.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Waiting shows how long the renter has waited. Open the booking number.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/640"><img src="/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg" alt="" loading="lazy" decoding="async" width="1440" height="640"><span class="gd-pin" style="left:27.1%;top:17.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:52.8%;top:32.8%" aria-hidden="true">2</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="3"><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the Review tab, check the request: the car is free, the renter, the places.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Adjust the booking</b> to change the car, dates, places, price or extras, then <b class="gd-ui">Save changes</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Add a message and press <b class="gd-ui">Send the offer</b>. Within your limit you can also use <b class="gd-ui">Approve (within my limit)</b> or <b class="gd-ui">Approve and send the pay link</b>.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Can&#39;t do it? <b class="gd-ui">Decline</b> with Reason and any alternative. Need to know more? <b class="gd-ui">Ask the renter</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/bookings/CC-10056?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/1000"><img src="/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg" alt="" loading="lazy" decoding="async" width="1440" height="1000"><span class="gd-pin" style="left:69.4%;top:24%" aria-hidden="true">3</span><span class="gd-pin" style="left:95.8%;top:98%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within 5 minutes: send the offer, or ask the renter what you need. That is the &quot;First reply in opening hours&quot; measure on your scorecard. Requests waiting longer show in red.</div></aside></section><section class="gd-task" id="customer-service-an-enquiry-on-an-example-car" data-gd-task><h2 class="gd-h2">An enquiry on an example car</h2><p class="gd-p">Some cars on the site are marked &quot;Example car&quot;: samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Find a real car of the same kind and price that is free for those dates, and make a <b class="gd-ui">New quote</b> for it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Call or email the person with the car and the price, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.</div></aside></section><section class="gd-task" id="customer-service-new-quote-for-a-caller" data-gd-task><h2 class="gd-h2">New quote for a caller</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">New quote</b>. Choose the Car, the Pickup and Return (at least 2 hours from now).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose how the lead came in, then the caller&#39;s Full legal name, Email, Mobile and Date of birth.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Set the Licence class and Damage cover, and note places, extras and what they asked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Create the request</b>. It opens like any request; send the offer from there.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/quotes/new</span></div><div class="gd-imgwrap" style="aspect-ratio:1220/1260"><img src="/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg" alt="" loading="lazy" decoding="async" width="1220" height="1260"><span class="gd-pin" style="left:72.1%;top:15.6%" aria-hidden="true">1</span><span class="gd-pin" style="left:72.1%;top:41.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:72.1%;top:72.7%" aria-hidden="true">3</span><span class="gd-pin" style="left:63.9%;top:85.5%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="customer-service-renter-messages-and-find-a-renter" data-gd-task><h2 class="gd-h2">Renter messages and Find a renter</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Renter messages</b> lists the latest messages with their booking. Open the booking to reply, then press <b class="gd-ui">Send</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Find a renter</b>: search by name, email, phone or booking number.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To open a renter&#39;s private details, press <b class="gd-ui">Open with a reason</b>. The reason is kept in the access log.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/messages</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/260"><img src="/guides/img/va-cs-06-messages-desktop-3441fa91.jpg" alt="" loading="lazy" decoding="async" width="1440" height="260"><span class="gd-pin" style="left:32.6%;top:48.5%" aria-hidden="true">1</span></div></div></figure></div></section><section class="gd-task" id="customer-service-owner-forms-forms-c-and-d" data-gd-task><h2 class="gd-h2">Owner forms (Forms C and D)</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Owner forms</b>. Each row is a scan an owner uploaded, with the witnesses and the status.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press Open to read the scan. Check every page is there and signed, with each witness&#39;s signature and name.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Approve</b>, or <b class="gd-ui">Send back</b> with What to fix (the owner reads this).</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/owner-forms</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/300"><img src="/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg" alt="" loading="lazy" decoding="async" width="1440" height="300"><span class="gd-pin" style="left:68.6%;top:36.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:76.7%;top:36.7%" aria-hidden="true">3</span></div></div></figure></div></section><section class="gd-task" id="customer-service-a-rental-agreement-signed-on-paper" data-gd-task><h2 class="gd-h2">A rental agreement signed on paper</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking. Under Signed on paper, press <b class="gd-ui">Record paper signature</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the Rental agreement, or the booking change the renter signed.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check Signed by and Date signed, and upload the scan of every signed page.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Record signature</b>. It counts as signed, and the renter is not asked to sign again.</div></li></ol></div></section><section class="gd-task" id="customer-service-a-change-to-a-confirmed-booking" data-gd-task><h2 class="gd-h2">A change to a confirmed booking</h2><p class="gd-p">On a booking&#39;s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press <b class="gd-ui">Preview the price</b>, then <b class="gd-ui">Send to the renter</b>. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.</p></section><section class="gd-task" id="customer-service-a-late-return" data-gd-task><h2 class="gd-h2">A late return</h2><p class="gd-p">A booking past its return time shows the late return panel. Work it in order:</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Button</th><th scope="col">When</th></tr></thead><tbody><tr><td><b class="gd-ui">Log a call</b></td><td>Record each call to the renter and what they said.</td></tr><tr><td><b class="gd-ui">Send T13</b></td><td>The first late notice email.</td></tr><tr><td><b class="gd-ui">Send T14 (final notice)</b></td><td>The final notice.</td></tr><tr><td><b class="gd-ui">Request disable</b></td><td>Ask an Admin to approve disabling the car.</td></tr><tr><td><b class="gd-ui">Open an incident</b></td><td>When the car is not coming back as planned.</td></tr></tbody></table></div></section>');
+-- GUIDES SAMPLE CARS END
