@@ -30,7 +30,7 @@ Amounts come from each vehicle's signed Vehicle Schedule, never from a tier. Upf
 
 | Item | Rule |
 | --- | --- |
-| Owner Revenue, per booking | Rental Charge (time-based, including extra days after a late return, before tax, after discounts) + mileage overage fees − any Referral Kickback, whether an Owner or field staff earned it |
+| Owner Revenue, per booking | Rental Charge (time-based, including extra days after a late return, before tax, after discounts) + mileage overage fees − any Referral Kickback an Owner earned − every Staff Commission on the booking (field staff referral fees included; migration 0058) |
 | Company only | Every other renter charge: late return fee, delivery and pickup, fuel, cleaning, young driver, coverage sold, toll and ticket admin. Processing fees are a company cost |
 | Revenue Share | Vehicle Schedule % × Owner Revenue, kept by CarmaCars. The Owner is paid the rest |
 | When a rental counts | Once collected, net of refunds and chargebacks, in the month the rental ends. Each renewal is its own rental. Rental Charge kept on a cancelled booking counts in the month of cancellation |

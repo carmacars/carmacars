@@ -30,9 +30,17 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 3.1 CarmaCars pays the Rate in Schedule A. A monthly Rate covers the Coverage Hours of each month: a part month, and Coverage Hours missed without CarmaCars' approval, are paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A.
 
-3.2 The Rate is your whole payment. There are no benefits, overtime, vacation pay, commissions or expenses unless CarmaCars agrees in writing first.
+3.2 The Rate and the commission in section 3.4 are your whole payment. There are no benefits, overtime, vacation pay or expenses unless CarmaCars agrees in writing first.
 
 3.3 CarmaCars may deduct from any payment an amount you owe it under this agreement.
+
+3.4 **Commission.** You earn a commission on the Rental Charge of each rental you sourced: a rental, quote or offer you entered in CarmaCars' systems and marked "I sourced this client", or a rental CarmaCars credits to you. CarmaCars' booking records decide who sourced a rental, unless they contain an obvious error.
+
+- **Rate.** In the Sales role, the rate depends on the rental days of the rentals you sourced that were completed and paid in full and ended in the calendar month: under 50 days, 10%; 50 to 99 days, 15%; 100 days or more, 20%. That month's rate applies to all of that month's rentals. In every other role the rate is 10%. CarmaCars may change the rates or the tiers on 30 days' written notice, for rentals that end after the notice period.
+- **Rental Charge.** The rental rate CarmaCars charges for the rental, after discounts and net of refunds and cancellations, before tax. It excludes taxes, deposits, protection products, delivery charges and charges for fuel, kilometres, tolls, tickets and damage.
+- **When earned.** A commission is earned when the rental is completed and paid in full. None is earned on a rental that is cancelled, refunded, unpaid or charged back, on your own rental or a rental by a member of your household, or on a booking made after this agreement ends.
+- **Approval and payment.** CarmaCars approves each commission before it is paid, and pays it by the Payment Method or with your Rate. Nothing is paid before it is approved.
+- **Reversal.** If a rental is refunded or charged back after its commission was paid, or a refund lowers the month's rate, the commission or the difference is deducted from your next commission or payment.
 
 ## 4. Confidentiality and data
 
@@ -70,7 +78,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 6.1 Everything you create or collect in the Services belongs to CarmaCars from the moment it exists. This includes records, content, listings, leads, contact lists, templates and any account or profile opened for the Services. You assign all rights in it to CarmaCars and waive your moral rights.
 
-6.2 You earn no referral fee, kickback or commission on any renter, owner or booking. You accept no gift or payment from a customer, owner or supplier.
+6.2 You earn no referral fee or kickback, and no commission other than under section 3.4. You accept no gift or payment from a customer, owner or supplier.
 
 6.3 While this agreement runs and for 12 months after it ends, you will not, for yourself or anyone else:
 

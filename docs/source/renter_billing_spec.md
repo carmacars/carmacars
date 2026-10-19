@@ -145,7 +145,7 @@ Examples: rental charge $600 + HST $78 = $678 paid.
 
 | Step | Formula |
 | --- | --- |
-| 1. Kickback | 20% × rental charge, after discount and before HST, when an owner or field staff member referred the renter and this is the renter's first rental. Otherwise $0. Deducted whoever earned it. An owner earns none on a booking of their own vehicle. Never paid to VAs or on a cancelled booking |
+| 1. Kickbacks | The Referral Kickback: 20% × rental charge, after discount and before HST, when an owner referred the renter and this is the renter's first rental; an owner earns none on a booking of their own vehicle. Plus every Staff Commission on the booking (0058): the commission of the staff member who sourced or referred it (field staff 10%, other staff 10%, Sales by monthly tier). All deducted before Owner Revenue on an owner's car; never on a cancelled booking |
 | 2. Owner Revenue | Rental charge, including late-return extra days, + mileage overage − kickback |
 | 3. Company share | Owner Revenue × the vehicle's company share (10% on a shareholder-owned car; 0% when the owner manages rentals; CarmaCars still collects the money through its checkout) |
 | 4. Owner payout | Owner Revenue − company share, paid on the 10th of the month |
@@ -193,7 +193,7 @@ Tab: Review notes
 | Accountant | Whether fees charged for a breach, and amounts kept on cancellation, already include HST. The agreement states all fees are before HST |
 | Accountant | HST on deposits: none when taken; treatment when a deposit is applied to a Charge |
 | Accountant | HST returned on each refund tier, and the credit note required |
-| Accountant | Tax reporting for kickbacks paid to owners and field staff |
+| Accountant | Tax reporting for kickbacks paid to owners and commissions paid to staff |
 | Lawyer | Consumer Protection Act limits on fixed fees, the kept share on cancellation, and non-refundable bookings |
 | Lawyer | Whether $300 smoking, 1.5 × daily rate late return and $40 declined payment stand as cost estimates |
 | Lawyer | Card network rules on charging Damage and other amounts after return without a new consent |

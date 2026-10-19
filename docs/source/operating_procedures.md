@@ -288,8 +288,8 @@ Billing, 15th:
 Payouts, 10th, for the previous month:
 
 1. Per Vehicle, list each Rental collected, net of refunds and chargebacks, with its "Referred by" entry.
-2. Owner Revenue = Rental Charge + mileage overage − Referral Kickback (20% of the Rental Charge on a referred new renter's first rental, referred by an Owner or Field staff; none to an Owner on their own Vehicle).
-3. Pay Owner Revenue less the Revenue Share (shareholder-owned car: 90%; Self-Managed: 100%), plus Referral Kickbacks this Owner earned. Field staff kickbacks go to payroll.
+2. Owner Revenue = Rental Charge + mileage overage − every kickback: the Referral Kickback (20% of the Rental Charge on a referred new renter's first rental, referred by an Owner; none to an Owner on their own Vehicle) and every Staff Commission (the commission of the staff member who sourced or referred the booking, field staff included: 10%, or the Sales tier of 10%, 15% or 20%). On a partner's car CarmaCars pays the Staff Commission from its own commission; on a CarmaCars-owned car it is a CarmaCars expense.
+3. Pay Owner Revenue less the Revenue Share (shareholder-owned car: 90%; Self-Managed: 100%), plus Referral Kickbacks this Owner earned. Staff Commissions are approved by an Admin and paid by hand (Admin > Money > Staff commissions).
 4. Deduct only: unpaid Fees and Late Fees, Owner costs CarmaCars paid, the Owner's share of a refund or chargeback, amounts agreed in writing.
 5. Admin approves the run. Pay by the Owner's payout method. Send T26 with the statement.
 

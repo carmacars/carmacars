@@ -75,23 +75,19 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 6.4 For 12 months after this agreement ends, you do not solicit any customer or owner you dealt with to rent or list a vehicle elsewhere.
 
-## 7. Referral commission
+## 7. Commission
 
-7.1 You earn a referral fee of 20% of the Rental Charge on the first completed rental of a renter you referred. Later rentals by that renter earn nothing. The fee is a commission and part of your wages.
+7.1 You earn a commission of 10% of the Rental Charge of each rental you sourced: a rental you entered in CarmaCars' app and marked "I sourced this client", or a booking made with your referral code or name. The commission is part of your wages. CarmaCars may change the rate on 30 days' written notice, for rentals that end after the notice period.
 
-7.2 The "Rental Charge" is the rental rate CarmaCars collects and keeps for that rental, after discounts and refunds and before tax. It excludes taxes, deposits, protection products, delivery charges and charges for fuel, kilometres, tolls, tickets and damage.
+7.2 The "Rental Charge" is the rental rate CarmaCars charges for that rental, after discounts and net of refunds and cancellations, before tax. It excludes taxes, deposits, protection products, delivery charges and charges for fuel, kilometres, tolls, tickets and damage.
 
-7.3 A referral counts only if:
+7.3 A rental counts as yours only if you marked it, or your referral code or name was entered on the booking, when the booking was made, and no one else was recorded as its source first. CarmaCars' booking records decide who sourced a rental, unless they contain an obvious error.
 
-- the renter has never booked or enquired with CarmaCars before;
-- your referral code or name is entered on the booking when it is made; and
-- no one else was recorded as the referrer first.
+7.4 The commission is earned when the rental is completed and paid in full. CarmaCars approves it and pays it on the next Pay Date after approval. It is not earned on a booking that is cancelled, refunded, unpaid or charged back, on your own rental or one by a member of your household, or on a booking made after this agreement ends.
 
-CarmaCars' booking record decides who referred a renter, unless it contains an obvious error.
+7.5 If a rental is refunded or charged back after its commission was paid, that commission was not earned, and you authorize CarmaCars to deduct it from a later commission, as far as the ESA allows.
 
-7.4 The fee is earned when the rental is completed and paid in full, and is paid on the next Pay Date. It is not earned on a booking that is cancelled, refunded, unpaid or charged back, on your own rental or one by a member of your household, or on a booking made after this agreement ends.
-
-7.5 You promote CarmaCars truthfully and only as the Procedures allow. CarmaCars may change or end the referral fee on 30 days' written notice, for bookings made after that notice period.
+7.6 You promote CarmaCars truthfully and only as the Procedures allow.
 
 ## 8. Pay and hours
 
@@ -111,7 +107,7 @@ CarmaCars' booking record decides who referred a renter, unless it contains an o
 
 9.3 CarmaCars may stop assigning you driving Jobs at any time for safety or insurance reasons.
 
-9.4 When your employment ends, you return every key, fob and item of equipment at once and delete all Confidential Information. CarmaCars pays all wages you earned to the end date, including referral fees and vacation pay, within the time the ESA requires. Sections 5, 6 and 10 continue.
+9.4 When your employment ends, you return every key, fob and item of equipment at once and delete all Confidential Information. CarmaCars pays all wages you earned to the end date, including commissions earned and vacation pay, within the time the ESA requires. Sections 5, 6 and 10 continue.
 
 ## 10. General
 

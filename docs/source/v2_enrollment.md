@@ -111,11 +111,11 @@
 
 ## 8. Revenue and payouts
 
-8.1 **Owner Revenue** for a booking is the Rental Charge plus mileage overage fees, less every Referral Kickback on that booking. A Renter who returns late is charged the Rental Charge for each extra day, which is Owner Revenue.
+8.1 **Owner Revenue** for a booking is the Rental Charge plus mileage overage fees, less every kickback on that booking: each Referral Kickback and each Staff Commission. A Renter who returns late is charged the Rental Charge for each extra day, which is Owner Revenue.
 
 8.2 Late return, delivery and pickup, fuel, cleaning and young driver fees, the Protection Plan sold to Renters, and toll and ticket admin fees belong to CarmaCars alone, in every Management Mode.
 
-8.3 A **Referral Kickback** is the Kickback Rate on the Rental Charge of a new Renter's first Rental, earned by an Owner or a CarmaCars field staff member who referred that Renter before booking. Every kickback is deducted from that booking before Owner Revenue is calculated, even on another Owner's Vehicle. An Owner's is paid with that Owner's next payout. An Owner earns none on the Owner's own Vehicles. None applies to a renewal or a Self-Managed rental.
+8.3 A **Referral Kickback** is the Kickback Rate on the Rental Charge of a new Renter's first Rental, earned by an Owner who referred that Renter before booking. A **Staff Commission** is the commission CarmaCars pays a member of its staff, field staff included, who sourced or referred the booking, at the rates CarmaCars sets for its staff from time to time. A Staff Commission is a kickback. Every kickback is deducted from that booking before Owner Revenue is calculated, even on another Owner's Vehicle. An Owner's Referral Kickback is paid with that Owner's next payout. An Owner earns none on the Owner's own Vehicles. No Referral Kickback applies to a renewal or a Self-Managed rental.
 
 8.4 For a Managed Vehicle, CarmaCars keeps its Revenue Share of Owner Revenue and pays the Owner the rest. For a Self-Managed Vehicle it pays the Owner all of Owner Revenue. Example for a Managed Vehicle at a 25% Revenue Share:
 
@@ -123,7 +123,7 @@
 | --- | --- | --- | --- | --- |
 | $1,000 | $200 | $800 | $200 | $600 |
 
-8.5 On each Payout Date CarmaCars pays the Owner for the previous month, with a statement for each Vehicle of each Rental, Referral Kickback, Revenue Share and deduction. A Rental counts in the month it ends, once collected, net of refunds and chargebacks.
+8.5 On each Payout Date CarmaCars pays the Owner for the previous month, with a statement for each Vehicle of each Rental, Referral Kickback, Staff Commission, Revenue Share and deduction. A Rental counts in the month it ends, once collected, net of refunds and chargebacks. A Staff Commission that changes after a statement, through a refund or the month's rate, is adjusted on the next statement.
 
 8.6 CarmaCars may deduct only unpaid Fees and Late Fees, Owner costs it has paid or been billed, the Owner's share of a refund or chargeback, and amounts the Owner agrees to in writing.
 

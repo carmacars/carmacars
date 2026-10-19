@@ -120,7 +120,7 @@ Build each template from the blank PDF: place signature, initial, tick-box and d
 4. **1st.** Reconcile 2100, 2140 and 2150 to open bookings and claims. Release deposits past 7 business days and hold-backs past 30 days.
 5. **1st.** Add 1.5% interest to overdue Charges. Compute investor Returns.
 6. **By the 9th.** Draft one statement per Owner. Admin approves the run.
-7. **10th.** Deduct only unpaid Fees and Late Fees, Owner costs, refund or chargeback shares and agreed amounts. Pay by bank transfer. Send T26 with the statement. Send Field staff kickbacks to payroll.
+7. **10th.** Deduct only unpaid Fees and Late Fees, Owner costs, refund or chargeback shares and agreed amounts. Pay by bank transfer. Send T26 with the statement. Pay approved Staff Commissions by hand and record each payment (Admin > Money > Staff commissions).
 8. **15th.** Issue one invoice per vehicle: Insurance Fee, Tracker Fee, HST, pro-rated in enrollment and exit months. Skip Turo-Only cars and cars owned personally by Abbas or Mahad. Send T24.
 9. **15th.** Pay investor Returns by bank transfer.
 10. **15th to 18th.** On a debit returned for insufficient funds add the $50 Late Fee as its own line and send T25. On any other return reason: no retry, pause the invoice's automatic debit, alert an Admin and email the owner.
