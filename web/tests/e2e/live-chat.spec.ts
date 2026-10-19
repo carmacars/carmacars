@@ -49,10 +49,12 @@ async function ctx(browser: Browser, extra: Record<string, string> = {}) {
   return c.newPage();
 }
 /** A visitor who accepted analytics (the beacon then records pages and cars). */
-async function visitor(browser: Browser) {
+async function visitor(browser: Browser, campaign = tag()) {
   const page = await ctx(browser, { 'x-cc-city': 'Toronto', 'x-cc-region': 'ON', 'x-cc-country': 'CA' });
-  await page.goto('/', { waitUntil: 'networkidle' });
+  // a campaign of its own tells this visitor apart on the Live page (the other width runs at the same time)
+  await page.goto(`/?utm_source=e2e&utm_campaign=${campaign}`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Accept all' }).first().click();
+  await viewAndBeacon(page, `/?utm_source=e2e&utm_campaign=${campaign}`);
   return page;
 }
 /** The beacon loads after the page is idle and sends at once; wait for its answer. */
@@ -71,7 +73,8 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   test.setTimeout(150_000);
   const sql = db();
   const cs = await mkStaff(sql, 'cs');
-  const v = await visitor(browser);
+  const camp = tag();
+  const v = await visitor(browser, camp);
   for (const slug of CARS) await viewAndBeacon(v, `/cars/${slug}`);
   // the chat button waits until the cookie banner is answered, then sits in the corner
   await expect(v.getByTestId('chat-open')).toBeVisible({ timeout: 15_000 });
@@ -82,8 +85,10 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live visitors' })).toBeVisible();
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live chat' })).toBeVisible();
   await staff.goto('/va/live', { waitUntil: 'networkidle' });
-  const row = staff.getByTestId('live-row').filter({ hasText: 'Visitor from Toronto' }).filter({ hasText: 'Viewing spree: 6 cars in 10 minutes' }).first();
+  const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toBeVisible({ timeout: 15_000 });
+  await expect(row).toContainText('Visitor from Toronto');
+  await expect(row).toContainText('Viewing spree: 6 cars in 10 minutes');
   await expect(row).toContainText('Now on Car page');
   await expect(staff.getByTestId('live-signals')).toContainText('Viewing spree: 6 cars in 10 minutes');
   await expect(staff.getByTestId('most-viewed')).toContainText('Tesla');
@@ -126,7 +131,7 @@ test('Live chat: the assistant quotes from the pricing function, a person takes 
   // a person, please
   await v.getByRole('button', { name: 'Talk to a person' }).click();
   await expect(v.getByTestId('chat-status')).toContainText('A person will reply shortly', { timeout: 15_000 });
-  const item = staff.getByTestId('chat-item').filter({ hasText: 'Waiting for a person' }).first();
+  const item = staff.getByTestId('chat-item').filter({ hasText: 'Waiting for a person' }).filter({ hasText: from });
   await expect(item).toBeVisible({ timeout: 15_000 });
   await item.click();
   const thread = staff.getByTestId('chat-thread');
@@ -158,13 +163,14 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   test.setTimeout(150_000);
   const sql = db();
   const sales = await mkStaff(sql, 'sales');
-  const v = await visitor(browser);
+  const camp = tag();
+  const v = await visitor(browser, camp);
   await viewAndBeacon(v, '/cars/mercedes-benz-c300');
   const staff = await ctx(browser);
   await signIn(staff, sales.email, '/va');
   await staff.goto('/va/live', { waitUntil: 'networkidle' });
-  const row = staff.getByTestId('live-row').filter({ hasText: 'Mercedes-Benz C300' }).filter({ hasText: 'Visitor from Toronto' }).first();
-  await expect(row).toBeVisible({ timeout: 15_000 });
+  const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
+  await expect(row).toContainText('Mercedes-Benz C300', { timeout: 15_000 });
   await row.getByRole('button', { name: 'Start a chat' }).click();
   await row.getByLabel('Your message (the visitor sees it in a bubble)').fill('Hi, I am here if you have a question about the C300.');
   await row.getByRole('button', { name: 'Send' }).click();
@@ -178,7 +184,7 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await v.getByLabel('Your message').fill('Is it automatic?');
   await v.getByRole('button', { name: 'Send' }).click();
   await staff.goto('/va/chat', { waitUntil: 'networkidle' });
-  await staff.getByTestId('chat-item').filter({ hasText: 'With a person' }).first().click();
+  await staff.getByTestId('chat-item').filter({ hasText: 'Is it automatic?' }).first().click();
   await expect(staff.getByTestId('chat-thread')).toContainText('Is it automatic?', { timeout: 15_000 });
   await sql.end();
 });
