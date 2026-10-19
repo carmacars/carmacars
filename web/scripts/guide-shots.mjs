@@ -63,8 +63,8 @@ async function bare(role, va) {
   if (role === 'owner') { await sql`insert into user_roles (user_id, role) values (${id}, 'owner') on conflict do nothing`; await sql`insert into owners (user_id, owner_type, legal_name, status, email) values (${id}, 'individual', 'Guide Owner', 'active', ${email})`; }
   if (role === 'investor') await sql`insert into investors (user_id, legal_name, investor_type, status, email) values (${id}, 'Guide Investor', 'individual', 'active', ${email})`;
   if (role === 'admin') await sql`insert into user_roles (user_id, role) values (${id}, 'admin') on conflict do nothing`;
-  if (va) { await sql`insert into user_roles (user_id, role) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va') on conflict do nothing`; await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, is_active) values (${id}, 'va', ${va}::va_function, true)`; }
-  if (role === 'field') { await sql`insert into user_roles (user_id, role) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field') on conflict do nothing`; await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function, is_active) values (${id}, 'field', 'driver', true)`; }
+  if (va) { await sql`insert into user_roles (user_id, role) values (${id}, 'va') on conflict do nothing`; await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, is_active) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${va}::va_function, true)`; }
+  if (role === 'field') { await sql`insert into user_roles (user_id, role) values (${id}, 'field') on conflict do nothing`; await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function, is_active) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver', true)`; }
   return id;
 }
 // The richest account of each role (most records to show), as the role crawl picks them; a bare one if none.
