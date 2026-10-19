@@ -113,7 +113,12 @@ Released by the 0062 guides block (`supabase/seed/0062_gen_guides.mjs`, base com
 
 ## 8. Deploy and checks
 
-RESULT_DEPLOY
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 39288747650 | Green |
+| Deploy with the full suite | 39289461880 | fast and full green (end to end, crawl, SEO, emails). Deploy job: migration 0062 applied (history row 0062), auth, Stripe, outbox, owner debit and **calendar-sync** deployed and scheduled; then **Build the Worker failed** 3 times on a database statement timeout (57014) while prerendering `/rent/mercedes-benz-glc300` (`public.model_hub`, 78 ms when timed afterwards). The Worker was not deployed |
+| Production after the deploy | SQL | pg_cron `carmacars-uptime`, `carmacars-booking-recovery` and `carmacars-calendar-sync` run; the site check probes answered (home, a car page and sign-in 200; `/api/health` 404 until the Worker with the route is deployed), the internal checks pass, calendar-sync answers `{"feeds": 0}` |
+| Redeploy | not started | Needs a new run of `ci.yml` with deploy; then verify full |
 
 ## 9. What the owner must do
 
