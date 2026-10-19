@@ -10,7 +10,7 @@ name: guides
 # Guide upkeep (upkeep = true, the default; web/scripts/guide-upkeep.mjs, migration 0049): each new screenshot is cropped
 # as the guides crop it and compared with the image the live guide shows (a perceptual difference above 3%). A changed
 # one is sent to carmacars.ca's job endpoint: stored, put in place of the old image in the guides (drafts and published
-# copies), and its sections flagged "needs review" in Admin > Settings > Guides. Run guides-pdf afterwards for the PDFs.
+# copies), and its sections' text checked again by the next automatic run. Run guides-pdf afterwards for the PDFs.
 #
 # The guides keep up by themselves (auto = true; migration 0055): the deploy job of ci.yml starts this workflow after
 # every successful deploy. The first job stops it within a minute when nothing under web/src or docs/guides changed
@@ -27,7 +27,7 @@ on:
         type: string
         default: ''
       upkeep:
-        description: Compare with the live guides and replace the screenshots that changed (flagged for review)
+        description: Compare with the live guides and replace the screenshots that changed
         type: boolean
         default: true
       rewrite:

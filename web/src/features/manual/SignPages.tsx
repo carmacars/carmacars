@@ -5,6 +5,7 @@ import { PackageSignForm } from '@/features/signing/PackageSignForm';
 import { SignProgress, SignSummary, type SummaryRow } from '@/features/signing/Progress';
 import { signPortalPackage } from '@/server/actions/signing';
 import { viewAs } from '@/server/view-as';
+import { homeAddressOf } from '@/features/staff/HomeAddress';
 
 // The signing pages of the investor, VA and Field portals (migrations 0044 and 0049): every document waiting for the
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
@@ -74,6 +75,9 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
   if (!f) notFound();
   const viewing = !!(await viewAs());
   const inv = f.doc_type === 'investment_agreement';
+  // a staff agreement (0059): the staff member's own home address comes first (the layout asks for it at the top)
+  const staffPortal = base.startsWith('/va') ? 'va' : base.startsWith('/field') ? 'field' : null;
+  const needsAddress = f.doc_type === 'staff_agreement' && staffPortal !== null && !viewing && (await homeAddressOf(userId, staffPortal)).missing;
   return (
     <div className="stack-lg">
       <p><Link prefetch={false} className="link" href={base}>Documents to sign</Link></p>
@@ -92,6 +96,7 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
             <p className="small muted">It opens in a new tab. Questions before you sign? Reply to the email it came with, or call us.</p></section>
           <section className="pt-card stack" aria-labelledby="sg-sign"><h2 className="d4" id="sg-sign">Sign</h2>
             {viewing ? <p className="small muted">Read only.</p>
+              : needsAddress ? <p className="small" data-testid="sign-needs-address">First add your home address at the top of the page. Then you can sign.</p>
               : <PackageSignForm docs={[{ key: f.id, title: f.title }]} signerName={f.signer_name} investment={inv} initials={inv} statementsLegend="Risk acknowledgment (Schedule C)"
                   statements={inv ? [{ code: 'schedule_c', text: 'I have read the risk acknowledgment in Schedule C and I initial each statement in it.' }] : []}
                   consent={consent(1)} button="Sign" testId="portal-sign-form"

@@ -2,7 +2,7 @@
 // the guides crop them (docs/guides/src/export.py, into a folder of its own), each crop is compared with the image the
 // guide shows now (the committed one, or the one an earlier run put in its place), and a crop that looks different is
 // sent to the site's job endpoint: stored in the public bucket, put in place of the old image in every draft and
-// published copy of the guides, and its sections flagged "needs review" in Admin > Settings > Guides.
+// published copy of the guides; the text of its sections is then checked (below).
 //
 //   node scripts/guide-upkeep.mjs --shots <guide-shots out dir> --out <dir> [--threshold 0.03] [--apply --base https://carmacars.ca]
 //
@@ -14,8 +14,10 @@
 // The text keeps up too (migration 0055). With --rewrite, after the screenshots: every section whose screenshot changed in
 // this run, or that names a button no screen of this commit shows (the label check), is sent to the rewrite job with its
 // facts, read from the code (portal-facts.mjs: the portal's menu, the labels of the screens the section shows, and for
-// each missing button the closest labels that exist). The job asks Workers AI for the new text and publishes it when it
-// passes the checks (kept as a suggestion to review when it does not). At most --max sections a run (default 15).
+// each missing button the closest labels that exist), with the sections the last run could not rewrite (0059). The job
+// asks Workers AI for the new text and publishes it when it passes the checks, asking again more strictly when it does
+// not; nothing waits for review. A section it still cannot rewrite keeps its old text (button names fixed where possible)
+// and is logged for the next run. At most --max sections a run (default 15).
 //   node scripts/guide-upkeep.mjs --last-sha --base <url>                   prints the commit of the last finished run
 //   node scripts/guide-upkeep.mjs --finish --run <id> --sha <sha> [--pdfs n] --base <url>   records the run as done
 import { createHmac } from 'node:crypto';
@@ -56,9 +58,9 @@ if (process.argv.includes('--last-sha')) { console.log((await job('/api/jobs/gui
 if (process.argv.includes('--finish')) {
   const prev = fs.existsSync(path.join(OUT, 'report.json')) ? JSON.parse(fs.readFileSync(path.join(OUT, 'report.json'), 'utf8')) : {};
   const r = await job('/api/jobs/guide-upkeep-run', { method: 'POST', body: JSON.stringify({ run: RUN, sha: arg('--sha', ''), status: arg('--status', 'done'),
-    images: prev.applied?.filter((x) => x.ok).length ?? 0, sections_rewritten: prev.rewritten?.length ?? 0, sections_flagged: prev.flagged?.length ?? 0,
-    pdfs: Number(arg('--pdfs', '0')) || 0, result: { changed: (prev.changed ?? []).map((c) => c.name), rewritten: prev.rewritten ?? [], flagged: prev.flagged ?? [] } }) });
-  console.log(`guide upkeep run ${RUN} recorded: ${r.run.status}, ${r.run.images} screenshots, ${r.run.sections_rewritten} sections rewritten, ${r.run.sections_flagged} to review, ${r.run.pdfs} PDFs`);
+    images: prev.applied?.filter((x) => x.ok).length ?? 0, sections_rewritten: prev.rewritten?.length ?? 0, sections_flagged: prev.kept?.length ?? 0,
+    pdfs: Number(arg('--pdfs', '0')) || 0, result: { changed: (prev.changed ?? []).map((c) => c.name), rewritten: prev.rewritten ?? [], kept: prev.kept ?? [] } }) });
+  console.log(`guide upkeep run ${RUN} recorded: ${r.run.status}, ${r.run.images} screenshots, ${r.run.sections_rewritten} sections rewritten, ${r.run.sections_flagged} kept for the next run, ${r.run.pdfs} PDFs`);
   process.exit(0);
 }
 if (!SHOTS) { console.error('--shots <dir> is required'); process.exit(2); }
@@ -113,7 +115,7 @@ for (const name of fs.readdirSync(path.join(OUT, 'img')).filter((n) => n.endsWit
   }
 }
 // 4. the text: sections whose screenshot changed, and sections naming buttons no screen shows
-report.rewritten = []; report.flagged = []; report.label_problems = [];
+report.rewritten = []; report.kept = []; report.label_problems = [];
 if (REWRITE && APPLY) {
   const facts = portalFacts();
   const labels = facts.labels;
@@ -127,9 +129,10 @@ if (REWRITE && APPLY) {
     const paths = navPathProblems(s.body_md, navOf(s.portal));
     if (missing.length || paths.length) report.label_problems.push({ portal: s.portal, slug: s.slug, missing, paths });
     const changed = (s.images_changed ?? []).length > 0;
-    if (!changed && !missing.length && !paths.length) continue;
+    const pending = !changed && !!s.pending;
+    if (!changed && !missing.length && !paths.length && !s.retry && !pending) continue;
     const reason = [changed ? 'A screenshot in this section changed' : '', missing.length ? `It names buttons the portals no longer show (${missing.slice(0, 3).join(', ')})` : '',
-      paths.length ? `Its menu paths do not match the menu (${paths.slice(0, 3).join('; ')})` : ''].filter(Boolean).join('; ');
+      paths.length ? `Its menu paths do not match the menu (${paths.slice(0, 3).join('; ')})` : '', pending ? 'A screenshot in this section changed since its text was last checked' : '', s.retry ? 'The last run could not rewrite it' : ''].filter(Boolean).join('; ');
     targets.push({ s, missing, reason });
   }
   for (const { s, missing, reason } of targets.slice(0, MAX)) {
@@ -139,17 +142,17 @@ if (REWRITE && APPLY) {
       missing: missing.map((label) => ({ label, closest: closestLabels(label, pool).length ? closestLabels(label, pool) : closestLabels(label, plain) })) };
     try {
       const r = await job('/api/jobs/guide-rewrite', { method: 'POST', body: JSON.stringify({ section_id: s.id, run: RUN, reason, facts: sectionFacts, labels }) });
-      const item = { portal: s.portal, slug: s.slug, result: r.result ?? (r.ok ? 'unknown' : 'model'), summary: r.summary ?? r.message ?? '', problems: r.problems ?? [] };
-      (r.result === 'updated' ? report.rewritten : report.flagged).push(item);
-    } catch (e) { report.flagged.push({ portal: s.portal, slug: s.slug, result: 'error', summary: String(e.message ?? e).slice(0, 200), problems: [] }); }
+      const item = { portal: s.portal, slug: s.slug, result: r.result ?? (r.ok ? 'unknown' : 'model'), attempts: r.attempts ?? 1, labels_only: !!r.labels_only, summary: r.summary ?? r.message ?? '', problems: r.problems ?? [] };
+      if (r.result !== 'same') (r.result === 'updated' ? report.rewritten : report.kept).push(item);
+    } catch (e) { report.kept.push({ portal: s.portal, slug: s.slug, result: 'error', summary: String(e.message ?? e).slice(0, 200), problems: [] }); }
   }
-  if (targets.length > MAX) report.flagged.push(...targets.slice(MAX).map(({ s }) => ({ portal: s.portal, slug: s.slug, result: 'later', summary: `more than ${MAX} sections this run: the next run takes it`, problems: [] })));
+  if (targets.length > MAX) report.kept.push(...targets.slice(MAX).map(({ s }) => ({ portal: s.portal, slug: s.slug, result: 'later', summary: `more than ${MAX} sections this run: the next run takes it`, problems: [] })));
 }
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
 console.log(`${report.compared} screenshots compared: ${report.unchanged} unchanged, ${report.changed.length} changed${APPLY ? `, ${report.applied.filter((x) => x.ok).length} replaced in the guides` : ' (report only)'}; ${report.skipped.length} skipped`);
 for (const c of report.changed) console.log(`changed: ${c.name} (${Math.round(c.diff * 100)}% different)`);
 if (REWRITE) {
-  console.log(`text: ${report.rewritten.length} sections rewritten and published, ${report.flagged.length} kept to review; ${report.label_problems.length} sections named missing buttons`);
-  for (const x of report.rewritten) console.log(`rewritten: ${x.portal}/${x.slug}: ${x.summary}`);
-  for (const x of report.flagged) console.log(`to review: ${x.portal}/${x.slug} (${x.result}): ${[x.summary, ...x.problems].filter(Boolean).join('; ').slice(0, 240)}`);
+  console.log(`text: ${report.rewritten.length} sections rewritten and published, ${report.kept.length} kept their text for the next run; ${report.label_problems.length} sections named missing buttons`);
+  for (const x of report.rewritten) console.log(`rewritten: ${x.portal}/${x.slug}${x.attempts > 1 ? ` (attempt ${x.attempts})` : ''}: ${x.summary}`);
+  for (const x of report.kept) console.log(`next run: ${x.portal}/${x.slug} (${x.result}): ${[x.summary, ...x.problems].filter(Boolean).join('; ').slice(0, 240)}`);
 }

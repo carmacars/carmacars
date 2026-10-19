@@ -4,16 +4,13 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { render } from './markdown';
-import { deleteGuideSection, guideVersion, moveGuideSection, publishGuide, resolveGuideReview, revertGuideAuto, saveGuideSection, suggestGuideText, uploadGuideImage, uploadGuidePdf } from '@/server/actions/guides';
+import { deleteGuideSection, guideVersion, moveGuideSection, publishGuide, revertGuideAuto, saveGuideSection, uploadGuideImage, uploadGuidePdf } from '@/server/actions/guides';
 
 // Admin > Settings > Guides > a guide (migration 0044): the chapters in order, a Markdown editor with the preview the
 // readers will see (the same renderer as publishing), version history, screenshots, publishing and the stored PDF.
 export interface EditorSection { id: string; kind: 'start' | 'chapter' | 'reference'; slug: string; sort_order: number; title: string; blurb: string | null; body_md: string;
   is_hidden: boolean; draft_version: number; published_version: number | null; published_at: string | null; changed: boolean; updated_at: string; updated_by_name: string | null;
   history: Array<{ version: number; published: boolean; title: string; saved_at: string; saved_by_name: string | null; chars: number }>;
-  /** 0049: a screenshot of this section changed on the last upkeep run */
-  needs_review?: boolean; review_note?: string | null; review_images?: Array<{ old_url: string; new_url: string; diff: number | null; at: string }>;
-  suggestion_md?: string | null; suggestion_at?: string | null; suggestion_model?: string | null;
   auto_updated_at?: string | null; auto_update_reason?: string | null; can_revert?: boolean }
 export interface EditorGuide { portal: string; title: string; version: number; published_at: string | null; published_by_name: string | null; sections: EditorSection[];
   pdf: { generated_at: string; source: string; bytes: number; guide_version: number | null } | null; images: Array<{ id: string; url: string; alt: string | null; created_at: string }> }
@@ -56,7 +53,6 @@ export function GuideEditor({ g, portal, initial }: { g: EditorGuide; portal: st
             onClick={() => pub.run(() => publishGuide(portal), (r) => { if (r.ok) router.refresh(); })}>{pub.pending ? 'Publishing' : `Publish version ${g.version + 1}`}</button></div>
         </section>
         {cur && cur.can_revert && <AutoPanel key={`au-${cur.id}:${cur.auto_updated_at ?? ''}`} portal={portal} s={cur} onDone={() => router.refresh()} />}
-        {cur && (cur.needs_review || cur.suggestion_md) && <ReviewPanel key={`rv-${cur.id}:${cur.suggestion_at ?? ''}`} portal={portal} s={cur} onDone={() => router.refresh()} />}
         {sel === 'new' ? <SectionForm key="new" portal={portal} section={null} after={g.sections.filter((s) => s.kind !== 'reference').at(-1)?.id ?? null} onSaved={(id) => { setSel(id); router.refresh(); }} />
           : cur ? <SectionForm key={`${cur.id}:${cur.draft_version}`} portal={portal} section={cur} onSaved={() => router.refresh()} onDeleted={() => { setSel(g.sections[0]?.id ?? 'new'); router.refresh(); }} />
           : null}
@@ -71,7 +67,7 @@ export function GuideEditor({ g, portal, initial }: { g: EditorGuide; portal: st
             {g.sections.map((s) => (
               <li key={s.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--s-2)', alignItems: 'center', padding: 'var(--s-2)', border: '1px solid var(--grey-200)', background: s.id === sel ? 'var(--grey-50)' : 'var(--white)' }}>
                 <button type="button" className="link" style={{ textAlign: 'left', background: 'none', border: 0, padding: 0, cursor: 'pointer' }} onClick={() => setSel(s.id)} aria-current={s.id === sel ? 'true' : undefined} data-testid={`guide-section-${s.slug}`}>
-                  <b>{s.title}</b>{s.needs_review ? <> <span className="badge badge--red" data-testid="guide-needs-review">Needs review</span></> : null}
+                  <b>{s.title}</b>
                   {s.auto_updated_at ? <><br /><span className="small" data-testid="guide-auto-updated">Changed automatically on {when(s.auto_updated_at)}</span></> : null}<br /><span className="small muted">{KIND[s.kind]}{s.is_hidden ? ', hidden' : ''}{s.changed ? ', changes not published' : s.published_version ? ', published' : ', not published'}</span>
                 </button>
                 {s.kind === 'chapter' && <span className="row" style={{ gap: 2 }}>
@@ -207,39 +203,6 @@ function PdfCard({ portal, g }: { portal: string; g: EditorGuide }) {
   );
 }
 
-// A section whose screenshot changed on the guide upkeep run (migration 0049): the old and new screenshot, a suggested
-// text from Workers AI on request, and the Admin's answer (use it as the draft, dismiss it, or mark the section reviewed).
-function ReviewPanel({ portal, s, onDone }: { portal: string; s: EditorSection; onDone: () => void }) {
-  const sug = useAct<{ summary: string }>();
-  const act = useAct();
-  const preview = useMemo(() => (s.suggestion_md ? render(s.suggestion_md, { idPrefix: `${s.slug}-sug` }) : null), [s.suggestion_md, s.slug]);
-  const img = s.review_images?.at(-1);
-  return (
-    <section className="pt-card stack" aria-labelledby={`rv-${s.id}`} data-testid="guide-review">
-      <div className="pt-card__head"><h2 className="d4" id={`rv-${s.id}`}>Needs review: {s.title}</h2>{img?.at && <span className="small muted">{when(img.at)}</span>}</div>
-      {s.review_note && <p className="small">{s.review_note}</p>}
-      {img && <div className="ad-cols ad-cols--2">
-        <figure className="stack"><figcaption className="small muted">Before</figcaption>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img.old_url} alt={`The screen before, in ${s.title}`} style={{ maxWidth: '100%', border: '1px solid var(--grey-200)' }} /></figure>
-        <figure className="stack"><figcaption className="small muted">Now (already in the guide){img.diff ? `, ${Math.round(img.diff * 100)}% different` : ''}</figcaption>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img.new_url} alt={`The screen now, in ${s.title}`} style={{ maxWidth: '100%', border: '1px solid var(--grey-200)' }} /></figure>
-      </div>}
-      <p className="small muted">The new screenshot already shows in the guide. Read the text against it: if the steps and labels still match, mark it reviewed. Workers AI can suggest a text for you to check.</p>
-      <Problem res={sug.res} /><Problem res={act.res} />
-      {sug.res?.ok && sug.res.data.summary && <p className="small" role="status">{sug.res.data.summary}</p>}
-      {preview && <div className="stack" data-testid="guide-suggestion"><p className="small"><b>Suggested text</b>{s.suggestion_model ? ` (${s.suggestion_model})` : ''}</p>
-        <div className="gd-preview" style={{ border: '1px solid var(--grey-200)', padding: 'var(--s-3)', maxHeight: '28rem', overflow: 'auto' }} dangerouslySetInnerHTML={{ __html: preview.html }} /></div>}
-      <div className="row" style={{ flexWrap: 'wrap' }}>
-        {!s.suggestion_md && <button type="button" className="btn btn--ghost btn--sm" disabled={sug.pending} onClick={() => sug.run(() => suggestGuideText(portal, s.id), (r) => { if (r.ok) onDone(); })} data-testid="guide-suggest">{sug.pending ? 'Asking' : 'Suggest a text update'}</button>}
-        {s.suggestion_md && <button type="button" className="btn btn--primary btn--sm" disabled={act.pending} onClick={() => act.run(() => resolveGuideReview(portal, s.id, 'apply_suggestion'), (r) => { if (r.ok) onDone(); })} data-testid="guide-apply-suggestion">Use this text as the draft</button>}
-        {s.suggestion_md && <button type="button" className="btn btn--quiet btn--sm" disabled={act.pending} onClick={() => act.run(() => resolveGuideReview(portal, s.id, 'dismiss_suggestion'), (r) => { if (r.ok) onDone(); })}>Dismiss the suggestion</button>}
-        {s.needs_review && <button type="button" className="btn btn--ghost btn--sm" disabled={act.pending} onClick={() => act.run(() => resolveGuideReview(portal, s.id, 'reviewed'), (r) => { if (r.ok) onDone(); })} data-testid="guide-reviewed">Mark reviewed</button>}
-      </div>
-    </section>
-  );
-}
 
 // A section the guide upkeep rewrote and published by itself (migration 0055): when, why, and one click to undo it.
 function AutoPanel({ portal, s, onDone }: { portal: string; s: EditorSection; onDone: () => void }) {

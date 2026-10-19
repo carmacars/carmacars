@@ -1,6 +1,7 @@
 import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/styles/admin.css';
+import Link from 'next/link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
@@ -10,6 +11,7 @@ import { door, rolesOf } from '@/server/door';
 import { DoorProvider } from '@/features/admin/door';
 import { VaNav } from '@/features/va/VaNav';
 import { FN_LABEL } from '@/server/va';
+import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 
 // The assistants' frame (docs/blueprint/05-va.md): the same frame and screens as the admin portal, through
 // the assistant's door. Every page checks the role and the second factor itself (vaPage).
@@ -18,8 +20,11 @@ export default async function VaLayout({ children }: { children: React.ReactNode
   const roles = user ? await rolesOf(user.id).catch(() => null) : null;
   const viewing = await viewAs();
   let open = 0;
+  let needsAddress = false;
   if (user && roles?.va) {
     try { open = Number((await door<{ open: number }>(user.id, 'va_read', 'digest')).open) || 0; } catch { open = 0; }
+    // the first sign-in (0059): the home address, asked on every page until it is in
+    needsAddress = !viewing && (await homeAddressOf(user.id, 'va')).missing;
   }
   return (
     <div className="ad">
@@ -27,7 +32,7 @@ export default async function VaLayout({ children }: { children: React.ReactNode
         {roles?.va ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">{FN_LABEL[roles.va]} · <b data-testid="account-email">{roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><GuideLink portal="va" /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links"><Link prefetch={false} className="link" href="/va/profile" data-testid="va-profile-link">Profile</Link><GuideLink portal="va" /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {(roles.va_functions?.length ?? 0) > 1 && !viewing && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
@@ -37,7 +42,7 @@ export default async function VaLayout({ children }: { children: React.ReactNode
             <VaNav fn={roles.va} open={open} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{roles?.va && user ? <GuideBanner portal="va" userId={user.id} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal="va" /> : null}{roles?.va && user ? <GuideBanner portal="va" userId={user.id} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>
       </div>
     </div>
   );
