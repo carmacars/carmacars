@@ -113,7 +113,7 @@ insert into su select 'upkeep', public.server_guide_upkeep_apply(jsonb_build_obj
   'old_url', '/guides/img/su-01-screen-desktop-aaaa.jpg', 'new_url', 'https://photos.example.test/guides/owner/upkeep-1.jpg', 'portal', 'owner', 'diff', 0.12, 'width', 1600, 'height', 900))));
 select test.eq('upkeep: the image replaced in the draft, the published text and its HTML', (select (body_md like '%upkeep-1.jpg%')::text || '/' || (published_md like '%upkeep-1.jpg%') || '/'
   || (published_html like '%upkeep-1.jpg%') || '/' || (position('/guides/img/su-01' in body_md) = 0) from guide_sections where id = test.id('gs:su')), 'true/true/true/true');
-select test.eq('upkeep: the section flagged for review with the old and new image', (select needs_review || '/' || (review_images #>> '{0,old_url}') || '/' || (review_images #>> '{0,diff}')
+select test.eq('upkeep: the section is marked for the next automatic text check, with the old and new image (internal since 0059)', (select needs_review || '/' || (review_images #>> '{0,old_url}') || '/' || (review_images #>> '{0,diff}')
   from guide_sections where id = test.id('gs:su')), 'true//guides/img/su-01-screen-desktop-aaaa.jpg/0.12');
 select test.eq('upkeep: the guide version goes up (its PDF shows as older); the replacement is recorded', (select version from guides where portal = 'owner') || '/'
   || (select count(*) from guide_images where replaces_url = '/guides/img/su-01-screen-desktop-aaaa.jpg'), '4/1');
@@ -126,32 +126,27 @@ select public.server_guide_upkeep_apply(jsonb_build_object('run', 'test', 'image
 select test.eq('upkeep: one new version per guide and run', (select version from guides where portal = 'owner'), 4);
 select test.ok('upkeep: the run finds the replacement next time', exists (select 1 from jsonb_array_elements(public.server_guide_images_replaced()) x
   where x ->> 'url' = 'https://photos.example.test/guides/owner/upkeep-1.jpg' and x ->> 'replaces_url' = '/guides/img/su-01-screen-desktop-aaaa.jpg'));
-select test.eq('upkeep: Admin > Settings > Guides counts the sections to review',
-  (select (g ->> 'needs_review')::integer from jsonb_array_elements(test.su_read('su_admin', 'guides_admin', '{}')) g where g ->> 'portal' = 'owner'), 2);
-select test.eq('upkeep: the guide''s section carries its review state', (select s ->> 'needs_review' from jsonb_array_elements(test.su_read('su_admin', 'guide_admin', '{"portal": "owner"}') -> 'sections') s
-  where s ->> 'slug' = 'su-upkeep'), 'true');
-select test.throws('suggestion: an Admin only', format($$select test.su_do('su_cs', 'guide_suggestion_record', jsonb_build_object('id', %L, 'body_md', 'New text here'))$$, test.id('gs:su')), null);
-select test.su_do('su_admin', 'guide_suggestion_record', jsonb_build_object('id', test.id('gs:su'), 'body_md', E'1. Press **Save the draft**.\n\n![The screen](https://photos.example.test/guides/owner/upkeep-1.jpg "desktop")', 'model', 'fake-vision-v1'));
-select test.eq('suggestion: kept beside the draft', (select (suggestion_md like '%Save the draft%')::text || '/' || suggestion_model || '/' || (body_md not like '%Save the draft%') from guide_sections where id = test.id('gs:su')), 'true/fake-vision-v1/true');
-select test.su_do('su_admin', 'guide_review_resolve', jsonb_build_object('id', test.id('gs:su'), 'action', 'apply_suggestion'));
-select test.eq('review: applying the suggestion makes it the draft (published with the next publish) and clears the flag',
-  (select (body_md like '%Save the draft%')::text || '/' || needs_review || '/' || (suggestion_md is null) || '/' || draft_version || '/' || (published_md not like '%Save the draft%') from guide_sections where id = test.id('gs:su')),
-  'true/false/true/2/true');
-select test.throws('review: an unknown answer is refused', format($$select test.su_do('su_admin', 'guide_review_resolve', jsonb_build_object('id', %L, 'action', 'later'))$$, test.id('gs:su')), 'Unknown action');
+select test.eq('upkeep: Admin > Settings > Guides counts nothing to review any more (0059)',
+  (select (g ? 'needs_review')::text from jsonb_array_elements(test.su_read('su_admin', 'guides_admin', '{}')) g where g ->> 'portal' = 'owner'), 'false');
+select test.eq('upkeep: the guide''s section carries no review state (0059)', (select (s ? 'needs_review')::text || '/' || (s ? 'suggestion_md') from jsonb_array_elements(test.su_read('su_admin', 'guide_admin', '{"portal": "owner"}') -> 'sections') s
+  where s ->> 'slug' = 'su-upkeep'), 'false/false');
+select test.throws('suggestion: gone, the guides update themselves (0059)', format($$select test.su_do('su_admin', 'guide_suggestion_record', jsonb_build_object('id', %L, 'body_md', 'New text here'))$$, test.id('gs:su')), 'nothing to review');
+select test.throws('review: gone, the guides update themselves (0059)', format($$select test.su_do('su_admin', 'guide_review_resolve', jsonb_build_object('id', %L, 'action', 'reviewed'))$$, test.id('gs:su')), 'nothing to review');
 select test.eq('vision: the guide review is an Admin''s, within the day''s allowance', (test.su_read('su_admin', 'ai_vision_gate', '{"purpose": "guide_review"}') ? 'allowed')::text, 'true');
 select test.throws('vision: not for assistants', $$select test.su_read('su_cs', 'ai_vision_gate', '{"purpose": "guide_review"}')$$, null);
 select test.eq('vision: a guide review call is recorded', test.su_do('su_admin', 'ai_call_record', '{"purpose": "guide_review", "model": "fake", "ok": true, "neurons": 12}') ? 'id', true);
 
--- the chapters CarmaCars updated: a chapter with the shipped text is replaced and published; an edited one gets a suggestion
+-- the chapters CarmaCars updated: a chapter with the shipped text is replaced and published; an edited one too (0059: the
+-- Admin's text stays in the history, with Revert)
 insert into guide_sections (id, portal, kind, sort_order, slug, title, body_md, published_title, published_md, published_html, published_hidden, published_version, published_at, draft_version)
 values (test.id('gs:su2'), 'investor', 'chapter', 900, 'su-shipped', 'Shipped', 'Old text.', 'Shipped', 'Old text.', '<p>Old text.</p>', false, 1, now() - interval '1 day', 1),
        (test.id('gs:su3'), 'investor', 'chapter', 901, 'su-edited', 'Edited', 'My own words.', 'Edited', 'My own words.', '<p>My own words.</p>', false, 2, now() - interval '1 day', 2);
 update guides set version = 5, published_at = now() - interval '1 day' where portal = 'investor';
 select test.eq('guide update: a chapter with the shipped text', app.guide_update_published_section('investor', 'su-shipped', md5('Old text.'), 'Shipped', null, 'New text.', '<p>New text.</p>'), 'updated');
 select test.eq('guide update: its new text is the draft and the published copy', (select published_md || '/' || body_md || '/' || draft_version || '/' || published_version from guide_sections where id = test.id('gs:su2')), 'New text./New text./2/2');
-select test.eq('guide update: a chapter an Admin edited', app.guide_update_published_section('investor', 'su-edited', md5('Original.'), 'Edited', null, 'New text.', '<p>New text.</p>'), 'suggested');
-select test.eq('guide update: the Admin''s text is kept, the new one waits as a suggestion', (select published_md || '/' || suggestion_md || '/' || needs_review from guide_sections where id = test.id('gs:su3')), 'My own words./New text./true');
-select test.eq('guide update: the guide''s version goes up once', (select version from guides where portal = 'investor'), 6);
+select test.eq('guide update: a chapter an Admin edited is published too (0059)', app.guide_update_published_section('investor', 'su-edited', md5('Original.'), 'Edited', null, 'New text.', '<p>New text.</p>'), 'updated');
+select test.eq('guide update: the new text is published, no suggestion; the Admin''s text can be brought back', (select published_md || '/' || coalesce(suggestion_md, 'none') || '/' || needs_review || '/' || (auto_prev ->> 'published_md') from guide_sections where id = test.id('gs:su3')), 'New text./none/false/My own words.');
+select test.eq('guide update: the guide gets a new version for each statement (one per migration, which runs in one transaction)', (select version from guides where portal = 'investor'), 7);
 select test.eq('guide update: a chapter not there yet is left to the seed', app.guide_update_published_section('investor', 'su-none', md5('x'), 'X', null, 'Y', '<p>Y</p>'), 'missing');
 
 -- ================================================================ 6. the official form sources (0047)

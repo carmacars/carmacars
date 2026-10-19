@@ -1,5 +1,6 @@
 -- 35: the guides keep up with the portals by themselves (migration 0055): the runs and their commit, the sections the run
--- reads, an automatic change published or kept as a suggestion, the one-click revert, the admin reads, new chapters.
+-- reads, an automatic change published (0059: always, nothing to review) or the old text kept for the next run, the
+-- one-click revert, the admin reads, new chapters.
 -- Fixtures start with "gk".
 select test.suite('35 guides keep up');
 create table test.gk (k text primary key, v jsonb);
@@ -62,16 +63,28 @@ select public.server_guide_auto_update(jsonb_build_object('section_id', test.id(
 select test.eq('auto: one new guide version per run', (select version from guides where portal = 'field'), 8);
 
 -- held back
-select test.eq('auto: a rewrite that failed the checks waits as a suggestion',
+select test.eq('auto: a rewrite that failed the checks keeps the old text, never a suggestion (0059)',
   public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk3'), 'run', 'gk-5', 'checks_ok', false, 'problems', 'an em dash',
-    'body_md', E'Press **New button** now.\n', 'html', '<p>z</p>')) ->> 'result', 'suggested');
-select test.eq('auto: the published text is untouched, the reason is said',
-  (select (published_md = E'Press **New button**.\n')::text || '/' || needs_review || '/' || (suggestion_md like '%now.%') || '/' || (review_note like '%did not pass the checks (an em dash)%')
-     from guide_sections where id = test.id('gs:gk3')), 'true/true/true/true');
-select test.eq('auto: an Admin''s draft waiting is never overwritten',
-  public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk2'), 'run', 'gk-5', 'checks_ok', true, 'body_md', E'Robot words here.\n', 'html', '<p>r</p>')) ->> 'result', 'suggested');
-select test.eq('auto: the draft and the published copy stay as they were',
-  (select body_md || '|' || published_md || '|' || (review_note like '%draft is waiting%') from guide_sections where id = test.id('gs:gk2')), E'My draft words.\n|Published words.\n|true');
+    'body_md', E'Press **New button** now.\n', 'html', '<p>z</p>')) ->> 'result', 'kept');
+select test.eq('auto: the published text is untouched, nothing to review, logged for the next run',
+  (select (published_md = E'Press **New button**.\n')::text || '/' || needs_review || '/' || (suggestion_md is null) || '/' || (auto_retry_at is not null) || '/' || (auto_retry_note like '%an em dash%')
+     from guide_sections where id = test.id('gs:gk3')), 'true/false/true/true/true');
+select test.ok('auto: the kept text is in the audit log', exists (select 1 from audit_log where action = 'guide_auto_kept' and entity_id = test.id('gs:gk3')::text));
+select test.eq('auto: an Admin''s draft waiting: the newest automatic text wins (0059)',
+  public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk2'), 'run', 'gk-5', 'checks_ok', true, 'body_md', E'Robot words here.\n', 'html', '<p>r</p>')) ->> 'result', 'updated');
+select test.eq('auto: published over the draft; the draft is in the history and Revert brings the published text back',
+  (select body_md || '|' || published_md || '|' || published_html || '|' || (auto_prev ->> 'published_md') from guide_sections where id = test.id('gs:gk2')),
+  E'Robot words here.\n|Robot words here.\n|<p>r</p>|Published words.\n');
+select test.eq('auto: the Admin''s draft is kept in the history', (select count(*) from guide_section_versions where section_id = test.id('gs:gk2') and body_md = E'My draft words.\n' and not published), 1);
+-- the next run reads the kept section again, and a later pass clears it
+select test.eq('auto: the next run reads the section the last run could not rewrite',
+  (select (s ->> 'retry') || '/' || (s ->> 'retry_note' like '%an em dash%') from jsonb_array_elements(public.server_guide_upkeep_sections('gk-6')) s where s ->> 'slug' = 'gk-more'), 'true/true');
+select public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk3'), 'run', 'gk-6', 'checks_ok', true, 'body_md', E'Press **Newer button**.\n', 'html', '<p>n</p>'));
+select test.eq('auto: a rewrite that passes later clears the log', (select (auto_retry_at is null)::text || '/' || published_md from guide_sections where id = test.id('gs:gk3')), E'true/Press **Newer button**.\n');
+select test.eq('auto: only the button names fixed: published, and still logged for the next run',
+  public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk3'), 'run', 'gk-7', 'checks_ok', true, 'body_md', E'Press **Newest button**.\n', 'html', '<p>m</p>',
+    'retry_note', 'Only the button names were updated')) ->> 'result', 'updated');
+select test.eq('auto: the button-name fix is logged', (select (auto_retry_at is not null)::text || '/' || auto_retry_note from guide_sections where id = test.id('gs:gk3')), 'true/Only the button names were updated');
 select test.eq('auto: the same text again changes nothing',
   public.server_guide_auto_update(jsonb_build_object('section_id', test.id('gs:gk1'), 'run', 'gk-6', 'checks_ok', true,
     'body_md', E'1. Press **Start**.\n\n![](/guides/img/field-01-jobs-phone-aaaa.jpg "phone")\n', 'html', '<p>New</p>')) ->> 'result', 'same');
@@ -84,7 +97,7 @@ select test.eq('admin: the section says when it changed automatically, and that 
      from jsonb_array_elements((select v from test.gk where k = 'ga') -> 'sections') s where s ->> 'slug' = 'gk-jobs'), 'true/true/true');
 select test.eq('admin: the guide shows its last run', (select v -> 'last_run' ->> 'run' from test.gk where k = 'ga'), 'gk-2');
 select test.eq('admin: the list of guides counts the sections changed automatically',
-  (select g ->> 'auto_updated' from jsonb_array_elements(test.gk_read('gk_admin', 'guides_admin')) g where g ->> 'portal' = 'field'), '2');
+  (select g ->> 'auto_updated' from jsonb_array_elements(test.gk_read('gk_admin', 'guides_admin')) g where g ->> 'portal' = 'field'), '3');
 select test.throws('revert: an Admin only', format($$select test.gk_do('gk_cs', 'guide_auto_revert', jsonb_build_object('id', %L))$$, test.id('gs:gk1')), null);
 insert into test.gk select 'rv', test.gk_do('gk_admin', 'guide_auto_revert', jsonb_build_object('id', test.id('gs:gk1')));
 select test.eq('revert: one click brings back the text it replaced, published, as a new version',
@@ -115,8 +128,11 @@ select test.eq('release: the new text keeps the newer screenshot, never the olde
      from guide_sections where portal = 'field' and slug = 'gk-rel'), 'true/true/true');
 select test.eq('release: the same again changes nothing',
   app.guide_release_section('field', 'gk-rel', 'chapter', null, E'Old\n', 'Gk rel', null, E'New ![](/guides/img/gk-shot.jpg "phone")\n', '<p>New</p><img src="/guides/img/gk-shot.jpg">'), 'same');
-select test.eq('release: a chapter an Admin edited keeps the Admin''s text and gets a suggestion',
-  app.guide_release_section('field', 'gk-drafted', 'chapter', null, E'Published words.\n', 'Gk drafted', null, E'Our new words.\n', '<p>Our new words.</p>'), 'suggested');
+select test.eq('release: a chapter an Admin edited gets the new text too (0059)',
+  app.guide_release_section('field', 'gk-drafted', 'chapter', null, E'Published words.\n', 'Gk drafted', null, E'Our new words.\n', '<p>Our new words.</p>'), 'updated');
+select test.eq('release: published, no suggestion, the replaced text can be brought back',
+  (select published_md || '|' || coalesce(suggestion_md, 'none') || '|' || (auto_prev ->> 'published_md') from guide_sections where portal = 'field' and slug = 'gk-drafted'),
+  E'Our new words.\n|none|Robot words here.\n');
 select test.eq('release: a guide with no chapters yet waits for the seed', app.guide_release_section('investor', 'gk-none', 'chapter', null, null, 'X', null, 'X', 'X'),
   (select case when exists (select 1 from guide_sections where portal = 'investor') then 'added' else 'missing' end));
 

@@ -168,7 +168,7 @@ insert into drivers (renter_id, is_account_holder, user_id, full_name, date_of_b
 select test.s37sold('own', 'sc_fin', test.s37past(test.s37v('car7'), 3, 2, 'sc_own'));
 select test.eq('own rental: no commission', (select count(*) from staff_commissions where booking_id = (test.s37b('own')).id and status not in ('void', 'reversed')), 0::bigint);
 update staff_profiles set home_postal_code = 'M6P 1Z2' where user_id = test.id('sc_fleet');
-update renters set postal_code = 'm6p1z2' where id = test.id('renter:sc_ron');
+update renters set postal_code = 'm6p1z2', address_line1 = '1 Sc Fleet Lane' where id = test.id('renter:sc_ron');
 select test.eq('household rental: none (the renter lives at their postal code)', app.commission_own_reason((test.s37b('web1')).id, test.id('sc_fleet')), 'household rental');
 update renters set postal_code = null where id = test.id('renter:sc_ron');
 update bookings set status = 'cancelled' where id = (test.s37b('cs1')).id;

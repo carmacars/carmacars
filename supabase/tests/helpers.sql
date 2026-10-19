@@ -110,10 +110,14 @@ declare
 begin
   insert into users (id, email, full_name) values (v_id, p_label || '@example.test', initcap(replace(p_label, '_', ' ')));
   insert into user_roles (user_id, role) values (v_id, p_role);
+  -- staff have entered their home address, as at their first sign-in (0059; suite 38 tests the ones who have not)
   if p_role = 'va' then
     insert into staff_profiles (user_id, staff_type, va_function) values (v_id, 'va', p_va);
   elsif p_role = 'field' then
     insert into staff_profiles (user_id, staff_type, field_function, referral_code) values (v_id, 'field', coalesce(p_field, 'driver_detailer'), p_referral);
+  end if;
+  if p_role in ('va', 'field') and exists (select 1 from information_schema.columns where table_name = 'staff_profiles' and column_name = 'home_address') then
+    execute 'update staff_profiles set home_address = $1, home_postal_code = $2 where user_id = $3' using '1 ' || initcap(replace(p_label, '_', ' ')) || ' Lane, Testville', 'X9X 9X9', v_id;
   end if;
   return v_id;
 end $$;

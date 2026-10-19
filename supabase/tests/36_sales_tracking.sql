@@ -75,7 +75,7 @@ select test.eq('fleet: US$400 a month, full time, 6 days, 10 hours a day',
 select test.eq('finance: US$200 a month, part time, 3 days, 9 hours a day',
   (select d ->> 'pay_basis' || ' ' || (d ->> 'rate') || ' ' || (d ->> 'schedule') || ' ' || (d ->> 'days_per_week') || ' ' || (d ->> 'hours_per_day') from test.s36d('st_fin') d),
   'monthly 200.00 part_time 3 9');
-select test.eq('sales: left blank, to be set', (select coalesce(d ->> 'rate', 'x') || '|' || coalesce(d ->> 'pay_basis', 'x') from test.s36d('st_sales') d), '|');
+select test.eq('sales: no rate, commission only (0059)', (select coalesce(d ->> 'rate', 'x') || '|' || coalesce(d ->> 'pay_basis', 'x') from test.s36d('st_sales') d), '|commission');
 select test.ok('assistants: the common values with the function''s (country, platform, trial)',
   (select d ->> 'country' = 'Philippines' and d ->> 'platform' = 'OnlineJobs.ph' and d ->> 'trial_days' = '30' and not d ? 'by_function' from test.s36d('st_sales') d));
 select test.eq('field staff: CA$18.00 an hour, paid every two weeks',
