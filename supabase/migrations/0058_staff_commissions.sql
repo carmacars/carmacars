@@ -1432,6 +1432,22 @@ begin
   return jsonb_build_object('staff', v_staff, 'bps', v_bps, 'scheme', app.commission_scheme(v_staff));
 end $$;
 
+-- An Admin records a staff member's home address, used only to recognize a household rental. p: {staff, home_address, home_postal_code}
+create or replace function app.staff_household_set(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_staff uuid := nullif(p ->> 'staff', '')::uuid;
+begin
+  perform app.assert_admin(p_by);
+  if not app.user_is_sales_staff(v_staff) then raise exception 'Choose an active staff member' using errcode = '22023'; end if;
+  update staff_profiles set home_address = nullif(btrim(coalesce(p ->> 'home_address', '')), ''),
+         home_postal_code = upper(nullif(btrim(coalesce(p ->> 'home_postal_code', '')), ''))
+   where user_id = v_staff;
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+  values (p_by, 'staff_household_set', 'staff_profiles', v_staff::text, jsonb_build_object('home_postal_code', upper(nullif(btrim(coalesce(p ->> 'home_postal_code', '')), ''))));
+  return jsonb_build_object('staff', v_staff);
+end $$;
+
 -- After a month ends: its tiers once more, and a task for the Admins when commissions wait for approval.
 create or replace function app.job_commission_month(p_now timestamptz default now()) returns text
 language plpgsql security definer set search_path = public, app as $$
@@ -2014,6 +2030,14 @@ begin
       'payout_date', coalesce(to_char(po.paid_on, 'FMMonth FMDD, YYYY'), ''),
       'sales_url', app.ntf_link(case when v_field then 'field_sales' else 'va_my_sales' end));
   end if;
+  -- the owner's statement email: the kickbacks and staff commissions deducted before Owner Revenue (0023 printed $0.00
+  -- and counted the rentals at Owner Revenue)
+  if p_code = 'owner_statement_ready' then
+    x := x || (select jsonb_build_object('kickbacks_deducted', app.fmt_money(-coalesce(sum(l.kickback_cents), 0)),
+                                         'rentals_total', app.fmt_money(st.owner_revenue_cents + coalesce(sum(l.kickback_cents), 0)))
+                 from owner_statements st left join owner_statement_lines l on l.owner_statement_id = st.id and l.line_type = 'rental'
+                where st.id = p_event.entity_id group by st.owner_revenue_cents);
+  end if;
   return x;
 end $$;
 
@@ -2041,6 +2065,7 @@ begin
   when 'commission_reverse' then return app.commission_reverse(p_user, p);
   when 'commission_payout' then return app.commission_payout_record(p_user, p);
   when 'commission_rate_set' then return app.staff_commission_rate_set(p_user, p);
+  when 'staff_household_set' then return app.staff_household_set(p_user, p);
   when 'price_review' then return app.price_review(p_user, p);
   when 'sales_claim_decide' then return app.sales_claim_decide(p_user, p);
   else raise exception 'Unknown action %', p_name using errcode = '22023';
@@ -2057,7 +2082,7 @@ begin
   if (p_call = 'ops_do' and p_name = 'manual_rental_create') or (p_call = 'va_do' and p_name = 'quote_create') or (p_call = 'va_read' and p_name = 'quote_form')
      or (p_call in ('va_read', 'field_read') and p_name = 'my_sales') or (p_call = 'field_read' and p_name = 'referrals')
      or (p_call = 'admin_read' and p_name in ('commissions', 'commission_reviews'))
-     or (p_call = 'admin_do' and p_name in ('commission_approve', 'commission_reverse', 'commission_payout', 'commission_rate_set', 'price_review', 'sales_claim_decide')) then
+     or (p_call = 'admin_do' and p_name in ('commission_approve', 'commission_reverse', 'commission_payout', 'commission_rate_set', 'staff_household_set', 'price_review', 'sales_claim_decide')) then
     if p_ ? '_va' then perform set_config('app.va_active', coalesce(p_ ->> '_va', ''), true); end if;
     perform app.door_begin(p_user, p_aal);
     if p_call = 'va_do' and not app.user_is_staff(p_user) then raise exception 'Not permitted' using errcode = '42501'; end if;
@@ -2094,7 +2119,7 @@ begin
               'manual_rental_create', 'staff_quote_request', 'staff_quote_create', 'offer_sales_choice', 'sales_claim_decide', 'sales_reassign', 'sales_staff_options',
               'booking_paid_in_full', 'commission_base_cents', 'commission_own_reason', 'commission_scheme', 'sales_tier_bps', 'commission_month_days', 'commission_retier', 'commission_close',
               'commission_sync', 'commission_sync_trigger', 'staff_profiles_commission_retier', 'commission_approve', 'commission_reverse', 'commission_payout_record',
-              'staff_commission_rate_set', 'job_commission_month', 'booking_staff_commission_cents', 'compute_booking_split', 'owner_statement_lines_commission',
+              'staff_commission_rate_set', 'staff_household_set', 'job_commission_month', 'booking_staff_commission_cents', 'compute_booking_split', 'owner_statement_lines_commission',
               'commission_split_refresh', 'sales_month_progress', 'bps_words', 'staff_commissions_json', 'staff_sales', 'staff_scorecard', 'field_referrals',
               'commission_admin', 'booking_sales_credit', 'admin_todo', 'commission_reviews', 'notification_recipients', 'notification_payload', 'ops58', 'door'])
   loop

@@ -9,8 +9,8 @@ The CarmaCars rental platform, Ontario: public booking site, renter portal, owne
 | Path | What |
 | --- | --- |
 | `web/` | The Next.js app on Cloudflare Workers (OpenNext): public site, request to book, sign-in, SEO, its own tests |
-| `supabase/migrations/` | 57 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
-| `supabase/tests/` | 37 test files (3,651 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
+| `supabase/migrations/` | 58 migrations (0034 and 0035: the fixes of the handover and launch audits; 0036: sign-in for every portal; 0037: the automatic owner debit and statement PDFs by email); the first 25: 171 tables in `public` (plus `app.rate_limit_hits` and the event log), the billing rules as SQL functions, status flows, row-level security on every table, audit log, reference data, request to book, notifications, the booking application, operations, tolls and statements, owners and listings, the owner's answers, and 20 scheduled SQL jobs |
+| `supabase/tests/` | 38 test files (3,732 assertions), shared helpers, a summary query, and a local shim for Supabase's `auth` schema (never applied to Supabase) |
 | `supabase/seed/` | The generator that turns `emails/catalogue.json` into the notification catalogue rows of 0018 |
 | `emails/` | The email catalogue, templates, samples and their checks (`node check.mjs`) |
 | `prototype/` | The design prototype of the site and portals |
@@ -97,6 +97,7 @@ cd emails && node check.mjs
 | `0055_guides_update_themselves.sql` | The guides keep up by themselves: the runs after each deploy, a section rewritten from the code's facts published with its old text kept for a one-click revert, the guides rewritten for this release |
 | `0056_debit_return_checks.sql` | Found by the Stripe test-mode run of the legal review: a debit returned for another reason than insufficient funds keeps no retry date on the invoice, the Admin task prints the bank's reason once, and the finance task for a failed debit states the new rule |
 | `0057_sales_tracking.sql` | The owner's decisions of October 18, 2026: the first reply target for customer service and sales (5 minutes, Program settings `request_response_target_minutes`) drives the first-reply task due times, countdowns, scorecard targets and staff screens; staff agreement defaults by function (monthly pay, full or part time, days and hours); sales tracking (`bookings.sales_staff_id`, My sales, Admin > Staff > Sales, the team's month on the Overview, reassignment by an Admin) (`docs/changes/2026-10-18-sales-tracking.md`) |
+| `0058_staff_commissions.sql` | The owner's decisions on staff commissions (October 18, 2026): "I sourced this client" or "Entered for CarmaCars" on every rental, quote and offer staff enter; Add a rental for every function and field staff, quotes for every assistant; prices typed by hand with the rate sheet beside them and flags for review; commissions (10% outside Sales, Sales tiers 10%, 15% from 50 and 20% from 100 rental days a month) earned when completed and paid, approved and paid by hand, reversed by refunds and chargebacks; commissions deducted as kickbacks before Owner Revenue on owners' cars; the field referral fee as the same commission; Admin > Money > Staff commissions; 2 emails (`docs/changes/2026-10-18-staff-commissions.md`) |
 
 ## Test files
 
@@ -104,9 +105,9 @@ cd emails && node check.mjs
 | --- | --- | --- |
 | `00_owner_settings.sql` | 0052: the company's addresses, the signing officer and the date of the standing authorization | 3 |
 | `01_rules.sql` | The pricing and billing functions against the worked examples | 119 |
-| `02_owner_month.sql` | A full owner month: invoices, split, statement, payout | 91 |
+| `02_owner_month.sql` | A full owner month: invoices, split, statement, payout | 93 |
 | `03_flows.sql` | Status flows and what each step requires | 120 |
-| `04_rls.sql` | Row-level security for every role | 153 |
+| `04_rls.sql` | Row-level security for every role | 154 |
 | `05_jobs.sql` | The scheduled jobs of 0015 and the cron count | 56 |
 | `06_request_to_book.sql` | Request to book (0016) | 348 |
 | `07_notifications.sql` | The notification layer and its wiring (0018, 0023) | 135 |
@@ -136,6 +137,7 @@ cd emails && node check.mjs
 | `34_admin_redesign.sql` | 0054: Admin access in the database, sample photos (body type, make and model, publishing without the plate gate, real photos replacing them), To do, search (a booking number with its dash), the applications inbox end to end with its emails | 47 |
 | `35_guides_keep_up.sql` | 0055: the runs and their commit, the sections a run reads, an automatic change published or kept as a suggestion (an Admin's draft is never overwritten), the revert, the admin reads, new chapters, this release's chapters (the newer screenshot kept) | 41 |
 | `36_sales_tracking.sql` | 0057: the first reply target (task due times, countdown, scorecard, a change by an Admin, the customer promise unchanged), staff agreement defaults by function, who a booking is credited to (quote, offer, rental added, never a website request by itself), Sales adding a rental within its limits, reassignment, booked revenue (discounts, refunds, cancellations), My sales, a staff member's sales, the team's month, privileges | 76 |
+| `37_staff_commissions.sql` | 0058: settings and tiers, Add a rental for every function and field staff, the choice, prices typed by hand and their flags, quotes by every assistant, offers and claims, earned, approved, paid and clawed back, own and household rentals, the Sales tiers at 49, 50, 99 and 100 days, the month's job, a refund below a tier, chargebacks, an Admin's reversal and own rate, commissions before Owner Revenue on an owner's car (none on a CarmaCars-owned car), the statement line and adjustments after it, field referrals, To do, the doors and privileges | 78 |
 
 ## Rules for changes
 

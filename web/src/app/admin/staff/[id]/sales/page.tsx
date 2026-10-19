@@ -28,6 +28,8 @@ export default async function StaffSalesPage({ params, searchParams }: { params:
         {s.staff.function && s.staff.function !== 'field' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/staff/${id}/scorecard`}>Scorecard</Link>}
         <Act action="commission_rate_set" payload={{ staff: id }} label="Commission rate" testId="commission-rate-set" refresh={[base]} done="Saved."
           fields={[{ name: 'bps', label: 'Flat rate for this person (empty: the Program settings)', type: 'percent', value: s.staff.commission_bps ?? null }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
+        <Act action="staff_household_set" payload={{ staff: id }} label="Home address" testId="staff-household-set" refresh={[base]} done="Saved."
+          fields={[{ name: 'home_address', label: 'Home address (used only to spot a household rental, which earns no commission)', type: 'text' }, { name: 'home_postal_code', label: 'Postal code', type: 'text' }]} />
       </PageHead>
       <SalesBoard s={s} base={base} sp={sp} own={false} bookingHref={(x) => bookingHref(x.booking_number)}
         dealAction={(x) => (x.credited ? <Act action="sales_reassign" payload={{ booking: x.booking_number }} label="Reassign" testId={`reassign-${x.booking_number}`} refresh={[base]} done="Reassigned."
