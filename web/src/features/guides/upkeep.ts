@@ -126,9 +126,32 @@ export function rewriteProblems(before: string, after: string, knownLabels: Iter
 export const REWRITE_SYSTEM = 'You keep a software user guide up to date. You get one chapter of the guide in Markdown and FACTS taken from the code of the portal today: its menu, the labels on the screens the chapter shows, and the button names the chapter uses that no longer exist, each with the closest labels that do. Return the chapter with only the changes the facts make necessary: replace each missing button name with the right label from the facts, fix menu paths to match the menu, and keep every step in the order of the screen. Write button and label names in bold exactly as in the facts, and never name a button that is not in the facts. Keep everything else word for word, including every image line exactly as it is (title, size and pins), the headings, the tips and the tables. Plain friendly language, short sentences, no em dashes, and the brand written CarmaCars. Answer in JSON with body_md (the whole chapter) and summary (one sentence on what you changed).';
 export const REWRITE_SCHEMA = { type: 'object', properties: { body_md: { type: 'string' }, summary: { type: 'string' } }, required: ['body_md', 'summary'] };
 
-export function rewritePrompt(title: string, body: string, facts: SectionFacts, reason: string): string {
+export function rewritePrompt(title: string, body: string, facts: SectionFacts, reason: string, attempt = 1, problems: string[] = []): string {
   const f = { menu: facts.nav.map((g) => `${g.group}: ${g.links.join(', ')}`), screen_labels: facts.screen_labels.slice(0, 160), missing: facts.missing };
-  return `Why this chapter is checked: ${reason}.\n<facts>${JSON.stringify(f)}</facts>\nThe chapter "${title}":\n<<<GUIDE\n${body}\nGUIDE>>>\nReturn the whole chapter in body_md.`;
+  return `Why this chapter is checked: ${reason}.\n${attempt > 1 ? strictNote(attempt, problems) + '\n' : ''}<facts>${JSON.stringify(f)}</facts>\nThe chapter "${title}":\n<<<GUIDE\n${body}\nGUIDE>>>\nReturn the whole chapter in body_md.`;
+}
+
+/** The guides update themselves with nothing to review (0059): a rewrite that fails the checks is asked again, each time
+ *  more strictly, with the problems of the last answer. */
+export const REWRITE_ATTEMPTS = 3;
+export function strictNote(attempt: number, problems: string[]): string {
+  const said = problems.length ? ` Your last answer failed these checks: ${problems.join('; ')}.` : '';
+  return attempt >= 3
+    ? `STRICT MODE.${said} Copy the chapter character for character. Change ONLY each missing button name (replace it with the first closest label in the facts) and each menu path that does not match the menu. Do not reword, add, remove or reorder anything else. Every image line, heading, tip and table must be exactly as in the chapter.`
+    : `${said.trim()} Fix only what those checks name, keep every image line exactly as it is, keep every heading, keep the length close to the original, and name only buttons that are in the facts.`;
+}
+
+/** The last resort when the model's rewrites keep failing (0059): the old text with only the button names the portals no
+ *  longer show replaced by the closest label that exists (and the menu paths left as they are). The screenshots are already
+ *  in place. Returns the text unchanged when no label has a replacement. */
+export function labelOnlyRewrite(body: string, missing: SectionFacts['missing']): { body_md: string; renamed: string[] } {
+  let out = body; const renamed: string[] = [];
+  for (const m of missing) {
+    const to = m.closest[0];
+    if (!to || to === m.label || !out.includes(`**${m.label}**`)) continue;
+    out = out.split(`**${m.label}**`).join(`**${to}**`); renamed.push(`${m.label} is now ${to}`);
+  }
+  return { body_md: out, renamed };
 }
 
 /** What the fake model returns for a rewrite (local work and tests): each missing label replaced by its closest label. */

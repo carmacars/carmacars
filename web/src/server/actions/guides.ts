@@ -128,56 +128,7 @@ export async function uploadGuidePdf(form: FormData): Promise<R<null>> {
   } catch (e) { return fail(e); }
 }
 
-// ---------------------------------------------------------------- guide upkeep: sections to review (migration 0049)
-const REVIEW_SYSTEM = 'You keep a software user guide up to date. You get one chapter of the guide in Markdown and a new screenshot of the screen it describes. Return the chapter with only the changes the screenshot shows are needed: button and label names exactly as on the screen, steps in the order of the screen. Keep everything else word for word, including every image line, its title and its pins, the headings, the tips and the tables. Plain friendly language, short sentences, no em dashes, and the brand written CarmaCars. Answer in JSON.';
-const REVIEW_SCHEMA = { type: 'object', properties: { body_md: { type: 'string' }, summary: { type: 'string' } }, required: ['body_md', 'summary'] };
-
-/** Ask Workers AI for a suggested text of a section whose screenshot changed; kept beside the draft for the Admin. */
-export async function suggestGuideText(portal: string, sectionId: string): Promise<R<{ summary: string }>> {
-  try {
-    const { user, aal } = await me();
-    if (!isGuidePortal(portal)) return { ok: false, code: 'invalid', message: 'Unknown guide.' };
-    const g = await door<{ sections: Array<{ id: string; title: string; body_md: string; review_images?: Array<{ new_url: string }> }> }>(user.id, 'ops_read', 'guide_admin', { portal }, aal);
-    const s = g.sections.find((x) => x.id === sectionId);
-    if (!s) return { ok: false, code: 'invalid', message: 'Section not found.' };
-    const img = s.review_images?.at(-1)?.new_url;
-    if (!img) return { ok: false, code: 'refused', message: 'No new screenshot to compare with.' };
-    const gate = await door<{ allowed: boolean; reason?: string; model: string; fallback_model: string | null }>(user.id, 'ops_read', 'ai_vision_gate', { purpose: 'guide_review' }, aal);
-    if (!gate.allowed) return { ok: false, code: 'refused', message: gate.reason ?? 'The vision model is not available.' };
-    const { env } = await import('@/lib/env');
-    const res = await fetch(/^https?:/.test(img) ? img : `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}${img}`);
-    if (!res.ok) return { ok: false, code: 'refused', message: 'The new screenshot could not be read.' };
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.byteLength > 3_000_000) return { ok: false, code: 'refused', message: 'The screenshot is too large for the model.' };
-    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    const { visionModel } = await import('@/integrations/vision');
-    const t0 = Date.now();
-    const r = await (await visionModel()).read({ purpose: 'guide_review', imageDataUrl: `data:${res.headers.get('content-type')?.startsWith('image/png') ? 'image/png' : 'image/jpeg'};base64,${btoa(bin)}`,
-      system: REVIEW_SYSTEM, prompt: `The chapter "${s.title}":\n<<<GUIDE\n${s.body_md}\nGUIDE>>>\nReturn the whole chapter in body_md, and in summary one sentence on what you changed (or "No change needed").`,
-      schema: REVIEW_SCHEMA, maxOutputTokens: 3000 }, [gate.model, gate.fallback_model ?? ''].filter(Boolean));
-    await door(user.id, 'ops_do', 'ai_call_record', { purpose: 'guide_review', model: r.model ?? gate.model, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`,
-      neurons: r.usage?.neurons ?? 0, duration_ms: Date.now() - t0 }, aal).catch(() => undefined);
-    if (!r.ok) return { ok: false, code: 'refused', message: `The model did not answer: ${r.message}` };
-    const out = r.data as { body_md?: string; summary?: string };
-    if (!out.body_md || out.body_md.length < 10) return { ok: false, code: 'refused', message: 'The model returned no text.' };
-    const body = out.body_md.replace(/ ?[—–] ?/g, ', ');
-    await door(user.id, 'ops_do', 'guide_suggestion_record', { id: s.id, body_md: body, model: r.model }, aal);
-    refresh(portal);
-    return { ok: true, data: { summary: out.summary ?? '' } };
-  } catch (e) { return fail(e); }
-}
-
-/** The Admin's answer on a section to review: use the suggestion as the draft, dismiss it, or mark the section reviewed. */
-export async function resolveGuideReview(portal: string, sectionId: string, action: 'apply_suggestion' | 'dismiss_suggestion' | 'reviewed'): Promise<R<null>> {
-  try {
-    const { user, aal } = await me();
-    if (!isGuidePortal(portal)) return { ok: false, code: 'invalid', message: 'Unknown guide.' };
-    await door(user.id, 'ops_do', 'guide_review_resolve', { id: sectionId, action }, aal);
-    refresh(portal);
-    return { ok: true, data: null };
-  } catch (e) { return fail(e); }
-}
-
+// ---------------------------------------------------------------- the guides update themselves (0055, 0059): nothing to review
 /** Undo a section's automatic change (migration 0055): the text it replaced comes back, published at once. */
 export async function revertGuideAuto(portal: string, sectionId: string): Promise<R<{ version: number }>> {
   try {

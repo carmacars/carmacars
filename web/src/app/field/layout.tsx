@@ -7,6 +7,8 @@ import { currentUser } from '@/server/portal/data';
 import { FieldNav } from '@/features/field/FieldNav';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { rolesOf } from '@/server/door';
+import { viewAs } from '@/server/view-as';
+import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 
 // "Add to Home Screen" opens the field portal full screen (06-field.md section 1): the manifest and icons.
 // No service worker: nothing personal is cached on the phone.
@@ -21,6 +23,8 @@ export const viewport: Viewport = { themeColor: '#000000' };
 export default async function FieldLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const field = user ? (await rolesOf(user.id).catch(() => null))?.field ?? false : false;
+  // the first sign-in (0059): the home address, asked on every page until it is in
+  const needsAddress = !!user && field && !(await viewAs()) && (await homeAddressOf(user.id, 'field')).missing;
   return (
     <div className="fd">
       <div className="fd__frame">
@@ -29,7 +33,7 @@ export default async function FieldLayout({ children }: { children: React.ReactN
         {user && <PortalSwitch current="field" />}
         {user && <FieldNav />}
         {user && field && <GuideBanner portal="field" userId={user.id} />}
-        <main>{children}</main>
+        <main>{needsAddress ? <HomeAddressCard portal="field" /> : null}{children}</main>
       </div>
     </div>
   );

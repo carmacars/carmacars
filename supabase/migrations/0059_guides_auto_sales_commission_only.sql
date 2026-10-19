@@ -89,12 +89,13 @@ begin
   return jsonb_build_object('result', 'updated', 'section_id', s.id, 'version', v_new);
 end $$;
 
--- The sections a run reads (0055), with the ones the last run could not rewrite (retry), whatever run they come from.
+-- The sections a run reads (0055), with the ones the last run could not rewrite (retry) and the ones whose screenshot
+-- changed in a run that did not check the text (pending), whatever run they come from.
 create or replace function app.guide_upkeep_sections(p_run text) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'portal', s.portal, 'slug', s.slug, 'kind', s.kind, 'title', s.title,
            'body_md', coalesce(s.published_md, s.body_md), 'draft_waiting', s.body_md is distinct from s.published_md or s.draft_version is distinct from s.published_version,
-           'is_hidden', s.is_hidden, 'retry', s.auto_retry_at is not null, 'retry_note', s.auto_retry_note, 'retry_count', s.auto_retry_count,
+           'is_hidden', s.is_hidden, 'retry', s.auto_retry_at is not null, 'retry_note', s.auto_retry_note, 'retry_count', s.auto_retry_count, 'pending', s.needs_review,
            'images_changed', (select coalesce(jsonb_agg(e), '[]'::jsonb) from jsonb_array_elements(coalesce(s.review_images, '[]'::jsonb)) e
                                where s.needs_review and (coalesce(p_run, '') = '' or e ->> 'run' = p_run)))
            order by s.portal, s.sort_order), '[]'::jsonb)
@@ -454,12 +455,13 @@ grant execute on function app.guide_release_0059(text, text, text, text, text, t
 -- GUIDES 0059 END
 
 -- Every suggestion still waiting is older than the text published since (an automatic rewrite kept before a release
--- published newer text): the published text stays, the suggestion is kept in the audit log, and every flag is cleared.
+-- published newer text): the published text stays, the suggestion is kept in the audit log. Every flag and note is
+-- cleared; a section whose screenshot changed stays internal to the upkeep (pending), so the next run checks its text.
 insert into audit_log (action, entity_table, entity_id, after)
 select 'guide_suggestion_dropped', 'guide_sections', s.id::text,
        jsonb_build_object('portal', s.portal, 'section', s.slug, 'suggestion_at', s.suggestion_at, 'published_at', s.published_at, 'model', s.suggestion_model,
                           'suggestion_md', s.suggestion_md, 'why', 'Older than the published text (0059)')
   from guide_sections s where s.suggestion_md is not null;
-update guide_sections set needs_review = false, review_note = null, review_images = '[]'::jsonb, review_flagged_at = null,
+update guide_sections set needs_review = needs_review and suggestion_md is null and review_images <> '[]'::jsonb, review_note = null, review_flagged_at = null,
        suggestion_md = null, suggestion_at = null, suggestion_model = null
- where needs_review or suggestion_md is not null or review_note is not null or review_images <> '[]'::jsonb;
+ where needs_review or suggestion_md is not null or review_note is not null;
