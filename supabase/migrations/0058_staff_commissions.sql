@@ -2028,6 +2028,11 @@ begin
     end if;
     return app.manual_rental_create(p_user, p);
   when 'quote_create' then return app.staff_quote_create(p_user, p);
+  when 'quote_form' then
+    return jsonb_build_object('vehicles', coalesce((select jsonb_agg(jsonb_build_object('id', v.id, 'name', app.vehicle_name(v.id), 'class', v.class) order by v.make, v.model)
+                                                     from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published'), '[]'::jsonb),
+                              'min_notice_minutes', (app.settings()).booking_min_notice_minutes,
+                              'price_floor_daily_cents', (app.settings()).custom_price_floor_daily_cents, 'price_max_discount_bps', (app.settings()).custom_price_max_discount_bps);
   when 'my_sales' then return app.staff_sales(p_user, p_user, p);
   when 'referrals' then return app.field_referrals(p_user);
   when 'commissions' then return app.commission_admin(p_user, p);
@@ -2049,7 +2054,7 @@ declare
   p_ jsonb := coalesce(p, '{}'::jsonb);
   b bookings;
 begin
-  if (p_call = 'ops_do' and p_name = 'manual_rental_create') or (p_call = 'va_do' and p_name = 'quote_create')
+  if (p_call = 'ops_do' and p_name = 'manual_rental_create') or (p_call = 'va_do' and p_name = 'quote_create') or (p_call = 'va_read' and p_name = 'quote_form')
      or (p_call in ('va_read', 'field_read') and p_name = 'my_sales') or (p_call = 'field_read' and p_name = 'referrals')
      or (p_call = 'admin_read' and p_name in ('commissions', 'commission_reviews'))
      or (p_call = 'admin_do' and p_name in ('commission_approve', 'commission_reverse', 'commission_payout', 'commission_rate_set', 'price_review', 'sales_claim_decide')) then

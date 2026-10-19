@@ -18,7 +18,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' },
-    { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/reports', label: 'Company statements' }, { href: '/admin/payouts', label: 'Payouts' },
+    { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/reports', label: 'Company statements' }, { href: '/admin/payouts', label: 'Payouts' }, { href: '/admin/money/commissions', label: 'Staff commissions' },
     { href: '/admin/tolls', label: 'Tolls and tickets' }, { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/reconciliation', label: 'Reconciliation' },
     { href: '/admin/expenses', label: 'Expenses' }] },
   { key: 'people', label: 'People', links: [

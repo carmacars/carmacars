@@ -5,6 +5,7 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
+import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -23,6 +24,8 @@ export interface B {
   dates_provisional: boolean; blocks_calendar: boolean; notes: string | null; hst_at_booking_cents: number; total_due_at_booking_cents: number;
   renter_due_at_booking_cents: number | null; insurer_share_cents: number | null; promo_code: string | null;
   vehicle: { id: string; name: string; plate: string | null } | null; lines: Line[];
+  /** 0058: the choice, a claim, a price typed by hand */
+  sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
 
@@ -65,7 +68,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
-    rental_charge_cents: '', staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
+    rental_charge_cents: '', price_reason: '', staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
     pickup_kind: b.pickup_location_kind ?? (b.pickup_method === 'delivered' ? 'delivery' : 'our_location'), pickup_address: b.pickup_place ?? '', pickup_km: b.pickup_distance_km?.toString() ?? '',
     return_kind: b.return_location_kind ?? (b.return_method === 'picked_up' ? 'delivery' : 'our_location'), return_address: b.return_place ?? '', return_km: b.return_distance_km?.toString() ?? '',
     coverage: dollars(coverageLine?.amount_cents ?? null), promo_code: b.promo_code ?? '',
@@ -77,6 +80,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
   const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
+  // the choice once per booking (0058): a request a staff member entered already carries it
+  const needChoice = !b.sales_choice && !b.sales_claim_by;
+  const [choice, setChoice] = useState<Choice>('');
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, run] = useTransition();
@@ -92,7 +98,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     if (changed('return_at') && v.return_at) ch.return_at = new Date(String(v.return_at)).toISOString();
     if (changed('booking_type')) ch.booking_type = v.booking_type;
     for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? 0;
-    if (String(v.rental_charge_cents).trim()) ch.rental_charge_cents = cents(String(v.rental_charge_cents));
+    if (String(v.rental_charge_cents).trim()) { ch.rental_charge_cents = cents(String(v.rental_charge_cents)); ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
     for (const k of ['bill_to', 'insurer_id', 'insurer_claim_number', 'insurer_adjuster_name', 'insurer_adjuster_email', 'insurer_adjuster_phone', 'insurer_authorized_until']) if (changed(k)) ch[k] = String(v[k]).trim() || null;
@@ -151,7 +157,10 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const act = (action: 'booking_save' | 'send_offer') => run(async () => {
     setProblem(null);
     const body: Record<string, unknown> = { ...payload, internal_note: v.note };
-    if (action === 'send_offer') { body.message = v.message; body.expires_at = expiresAt(); }
+    if (action === 'send_offer') {
+      if (needChoice && !choice && va) { setProblem('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
+      body.message = v.message; body.expires_at = expiresAt(); if (needChoice && choice) body.sales_choice = choice;
+    }
     const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
     if (!r.ok) { setProblem(r.message); return; }
     setDone(action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved.');
@@ -181,10 +190,13 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Rates and fees</legend>
-          {va && <p className="hint ad-field--wide">Rates, fees, discounts and the Deposit are set by an Admin. Escalate the task to ask for a change.</p>}
+          {va && <p className="hint ad-field--wide">Rates, fees, discounts and the Deposit are set by an Admin. You may type the rental charge with its reason: the rate sheet stays beside it, and a price far under it is flagged for an Admin.</p>}
+          {va && <><F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rate sheet" /><F k="price_reason" l="Reason for the price" /></>}
+          {b.custom_price_reason && <p className="small ad-field--wide" data-testid="review-custom-price">Price typed by hand: {money(b.rental_charge_cents, { cents: true })} (rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })}). {b.custom_price_reason}{b.price_flags?.length ? ' Flagged for an Admin.' : ''}</p>}
           {!va && <><F k="daily_rate_cents" l="Daily" money /><F k="weekend_rate_cents" l="Weekend" money />
           <F k="weekly_rate_cents" l="Weekly" money /><F k="monthly_rate_cents" l="Monthly" money />
           <F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rates" />
+          <F k="price_reason" l="Reason for the price" />
           <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />
           {!va && <><F k="overage_cents_per_km" l="Overage per km" money />
@@ -234,6 +246,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
             <div className="field ad-field"><label className="label" htmlFor="rv-exp">Offer open for</label>
               <select className="select" id="rv-exp" value={String(v.expires_hours)} onChange={(e) => set('expires_hours')(e.target.value)}>
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
+            {needChoice && <SourcedChoice id="rv" value={choice} onChange={setChoice} optional={!va} />}
+            {!needChoice && <p className="small muted" data-testid="review-choice">{b.sales_claim_by ? 'Someone said they sourced this client: an Admin decides.' : b.sales_choice === 'sourced' ? 'Marked "I sourced this client".' : 'Entered for CarmaCars.'}</p>}
             <button className="btn btn--primary" type="submit" disabled={pending} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>
         )}

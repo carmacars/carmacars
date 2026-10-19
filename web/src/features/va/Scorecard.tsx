@@ -1,8 +1,9 @@
 import { Card, d } from '@/features/admin/ui';
+import { MonthTarget, type MonthProgress } from '@/features/sales/Commissions';
 
 // The weekly scorecard (VA hiring package section 7; 05-va.md section 6): each measure is the share of its
 // cases that met the target that week. Under 90% two weeks running means a review.
-export interface Score { name: string; function: string | null; review: boolean;
+export interface Score { name: string; function: string | null; review: boolean; sales_target?: MonthProgress;
   weeks: Array<{ week_start: string; score_pct: number | null; measures: Array<{ name: string; target: string; met: number; total: number; score_pct: number | null }> }> }
 
 const pct = (v: number | null) => (v === null || v === undefined ? 'no cases' : `${v}%`);
@@ -12,6 +13,7 @@ export function Scorecard({ s }: { s: Score }) {
   const names = weeks[0]?.measures.map((m) => [m.name, m.target] as const) ?? [];
   return (
     <>
+      {s.sales_target && <Card title={`Rental days target, ${s.sales_target.label}`} testId="score-target"><MonthTarget m={s.sales_target} own /></Card>}
       {s.review && <p className="alert alert--warn" role="status" data-testid="score-review"><span className="alert__title">Review</span><span>Two weeks running under 90%.</span></p>}
       <Card title="By week" testId="scorecard">
         <div className="ad-scroll" tabIndex={0} role="region" aria-label="Scorecard by week">

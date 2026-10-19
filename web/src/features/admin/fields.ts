@@ -13,6 +13,10 @@ const LABELS: Record<string, string> = {
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',
   request_response_target_minutes: 'First reply target for customer service and sales (minutes)',
+  staff_commission_bps: 'Commission outside Sales: customer service, finance, fleet and field staff (also the field referral fee)',
+  sales_tier_low_bps: 'Sales commission under the middle tier\'s days', sales_tier_mid_bps: 'Sales commission from the middle tier\'s days', sales_tier_high_bps: 'Sales commission from the top tier\'s days',
+  sales_tier_mid_days: 'Sales: rental days in a month for the middle tier', sales_tier_high_days: 'Sales: rental days in a month for the top tier (the month\'s target)',
+  custom_price_floor_daily_cents: 'Price typed by hand: floor a day (empty: no floor)', custom_price_max_discount_bps: 'Price typed by hand: flag a discount from the rate sheet above',
   street_address: 'Street address (pickup and returns)', signing_officer_authorized_on: 'Signing officer: date of the standing authorization',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
@@ -24,6 +28,10 @@ const HINTS: Record<string, string> = {
   signing_officer_name: 'Signs every automatic countersignature for the company and countersigns investment agreements.',
   signing_officer_authorized_on: 'Printed in every automatic countersignature. A new signing officer takes the date the change is saved.',
   request_response_target_minutes: 'Booking requests, enquiries, offer changes and renter messages are due this many minutes after they come in (5 by default, counted in opening hours). The task due times, the countdown, the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) and the late-request alert to staff are separate settings.',
+  staff_commission_bps: 'The share of the rental charge (before tax, after discounts, less refunds) a staff member outside Sales earns on each rental they sourced, once it is completed and paid and an Admin approves it. 10% by default. An Admin may set another rate for one person on their Sales page.',
+  sales_tier_high_days: 'Days count from the completed, paid rentals a Sales staff member sourced that end in the month. The month\'s tier applies to all that month\'s rentals. My sales and the scorecard show this as the month\'s target.',
+  custom_price_floor_daily_cents: 'A price typed by hand under this amount a day is flagged on the booking and in To do. It is never refused.',
+  custom_price_max_discount_bps: 'A price typed by hand this far or more under the rate sheet is flagged on the booking and in To do (20% by default). It is never refused.',
   owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',

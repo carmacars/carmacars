@@ -77,7 +77,9 @@ export async function deleteSampleCars(confirm: string): Promise<R<{ deleted: nu
 export interface ManualRentalResult { booking_id: string; booking_number: string; status: string; total_cents: number; due_cents: number; blocks_calendar: boolean;
   charge?: { customer_id: string; method_id: string; amount_cents: number; brand: string; last4: string } | null; card?: { ok: boolean; message?: string };
   /** The saved card is charged when the renter signs (the legal review, 0053), never when staff add the rental. */
-  charge_on_sign?: boolean }
+  charge_on_sign?: boolean;
+  /** The choice and a price typed by hand (0058). */
+  sales_choice?: 'sourced' | 'for_carmacars' | null; sales_sourced?: boolean; price_flags?: string[]; rate_sheet_cents?: number | null }
 
 /** Add a rental. With the saved card, nothing is charged here: the renter's "Accept and sign" charges it (0053). */
 export async function createManualRental(p: Record<string, unknown>): Promise<R<ManualRentalResult>> {
@@ -101,7 +103,7 @@ export async function createManualRental(p: Record<string, unknown>): Promise<R<
       r.card = { ok, message };
       r.charge = null;
     }
-    rebuild(['/admin/bookings', '/admin/calendar', '/va/requests', '/cars/[slug]']);
+    rebuild(['/admin/bookings', '/admin/calendar', '/va/requests', '/va/my-sales', '/field/sales', '/cars/[slug]']);
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }

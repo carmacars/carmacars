@@ -2,21 +2,29 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
+import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 
 // A quote from a phone, email or WhatsApp lead (05-va.md section 5, /va/sales/quotes/new): the staff request
 // form. It becomes a request (the database prices it and checks the car, the ages and the licence), then
-// the offer is sent from the booking's review screen.
+// the offer is sent from the booking's review screen. Every assistant function (0058): a price may be typed with its
+// reason (the rate sheet stays beside it for an Admin), and the choice "I sourced this client" or "Entered for CarmaCars"
+// is required.
 export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: string; name: string }>; minNotice: number }) {
   const router = useRouter();
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [choice, setChoice] = useState<Choice>('');
   return (
     <form className="ad-form" data-testid="quote-form" onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); start(async () => {
       const iso = (k: string) => { const v = String(fd.get(k) ?? ''); return v ? new Date(v).toISOString() : null; };
+      if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
+      const price = String(fd.get('rental_charge') ?? '').replace(/[$,\s]/g, '');
+      if (price && !String(fd.get('price_reason') ?? '').trim()) { setErr('Give the reason for the price you typed.'); return; }
       const r = await vaAct<{ booking_number: string }>('quote_create', {
         vehicle_id: fd.get('vehicle_id'), pickup_at: iso('pickup_at'), return_at: iso('return_at'), source: fd.get('source'),
         full_name: fd.get('full_name'), email: fd.get('email'), mobile: fd.get('mobile'), date_of_birth: fd.get('date_of_birth'), licence_class: fd.get('licence_class'),
-        coverage_option: fd.get('coverage_option') ? Number(fd.get('coverage_option')) : null, note: fd.get('note') });
+        coverage_option: fd.get('coverage_option') ? Number(fd.get('coverage_option')) : null, note: fd.get('note'), sales_choice: choice,
+        rental_charge_cents: price ? Math.round(Number(price) * 100) : null, price_reason: String(fd.get('price_reason') ?? '').trim() || null });
       if (!r.ok) { setErr(r.message); return; }
       router.push(`/va/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`);
     }); }}>
@@ -32,6 +40,10 @@ export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: strin
       <div className="field"><label className="label" htmlFor="q-dob">Date of birth</label><input className="input" id="q-dob" name="date_of_birth" type="date" required /></div>
       <div className="field"><label className="label" htmlFor="q-class">Licence class</label><select className="select" id="q-class" name="licence_class" defaultValue="G"><option value="G">G</option><option value="G2">G2</option></select></div>
       <div className="field"><label className="label" htmlFor="q-cov">Damage cover</label><select className="select" id="q-cov" name="coverage_option" defaultValue=""><option value="">Not chosen yet</option><option value="1">Option 1: their own policy</option><option value="2">Option 2: their credit card</option></select></div>
+      <div className="field"><label className="label" htmlFor="q-price">Rental charge typed by hand ($, optional)</label><input className="input" id="q-price" name="rental_charge" inputMode="decimal" autoComplete="off" aria-describedby="q-price-hint" data-testid="quote-price" />
+        <p className="hint" id="q-price-hint">Empty: the rate sheet. A price far under the rate sheet is flagged for an Admin, not refused.</p></div>
+      <div className="field"><label className="label" htmlFor="q-reason">Reason for the price</label><input className="input" id="q-reason" name="price_reason" autoComplete="off" data-testid="quote-price-reason" /></div>
+      <div className="field ad-field--wide"><SourcedChoice id="q" value={choice} onChange={setChoice} /></div>
       <div className="field ad-field--wide"><label className="label" htmlFor="q-note">Note (places, extras, what they asked)</label><textarea className="input ad-textarea" id="q-note" name="note" rows={3} maxLength={1000} /></div>
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
       <button className="btn btn--primary" type="submit" disabled={pending} data-testid="quote-create">{pending ? 'Creating' : 'Create the request'}</button>

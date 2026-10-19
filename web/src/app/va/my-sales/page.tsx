@@ -4,12 +4,13 @@ import { PageHead } from '@/features/admin/ui';
 import { SalesBoard, type StaffSales } from '@/features/va/SalesBoard';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'My sales', path: '/va/my-sales', noindex: true, description: 'Your quotes, offers, bookings and booked revenue.' });
+export const metadata = pageMeta({ title: 'My sales', path: '/va/my-sales', noindex: true, description: 'Your commissions, quotes, offers, bookings and booked revenue.' });
 
-// My sales (migration 0057): the signed-in Sales assistant's own quotes, offers, rentals added, bookings confirmed,
-// conversion and booked revenue by week or month, the follow-ups due and each deal. Tracking only, no commission.
+// My sales (migrations 0057 and 0058): the signed-in assistant's own commissions (Sales: the month's rental days against
+// the target and the tier), quotes, offers, rentals added, bookings confirmed, conversion and booked revenue by week or
+// month, the follow-ups due and each deal. Every staff function.
 export default async function MySales({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read, fn }, sp] = await Promise.all([vaPage('/va/my-sales', ['sales']), searchParams]);
+  const [{ read, fn }, sp] = await Promise.all([vaPage('/va/my-sales'), searchParams]);
   const s = await read<StaffSales>('my_sales', { period: sp.period === 'month' ? 'month' : 'week' });
   return (
     <>

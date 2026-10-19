@@ -15,8 +15,11 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
 
 type R = Record<string, unknown>;
-type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string }> };
-const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a rental they added', offer: 'the first offer they sent', admin: 'given by an Admin' };
+type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string }>;
+  sourced?: boolean; choice?: string | null; choice_by?: string | null; claim_by?: string | null; supply_type?: string;
+  price?: { rental_cents: number; rate_sheet_cents: number | null; reason: string | null; by: string | null; at: string; flags: string[]; reviewed_at: string | null; review_note: string | null } | null;
+  commissions?: Array<{ id: string; name: string; kind: string; status: string; rate_bps: number; base_cents: number; amount_cents: number; reason: string | null }> };
+const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a rental they added', offer: 'the first offer they sent', admin: 'given by an Admin', referral: 'their referral link' };
 type Detail = B & R & {
   renter: { id: string; legal_name: string; email: string; mobile: string | null; identity_status: string; is_blocked: boolean; bookings: number } | null;
   offers: R[]; events: R[]; history: R[]; emails: R[]; payments: R[]; refunds: R[]; deposit: R | null; statements: R[]; documents: R[];
@@ -163,15 +166,27 @@ export default async function Booking({ params, searchParams }: { params: Promis
   );
 }
 
-// The credit line with the Admin's Reassign (a reason is kept in the booking's history; 0057).
+// The credit line with the Admin's Reassign (a reason is kept in the booking's history; 0057), whether the person sourced
+// the client, a claim to decide, a price typed by hand and the commission (0058).
 function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: string; refresh: string[] }) {
   const opts: Array<[string, string]> = [['', 'Choose who'], ...c.options.map((o) => [o.id, `${o.name} (${label(o.function)})`] as [string, string]), ['none', 'Nobody']];
   return (
     <span data-testid="booking-sales-credit">
       {c.staff_id ? <><Link prefetch={false} className="link" href={`/admin/staff/${c.staff_id}/sales`}>{c.name}</Link>, {HOW[c.how ?? ''] ?? ''}{c.how === 'admin' && c.by ? ` (${c.by})` : ''}; counts {$(c.revenue_cents)}</>
-        : c.how === 'admin' ? 'Nobody (an Admin removed the credit)' : 'Nobody yet: the first offer sent credits its sender'}{' '}
+        : c.how === 'admin' ? 'Nobody (an Admin removed the credit)' : 'Nobody yet: the first offer sent credits its sender'}
+      {c.staff_id ? <span data-testid="booking-sourced">{c.sourced ? '; sourced the client (earns the commission)' : '; entered for CarmaCars (no commission)'}</span> : null}{' '}
       <Act action="sales_reassign" payload={{ booking }} label="Reassign" testId="booking-sales-reassign" refresh={refresh} done="Reassigned."
-        fields={[{ name: 'staff', label: 'Credit it to', type: 'select', options: opts, required: true }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
+        fields={[{ name: 'staff', label: 'Credit it to', type: 'select', options: opts, required: true },
+          { name: 'sourced', label: 'Did they source the client?', type: 'select', options: [['true', 'Yes: they earn the commission'], ['false', 'No: entered for CarmaCars']], required: true, value: c.sourced ? 'true' : 'false' },
+          { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
+      {c.claim_by && <span className="ad-sub" data-testid="booking-claim">{c.claim_by} says they sourced this client.{' '}
+        <Act action="sales_claim_decide" payload={{ booking, accept: true }} label="Credit them" testId="claim-accept" refresh={refresh} done="Credited." fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />{' '}
+        <Act action="sales_claim_decide" payload={{ booking, accept: false }} label="Not theirs" testId="claim-decline" refresh={refresh} done="Claim closed." fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} /></span>}
+      {c.price && <span className="ad-sub" data-testid="booking-custom-price">Price typed by hand: {$(c.price.rental_cents)}, rate sheet {$(c.price.rate_sheet_cents ?? 0)}{c.price.by ? `, by ${c.price.by}` : ''}. {c.price.reason}
+        {c.price.flags.length ? <b className="ad-late"> Flagged: {c.price.flags.map((f) => (f === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</b> : null}
+        {c.price.reviewed_at ? ` Reviewed ${t(c.price.reviewed_at)}.` : <> <Act action="price_review" payload={{ booking }} label="Mark reviewed" testId="price-review" refresh={refresh} done="Reviewed." fields={[{ name: 'note', label: 'Note', type: 'text' }]} /></>}</span>}
+      {c.commissions && c.commissions.length > 0 && <span className="ad-sub" data-testid="booking-commissions">Commission: {c.commissions.map((x) => `${x.name} ${$(x.amount_cents)} (${x.kind === 'commission' ? `${x.rate_bps / 100}%, ${x.status.replace(/_/g, ' ')}` : x.kind})`).join('; ')}
+        {c.supply_type === 'program_owner' ? '. Deducted with the kickbacks before Owner Revenue.' : c.supply_type === 'partner' ? '. Paid from CarmaCars\' commission.' : '. A CarmaCars expense.'}</span>}
     </span>
   );
 }

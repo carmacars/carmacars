@@ -54,8 +54,10 @@ function ownerStatement(f: F): Block[] {
     blocks.push({ t: 'h2', text: `${s(v.vehicle)}${v.plate ? `, ${s(v.plate)}` : ''}` });
     const lines = (v.lines ?? []) as Row[];
     const rentals = lines.filter((l) => l.line_type === 'rental' || l.line_type === 'turo_trip');
-    if (rentals.length) blocks.push({ t: 'table', head: ['Rental', 'Dates', 'Rental Charge', 'Kickback', 'Owner Revenue'],
-      rows: rentals.map((l) => [s(l.booking_number) || label(l.line_type), `${day(l.starts_on)} to ${day(l.ends_on)}`, dollars(n(l.rental_charge_cents) + n(l.mileage_overage_cents)), dollars(-n(l.kickback_cents)), dollars(l.owner_revenue_cents)]) });
+    // every kickback is an expense of the booking before Owner Revenue: the Referral Kickback and the staff commission apart (0058)
+    if (rentals.length) blocks.push({ t: 'table', head: ['Rental', 'Dates', 'Rental Charge', 'Referral Kickback', 'Staff commission', 'Owner Revenue'],
+      rows: rentals.map((l) => [s(l.booking_number) || label(l.line_type), `${day(l.starts_on)} to ${day(l.ends_on)}`, dollars(n(l.rental_charge_cents) + n(l.mileage_overage_cents)),
+        dollars(-(n(l.kickback_cents) - n(l.staff_commission_cents))), dollars(-n(l.staff_commission_cents)), dollars(l.owner_revenue_cents)]) });
     const others = lines.filter((l) => !['rental', 'turo_trip'].includes(String(l.line_type)));
     if (others.length) blocks.push({ t: 'table', head: ['Item', 'Detail', 'Amount'], rows: others.map((l) => [label(l.line_type), s(l.description) || s(l.booking_number), dollars(n(l.amount_cents) || n(l.fee_cents) + n(l.late_fee_cents))]) });
     blocks.push({ t: 'table', head: ['Vehicle totals', ''], kv: true, rows: [

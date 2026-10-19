@@ -14,7 +14,7 @@ const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip',
 function LineRow({ l }: { l: StatementLine }) {
   const ref = l.booking_number ? `Booking ${l.booking_number}` : l.invoice_number ? `Invoice ${l.invoice_number}` : l.from_vehicle_name ? `From ${l.from_vehicle_name}` : '';
   const detail = l.line_type === 'rental'
-    ? [l.starts_on && `${day(l.starts_on)} to ${day(l.ends_on)}`, `Rental Charge ${c(l.rental_charge_cents)}`, l.mileage_overage_cents ? `mileage ${c(l.mileage_overage_cents)}` : '', l.refunds_cents ? `refunds ${c(-l.refunds_cents)}` : '', l.chargebacks_cents ? `chargebacks ${c(-l.chargebacks_cents)}` : '', l.kickback_cents ? `Referral Kickback ${c(-l.kickback_cents)}` : '', `Owner Revenue ${c(l.owner_revenue_cents)}`]
+    ? [l.starts_on && `${day(l.starts_on)} to ${day(l.ends_on)}`, `Rental Charge ${c(l.rental_charge_cents)}`, l.mileage_overage_cents ? `mileage ${c(l.mileage_overage_cents)}` : '', l.refunds_cents ? `refunds ${c(-l.refunds_cents)}` : '', l.chargebacks_cents ? `chargebacks ${c(-l.chargebacks_cents)}` : '', (l.kickback_cents ?? 0) - (l.staff_commission_cents ?? 0) ? `Referral Kickback ${c(-((l.kickback_cents ?? 0) - (l.staff_commission_cents ?? 0)))}` : '', l.staff_commission_cents ? `Staff commission ${c(-l.staff_commission_cents)}` : '', `Owner Revenue ${c(l.owner_revenue_cents)}`]
     : l.line_type === 'turo_trip' ? [`Turo gross ${c(l.turo_gross_cents)}`, `Turo fees ${c(-(l.turo_fees_cents ?? 0))}`]
     : l.line_type === 'fees_deducted' ? [`Fees with HST ${c(l.fee_cents)}`, l.late_fee_cents ? `Late Fee ${c(l.late_fee_cents)}` : '']
     : [l.description ?? ''];

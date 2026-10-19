@@ -3,15 +3,19 @@ import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
+import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 
-// Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, and the same screen for customer service and
-// Sales in the VA portal. The database decides what each may do (an assistant: the rate-sheet price, the promo codes
-// and ways of payment the settings allow, never over a clash, never a past rental) and refuses with the reason.
+// Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
+// and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
+// reason, the promo codes and ways of payment the settings allow, never over a clash, never a past rental; field staff:
+// a payment link or the saved card, the renter's details typed) and refuses with the reason. Staff choose "I sourced
+// this client" or "Entered for CarmaCars".
 type Car = { id: string; name: string; plate: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null };
 type Renter = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; card: { brand: string; last4: string } | null; bookings: number };
 type Line = { description: string; amount_cents: number; hst_cents: number; charge_type: string };
 type Quote = { role: 'admin' | 'va'; free: boolean; clashes: Array<{ kind: string; booking_number?: string; status?: string; starts_at: string; ends_at: string | null; renter?: string; reason?: string; overlaps: boolean }>;
-  turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
+  turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
+  price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
   quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
 
@@ -28,12 +32,14 @@ const iso = (s: string | undefined) => (s ? new Date(s).toISOString() : '');
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 const cents = (s: string) => (s.trim() ? Math.round(Number(s.replace(/[$,\s]/g, '')) * 100) : undefined);
 
-export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '/admin' | '/va'; isAdmin: boolean }) {
+export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean }) {
+  const field = base === '/field';
+  const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
     pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }), baby_seats: '0' });
-  const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: false });
+  const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: field });
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Renter[]>([]);
   const [renter, setRenter] = useState<Renter | null>(null);
@@ -71,11 +77,13 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   });
   const submit = () => start(async () => {
     setErr(null);
-    const p = { ...spec(), pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, note: f.note || undefined,
+    if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
+    if (cents(f.rental_charge ?? '') !== undefined && !(f.price_reason ?? '').trim()) { setErr('Give the reason for the price you typed.'); return; }
+    const p = { ...spec(), sales_choice: choice, pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, note: f.note || undefined,
       do_not_email: flags.do_not_email, additional_drivers: drivers.filter((d) => d.full_name.trim()),
       renter: renter ? undefined : { full_name: f.full_name, email: f.email, mobile: f.mobile, date_of_birth: f.date_of_birth, licence_number: f.licence_number, licence_class: f.licence_class || 'G',
         licence_issuer: f.licence_issuer || 'ON', licence_expiry: f.licence_expiry || undefined, address_line1: f.address_line1 || undefined, city: f.city || undefined, postal_code: f.postal_code || undefined },
-      rental_charge_cents: isAdmin ? cents(f.rental_charge ?? '') : undefined, price_reason: isAdmin ? f.price_reason || undefined : undefined,
+      rental_charge_cents: cents(f.rental_charge ?? ''), price_reason: f.price_reason || undefined,
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
       payment: { mode: f.mode, method: f.method, reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined } };
     const r = await createManualRental(p);
@@ -89,11 +97,14 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         <h2 className="d3" id="mr-done">Rental {done.booking_number} added</h2>
         <p>{done.status === 'confirmed' ? 'Confirmed and on the calendar.' : done.status === 'pending_payment' ? 'The renter has the email to sign and pay online; the rental is confirmed once they pay.' : done.status === 'closed' ? 'Recorded as a completed past rental. It counts on the owner\'s or partner\'s statement and the company statement.' : done.status}
           {!done.blocks_calendar && done.status === 'confirmed' ? ' It was added over a clash, so it does not block the calendar: resolve the clash before the handover.' : ''}</p>
+        <p className="small" data-testid="mr-done-choice">{done.sales_sourced ? 'Marked as sourced by you: your commission is counted once the rental is completed and paid in full.' : 'Entered for CarmaCars: no commission.'}
+          {done.price_flags?.length ? ' The price you typed is flagged for an Admin to review.' : ''}</p>
         {done.charge_on_sign && <p className="alert alert--ok" role="status" data-testid="mr-charge-on-sign"><span>Awaiting signature. The saved card is charged when the renter signs the rental agreement (Accept and sign), not before.</span></p>}
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
         <p className="small">Total {fmt(done.total_cents)}. The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
-        <p className="row"><Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>
-          <button className="btn btn--ghost" type="button" onClick={() => { setDone(null); setQuote(null); setRenter(null); }}>Add another</button></p>
+        <p className="row">{field ? <Link prefetch={false} className="btn btn--primary" href="/field/sales" data-testid="mr-open">Open My sales</Link>
+          : <Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>}
+          <button className="btn btn--ghost" type="button" onClick={() => { setDone(null); setQuote(null); setRenter(null); setChoice(isAdmin ? 'for_carmacars' : ''); }}>Add another</button></p>
       </section>
     );
   }
@@ -120,7 +131,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         {renter ? (
           <p data-testid="mr-renter-chosen"><b>{renter.legal_name}</b> {renter.email} {renter.mobile} {renter.card ? `· card ${renter.card.brand} ending ${renter.card.last4}` : '· no saved card'} <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setRenter(null); setQuote(null); }}>Change</button></p>
         ) : (<>
-          <label className="check" htmlFor={id('new')}><input id={id('new')} type="checkbox" checked={flags.new_renter} onChange={flag('new_renter')} data-testid="mr-new-renter" /> <span>A new renter (not on file)</span></label>
+          {field ? <p className="small muted">Type the renter&apos;s details. A renter already on file is found by their email.</p>
+            : <label className="check" htmlFor={id('new')}><input id={id('new')} type="checkbox" checked={flags.new_renter} onChange={flag('new_renter')} data-testid="mr-new-renter" /> <span>A new renter (not on file)</span></label>}
           {!flags.new_renter ? (
             <div className="stack">
               <div className="row"><label className="sr-only" htmlFor={id('q')}>Find a renter</label>
@@ -174,7 +186,13 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
             </tbody></table>
             <p className="small muted">{quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included.{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
             {quote.may_override_price && (
-              <div className="ad-fields">{text('rental_charge', 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}{text('price_reason', 'Reason for the price')}{text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>)}
+              <div className="stack" data-testid="mr-custom-price">
+                <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it with the reason. The rate-sheet price stays on the booking for an Admin to see.</p>
+                <div className="ad-fields">{text('rental_charge', 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}{text('price_reason', 'Reason for the price')}
+                  {isAdmin && text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>
+                {(() => { const fl = priceFlags(cents(f.rental_charge ?? ''), quote.rate_sheet_cents, quote.billable_days, quote.price_floor_daily_cents, quote.price_max_discount_bps);
+                  return fl.length ? <p className="alert alert--warn" role="status" data-testid="mr-price-flag"><span>This price is {fl.join(' and ')}. You can still add the rental: it is flagged for an Admin to review.</span></p> : null; })()}
+              </div>)}
           </div>)}
       </fieldset>
 
@@ -190,6 +208,10 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
             {f.method === 'other' && text('payment_note', 'How it was paid')}
           </div>)}
         <label className="check" htmlFor={id('dne')}><input id={id('dne')} type="checkbox" checked={flags.do_not_email} onChange={flag('do_not_email')} data-testid="mr-do-not-email" /> <span>Do not email the renter</span></label>
+      </fieldset>
+
+      <fieldset className="stack"><legend className="d4">5. Who found this client</legend>
+        <SourcedChoice id="mr" value={choice} onChange={setChoice} optional={isAdmin} />
       </fieldset>
 
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}

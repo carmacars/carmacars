@@ -78,7 +78,7 @@ export interface OwnerBooking {
 export interface StatementLine {
   id: string; line_type: string; description?: string; booking_number?: string; invoice_number?: string; from_vehicle_name?: string;
   starts_on?: string; ends_on?: string; rental_charge_cents?: number; mileage_overage_cents?: number; refunds_cents?: number; chargebacks_cents?: number;
-  kickback_cents?: number; owner_revenue_cents?: number; revenue_share_cents?: number; turo_gross_cents?: number; turo_fees_cents?: number;
+  kickback_cents?: number; staff_commission_cents?: number; owner_revenue_cents?: number; revenue_share_cents?: number; turo_gross_cents?: number; turo_fees_cents?: number;
   fee_cents?: number; late_fee_cents?: number; amount_cents: number;
 }
 export interface OwnerStatement {
