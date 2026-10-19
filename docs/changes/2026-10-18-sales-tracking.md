@@ -108,10 +108,27 @@ own My work group.
 | --- | --- |
 | Database (`scripts/test.sh`) | 3651 passed, 0 failed (new suite 36; 08 and 09 updated for the new history kind and the 5-minute due time) |
 | Unit (`npm run test:unit`) | 117 passed |
-| End to end, local, 375 and 1440 | see section 6 |
+| End to end, 375 and 1440 | `sales-tracking.spec.ts` 4 of 4 locally; the full suite in the deploy run: 195 passed, 15 skipped by design |
 | Emails (`emails/check.mjs`) | all 15 checks passed |
 | Text check, copy lint, guide labels, 0057 guides block | passed |
 
 ## 6. Deploy and checks
 
-RUNS
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 39169887488 | Green |
+| Deploy with the full suite (end to end at 375 and 1440 with axe, links, copy lint, crawl as every role including `va_sales`, SEO, emails) | 39170156039 | Green: 195 end-to-end tests passed (15 skipped by design), crawl, SEO and emails 0 problems; 1 migration applied (history 57); carmacars.ca, /cars and photos answer 200 |
+| Guides after the deploy (auto) | 39173040720 | Failed on a 503 from `/api/jobs/guide-upkeep` (Error 1102 while the verification ran at the same time) |
+| Guides (auto), again | 39179612157 | Green: 4 screenshots replaced, 1 section rewritten (owner), 2 to review (field/my-jobs, admin/requests-offers-and-bookings: an AI suggestion kept for review, the published text is 0057's), PDFs of the owner, field and admin guides printed |
+| verify, full | 39184483520 | Green: every check passed |
+| verify, full, before it | 39173066919, 39174087686, 39175095883, 39176031042, 39176702842, 39177502124, 39178280885, 39178877577, 39181263726, 39181978640, 39183190653 | Each failed one different sign-in, sign-up or email-link step on a 30-second timeout while the Worker answered Error 1102 (`503 exceeded resource limits`, on /sign-in, /admin, /investor, /va, /owner); no failure on a page this work changed |
+
+**Error 1102 (separate).** Cloudflare stopped 211 requests in 24 hours with Error 1102 (the free plan's 10 ms CPU
+limit; 69 in the hour of the verifications). It is what failed the eleven verifications before the green one. Workers
+Paid removes the limit; the owner is upgrading.
+
+## 7. What still needs the owner
+
+- Program settings: the Sales function's pay, rate, schedule, days and hours (left blank as decided).
+- The lawyer: the new section 3.1 of the VA agreement (a monthly Rate).
+- Admin > Settings > Guides: two sections "To review" after the upkeep run (field/my-jobs, admin/requests-offers-and-bookings).
