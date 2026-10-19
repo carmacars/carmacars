@@ -288,16 +288,17 @@ select test.eq('it is in the Admin''s morning digest, once', (select count(*) ||
 -- /api/health: a website older than the database is waiting for its deploy, not failing
 delete from site_alerts where check_key = 'health';
 update uptime_checks set status = 'unknown', consecutive_failures = 0, failing_since = null where key = 'health';
-select test.eq('the database''s marker; the health answer carries it', app.schema_marker() || ' ' || (app.health_ping() ->> 'schema'), '0063 0063');
+-- (0064: the marker is the newest migration, whichever it is)
+select test.ok('the database''s marker; the health answer carries it', app.schema_marker() >= '0063' and app.health_ping() ->> 'schema' = app.schema_marker());
 insert into s42 values ('w', to_jsonb(app.uptime_page_result('health', 404, '{"Content-Type": "text/html"}', '<html>404</html>', false, null, 80, test.at63('2031-06-15 10:00'))
   || ' ' || app.uptime_page_result('health', 404, '{}', '', false, null, 80, test.at63('2031-06-15 10:05'))
   || ' ' || app.uptime_page_result('health', 404, '{"x-carmacars-schema": "0062"}', '', false, null, 80, test.at63('2031-06-15 10:10'))));
 select test.eq('404 from a website without a marker or an older one: waiting for the website deploy', (test.s42('w') #>> '{}')
   || ' | ' || (select status || ' ' || consecutive_failures || ' ' || last_detail from uptime_checks where key = 'health'),
-  'waiting waiting waiting | waiting 0 Waiting for the website deploy: the website (0062) is older than the database (0063), so /api/health is not there yet');
+  format('waiting waiting waiting | waiting 0 Waiting for the website deploy: the website (0062) is older than the database (%s), so /api/health is not there yet', app.schema_marker()));
 select test.eq('no problem, no email', (select count(*) from site_alerts where check_key = 'health'), 0::bigint);
 select test.eq('404 from a website as new as the database: a real failure',
-  app.uptime_page_result('health', 404, '{"X-CarmaCars-Schema": "0063"}', '', false, null, 80, test.at63('2031-06-15 10:15')), 'failed 1 of 3');
+  app.uptime_page_result('health', 404, jsonb_build_object('X-CarmaCars-Schema', app.schema_marker()), '', false, null, 80, test.at63('2031-06-15 10:15')), 'failed 1 of 3');
 select test.eq('the health check answering ok: working', app.uptime_page_result('health', 200, '{"x-carmacars-schema": "0063"}', '{"ok":true,"schema":"0063"}', false, null, 40, test.at63('2031-06-15 10:20')), 'ok');
 select test.eq('Site health: every check with its state', (select string_agg(c ->> 'key' || '=' || (c ->> 'status'), ' ') from jsonb_array_elements(app.site_health(test.id('t63_admin')) -> 'checks') c where c ->> 'key' = 'health'), 'health=ok');
 

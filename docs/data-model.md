@@ -61,7 +61,7 @@
 | --- | --- |
 | `fee_types` | The charge catalogue: every renter charge with its unit, HST rule, stage, refund rule, D / V / B flags, and who it belongs to |
 | `fee_defaults` | Admin defaults (D), dated, optionally per vehicle class, with caps and allowed ranges |
-| `rate_cards` | Per-vehicle rates (V): daily, weekend, weekly, monthly, km per day, overage per km, deposit, delivery and pickup fee; dated, never overlapping |
+| `rate_cards` | Per-vehicle rates (V): daily (a day, Sunday to Thursday), weekend (a day, Friday and Saturday), weekly (7 days), monthly (30 days), km per day, overage per km, deposit, delivery and pickup fee, and `km_uses_defaults` (0064); dated, never overlapping. Set in one step by `app.rate_card_save` after `app.rate_card_check` (0064) |
 | `vehicle_fee_overrides` | Any other fee set for one vehicle |
 
 ### Renters (0004)
@@ -244,7 +244,8 @@ Columns added: owner names, signing officer and mailing address; vehicle onboard
 | Table | Holds |
 | --- | --- |
 | `vehicle_classes`, `vehicle_class_links` | The editable class list and each car's classes (several per car); `vehicles.class` stays the pricing class and is always one of them |
-| `deposit_tiers`, `km_allowance_choices` | The Deposit tiers ($500, $1,000, $2,500, $5,000) and the daily kilometre allowances (400, 300, 200, 150) staff pick from; the values themselves are per car on `rate_cards` |
+| `deposit_tiers`, `km_allowance_choices` | The Deposit tiers ($500, $1,000, $2,500, $5,000) and the daily kilometre allowances (400, 300, 200, 150) staff pick from; the values themselves are per car on `rate_cards`. The default for a new card is `program_settings.default_km_allowance_per_day` (200, 0064) with the class overage of `fee_defaults` |
+| `deleted_booking_requests` (0064) | Booking requests that never confirmed or took money, removed with a car that was deleted: the booking, its history and offers as they were. The renter stays |
 | `coverage_prices` | Default prices of coverage sold through CarmaCars, by car or class and age band, per day or per booking, dated |
 | `airports` | Airports offered for delivery and pickup: code, name, coordinates, distance, surcharge |
 | `email_aliases`, `email_reply_to` | The staff mailboxes and the reply-to of each email audience (or code) |

@@ -124,6 +124,7 @@ Same notation as section 2. "RW" for an Admin means the portal may insert and up
 | `vehicle_classes`, `deposit_tiers`, `km_allowance_choices`, `airports`, `email_aliases`, `email_reply_to` (0025) | RW | R | R | R | R | R | none | none | class list through `public.vehicle_classes` |
 | `vehicle_class_links` (0025) | R (set through `set_vehicle_classes`) | R | R | R | R | R | own vehicles, R | none | in the public car rows |
 | `coverage_prices` (0025) | RW | R | R | R | none | none | none | none | the price in a quote only |
+| `deleted_booking_requests` (0064) | R (written by `vehicle_delete`) | none | none | none | none | none | none | none | none |
 | `review_request_decisions` (0025) | R | none | none | R (decides through `decide_review_request`) | none | none | none | none | none |
 | `cookie_consents` (0025) | R | none | none | none | none | none | none | none | write only, through `record_cookie_choice` |
 | Investor tables (0010; checked in 0025) | RW | none | none | none | none | none | none | none | none; an investor reads only their own rows after signing in (`self_read`) |

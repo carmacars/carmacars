@@ -3099,6 +3099,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      deleted_booking_requests: {
+        Row: {
+          id: string;
+          booking_id: string;
+          booking_number: string;
+          vehicle_id: string;
+          vehicle_name: string | null;
+          renter_id: string | null;
+          status: string;
+          pickup_at: string | null;
+          return_at: string | null;
+          booking: Json;
+          events: Json;
+          offers: Json;
+          message_ids: Json;
+          deleted_by: string | null;
+          deleted_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          booking_number: string;
+          vehicle_id: string;
+          vehicle_name?: string | null;
+          renter_id?: string | null;
+          status: string;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          booking: Json;
+          events?: Json;
+          offers?: Json;
+          message_ids?: Json;
+          deleted_by?: string | null;
+          deleted_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          booking_number?: string;
+          vehicle_id?: string;
+          vehicle_name?: string | null;
+          renter_id?: string | null;
+          status?: string;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          booking?: Json;
+          events?: Json;
+          offers?: Json;
+          message_ids?: Json;
+          deleted_by?: string | null;
+          deleted_at?: string;
+        };
+        Relationships: [];
+      };
       deposit_events: {
         Row: {
           id: string;
@@ -8660,6 +8714,9 @@ export type Database = {
           uptime_quiet_from_hour: number;
           uptime_quiet_until_hour: number;
           uptime_quiet_outage_minutes: number;
+          default_km_allowance_per_day: number;
+          stale_request_expire: boolean;
+          stale_request_email_renter: boolean;
         };
         Insert: {
           id?: string;
@@ -8944,6 +9001,9 @@ export type Database = {
           uptime_quiet_from_hour?: number;
           uptime_quiet_until_hour?: number;
           uptime_quiet_outage_minutes?: number;
+          default_km_allowance_per_day?: number;
+          stale_request_expire?: boolean;
+          stale_request_email_renter?: boolean;
         };
         Update: {
           id?: string;
@@ -9228,6 +9288,9 @@ export type Database = {
           uptime_quiet_from_hour?: number;
           uptime_quiet_until_hour?: number;
           uptime_quiet_outage_minutes?: number;
+          default_km_allowance_per_day?: number;
+          stale_request_expire?: boolean;
+          stale_request_email_renter?: boolean;
         };
         Relationships: [];
       };
@@ -9426,6 +9489,7 @@ export type Database = {
           set_by: string | null;
           set_by_owner: boolean;
           created_at: string;
+          km_uses_defaults: boolean;
         };
         Insert: {
           id?: string;
@@ -9444,6 +9508,7 @@ export type Database = {
           set_by?: string | null;
           set_by_owner?: boolean;
           created_at?: string;
+          km_uses_defaults?: boolean;
         };
         Update: {
           id?: string;
@@ -9462,6 +9527,7 @@ export type Database = {
           set_by?: string | null;
           set_by_owner?: boolean;
           created_at?: string;
+          km_uses_defaults?: boolean;
         };
         Relationships: [];
       };

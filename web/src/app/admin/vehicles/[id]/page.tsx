@@ -13,6 +13,7 @@ import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } f
 
 import { TRACKER_SOON } from '@/integrations/tracker/types';
 import { DeleteCar } from '@/features/supply/DeleteCar';
+import { RateCardForm } from '@/features/rates/RateCardForm';
 import { door } from '@/server/door';
 import { adminOwners } from '@/server/admin/data';
 
@@ -47,6 +48,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
   const [partners, owners] = tab === 'overview' ? await Promise.all([door<Array<{ id: string; business_name: string }>>(user.id, 'ops_read', 'partners').catch(() => []), adminOwners(user)]) : [[], []];
   // a car with no real photo shows sample photos on its listing (0054)
+  // what goes with the car on a delete: requests that never confirmed or took money (0064)
+  const delPreview = tab === 'overview' ? await door<{ removes: Array<{ booking_number: string; status: string; text: string }> }>(user.id, 'ops_read', 'vehicle_delete_preview', { vehicle_id: id }).catch(() => null) : null;
   const usingSamples = ((await door<Array<{ vehicle_id: string }>>(user.id, 'ops_read', 'vehicles_using_samples').catch(() => [])) ?? []).some((x) => x.vehicle_id === id);
   const supplier = v.supply_type === 'company' ? 'Company fleet'
     : v.supply_type === 'partner' && v.partner ? <Link prefetch={false} className="link" href={`/admin/partners/${v.partner.id}`}>{v.partner.business_name}</Link>
@@ -76,7 +79,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled }]} />
           </Card>
           <Card title="Who supplies the car" testId="vehicle-supply">
-            {sp.added && <p className="alert alert--ok" role="status"><span>Car added. Set its rates and start its listing when it is ready.</span></p>}
+            {sp.added && <p className="alert alert--ok" role="status"><span>Car added. Its rates are on the Rates tab (set them there if you did not type them). Start its listing when it is ready.</span></p>}
             <Kv rows={[['Supplied by', <span key="s" data-testid="vehicle-supply-label">{v.supply_label}</span>], ...(v.supply_type === 'partner' ? [['Partner', supplier] as [string, React.ReactNode],
               ['Commission', `${(v.commission_effective_bps ?? 0) / 100}%${v.commission_bps == null ? ' (the partner\'s)' : ' (this car\'s own)'}`] as [string, React.ReactNode]] : []),
               ['Revenue to CarmaCars', v.supply_type === 'company' ? '100%: no owner, no owner statement, fees or payouts' : v.supply_type === 'partner' ? 'The commission; the partner gets the rest' : 'The Revenue Share in the owner\'s schedule']]} />
@@ -100,7 +103,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               <div className="ad-actions"><Act ops action="vehicle_retire" payload={{ vehicle_id: id }} label="Retire this car" variant="danger" refresh={refresh} testId="vehicle-retire"
                 fields={[{ name: 'reason', label: 'Reason (sold, returned to the owner, written off)', type: 'text', required: true }]} /></div>
             </>}
-            <DeleteCar vehicleId={id} name={v.name} plate={v.plate} blockers={v.delete_blockers} />
+            <DeleteCar vehicleId={id} name={v.name} plate={v.plate} blockers={v.delete_blockers} removes={delPreview?.removes ?? []} />
           </Card>
           <Card title="Bookings"><Table rows={v.bookings} empty="No bookings in the last 120 days." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) }, { key: 'renter', label: 'Renter' }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }]} /></Card>
           <Card title="Interest on the site" testId="vehicle-interest"><CarInterest i={interest} /></Card>
@@ -109,18 +112,12 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       {tab === 'rates' && (
         <div className="stack">
           <Card title="Rates from now" testId="rate-card">
-            <p className="small muted">A new rate card starts at the time you choose; bookings already made keep their rates. The public car page updates when you save.</p>
-            <Act inline action="rate_card" payload={P} label="Save the rates" testId="rate-form" refresh={refresh} done="New rates saved." fields={[
-              { name: 'daily_rate_cents', label: 'Daily', type: 'money', required: true, value: rc.daily_rate_cents }, { name: 'weekend_rate_cents', label: 'Weekend (Friday and Saturday)', type: 'money', required: true, value: rc.weekend_rate_cents },
-              { name: 'weekly_rate_cents', label: 'Weekly', type: 'money', required: true, value: rc.weekly_rate_cents }, { name: 'monthly_rate_cents', label: 'Monthly (30 days)', type: 'money', required: true, value: rc.monthly_rate_cents },
-              { name: 'effective_from', label: 'Effective from (empty: now)', type: 'datetime' }]} />
-            <Act action="rate_card" label="Kilometres, overage, deposit, delivery" title="Other rate card values" payload={{ ...P, daily_rate_cents: rc.daily_rate_cents, weekend_rate_cents: rc.weekend_rate_cents, weekly_rate_cents: rc.weekly_rate_cents, monthly_rate_cents: rc.monthly_rate_cents }} nest="other" refresh={refresh} fields={[
-              { name: 'km_allowance_per_day', label: 'Kilometres a day (0 unlimited)', type: 'number', value: rc.km_allowance_per_day }, { name: 'overage_cents_per_km', label: 'Overage per km (cents)', type: 'number', value: rc.overage_cents_per_km },
-              { name: 'deposit_cents', label: 'Deposit', type: 'money', value: rc.deposit_cents }, { name: 'delivery_fee_cents', label: 'Delivery fee (0 not offered)', type: 'money', value: rc.delivery_fee_cents }, { name: 'pickup_fee_cents', label: 'Pickup fee (0 not offered)', type: 'money', value: rc.pickup_fee_cents }]} />
+            <p className="small muted">Rates, kilometres and deposit save together. A new rate card starts at the time you choose; bookings already made keep their rates. The public car page updates when you save.</p>
+            <RateCardForm vehicleId={id} card={v.rate_card} refresh={refresh} />
           </Card>
           <Card title="Rate history"><Table rows={v.rate_history} cols={[{ key: 'effective_from', label: 'From', render: (r) => t(r.effective_from) }, { key: 'effective_to', label: 'To', render: (r) => t(r.effective_to) },
-            { key: 'daily_rate_cents', label: 'Daily', num: true, render: (r) => $(r.daily_rate_cents) }, { key: 'weekend_rate_cents', label: 'Weekend', num: true, render: (r) => $(r.weekend_rate_cents) }, { key: 'weekly_rate_cents', label: 'Weekly', num: true, render: (r) => $(r.weekly_rate_cents) },
-            { key: 'monthly_rate_cents', label: 'Monthly', num: true, render: (r) => $(r.monthly_rate_cents) }, { key: 'km_allowance_per_day', label: 'Km a day', num: true }, { key: 'deposit_cents', label: 'Deposit', num: true, render: (r) => $(r.deposit_cents) }, { key: 'set_by_name', label: 'Set by' }]} /></Card>
+            { key: 'daily_rate_cents', label: 'Daily (a day)', num: true, render: (r) => $(r.daily_rate_cents) }, { key: 'weekend_rate_cents', label: 'Weekend (a day)', num: true, render: (r) => $(r.weekend_rate_cents) }, { key: 'weekly_rate_cents', label: 'Weekly (7 days)', num: true, render: (r) => $(r.weekly_rate_cents) },
+            { key: 'monthly_rate_cents', label: 'Monthly (30 days)', num: true, render: (r) => $(r.monthly_rate_cents) }, { key: 'km_allowance_per_day', label: 'Km a day', num: true }, { key: 'overage_cents_per_km', label: 'Extra km', num: true, render: (r) => $(r.overage_cents_per_km) }, { key: 'deposit_cents', label: 'Deposit', num: true, render: (r) => $(r.deposit_cents) }, { key: 'set_by_name', label: 'Set by' }]} /></Card>
         </div>
       )}
       {tab === 'fees' && (

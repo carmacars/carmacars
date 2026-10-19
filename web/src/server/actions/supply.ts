@@ -26,7 +26,7 @@ function rebuild(paths: string[]) {
   }
 }
 
-export type SupplyRead = 'supply_settings' | 'partners' | 'partner' | 'vehicle_delete_blockers' | 'sample_cars' | 'manual_rental_renters' | 'manual_rental_quote' | 'manual_rental_vehicles' | 'bookings_by_supply';
+export type SupplyRead = 'supply_settings' | 'partners' | 'partner' | 'vehicle_delete_blockers' | 'vehicle_delete_preview' | 'sample_cars' | 'manual_rental_renters' | 'manual_rental_quote' | 'manual_rental_vehicles' | 'bookings_by_supply';
 export async function supplyRead<T = Record<string, unknown>>(what: SupplyRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -64,13 +64,13 @@ export async function deleteVehicle(vehicleId: string, confirm: string): Promise
 }
 
 /** Delete every sample car that meets the rule; the others stay, each with why. */
-export async function deleteSampleCars(confirm: string): Promise<R<{ deleted: number; kept: Array<{ name: string; why: string }>; files: number }>> {
+export async function deleteSampleCars(confirm: string): Promise<R<{ deleted: number; kept: Array<{ name: string; why: string }>; files: number; requests_removed: Array<{ booking_number: string }> }>> {
   try {
     const { user, aal } = await me();
-    const r = await door<{ deleted: number; kept: Array<{ name: string; why: string }>; files: Files }>(user.id, 'ops_do', 'vehicles_delete_samples', { confirm }, aal);
+    const r = await door<{ deleted: number; kept: Array<{ name: string; why: string }>; files: Files; requests_removed?: Array<{ booking_number: string }> }>(user.id, 'ops_do', 'vehicles_delete_samples', { confirm }, aal);
     const n = await removeFiles(r.files ?? []);
     rebuild(['/admin/vehicles', '/admin', ...PUBLIC]);
-    return { ok: true, data: { deleted: r.deleted, kept: r.kept, files: n } };
+    return { ok: true, data: { deleted: r.deleted, kept: r.kept, files: n, requests_removed: r.requests_removed ?? [] } };
   } catch (e) { return fail(e); }
 }
 

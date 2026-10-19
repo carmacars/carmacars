@@ -153,6 +153,8 @@ def build():
         'Filter by New, Waiting on the renter, Pushed back, Offer out, Signing and payment, or Offer expired.',
         'Waiting shows how long the renter has waited; red means past the first reply target (5 minutes, set in Program settings). Open a booking number to answer it.',
     ], shot=S('admin/02-requests-desktop', 0, 0, 1440, 820, pins=[(1, 267, 174), (2, 365, 260)]))
+    g.tip('A request whose pickup time passes without an offer expires by itself, with a note in its history. The renter is not emailed unless '
+          '"Email the renter when their request expires that way" is on in Program settings.', label='Good to know')
 
     g.task('Answer a request with an offer')
     g.steps([
@@ -285,6 +287,22 @@ def build():
         f'Search by plate, model or owner. {P("Cars", "Rates for many cars")} changes the rates of many cars at once.',
         'Open a car for its tabs: Overview, Rates, Fees and coverage, Calendar, Listing, and Owner, documents, tracker.',
     ], shot=S('admin/08-vehicles-desktop', 0, 0, 1440, 900, pins=[(1, 267, 174), (2, 1203, 116), (3, 1060, 350)]))
+
+    g.task('Set a car\'s rates and kilometres', f'Open the car, then the {B("Rates")} tab. Everything on it saves together, in one step.')
+    g.steps([
+        'Type the four rates. Only the daily rate is needed: an empty weekend rate is the daily rate, an empty weekly rate is 6 days at the daily rate, and an empty monthly rate is 22 days.',
+        f'Kilometres: keep {B("Use the defaults")} (the kilometres a day in Settings, Kilometre choices, and the extra kilometre rate in Fee defaults for the car\'s class), or choose {B("Custom for this car")} and type them.',
+        'Check the deposit (the class default is filled in), and the delivery and pickup fees (0: not offered).',
+        f'Read What renters pay under the fields: real prices for a weekend, a few weekdays, a week and a month, worked out the way bookings are priced. Press {B("Save the rates")}.',
+    ])
+    g.table([
+        ['Daily rate', 'A price per day, for each day that starts on a Sunday, Monday, Tuesday, Wednesday or Thursday'],
+        ['Weekend rate', 'A price per day, not for the whole weekend: each day that starts on a Friday or Saturday. Friday 10 am to Sunday 10 am is 2 days at this rate; Sunday to Monday is a daily day'],
+        ['Weekly rate', 'The price for 7 days. Rentals of 7 to 29 days cost this for each 7 days, counted by the day. A 1 to 6 day rental never costs more'],
+        ['Monthly rate', 'The price for 30 days. A 7 to 29 day rental never costs more'],
+    ], head=['Rate', 'What it means'])
+    g.tip('A problem shows on its own field, in words, as you type. When similar cars have rates, a line suggests them with Use these; it is only a hint. '
+          f'The same fields are on {B("Add a car")}, so a car can be added with its rates in one pass.')
     g.tip('The Tracker card on a car says "Coming soon": live location, the remote immobilize request and mileage from '
           'the tracker need the tracker company\'s connection first.', label='Coming soon')
 
@@ -348,7 +366,8 @@ def build():
         B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
         f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
         B("A partner rental company's car") + ': choose the partner. Leave the commission empty to use the partner\'s, or type one for this car.',
-        f'Type the VIN, the plate and the details, and the rates if you have them. Press {B("Add the car")}.',
+        f'Type the VIN, the plate and the details.',
+        f'Under Rates and kilometres, type the rates now (only the daily rate is needed) and keep the default kilometres, or leave the rates empty and set them later on the car\'s Rates tab. What renters pay shows as you type. Press {B("Add the car")}.',
     ])
     g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
@@ -367,6 +386,8 @@ def build():
         'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
         'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
         'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
+        'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
+        'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car to be Available (Overview, Change status).',
         f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card when the renter signs")} or {B("Unpaid: invoice later")}.',
         f'Press {B("Check the calendar and the price")}. Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
     ])
@@ -377,8 +398,9 @@ def build():
     g.task('Retire or delete a car', f'{P("Cars", "Retire or delete")}, or the car\'s own page.')
     g.steps([
         f'{B("Retire this car")} takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. {B("Restore")} brings it back.',
-        f'{B("Delete this car")} removes a car added by mistake, with its photos. Only a car with nothing tied to money (no booking, payment, statement, toll or damage). Type the plate or the name to confirm.',
-        f'On the same page, {B("Delete all sample cars")} deletes every sample car that meets the rule at once. Type DELETE SAMPLE CARS to confirm; the ones kept show why.',
+        f'{B("Delete this car")} removes a car added by mistake, with its photos. Only a car with nothing tied to money (no confirmed or paid booking, payment, statement, toll or damage). Type the plate or the name to confirm.',
+        'Booking requests that never confirmed and never took money (requested, offered, declined, expired) do not stop a delete. The confirmation lists them; they are removed with the car and a copy is kept. The renters stay on file.',
+        f'On the same page, {B("Delete all sample cars")} deletes every sample car that meets the rule at once, with its requests. Type DELETE SAMPLE CARS to confirm; the ones kept show why, with the booking numbers.',
     ])
 
     g.task('Tolls when two rentals overlap')

@@ -10,13 +10,15 @@ import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/Sourced
 // reason, the promo codes and ways of payment the settings allow, never over a clash, never a past rental; field staff:
 // a payment link or the saved card, the renter's details typed) and refuses with the reason. Staff choose "I sourced
 // this client" or "Entered for CarmaCars".
-type Car = { id: string; name: string; plate: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null };
+type Car = { id: string; name: string; plate: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null;
+  has_rates?: boolean; listing_finished?: boolean; listing_status?: string; needs_policy_confirm?: boolean; status?: string };
 type Renter = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; card: { brand: string; last4: string } | null; bookings: number };
 type Line = { description: string; amount_cents: number; hst_cents: number; charge_type: string };
 type Quote = { role: 'admin' | 'va'; free: boolean; clashes: Array<{ kind: string; booking_number?: string; status?: string; starts_at: string; ends_at: string | null; renter?: string; reason?: string; overlaps: boolean }>;
   turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
   price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
+  has_rates?: boolean; listing_finished?: boolean; needs_policy_confirm?: boolean; notes?: string[]; price_typed_cents?: number | null;
   quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
 
 const MODE: Record<string, [string, string]> = {
@@ -39,7 +41,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
     pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }), baby_seats: '0' });
-  const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: field });
+  const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: field, policy: false });
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Renter[]>([]);
   const [renter, setRenter] = useState<Renter | null>(null);
@@ -60,7 +62,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <select className="select" id={id(k)} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>);
 
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
-    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, past: flags.past, renter_id: renter?.id,
+    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, past: flags.past, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
     extras: { winter_tire: flags.winter_tire, baby_seats: Number(f.baby_seats || 0) },
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const check = () => start(async () => {
@@ -79,11 +81,13 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     setErr(null);
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (cents(f.rental_charge ?? '') !== undefined && !(f.price_reason ?? '').trim()) { setErr('Give the reason for the price you typed.'); return; }
+    if (quote && quote.has_rates === false && cents(f.rental_charge ?? '') === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
+    if (quote?.needs_policy_confirm && !flags.past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
     const p = { ...spec(), sales_choice: choice, pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, note: f.note || undefined,
       do_not_email: flags.do_not_email, additional_drivers: drivers.filter((d) => d.full_name.trim()),
       renter: renter ? undefined : { full_name: f.full_name, email: f.email, mobile: f.mobile, date_of_birth: f.date_of_birth, licence_number: f.licence_number, licence_class: f.licence_class || 'G',
         licence_issuer: f.licence_issuer || 'ON', licence_expiry: f.licence_expiry || undefined, address_line1: f.address_line1 || undefined, city: f.city || undefined, postal_code: f.postal_code || undefined },
-      rental_charge_cents: cents(f.rental_charge ?? ''), price_reason: f.price_reason || undefined,
+      price_reason: f.price_reason || undefined, fleet_policy_confirmed: flags.policy || undefined,
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
       payment: { mode: f.mode, method: f.method, reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined } };
     const r = await createManualRental(p);
@@ -117,7 +121,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         <div className="ad-fields">
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor={id('vehicle_id')}>Car</label>
             <select className="select" id={id('vehicle_id')} value={f.vehicle_id} onChange={set('vehicle_id')} data-testid="mr-vehicle_id"><option value="">Choose the car</option>
-              {cars.filter((c) => flags.past || (c.bookable && !c.retired)).map((c) => <option key={c.id} value={c.id}>{c.name}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ''}</option>)}</select></div>
+              {cars.filter((c) => flags.past || (c.bookable && !c.retired)).map((c) => <option key={c.id} value={c.id}>{c.name}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates yet'}{c.listing_finished === false ? ' · Listing not finished' : ''}</option>)}</select>
+            {(() => { const c = cars.find((x) => x.id === f.vehicle_id); return c && c.listing_finished === false ? <p className="hint" data-testid="mr-unlisted-tag"><span className="ad-flag">Listing not finished</span> The car stays off the public site. {c.has_rates === false ? 'It has no rates yet: you type the rental charge with the reason. ' : ''}{c.needs_policy_confirm ? (isAdmin ? 'It is not on the fleet insurance policy yet: you confirm it is insured before adding the rental.' : 'It is not on the fleet insurance policy yet: only an Admin can add its rentals.') : ''}</p> : null; })()}</div>
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}
           {text('return_at', 'Return', { type: 'datetime-local' })}
           {select('pickup_method', 'Pickup', [['collected', 'Collected from us'], ['delivered', 'Delivered']])}
@@ -178,17 +183,20 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
               : <div className="alert alert--warn" role="alert" data-testid="mr-clash"><span>Not free: {quote.clashes.map((c) => c.kind === 'booking' ? `${c.booking_number}${c.renter ? ` (${c.renter})` : ''}${c.overlaps ? '' : ', turnaround'}` : `calendar block (${c.reason})`).join('; ')}.
                 {quote.may_override_clash ? ' You may still add it, with the reason.' : ' Choose other dates or another car.'}</span></div>}
             {!quote.free && quote.may_override_clash && text('clash_reason', 'Reason to add it over the clash', { wide: true })}
-            <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption><tbody>
+            {quote.notes?.length ? <div className="alert alert--warn" role="note" data-testid="mr-notes"><span>{quote.notes.join(' ')}</span></div> : null}
+            {quote.needs_policy_confirm && !flags.past && quote.role === 'admin' && <label className="check" htmlFor={id('policy')}><input id={id('policy')} type="checkbox" checked={flags.policy} onChange={flag('policy')} data-testid="mr-policy-confirm" /> <span>I checked that this car is insured for this rental</span></label>}
+            {quote.has_rates === false && quote.price_typed_cents == null ? null : <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption><tbody>
               {quote.quote.lines.map((l, i) => <tr key={i}><td>{l.description}</td><td className="num">{fmt(l.amount_cents)}</td></tr>)}
               <tr><td>HST</td><td className="num">{fmt(quote.quote.lines.reduce((s, l) => s + l.hst_cents, 0))}</td></tr>
-              <tr><th scope="row">Total from the rate sheet</th><td className="num"><b>{fmt(quote.quote.total_due_at_booking_cents)}</b></td></tr>
+              <tr><th scope="row">{quote.has_rates === false ? 'Total with the price you typed' : 'Total from the rate sheet'}</th><td className="num"><b>{fmt(quote.quote.total_due_at_booking_cents)}</b></td></tr>
               <tr><td>Deposit at pickup</td><td className="num">{fmt(quote.quote.deposit_cents)}</td></tr>
-            </tbody></table>
+            </tbody></table>}
             <p className="small muted">{quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included.{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
             {quote.may_override_price && (
               <div className="stack" data-testid="mr-custom-price">
-                <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it with the reason. The rate-sheet price stays on the booking for an Admin to see.</p>
-                <div className="ad-fields">{text('rental_charge', 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}{text('price_reason', 'Reason for the price')}
+                {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental, before tax, and the reason. Press Check again to see the total.</p>
+                  : <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it with the reason. The rate-sheet price stays on the booking for an Admin to see.</p>}
+                <div className="ad-fields">{text('rental_charge', quote.has_rates === false ? 'Rental charge for the whole rental ($, before tax)' : 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}{text('price_reason', 'Reason for the price')}
                   {isAdmin && text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>
                 {(() => { const fl = priceFlags(cents(f.rental_charge ?? ''), quote.rate_sheet_cents, quote.billable_days, quote.price_floor_daily_cents, quote.price_max_discount_bps);
                   return fl.length ? <p className="alert alert--warn" role="status" data-testid="mr-price-flag"><span>This price is {fl.join(' and ')}. You can still add the rental: it is flagged for an Admin to review.</span></p> : null; })()}

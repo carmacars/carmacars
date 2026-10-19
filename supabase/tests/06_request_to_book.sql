@@ -115,7 +115,7 @@ select test.eq('S offers expire after 24 hours unless set otherwise; the turnaro
 select test.eq('S the status flow lists the request steps',
   (select string_agg(from_status || '>' || to_status, ' ' order by from_status, to_status) from status_transitions
     where entity = 'booking' and (from_status in ('requested', 'offered') or to_status in ('requested', 'offered'))),
-  'expired>requested offered>declined offered>expired offered>pending_payment offered>requested pending_payment>requested requested>declined requested>offered requested>pending_payment');
+  'expired>requested offered>declined offered>expired offered>pending_payment offered>requested pending_payment>requested requested>declined requested>expired requested>offered requested>pending_payment');
 select test.eq('S state-changing and money functions of this migration are not executable from a browser session',
   (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
@@ -164,7 +164,9 @@ select test.throws('F requested cannot jump to returned', $$update bookings set 
 select test.throws('F requested cannot jump to closed', $$update bookings set status = 'closed' where id = test.b('c2')$$, 'cannot go from requested to closed');
 select test.throws('F requested does not go to the old hold', $$update bookings set status = 'tentative' where id = test.b('c2')$$, 'cannot go from requested to tentative');
 select test.throws('F requested is not cancelled (it is declined)', $$update bookings set status = 'cancelled' where id = test.b('c2')$$, 'cannot go from requested to cancelled');
-select test.throws('F requested does not expire', $$update bookings set status = 'expired' where id = test.b('c2')$$, 'cannot go from requested to expired');
+-- 0064: a request whose pickup time passed without an offer expires (app.expire_stale_requests, the offers-expire job)
+select test.ok('F requested expires only when its pickup time passed without an offer (0064)',
+  (select note from status_transitions where entity = 'booking' and from_status = 'requested' and to_status = 'expired') ~ 'pickup time passed');
 select test.throws('F a standard request does not go to signing and payment without an offer',
   $$update bookings set status = 'pending_payment' where id = test.b('c2')$$, 'Only an Owner Booking');
 select test.throws('F a booking becomes offered only by sending an offer',

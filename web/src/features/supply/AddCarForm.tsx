@@ -3,6 +3,8 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supplyDo } from '@/server/actions/supply';
+import { RateFields } from '@/features/rates/RateFields';
+import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
 
 // Admin > Vehicles > Add a car (migration 0046): who supplies it first (a program owner, CarmaCars, or a partner
 // rental company), then the car. The duplicate check is the database's: one VIN once in the fleet, a plate on one
@@ -18,10 +20,11 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   const router = useRouter();
   const [supply, setSupply] = useState('company');
   const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed', fuel: 'gasoline', class: 'standard' });
+  const [rates, setRates] = useState<Record<string, string>>({ km_mode: 'default' });
+  const [chk, setChk] = useState<RateCheck | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const set = (k: string) => (e: { target: { value: string } }) => setV((s) => ({ ...s, [k]: e.target.value }));
-  const cents = (s: string | undefined) => (s && s.trim() ? Math.round(Number(s.replace(/[$,\s]/g, '')) * 100) : undefined);
   const input = (k: string, label: string, o: { type?: string; hint?: string; required?: boolean; inputMode?: 'decimal' | 'numeric' } = {}) => (
     <div className="field ad-field"><label className="label" htmlFor={`ac-${k}`}>{label}{o.required ? '' : ' (optional)'}</label>
       <input className="input" id={`ac-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={v[k] ?? ''} onChange={set(k)} data-testid={`add-car-${k}`} aria-describedby={o.hint ? `ac-${k}-h` : undefined} />
@@ -29,10 +32,11 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   );
   const submit = () => start(async () => {
     setErr(null);
+    if (!ratesEmpty(rates) && chk && !chk.ok) { setErr(`Check the rates: ${chk.messages.join(' ')}`); return; }
     const p: Record<string, unknown> = {
       supply_type: supply, vin: v.vin, plate: v.plate, year: v.year ? Number(v.year) : undefined, make: v.make, model: v.model, trim: v.trim, colour: v.colour,
       odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, fuel: v.fuel, class: v.class, home_location: v.home_location,
-      rates: v.daily ? { daily: cents(v.daily), weekend: cents(v.weekend), weekly: cents(v.weekly), monthly: cents(v.monthly), deposit: cents(v.deposit) } : undefined
+      rates: ratesEmpty(rates) ? undefined : ratePayload(rates)
     };
     if (supply === 'program_owner') Object.assign(p, { owner_id: v.owner_id, title_status: v.title_status, management_mode: v.management_mode, finance_party_name: v.finance_party_name });
     if (supply === 'partner') Object.assign(p, { partner_id: v.partner_id, commission_bps: v.commission ? Math.round(Number(v.commission) * 100) : undefined });
@@ -81,10 +85,10 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
           {input('home_location', 'Home area')}
         </div>
       </fieldset>
-      {supply !== 'program_owner' && (
-        <fieldset className="stack"><legend className="d4">Rates (optional now; set them later on the Rates tab)</legend>
-          <div className="ad-fields">{input('daily', 'Daily ($)', { inputMode: 'decimal' })}{input('weekend', 'Weekend ($)', { inputMode: 'decimal' })}{input('weekly', 'Weekly ($)', { inputMode: 'decimal' })}{input('monthly', 'Monthly ($)', { inputMode: 'decimal' })}{input('deposit', 'Deposit ($)', { inputMode: 'decimal' })}</div>
-        </fieldset>)}
+      <fieldset className="stack"><legend className="d4">Rates and kilometres</legend>
+        <p className="small muted">Type the rates now to post the car in one pass, or leave them empty and set them on the car&apos;s Rates tab. The kilometres start from the defaults.</p>
+        <RateFields v={rates} set={(k, x) => setRates((s) => ({ ...s, [k]: x }))} context={{ class: v.class, make: v.make, model: v.model }} prefix="add-car" optional onCheck={setChk} />
+      </fieldset>
       {err && <p className="alert alert--error" role="alert" data-testid="add-car-error"><span>{err}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={pending} data-testid="add-car-submit">{pending ? 'Adding' : 'Add the car'}</button></div>
     </form>

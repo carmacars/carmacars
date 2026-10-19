@@ -226,6 +226,13 @@ def build():
         f'Press {B("Not a duplicate")} with a note when they are different cars, or {B("Same car")} when they are.',
     ], shot=S('va-fleet/06-similar-cars-desktop', 210, 60, 1440, 520, pins=[(1, 500, 200), (3, 1376, 200)]))
 
+    g.task('Rates and kilometres', f'From a listing, press {B("The car and its rates")}, or open the car from Field jobs.')
+    g.steps([
+        'Type the rates an Admin set. Only the daily rate is needed; the others follow from it when empty. The weekend rate is a price per day for each day that starts on a Friday or Saturday.',
+        f'Keep {B("Use the defaults")} for the kilometres, or choose {B("Custom for this car")}.',
+        f'Check What renters pay under the fields, then press {B("Save the rates")}. Rates, kilometres and deposit save together.',
+    ])
+
     g.task('Listings and covering plates')
     g.steps([
         f'Open {B("Listings")}. A draft waiting shows Needs review. Open it.',
@@ -295,6 +302,7 @@ def build():
         'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
         'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
         f'Press {B("Check the calendar and the price")}. The price comes from the rate sheet. You may add the extras, the coverage and an allowed promo code.',
+        'A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner\'s car not yet on the fleet insurance policy is added by an Admin only.',
         'To charge another price, type the rental charge and the reason. The rate-sheet price stays on the booking. A price far under the rate sheet is flagged for an Admin to review, but the rental is still added.',
         f'Choose Where it came from and how it is paid. The ways open to you are set by an Admin, such as {B("Paid another way")}, {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}.',

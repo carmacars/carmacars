@@ -28,6 +28,8 @@ const LABELS: Record<string, string> = {
   chat_ai_total_daily_neurons: 'Live chat: stop the AI when all Workers AI use of the day reaches (neurons)', chat_ai_max_replies: 'Live chat: AI replies in one chat before a person takes it',
   chat_greeting_seconds: 'Live chat: greet visitors on a car page after (seconds, 0 is off)', chat_greeting_text: 'Live chat: the greeting',
   chat_shift_minutes: 'Live chat: staff count as on shift when active within (minutes)', chat_keep_days: 'Live chat: keep chats of visitors who are not customers (days)',
+  default_km_allowance_per_day: 'Kilometres included a day on a new rate card (the default)', stale_request_expire: 'Expire a booking request whose pickup time passed without an offer',
+  stale_request_email_renter: 'Email the renter when their request expires that way',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -49,10 +51,12 @@ const HINTS: Record<string, string> = {
   chat_ai_daily_neurons: 'One assistant reply uses about 100 to 250 neurons (a quote takes two model calls); a typical chat about 600. 6,000 a day is about 10 chats. When it is used up, chats wait for a person ("A person will reply shortly"). Cloudflare gives 10,000 neurons a day free, shared with the listing copy, the guides and the vision model.',
   chat_greeting_seconds: 'Off (0) by default. When set, a small message bubble offers help on car pages; the visitor opens the chat only if they press Reply.',
   visitor_events_keep_days: 'The privacy policy says 90 days. Change it only with the lawyer. The daily counts per car (no personal information) are kept.',
+  default_km_allowance_per_day: 'Used when staff keep "Use the defaults" on a car\'s rates (200 by default). The extra kilometre rate comes from Fee defaults, Mileage overage, by class.',
+  stale_request_email_renter: 'Off by default: the request expires with a note in the booking history only. On: the renter gets the "request declined" email saying the pickup time passed.',
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

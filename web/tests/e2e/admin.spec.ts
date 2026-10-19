@@ -216,7 +216,7 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await ap.goto(`/admin/vehicles/${car!.id}?tab=rates`, { waitUntil: 'networkidle' });
   await check(ap, 'vehicle rates');
   const rf = ap.getByTestId('rate-form-form');
-  await rf.getByLabel('Daily ($)').fill((daily / 100).toFixed(2));
+  await rf.getByTestId('rate-form-daily').fill((daily / 100).toFixed(2));
   await rf.getByTestId('rate-form-submit').click();
   await expect(ap.getByText('New rates saved.')).toBeVisible({ timeout: 10_000 });
   const pub = await browser.newPage();
