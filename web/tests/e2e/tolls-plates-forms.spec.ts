@@ -49,7 +49,7 @@ async function mkUser(sql: Sql, role: 'admin' | 'va' | 'renter' | 'owner', extra
   if (role === 'renter') { await sql`select public.register_account(${id}, ${email}, ${name}, null)`; return { id, email }; }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${role})`;
-  if (role === 'va') await sql`insert into staff_profiles (user_id, staff_type, va_function) values (${id}, 'va', ${extra.va!})`;
+  if (role === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${extra.va!})`;
   return { id, email };
 }
 /** An owner with one enrolled car (not on the website), its plate unique to the test. */

@@ -18,8 +18,8 @@ async function mkPerson(sql: Sql, name: string, roles: Array<'admin' | 'va' | 'f
   if (roles.includes('renter')) await sql`select public.register_account(${id}, ${email}, ${name}, null)`;
   else await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   for (const r of roles) if (['admin', 'va', 'field', 'owner'].includes(r)) await sql`insert into user_roles (user_id, role) values (${id}, ${r}) on conflict do nothing`;
-  if (roles.includes('va')) await sql`insert into staff_profiles (user_id, staff_type, va_function, cover_functions) values (${id}, 'va', ${opts.va ?? 'cs'}, ${opts.cover ?? []}::va_function[])`;
-  if (roles.includes('field')) await sql`insert into staff_profiles (user_id, staff_type, field_function) values (${id}, 'field', 'driver')`;
+  if (roles.includes('va')) await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, cover_functions) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${opts.va ?? 'cs'}, ${opts.cover ?? []}::va_function[])`;
+  if (roles.includes('field')) await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver')`;
   if (roles.includes('owner')) await sql`insert into owners (user_id, owner_type, legal_name, status, email) values (${id}, 'individual', ${name}, 'active', ${email})`;
   if (roles.includes('investor')) await sql`insert into investors (user_id, legal_name, investor_type, status, email) values (${id}, ${name}, 'individual', 'active', ${email})`;
   return { id, email, name };

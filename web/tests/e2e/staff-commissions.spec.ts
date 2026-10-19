@@ -40,8 +40,8 @@ async function mkUser(sql: Sql, kind: 'admin' | 'va' | 'field' | 'renter', name:
   }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${kind})`;
-  if (kind === 'va') await sql`insert into staff_profiles (user_id, staff_type, va_function, single_limit_cents) values (${id}, 'va', ${fn ?? 'cs'}, 500000)`;
-  if (kind === 'field') await sql`insert into staff_profiles (user_id, staff_type, field_function) values (${id}, 'field', 'driver_detailer')`;
+  if (kind === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, single_limit_cents) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${fn ?? 'cs'}, 500000)`;
+  if (kind === 'field') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver_detailer')`;
   return { id, email, name, renterId: '' };
 }
 async function signIn(page: Page, email: string, expectPath: string) {

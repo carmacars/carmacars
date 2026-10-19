@@ -46,7 +46,7 @@ async function mkUser(sql: Sql, kind: 'admin' | 'va' | 'renter' | 'plain', name:
   }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   if (kind === 'admin') await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
-  if (kind === 'va') { await sql`insert into user_roles (user_id, role) values (${id}, 'va')`; await sql`insert into staff_profiles (user_id, staff_type, va_function) values (${id}, 'va', 'cs')`; }
+  if (kind === 'va') { await sql`insert into user_roles (user_id, role) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va')`; await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, 'va', 'cs')`; }
   return { id, email, name };
 }
 async function signIn(page: Page, email: string, expectPath: string) {

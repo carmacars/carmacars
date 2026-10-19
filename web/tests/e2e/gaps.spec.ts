@@ -35,8 +35,8 @@ async function mkUser(sql: Sql, tag: string, role: 'admin' | 'va' | 'field' | 'r
   if (role === 'renter') { await sql`select public.register_account(${id}, ${email}, ${name}, null)`; return { id, email }; }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${role})`;
-  if (role === 'va') await sql`insert into staff_profiles (user_id, staff_type, va_function, cover_functions) values (${id}, 'va', ${extra.va!}, ${extra.cover ?? []}::va_function[])`;
-  if (role === 'field') await sql`insert into staff_profiles (user_id, staff_type, field_function) values (${id}, 'field', 'driver')`;
+  if (role === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, cover_functions) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${extra.va!}, ${extra.cover ?? []}::va_function[])`;
+  if (role === 'field') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver')`;
   return { id, email };
 }
 async function freeCar(sql: Sql, start: number, days: number) {

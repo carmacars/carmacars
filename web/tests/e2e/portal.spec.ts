@@ -24,7 +24,7 @@ async function axe(page: Page, where: string) {
 async function staff(sql: ReturnType<typeof db>) {
   await sql`insert into users (id, email, full_name) values (${STAFF}, 'e2e.staff@example.test', 'Casey Staff') on conflict do nothing`;
   await sql`insert into user_roles (user_id, role) values (${STAFF}, 'va') on conflict do nothing`;
-  await sql`insert into staff_profiles (user_id, staff_type, va_function) values (${STAFF}, 'va', 'cs') on conflict do nothing`;
+  await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${STAFF}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'cs') on conflict do nothing`;
 }
 
 /** A free window of `days` on the car, at least `from` days ahead (no confirmed booking within a day either side). */

@@ -38,7 +38,7 @@ async function mkUser(sql: Sql, kind: 'admin' | 'va' | 'renter', name: string, f
   }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${kind})`;
-  if (kind === 'va') await sql`insert into staff_profiles (user_id, staff_type, va_function) values (${id}, 'va', ${fn ?? 'cs'})`;
+  if (kind === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${fn ?? 'cs'})`;
   return { id, email, name, renterId: '' };
 }
 async function signIn(page: Page, email: string, expectPath: string) {

@@ -37,8 +37,8 @@ async function mkUser(sql: Sql, portal: Portal, extra: { va?: string; name?: str
   if (portal === 'renter') { await sql`select public.register_account(${id}, ${email}, ${name}, null)`; return { id, email, name }; }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   if (portal === 'admin' || portal === 'va' || portal === 'field' || portal === 'owner') await sql`insert into user_roles (user_id, role) values (${id}, ${portal})`;
-  if (portal === 'va') await sql`insert into staff_profiles (user_id, staff_type, va_function) values (${id}, 'va', ${extra.va ?? 'cs'})`;
-  if (portal === 'field') await sql`insert into staff_profiles (user_id, staff_type, field_function) values (${id}, 'field', 'driver')`;
+  if (portal === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${extra.va ?? 'cs'})`;
+  if (portal === 'field') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver')`;
   if (portal === 'owner') await sql`insert into owners (user_id, owner_type, legal_name, status, email) values (${id}, 'individual', ${name}, 'active', ${email})`;
   if (portal === 'investor') await sql`insert into investors (user_id, legal_name, investor_type, email, status) values (${id}, ${name}, 'individual', ${email}, 'active')`;
   return { id, email, name };
