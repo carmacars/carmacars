@@ -448,7 +448,7 @@ begin
       p_detail => format('%s failed tries in a row since %s. Last error: %s. Trips already imported stay on the calendar; new ones are not seen until the link works.',
                          f.consecutive_failures, app.fmt_at(f.failing_since), f.last_error),
       p_vehicle => f.vehicle_id, p_related_table => 'calendar_feeds', p_related_id => f.id, p_dedupe => 'calfeed:' || f.id);
-    perform app.emit_event('staff_calendar_feed_failing', 'calendar_feed', f.id, jsonb_build_object('vehicle_id', f.vehicle_id, '_immediate', true),
+    perform app.emit_event('staff_calendar_feed_failing', 'calendar_feed', f.id, jsonb_build_object('vehicle_id', f.vehicle_id, 'failures', f.consecutive_failures, '_immediate', true),
       'staff_calendar_feed_failing:' || f.id || ':' || extract(epoch from f.failing_since)::bigint);
     update calendar_feeds set alerted_at = p_now where id = f.id;
   end if;
@@ -1075,7 +1075,7 @@ begin
   elsif p_code = 'staff_calendar_feed_failing' then
     select * into f from calendar_feeds where id = p_event.entity_id;
     x := x || jsonb_build_object('vehicle_name', app.vehicle_name(f.vehicle_id), 'platform', coalesce(app.calendar_feed_name(f), 'Another platform'),
-      'failures', coalesce(f.consecutive_failures, 0)::text, 'feed_error', coalesce(f.last_error, 'The link could not be read.'),
+      'failures', coalesce(p_event.payload ->> 'failures', f.consecutive_failures::text, '0'), 'feed_error', coalesce(f.last_error, 'The link could not be read.'),
       'last_success', coalesce(app.fmt_at(f.last_success_at), 'never'), 'calendar_url', v_staff_url);
   elsif p_code in ('staff_site_alert', 'staff_site_recovered') then
     select * into a from site_alerts where id = p_event.entity_id;

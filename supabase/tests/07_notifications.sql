@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '154/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '162/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 71::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 73::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');

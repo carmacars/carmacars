@@ -383,7 +383,11 @@ select test.eq('A every table that holds money, pricing or status is audited',
       and c.relname not in ('audit_log', 'status_history', 'data_access_log', 'job_runs', 'tracker_status',
                             'condition_report_photos', 'vehicle_photos', 'photo_jobs', 'messages', 'incident_events', 'app_events',
                             -- live visitors and chat (0060): high-volume visit and chat records, no money, pricing or status of a booking
-                            'visitor_sessions', 'visitor_events', 'visitor_signals', 'vehicle_interest_daily', 'chat_conversations', 'chat_messages', 'chat_staff_prefs')
+                            'visitor_sessions', 'visitor_events', 'visitor_signals', 'vehicle_interest_daily', 'chat_conversations', 'chat_messages', 'chat_staff_prefs',
+                            -- calendar sync, recovery and the site check (0062): sync state written every few minutes; adding, changing and removing a
+                            -- calendar link and rotating an export link are written to audit_log by the functions themselves
+                            'calendar_feeds', 'calendar_feed_events', 'calendar_conflicts', 'vehicle_calendar_exports', 'recovery_emails',
+                            'uptime_checks', 'uptime_probes', 'uptime_results', 'site_alerts')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
