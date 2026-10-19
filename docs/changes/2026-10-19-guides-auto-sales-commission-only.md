@@ -21,7 +21,8 @@ edited. The owner's four decisions of October 19.
 | Section | What happens at the deploy |
 | --- | --- |
 | admin/owner-money, admin/settings, field/my-jobs | Their 0058 text (the suggestion) is published from the current guide sources, with this release's changes |
-| admin/people-and-access, admin/requests-offers-and-bookings | Automatic suggestions of October 17 and 19, older than the text published since (0058's): the published text stays, the suggestion is dropped and kept in the audit log (`guide_suggestion_dropped`) |
+| admin/people-and-access | An automatic suggestion of October 17, older than 0058's text: this release publishes the chapter again from the guide sources, which clears it |
+| admin/requests-offers-and-bookings | An automatic suggestion of October 19, older than the text published since (0058's): the published text stays, the suggestion is dropped and kept in the audit log (`guide_suggestion_dropped`) |
 | va/shared-tools, va/finance, va/fleet, owner/notices-profile-and-leaving, investor/statements, investor/profile-and-notices | Screenshot flags: the note is cleared; the section stays internal to the upkeep (pending) so the next automatic run checks its text |
 
 The guides block of 0059 (`supabase/seed/0059_gen_guides.mjs`, base commit `2cc8d8e`) publishes 10 chapters: admin
@@ -61,10 +62,31 @@ commissions wait (one already pending approval goes back to not earned yet when 
 
 | Suite | Result |
 | --- | --- |
-| Database (`scripts/test.sh`) | See the push record below. New suite 38 (the auto-publish over a draft, Revert, the kept text and its log, a release over an edited chapter, the review steps refused, the settings confirmation, the address gates for rentals, quotes and offers, the address checks, the commission waiting for the address and earned once it is saved, the Admin's edit, Sales commission only); 31, 35, 36 and 37 updated for the new rules; the test helper gives staff a home address (as after their first sign-in) |
+| Database (`scripts/test.sh`) | 3773 passed, 0 failed. New suite 38 (36 assertions: (the auto-publish over a draft, Revert, the kept text and its log, a release over an edited chapter, the review steps refused, the settings confirmation, the address gates for rentals, quotes and offers, the address checks, the commission waiting for the address and earned once it is saved, the Admin's edit, Sales commission only); 31, 35, 36 and 37 updated for the new rules; the test helper gives staff a home address (as after their first sign-in) |
 | Unit (`npm run test:unit`) | 121 passed (commission-only agreement, the field agreement's address, strict retries, the button-name fallback) |
 | End to end, 375 and 1440 | `guides-auto-home-sales.spec.ts` 6 of 6 locally (a rewrite published over an Admin's draft; a rewrite failing three times keeps the old text and is logged; Admin > Settings > Guides with nothing to review; an assistant's first sign-in, Add a rental waiting for the address, the profile; the same for field staff). Staff fixtures in the other specs enter a home address |
 
 ## 6. Deploy and checks
 
-Filled in below after the runs.
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 39216776100 and the pushes after | Green |
+| Deploy with the full suite | 39217352982, 39221370508 | Not deployed: four end-to-end specs failed on a fixture of this work (the home address put in the role row), then the crawl found 135px of overflow at 375 on /va/sign (the signing summary's columns); both fixed |
+| Deploy with the full suite | 39226299215 | Fast and full green (205 end to end passed, 15 skipped by design; crawl, SEO, emails 0 problems); migration 0059 applied (history 59); deployed |
+| The queue on the live database after the deploy | | 0 suggestions, 0 notes; the three 0058 chapters published; one stale suggestion dropped (audit log); 6 sections pending for the upkeep; Sales defaults commission only |
+| Guides after the deploy (auto) | 39231065485 | Green: 9 screenshots replaced (the assistant's customer service screens), 8 sections rewritten and published (the 6 pending ones among them), 0 kept for the next run; PDFs of the VA, owner and investor guides |
+| guides-pdf (admin, field, renter) | 39234247717 | Green: the stored PDFs of the guides 0059 changed |
+| verify, full | 39235995894 | Green: every check passed |
+| verify, full, before it | 39234437070 | Failed on the Admin sign-in and the owner sign-up while the Worker answered Error 1102 (12 requests in the run; 290 in 24 hours); no failure on a page this work changed |
+
+**Error 1102 (separate).** Cloudflare's free plan CPU limit, as in the last releases. Workers Paid removes it.
+
+**Working tree.** Another agent's unfinished 0060 commit (live chat) was in the shared local main; it was never pushed.
+This release was pushed from a branch holding only 0059's work; 0060 lives on its own branch.
+
+## 7. What still needs the owner
+
+- **The lawyer**: VA agreement 3.1 (commission only), 3.2 and 7.4, and the new Pay row of Schedule A.
+- Staff on the platform before this release enter their home address at their next sign-in; until then their
+  commissions wait as not earned yet.
+- Nothing to review in Admin > Settings > Guides, by design.
