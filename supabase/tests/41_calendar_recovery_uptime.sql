@@ -35,8 +35,10 @@ select test.eq('settings: every 10 minutes, alert after 3 failures, recovery on,
   '10 3 t 2 9-21 5 3');
 select test.eq('the default alert address is the Admin''s', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'uptime_alert_email'), '''rent@carmacars.ca''::text');
 insert into s41 values ('feed', app.door(test.id('c62_fleet'), '', 'va_do', 'calendar_feed_add',
-  jsonb_build_object('vehicle', test.c62v(), 'platform', 'turo', 'url', 'webcal://turo.example/ical/c62.ics')));
-select test.eq('Fleet adds a Turo link; webcal is stored as https', test.s41('feed') ->> 'url' || ' ' || (test.s41('feed') ->> 'name'), 'https://turo.example/ical/c62.ics Turo');
+  jsonb_build_object('vehicle', test.c62v(), 'platform', 'google', 'label', 'Turo', 'url', 'webcal://turo.example/ical/c62.ics')));
+-- since 0063 Turo is not an iCal platform (Turo has no calendar link: 42 tests Turo by email); this link is a Google
+-- Calendar named "Turo", so the names below read as before
+select test.eq('Fleet adds a calendar link; webcal is stored as https', test.s41('feed') ->> 'url' || ' ' || (test.s41('feed') ->> 'name'), 'https://turo.example/ical/c62.ics Turo');
 create or replace function test.f62() returns uuid language sql stable as $$ select (test.s41('feed') ->> 'id')::uuid $$;
 select test.throws('customer service may not add calendar links',
   $$ select app.door(test.id('c62_cs'), '', 'va_do', 'calendar_feed_add', jsonb_build_object('vehicle', test.c62v(), 'platform', 'turo', 'url', 'https://x.example/a.ics')) $$,
@@ -45,8 +47,8 @@ select test.throws('a link that is not a link', $$ select app.door(test.id('c62_
 select test.throws('a CarmaCars export link pasted by mistake',
   $$ select app.door(test.id('c62_admin'), '', 'admin_do', 'calendar_feed_add', jsonb_build_object('vehicle', test.c62v(), 'url', 'https://carmacars.ca/api/ical/' || repeat('ab', 32) || '.ics')) $$,
   'That is a CarmaCars calendar link');
-select test.throws('the same link twice', $$ select app.door(test.id('c62_admin'), '', 'admin_do', 'calendar_feed_add', jsonb_build_object('vehicle', test.c62v(), 'platform', 'turo', 'url', 'https://turo.example/ical/c62.ics')) $$, 'already added');
-select test.eq('the link is recorded in the audit log without its address', (select (after ? 'url')::text || ' ' || (after ->> 'platform') from audit_log where entity_table = 'calendar_feeds' and entity_id = test.f62()::text and action = 'INSERT'), 'false turo');
+select test.throws('the same link twice', $$ select app.door(test.id('c62_admin'), '', 'admin_do', 'calendar_feed_add', jsonb_build_object('vehicle', test.c62v(), 'platform', 'google', 'url', 'https://turo.example/ical/c62.ics')) $$, 'already added');
+select test.eq('the link is recorded in the audit log without its address', (select (after ? 'url')::text || ' ' || (after ->> 'platform') from audit_log where entity_table = 'calendar_feeds' and entity_id = test.f62()::text and action = 'INSERT'), 'false google');
 select test.eq('due: a new link is due at once, then not again for 10 minutes',
   jsonb_array_length(app.calendar_feeds_due(50, test.at62('2031-03-01 12:00'))) || ' ' || jsonb_array_length(app.calendar_feeds_due(50, test.at62('2031-03-01 12:05')))
   || ' ' || (select count(*) from jsonb_array_elements(app.calendar_feeds_due(50, test.at62('2031-03-01 12:10'))) x where x ->> 'id' = test.f62()::text), '1 0 1');
@@ -248,28 +250,10 @@ update program_settings set recovery_emails_enabled = true;
 update notification_outbox set status = 'skipped', status_reason = 'suite 41: cleared' where status in ('failed', 'queued', 'delayed');
 update job_runs set finished_at = coalesce(finished_at, started_at) - interval '2 hours', started_at = started_at - interval '2 hours' where status = 'failed';
 update webhook_events set error = null where error is not null;
-select test.eq('pages: two failures in a row do not alert', app.uptime_record('home', false, 503, 900, 'Answered 503 with Error 1102 (the web host stopped the page)') || ' / '
+-- the alert and recovery emails changed in 0063 (a real outage only, the daily limit, the quiet hours): suite 42
+select test.eq('pages: two failures in a row are not a problem yet', app.uptime_record('home', false, 503, 900, 'Answered 503 with Error 1102 (the web host stopped the page)') || ' / '
   || app.uptime_record('home', false, 503, 900, 'Answered 503 with Error 1102 (the web host stopped the page)'), 'failed 1 of 3 / failed 2 of 3');
-insert into s41 values ('h3', to_jsonb(app.uptime_record('home', false, 503, 900, 'Answered 503 with Error 1102 (the web host stopped the page)')));
-select test.eq('the third does: an alert, an urgent Admin task, one email event', (test.s41('h3') #>> '{}')
-  || ' ' || (select priority || ' ' || title from tasks where task_type = 'site_alert' and status = 'open' and dedupe_key = 'site_alert:home')
-  || ' ' || test.ev62('staff_site_alert'), 'alert urgent Site problem: Home page 1');
-select test.eq('still failing: no second email', app.uptime_record('home', false, 503, 900, 'x') || ' ' || test.ev62('staff_site_alert'), 'still failing 1');
-select test.eq('To do: the site problem first', (app.admin_todo(test.id('c62_admin')) -> 'items' -> 0 ->> 'key') || '=' || (app.admin_todo(test.id('c62_admin')) -> 'items' -> 0 ->> 'count'), 'site_alerts=1');
-select test.flush62();
-select test.eq('the alert goes to the alert address of Program settings only',
-  (select string_agg(to_address || ' ' || (payload ->> 'check_label') || ' ' || (payload ->> 'failures'), ', ') from notification_outbox where code = 'staff_site_alert' and entity_id is distinct from test.id('nt_alert')),
-  'site.alerts@example.test Home page 4');
-insert into s41 values ('h4', to_jsonb(app.uptime_record('home', true, 200, 120, 'Answered 200')));
-select test.eq('it passes again: recovered, the task closes, one recovery email', (test.s41('h4') #>> '{}')
-  || ' ' || (select status from tasks where task_type = 'site_alert' and dedupe_key = 'site_alert:home') || ' ' || test.ev62('staff_site_recovered'), 'recovered done 1');
-select test.flush62();
-select test.eq('the recovery email says how long', (select payload ->> 'alert_duration' from notification_outbox where code = 'staff_site_recovered' and entity_id is distinct from test.id('nt_alert')), '1 minutes');
--- within the cooldown: a new alert shows on To do without another email
-select app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)'), app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)'), app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)');
-select test.eq('within the cooldown: alert open, not emailed', (select emailed::text from site_alerts where check_key = 'home' and resolved_at is null) || ' ' || test.ev62('staff_site_alert'), 'false 1');
 select app.uptime_record('home', true, 200, 100, 'Answered 200');
-select test.eq('its recovery sends nothing either', test.ev62('staff_site_recovered'), 1::bigint);
 -- the checks without requests
 select app.uptime_internal(now());
 select test.eq('internal checks: emails, jobs, backup and Stripe all pass on a quiet database',
@@ -296,7 +280,7 @@ select app.uptime_internal(now());
 -- the job without pg_net: runs the internal checks, asks nothing
 update uptime_checks set last_checked_at = now() - interval '10 minutes' where kind = 'internal';
 select test.eq('job: due, no pg_net here', app.job_uptime(now()), 'collected 0, asked 0');
-select test.eq('job: not due again within 5 minutes', app.job_uptime(now() + interval '1 minute'), 'collected 0');
+select test.eq('job: not due again within 5 minutes (0063 reports both counts)', app.job_uptime(now() + interval '1 minute'), 'collected 0, asked 0');
 select test.eq('page details in words', app.uptime_page_detail(503, '<html>error code: 1102</html>', false, null) || ' | ' || app.uptime_page_detail(null, null, true, null) || ' | ' || app.uptime_page_detail(502, '', false, null),
   'Answered 503 with Error 1102 (the web host stopped the page) | No answer within 15 seconds | Answered 502 (server error)');
 select test.eq('the car page check reads a public car''s page', app.uptime_url('car_page') ~ '^https://carmacars\.ca/cars', true);
@@ -306,7 +290,7 @@ select test.eq('the health answer', public.health_ping() ->> 'ok', 'true');
 
 -- ================================================================ 7. the emails of this release are all in the catalogue and emitted by something
 select test.eq('8 emails, each with its emitter', (select count(*) from notification_catalogue where (code like 'renter_recovery_%' or code in ('staff_calendar_conflict', 'staff_calendar_feed_failing', 'staff_site_alert', 'staff_site_recovered'))
-  and has_email and emitted_by like '%(0062)'), 8::bigint);
+  and has_email and emitted_by ~ '\(006[23]\)$'), 8::bigint);
 select test.eq('the request reminder is marketing, the others transactional',
   (select string_agg(code || ':' || category, ' ' order by code) from notification_catalogue where code like 'renter_recovery_%'),
   'renter_recovery_change:transactional renter_recovery_offer:transactional renter_recovery_pay:transactional renter_recovery_request:marketing');

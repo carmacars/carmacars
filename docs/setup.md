@@ -71,6 +71,7 @@ Files are not kept in Supabase Storage. They are in Cloudflare R2 (section 3).
 3. **R2 buckets.** Create the buckets in `docs/architecture.md` section 6 once per environment, with the environment prefix (for example `carmacars-prod-identity`), plus `carmacars-prod-backups`. All private except `vehicle-public`, which is served from a custom domain. Create one R2 API token per environment with read and write access to that environment's buckets only.
 4. **Turnstile.** Create one widget per environment for the app's domain. The site key is public; the secret key is a secret.
 5. **Deploy token.** Create one Cloudflare API token that can edit Workers and nothing else. It goes into GitHub as `CLOUDFLARE_API_TOKEN`.
+6. **Turo by email (0063).** Email Routing on the subdomain `in.carmacars.ca` only (Email > Email Routing > Settings > Subdomains), never on the root domain, whose mail stays on Google Workspace. One custom address, `trips@in.carmacars.ca`, sends to the Worker `carmacars-prod`. The deploy step "Turo by email" checks it and sets that rule itself when the token also has Zone > Email Routing Rules > Edit; the steps are in `docs/changes/2026-10-19-turo-email-quiet-alerts.md` section 7. Email Routing and Email Workers are free.
 
 The free plan allows 10 ms of processing per request and 100,000 requests a day. If requests start to fail on the limit under real traffic, move to Workers Paid (US$5 a month).
 

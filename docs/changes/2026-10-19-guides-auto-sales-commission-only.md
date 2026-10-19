@@ -55,7 +55,7 @@ commissions wait (one already pending approval goes back to not earned yet when 
 | --- | --- |
 | Program settings | `staff_agreement_defaults.va.by_function.sales`: pay `commission`, schedule `flexible`, no rate, days or hours (dated rows whose Sales values were still blank were set; the column default too). The form offers "Commission only" and "Flexible" |
 | The generated VA agreement | Schedule A has a new **Pay** row: "The Rate below and the commission in section 3.4", or "Commission only, under section 3.4: no Rate, no set days or hours". Commission only removes the Schedule, Coverage Hours and Rate rows, and the send form does not ask for them. Template version `person-7571e78a38` |
-| `docs/source/va_agreement.md` (for the lawyer) | 3.1: "If Schedule A says the Pay is commission only, there is no Rate and there are no Coverage Hours: you are paid only the commission in section 3.4, you choose when you work, and what this agreement says about the Rate and the Coverage Hours does not apply to you." 3.2: "The Rate (if any) and the commission". 7.4: CarmaCars pays for approved time "and the commissions earned under section 3.4" up to the end date. Schedule A: the Pay row. Section 3.4 (the commission) is unchanged |
+| `docs/source/va_agreement.md` (approved by the lawyer on 2026-10-19) | 3.1: "If Schedule A says the Pay is commission only, there is no Rate and there are no Coverage Hours: you are paid only the commission in section 3.4, you choose when you work, and what this agreement says about the Rate and the Coverage Hours does not apply to you." 3.2: "The Rate (if any) and the commission". 7.4: CarmaCars pays for approved time "and the commissions earned under section 3.4" up to the end date. Schedule A: the Pay row. Section 3.4 (the commission) is unchanged |
 | `docs/source/va_hiring_package.md` | Section 2 (Pay): Sales commission only with the rule; the role table (flexible hours); the Sales job post (commission only, flexible hours, no hourly rate asked); screening question 5 and the paid test for Sales; offboarding pays the commissions earned |
 
 ## 5. Tests
@@ -86,7 +86,7 @@ This release was pushed from a branch holding only 0059's work; 0060 lives on it
 
 ## 7. What still needs the owner
 
-- **The lawyer**: VA agreement 3.1 (commission only), 3.2 and 7.4, and the new Pay row of Schedule A.
+- **The lawyer**: VA agreement 3.1 (commission only), 3.2 and 7.4, and the new Pay row of Schedule A. **Approved by the lawyer on 2026-10-19.**
 - Staff on the platform before this release enter their home address at their next sign-in; until then their
   commissions wait as not earned yet.
 - Nothing to review in Admin > Settings > Guides, by design.

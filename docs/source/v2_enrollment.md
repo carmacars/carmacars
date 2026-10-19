@@ -2,7 +2,7 @@
 
 ## Cover summary
 
-*Draft. This page is a summary. The rest governs.*
+*This page is a summary. The rest governs.*
 
 | Party | Details |
 | --- | --- |

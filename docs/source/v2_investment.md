@@ -1,7 +1,5 @@
 # CarmaCars Investment Agreement
 
-**DRAFT FOR LEGAL REVIEW. NOT FOR SIGNATURE.**
-
 This Agreement is made on the Investment Date between **18122211 Canada Inc.**, operating as CarmaCars (the "**Company**"), and the investor named in Schedule A (the "**Investor**").
 
 ## 1. Definitions

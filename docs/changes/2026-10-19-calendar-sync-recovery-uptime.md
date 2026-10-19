@@ -133,5 +133,5 @@ Released by the 0062 guides block (`supabase/seed/0062_gen_guides.mjs`, base com
    in the shapes these platforms publish, not captured from your accounts.
 4. Site alerts go to rent@carmacars.ca (Program settings, "Site check"). Expect a few "Error 1102" alerts on the free
    Workers plan if the site is busy; three failures in a row are needed, and Workers Paid removes the cause.
-5. The lawyer: the recovery request email is marketing and goes only with express consent; the three others are
+5. The lawyer (**Approved by the lawyer on 2026-10-19.**): the recovery request email is marketing and goes only with express consent; the three others are
    reminders about the renter's own pending booking (transactional), stopped by an unsubscribe as well.

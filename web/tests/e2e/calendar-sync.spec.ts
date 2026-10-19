@@ -8,9 +8,9 @@ import { acceptCookies, db, noOverflow } from './helpers';
 // car (availability, the public calendar and search follow at once), the car's own link answers an iCal file with
 // "Booked" only, a new link ends the old one, removing the link frees the car. A clash with a confirmed booking shows
 // on the Admin To do and Calendar sync. Recovery: a renter opens an offer and does not answer; the recovery job
-// queues one reminder; she approves the offer and the reminder still waiting is not sent. Site check: three failures
-// open one alert (To do, Site health, one email to the alert address of Program settings, a test address here),
-// a fourth sends nothing more, and a pass resolves it with one recovery email.
+// queues one reminder; she approves the offer and the reminder still waiting is not sent. Site check (0063): a page
+// failing for 20 minutes is a real outage (To do, Site health, at most one email to the alert address of Program
+// settings, a test address here, outside the quiet hours), and a pass resolves it with one recovery email.
 const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
@@ -121,8 +121,10 @@ test('Calendar sync: Fleet adds a calendar link, its trip blocks the car at once
   await expect(car.getByTestId('cs-msg')).toContainText('New link made', { timeout: 15_000 });
   expect((await page.request.get(`/api/ical/${b.token}.ics`)).status()).toBe(404);
   const [nt] = await sql`select token from vehicle_calendar_exports where vehicle_id = ${b.id}`;
-  await expect(car.getByTestId(`export-turo-${b.id}`)).toHaveValue(new RegExp(`/api/ical/${nt!.token}\\.ics\\?for=turo$`));
-  expect((await page.request.get(`/api/ical/${nt!.token}.ics?for=turo`)).status()).toBe(200);
+  await expect(car.getByTestId(`export-getaround-${b.id}`)).toHaveValue(new RegExp(`/api/ical/${nt!.token}\\.ics\\?for=getaround$`));
+  expect((await page.request.get(`/api/ical/${nt!.token}.ics?for=getaround`)).status()).toBe(200);
+  // Turo has no calendar link (0063): no export for Turo, and Turo is not among the platforms
+  await expect(car.getByTestId(`export-turo-${b.id}`)).toHaveCount(0);
 
   // remove the link: the car is free again
   await car.getByTestId('feed-other').getByRole('button', { name: 'Remove' }).click();
@@ -140,13 +142,14 @@ test('Admin: a clash with a confirmed booking on To do and Calendar sync; the si
   const admin = await account(sql, 'admin');
   // a calendar link on a car with a confirmed booking, whose platform has a trip over it
   const [bk] = await sql`select b.id, b.booking_number, b.vehicle_id, b.pickup_at, b.return_at from bookings b where b.status = 'confirmed' and b.blocks_calendar and b.return_at > now() order by b.pickup_at limit 1`;
-  const [feed] = await sql`insert into calendar_feeds (vehicle_id, platform, url) values (${bk!.vehicle_id}, 'turo', ${`https://turo.example/e2e/${tag()}.ics`}) returning id`;
-  await sql`select app.calendar_feed_apply(${feed!.id}, ${sql.json([{ uid: `e2e-${tag()}`, summary: 'Turo trip', starts_at: bk!.pickup_at.toISOString(), ends_at: bk!.return_at.toISOString() }])}::jsonb)`;
+  const [feed] = await sql`insert into calendar_feeds (vehicle_id, platform, url) values (${bk!.vehicle_id}, 'getaround', ${`https://getaround.example/e2e/${tag()}.ics`}) returning id`;
+  await sql`select app.calendar_feed_apply(${feed!.id}, ${sql.json([{ uid: `e2e-${tag()}`, summary: 'Getaround booking', starts_at: bk!.pickup_at.toISOString(), ends_at: bk!.return_at.toISOString() }])}::jsonb)`;
   // the site check: alerts go to a test address here, never to the real one
   await sql`update program_settings set uptime_alert_email = 'site.alerts.e2e@example.test'`;
   await sql`update site_alerts set resolved_at = now() where resolved_at is null`;
-  for (let i = 0; i < 3; i++) await sql`select app.uptime_record('sign_in', false, 503, 800, 'Answered 503 with Error 1102 (the web host stopped the page)')`;
-  await sql`select app.uptime_record('sign_in', false, 503, 800, 'Answered 503 with Error 1102 (the web host stopped the page)')`;
+  // a real outage (0063): failing every check for 20 minutes, then the round's emails
+  for (const m of [20, 15, 10, 5]) await sql`select app.uptime_record('sign_in', false, 503, 800, 'Answered 503 with Error 1102 (the web host stopped the page)', now() - ${`${m} minutes`}::interval)`;
+  await sql`select app.uptime_notify(now())`;
   const [alert] = await sql`select id, emailed from site_alerts where check_key = 'sign_in' and resolved_at is null`;
   const [ev] = await sql`select count(*)::int n from app_events where code = 'staff_site_alert' and entity_id = ${alert!.id}`;
   expect(ev!.n).toBe(alert!.emailed ? 1 : 0);
@@ -165,6 +168,7 @@ test('Admin: a clash with a confirmed booking on To do and Calendar sync; the si
 
   // the check passes again: resolved, one recovery email (when the alert was emailed), the panel shows it working
   await sql`select app.uptime_record('sign_in', true, 200, 120, 'Answered 200')`;
+  await sql`select app.uptime_notify(now())`;
   const [rec] = await sql`select count(*)::int n from app_events where code = 'staff_site_recovered' and entity_id = ${alert!.id}`;
   expect(rec!.n).toBe(alert!.emailed ? 1 : 0);
   await sql`select app.process_events(1000)`;

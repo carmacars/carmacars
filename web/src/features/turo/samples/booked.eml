@@ -1,0 +1,51 @@
+Return-Path: <rent+caf_=trips=in.carmacars.ca@carmacars.ca>
+Received: from mail-sor-f41.google.com by mx.cloudflare.net; Mon, 19 Oct 2026 09:12:40 -0400
+X-Forwarded-To: trips@in.carmacars.ca
+X-Forwarded-For: rent@carmacars.ca trips@in.carmacars.ca
+From: Turo <noreply@mail.turo.com>
+To: rent@carmacars.ca
+Subject: =?UTF-8?Q?Ayesha_booked_your_Mercedes-Benz_GLC_2021_=F0=9F=8E=89?=
+Date: Mon, 19 Oct 2026 09:12:40 -0400
+Message-ID: <booked.20261019@mail.turo.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1_TuroSampleBoundary_booked"
+
+--b1_TuroSampleBoundary_booked
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Ayesha K. booked your Mercedes-Benz GLC 2021.
+Trip start: Thu, Oct 22, 2026 10:00 AM
+Trip end: Sun, Oct 25, 2026 10:00 AM
+Reservation ID: 48211907
+https://turo.com/ca/en/reservation/48211907
+
+--b1_TuroSampleBoundary_booked
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html><head><style>.x{color:#121214}</style></head><body>
+<table role=3D"presentation" width=3D"100%"><tr><td align=3D"center"><img s=
+rc=3D"https://resources.turo.com/logo.png" alt=3D"Turo">
+<h1 style=3D"font-size:24px">You=E2=80=99re booked! Ayesha K. booked your M=
+ercedes-Benz GLC 2021</h1>
+<table role=3D"presentation"><tr><td style=3D"color:#5f6368;padding:4px 0">=
+Trip start</td><td style=3D"font-weight:600">Thu, Oct 22, 2026</td><td>10:0=
+0 AM</td></tr><tr><td style=3D"color:#5f6368;padding:4px 0">Trip end</td><t=
+d style=3D"font-weight:600">Sun, Oct 25, 2026</td><td>10:00 AM</td></tr><tr=
+><td style=3D"color:#5f6368;padding:4px 0">Car</td><td style=3D"font-weight=
+:600"><a href=3D"https://turo.com/ca/en/suv-rental/canada/toronto-on/merced=
+es-benz/glc-class/2711093">Mercedes-Benz GLC 2021</a></td></tr><tr><td styl=
+e=3D"color:#5f6368;padding:4px 0">Guest</td><td style=3D"font-weight:600">A=
+yesha K.</td></tr><tr><td style=3D"color:#5f6368;padding:4px 0">Reservation=
+ ID</td><td style=3D"font-weight:600">#48211907</td></tr><tr><td style=3D"c=
+olor:#5f6368;padding:4px 0">Pickup location</td><td style=3D"font-weight:60=
+0">Home location: 1570 Midland Ave</td></tr></table>
+<p><a href=3D"https://turo.com/ca/en/reservation/48211907?utm_source=3Demai=
+l">View trip details</a></p><p>Message Ayesha at +1 (416) 555-0199 if plans=
+ change.</p>
+<p style=3D"font-size:12px;color:#888">Turo Inc., 111 Sutter St, San Franci=
+sco, CA 94104 &middot; <a href=3D"https://turo.com/ca/en/account/notificati=
+ons">Notification settings</a></p>
+</td></tr></table></body></html>
+--b1_TuroSampleBoundary_booked--

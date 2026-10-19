@@ -7,8 +7,8 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { syncOne, type DueFeed, type Store } from '@/features/calendar/sync-run';
 
-// Calendar sync (migration 0062) for Admins and Fleet: add, turn off and remove calendar links, rotate a car's
-// CarmaCars link, and "Sync now", which reads one link here at once with the same reader as the Edge Function and
+// Calendar sync (migrations 0062, 0063) for Admins and Fleet: add, turn off and remove calendar links, rotate a car's
+// CarmaCars link, Turo by email (the car's Turo listing, trips by hand, emails to review, Done on Turo), and "Sync now", which reads one link here at once with the same reader as the Edge Function and
 // hands the result to the database through the door (app.calendar_sync_do).
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
@@ -23,7 +23,10 @@ async function who() {
   return { user, call, aal: await sessionAal() };
 }
 
-export async function calendarAct<T = Record<string, unknown>>(action: 'calendar_feed_add' | 'calendar_feed_save' | 'calendar_feed_remove' | 'calendar_export_rotate', p: Record<string, unknown>): Promise<R<T>> {
+export type CalendarAction = 'calendar_feed_add' | 'calendar_feed_save' | 'calendar_feed_remove' | 'calendar_export_rotate'
+  // Turo by email (migration 0063)
+  | 'turo_link_save' | 'turo_link_remove' | 'turo_trip_add' | 'turo_trip_cancel' | 'turo_review_dismiss' | 'turo_confirmation_dismiss' | 'turo_block_done' | 'turo_unblock_done';
+export async function calendarAct<T = Record<string, unknown>>(action: CalendarAction, p: Record<string, unknown>): Promise<R<T>> {
   try {
     const { user, call, aal } = await who();
     const data = await door<T>(user.id, call, action, p, aal);

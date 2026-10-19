@@ -1677,7 +1677,7 @@ export type Database = {
           vehicle_id: string;
           platform: string;
           label: string | null;
-          url: string;
+          url: string | null;
           enabled: boolean;
           created_by: string | null;
           created_at: string;
@@ -1693,13 +1693,14 @@ export type Database = {
           calendar_name: string | null;
           etag: string | null;
           last_modified: string | null;
+          kind: string;
         };
         Insert: {
           id?: string;
           vehicle_id: string;
           platform: string;
           label?: string | null;
-          url: string;
+          url?: string | null;
           enabled?: boolean;
           created_by?: string | null;
           created_at?: string;
@@ -1715,13 +1716,14 @@ export type Database = {
           calendar_name?: string | null;
           etag?: string | null;
           last_modified?: string | null;
+          kind?: string;
         };
         Update: {
           id?: string;
           vehicle_id?: string;
           platform?: string;
           label?: string | null;
-          url?: string;
+          url?: string | null;
           enabled?: boolean;
           created_by?: string | null;
           created_at?: string;
@@ -1737,6 +1739,7 @@ export type Database = {
           calendar_name?: string | null;
           etag?: string | null;
           last_modified?: string | null;
+          kind?: string;
         };
         Relationships: [];
       };
@@ -8645,6 +8648,18 @@ export type Database = {
           uptime_backup_max_hours: number;
           uptime_email_failures: number;
           uptime_keep_days: number;
+          turo_email_enabled: boolean;
+          turo_email_address: string;
+          turo_email_forwarders: string;
+          turo_email_ai: boolean;
+          turo_email_keep_days: number;
+          uptime_page_alert_minutes: number;
+          uptime_email_alert_minutes: number;
+          uptime_stripe_alert_minutes: number;
+          uptime_max_alert_emails: number;
+          uptime_quiet_from_hour: number;
+          uptime_quiet_until_hour: number;
+          uptime_quiet_outage_minutes: number;
         };
         Insert: {
           id?: string;
@@ -8917,6 +8932,18 @@ export type Database = {
           uptime_backup_max_hours?: number;
           uptime_email_failures?: number;
           uptime_keep_days?: number;
+          turo_email_enabled?: boolean;
+          turo_email_address?: string;
+          turo_email_forwarders?: string;
+          turo_email_ai?: boolean;
+          turo_email_keep_days?: number;
+          uptime_page_alert_minutes?: number;
+          uptime_email_alert_minutes?: number;
+          uptime_stripe_alert_minutes?: number;
+          uptime_max_alert_emails?: number;
+          uptime_quiet_from_hour?: number;
+          uptime_quiet_until_hour?: number;
+          uptime_quiet_outage_minutes?: number;
         };
         Update: {
           id?: string;
@@ -9189,6 +9216,18 @@ export type Database = {
           uptime_backup_max_hours?: number;
           uptime_email_failures?: number;
           uptime_keep_days?: number;
+          turo_email_enabled?: boolean;
+          turo_email_address?: string;
+          turo_email_forwarders?: string;
+          turo_email_ai?: boolean;
+          turo_email_keep_days?: number;
+          uptime_page_alert_minutes?: number;
+          uptime_email_alert_minutes?: number;
+          uptime_stripe_alert_minutes?: number;
+          uptime_max_alert_emails?: number;
+          uptime_quiet_from_hour?: number;
+          uptime_quiet_until_hour?: number;
+          uptime_quiet_outage_minutes?: number;
         };
         Relationships: [];
       };
@@ -10354,6 +10393,11 @@ export type Database = {
           failures: number;
           emailed: boolean;
           task_id: string | null;
+          real_at: string | null;
+          emailed_at: string | null;
+          recovery_sent_at: string | null;
+          held_reason: string | null;
+          full_outage: boolean;
         };
         Insert: {
           id?: string;
@@ -10364,6 +10408,11 @@ export type Database = {
           failures?: number;
           emailed?: boolean;
           task_id?: string | null;
+          real_at?: string | null;
+          emailed_at?: string | null;
+          recovery_sent_at?: string | null;
+          held_reason?: string | null;
+          full_outage?: boolean;
         };
         Update: {
           id?: string;
@@ -10374,6 +10423,11 @@ export type Database = {
           failures?: number;
           emailed?: boolean;
           task_id?: string | null;
+          real_at?: string | null;
+          emailed_at?: string | null;
+          recovery_sent_at?: string | null;
+          held_reason?: string | null;
+          full_outage?: boolean;
         };
         Relationships: [];
       };
@@ -11754,6 +11808,162 @@ export type Database = {
         };
         Relationships: [];
       };
+      turo_blocked_bookings: {
+        Row: {
+          booking_id: string;
+          vehicle_id: string;
+          starts_at: string;
+          ends_at: string;
+          done_by: string | null;
+          done_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          vehicle_id: string;
+          starts_at: string;
+          ends_at: string;
+          done_by?: string | null;
+          done_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          vehicle_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          done_by?: string | null;
+          done_at?: string;
+        };
+        Relationships: [];
+      };
+      turo_calendar_trips: {
+        Row: {
+          id: string;
+          trip_id: string;
+          vehicle_id: string;
+          status: string;
+          starts_at: string | null;
+          ends_at: string | null;
+          guest_first_name: string | null;
+          source: string;
+          last_kind: string;
+          last_email_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          trip_id: string;
+          vehicle_id: string;
+          status: string;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          guest_first_name?: string | null;
+          source: string;
+          last_kind: string;
+          last_email_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          trip_id?: string;
+          vehicle_id?: string;
+          status?: string;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          guest_first_name?: string | null;
+          source?: string;
+          last_kind?: string;
+          last_email_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      turo_inbound_emails: {
+        Row: {
+          id: string;
+          received_at: string;
+          message_id: string | null;
+          sent_at: string | null;
+          envelope_from: string | null;
+          subject: string | null;
+          kind: string;
+          status: string;
+          method: string;
+          trip_id: string | null;
+          vehicle_id: string | null;
+          starts_at: string | null;
+          ends_at: string | null;
+          guest_first_name: string | null;
+          vehicle_hint: string | null;
+          reason: string | null;
+          audit: string | null;
+          excerpt: string | null;
+          confirmation_code: string | null;
+          confirmation_url: string | null;
+          turo_trip: string | null;
+          task_id: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          received_at?: string;
+          message_id?: string | null;
+          sent_at?: string | null;
+          envelope_from?: string | null;
+          subject?: string | null;
+          kind: string;
+          status: string;
+          method?: string;
+          trip_id?: string | null;
+          vehicle_id?: string | null;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          guest_first_name?: string | null;
+          vehicle_hint?: string | null;
+          reason?: string | null;
+          audit?: string | null;
+          excerpt?: string | null;
+          confirmation_code?: string | null;
+          confirmation_url?: string | null;
+          turo_trip?: string | null;
+          task_id?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          received_at?: string;
+          message_id?: string | null;
+          sent_at?: string | null;
+          envelope_from?: string | null;
+          subject?: string | null;
+          kind?: string;
+          status?: string;
+          method?: string;
+          trip_id?: string | null;
+          vehicle_id?: string | null;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          guest_first_name?: string | null;
+          vehicle_hint?: string | null;
+          reason?: string | null;
+          audit?: string | null;
+          excerpt?: string | null;
+          confirmation_code?: string | null;
+          confirmation_url?: string | null;
+          turo_trip?: string | null;
+          task_id?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
       turo_listings: {
         Row: {
           id: string;
@@ -11850,6 +12060,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      turo_vehicle_links: {
+        Row: {
+          vehicle_id: string;
+          listing_name: string | null;
+          turo_vehicle_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          listing_name?: string | null;
+          turo_vehicle_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          listing_name?: string | null;
+          turo_vehicle_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       uptime_checks: {
         Row: {
           key: string;
@@ -11866,6 +12103,7 @@ export type Database = {
           last_http: number | null;
           last_ms: number | null;
           last_detail: string | null;
+          failing_since: string | null;
         };
         Insert: {
           key: string;
@@ -11882,6 +12120,7 @@ export type Database = {
           last_http?: number | null;
           last_ms?: number | null;
           last_detail?: string | null;
+          failing_since?: string | null;
         };
         Update: {
           key?: string;
@@ -11898,6 +12137,7 @@ export type Database = {
           last_http?: number | null;
           last_ms?: number | null;
           last_detail?: string | null;
+          failing_since?: string | null;
         };
         Relationships: [];
       };
@@ -14801,6 +15041,8 @@ export type Database = {
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
+      turo_email_receive: { Args: { p: Json }; Returns: Json };
+      turo_match_keys: { Args: never; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };

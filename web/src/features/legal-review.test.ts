@@ -124,3 +124,16 @@ test('string search: the renter Protection Plan is never called insurance or cov
   assert.match(read('web/src/app/requirements/page.tsx'), /<th scope="row">3\. Protection Plan<\/th><td>The \{s\.brand_name\} Protection Plan, added to your booking\./);
   assert.doesNotMatch(read('web/src/app/requirements/page.tsx'), /Coverage you buy/);
 });
+
+// The lawyer approved every text flagged for review on October 19, 2026 (docs/changes/2026-10-19-turo-email-quiet-alerts.md):
+// no platform document carries a draft banner any more, and the generated texts changed version.
+test('approved October 19, 2026: no draft banner in the platform documents or the texts generated from them', async () => {
+  const { INVESTMENT_MD, VA_MD, FIELD_MD, PERSON_AGREEMENTS_VERSION } = await import('./person-agreements/source.generated.ts');
+  for (const [name, md] of Object.entries({ INVESTMENT_MD, VA_MD, FIELD_MD, PARTNER_AGREEMENT_MD })) {
+    assert.doesNotMatch(md, /draft for (legal|lawyer) review|not for signature|not for signing|not yet approved/i, name);
+  }
+  assert.notEqual(PERSON_AGREEMENTS_VERSION, 'person-7571e78a38', 'the investment agreement text changed version');
+  for (const f of ['v2_investment.md', 'v2_rental.md', 'v2_enrollment.md', 'v2_title_holding.md', 'website_terms_policies.md', 'va_agreement.md', 'field_staff_agreement.md']) {
+    assert.doesNotMatch(read(`docs/source/${f}`).slice(0, 400), /\bdraft\b/i, f);
+  }
+});

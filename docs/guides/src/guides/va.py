@@ -241,9 +241,10 @@ def build():
 
     g.task('Calendar sync with Turo and other platforms', f'{P("Cars", "Calendar sync")}: a car listed on Turo or Getaround must never be booked twice.')
     g.steps([
-        f'On the platform, copy the car\'s calendar link (iCal, it ends in .ics). Here, find the car, open {B("Add a calendar link")}, choose the platform, paste it and press {B("Add the link")}.',
-        'Its trips block the car here with the turnaround before and after, read every 10 minutes. The card shows "Working" and the next trips.',
-        f'Copy the car\'s CarmaCars link "For Turo" (or Getaround) with {B("Copy")} and paste it into the platform\'s calendar import. It shows only "Booked".',
+        f'Turo has no calendar link: Turo\'s trip emails come in by themselves and block the car with the turnaround. For each car on Turo, press {B("This car is on Turo")}, type its name exactly as Turo\'s emails show it and press {B("Save")}.',
+        f'Under "Turo emails to check", an email the reader was not sure about: check the trip on Turo, then {B("Add as a Turo trip")} (choose the car, check the dates) or {B("Dismiss")}. A trip whose email did not come: {B("Add a Turo trip")} on the car.',
+        f'Turo cannot read our calendar: under "Block on Turo", block each CarmaCars booking on the car\'s Turo calendar, then press {B("Done on Turo")}. Dates that changed or a booking cancelled here show the dates to free on Turo.',
+        f'Getaround, Google Calendar or another platform with a calendar (iCal) link: open {B("Add a calendar link")}, choose the platform, paste it and press {B("Add the link")}. Copy the car\'s CarmaCars link for that platform with {B("Copy")} and paste it into the platform\'s calendar import.',
         'A double booking raises an urgent task for you and an email: move, swap or cancel one trip. A link that stops working raises a task after 3 failed reads: copy it from the platform again.',
     ])
 

@@ -1,4 +1,4 @@
-// calendar-sync: reads the calendar links of other platforms (Turo, Getaround, others) for every car and keeps their
+// calendar-sync: reads the calendar links of other platforms (Getaround, Google Calendar, others; Turo has no calendar link and comes by email, migration 0063) for every car and keeps their
 // trips as External booking blocks (docs/changes/2026-10-19-calendar-sync-recovery-uptime.md). Called every 5 minutes
 // by pg_cron through pg_net (job `carmacars-calendar-sync`, scheduled by the deploy: scripts/deploy/supabase.sh
 // calsync) with `Authorization: Bearer <CALSYNC_JOB_TOKEN>`; any other caller gets 403. The database decides which

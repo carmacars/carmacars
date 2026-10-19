@@ -7,7 +7,8 @@ import { fill, getFleet, getTokens } from '@/lib/site';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
-export async function generateStaticParams() { return (await getFleet()).map((c) => ({ slug: c.slug })); }
+// on demand with the page cache, not at build time (see /cars/[slug])
+export async function generateStaticParams() { return []; }
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params) {

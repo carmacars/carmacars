@@ -121,6 +121,8 @@ Retention: chats linked to a renter or booking stay with the rental records; oth
 
 ## 3. Privacy (for the lawyer)
 
+**Approved by the lawyer on 2026-10-19.**
+
 `docs/source/website_terms_policies.md` and the live `legal.privacy` block (only where it still had our text):
 
 - Section 1, table: "Site data" now lists approximate city, pages and cars viewed and booking steps, with the purpose "to
@@ -166,6 +168,6 @@ Worker CPU: the beacon's own work in the Worker entry measured 0.15 ms for a bat
 
 ## 7. What still needs the owner
 
-- The lawyer: section 3 above (privacy policy and cookie banner).
+- The lawyer: section 3 above (privacy policy and cookie banner). **Approved by the lawyer on 2026-10-19.**
 - Program settings, "Live visitors and live chat": the chat greeting is off; the AI's daily allowance is 6,000 neurons (about 10 chats). Raise `chat_ai_daily_neurons` and `chat_ai_total_daily_neurons` on Workers Paid if the chat is busy (US$0.011 per 1,000 neurons above 10,000 a day).
 - Staff: turn on "Email me when a chat waits" in Live chat if wanted. With nobody on shift, chats collect contact details.

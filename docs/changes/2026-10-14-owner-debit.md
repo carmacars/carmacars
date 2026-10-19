@@ -121,6 +121,6 @@ debited and no staff notice about them reaches a real person.
 
 - **Stripe live mode**: turn on Canadian pre-authorized debits (ACSS) in the live Stripe account, then put the live keys
   in the vault and deploy (launch audit item 9). The deploy subscribes the webhook to the new events itself.
-- **The PAD agreement wording** (`web/src/features/owner/OwnerPayForm.tsx`, `mandateText`) should be read by the lawyer.
+- **The PAD agreement wording** (`web/src/features/owner/OwnerPayForm.tsx`, `mandateText`) should be read by the lawyer. **Approved by the lawyer on 2026-10-19.**
 - **Real owners need a mandate**: owners who have not paid an invoice by debit are asked on the notice day to set one up
   in Banking; Admin > Owner debits lists who has none.

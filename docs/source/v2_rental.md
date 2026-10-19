@@ -1,4 +1,4 @@
-**Draft for legal review. Not for signing.** Blanks are shown as [●].
+Approved by the lawyer on October 19, 2026. Blanks are shown as [●] and are filled from the booking.
 
 <!--PART-->
 ## Part 1 – Rental Summary

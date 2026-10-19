@@ -9,8 +9,9 @@ export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true
 
 interface Health {
   enabled: boolean; interval: number; alert_email: string;
-  checks: Array<{ key: string; label: string; kind: string; status: 'ok' | 'failing' | 'unknown'; checked_at: string | null; ok_at: string | null; detail: string | null; failures: number; day: { checks: number; failed: number } }>;
-  open: Array<{ id: string; label: string; opened_at: string; detail: string | null; emailed: boolean; advice: string }>;
+  rules?: { page_minutes: number; email_minutes: number; stripe_minutes: number; max_emails: number; quiet_from: number; quiet_until: number; quiet_outage_minutes: number; emailed_today: number };
+  checks: Array<{ key: string; label: string; kind: string; status: 'ok' | 'failing' | 'unknown' | 'waiting'; checked_at: string | null; ok_at: string | null; detail: string | null; failures: number; day: { checks: number; failed: number } }>;
+  open: Array<{ id: string; label: string; opened_at: string; detail: string | null; emailed: boolean; real?: boolean; held?: string | null; advice: string }>;
   recent: Array<{ label: string; opened_at: string; resolved_at: string; detail: string | null }>;
 }
 
@@ -70,26 +71,31 @@ export default async function AdminToDo() {
   );
 }
 
-// Site health (migration 0062): the site check's last result for each page and service, open problems with what to
-// do, and the last week's resolved ones. The check runs from the database every few minutes.
+// Site health (migrations 0062, 0063): the site check's last result for each page and service, open problems with what
+// to do, and the last week's resolved ones. The check runs from the database every few minutes. Only a real outage
+// emails (the rules line); short problems such as an Error 1102 show here and in the morning digest.
+const hourWords = (h: number) => (h === 0 ? 'midnight' : h === 12 ? 'noon' : h < 12 ? `${h} am` : `${h - 12} pm`);
 function SiteHealth({ h }: { h: Health }) {
   const failing = h.checks.filter((c) => c.status === 'failing').length;
-  const words = (s: string) => (s === 'ok' ? 'Working' : s === 'failing' ? 'Problem' : 'Not checked yet');
+  const words = (s: string) => (s === 'ok' ? 'Working' : s === 'failing' ? 'Problem' : s === 'waiting' ? 'Waiting for the website deploy' : 'Not checked yet');
+  const r = h.rules;
   return (
     <Card id="site-health" title={failing ? `Site health: ${failing} problem${failing > 1 ? 's' : ''}` : 'Site health'} testId="site-health" tone={failing ? 'warn' : undefined}
       aside={<span className="small muted">{h.enabled ? `Checked every ${h.interval} minutes. Alerts go to ${h.alert_email}` : 'The site check is off (Program settings)'}</span>}>
       {h.open.length > 0 && (
         <ul className="ad-list" data-testid="site-alerts">{h.open.map((a) => (
-          <li key={a.id}><span><b>{a.label}</b>: {a.detail} <span className="small muted">since {t(a.opened_at)}{a.emailed ? ', emailed' : ''}</span></span>
+          <li key={a.id}><span><b>{a.label}</b>: {a.detail} <span className="small muted">since {t(a.opened_at)}{a.emailed ? ', emailed' : a.held ? `, not emailed: ${a.held}` : a.real ? '' : ', short problem: not emailed'}</span></span>
             <span className="ad-sub">{a.advice}</span></li>))}</ul>
       )}
       <ul className="sh-list">{h.checks.map((c) => (
         <li key={c.key} data-testid={`check-${c.key}`} data-status={c.status}>
           <span className={`sh-dot is-${c.status}`} aria-hidden="true" />
           <span>{c.label}</span>
-          <span className={c.status === 'failing' ? 'small ad-late' : 'small'}>{words(c.status)}</span>
+          <span className={c.status === 'failing' ? 'small ad-late' : 'small'} data-testid={`check-${c.key}-words`}>{words(c.status)}</span>
           <span className="ad-sub">{c.detail ?? ''}{c.checked_at ? ` · ${t(c.checked_at)}` : ''}{c.day.checks ? ` · ${c.day.failed} of ${c.day.checks} checks failed in 24 hours` : ''}</span>
         </li>))}</ul>
+      {r && <p className="small muted" data-testid="site-health-rules">Emails only for a real outage: a page down {r.page_minutes} minutes, emails failing {r.email_minutes} minutes, Stripe failing {r.stripe_minutes} minutes, or the backup failing.
+        At most {r.max_emails} a day ({r.emailed_today} today), none from {hourWords(r.quiet_from)} to {hourWords(r.quiet_until)} unless the site is down over {r.quiet_outage_minutes} minutes. Short problems go in the morning digest.</p>}
       {h.recent.length > 0 && <details className="todo__clear"><summary className="small muted">{h.recent.length} resolved in the last 7 days</summary>
         <ul className="small muted">{h.recent.map((r, i) => <li key={i}>{r.label}: {r.detail} ({t(r.opened_at)} to {t(r.resolved_at)})</li>)}</ul></details>}
     </Card>

@@ -1,0 +1,36 @@
+Return-Path: <rent+caf_=trips=in.carmacars.ca@carmacars.ca>
+Received: from mail-sor-f41.google.com by mx.cloudflare.net; Sat, 24 Oct 2026 15:20:00 -0400
+X-Forwarded-To: trips@in.carmacars.ca
+X-Forwarded-For: rent@carmacars.ca trips@in.carmacars.ca
+From: Turo <noreply@mail.turo.com>
+To: rent@carmacars.ca
+Subject: Ayesha’s trip was extended
+Date: Sat, 24 Oct 2026 15:20:00 -0400
+Message-ID: <extended.20261019@mail.turo.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1_TuroSampleBoundary_extended"
+
+--b1_TuroSampleBoundary_extended
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html><head><style>.x{color:#121214}</style></head><body>
+<table role=3D"presentation" width=3D"100%"><tr><td align=3D"center"><img s=
+rc=3D"https://resources.turo.com/logo.png" alt=3D"Turo">
+<h1 style=3D"font-size:24px">Extension approved: Ayesha extended their trip=
+</h1>
+<table role=3D"presentation"><tr><td style=3D"color:#5f6368;padding:4px 0">=
+Trip start</td><td style=3D"font-weight:600">Fri, Oct 23, 2026 at 12:00 PM<=
+/td></tr><tr><td style=3D"color:#5f6368;padding:4px 0">New trip end</td><td=
+ style=3D"font-weight:600">Mon, Nov 2, 2026 at 10:00 AM</td></tr><tr><td st=
+yle=3D"color:#5f6368;padding:4px 0">Reservation ID</td><td style=3D"font-we=
+ight:600">48211907</td></tr></table>
+<p><a href=3D"https://turo.com/ca/en/suv-rental/canada/toronto-on/mercedes-=
+benz/glc-class/2711093">Mercedes-Benz GLC 2021</a></p><p><a href=3D"https:/=
+/turo.com/ca/en/reservation/48211907?utm_source=3Demail">View trip details<=
+/a></p>
+<p style=3D"font-size:12px;color:#888">Turo Inc., 111 Sutter St, San Franci=
+sco, CA 94104 &middot; <a href=3D"https://turo.com/ca/en/account/notificati=
+ons">Notification settings</a></p>
+</td></tr></table></body></html>
+--b1_TuroSampleBoundary_extended--

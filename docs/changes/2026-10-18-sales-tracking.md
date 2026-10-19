@@ -43,7 +43,7 @@ Rate covers the Coverage Hours of each month: a part month, and Coverage Hours m
 paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved."). The send form asks
 for Pay (a month or an hour), Rate, Schedule, Days a week, Hours a day and Hours a week (computed), all pre-filled from
 the person's function. Hourly pay still works. Template version `person-8f32ea9a26`. **For the lawyer:** the new 3.1
-wording.
+wording. **Approved by the lawyer on 2026-10-19.**
 
 ## 3. Sales tracking
 
@@ -130,5 +130,5 @@ Paid removes the limit; the owner is upgrading.
 ## 7. What still needs the owner
 
 - Program settings: the Sales function's pay, rate, schedule, days and hours (left blank as decided).
-- The lawyer: the new section 3.1 of the VA agreement (a monthly Rate).
+- The lawyer: the new section 3.1 of the VA agreement (a monthly Rate). **Approved by the lawyer on 2026-10-19.**
 - Admin > Settings > Guides: two sections "To review" after the upkeep run (field/my-jobs, admin/requests-offers-and-bookings).

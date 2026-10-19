@@ -4,7 +4,7 @@ import { PageHead } from '@/features/admin/ui';
 import { CalendarSync, type SyncData } from '@/features/calendar/CalendarSync';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Calendar sync', path: '/va/calendar-sync', noindex: true, description: 'Turo, Getaround and other calendars, both ways, per car.' });
+export const metadata = pageMeta({ title: 'Calendar sync', path: '/va/calendar-sync', noindex: true, description: 'Turo by email, Getaround, Google Calendar and other calendars, both ways, per car.' });
 
 // Cars > Calendar sync (migration 0062): Fleet.
 export default async function VaCalendarSync() {

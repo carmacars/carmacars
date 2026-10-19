@@ -77,6 +77,9 @@ $108.00 field staff kickback: Vehicle 1 Owner Revenue $1,796.00, payable $1,047.
 
 ## 6. Agreements (for the lawyer)
 
+**Approved by the lawyer on 2026-10-19.** Every change below: the VA agreement, the Field Staff Agreement (7.5 included) and the Enrollment
+Agreement's kickback wording (8.1, 8.3, 8.5).
+
 | Document | Change | Version |
 | --- | --- | --- |
 | Enrollment Agreement (`docs/source/v2_enrollment.md`) | 8.1: Owner Revenue is less every kickback, "each Referral Kickback and each Staff Commission". 8.3: a Referral Kickback is an Owner's referral; a **Staff Commission** (the commission CarmaCars pays a staff member, field staff included, who sourced or referred the booking, at the rates CarmaCars sets) is a kickback; "Every kickback is deducted from that booking before Owner Revenue is calculated" kept. 8.5: the statement lists each Staff Commission; a change after a statement is adjusted on the next | `owner-v3-6cbe11b26f` (was `owner-v3-16beb87986`); signed documents keep theirs |
@@ -125,6 +128,7 @@ verification). It caused the two failed verifications. Workers Paid removes the 
   wages under the ESA); Enrollment Agreement 8.1, 8.3 and 8.5. Owners who signed the earlier version (`owner-v3-16beb87986`)
   agreed to deductions of Referral Kickbacks only: ask the lawyer whether deducting Sales and other staff commissions from
   their Owner Revenue needs them to sign the new version first. The code deducts it for every program owner's car now.
+  **Approved by the lawyer on 2026-10-19.** (the clauses and the kickback wording as written).
 - Program settings, if other values are wanted: the 20% discount limit that flags a typed price (no number was given),
   the price floor (none), the rates and tiers.
 - Staff home addresses (a staff member's Sales page, "Home address") if the automatic household check should apply;

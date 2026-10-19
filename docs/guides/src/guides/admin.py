@@ -222,27 +222,47 @@ def build():
         f'Turnaround between trips on this car shows the time used. Press {B("Change")} to give this car its own time.',
     ], shot=S('admin/07-vehicle-calendar-desktop', 0, 0, 1440, 560, pins=[(1, 606, 174), (2, 740, 228)]))
 
-    # ---------------------------------------------------------------- calendar sync (0062)
+    # ---------------------------------------------------------------- calendar sync (0062, 0063: Turo by email)
     g.chapter('Calendar sync with Turo and other platforms',
-              'A car rented on Turo, Getaround or another site must never be booked twice. Calendar sync works both ways '
-              'through calendar links (iCal): their trips block the car here, and our bookings block it there.',
-              blurb='Paste each platform\'s calendar link, paste ours into the platform, clashes, links that stop working.')
-    g.task('Bring Turo\'s trips in', f'{P("Cars", "Calendar sync")}. Do this once for each car listed on another platform.')
+              'A car rented on Turo, Getaround or another site must never be booked twice. Turo has no calendar link, so '
+              'Turo works by email: Turo\'s trip emails block the car here, and you block our bookings on Turo by hand. '
+              'Getaround, Google Calendar and other sites work through calendar links (iCal), both ways.',
+              blurb='Turo by email (the Gmail filter, the car\'s name on Turo, emails to check, Done on Turo), calendar links for other platforms, clashes.')
+    g.task('Set up Turo by email (once)', 'Turo emails rent@carmacars.ca for every trip booked, changed, extended or cancelled. One Gmail filter forwards those emails to trips@in.carmacars.ca, and each one blocks the car here within a minute.')
     g.steps([
-        'On Turo, open the car\'s calendar and its calendar sync (export) settings, and copy the calendar link (it ends in .ics). On Getaround or another site, look for "Export calendar" or "iCal".',
-        f'On Calendar sync, find the car, open {B("Add a calendar link")}, choose the platform and paste the link. Press {B("Add the link")}.',
-        'The link is read at once and then every 10 minutes. The card shows "Working", when it was read and the next trips it found.',
-        'Each trip becomes an "External booking" block on the car, with the turnaround before and after it. The car cannot be requested, offered or booked here for those times, and the public calendar shows them as taken.',
-        f'A trip that moves or is cancelled on the platform moves or frees the block at the next read. {B("Sync now")} reads the link at once.',
+        'In Gmail (rent@carmacars.ca): Settings, See all settings, Forwarding and POP/IMAP. Press Add a forwarding address and type trips@in.carmacars.ca.',
+        f'Gmail sends a confirmation code to that address. Open {P("Cars", "Calendar sync")}: the code shows under "Turo by email" (and To do shows "Gmail forwarding to confirm"). Type it in Gmail and press Verify. Leave forwarding itself off: only the filter forwards.',
+        'In Gmail, in the search box, show the search options. From: turo.com. Press Create filter, tick Forward it to: trips@in.carmacars.ca, and press Create filter.',
+        f'On Calendar sync, for each car on Turo, press {B("This car is on Turo")}, type its name exactly as Turo\'s emails show it (for example Mercedes-Benz GLC 2021) and press {B("Save")}. The Turo car number (the number at the end of its Turo page address) is optional; the plate and VIN are matched too.',
     ])
-    g.task('Send our bookings to Turo')
+    g.task('Turo trips on the calendar')
     g.steps([
-        'Each car has its own CarmaCars link under "This car\'s CarmaCars calendar": one for Turo, one for Getaround, one for any other platform. Each leaves out the trips that came from that platform, so nothing comes back twice.',
-        f'Press {B("Copy")} next to "For Turo" and paste it into the car\'s calendar import on Turo. Do the same for each platform.',
-        'The link shows only "Booked" for our bookings (with the turnaround) and our blocks. No names, numbers or prices.',
+        'A trip booked on Turo becomes an "External booking" block on the car, with the turnaround before and after it. The car cannot be requested, offered or booked here for those times.',
+        'A changed or extended trip moves its block; a cancelled trip frees the car. An older email never undoes a newer one.',
+        'Each car lists its Turo trips: the dates, the Turo trip number and the guest\'s first name. Press Cancelled if Turo cancelled a trip and its email did not come.',
+        f'{B("Add a Turo trip")}: the trip start and end (Toronto time), and the Turo trip number if you have it. Use it for a trip whose email did not come.',
+        'Only what the email says is kept: the car, the dates, the trip number and the guest\'s first name. The email itself is never stored.',
+    ])
+    g.task('Turo emails to check', 'When the reader is not sure (which car, the dates or the trip number), the email waits under "Turo emails to check", with a Fleet task and a line on To do.')
+    g.steps([
+        'Read what was found and the short excerpt (no email addresses, phone numbers or links). Check the trip on Turo.',
+        f'Press {B("Add as a Turo trip")}, choose the car, check the dates and press {B("Add this trip")}. The email is checked and the task closes.',
+        f'Not a trip (a request, a message)? Press {B("Dismiss")}.',
+    ])
+    g.task('Block our bookings on Turo (Done on Turo)', 'Turo cannot read our calendar. Each car on Turo lists, under "Block on Turo", the CarmaCars bookings not yet blocked there.')
+    g.steps([
+        'Open the car\'s calendar on Turo and block the dates shown (the turnaround is included).',
+        f'Press {B("Done on Turo")}. The booking leaves the list.',
+        'If the booking\'s dates change, it comes back with the old dates to free first. A booking cancelled here shows the dates to free on Turo: free them, then press Freed on Turo.',
+    ])
+    g.task('Getaround, Google Calendar and other calendar links', f'{P("Cars", "Calendar sync")}, for a platform that gives a calendar (iCal) link.')
+    g.steps([
+        f'Copy the car\'s calendar link on the platform (look for "Export calendar" or "iCal"). On Calendar sync, open {B("Add a calendar link")}, choose Getaround, Google Calendar or Other, paste the link and press {B("Add the link")}.',
+        f'The link is read at once and then every 10 minutes; {B("Sync now")} reads it at once. Each trip becomes an "External booking" block with the turnaround.',
+        f'Send our bookings there: press {B("Copy")} next to "For Getaround" (or "For Google Calendar", or "For any other platform") under "This car\'s CarmaCars calendar" and paste it into the platform\'s calendar import. It shows only "Booked" times: no names, numbers or prices.',
         f'If a link was shared by mistake, press {B("Make a new link")}. The old one stops working at once: paste the new one into every platform again.',
     ])
-    g.task('Double bookings', 'If a trip on another platform overlaps a confirmed CarmaCars booking of the same car, we tell you at once.')
+    g.task('Double bookings', 'If a trip on Turo or another platform overlaps a confirmed CarmaCars booking of the same car, we tell you at once.')
     g.bullets([
         'An urgent Fleet task "Double booking: <car> on Turo and CC-1042", a line on To do and an email to Fleet and the Admins.',
         'Calendar sync lists it at the top with both trips. Move, swap or cancel one of the two. The task closes by itself once they no longer overlap.',
@@ -252,7 +272,7 @@ def build():
     g.para('A platform answers an error when a link is reset or removed. After 3 failed reads in a row (a Program setting) Fleet gets a task and an email, and To do shows "Calendar links not working". '
            'The trips already read stay on the calendar. Copy the link from the platform again, remove the old one and add the new one.')
     g.tip('A block from another platform can be removed from the calendar like any block; calendar sync will not put it back. '
-          'In Program settings, "Calendar sync": on or off, how often links are read (10 minutes), failures before an alert, and whether our links include the turnaround.', label='Good to know')
+          'In Program settings, "Calendar sync" and "Turo by email": on or off, how often links are read, the inbound address, the mailboxes allowed to forward (rent@carmacars.ca) and how long the email log is kept (90 days).', label='Good to know')
 
     # ---------------------------------------------------------------- 5
     g.chapter('Fleet and listings',
@@ -635,7 +655,7 @@ def build():
         'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
-        'Calendar sync, Booking recovery emails and Site check: how often calendar links are read, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca).',
+        'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
@@ -702,18 +722,20 @@ def build():
     g.bullets([
         'The database is backed up every night, encrypted, kept for 30 days and test-restored on the spot.',
         'Every Monday the newest backup is checked again: it must be under 30 hours old and restore cleanly.',
-        'A failed backup, or none for 30 hours, opens a site alert: an email, a task and a line on To do. Tell your developer the same day.',
+        'A failed backup, or none for 30 hours, opens a site alert: an email (outside the quiet hours), a task and a line on To do. Tell your developer the same day.',
         'Keep a copy of the backup key in the company password manager. Without it no backup can be read.',
     ])
 
     g.task('Site health and alerts', f'{P("Today", "To do")}, the Site health card at the bottom.')
     g.steps([
         'Every 5 minutes the site checks itself: the home page, a car page, the sign-in page and the site\'s health check, and also emails, scheduled jobs, the nightly backup and Stripe payments.',
-        'Each line shows Working, Problem or Not checked yet, what was found and how many checks failed in the last 24 hours.',
-        'A page that fails 3 checks in a row (a single Error 1102 does not count) opens an alert: an email to rent@carmacars.ca, an urgent task and "Site problems found by the site check" first on To do. Emails failing, a failed job or backup, or a Stripe event that failed alert at once.',
-        'When the check passes again you get one "Recovered" email and the task closes by itself. A new problem of the same kind within an hour shows on To do without another email.',
+        'Each line shows Working, Problem, Waiting for the website deploy or Not checked yet, what was found and how many checks failed in the last 24 hours.',
+        'Short problems, such as a single Error 1102, only show here and in your morning digest ("Site check: 6 failed checks in the last 24 hours, no alert email").',
+        'An email goes to rent@carmacars.ca only for a real outage: a page failing every check for 15 minutes, emails failing for 30 minutes, the nightly backup failing, or Stripe failing for 30 minutes. It also raises an urgent task and "Site problems found by the site check" first on To do. A failed scheduled job is never emailed.',
+        'At most 3 alert emails a day, and none from 11 pm to 7 am unless the whole site has been down for an hour. An outage held overnight is emailed at 7 am if it lasts. One "Recovered" email follows each alert, and the task closes by itself.',
+        '"Waiting for the website deploy" on the health check means the database was updated before the website: nothing is wrong, and it turns to Working after the deploy.',
     ])
-    g.tip('The address the alerts go to and the timings are in Program settings, "Site check".', label='Good to know')
+    g.tip('The alert address, the minutes before an email, the daily limit and the quiet hours are in Program settings, "Site check".', label='Good to know')
 
     g.task('When a page shows "Error 1102"')
     g.para('Our web host\'s free plan sometimes stops a page that takes too long. Reload the page; you are still signed in. '

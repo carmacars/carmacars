@@ -19,9 +19,9 @@ import type { CarPage as Car } from '@/lib/types';
 export const revalidate = 3600;
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  return (await getFleet()).map((c) => ({ slug: c.slug }));
-}
+// On demand with the page cache (ISR, an hour), not at build time: one slow database moment must not stop a deploy
+// (the /rent/[hub] build failure of October 19, 2026). The first visitor of the hour waits for one database call.
+export async function generateStaticParams() { return []; }
 
 type Params = { params: Promise<{ slug: string }> };
 async function load(slug: string): Promise<Car> {

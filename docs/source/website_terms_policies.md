@@ -1,6 +1,6 @@
 # CarmaCars Website Terms and Policies
 
-Draft for legal review, October 6, 2026. Blanks are shown as [●].
+Approved by the lawyer on October 19, 2026. Blanks are shown as [●].
 
 ## Part 1 – Terms of Use
 

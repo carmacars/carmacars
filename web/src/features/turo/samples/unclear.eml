@@ -1,0 +1,23 @@
+Return-Path: <rent+caf_=trips=in.carmacars.ca@carmacars.ca>
+Received: from mail-sor-f41.google.com by mx.cloudflare.net; Thu, 22 Oct 2026 13:30:00 -0400
+X-Forwarded-To: trips@in.carmacars.ca
+X-Forwarded-For: rent@carmacars.ca trips@in.carmacars.ca
+From: Turo <noreply@mail.turo.com>
+To: rent@carmacars.ca
+Subject: Priya booked your Mercedes-Benz GLC
+Date: Thu, 22 Oct 2026 13:30:00 -0400
+Message-ID: <unclear.20261019@mail.turo.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1_TuroSampleBoundary_unclear"
+
+--b1_TuroSampleBoundary_unclear
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Priya booked your Mercedes-Benz GLC.
+Trip start: Nov 6, 2026 10:00 AM
+Trip end: Nov 8, 2026 10:00 AM
+Reservation ID: 53007788
+Call Priya at 647-555-0123.
+
+--b1_TuroSampleBoundary_unclear--

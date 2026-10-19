@@ -1,4 +1,4 @@
-// Unit tests for calendar sync's iCal reader and run (ical.ts and sync-run.ts, migration 0062): the sample feeds in the shapes Turo, Getaround and Google Calendar write (folded lines, UTC times, all-day
+// Unit tests for calendar sync's iCal reader and run (ical.ts and sync-run.ts, migration 0062): the sample feeds in the shapes Getaround, Google Calendar and other platforms write (Turo has no calendar link: its trips come by email, migration 0063) (folded lines, UTC times, all-day
 // dates across the end of daylight saving, TZID with a VTIMEZONE block, DURATION, free and cancelled events, a weekly
 // rule with EXDATE and a moved occurrence, an Outlook zone name, a floating time), errors in plain words, and one run
 // with a mocked database and platform (not modified, 404, a web page in place of a calendar, a private address).
@@ -15,16 +15,16 @@ const sample = (f: string) => readFileSync(join(SAMPLES, f), 'utf8');
 const NOW = new Date('2026-10-19T12:00:00Z');
 const brief = (r: ReturnType<typeof parseIcal>) => r.events.map((e) => `${e.starts_at.slice(0, 16)} ${e.ends_at.slice(0, 16)} ${e.all_day ? 'D' : 'T'} ${e.summary}`);
 
-test('Turo: UTC trips kept, a folded description read, an all-day block across the end of daylight saving, ended and cancelled trips left out', () => {
-  const r = parseIcal(sample('turo.ics'), { now: NOW });
-  assert.equal(r.calendar_name, '2024 Mercedes-Benz C 300 (Turo)');
-  assert.match(r.prodid ?? '', /Turo/);
+test('A platform with UTC trips: kept, a folded description read, an all-day block across the end of daylight saving, ended and cancelled trips left out', () => {
+  const r = parseIcal(sample('other.ics'), { now: NOW });
+  assert.equal(r.calendar_name, '2024 Mercedes-Benz C 300 (Example)');
+  assert.match(r.prodid ?? '', /Example/);
   assert.deepEqual(brief(r), [
-    '2026-10-23T14:00 2026-10-25T14:00 T Turo trip',
+    '2026-10-23T14:00 2026-10-25T14:00 T Example trip',
     // Nov 1 midnight in Toronto is still daylight time (04:00 UTC); Nov 3 midnight is standard time (05:00 UTC)
     '2026-11-01T04:00 2026-11-03T05:00 D Unavailable'
   ]);
-  assert.equal(r.events[0]!.uid, 'trip-48211907@turo.com');
+  assert.equal(r.events[0]!.uid, 'trip-48211907@example.com');
 });
 
 test('Getaround: TZID times with a VTIMEZONE block and an alarm inside the event, DURATION, a free event left out', () => {
@@ -92,10 +92,10 @@ test('lines, durations and errors', () => {
 });
 
 test('links: webcal is https, private addresses refused, reasons in words', () => {
-  assert.equal(normalizeUrl(' webcal://turo.com/ical/abc.ics '), 'https://turo.com/ical/abc.ics');
+  assert.equal(normalizeUrl(' webcal://platform.example/ical/abc.ics '), 'https://platform.example/ical/abc.ics');
   for (const u of ['http://localhost:3000/x', 'http://127.0.0.1/x', 'http://10.0.0.5/x', 'http://192.168.1.2/x', 'http://172.20.0.1/x', 'http://[::1]/x', 'http://metadata.internal/x'])
     assert.equal(privateHost(u), true, u);
-  assert.equal(privateHost('https://turo.com/ical/abc.ics'), false);
+  assert.equal(privateHost('https://platform.example/ical/abc.ics'), false);
   assert.match(httpReason(404), /not found.*Copy it again/);
   assert.match(httpReason(503), /tried again/);
 });
@@ -112,9 +112,9 @@ function mockStore(due: DueFeed[]) {
 
 test('one run: parsed events to the database, not modified, 404, a web page, a private address, a link that cannot be reached', async () => {
   const feeds: DueFeed[] = [
-    { id: 'f1', url: 'webcal://turo.example/ical/1.ics', platform: 'turo', etag: null, last_modified: null },
+    { id: 'f1', url: 'webcal://platform.example/ical/1.ics', platform: 'other', etag: null, last_modified: null },
     { id: 'f2', url: 'https://ga.example/cal.ics', platform: 'getaround', etag: '"v7"', last_modified: null },
-    { id: 'f3', url: 'https://turo.example/ical/gone.ics', platform: 'turo', etag: null, last_modified: null },
+    { id: 'f3', url: 'https://platform.example/ical/gone.ics', platform: 'other', etag: null, last_modified: null },
     { id: 'f4', url: 'https://other.example/page', platform: 'other', etag: null, last_modified: null },
     { id: 'f5', url: 'http://192.168.0.10/cal.ics', platform: 'other', etag: null, last_modified: null }
   ];
@@ -122,18 +122,18 @@ test('one run: parsed events to the database, not modified, 404, a web page, a p
   const seen: Array<{ url: string; headers: Record<string, string> }> = [];
   const f = async (url: string, init: RequestInit) => {
     seen.push({ url, headers: init.headers as Record<string, string> });
-    if (url.includes('/1.ics')) return new Response(sample('turo.ics'), { status: 200, headers: { etag: '"t1"' } });
+    if (url.includes('/1.ics')) return new Response(sample('other.ics'), { status: 200, headers: { etag: '"t1"' } });
     if (url.includes('ga.example')) return new Response(null, { status: 304 });
     if (url.includes('gone')) return new Response('nope', { status: 404 });
     return new Response('<html><body>Sign in</body></html>', { status: 200 });
   };
   const r = await syncDue(store, f, { now: NOW, parallel: 2 });
   assert.equal(`${r.feeds} ${r.ok} ${r.failed}`, '5 2 3');
-  assert.equal(seen[0]!.url, 'https://turo.example/ical/1.ics', 'webcal read as https');
+  assert.equal(seen[0]!.url, 'https://platform.example/ical/1.ics', 'webcal read as https');
   assert.equal(seen.find((s) => s.url.includes('ga.example'))!.headers['If-None-Match'], '"v7"', 'the last etag is sent');
   assert.ok(!seen.some((s) => s.url.includes('192.168')), 'a private address is never fetched');
   const byId = Object.fromEntries(calls.map((c) => [c[1], c]));
-  assert.deepEqual(byId.f1, ['ok', 'f1', { events: 2, meta: { etag: '"t1"', last_modified: null, calendar_name: '2024 Mercedes-Benz C 300 (Turo)', warnings: [] } }]);
+  assert.deepEqual(byId.f1, ['ok', 'f1', { events: 2, meta: { etag: '"t1"', last_modified: null, calendar_name: '2024 Mercedes-Benz C 300 (Example)', warnings: [] } }]);
   assert.equal((byId.f2![2] as { events: null }).events, null, 'not modified: nothing to replace');
   assert.match(byId.f3![2] as string, /404 \(not found\)/);
   assert.match(byId.f4![2] as string, /web page, not a calendar/);

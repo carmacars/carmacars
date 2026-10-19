@@ -3,25 +3,28 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { calendarAct, calendarSyncNow } from '@/server/actions/calendar-sync';
+import { TuroCar, TuroPanel, type TuroCarData, type TuroData } from './TuroSync';
 
-// Cars > Calendar sync (migration 0062), for Admins and Fleet: per car, the calendar links of other platforms that
-// block it (import) and its own CarmaCars link to paste into them (export), with the clashes on top.
+// Cars > Calendar sync (migrations 0062, 0063), for Admins and Fleet: per car, the calendar links of other platforms
+// that block it (import) and its own CarmaCars link to paste into them (export), with the clashes on top. Turo has no
+// calendar link: its trips come by email (TuroSync.tsx), and our bookings are blocked on Turo by hand ("Done on Turo").
 export interface FeedRow {
-  id: string; platform: 'turo' | 'getaround' | 'other'; platform_name: string; name: string; label: string | null; url: string; enabled: boolean;
+  id: string; platform: 'turo' | 'getaround' | 'google' | 'other'; platform_name: string; name: string; label: string | null; url: string; enabled: boolean;
   status: 'new' | 'ok' | 'error'; last_attempt_at: string | null; last_success_at: string | null; last_error: string | null; failures: number;
   events: number; calendar_name: string | null; upcoming: Array<{ summary: string | null; starts_at: string; ends_at: string; all_day: boolean; blocked: boolean }>;
 }
-export interface CarRow { id: string; name: string; plate: string | null; is_sample: boolean; turnaround_minutes: number;
+export interface CarRow extends TuroCarData { id: string; name: string; plate: string | null; is_sample: boolean; turnaround_minutes: number;
   export: { url: string; last_fetched_at: string | null; fetches: number; rotated_at: string | null }; feeds: FeedRow[] }
 export interface Conflict { id: string; kind: 'booking' | 'offer'; vehicle: string; platform: string; summary: string | null; starts_at: string; ends_at: string;
   booking_number: string; booking_status: string; pickup_at: string; return_at: string }
-export interface SyncData { enabled: boolean; minutes: number; alert_failures: number; turnaround_minutes: number; export_turnaround: boolean; cars: CarRow[]; conflicts: Conflict[]; failing: number }
+export interface SyncData { enabled: boolean; minutes: number; alert_failures: number; turnaround_minutes: number; export_turnaround: boolean; cars: CarRow[]; conflicts: Conflict[]; failing: number; turo: TuroData }
 
 const at = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' }) : 'never');
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Toronto' });
 const span = (s: string, e: string, allDay: boolean) => (allDay ? `${day(s)} to ${day(new Date(new Date(e).getTime() - 1).toISOString())}` : `${at(s)} to ${at(e)}`);
 const hours = (m: number) => (m % 60 === 0 ? `${m / 60} hour${m === 60 ? '' : 's'}` : `${m} minutes`);
-const PLATFORMS: Array<[FeedRow['platform'], string]> = [['turo', 'Turo'], ['getaround', 'Getaround'], ['other', 'Other']];
+// Turo is not here: Turo has no calendar link (its trips come by email, TuroSync.tsx)
+const PLATFORMS: Array<[FeedRow['platform'], string]> = [['getaround', 'Getaround'], ['google', 'Google Calendar'], ['other', 'Other']];
 
 function Copy({ url, label, testId }: { url: string; label: string; testId?: string }) {
   const [done, setDone] = useState(false);
@@ -80,7 +83,7 @@ function Feed({ f, onDone }: { f: FeedRow; onDone: (msg: string) => void }) {
 }
 
 function AddFeed({ car, onDone }: { car: CarRow; onDone: (msg: string) => void }) {
-  const [platform, setPlatform] = useState<FeedRow['platform']>('turo');
+  const [platform, setPlatform] = useState<FeedRow['platform']>('getaround');
   const [url, setUrl] = useState('');
   const [label, setLabel] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -103,7 +106,7 @@ function AddFeed({ car, onDone }: { car: CarRow; onDone: (msg: string) => void }
         <div className="field cs-add__url"><label className="label" htmlFor={`url-${id}`}>Calendar link from the platform</label>
           <input className="input" id={`url-${id}`} type="url" inputMode="url" required placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} data-testid="feed-url" /></div>
         <div className="field"><label className="label" htmlFor={`lb-${id}`}>Name (optional)</label>
-          <input className="input" id={`lb-${id}`} maxLength={60} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Turo" /></div>
+          <input className="input" id={`lb-${id}`} maxLength={60} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Getaround" /></div>
       </div>
       <button type="submit" className="btn btn--primary btn--sm" disabled={pending || !url.trim()} data-testid="feed-add-submit">{pending ? 'Adding' : 'Add the link'}</button>
       {err && <p className="small ad-late" role="alert">{err}</p>}
@@ -111,7 +114,7 @@ function AddFeed({ car, onDone }: { car: CarRow; onDone: (msg: string) => void }
   );
 }
 
-function Car({ car, minutes }: { car: CarRow; minutes: number }) {
+function Car({ car, minutes, turo, bookingBase }: { car: CarRow; minutes: number; turo: TuroData; bookingBase: string }) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -123,11 +126,12 @@ function Car({ car, minutes }: { car: CarRow; minutes: number }) {
         <h2 className="d4" id={`car-${car.id}`}>{car.name}</h2>
         <span className="small muted">{car.plate ?? 'No plate'}{car.is_sample ? ' · sample car' : ''} · turnaround {hours(car.turnaround_minutes)}</span>
       </div>
+      <TuroCar car={car} enabled={turo.enabled} bookingBase={bookingBase} onDone={done} />
       <div className="cs-cols">
         <div>
-          <h3 className="cs-h">Blocks from other platforms</h3>
+          <h3 className="cs-h">Calendar links (Getaround, Google Calendar, others)</h3>
           {car.feeds.length ? <ul className="cs-feeds">{car.feeds.map((f) => <Feed key={f.id} f={f} onDone={done} />)}</ul>
-            : <p className="small muted">No calendar link yet. Paste the car&apos;s calendar link from Turo or Getaround: their trips will block it here every {minutes} minutes.</p>}
+            : <p className="small muted">No calendar link. For Getaround, Google Calendar or another platform with a calendar (iCal) link: paste it here and its trips block the car every {minutes} minutes.</p>}
           <details className="cs-more" open={car.feeds.length === 0 ? undefined : false}>
             <summary className="small">Add a calendar link</summary>
             <AddFeed car={car} onDone={done} />
@@ -135,9 +139,9 @@ function Car({ car, minutes }: { car: CarRow; minutes: number }) {
         </div>
         <div>
           <h3 className="cs-h">This car&apos;s CarmaCars calendar</h3>
-          <p className="small muted">Paste the link for each platform into that platform&apos;s calendar import. It shows only &quot;Booked&quot; times, nothing about renters.</p>
-          <Copy url={`${base}?for=turo`} label="For Turo" testId={`export-turo-${car.id}`} />
+          <p className="small muted">Paste the link for each platform into that platform&apos;s calendar import. It shows only &quot;Booked&quot; times, nothing about renters. Turo cannot import a calendar: see &quot;Block on Turo&quot; above.</p>
           <Copy url={`${base}?for=getaround`} label="For Getaround" testId={`export-getaround-${car.id}`} />
+          <Copy url={`${base}?for=google`} label="For Google Calendar" testId={`export-google-${car.id}`} />
           <Copy url={`${base}?for=other`} label="For any other platform" testId={`export-other-${car.id}`} />
           <p className="small muted">{car.export.fetches ? `Read ${car.export.fetches} times, last ${at(car.export.last_fetched_at)}` : 'Not read by any platform yet'}</p>
           <button type="button" className="btn btn--quiet btn--sm" disabled={pending}
@@ -159,6 +163,7 @@ export function CalendarSync({ data, bookingBase }: { data: SyncData; bookingBas
     <div className="cs" data-testid="calendar-sync">
       <p className="small muted">{data.enabled ? `Each link is read every ${data.minutes} minutes. A trip from another platform blocks the car with the turnaround before and after it, so it cannot be requested or booked here.` : 'Calendar sync is turned off in Program settings.'}
         {' '}A link that fails {data.alert_failures} times in a row raises a task and an email.</p>
+      <TuroPanel turo={data.turo} cars={data.cars.map((c) => ({ id: c.id, name: c.name }))} />
       {clashes.length > 0 && (
         <section className="pt-card ad-card cs-clash" aria-labelledby="cs-clash-h" data-testid="cs-clashes">
           <h2 className="d4" id="cs-clash-h">Double bookings ({clashes.length})</h2>
@@ -176,7 +181,7 @@ export function CalendarSync({ data, bookingBase }: { data: SyncData; bookingBas
       )}
       <div className="field cs-find"><label className="label" htmlFor="cs-q">Find a car</label>
         <input className="input" id="cs-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or plate" /></div>
-      {cars.map((c) => <Car key={c.id} car={c} minutes={data.minutes} />)}
+      {cars.map((c) => <Car key={c.id} car={c} minutes={data.minutes} turo={data.turo} bookingBase={bookingBase} />)}
       {!cars.length && <p className="ad-empty">No car matches.</p>}
     </div>
   );

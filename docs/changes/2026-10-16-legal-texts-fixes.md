@@ -87,6 +87,8 @@ Booking are not concerned.
 
 ## Still open for the lawyer
 
+**Approved by the lawyer on 2026-10-19.** (the owner's word of October 19, 2026: everything flagged for the lawyer was approved.)
+
 Listed in the lawyer pack, section 8: an owner with no debit on file gets no Late Fee; the one-time debit from an invoice
 page happens before any confirmation can be sent; cancellation with no notice period; retry "from the 18th"; Stripe's
 hosted mandate beside our own texts; the void notice; and the Program settings that still need the mailing address.

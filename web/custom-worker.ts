@@ -8,6 +8,7 @@ import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } fro
 import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './src/lib/track/shared';
+import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 
 type Env = Record<string, unknown>;
 
@@ -77,7 +78,28 @@ async function track(request: Request, env: Env): Promise<Response | null> {
   return new Response(r.ok ? await r.text() : JSON.stringify({ ok: false }), { status: r.ok ? 200 : 502, headers });
 }
 
+// Turo by email (migration 0063): Cloudflare Email Routing hands every message sent to trips@in.carmacars.ca (a
+// subdomain, so the root domain's Google Workspace mail is untouched) to this handler. The raw message goes to the app's
+// /api/inbound/turo with the jobs' token; the app reads it and stores only the parsed fields. A message too large is
+// refused; if the app cannot take it (the database is down), the handler throws, so the sender (Gmail) tries again.
+interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void }
+const MAX_EMAIL_BYTES = 1_000_000;
+
 const worker = {
+  async email(message: InboundEmail, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+    const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
+    if (!secret) { message.setReject('Not set up'); return; }
+    if (message.rawSize > MAX_EMAIL_BYTES) { message.setReject('Message too large'); return; }
+    const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
+    const raw = await new Response(message.raw).text();
+    const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/inbound/turo`, {
+      method: 'POST', body: raw,
+      headers: { authorization: `Bearer ${await workerToken(secret)}`, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
+    }), env, ctx);
+    if (r.status === 413) { message.setReject('Message too large'); return; }
+    if (!r.ok) throw new Error(`inbound email: the app answered ${r.status}`);
+  },
+
   // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every five minutes): the listing pipeline's
   // sweep and, hourly, the statement emails, through the app's own protected routes so they run with the
   // app's code and bindings.
@@ -122,6 +144,8 @@ const worker = {
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(securityHeaders())) headers.set(k, v);
+    // the website's schema marker, read by the site check in the database (0063: waiting for the website deploy)
+    headers.set(SCHEMA_HEADER, SCHEMA_MARKER);
     for (const c of setCookies) headers.append('set-cookie', c);
     // the email link's outbox row, kept through a sign-in redirect for the beacon (Live visitors, 0060)
     if (request.method === 'GET' && path.startsWith('/account/bookings/')) { const m = emailLinkCookie(request.url, true); if (m) headers.append('set-cookie', m); }

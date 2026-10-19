@@ -179,7 +179,7 @@ No live test data was made: the end-to-end tests run on the local stack, and the
   the page cache is on static assets only). Deploy again after 00:00 UTC with the default page cache, and consider
   Workers Paid, which removes the limit.
 - **Read the new legal text**: the booking amendment (`web/src/features/agreement/amendment.ts`) and the Form C and D
-  wording (`scripts/gen-owner-agreements.mjs`) should be read by the lawyer.
+  wording (`scripts/gen-owner-agreements.mjs`) should be read by the lawyer. **Approved by the lawyer on 2026-10-19.**
 - **Cleaning time**: `turnaround_block_minutes` is 120 by default, the same as the 2-hour turnaround buffer in
   availability; set it to the real cleaning time (Admin > Settings > Program settings), and per car where it differs.
 - **Similar listings**: the year/make/model/colour match is shown but does not stop publishing (twins are common in a

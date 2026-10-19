@@ -2,7 +2,7 @@
 //   node --test --experimental-strip-types src/lib/db/postgrest.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { postgrestRpc, RpcError } from './postgrest.ts';
+import { postgrestRpc, RpcError, withBuildRetry } from './postgrest.ts';
 
 const T = { url: 'https://p.supabase.co/', anonKey: 'anon', serviceKey: 'service' };
 function mock(status: number, body: string) {
@@ -43,4 +43,24 @@ test('service role without its key is refused before any request', async () => {
   const m = mock(200, '1');
   await assert.rejects(postgrestRpc(m.f, { url: T.url, anonKey: 'a' }, 'door', {}, { role: 'service_role' }));
   assert.equal(m.calls.length, 0);
+});
+
+test('build: a statement timeout (57014) is tried again with a growing wait; at run time it is not', async () => {
+  let n = 0;
+  const waits: number[] = [];
+  const flaky = async () => { n++; if (n < 3) throw new RpcError('canceling statement due to statement timeout', '57014', undefined, 500); return 'hub'; };
+  assert.equal(await withBuildRetry(flaky, { building: true, sleep: async (ms) => { waits.push(ms); } }), 'hub');
+  assert.equal(n, 3);
+  assert.deepEqual(waits, [1500, 3000]);
+  n = 0;
+  await assert.rejects(withBuildRetry(flaky, { building: false, sleep: async () => {} }), /statement timeout/);
+  assert.equal(n, 1);
+});
+test('build: a refusal (42501) or a missing row is never tried again; five timeouts in a row still fail', async () => {
+  let n = 0;
+  await assert.rejects(withBuildRetry(async () => { n++; throw new RpcError('permission denied', '42501', undefined, 403); }, { building: true, sleep: async () => {} }), /permission/);
+  assert.equal(n, 1);
+  n = 0;
+  await assert.rejects(withBuildRetry(async () => { n++; throw new RpcError('timeout', '57014', undefined, 500); }, { building: true, sleep: async () => {} }), /timeout/);
+  assert.equal(n, 5);
 });

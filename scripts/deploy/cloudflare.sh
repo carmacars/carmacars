@@ -14,6 +14,11 @@
 #   scripts/deploy/cloudflare.sh images      image transformations on the zone (listing photos), on when the token may
 #   scripts/deploy/cloudflare.sh photos      the stand-in photos into the R2 public bucket (once; a marker object
 #                                            records it); with Supabase Storage: supabase.sh photos
+#   scripts/deploy/cloudflare.sh email       Turo by email (0063): checks Email Routing on in.carmacars.ca and points the
+#                                            rule for trips@in.carmacars.ca at the Worker when the token may. It never
+#                                            enables Email Routing and never touches the root domain's mail (Google
+#                                            Workspace MX): the subdomain is turned on once in the dashboard
+#                                            (docs/changes/2026-10-19-turo-email-quiet-alerts.md, owner steps)
 #
 # Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID; DEPLOY_ENV (production | staging), DOMAIN (carmacars.ca).
 set -euo pipefail
@@ -212,6 +217,40 @@ images() {
     notice "Images: transformations turned on for $DOMAIN (free up to 5,000 unique transformations a month)"
   else
     warn "Images: transformations are ${cur:-not readable} on $DOMAIN and the token cannot turn them on (Zone > Zone Settings > Edit, or Images > Transformations in the dashboard). Listing photos keep their original background and are flagged for staff until then."
+  fi
+}
+
+# Turo by email (0063). Read only, except the routing rule of the inbound address (created or pointed at the Worker).
+# Email Routing on the subdomain is turned on by the owner in the dashboard; this reports whether it is, and never calls
+# the enable or DNS endpoints, so the root domain's MX records (Google Workspace) can never change here.
+email() {
+  [ "$DEPLOY_ENV" = production ] || { log "email: production only"; return; }
+  local sub="in.$DOMAIN" addr="trips@in.$DOMAIN" worker="carmacars-prod" zone out mx rules rid body steps
+  steps="Cloudflare dashboard > $DOMAIN > Email > Email Routing > Settings > Subdomains: add 'in', then Routing rules > Custom address trips@$sub > Send to a Worker > $worker (the owner steps in docs/changes/2026-10-19-turo-email-quiet-alerts.md)"
+  zone=$(cfapi GET "/zones?name=$DOMAIN" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""
+  [ -n "$zone" ] || { warn "Turo by email: the token cannot read the zone $DOMAIN. $steps"; return; }
+  mx=$(cfapi GET "/zones/$zone/dns_records?type=MX&name=$sub" 2>/dev/null | jq -r '[.result[]?.content] | join(", ")') || mx=""
+  if [ -z "$mx" ]; then
+    notice "Turo by email: Email Routing is not on for $sub yet (no MX records on $sub). $steps"
+    return
+  fi
+  log "email: MX on $sub: $mx"
+  if ! rules=$(cfapi GET "/zones/$zone/email/routing/rules?per_page=50" 2>&1); then
+    warn "Turo by email: the token cannot read the Email Routing rules (it needs Zone > Email Routing Rules > Edit). Set the rule by hand: $steps"
+    return
+  fi
+  rid=$(jq -r --arg a "$addr" '[.result[]? | select(any(.matchers[]?; .field == "to" and .value == $a))][0].id // empty' <<<"$rules")
+  if [ -n "$rid" ] && jq -e --arg a "$addr" --arg w "$worker" '[.result[]? | select(any(.matchers[]?; .value == $a))][0] | .enabled and any(.actions[]?; .type == "worker" and (.value | index($w)))' <<<"$rules" >/dev/null; then
+    notice "Turo by email: ready. Mail to $addr goes to the Worker $worker"
+    return
+  fi
+  body=$(jq -n --arg a "$addr" --arg w "$worker" '{name: "Turo trip emails to the CarmaCars Worker", enabled: true, matchers: [{type: "literal", field: "to", value: $a}], actions: [{type: "worker", value: [$w]}]}')
+  if [ -n "$rid" ]; then out=$(cfapi PUT "/zones/$zone/email/routing/rules/$rid" "$body" 2>&1) || out="FAILED $out"
+  else out=$(cfapi POST "/zones/$zone/email/routing/rules" "$body" 2>&1) || out="FAILED $out"; fi
+  if [[ "$out" == FAILED* ]]; then
+    warn "Turo by email: the rule for $addr could not be set ($(grep -o '"message":"[^"]*"' <<<"$out" | head -1)). Set it by hand: $steps"
+  else
+    notice "Turo by email: the rule for $addr now sends it to the Worker $worker"
   fi
 }
 

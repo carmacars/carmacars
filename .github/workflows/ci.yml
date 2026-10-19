@@ -287,6 +287,10 @@ jobs:
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --secrets-file "$f"
           fi
           rm -f "$f"
+      - name: Turo by email (Email Routing on in.carmacars.ca and its rule to the Worker; never the root domain's mail)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: $RUN "Turo email" scripts/deploy/cloudflare.sh email
       - name: The site answers
         if: inputs.environment == 'production'
         run: |

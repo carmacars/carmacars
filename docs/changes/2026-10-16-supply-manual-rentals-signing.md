@@ -21,7 +21,7 @@ Every car has one of three supply types (`vehicles.supply_type`):
 - **Admin > Partners**: the partner record (business and legal name, contacts, HST number, commission, insurance company,
   policy and expiry, notes), its cars, bookings, statements and payouts, documents, a payout account (Admins only, the
   account number encrypted as an owner's), the partner portal (the owner portal with a partner flag: no Invoices page), and
-  the partner agreement: a draft for lawyer review, filled from the record, signed in the portal or recorded as signed on
+  the partner agreement (approved by the lawyer on 2026-10-19), filled from the record, signed in the portal or recorded as signed on
   paper.
 - **Partner insurance reminders (0049)**: the daily check raises one Admin task per partner and expiry date when the
   insurance expires within `partner_insurance_warn_days` (30 by default), has expired, or has no expiry while the partner
@@ -192,7 +192,8 @@ a row times out, which is what failed the first verification. Workers Paid remov
 
 - The lawyer: the partner agreement draft, and whether the generated investment agreement may be sent (its source,
   `docs/source/v2_investment.md`, still says "Draft for legal review. Not for signature"); whether a witness signing
-  electronically in person is enough for Form C (Form D stays on paper either way).
+  electronically in person is enough for Form C (Form D stays on paper either way). **Approved by the lawyer on 2026-10-19.** The investment
+  agreement's banner is gone (`docs/changes/2026-10-19-turo-email-quiet-alerts.md`).
 - Admin > Settings > Forms: check each official form with a real car and press "Checked: use for owners"; fill in
   `company_rin` and `company_address` in Program settings (the registrant on SR-LV-006 and SR-LV-012).
 - Program settings: confirm the staff agreement defaults (rate, hours, platform, trial period) and the partner commission
