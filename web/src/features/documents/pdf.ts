@@ -8,9 +8,9 @@ import type { Block } from '@/features/agreement/model';
 // same pdf-lib renderer as the agreements, with the CarmaCars wordmark on every page. Deterministic: the
 // same facts give the same bytes, so a stored copy is identified by its SHA-256.
 export type DocKind = 'owner_statement' | 'renter_statement' | 'receipt' | 'insurer_invoice' | 'investor_statement' | 'investor_year'
-  | 'company_statement' | 'company_owners' | 'company_vehicles';
+  | 'company_statement' | 'company_owners' | 'company_vehicles' | 'owner_invoice';
 export const DOC_KINDS: readonly DocKind[] = ['owner_statement', 'renter_statement', 'receipt', 'insurer_invoice', 'investor_statement', 'investor_year',
-  'company_statement', 'company_owners', 'company_vehicles'];
+  'company_statement', 'company_owners', 'company_vehicles', 'owner_invoice'];
 
 type F = Record<string, unknown> & { title: string; file_name: string; final: boolean; company: Company };
 interface Company { brand: string; legal_name: string; address: string; hst_number: string | null; phone: string; email: string; site: string; logo_key?: string | null }
@@ -115,6 +115,28 @@ function insurerInvoice(f: F): Block[] {
   blocks.push({ t: 'table', head: ['Total', ''], kv: true, rows: [['Amount before HST', dollars(f.amount_cents)], ['HST', dollars(f.hst_cents)], ['**Total due**', `**${dollars(f.total_cents)}**`],
     ...(n(f.paid_cents) > 0 ? [['Paid', dollars(f.paid_cents)] as [string, string], ['**Balance**', `**${dollars(f.balance_cents)}**`] as [string, string]] : [])] });
   blocks.push({ t: 'p', text: `Please pay by bank transfer and quote invoice ${s(f.invoice_number)}. Questions: ${f.company.email}.` });
+  return blocks;
+}
+
+// An owner invoice (migration 0067): every line with its quantity, unit amount and HST, the totals, what was paid, a void.
+function ownerInvoice(f: F): Block[] {
+  const o = (f.owner ?? {}) as Row;
+  const lines = (f.lines ?? []) as Row[];
+  const pays = (f.payments ?? []) as Row[];
+  const blocks = header(f, [['Owner', s(o.legal_name)], ...(s(o.address) ? [['Address', s(o.address)] as [string, string]] : []), ...(o.hst_number ? [['HST number', s(o.hst_number)] as [string, string]] : [])],
+    [['Invoice', s(f.invoice_number)], ['For', s(f.subject) || s(f.kind_label)], ['Date', day(f.issued_at)], ...(f.due_on ? [['Due', day(f.due_on)] as [string, string]] : []),
+     ['Vehicle', `${s(f.vehicle)}${f.plate ? `, ${s(f.plate)}` : ''}`], ...(f.period_month ? [['Period', month(f.period_month)] as [string, string]] : []),
+     ['Status', f.status === 'void' ? `Void: ${s(f.void_reason)}` : label(f.status)], ...(f.replaces ? [['Replaces', s(f.replaces)] as [string, string]] : []),
+     ...(f.credit_for ? [['Credit for invoice', s(f.credit_for)] as [string, string]] : []), ['Payee', s(f.payee)]]);
+  blocks.push({ t: 'table', head: ['Description', 'Qty', 'Unit', 'Amount', 'HST'],
+    rows: lines.map((l) => [s(l.description) + (l.note ? ` (${s(l.note)})` : ''), String(n(l.quantity)), dollars(l.unit_amount_cents), dollars(l.amount_cents), l.hst ? dollars(l.hst_cents) : 'No HST']) });
+  blocks.push({ t: 'table', head: ['Totals', ''], kv: true, rows: [['Before HST', dollars(f.fees_cents)], ['HST', dollars(f.hst_cents)],
+    ...(n(f.late_fee_cents) ? [['Late Fee', dollars(f.late_fee_cents)] as [string, string]] : []), ['**Total**', `**${dollars(f.total_cents)}**`],
+    ...pays.map((p) => [`Paid by ${s(p.method)} on ${day(p.on)}`, dollars(-n(p.amount_cents))] as [string, string]),
+    ...(n(f.deducted_cents) ? [['Deducted from payout', dollars(-n(f.deducted_cents))] as [string, string]] : []),
+    ['**Balance**', `**${dollars(f.status === 'void' ? 0 : Math.max(0, n(f.balance_cents)))}**`]] });
+  if (f.notes) blocks.push({ t: 'p', text: s(f.notes) });
+  blocks.push({ t: 'p', text: `Amounts in Canadian dollars. Pay from the invoice page in your owner portal by card, pre-authorized debit or e-Transfer. Questions: ${f.company.email}.` });
   return blocks;
 }
 
@@ -234,6 +256,7 @@ export function documentBlocks(kind: DocKind, f: F): Block[] {
     case 'company_statement': return companyStatement(f);
     case 'company_owners': return companyOwners(f);
     case 'company_vehicles': return companyVehicles(f);
+    case 'owner_invoice': return ownerInvoice(f);
   }
 }
 

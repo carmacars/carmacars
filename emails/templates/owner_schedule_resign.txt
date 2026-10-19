@@ -1,0 +1,36 @@
+CarmaCars  |  Vehicle Schedule
+
+========================================
+
+[Updated Vehicle Schedule]
+New terms for your {{vehicle_name}}
+
+Hi {{first_name}}, here are the terms we agreed. They apply from {{effective_date}} once you sign.
+
+{{#each terms_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+From: {{effective_date}}
+Your current terms stay in place until you sign.
+
+Read and sign:
+https://carmacars.ca/owner/sign/schedule/{{change_id}}
+
+Everything else in your Vehicle Schedule and your Enrollment Agreement stays the same.
+
+Questions before you sign? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

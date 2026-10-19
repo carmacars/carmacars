@@ -1,0 +1,42 @@
+CarmaCars  |  Owner set-up
+
+========================================
+
+[Your car is set up]
+Review the details and sign
+
+Hi {{first_name}}, {{staff_name}} set up your {{vehicle_name}} with CarmaCars. Your agreements are filled in from what you told us.
+
+{{#if has_password_url}}
+First, choose your password
+Your owner portal account is ready for {{owner_email}}. Choose your password ({{password_url}}). The link works once, for 24 hours; after that, use Forgot password on the sign-in page.
+{{/if}}
+
+What to do
+------------------------
+
+1. Review your details
+   Check your contact details and your car. Correct anything that is wrong before you sign.
+2. Sign once
+   Read your agreements and the terms we agreed, and sign them all with one signature.
+3. Pay the first invoice
+   If we sent you an invoice, pay it from the invoice page. Anything you already paid us is marked as paid.
+
+Review and sign:
+https://carmacars.ca/owner/review
+
+Something not right, or a question about your terms? Reply to this email before you sign.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

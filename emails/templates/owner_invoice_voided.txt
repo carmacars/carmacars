@@ -1,0 +1,40 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Invoice cancelled]
+You do not need to pay invoice {{invoice_number}}
+
+Hi {{first_name}}, we cancelled this invoice for your {{vehicle_name}}.
+
+Invoice no.: {{invoice_number}}
+Amount: {{invoice_total}}
+Vehicle: {{vehicle_name}}
+
+Why
+{{void_reason}}
+
+Nothing will be debited for it.
+
+{{#if has_replacement}}
+It is replaced by invoice {{replacement_number}}, with the correct amount. We send it to you when it is ready.
+{{/if}}
+
+View my invoices:
+https://carmacars.ca/owner/invoices
+
+Questions? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+{{payee_name}}
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

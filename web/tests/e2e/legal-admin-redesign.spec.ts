@@ -196,6 +196,8 @@ test('admin: an owner application, asked for something, answered by the owner, a
   await page.goto(`/admin/applications/${app.appId}`, { waitUntil: 'networkidle' });
   await expect(page.locator('body')).toContainText('I uploaded the permit today.');
   await page.getByTestId('app-approve').click();
+  // 0067: the terms and first invoice step, then Approve
+  await page.getByTestId('approve-confirm').click();
   await expect(page.getByTestId('app-approved')).toBeVisible({ timeout: 30_000 });
   const [o] = await sql`select o.status, a.status app from owners o join owner_applications a on a.owner_id = o.id where a.id = ${app.appId}`;
   expect(`${o!.status}/${o!.app}`).toBe('active/approved');

@@ -24,6 +24,9 @@ export interface AuthAdapter {
   invite?(email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
   /** Server only: a sign-in for a record that is already on file (its id), then a link to choose a password. */
   createForRecord?(userId: string, email: string, fullName: string, redirectTo: string): Promise<AuthResult>;
+  /** Server only (staff set up an owner's car, 0067): a sign-in for the address (the record's id when one is on file)
+   *  and a one-time link to choose a password, returned instead of emailed, so it goes in CarmaCars' own email. */
+  accountLink?(email: string, fullName: string, next: string, userId?: string | null): Promise<{ ok: true; user: SessionUser; link: string } | { ok: false; message: string; code?: AuthFailure }>;
   /** Local stand-in only: checks a sign-up confirmation link (Supabase checks its own in the callback). */
   confirmEmail?(tokenHash: string): Promise<AuthResult>;
   /** Server only: removes a sign-in account (one this request created and could not finish). */

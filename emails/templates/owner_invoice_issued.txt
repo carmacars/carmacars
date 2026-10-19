@@ -1,0 +1,47 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Invoice]
+{{invoice_title}}
+
+Hi {{first_name}}, here is invoice {{invoice_number}} for your {{vehicle_name}}.
+
+{{#each invoice_lines}}
+  {{label}}: {{amount}}
+{{/each}}
+  Total: {{invoice_total}}
+
+Invoice no.: {{invoice_number}}
+Due: {{due_date}}
+Vehicle: {{vehicle_name}}
+
+{{#if has_notes}}
+Note
+{{invoice_notes}}
+{{/if}}
+
+{{#if is_credit}}
+This is a credit note: the amount is owed to you. We refund it or set it against your next invoice, as agreed with you.
+{{else}}
+You can pay by card, by pre-authorized debit or by e-Transfer. The invoice page has the details for each.
+{{/if}}
+
+View the invoice:
+https://carmacars.ca/owner/invoices/{{invoice_number}}
+
+Questions about this invoice? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+{{payee_name}}
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

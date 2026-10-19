@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '163/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '167/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 73::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 76::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -670,6 +670,18 @@ values (test.id('nt_oa'), test.id('owner:nt_olga'), 'web', 1, array['ownership',
 insert into test.nt_synth select c, 'owner_application', a.id, jsonb_build_object('owner_id', a.owner_id)
   from (select id, owner_id from owner_applications where id = test.id('nt_oa')) a,
        unnest(array['owner_application_info_requested', 'owner_application_approved']) c;
+-- owner terms and invoices (0067): an invoice made by hand and its void, an updated Vehicle Schedule to sign, and the
+-- set-up email of a car staff entered
+insert into vehicle_term_changes (id, vehicle_id, kind, status, insurance_fee_cents, tracker_fee_cents, revenue_share_bps, previous, effective_from)
+values (test.id('nt_vtc'), test.id('vehicle:NT1'), 'new_schedule', 'awaiting_signature', 40000, 2500, 3000,
+        '{"schedule_number": "VS-NT1", "insurance_fee_cents": 45000, "tracker_fee_cents": 2500, "revenue_share_bps": 3500}', date '2031-07-01');
+insert into test.nt_synth
+select c, 'owner_invoice', i.id, jsonb_build_object('owner_id', i.owner_id)
+  from (select id, owner_id from owner_invoices where owner_id = test.id('owner:nt_olga') order by created_at limit 1) i,
+       unnest(array['owner_invoice_issued', 'owner_invoice_voided']) c;
+insert into test.nt_synth values
+  ('owner_schedule_resign', 'vehicle_term_change', test.id('nt_vtc'), jsonb_build_object('owner_id', test.id('owner:nt_olga'))),
+  ('owner_car_set_up', 'owner_application', test.id('nt_oa'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'password_url', 'https://carmacars.ca/auth/callback?token_hash=nt&type=invite'));
 select count(app.ntf_emit(code, entity, id, 'completeness', payload)) from test.nt_synth;
 -- the insurer invoice email (0032), sent from the admin portal
 insert into insurers (id, name, billing_contact_name, billing_email) values (test.id('nt_ins'), 'Nt Mutual', 'Ivan Insurer', 'billing@ntmutual.test');

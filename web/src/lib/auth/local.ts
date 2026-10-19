@@ -142,6 +142,17 @@ export function localAuth(): AuthAdapter {
       await this.requestPasswordReset(e, redirectTo);
       return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
     },
+    async accountLink(email, _fullName, next, userId) {
+      const e = email.trim().toLowerCase();
+      const found = await sql`select id, password_hash from local_auth.users where email = ${e}`;
+      if (found[0] && !String(found[0].password_hash).startsWith('invited$')) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      const id = (found[0]?.id as string | undefined) ?? userId ?? randomUUID();
+      if (!found[0]) await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${e}, ${'invited$' + randomBytes(16).toString('hex')})`;
+      const token = randomBytes(24).toString('base64url');
+      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at) values (${hashToken(token)}, ${id}, now() + make_interval(hours => ${LINK_HOURS}))`;
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      return { ok: true, user: { id, email: e }, link: `${base}/update-password?token=${token}&next=${encodeURIComponent(next)}` };
+    },
     async deleteAccount(userId) {
       await sql`delete from local_auth.users where id = ${userId}`;
     },

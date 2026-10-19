@@ -32,10 +32,10 @@ def build():
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
     g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales (customer service and Sales also have Live visitors and Live chat). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
-        ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Owner forms)'],
+        ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
         ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote)'],
-        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar), Renters (Find a renter), Rentals (Add a rental, New quote)'],
+        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
     g.steps([
@@ -124,6 +124,14 @@ def build():
         f'To open a renter\'s private details, press {B("Open with a reason")}. The reason is kept in the access log.',
     ], shot=S('va-cs/06-messages-desktop', 0, 60, 1440, 320, pins=[(1, 470, 186)]))
 
+    g.task('Add a car for an owner', f'Open {P("Owners", "Add a car for an owner")} (fleet: under Cars). You enter everything for the owner; they never fill in the application.')
+    g.steps([
+        'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
+        'The car: type the VIN and press Decode, then the details. Upload the ownership permit, the insurance slip and the lender\'s information if you have them. Photos are optional.',
+        'Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.',
+        'Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.',
+        f'Press {B("Add the car and send to an Admin")}. The application waits in the Admin\'s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.',
+    ])
     g.task('Owner forms (Forms C and D)')
     g.steps([
         f'Open {B("Owner forms")}. Each row is a scan an owner uploaded, with the witnesses and the status.',

@@ -31,7 +31,10 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
       <header className="stack">
         <p className="pt-kicker">Invoice {i.invoice_number}</p>
         <h1 className="d2">{invoiceTitle(i, monthOf)}</h1>
-        <p className="muted">{i.vehicle_name}{i.plate ? `, plate ${i.plate}` : ''}. Issued {day(i.issued_at ?? i.billing_date)}.</p>
+        <p className="muted">{i.vehicle_name}{i.plate ? `, plate ${i.plate}` : ''}. Issued {day(i.issued_at ?? i.billing_date)}.{i.due_on && !['paid', 'void'].includes(i.status) ? ` Due ${day(i.due_on)}.` : ''}</p>
+        {i.status === 'void' && <p className="alert alert--warn" role="status" data-testid="invoice-void"><span className="alert__title">Cancelled: nothing to pay</span><span>{i.void_reason}{i.replaced_by ? ` It is replaced by invoice ${i.replaced_by}.` : ''}</span></p>}
+        {i.replaces && <p className="small muted">This invoice replaces {i.replaces}.</p>}
+        <p><a className="link small" href={`/files/owner_invoice/${i.id}`} target="_blank" rel="noreferrer" data-testid="invoice-pdf">Download PDF</a></p>
         <p><span className={`badge ${s.badge}`} data-testid="invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span></p>
         {debit && <p className="pt-note" data-testid="invoice-debit">{debit}.{i.debit?.attempt?.status === 'scheduled' ? ' You can still pay it now by card; we then do not debit it.' : ''}</p>}
         {i.debit?.paused && i.status !== 'paid' && <p className="pt-note" data-testid="invoice-debit-paused">The automatic debit of this invoice is paused. Pay it from this page, or call us.</p>}
@@ -66,13 +69,14 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
         <aside className="pt-split__aside pt-first">
           <section className="pt-card" aria-labelledby="ow-lines"><h2 className="d4" id="ow-lines">What this invoice covers</h2>
             <dl className="pt-dl pt-dl--money" data-testid="invoice-lines">
-              {i.lines.filter((l) => l.kind !== 'late_fee').map((l, k) => <div key={k}><dt>{l.description ?? l.kind.replace(/_/g, ' ')}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
+              {i.lines.filter((l) => l.kind !== 'late_fee').map((l, k) => <div key={k}><dt>{l.description ?? l.kind.replace(/_/g, ' ')}{l.quantity && Number(l.quantity) !== 1 ? ` (${Number(l.quantity)} x ${money(l.unit_amount_cents ?? 0, { cents: true })})` : ''}{l.hst === false ? ', no HST' : ''}{l.note ? <span className="small muted"> · {l.note}</span> : null}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
               <div><dt>HST{i.company_hst_number ? ` (${i.company_hst_number})` : ''}</dt><dd>{LINE_HST(i.hst_cents) || money(0, { cents: true })}</dd></div>
               {i.late_fee_cents > 0 && <div><dt>Late Fee (no HST)</dt><dd>{money(i.late_fee_cents, { cents: true })}</dd></div>}
               <div><dt><b>Total</b></dt><dd className="pt-total" data-testid="invoice-total">{money(i.total_cents, { cents: true })}</dd></div>
               {i.paid_cents > 0 && i.status !== 'paid' && <div><dt>Paid so far</dt><dd>{money(-i.paid_cents, { cents: true })}</dd></div>}
               {i.status !== 'paid' && <div><dt><b>Balance</b></dt><dd className="pt-total">{money(i.balance_cents, { cents: true })}</dd></div>}
             </dl>
+            {i.notes && <p className="small" data-testid="invoice-notes">{i.notes}</p>}
             {i.kind === 'monthly' && i.days_billed && i.days_in_month && i.days_billed < i.days_in_month && <p className="small muted">Pro-rated: {i.days_billed} of {i.days_in_month} days.</p>}
             <p className="small muted">{i.kind === 'upfront' && !home.trackers_available ? 'The Tracker Install Fee is billed on its own invoice when trackers become available. ' : ''}Fees are due every month, rented or not. {home.auto_debit.terms.late_fee_rule} Registry, inspection and appraisal costs are not billed by CarmaCars: you pay them directly.</p>
           </section>

@@ -4,7 +4,10 @@ import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
-import { Badge, Card, Kv, PageHead, d, t } from '@/features/admin/ui';
+import { Badge, Card, Kv, PageHead, Tabs, d, t } from '@/features/admin/ui';
+import { ApproveStep, type Plan } from '@/features/owner-billing/ApproveStep';
+import { SetupEmail } from '@/features/owner-billing/SetupEmail';
+import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
 import { ApplicationChecks, ApplicationDecision, ApplicationNotes } from '@/features/admin/ApplicationActions';
 import { APP_STATUS } from '@/features/admin/applications';
 
@@ -14,7 +17,8 @@ export const metadata = pageMeta({ title: 'Application', path: '/admin/applicati
 type R = Record<string, unknown>;
 interface View {
   application: { id: string; application_number: string; status: string; created_at: string; checks: Record<string, { status: string; note: string | null; at: string }>;
-    requested_items: string[]; request_message: string | null; requested_at: string | null; owner_reply: string | null; owner_replied_at: string | null; decline_reason: string | null; decided_at: string | null };
+    requested_items: string[]; request_message: string | null; requested_at: string | null; owner_reply: string | null; owner_replied_at: string | null; decline_reason: string | null; decided_at: string | null;
+    entered_by_name: string | null; sourced_by: string | null; signing_method: string | null; setup_emailed_at: string | null };
   owner: R & { id: string; legal_name: string; owner_type: string; email: string | null; phone: string | null; address: string; licence_number: string | null; licence_province: string | null;
     date_of_birth: string | null; has_account: boolean; corporation_name: string | null; is_test: boolean; other_applications: string[] };
   vehicles: Array<R & { id: string; name: string; vin: string; plate: string | null; colour: string | null; odometer_km: number | null; management_mode: string; onboarding_status: string;
@@ -28,19 +32,35 @@ interface View {
 
 // One owner application on one page (October 16, 2026): the owner, the car with its VIN decode, the documents, the four
 // checks, the notes; then Approve, Ask for something or Decline.
-export default async function Application({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function Application({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { user } = await page(`/admin/applications/${id}`);
   const v = await door<View>(user.id, 'ops_read', 'application', { id }).catch(() => null);
   if (!v) notFound();
   const a = v.application; const o = v.owner;
   const label = (s: string | null | undefined) => (s ? s.replace(/_/g, ' ') : '');
-  return (
+  // 0067: an Invoices tab (every invoice of the application's cars, drafts included); Approve opens the terms and first
+  // invoice step
+  const tab = sp.tab === 'invoices' ? 'invoices' : 'overview';
+  const head = (
     <>
       <PageHead kicker={<Link prefetch={false} className="link" href="/admin/applications">Applications</Link>} title={`${a.application_number}: ${o.legal_name}`}>
         <Badge s={a.status === 'new' ? 'requested' : a.status === 'waiting_on_owner' ? 'sent' : a.status}>{APP_STATUS[a.status]}</Badge>
       </PageHead>
+      {a.entered_by_name && <p className="small" data-testid="app-entered-by"><b>Entered by staff: {a.entered_by_name}</b>. {a.sourced_by ? 'They sourced this owner.' : 'Entered for CarmaCars.'} The owner signs {a.signing_method === 'paper' ? 'on paper' : 'in the owner portal after the set-up email'}.</p>}
+      <Tabs items={[[`/admin/applications/${id}`, 'Overview'], [`/admin/applications/${id}?tab=invoices`, 'Invoices', v.invoices.length]]} current={tab === 'invoices' ? `/admin/applications/${id}?tab=invoices` : `/admin/applications/${id}`} label="Application" />
+    </>
+  );
+  if (tab === 'invoices') {
+    const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { application_id: id });
+    return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?application=${id}`} testId="app-invoice-list" /></>;
+  }
+  const [plan, facts] = a.status === 'approved' || a.status === 'declined' ? [null, null]
+    : await Promise.all([door<Plan>(user.id, 'ops_read', 'application_approve_plan', { id }), door<{ hst_bps: number }>(user.id, 'ops_read', 'owner_add_car_facts', {})]);
+  return (
+    <>
+      {head}
       {a.status === 'waiting_on_owner' && <p className="alert alert--warn" role="status"><span>Asked on {t(a.requested_at)} for: {v.items.filter((i) => a.requested_items.includes(i.code)).map((i) => i.label).join('; ')}.{a.request_message ? ` "${a.request_message}"` : ''} Waiting on the owner.</span></p>}
       {a.owner_reply && a.status === 'new' && <p className="alert alert--ok" role="status"><span className="alert__title">The owner answered on {t(a.owner_replied_at)}</span><span>{a.owner_reply}</span></p>}
       {a.status === 'declined' && <p className="alert alert--error" role="status"><span>Declined on {d(a.decided_at)}: {a.decline_reason}</span></p>}
@@ -63,10 +83,12 @@ export default async function Application({ params }: { params: Promise<{ id: st
             {v.documents.length ? <ul className="ad-list">{v.documents.map((x) => <li key={x.id}><span><Link prefetch={false} className="link" href={`/admin/documents/${x.id}`}>{x.title || label(x.kind)}</Link>{x.vehicle ? <span className="muted"> · {x.vehicle}</span> : null}</span><span className="small">{d(x.created_at)}</span></li>)}</ul>
               : <p className="small muted">Nothing uploaded yet. Use Ask for something to request the ownership permit, the insurance slip or the lender&apos;s permission.</p>}
           </Card>
-          {v.invoices.length > 0 && <Card title="Invoices"><ul className="ad-list">{v.invoices.map((i) => <li key={i.invoice_number}><span>{i.invoice_number} · {label(i.kind)}</span><span>{money(i.total_cents, { cents: true })} · {label(i.status)}</span></li>)}</ul></Card>}
+          {v.invoices.length > 0 && <Card title="Invoices" aside={<Link prefetch={false} className="link small" href={`/admin/applications/${id}?tab=invoices`}>All invoices</Link>}><ul className="ad-list">{v.invoices.map((i) => <li key={i.invoice_number}><span><Link prefetch={false} className="link" href={`/admin/invoices/${i.invoice_number}`}>{i.invoice_number}</Link> · {label(i.kind)}</span><span>{money(i.total_cents, { cents: true })} · {label(i.status)}</span></li>)}</ul></Card>}
         </div>
         <div className="stack">
-          <Card title="Decide" testId="app-decide"><ApplicationDecision id={a.id} status={a.status} items={v.items} owner={o.legal_name} isTest={o.is_test} /></Card>
+          <Card title="Decide" testId="app-decide"><ApplicationDecision id={a.id} status={a.status} items={v.items} owner={o.legal_name} isTest={o.is_test}
+            approve={plan && facts ? <ApproveStep plan={plan} owner={o.legal_name} isTest={o.is_test} hstBps={facts.hst_bps} /> : undefined}
+            setup={a.entered_by_name ? <SetupEmail applicationId={a.id} sentAt={a.setup_emailed_at} /> : undefined} /></Card>
           <Card title="Checks" testId="app-checks"><ApplicationChecks id={a.id} checks={a.checks} disabled={a.status === 'approved' || a.status === 'declined'} /></Card>
           <Card title="Notes" testId="app-notes"><ApplicationNotes id={a.id} notes={v.notes} /></Card>
         </div>

@@ -54,6 +54,8 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
           </label>))}
       </fieldset>
       {supply === 'program_owner' && (
+        <p className="alert alert--info" data-testid="add-car-program-owner"><span>Setting up a car for an owner with their terms, documents and first invoice, or for a new owner? Use <Link prefetch={false} className="link" href="/admin/owners/add-car" data-testid="add-car-owner-flow">Add a car for an owner</Link>: the owner gets one email to review and sign.</span></p>)}
+      {supply === 'program_owner' && (
         <div className="ad-fields">
           <div className="field ad-field"><label className="label" htmlFor="ac-owner_id">Owner</label>
             <select className="select" id="ac-owner_id" value={v.owner_id ?? ''} onChange={set('owner_id')} data-testid="add-car-owner"><option value="">Choose the owner</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>

@@ -94,3 +94,29 @@
 .ow-cal__b.is-owner { background: var(--red-600); }
 /* on the owner home the vehicles share a column with money: one card per row */
 .pt-home .ow-cars { grid-template-columns: minmax(0, 1fr); }
+
+/* owner terms and invoices (migration 0067): line editor, totals, terms grids, signed text; admin, assistant and owner portals */
+.ob-terms { display: grid; gap: var(--s-2) var(--s-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 40rem) { .ob-terms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .ob-terms { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ob-terms .field { margin: 0; }
+.ob-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.ob-line { display: grid; gap: var(--s-2); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; border-bottom: 1px solid var(--grey-200); padding-bottom: var(--s-3); }
+.ob-line .field { margin: 0; }
+.ob-line__desc, .ob-line__note { grid-column: 1 / -1; }
+.ob-line__amt { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; padding-bottom: 0.6rem; }
+.ob-line__hst { padding-bottom: 0.6rem; }
+@media (min-width: 48rem) {
+  .ob-line { grid-template-columns: minmax(0, 3fr) minmax(4.5rem, 0.7fr) minmax(7rem, 1fr) auto minmax(6rem, auto) auto; }
+  .ob-line__desc { grid-column: auto; }
+  .ob-line__note { grid-column: 1 / -2; }
+}
+.ob-totals { display: grid; gap: var(--s-1); margin: 0; justify-content: end; }
+.ob-totals div { display: flex; gap: var(--s-4); justify-content: space-between; min-width: 14rem; }
+.ob-totals dt { color: var(--text-2); }
+.ob-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ob-text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: var(--fs-sm); background: var(--grey-50); border: 1px solid var(--grey-200); padding: var(--s-3); margin: 0; }
+.ob-choice { border: 1px solid var(--grey-200); padding: var(--s-3); margin: 0; }
+.ob-choice__total { align-self: end; margin: 0 0 0.6rem; }
+.ob-fee .input { flex: 1 1 10rem; }
+.ob-fee .input--sm { flex: 0 1 7rem; }

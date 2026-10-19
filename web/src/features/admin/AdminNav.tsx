@@ -14,7 +14,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/vehicles', label: 'Vehicles', key: 'v' }, { href: '/admin/listings', label: 'Listings', key: 'l' }, { href: '/admin/similar-cars', label: 'Similar cars' },
     { href: '/admin/calendar-sync', label: 'Calendar sync' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }] },
   { key: 'owners', label: 'Owners and partners', links: [
-    { href: '/admin/applications', label: 'Applications', key: 'a' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/partners', label: 'Partners' },
+    { href: '/admin/applications', label: 'Applications', key: 'a' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/owners/add-car', label: 'Add a car for an owner' }, { href: '/admin/partners', label: 'Partners' },
     { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' },

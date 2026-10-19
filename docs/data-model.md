@@ -43,6 +43,7 @@
 | `vehicles` | VIN, plate, pricing class, status, management mode, shareholder flag, derived `billing_case`, enrollment and exit dates, arrears flag, "18 to 20 allowed" (true for every car since 0025), the Owner's pickup address (0025) |
 | `vehicle_schedules` | Each signed Vehicle Schedule entry (including Additional Vehicle Schedules): mode, onboarding method, Insurance Fee, Tracker Fee, Install Fee, Revenue Share, lender, lien |
 | `vehicle_fee_history` | Fee terms in force over time; a notice needs 30 days; a share change needs a new schedule |
+| `owner_terms` | Negotiated terms with effective dates (0067): per car, or per owner as the default for their cars; a car's row wins, then the owner's, then the owner's other cars, then the grid and Program settings (`app.owner_terms_resolve()`). A change after the schedule is signed is a `vehicle_term_changes` row the owner signs |
 | `vehicle_onboardings` | The per-vehicle onboarding record and its status |
 | `vehicle_registrations` | How CarmaCars appears at the registry (Title Schedule) |
 | `vehicle_exits` | Notice, Exit Date, who pays transfer-back fees, Form E |
@@ -116,7 +117,7 @@
 
 | Table | Holds |
 | --- | --- |
-| `owner_invoices`, `owner_invoice_lines` | One invoice per vehicle per month (and the upfront invoice): fees, HST, Late Fee, paid, deducted, status |
+| `owner_invoices`, `owner_invoice_lines` | One invoice per vehicle per month (and the upfront invoice): fees, HST, Late Fee, paid, deducted, status. Since 0067 also invoices of any amount (`custom`) and credit notes, made as drafts; lines with quantity, unit amount and HST per line, editable only while the invoice is a draft (a trigger refuses the rest); void with a reason and a corrected replacement (`replaces_invoice_id`) |
 | `vehicle_prepaids` | Prepaid first and last month's Insurance Fee: applied, remaining, refund due |
 | `owner_deductions` | The other things that may come off a payout: owner costs paid, claim shortfall, refund or chargeback share, agreed amounts |
 | `referral_kickbacks` | One per qualifying booking: referrer, base, amount, status |

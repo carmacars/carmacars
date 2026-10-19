@@ -122,13 +122,14 @@ select test.eq('applications: the owner''s answer brings it back as New, with a 
   'new/true/1/true');
 select test.throws('applications: another person cannot answer for the owner', format($$select public.server_application_owner_reply(%L, %L)$$, test.id('ar_cs'), jsonb_build_object('id', test.ar_app(), 'reply', 'x')), 'Not found');
 insert into test.ar select 'approve', test.ar_do('ar_admin', 'application_approve', jsonb_build_object('id', test.ar_app()));
-select test.eq('applications: approve: the owner is active, the car has its terms (documents to sign), the first and last month''s invoice, the owner emailed',
+-- 0067: Approve with no invoices confirmed makes none (suite 43 approves with the invoices chosen)
+select test.eq('applications: approve: the owner is active, the car has its terms (documents to sign), no invoice unless the Admin confirms one, the owner emailed',
   (test.arv('approve') ->> 'status') || '/' || jsonb_array_length(test.arv('approve') -> 'terms') || '/' || jsonb_array_length(test.arv('approve') -> 'invoices')
   || '/' || (select o.status from owners o where o.id = (test.arv('app') ->> 'owner_id')::uuid)
   || '/' || (select string_agg(ob.status::text, ',') from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = (test.arv('app') ->> 'owner_id')::uuid)
   || '/' || (select count(*) from app_events e where e.code = 'owner_application_approved' and e.entity_id = test.ar_app())
   || '/' || (public.owner_portal_home(test.id('ar_ana')) #>> '{signing,needed}'),
-  'approved/1/1/active/terms_set/1/true');
+  'approved/1/0/active/terms_set/1/true');
 select test.eq('applications: approving twice is a replay', test.ar_do('ar_admin', 'application_approve', jsonb_build_object('id', test.ar_app())) ->> 'repeat', 'true');
 -- a second application, declined
 insert into users (id, email, full_name) values (test.id('ar_dev'), 'dev.ar@example.test', 'Dev Declined');

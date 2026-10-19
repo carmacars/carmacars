@@ -41,7 +41,7 @@ def build():
         ['Today', 'To do, Overview, Tasks'],
         ['Bookings', 'Requests, Bookings, Calendar, Add a rental, Damage, Incidents and claims, Reviews'],
         ['Cars', 'Vehicles, Listings, Similar cars, Retire or delete, Rates for many cars'],
-        ['Owners and partners', 'Applications, Owners, Partners, Owner forms, Paid and signed'],
+        ['Owners and partners', 'Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed'],
         ['Money', 'Owner invoices, Owner debits, Payments and refunds, Owner statements, Company statements, Payouts, Staff commissions, Tolls and tickets, Insurer invoices, Reconciliation, Expenses'],
         ['People', 'Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings, Site, Program, Forms, Guides, Emails, Email log, Sample photos, Audit log'],
@@ -427,7 +427,7 @@ def build():
     g.chapter('Owners and onboarding',
               'Owners apply on the site with List your car. Every application waits for you in one place, Applications: '
               'approve it, ask the owner for something, or decline it. Approved owners sign and pay in their portal.',
-              blurb='Applications, an owner\'s page, paid and signed, and Forms C and D.')
+              blurb='Applications, the terms and first invoice, adding a car for an owner, an owner\'s terms and invoices, paid and signed, and Forms C and D.')
     g.task('Applications', f'{P("Owners and partners", "Applications")}. Every owner application, newest first.')
     g.steps([
         'The chips filter by status: New, Waiting on owner, Approved, Declined, or All. New applications also show on To do.',
@@ -437,11 +437,23 @@ def build():
     g.task('Decide on an application', 'One page holds everything: the owner, the car, the uploads, the four checks and the notes.')
     g.steps([
         'Check the driver\'s licence, the ownership, the insurance and the lender or lessor. Mark each one Checked, fine, Problem or Not needed.',
-        f'Press {B("Approve")}. The owner becomes active, the car gets its terms from the standard grid, the first and last month\'s invoices are issued, and the owner gets an email to sign and pay in the owner portal.',
+        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, Revenue Share, Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
+        'Choose the invoices: First and last month, Registration fee (any exact amount), Tracker install (only once trackers are available) and Another invoice. For each one choose Send now, Save as draft or Already paid. Already paid asks how (e-Transfer, cash, cheque, bank transfer or other), the date and the reference: it is recorded like Record payment and the owner gets the receipt, not an invoice.',
+        f'Press {B("Approve")} at the bottom of the step. Nothing is set or sent before that. The owner becomes active, the documents open for one signature in their portal, only the invoices you chose are made, and the owner gets one email.',
         f'Missing something? Press {B("Ask for something")}, tick what you need (for example the ownership permit or the insurance slip), add a message if you like, and press {B("Send to the owner")}. The owner gets an email and a task in their portal; the application shows Waiting on owner until they answer.',
         f'Not a fit? Press {B("Decline")}, write the Reason the owner reads, and press {B("Decline the application")}. The owner is emailed for each car.',
     ], shot=S('admin/34-application-desktop', 0, 160, 1440, 900, pins=[(1, 1050, 633), (2, 1064, 436), (3, 1220, 436), (4, 1050, 491)]))
+    g.para('The application has an Invoices tab: every invoice of its cars, drafts and voids included. An application staff entered for the owner says "Entered by staff" and who; approving it sends the owner the set-up email (review the details and sign) instead of the approval email.')
     g.tip(f'Notes on the page are for staff only: {B("Add note")} keeps a line on the record. When the owner answers a request, their answer is in the notes and the application is New again.')
+    g.task('Add a car for an owner', f'{P("Owners and partners", "Add a car for an owner")}, or {B("Add another car")} on an owner\'s page. The owner never has to fill in the application.')
+    g.steps([
+        'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
+        'The car: type the VIN and press Decode, then the plate, colour, odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
+        'Terms and first invoice: the same fields as Approve. For another car of the same owner they start from that owner\'s terms.',
+        'Who sourced the owner: Entered for CarmaCars, or I sourced this owner (only then are you recorded as the one who brought the owner). How the owner signs: by email, or on paper.',
+        f'Press {B("Add the car and set it up")}. The owner gets one email: review the details, correct anything, and sign. An owner with no sign-in gets the link to choose a password in that same email.',
+    ])
+    g.para(f'Customer service and fleet assistants add cars the same way from their portal; theirs wait in Applications for you, with the terms and invoices they proposed already filled in. On an approved application staff entered, {B("Send the set-up email again")} sends the owner the email with a fresh link.')
     g.task('Owners', f'{P("Owners and partners", "Owners")}. Every owner, with their cars and where onboarding stands.')
     g.steps([
         'Each owner shows their application, how many cars, and where onboarding stands.',
@@ -451,15 +463,22 @@ def build():
     g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready). '
            'The confirmations to tick, then one signature: CarmaCars countersigns at the same moment, under the signing officer\'s standing authorization. '
            'A car with a second owner on the ownership waits for that owner too: they get their own link by email and sign the same documents.')
-    g.task('An owner\'s page', 'Open an owner from Owners. The details are in the right-hand column.')
+    g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
-        'Upfront invoices: issue the first and last month\'s insurance fee for each car whose terms are set.',
+        'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',
         'Owner: address, sign-in, agreements, and what is still missing for the registry forms.',
         'Statements and payouts for this owner.',
         'Forms C and D, with a link to the review queue.',
         f'Further down: {B("View as (owner portal)")}, {B("Send password link")} and {B("Send a sign-in link to the owner portal")}.',
     ], shot=S('admin/13-owner-desktop', 1010, 280, 1420, 1310, hdr=False, pins=[(1, 1111, 325), (2, 1076, 619), (3, 1139, 1034), (4, 1097, 1290)]))
 
+    g.task('An owner\'s terms', 'The Terms tab of an owner\'s page: what the owner pays and keeps, exact to the cent.')
+    g.steps([
+        f'The owner\'s terms are the default for their cars: fill in what you negotiated (leave a field empty to keep the standard grid), the date it applies from, and press {B("Save the terms")}. They apply to cars whose terms are set from that date.',
+        f'Each car has its own terms: open Change this car\'s terms, type the exact amounts and press {B("Save the terms")}. While the Vehicle Schedule is not signed, the schedule changes at once and the documents are made again.',
+        f'When the Vehicle Schedule is already signed, saving shows a warning: the owner must sign an updated schedule. Press {B("Create the updated schedule and email the owner to sign")}. The current terms stay until the owner signs; then the new ones apply from their date to invoices, debits and statements.',
+        f'Signed on paper instead? {B("Record signed on paper")} with the date. {B("Withdraw it")} cancels the update, with a reason.',
+    ])
     g.task('Paid and signed', f'{P("Owners and partners", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
@@ -481,16 +500,29 @@ def build():
 
     # ---------------------------------------------------------------- 7
     g.chapter('Owner money',
-              'Owner fee invoices are issued on the notice day and debited on the 15th. Statements are built, approved '
-              'and issued each month, and payouts follow.',
-              blurb='Owner invoices, the automatic debit, statements, payouts and the company statement.')
-    g.task('Owner invoices', f'{P("Money", "Owner invoices")}')
+              'Owner fee invoices are issued on the notice day and debited on the 15th. Invoices of any amount are made by hand, '
+              'as drafts first. Statements are built, approved and issued each month, and payouts follow.',
+              blurb='Owner invoices (drafts, void and reissue, credit notes), the automatic debit, statements, payouts and the company statement.')
+    g.task('Owner invoices', f'{P("Money", "Owner invoices")}. Every owner invoice, drafts and voids included. The same list is on each owner\'s and each application\'s Invoices tab.')
     g.steps([
-        f'{B("Run the monthly invoices")} issues the invoices for the 15th by hand, for a missed month. An invoice is never issued twice.',
-        f'{B("Issue all tracker invoices")} bills the Tracker Install for each car waiting for its tracker.',
-        'Filter by Open, Paid, Failed or In arrears. Failed invoices show the reason.',
-        f'Paid by e-Transfer, cheque, cash or bank transfer? Press {B("Record payment")} under the invoice. Leave Amount empty for the full balance.',
-    ], shot=S('admin/14-owner-invoices-desktop', 0, 0, 1440, 1060, pins=[(1, 1200, 237), (2, 600, 378), (3, 418, 460), (4, 743, 894)]))
+        'Filter by Drafts, Open, Partly paid, Paid, Failed, In arrears or Void, or search by invoice number or owner. Open an invoice to see everything about it.',
+        f'{B("New invoice")} makes an invoice of any amount for an owner\'s car, for example a registration fee of $123.45.',
+        f'The monthly run and tracker invoices: {B("Run the monthly invoices")} issues the invoices for the 15th by hand, for a missed month (never twice); {B("Issue all tracker invoices")} bills the Tracker Install for each car waiting for its tracker.',
+    ], shot=S('admin/14-owner-invoices-desktop', 0, 0, 1440, 1060, pins=[(1, 1200, 237), (2, 600, 378), (3, 418, 460)]))
+    g.task('Make, edit and issue an invoice', 'A new invoice is a draft: the owner sees nothing and it is never debited until you issue it.')
+    g.steps([
+        f'Choose the car, a title (for example Registration fee) and, if you like, the due date (empty: 7 days after it is issued). Each line: the description, the quantity, the unit amount to the cent, HST on or off, and a note. {B("Add a line")} for more.',
+        f'{B("Save as draft")} to come back to it, or {B("Save and issue")} to send it now. On a draft\'s page, {B("Issue and email")} sends it.',
+        f'Paid another way? Press {B("Record payment")} on the invoice. The page lists the payments with their receipts, the automatic debits, the emails sent and the history.',
+        f'{B("Resend email")} sends the invoice again. {B("PDF")} opens it as a PDF.',
+    ])
+    g.task('Correct an issued invoice', 'An issued invoice is never edited. You void it and issue a corrected one.')
+    g.steps([
+        f'Press {B("Void")}, write the reason (the owner reads it), keep Make a corrected invoice from it ticked, and press {B("Void the invoice")}. Its scheduled debit is cancelled and the owner is told.',
+        f'The corrected invoice opens as a draft with the same lines. Fix the amounts and press {B("Save and issue")}.',
+        f'Already paid? Void the payment first, or press {B("Credit note")} for the amount to give back: it gets its own number and the owner sees it.',
+    ])
+    g.para('Invoices issued before October 20, 2026 at the old default (for example $904.00, or $1,017.00 when the Insurance Fee was $450.00) are not changed by themselves. Where an owner agreed another amount, void them and reissue at the agreed amount.')
 
     g.task('The automatic debit', 'The debit runs by itself. Your job is to watch for returned debits and owners without a mandate.')
     g.flow([('Notice day', 'Invoices issued, one notice per owner, 10 days before'),

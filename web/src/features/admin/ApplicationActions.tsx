@@ -1,31 +1,32 @@
 'use client';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { applicationApprove, applicationCheck, applicationDecline, applicationNote, applicationRequest } from '@/server/actions/applications';
 import { CHECKS, CHECK_RESULT } from './applications';
 
 // The owner application page's actions (migration 0054): Approve, Ask for something, Decline; the four checks; notes.
-export function ApplicationDecision({ id, status, items, owner, isTest }: { id: string; status: string; items: Array<{ code: string; label: string }>; owner: string; isTest: boolean }) {
+export function ApplicationDecision({ id, status, items, owner, isTest, approve, setup }: { id: string; status: string; items: Array<{ code: string; label: string }>; owner: string; isTest: boolean; approve?: ReactNode; setup?: ReactNode }) {
   const router = useRouter();
   const a = useAct<Record<string, unknown>>();
   const uid = `ad-${useId().replace(/[^\w-]/g, '')}`;
-  const [mode, setMode] = useState<'' | 'ask' | 'decline'>('');
+  const [mode, setMode] = useState<'' | 'ask' | 'decline' | 'approve'>('');
   const [picked, setPicked] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [reason, setReason] = useState('');
   const done = (r: { ok: boolean }) => { if (r.ok) { setMode(''); router.refresh(); } };
-  if (status === 'approved') return <p className="small" data-testid="app-approved">Approved. The owner signs the documents and pays the first invoice in the owner portal; their progress is on the owner record.</p>;
+  if (status === 'approved') return <div className="stack"><p className="small" data-testid="app-approved">Approved. The owner signs the documents and pays the invoices you sent in the owner portal; their progress is on the owner record.</p>{setup}</div>;
   if (status === 'declined') return <p className="small">Declined. Nothing else to do.</p>;
   return (
     <div className="stack">
-      <p className="small muted">Approve when the checks are done: {owner}&apos;s account becomes active, each car gets its terms from the standard grid, the documents open for one signature in the owner portal, the first and last month&apos;s invoice is issued, and the owner is emailed{isTest ? ' (a test owner: the staff emails stay with the test accounts)' : ''}.</p>
+      <p className="small muted">Approve when the checks are done: you confirm each car&apos;s terms and choose its first invoices (send now, save as a draft, or record as already paid). Then {owner}&apos;s account becomes active, the documents open for one signature in the owner portal, and the owner is emailed{isTest ? ' (a test owner: the staff emails stay with the test accounts)' : ''}.</p>
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        <button type="button" className="btn btn--primary" disabled={a.pending} data-testid="app-approve"
-          onClick={() => { if (window.confirm(`Approve ${owner}? The owner is emailed and the first invoice is issued.`)) a.run(() => applicationApprove(id), done); }}>{a.pending ? 'Working' : 'Approve'}</button>
+        <button type="button" className="btn btn--primary" disabled={a.pending} data-testid="app-approve" aria-expanded={mode === 'approve'}
+          onClick={() => { if (approve) setMode(mode === 'approve' ? '' : 'approve'); else if (window.confirm(`Approve ${owner}? No invoice is made.`)) a.run(() => applicationApprove(id), done); }}>{a.pending ? 'Working' : 'Approve'}</button>
         <button type="button" className="btn btn--ghost" aria-expanded={mode === 'ask'} onClick={() => setMode(mode === 'ask' ? '' : 'ask')} data-testid="app-ask-open">Ask for something</button>
         <button type="button" className="btn btn--quiet" aria-expanded={mode === 'decline'} onClick={() => setMode(mode === 'decline' ? '' : 'decline')} data-testid="app-decline-open">Decline</button>
       </div>
+      {mode === 'approve' && approve}
       {mode === 'ask' && (
         <form className="stack pt-sheet" noValidate aria-label="Ask the owner for something" onSubmit={(e) => { e.preventDefault(); a.run(() => applicationRequest(id, picked, message), done); }}>
           <fieldset className={`field${a.err('items') ? ' has-error' : ''}`}><legend className="label">What do you need?</legend>

@@ -118,9 +118,11 @@ def build():
     g.bullets([
         'Each car has two monthly fees: an insurance fee and a tracker fee. They are due every month, rented or not.',
         'The tracker fee starts the day the car\'s tracker is installed. The tracker install fee has its own invoice.',
-        'Before a car goes live you pay the upfront invoice: the first and last month\'s insurance fee.',
-        'One invoice per car. Registry, inspection and appraisal costs are not billed by us; you pay them directly.',
+        'Before a car goes live you pay the first and last month amount we agreed with you (usually two months of the insurance fee, or the exact amount we agreed).',
+        'Your amounts are the ones we agreed for each car, to the cent. Any other fee we agreed, for example a registration fee, comes on its own invoice with each line, its quantity and whether HST applies.',
+        'One invoice per car. Registry, inspection and appraisal costs are not billed by us unless we agreed to pay them for you; then they are on an invoice of their own.',
     ])
+    g.para('An invoice we cancel shows Void with the reason, and the invoice that replaces it. Nothing is debited for a void invoice. Every invoice has Download PDF.')
     g.task('The monthly debit, step by step')
     g.flow([('Notice day', '10 days before: your invoices and one email with the total'),
             ('The 15th', 'Each invoice is debited from your account'),
@@ -185,6 +187,20 @@ def build():
           'The agreements take effect when the last owner signs; CarmaCars countersigns then.', label='Two owners')
     g.tip('Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed: they are in the same package. You can also sign one on its own page from Documents.', label='Good to know')
     g.tip('Signed one of your documents on paper instead? Send us the scan. Once we record it, Documents shows it as Signed on paper and we do not ask again.')
+
+    g.task('We set up your car for you', 'When our team enters your car for you, you get one email: review the details and sign.')
+    g.steps([
+        'No sign-in yet? The email has a link to choose your password. It works once, for 24 hours; after that use Forgot password on the sign-in page.',
+        f'Open {U("carmacars.ca/owner/review")} (Home has {B("Review or correct your details")}). Check your phone and address, and each car: plate, colour, odometer, your insurer and your lender. The terms we agreed are shown too.',
+        f'Something wrong? Correct it and press {B("Save corrections")}. Your documents are filled in again and we are told. A term you did not agree to: message us before you sign.',
+        f'Everything right? Press {B("Everything is right: sign")} and sign once.',
+    ])
+    g.task('Sign an updated Vehicle Schedule', 'When we agree new terms for a car you already signed for, you sign an updated Vehicle Schedule. Home shows it first.')
+    g.steps([
+        'Open it from Home or the email. It shows what changes (now and updated) and the date it applies from.',
+        f'Read the text, tick that you agree, type your full legal name and press {B("Sign")}.',
+        'Your current terms stay until you sign. After that, your invoices and statements use the new ones from the date.',
+    ])
 
     g.task('Form C on screen, with your witness beside you',
            'Form C is the lender or lessor permission for a financed or leased car. It needs one witness, and you can sign it on screen when your witness is with you.')

@@ -7,11 +7,13 @@ export interface OwnerVehicle {
   government_forms: string[] | null; next: { item: string; waits_on: string; action: string | null } | null; checklist: ChecklistItem[] | null;
 }
 export interface OwnerInvoiceRow {
-  id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install'; period_month: string | null;
+  id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install' | 'custom' | 'credit_note'; period_month: string | null;
   billing_date: string; retry_on: string | null; status: string; fees_cents: number; hst_cents: number; late_fee_cents: number; total_cents: number;
   balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean; partly_paid?: boolean;
   /** The automatic pre-authorized debit of this invoice (migration 0037). */
   debit?: InvoiceDebit | null;
+  /** Owner invoices made or corrected by hand (migration 0067). */
+  title?: string | null; due_on?: string | null; kind_label?: string; void_reason?: string | null;
 }
 export interface InvoiceDebit {
   debit_on: string | null; paused: boolean; paused_reason: string | null; blocked: string | null; attempts: number;
@@ -39,7 +41,8 @@ export interface AutoDebit {
 export interface OwnerInvoice extends OwnerInvoiceRow {
   owner_id: string; plate: string | null; days_billed: number | null; days_in_month: number | null; paid_cents: number; deducted_cents: number; issued_at: string | null;
   owner_name: string; owner_email: string | null; company_hst_number: string | null;
-  lines: Array<{ kind: string; description: string | null; amount_cents: number; hst_cents: number }>;
+  lines: Array<{ kind: string; description: string | null; amount_cents: number; hst_cents: number; quantity?: number; unit_amount_cents?: number; hst?: boolean; note?: string | null }>;
+  notes?: string | null; replaced_by?: string | null; replaces?: string | null; credit_for?: string | null; voided_at?: string | null;
   payments: Array<{ id: string; method: string; status: string; amount_cents: number; card_brand: string | null; card_last4: string | null; decline: string | null; created_at: string; processed_at: string | null; reference: string | null }>;
   saved_methods: Array<{ kind: string; brand_or_bank: string | null; last4: string | null; is_default: boolean }>;
   /** Payments recorded by hand (migration 0044) and, when paid, "Paid by e-Transfer on <date>". */
@@ -121,8 +124,9 @@ export function debitLine(d: InvoiceDebit | null | undefined, day: (iso: string 
 export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'> & { partly_paid?: boolean }) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' }
   : i.partly_paid && i.status === 'issued' ? { label: 'Partly paid', badge: 'badge--outline' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
 
-export const invoiceTitle = (i: { kind: string; period_month: string | null }, month: (iso: string | null) => string) =>
-  i.kind === 'upfront' ? 'First and last month\'s insurance' : i.kind === 'tracker_install' ? 'Tracker install' : i.kind === 'adjustment' ? 'Adjustment' : `Fees for ${month(i.period_month)}`;
+export const invoiceTitle = (i: { kind: string; period_month: string | null; title?: string | null }, month: (iso: string | null) => string) =>
+  i.title ? i.title : i.kind === 'upfront' ? 'First and last month\'s insurance' : i.kind === 'tracker_install' ? 'Tracker install' : i.kind === 'adjustment' ? 'Adjustment'
+    : i.kind === 'custom' ? 'Invoice' : i.kind === 'credit_note' ? 'Credit note' : `Fees for ${month(i.period_month)}`;
 export const TRACKER_LATER = 'A Tracker Install Fee applies when trackers become available. We bill it then, on its own invoice.';
 export const ONBOARDING_STATUS: Record<string, string> = {
   intake: 'Application with our team', declined: 'Declined', withdrawn: 'Withdrawn', terms_set: 'Terms ready to sign',

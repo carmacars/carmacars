@@ -107,6 +107,26 @@ export function supabaseAuth(): AuthAdapter {
       await gotrue('/recover', { email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => undefined);
       return { ok: true, user: { id: userId, email }, needsConfirmation: true };
     },
+    async accountLink(email, fullName, next, userId) {
+      const e = email.trim().toLowerCase();
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      let type: 'invite' | 'recovery' = 'invite';
+      if (userId) {
+        // a record already on file: its sign-in is made with the same id (no email), then a link to choose a password
+        const made = await gotrue('/admin/users', { id: userId, email: e, email_confirm: true, user_metadata: { full_name: fullName } }, { service: true });
+        if (!made.ok && made.status !== 422) return failure(made.err, 'We could not create the sign-in.');
+        if (!made.ok) return { ok: false, code: 'exists', message: 'This address already signs in.' };
+        type = 'recovery';
+      }
+      const r = await gotrue('/admin/generate_link', { type, email: e, data: { full_name: fullName } }, { service: true });
+      if (!r.ok) return r.status === 422 ? { ok: false, code: 'exists', message: 'This address already signs in.' } : failure(r.err, 'We could not make the sign-in link.');
+      const d = r.data as { id?: string; hashed_token?: string; properties?: { hashed_token?: string }; user?: { id?: string } };
+      const token = d.hashed_token ?? d.properties?.hashed_token;
+      const id = userId ?? d.id ?? d.user?.id;
+      if (!token || !id) return { ok: false, message: 'We could not make the sign-in link.' };
+      return { ok: true, user: { id, email: e }, link: `${base}/auth/callback?token_hash=${encodeURIComponent(token)}&type=${type}&next=${encodeURIComponent(next)}` };
+    },
     async deleteAccount(userId) {
       await gotrue(`/admin/users/${encodeURIComponent(userId)}`, undefined, { service: true, method: 'DELETE' }).catch(() => undefined);
     },

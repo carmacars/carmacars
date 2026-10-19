@@ -18,10 +18,14 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   // what CarmaCars asked for on an application (0054), until the owner answers
   const appTask = (await rpc('server_owner_application_task', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
+  // 0067: an updated Vehicle Schedule to sign comes first; cars set up by staff can be reviewed and corrected before signing
+  const changes = ((await rpc('server_owner_schedule_changes', { p_by: user.id }, { role: 'service_role' }).catch(() => [])) ?? []) as unknown as Array<{ change_id: string; vehicle_name: string; effective_from: string }>;
   const due = home.invoices.filter((i) => i.payable);
   const pending = home.invoices.filter((i) => i.pending && i.status !== 'paid');
   const partner = home.kind === 'partner' ? home.partner ?? null : null;
-  const next = partner && partner.agreement_status !== 'signed'
+  const next = changes.length
+    ? { title: `Sign the updated Vehicle Schedule for the ${changes[0]!.vehicle_name}`, note: `The terms we agreed apply from ${day(changes[0]!.effective_from)} once you sign. Your current terms stay until then.`, href: `/owner/sign/schedule/${changes[0]!.change_id}`, cta: 'Read and sign' }
+    : partner && partner.agreement_status !== 'signed'
     ? { title: 'Sign your partner agreement', note: `Your partner agreement with CarmaCars is ready: your cars, our commission and how we pay you. It is filled in for you; check it and sign on this screen.`, href: '/owner/sign', cta: 'Check and sign' }
     : home.signing.needed || onScreen.length
     ? { title: `Sign your documents (${checklist ? `${checklist.done} of ${checklist.total} signed` : 'ready'})`, note: `${onScreen.map((i) => i.label).filter((v, n, a) => a.indexOf(v) === n).join(', ') || 'Your agreements'}: filled in from what you gave us. Check the key values and sign once for all of them, in about a minute.`, href: '/owner/sign', cta: 'Check and sign' }
@@ -45,7 +49,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
               <p className="pt-kicker">Next step</p>
               <h2 className="d3" id="ow-next">{next.title}</h2>
               <p>{next.note}</p>
-              <p><Link prefetch={false} className="btn btn--primary" href={next.href}>{next.cta}</Link></p>
+              <p className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--primary" href={next.href}>{next.cta}</Link>
+                {next.href === '/owner/sign' && !partner && <Link prefetch={false} className="btn btn--ghost" href="/owner/review" data-testid="owner-review-link">Review or correct your details</Link>}</p>
             </section>
           ) : pending.length ? (
             <section className="pt-card pt-card--next" aria-labelledby="ow-next" data-testid="owner-next-step"><p className="pt-kicker">In progress</p><h2 className="d3" id="ow-next">Your payment is processing</h2><p>A pre-authorized debit takes 3 to 5 business days to clear. We email you when it does.</p></section>

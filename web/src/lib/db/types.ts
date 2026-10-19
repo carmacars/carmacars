@@ -6833,6 +6833,12 @@ export type Database = {
           decided_by: string | null;
           decline_reason: string | null;
           updated_at: string;
+          entered_by: string | null;
+          entered_by_name: string | null;
+          sourced_by: string | null;
+          signing_method: string | null;
+          plan: Json | null;
+          setup_emailed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -6856,6 +6862,12 @@ export type Database = {
           decided_by?: string | null;
           decline_reason?: string | null;
           updated_at?: string;
+          entered_by?: string | null;
+          entered_by_name?: string | null;
+          sourced_by?: string | null;
+          signing_method?: string | null;
+          plan?: Json | null;
+          setup_emailed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -6879,6 +6891,12 @@ export type Database = {
           decided_by?: string | null;
           decline_reason?: string | null;
           updated_at?: string;
+          entered_by?: string | null;
+          entered_by_name?: string | null;
+          sourced_by?: string | null;
+          signing_method?: string | null;
+          plan?: Json | null;
+          setup_emailed_at?: string | null;
         };
         Relationships: [];
       };
@@ -7262,6 +7280,10 @@ export type Database = {
           hst_cents: number;
           vehicle_prepaid_id: string | null;
           created_at: string;
+          quantity: number;
+          unit_amount_cents: number | null;
+          note: string | null;
+          sort_order: number;
         };
         Insert: {
           id?: string;
@@ -7273,6 +7295,10 @@ export type Database = {
           hst_cents?: number;
           vehicle_prepaid_id?: string | null;
           created_at?: string;
+          quantity?: number;
+          unit_amount_cents?: number | null;
+          note?: string | null;
+          sort_order?: number;
         };
         Update: {
           id?: string;
@@ -7284,6 +7310,10 @@ export type Database = {
           hst_cents?: number;
           vehicle_prepaid_id?: string | null;
           created_at?: string;
+          quantity?: number;
+          unit_amount_cents?: number | null;
+          note?: string | null;
+          sort_order?: number;
         };
         Relationships: [];
       };
@@ -7323,6 +7353,18 @@ export type Database = {
           auto_debit_paused_at: string | null;
           auto_debit_paused_by: string | null;
           debit_on: string | null;
+          title: string | null;
+          notes: string | null;
+          due_on: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          replaces_invoice_id: string | null;
+          credit_for_invoice_id: string | null;
+          application_id: string | null;
+          issued_by: string | null;
+          email_count: number;
+          last_emailed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -7359,6 +7401,18 @@ export type Database = {
           auto_debit_paused_at?: string | null;
           auto_debit_paused_by?: string | null;
           debit_on?: string | null;
+          title?: string | null;
+          notes?: string | null;
+          due_on?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          replaces_invoice_id?: string | null;
+          credit_for_invoice_id?: string | null;
+          application_id?: string | null;
+          issued_by?: string | null;
+          email_count?: number;
+          last_emailed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -7395,6 +7449,18 @@ export type Database = {
           auto_debit_paused_at?: string | null;
           auto_debit_paused_by?: string | null;
           debit_on?: string | null;
+          title?: string | null;
+          notes?: string | null;
+          due_on?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          replaces_invoice_id?: string | null;
+          credit_for_invoice_id?: string | null;
+          application_id?: string | null;
+          issued_by?: string | null;
+          email_count?: number;
+          last_emailed_at?: string | null;
         };
         Relationships: [];
       };
@@ -7785,6 +7851,57 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      owner_terms: {
+        Row: {
+          id: string;
+          owner_id: string;
+          vehicle_id: string | null;
+          insurance_fee_cents: number | null;
+          tracker_fee_cents: number | null;
+          revenue_share_bps: number | null;
+          install_fee_cents: number | null;
+          first_last_cents: number | null;
+          one_off_fees: Json;
+          effective_from: string;
+          effective_to: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          vehicle_id?: string | null;
+          insurance_fee_cents?: number | null;
+          tracker_fee_cents?: number | null;
+          revenue_share_bps?: number | null;
+          install_fee_cents?: number | null;
+          first_last_cents?: number | null;
+          one_off_fees?: Json;
+          effective_from: string;
+          effective_to?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          vehicle_id?: string | null;
+          insurance_fee_cents?: number | null;
+          tracker_fee_cents?: number | null;
+          revenue_share_bps?: number | null;
+          install_fee_cents?: number | null;
+          first_last_cents?: number | null;
+          one_off_fees?: Json;
+          effective_from?: string;
+          effective_to?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -8913,6 +9030,7 @@ export type Database = {
           stale_request_expire: boolean;
           stale_request_email_renter: boolean;
           addon_portal_cutoff_hours: number;
+          owner_invoice_due_days: number;
         };
         Insert: {
           id?: string;
@@ -9201,6 +9319,7 @@ export type Database = {
           stale_request_expire?: boolean;
           stale_request_email_renter?: boolean;
           addon_portal_cutoff_hours?: number;
+          owner_invoice_due_days?: number;
         };
         Update: {
           id?: string;
@@ -9489,6 +9608,7 @@ export type Database = {
           stale_request_expire?: boolean;
           stale_request_email_renter?: boolean;
           addon_portal_cutoff_hours?: number;
+          owner_invoice_due_days?: number;
         };
         Relationships: [];
       };
@@ -13549,6 +13669,8 @@ export type Database = {
           superseded_at: string | null;
           created_by: string | null;
           created_at: string;
+          first_last_cents: number | null;
+          one_off_fees: Json;
         };
         Insert: {
           id?: string;
@@ -13583,6 +13705,8 @@ export type Database = {
           superseded_at?: string | null;
           created_by?: string | null;
           created_at?: string;
+          first_last_cents?: number | null;
+          one_off_fees?: Json;
         };
         Update: {
           id?: string;
@@ -13617,6 +13741,8 @@ export type Database = {
           superseded_at?: string | null;
           created_by?: string | null;
           created_at?: string;
+          first_last_cents?: number | null;
+          one_off_fees?: Json;
         };
         Relationships: [];
       };
@@ -13640,6 +13766,15 @@ export type Database = {
           applied_by: string | null;
           applied_at: string | null;
           created_at: string;
+          install_fee_cents: number | null;
+          first_last_cents: number | null;
+          signed_method: string | null;
+          owner_signed_name: string | null;
+          owner_signed_at: string | null;
+          owner_signed_ip: string | null;
+          signed_text_sha256: string | null;
+          countersignature: string | null;
+          cancelled_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -13660,6 +13795,15 @@ export type Database = {
           applied_by?: string | null;
           applied_at?: string | null;
           created_at?: string;
+          install_fee_cents?: number | null;
+          first_last_cents?: number | null;
+          signed_method?: string | null;
+          owner_signed_name?: string | null;
+          owner_signed_at?: string | null;
+          owner_signed_ip?: string | null;
+          signed_text_sha256?: string | null;
+          countersignature?: string | null;
+          cancelled_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -13680,6 +13824,15 @@ export type Database = {
           applied_by?: string | null;
           applied_at?: string | null;
           created_at?: string;
+          install_fee_cents?: number | null;
+          first_last_cents?: number | null;
+          signed_method?: string | null;
+          owner_signed_name?: string | null;
+          owner_signed_at?: string | null;
+          owner_signed_ip?: string | null;
+          signed_text_sha256?: string | null;
+          countersignature?: string | null;
+          cancelled_reason?: string | null;
         };
         Relationships: [];
       };
@@ -15293,11 +15446,16 @@ export type Database = {
       server_owner_mandate_inactive: { Args: { p_mandate: string }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_owner_review: { Args: { p_by: string }; Returns: Json };
+      server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
+      server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
+      server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };

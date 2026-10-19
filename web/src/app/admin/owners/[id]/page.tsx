@@ -3,7 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { money, pct } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
-import { invoiceStatus, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
+import { invoiceStatus, invoiceTitle, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
@@ -15,6 +15,9 @@ import { Cosigners, type CosignerRow } from '@/features/admin/LegalActions';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';
 import { OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
+import { Tabs } from '@/features/admin/ui';
+import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
+import { TermsPanel, type TermsData } from '@/features/owner-billing/TermsPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -25,10 +28,32 @@ const yes = (v: unknown) => (v ? 'Yes' : 'No');
 
 // One owner (04-owner.md section 4, the parts needed for billing today): what the owner entered, the
 // terms per vehicle (the standard grid by default), the upfront invoices, payments and links.
-export default async function AdminOwner({ params }: { params: Promise<{ id: string }> }) {
-  const [{ user }, { id }] = await Promise.all([requireAdmin('/admin/owners'), params]);
+export default async function AdminOwner({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ user }, { id }, sp] = await Promise.all([requireAdmin('/admin/owners'), params, searchParams]);
   const d = await adminOwner(user, id);
   if (!d) notFound();
+  // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
+  const tab = sp.tab === 'terms' || sp.tab === 'invoices' ? sp.tab : 'overview';
+  const tabs: Array<[string, string, number?]> = [[`/admin/owners/${id}`, 'Overview'], [`/admin/owners/${id}?tab=terms`, 'Terms'], [`/admin/owners/${id}?tab=invoices`, 'Invoices', d.invoices.length]];
+  const head = (
+    <>
+      <Back href="/admin/owners">Owner applications</Back>
+      <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {d.owner.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{d.owner.legal_name}</h1>
+        <p className="muted">{[d.owner.email, d.owner.phone].filter(Boolean).join(' · ')}</p>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link>
+          <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link></div></header>
+      <Tabs items={tabs} current={tab === 'overview' ? `/admin/owners/${id}` : `/admin/owners/${id}?tab=${tab}`} label="Owner" />
+    </>
+  );
+  const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  if (tab === 'terms') {
+    const terms = await door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id });
+    return <>{head}<TermsPanel data={terms} ownerId={id} today={todayIso} /></>;
+  }
+  if (tab === 'invoices') {
+    const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { owner_id: id });
+    return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?owner=${id}`} testId="owner-invoice-list" /></>;
+  }
   const [rec, witnessed] = await Promise.all([
     adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id }),
     // Forms C and D signed with witnesses (migration 0040)
@@ -45,9 +70,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
   return (
     <>
-      <Back href="/admin/owners">Owner applications</Back>
-      <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {o.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{o.legal_name}</h1>
-        <p className="muted">{[o.email, o.phone].filter(Boolean).join(' · ')}</p></header>
+      {head}
       <div className="pt-split">
         <div className="stack-lg">
           {d.vehicles.map((v) => (
@@ -91,7 +114,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
           <section className="stack" aria-labelledby="ad-inv"><h2 className="pt-section-title" id="ad-inv">Invoices</h2>
             {d.invoices.length ? <ul className="ow-rows" data-testid="admin-owner-invoices">{d.invoices.map((i) => { const s = invoiceStatus(i); const paid = i.payments.find((x) => x.status === 'succeeded'); return (
               <li key={i.id} id={`inv-${i.invoice_number}`} data-invoice={i.invoice_number}>
-                <span><b>{i.invoice_number}</b> · {i.kind === 'upfront' ? 'First and last month' : i.kind === 'tracker_install' ? 'Tracker install' : monthOf(i.period_month)} · {i.vehicle_name}</span>
+                <span><b><Link prefetch={false} className="link" href={`/admin/invoices/${i.invoice_number}`}>{i.invoice_number}</Link></b> · {invoiceTitle(i, monthOf)} · {i.vehicle_name}</span>
                 <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
                 <span className="ow-meta"><span className={`badge ${s.badge}`} data-testid="admin-invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span>{i.paid_by ? <span>{i.paid_by.replace(/^Paid /, '')}</span> : paid && <span>{PAY_METHOD_LABEL[paid.method] ?? paid.method}{paid.reference ? ` ${paid.reference}` : paid.card_last4 ? ` ending ${paid.card_last4}` : ''}, {day(paid.processed_at ?? paid.created_at)}</span>}
                   {i.partly_paid && <span>{money(i.balance_cents, { cents: true })} owing</span>}</span>
@@ -102,7 +125,7 @@ export default async function AdminOwner({ params }: { params: Promise<{ id: str
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="ad-up"><h2 className="d4" id="ad-up">Upfront invoices</h2>
-            <p className="small">First and last month&apos;s Insurance Fee, with HST, one invoice per vehicle whose terms are set. The Tracker Install Fee is a separate invoice, issued per vehicle when trackers arrive{d.trackers_available ? '' : ' (trackers are not available yet)'}. Registry costs are never billed.</p>
+            <p className="small">The first and last month amount agreed on each car&apos;s terms, with HST, one invoice per vehicle whose terms are set. For other amounts or to choose what is sent, use the Invoices tab. The Tracker Install Fee is a separate invoice, issued per vehicle when trackers arrive{d.trackers_available ? '' : ' (trackers are not available yet)'}. Registry costs are never billed.</p>
             <IssueInvoices ownerId={o.id} count={issuable} />
           </section>
           <section className="pt-card" aria-labelledby="ad-owner"><h2 className="d4" id="ad-owner">Owner</h2>

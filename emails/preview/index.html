@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>163 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>63</span></a><a href="#owner">Owner <span>38</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>167 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>63</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (63)</h2>
 <div class="grid">
@@ -405,7 +405,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (38)</h2>
+<h2 id="owner">Owner (42)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Your CarmaCars owner account is ready</div>
@@ -428,7 +428,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/owner_application_approved.html"><img loading="lazy" src="../shots/owner_application_approved.desktop.png" alt="Screenshot of owner_application_approved"></a><div class="b">
 <div class="code">owner_application_approved</div><div class="sub">Approved: your 2023 Toyota RAV4 XLE can join CarmaCars</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">An Admin approves an owner application (Admin &gt; Owners and partners &gt; Applications &gt; Approve): the owner is active, each car has its terms from the standard grid, the agreements open for one signature in the owner portal, and the first and last month's invoices are issued by the existing rules (their own emails go too).</div>
+<div class="tr">An Admin approves an owner application the owner sent themselves (Admin &gt; Owners and partners &gt; Applications &gt; Approve): the owner is active, each car has the terms the Admin confirmed, the agreements open for one signature in the owner portal, and only the invoices the Admin chose are sent (their own emails go too). An application staff entered for the owner gets owner_car_set_up instead.</div>
 <div class="ln"><a href="../dist/owner_application_approved.html">HTML</a><a href="../dist/owner_application_approved.txt">Text</a><a href="../shots/owner_application_approved.desktop.png">Desktop</a><a href="../shots/owner_application_approved.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_application_declined.html"><img loading="lazy" src="../shots/owner_application_declined.desktop.png" alt="Screenshot of owner_application_declined"></a><div class="b">
@@ -466,6 +466,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A booking of type owner (an Owner Booking: the owner driving their own vehicle) changes to confirmed, after the owner signs the Owner Rental agreement and staff confirm the licence is valid.</div>
 <div class="ln"><a href="../dist/owner_booking_confirmed.html">HTML</a><a href="../dist/owner_booking_confirmed.txt">Text</a><a href="../shots/owner_booking_confirmed.desktop.png">Desktop</a><a href="../shots/owner_booking_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_car_set_up.html"><img loading="lazy" src="../shots/owner_car_set_up.desktop.png" alt="Screenshot of owner_car_set_up"></a><div class="b">
+<div class="code">owner_car_set_up</div><div class="sub">We set up your 2023 Toyota RAV4 XLE: review the details and sign</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff added a car for the owner (Admin, customer service or fleet: Add a car for this owner) and an Admin approved it with its terms and first invoices. The owner's one email: review the details and sign. Not sent when the owner signs on paper. For an owner with no sign-in yet it carries the link to choose a password.</div>
+<div class="ln"><a href="../dist/owner_car_set_up.html">HTML</a><a href="../dist/owner_car_set_up.txt">Text</a><a href="../shots/owner_car_set_up.desktop.png">Desktop</a><a href="../shots/owner_car_set_up.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_cosigner_sign.html"><img loading="lazy" src="../shots/owner_cosigner_sign.desktop.png" alt="Screenshot of owner_cosigner_sign"></a><div class="b">
 <div class="code">owner_cosigner_sign</div><div class="sub">Your CarmaCars owner documents are ready to sign</div>
@@ -551,6 +557,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A claim on a third-party owner's vehicle changes status (submitted, accepted, in_repair, repaired, settling, closed), or staff post an incident event marked visible to the owner.</div>
 <div class="ln"><a href="../dist/owner_incident_update.html">HTML</a><a href="../dist/owner_incident_update.txt">Text</a><a href="../shots/owner_incident_update.desktop.png">Desktop</a><a href="../shots/owner_incident_update.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_invoice_issued.html"><img loading="lazy" src="../shots/owner_invoice_issued.desktop.png" alt="Screenshot of owner_invoice_issued"></a><div class="b">
+<div class="code">owner_invoice_issued</div><div class="sub">Registration fee INV-1052 for the 2023 Toyota RAV4 XLE: $139.50</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin issues an owner invoice made by hand (a registration fee or any other amount agreed with the owner, Admin &gt; Money &gt; Owner invoices, the owner page or the application), or a credit note, or presses Resend on one. Not sent for an invoice recorded as already paid (the receipt goes instead).</div>
+<div class="ln"><a href="../dist/owner_invoice_issued.html">HTML</a><a href="../dist/owner_invoice_issued.txt">Text</a><a href="../shots/owner_invoice_issued.desktop.png">Desktop</a><a href="../shots/owner_invoice_issued.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_invoice_voided.html"><img loading="lazy" src="../shots/owner_invoice_voided.desktop.png" alt="Screenshot of owner_invoice_voided"></a><div class="b">
+<div class="code">owner_invoice_voided</div><div class="sub">Invoice INV-1046 is cancelled</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued.</div>
+<div class="ln"><a href="../dist/owner_invoice_voided.html">HTML</a><a href="../dist/owner_invoice_voided.txt">Text</a><a href="../shots/owner_invoice_voided.desktop.png">Desktop</a><a href="../shots/owner_invoice_voided.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_new_booking.html"><img loading="lazy" src="../shots/owner_new_booking.desktop.png" alt="Screenshot of owner_new_booking"></a><div class="b">
 <div class="code">owner_new_booking</div><div class="sub">New booking on your 2023 Toyota RAV4 XLE: Fri, Oct 23, 2026 to Mon, Oct 26, 2026</div>
 <div class="tags"><span>Transactional</span></div>
@@ -604,6 +622,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Vehicle onboarding status changes to registry_booked (Fleet booked the registry visit), and again if the date, time or place changes. (Message template T21.)</div>
 <div class="ln"><a href="../dist/owner_registry_visit.html">HTML</a><a href="../dist/owner_registry_visit.txt">Text</a><a href="../shots/owner_registry_visit.desktop.png">Desktop</a><a href="../shots/owner_registry_visit.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_schedule_resign.html"><img loading="lazy" src="../shots/owner_schedule_resign.desktop.png" alt="Screenshot of owner_schedule_resign"></a><div class="b">
+<div class="code">owner_schedule_resign</div><div class="sub">Please sign the updated Vehicle Schedule for the 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin changes the terms of a car whose Vehicle Schedule is signed and confirms that the owner must sign an updated one (Admin &gt; the owner &gt; Terms). The new terms apply from their date only once the owner signs; until then the signed terms stay in place.</div>
+<div class="ln"><a href="../dist/owner_schedule_resign.html">HTML</a><a href="../dist/owner_schedule_resign.txt">Text</a><a href="../shots/owner_schedule_resign.desktop.png">Desktop</a><a href="../shots/owner_schedule_resign.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_statement_ready.html"><img loading="lazy" src="../shots/owner_statement_ready.desktop.png" alt="Screenshot of owner_statement_ready"></a><div class="b">
 <div class="code">owner_statement_ready</div><div class="sub">Your November statement: $1,922.25</div>
