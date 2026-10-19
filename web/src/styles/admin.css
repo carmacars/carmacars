@@ -107,6 +107,8 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .ad-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); font-size: var(--fs-sm); align-items: center; }
 .ad-list > li:last-child { border-bottom: 0; }
+/* a long address in a list (Admin access holders) wraps instead of widening the page on a phone (crawl of run 39319314247) */
+.ad-list > li > * { min-width: 0; overflow-wrap: anywhere; }
 .ad-list .ad-sub { grid-column: 1 / -1; font-size: var(--fs-2xs); color: var(--text-2); }
 .ad-kv > div { padding-block: 0.4rem; font-size: var(--fs-sm); }
 
