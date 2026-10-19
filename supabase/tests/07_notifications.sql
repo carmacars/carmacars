@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '152/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '154/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 69::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 71::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -684,6 +684,13 @@ select app.emit_event('staff_commission_approved', 'user', test.id('nt_seller'),
 insert into staff_commission_payouts (id, staff_id, method, reference, paid_on, amount_cents, recorded_by)
 values (test.id('nt_cpay'), test.id('nt_seller'), 'e_transfer', 'NT-1', date '2031-05-01', 1000, test.id('nt_admin'));
 select app.emit_event('staff_commission_paid', 'staff_commission_payout', test.id('nt_cpay'), jsonb_build_object('staff_id', test.id('nt_seller'), 'payout_id', test.id('nt_cpay')), 'staff_commission_paid:nt');
+-- live chat (0060): the transcript to the visitor's email, and the email to staff on shift who asked for it
+insert into chat_conversations (id, visitor_id, name, email, human_reason) values (test.id('nt_chat'), test.id('nt_chatv'), 'Nia Chat', 'nia.chat@example.test', 'asked for a person');
+insert into chat_messages (conversation_id, sender, body) values (test.id('nt_chat'), 'visitor', 'Is the car free on Friday?');
+select app.chat_send_transcript(test.id('nt_chat'));
+insert into chat_staff_prefs (user_id, email_when_waiting, last_seen_at) values (test.id('nt_admin'), true, now())
+on conflict (user_id) do update set email_when_waiting = true, last_seen_at = now();
+select app.emit_event('staff_chat_waiting', 'chat_conversation', test.id('nt_chat'), '{"reason": "asked for a person"}', 'staff_chat_waiting:nt');
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

@@ -87,6 +87,14 @@ def build():
         'A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.',
     ], shot=S('public/08-book-5-sent-phone', 0, 595, 390, 1290, pins=[(17, 128, 628)]))
 
+    g.task('Ask in the chat', 'The chat button sits in the corner of every page.')
+    g.steps([
+        'Press it and write your question: a car, your dates, the price, how booking works. The CarmaCars assistant answers right away with prices from our booking system.',
+        f'Want a person? Press {B("Talk to a person")}. When our team is away, leave your name and email or phone with {B("Send my details")} and tick "Email me a copy of this chat".',
+        f'Press {B("End chat")} when you are done. If you gave your email, a copy of the chat arrives by email.',
+    ])
+    g.para('A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.')
+
     # ---------------------------------------------------------------- 2
     g.chapter('Your offer',
               'Our offer is the confirmed price for your car and dates, with every fee and HST. '

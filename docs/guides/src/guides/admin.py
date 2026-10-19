@@ -498,6 +498,49 @@ def build():
     ], shot=S('admin/21-tolls-review-desktop', 0, 0, 1440, 1150, pins=[(1, 613, 193), (2, 817, 504), (3, 1300, 700), (4, 1094, 437)]))
     g.tip('Renters matched with high confidence are charged at import, with the notice and the administration fee, when "Charge renters '
           'matched with high confidence now" is ticked. Other lines go to the work queue or stay as exceptions with the reason.')
+    # ---------------------------------------------------------------- live visitors and live chat (0060)
+    g.chapter('Live visitors and live chat',
+              'See who is on the site right now and what they look at, with buying signals, and answer the live chat. '
+              'The CarmaCars assistant answers the chat first; you take over whenever you want, and it hands over by itself '
+              'for complaints, damage, payments and anything it should not answer.',
+              blurb='Who is on the site now, signals and follow-ups, interest per car, the chat inbox, take over and hand back.')
+    g.task('Live visitors', 'Visitors who accepted analytics, known customers on their own booking pages and anyone in a chat.')
+    g.steps([
+        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, known customers, visits and chats today.',
+        'Each visitor shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on; the pages and cars of this visit; their visit number, device, city and the site or campaign that sent them.',
+        'Badges are buying signals: "Viewing spree: 6 cars in 10 minutes", "Opened offer CC-1042, not answered", "Opened the change proposal twice", "Left the pay page", "Returning visitor, 3rd visit this week", "Started a request and stopped".',
+        f'Press {B("Pages")} for every page and event of the visit, or {B("Start a chat")} to write to the visitor. They see your message in a bubble and reply from it.',
+        'Below: the signals of the last 24 hours and the most viewed cars of the week. The page refreshes by itself every few seconds.',
+    ])
+    g.task('Follow-up tasks', 'Signals of known visitors become tasks with a suggested action, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours".')
+    g.bullets([
+        'An offer opened and not answered: after 6 hours, to Sales when the booking is credited to someone in Sales, otherwise customer service.',
+        'The pay page left without paying: after 30 minutes, customer service. The change proposal opened twice: customer service.',
+        'A booking request started and stopped, or a viewing spree, by a known visitor: Sales.',
+        'A task closes by itself when the renter answers the offer, pays or answers the proposal. Each signal raises one task only.',
+        f'The thresholds are in {P("Settings", "Program")}, group "Live visitors and live chat". Follow-ups done count in My sales.',
+    ])
+    g.task('Interest in a car')
+    g.para(f'{P("Cars", "Vehicles")}, a car, Overview: "Interest on the site" shows who is looking now, views today and in 7 days, '
+           'conversion over 30 days (requests from the people who viewed it) and the last 14 days. The Vehicles list has "Most viewed cars this week".')
+    g.task('A renter\'s visits', 'On a renter\'s page (People > Renters, the name) and on a booking\'s History tab, "On the site" lists when they viewed the offer, opened the change proposal, viewed or left the pay page, which cars they looked at, and their chats.')
+    g.task('Live chat')
+    g.steps([
+        f'Open {P("Bookings", "Live chat")}. The menu counts chats waiting for a person. Open chats come first, those waiting for a person on top, with their minutes against the first reply target (5 minutes).',
+        'Choose a conversation. Beside it you see the visitor\'s page, pages, signals, and the renter with their bookings when known.',
+        f'Press {B("Take over")}: the assistant stops and the visitor reads that you joined. Writing a reply also takes over. Press {B("Send")} (or Enter).',
+        f'{B("Hand back to the assistant")} lets it answer again. {B("Close")} ends the chat; if the visitor gave an email they get a copy. {B("Email the transcript")} sends it any time.',
+        'Notify me: "Email me when a chat waits (while I am on shift)" and desktop alerts in this browser. You are on shift while Live chat or Live visitors is open.',
+    ])
+    g.tip('The assistant only repeats prices from our pricing (a quote or the car\'s rates), never offers discounts or promises a car, '
+          'never talks about insurance and never names a provider. Each reply it was not allowed to send says so in the conversation. '
+          'When nobody is on shift, the chat asks for the visitor\'s name, email or phone and raises a task. A booking from a chat you handled '
+          'is credited only when you choose "I sourced this client" on the quote or offer.')
+    g.task('The assistant\'s settings')
+    g.para('In Program settings, "Live visitors and live chat": the chat on or off, the AI first or not, its model, the neurons it may use a day '
+           '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
+           'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
+
     # ---------------------------------------------------------------- 9
     g.chapter('Settings',
               'Settings change the public site and the rules of the program at once. Program settings are kept '
@@ -521,6 +564,7 @@ def build():
         'First reply target for customer service and sales (minutes), under Booking requests and offers: 5 by default. New booking requests, enquiries, changes renters ask for and renter messages are due that many minutes after they come in; the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) is separate.',
         'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
+        'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 

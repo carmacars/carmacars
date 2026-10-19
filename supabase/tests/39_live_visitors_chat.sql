@@ -11,6 +11,8 @@ select test.mk_user('lv_sales', 'va', 'sales');
 select test.mk_user('lv_fin', 'va', 'finance');
 select test.mk_renter('lv_rita');
 
+-- staff presence and chat emails of earlier suites do not count here
+update chat_staff_prefs set last_seen_at = null, email_when_waiting = false;
 create temp table s39 as select null::text as k, null::jsonb as v limit 0;
 create or replace function test.s39(p_k text) returns jsonb language sql stable as $$ select v from pg_temp.s39 where k = p_k $$;
 grant all on s39 to public;
@@ -178,14 +180,14 @@ select test.eq('hand over, nobody on shift: waiting, after hours, asks for conta
   (select format('%s %s %s', x ->> 'status', x ->> 'on_shift', x ->> 'offline') from (select app.server_chat_handoff(test.tok('c1'), 'asked for a person') x) y), 'waiting false true');
 select test.eq('hand over: one task for customer service, due at the first reply target',
   (select format('%s %s', queue, (due_at <= now() + interval '6 minutes')::text) from tasks where task_type = 'live_chat_waiting' and related_id = (select id from chat_conversations where token = test.tok('c1'))), 'cs true');
-select test.eq('hand over: no staff email when nobody is on shift', (select count(*) from app_events where code = 'staff_chat_waiting'), 0::bigint);
+select test.eq('hand over: no staff email when nobody is on shift', (select count(*) from app_events where code = 'staff_chat_waiting' and entity_id = (select id from chat_conversations where token = test.tok('c1'))), 0::bigint);
 select test.eq('after the hand-over the assistant does not answer', app.server_chat_visitor_message(test.tok('c1'), 'Anyone?') ->> 'ai', 'false');
 select test.eq('contact: a bad email is refused', app.server_chat_contact(test.tok('c1'), '{"email": "nope"}') ->> 'error', 'That email does not look right');
 insert into s39 select 'ct', app.server_chat_contact(test.tok('c1'), '{"name": "Vic Visitor", "email": "vic@example.test", "phone": "416 555 0199", "transcript": true}');
 select test.eq('contact: kept on the chat and a lead; a task for the chat left after hours; the transcript emailed',
   (test.s39('ct') ->> 'ok')
   || ' ' || (select kind from leads where email = 'vic@example.test') || ' ' || (select count(*) from tasks where task_type = 'chat_contact')
-  || ' ' || (select count(*) from app_events where code = 'renter_chat_transcript'), 'true chat 1 1');
+  || ' ' || (select count(*) from app_events where code = 'renter_chat_transcript' and entity_id = (select id from chat_conversations where token = test.tok('c1'))), 'true chat 1 1');
 select test.eq('contact: the visit is known now', (select known_email from visitor_sessions where id = test.sid('spree')::uuid), 'vic@example.test');
 -- staff: take over, reply, typing, hand back, close
 select test.eq('inbox: the waiting chat first, with its unread count',
@@ -207,7 +209,7 @@ select app.chat_staff_do(test.id('lv_cs'), 'chat_hand_back', jsonb_build_object(
 select test.eq('hand back: the assistant answers again', (select status from chat_conversations where token = test.tok('c1')), 'ai');
 select app.chat_staff_do(test.id('lv_cs'), 'chat_close', jsonb_build_object('id', (select id from chat_conversations where token = test.tok('c1'))));
 select test.eq('close: closed, the transcript email once more for the whole chat',
-  (select status from chat_conversations where token = test.tok('c1')) || ' ' || (select count(*) from app_events where code = 'renter_chat_transcript'), 'closed 2');
+  (select status from chat_conversations where token = test.tok('c1')) || ' ' || (select count(*) from app_events where code = 'renter_chat_transcript' and entity_id = (select id from chat_conversations where token = test.tok('c1'))), 'closed 2');
 select test.eq('transcript: to the visitor''s email, transactional, with every message', (select count(*) from app.notification_recipients(
     (select e from app_events e where code = 'renter_chat_transcript' order by id desc limit 1), (select c from notification_catalogue c where code = 'renter_chat_transcript')) r where r.email = 'vic@example.test'), 1::bigint);
 select test.eq('transcript payload: the messages and the chat number',

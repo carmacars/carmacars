@@ -30,7 +30,7 @@ def build():
               'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
               'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
-    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales (customer service and Sales also have Live visitors and Live chat). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
         ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
@@ -314,6 +314,28 @@ def build():
         ['Paid', 'After an Admin approves it, by transfer or on your pay statement. My sales shows each step: not earned yet, pending approval, approved, paid, reversed'],
     ], head=['', 'Commission'])
     g.tip('A refund or chargeback after a commission was paid comes off your next payment. Your staff agreement has the full rule.')
+
+    # ---------------------------------------------------------------- live visitors and live chat (0060)
+    g.chapter('Live visitors and live chat',
+              'Customer service and Sales see who is on the site now and answer the live chat. The CarmaCars assistant '
+              'answers first; you take over whenever you want.',
+              blurb='Who is on the site, buying signals, follow-ups, the chat inbox, take over and hand back.')
+    g.task('Live visitors')
+    g.steps([
+        f'Open {P("My work", "Live visitors")}. Each visitor shows a name when known, otherwise "Visitor from Toronto, phone", the page and car they are on, and this visit\'s pages.',
+        'Badges are buying signals: "Viewing spree: 6 cars in 10 minutes", "Opened offer CC-1042, not answered", "Left the pay page", "Started a request and stopped" and more.',
+        f'Press {B("Pages")} for the whole visit. Press {B("Start a chat")}, write a short friendly message and press {B("Send")}: the visitor sees it in a bubble.',
+    ])
+    g.task('Follow-ups', 'Signals of known visitors raise tasks on To do with what to do, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours". Call or message, then mark the task done. A task closes by itself when the renter answers or pays. Follow-ups done count in My sales.')
+    g.task('Live chat')
+    g.steps([
+        f'Open {P("My work", "Live chat")}. The menu counts chats waiting for a person. Reply within 5 minutes.',
+        'Choose a conversation. Beside it: the visitor\'s page, pages and signals, and the renter\'s bookings when known.',
+        f'Press {B("Take over")} (or just write a reply): the assistant stops. Write and press {B("Send")} or Enter. The visitor sees when you type.',
+        f'{B("Hand back to the assistant")} when you are done, or {B("Close")}. A visitor who gave an email gets a copy of the chat.',
+        'Tick "Email me when a chat waits (while I am on shift)" or desktop alerts if you want them.',
+    ])
+    g.tip('Prices: send a quote from New quote, never a price from memory. If you handled the chat, choose "I sourced this client" on the quote; nothing is credited by itself.')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Shared tools',
