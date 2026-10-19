@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.52" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="936" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">MX-5</text>
+<g opacity=".16" transform="translate(126.0 1172.1) scale(1.6200 -0.8910)">
+<defs>
+<linearGradient id="c75b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE3A42"/><stop offset=".45" stop-color="#C20F18"/><stop offset="1" stop-color="#5C060A"/></linearGradient>
+<linearGradient id="c75g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c75rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c75s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="322" ry="13" fill="#000" opacity=".85"/>
+<path d="M 210,264
+Q 182,260 188,226
+Q 190,216 234,198
+Q 306,176 424,177
+Q 456.12,136 482.4,128
+Q 525.2,118 568,132
+Q 613.136,144 640.8,174
+L 770,179
+Q 816,186 812,228
+L 810,236 Q 810,262 786,264
+L 746.6,264 A 53 53 0 0 0 640.6,264
+L 357,264 A 53 53 0 0 0 251,264 Z" fill="url(#c75b)"/>
+<path d="M 210,264
+Q 182,260 188,226
+Q 190,216 234,198
+Q 306,176 424,177
+Q 456.12,136 482.4,128
+Q 525.2,118 568,132
+Q 613.136,144 640.8,174
+L 770,179
+Q 816,186 812,228
+L 810,236 Q 810,262 786,264
+L 746.6,264 A 53 53 0 0 0 640.6,264
+L 357,264 A 53 53 0 0 0 251,264 Z" fill="none" stroke="url(#c75s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 212,217 L 788,209" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 228,250 L 772,250" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 446,181
+Q 459.03999999999996,148 490.4,141
+Q 525.2,132 562,144
+Q 611.68,154 618.8,176
+L 450,183 Z" fill="url(#c75g)"/>
+<path d="M 533.2,136 L 539.2,183" stroke="#5C060A" stroke-width="9"/>
+<path d="M 484,197 h 38 M 573.2,195 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 194,220 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 808,194 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(304 264)"><circle r="44" fill="#050505"/><circle r="31.68" fill="url(#c75rim)"/><circle r="31.68" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(144)"/><circle r="7.48" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(693.6 264)"><circle r="44" fill="#050505"/><circle r="31.68" fill="url(#c75rim)"/><circle r="31.68" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(144)"/><circle r="7.48" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g><g transform="translate(126.0 398.8) scale(1.6200)">
+<defs>
+<linearGradient id="c75b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE3A42"/><stop offset=".45" stop-color="#C20F18"/><stop offset="1" stop-color="#5C060A"/></linearGradient>
+<linearGradient id="c75g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c75rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c75s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="322" ry="13" fill="#000" opacity=".85"/>
+<path d="M 210,264
+Q 182,260 188,226
+Q 190,216 234,198
+Q 306,176 424,177
+Q 456.12,136 482.4,128
+Q 525.2,118 568,132
+Q 613.136,144 640.8,174
+L 770,179
+Q 816,186 812,228
+L 810,236 Q 810,262 786,264
+L 746.6,264 A 53 53 0 0 0 640.6,264
+L 357,264 A 53 53 0 0 0 251,264 Z" fill="url(#c75b)"/>
+<path d="M 210,264
+Q 182,260 188,226
+Q 190,216 234,198
+Q 306,176 424,177
+Q 456.12,136 482.4,128
+Q 525.2,118 568,132
+Q 613.136,144 640.8,174
+L 770,179
+Q 816,186 812,228
+L 810,236 Q 810,262 786,264
+L 746.6,264 A 53 53 0 0 0 640.6,264
+L 357,264 A 53 53 0 0 0 251,264 Z" fill="none" stroke="url(#c75s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 212,217 L 788,209" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 228,250 L 772,250" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 446,181
+Q 459.03999999999996,148 490.4,141
+Q 525.2,132 562,144
+Q 611.68,154 618.8,176
+L 450,183 Z" fill="url(#c75g)"/>
+<path d="M 533.2,136 L 539.2,183" stroke="#5C060A" stroke-width="9"/>
+<path d="M 484,197 h 38 M 573.2,195 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 194,220 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 808,194 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(304 264)"><circle r="44" fill="#050505"/><circle r="31.68" fill="url(#c75rim)"/><circle r="31.68" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(144)"/><circle r="7.48" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(693.6 264)"><circle r="44" fill="#050505"/><circle r="31.68" fill="url(#c75rim)"/><circle r="31.68" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-30.799999999999997" width="6" height="61.599999999999994" fill="#1b1b1b" transform="rotate(144)"/><circle r="7.48" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MAZDA MX-5  1/8 FRONT THREE-QUARTER (LEAD)</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.52" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="936" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">CARNIVAL</text>
+<g opacity=".16" transform="translate(126.0 1172.1) scale(1.6200 -0.8910)">
+<defs>
+<linearGradient id="c95b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E8E8E"/><stop offset=".45" stop-color="#555555"/><stop offset="1" stop-color="#262626"/></linearGradient>
+<linearGradient id="c95g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c95rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c95s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="374" ry="13" fill="#000" opacity=".85"/>
+<path d="M 158,258
+Q 130,254 136,220
+Q 138,192 182,174
+Q 220,152 304,142
+Q 359,54 404,46
+Q 580,36 756,50
+Q 808.08,62 840,104
+L 822,109
+Q 868,116 864,158
+L 862,230 Q 862,256 838,258
+L 789,258 A 57 57 0 0 0 675,258
+L 317,258 A 57 57 0 0 0 203,258 Z" fill="url(#c95b)"/>
+<path d="M 158,258
+Q 130,254 136,220
+Q 138,192 182,174
+Q 220,152 304,142
+Q 359,54 404,46
+Q 580,36 756,50
+Q 808.08,62 840,104
+L 822,109
+Q 868,116 864,158
+L 862,230 Q 862,256 838,258
+L 789,258 A 57 57 0 0 0 675,258
+L 317,258 A 57 57 0 0 0 203,258 Z" fill="none" stroke="url(#c95s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 160,182 L 840,174" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 176,244 L 824,244" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 326,146
+Q 364,66 412,59
+Q 580,50 750,62
+Q 806.4,72 818,106
+L 330,148 Z" fill="url(#c95g)"/>
+<path d="M 588,54 L 594,148" stroke="#262626" stroke-width="9"/>
+<path d="M 364,162 h 38 M 628,160 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 142,196 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 860,124 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(260 260)"><circle r="48" fill="#050505"/><circle r="34.56" fill="url(#c95rim)"/><circle r="34.56" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="8.16" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(732 260)"><circle r="48" fill="#050505"/><circle r="34.56" fill="url(#c95rim)"/><circle r="34.56" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="8.16" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g><g transform="translate(126.0 398.8) scale(1.6200)">
+<defs>
+<linearGradient id="c95b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E8E8E"/><stop offset=".45" stop-color="#555555"/><stop offset="1" stop-color="#262626"/></linearGradient>
+<linearGradient id="c95g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c95rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c95s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="374" ry="13" fill="#000" opacity=".85"/>
+<path d="M 158,258
+Q 130,254 136,220
+Q 138,192 182,174
+Q 220,152 304,142
+Q 359,54 404,46
+Q 580,36 756,50
+Q 808.08,62 840,104
+L 822,109
+Q 868,116 864,158
+L 862,230 Q 862,256 838,258
+L 789,258 A 57 57 0 0 0 675,258
+L 317,258 A 57 57 0 0 0 203,258 Z" fill="url(#c95b)"/>
+<path d="M 158,258
+Q 130,254 136,220
+Q 138,192 182,174
+Q 220,152 304,142
+Q 359,54 404,46
+Q 580,36 756,50
+Q 808.08,62 840,104
+L 822,109
+Q 868,116 864,158
+L 862,230 Q 862,256 838,258
+L 789,258 A 57 57 0 0 0 675,258
+L 317,258 A 57 57 0 0 0 203,258 Z" fill="none" stroke="url(#c95s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 160,182 L 840,174" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 176,244 L 824,244" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 326,146
+Q 364,66 412,59
+Q 580,50 750,62
+Q 806.4,72 818,106
+L 330,148 Z" fill="url(#c95g)"/>
+<path d="M 588,54 L 594,148" stroke="#262626" stroke-width="9"/>
+<path d="M 364,162 h 38 M 628,160 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 142,196 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 860,124 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(260 260)"><circle r="48" fill="#050505"/><circle r="34.56" fill="url(#c95rim)"/><circle r="34.56" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="8.16" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(732 260)"><circle r="48" fill="#050505"/><circle r="34.56" fill="url(#c95rim)"/><circle r="34.56" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-33.599999999999994" width="6" height="67.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="8.16" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  KIA CARNIVAL  1/8 FRONT THREE-QUARTER (LEAD)</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

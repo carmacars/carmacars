@@ -288,8 +288,9 @@ select test.ok('delete: the car and what hangs off it are gone, its photo files 
 -- sample cars: those with nothing tied to money go, the others stay with the reason
 select test.mk_vehicle('sm_sample_a', 'sm_olive');
 select test.mk_vehicle('sm_sample_b', 'sm_olive');
-update vehicles set is_sample = true where id in (test.id('vehicle:sm_sample_a'), test.id('vehicle:sm_sample_b'));
+-- the booking is from before the car was marked a sample (0065: no booking is created on a sample car)
 select test.mk_booking('SM-SAMPLE', 'sm_sample_b', 'sm_ron', '2026-09-01 10:00', '2026-09-02 10:00', 'closed');
+update vehicles set is_sample = true where id in (test.id('vehicle:sm_sample_a'), test.id('vehicle:sm_sample_b'));
 select test.throws('sample cars: confirm by typing', $$select app.vehicles_delete_samples(test.id('sm_admin'), '{"confirm": "yes"}')$$, 'DELETE SAMPLE CARS');
 insert into sm select 'samples', app.vehicles_delete_samples(test.id('sm_admin'), '{"confirm": "delete sample cars"}');
 select test.ok('sample cars: a sample car with a signed sample schedule and no money goes; one with a booking stays, with why',

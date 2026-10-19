@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.5" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<g transform="scale(1.8 1.935483870967742)"><defs><linearGradient id="seat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b3b3b"/><stop offset="1" stop-color="#101010"/></linearGradient></defs>
+<rect x="0" y="0" width="1000" height="230" fill="#161616"/><rect x="120" y="30" width="330" height="170" rx="18" fill="#5d5d5d" opacity=".5"/><rect x="550" y="30" width="330" height="170" rx="18" fill="#5d5d5d" opacity=".5"/>
+<g transform="translate(290 0)"><rect x="-70" y="60" width="140" height="78" rx="26" fill="#2a2a2a"/><path d="M -120,170 Q -120,140 -80,140 L 80,140 Q 120,140 120,170 L 132,520 L -132,520 Z" fill="url(#seat)"/><path d="M -60,180 V 500 M 0,180 V 500 M 60,180 V 500" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="M -110,300 H 110" stroke="#D0111B" stroke-width="3"/></g><g transform="translate(710 0)"><rect x="-70" y="60" width="140" height="78" rx="26" fill="#2a2a2a"/><path d="M -120,170 Q -120,140 -80,140 L 80,140 Q 120,140 120,170 L 132,520 L -132,520 Z" fill="url(#seat)"/><path d="M -60,180 V 500 M 0,180 V 500 M 60,180 V 500" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="M -110,300 H 110" stroke="#D0111B" stroke-width="3"/></g><rect x="440" y="330" width="120" height="290" rx="14" fill="#1b1b1b"/><rect x="0" y="520" width="1000" height="100" fill="#0a0a0a"/></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  MERCEDES-BENZ GLC300  7/8 SEATS</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.5" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="900" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">ELANTRA</text>
+<g transform="translate(432.0 416.9) scale(1.5600)"><defs>
+<linearGradient id="e54b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E8E8E"/><stop offset=".5" stop-color="#555555"/><stop offset="1" stop-color="#262626"/></linearGradient>
+<linearGradient id="e54g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c4c4c"/><stop offset="1" stop-color="#050505"/></linearGradient></defs>
+<ellipse cx="300" cy="310" rx="285" ry="11" fill="#000" opacity=".85"/>
+<rect x="58" y="236" width="62" height="72" rx="10" fill="#050505"/><rect x="480" y="236" width="62" height="72" rx="10" fill="#050505"/>
+<path d="M 122,158 Q 138,90 172,84 L 428,84 Q 462,90 478,158 Z" fill="url(#e54b)"/>
+<path d="M 140,154 Q 152,102 180,97 L 420,97 Q 448,102 460,154 Z" fill="url(#e54g)"/>
+<path d="M 60,180 Q 64,156 110,152 L 490,152 Q 536,156 540,180 L 542,262 Q 540,284 510,284 L 90,284 Q 60,284 58,262 Z" fill="url(#e54b)"/>
+<path d="M 64,170 Q 300,146 536,170" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+<rect x="34" y="146" width="34" height="18" rx="6" fill="#555555"/><rect x="532" y="146" width="34" height="18" rx="6" fill="#555555"/>
+<rect x="74" y="184" width="452" height="12" rx="6" fill="#E0121C"/><rect x="238" y="216" width="124" height="34" rx="4" fill="#f2f2f2"/><rect x="150" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="390" y="262" width="60" height="10" rx="5" fill="#000"/>
+</g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  HYUNDAI ELANTRA  5/8 REAR</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

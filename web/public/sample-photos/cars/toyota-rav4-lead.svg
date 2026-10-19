@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.52" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1800" height="1200" fill="#000"/>
+<rect width="1800" height="888" fill="url(#spot)"/>
+<rect y="888" width="1800" height="312" fill="url(#fl)"/>
+<ellipse cx="936" cy="956.64" rx="936" ry="156" fill="url(#pool)"/>
+<rect y="887" width="1800" height="2" fill="#fff" opacity=".1"/>
+<text x="900" y="648" text-anchor="middle" font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="360" textLength="1620" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">RAV4</text>
+<g opacity=".16" transform="translate(126.0 1172.1) scale(1.6200 -0.8910)">
+<defs>
+<linearGradient id="c60b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E8E8E"/><stop offset=".45" stop-color="#555555"/><stop offset="1" stop-color="#262626"/></linearGradient>
+<linearGradient id="c60g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c60rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c60s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="354" ry="13" fill="#000" opacity=".85"/>
+<path d="M 178,252
+Q 150,248 156,214
+Q 158,184 202,166
+Q 255.2,144 354.4,136
+Q 399.28,70 436,62
+Q 562,52 688,66
+Q 755.952,78 797.6,124
+L 802,129
+Q 848,136 844,178
+L 842,224 Q 842,250 818,252
+L 771.6,252 A 62 62 0 0 0 647.6,252
+L 339.6,252 A 62 62 0 0 0 215.60000000000002,252 Z" fill="url(#c60b)"/>
+<path d="M 178,252
+Q 150,248 156,214
+Q 158,184 202,166
+Q 255.2,144 354.4,136
+Q 399.28,70 436,62
+Q 562,52 688,66
+Q 755.952,78 797.6,124
+L 802,129
+Q 848,136 844,178
+L 842,224 Q 842,250 818,252
+L 771.6,252 A 62 62 0 0 0 647.6,252
+L 339.6,252 A 62 62 0 0 0 215.60000000000002,252 Z" fill="none" stroke="url(#c60s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 180,176 L 820,168" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 196,238 L 804,238" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 376.4,140
+Q 403.36,82 444,75
+Q 562,66 682,78
+Q 753.76,88 775.6,126
+L 380.4,142 Z" fill="url(#c60g)"/>
+<path d="M 570,70 L 576,142" stroke="#262626" stroke-width="9"/>
+<path d="M 414.4,156 h 38 M 610,154 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 162,188 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 840,144 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(277.6 255)"><circle r="53" fill="#050505"/><circle r="38.16" fill="url(#c60rim)"/><circle r="38.16" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="9.01" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(709.6 255)"><circle r="53" fill="#050505"/><circle r="38.16" fill="url(#c60rim)"/><circle r="38.16" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="9.01" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g><g transform="translate(126.0 398.8) scale(1.6200)">
+<defs>
+<linearGradient id="c60b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E8E8E"/><stop offset=".45" stop-color="#555555"/><stop offset="1" stop-color="#262626"/></linearGradient>
+<linearGradient id="c60g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".35" stop-color="#151515"/><stop offset="1" stop-color="#000"/></linearGradient>
+<radialGradient id="c60rim"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".7" stop-color="#5c5c5c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+<linearGradient id="c60s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".9"/><stop offset=".75" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="500" cy="310" rx="354" ry="13" fill="#000" opacity=".85"/>
+<path d="M 178,252
+Q 150,248 156,214
+Q 158,184 202,166
+Q 255.2,144 354.4,136
+Q 399.28,70 436,62
+Q 562,52 688,66
+Q 755.952,78 797.6,124
+L 802,129
+Q 848,136 844,178
+L 842,224 Q 842,250 818,252
+L 771.6,252 A 62 62 0 0 0 647.6,252
+L 339.6,252 A 62 62 0 0 0 215.60000000000002,252 Z" fill="url(#c60b)"/>
+<path d="M 178,252
+Q 150,248 156,214
+Q 158,184 202,166
+Q 255.2,144 354.4,136
+Q 399.28,70 436,62
+Q 562,52 688,66
+Q 755.952,78 797.6,124
+L 802,129
+Q 848,136 844,178
+L 842,224 Q 842,250 818,252
+L 771.6,252 A 62 62 0 0 0 647.6,252
+L 339.6,252 A 62 62 0 0 0 215.60000000000002,252 Z" fill="none" stroke="url(#c60s)" stroke-width="2.2" stroke-linejoin="round" opacity=".8"/>
+<path d="M 180,176 L 820,168" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+<path d="M 196,238 L 804,238" stroke="#000" stroke-opacity=".35" stroke-width="10"/>
+<path d="M 376.4,140
+Q 403.36,82 444,75
+Q 562,66 682,78
+Q 753.76,88 775.6,126
+L 380.4,142 Z" fill="url(#c60g)"/>
+<path d="M 570,70 L 576,142" stroke="#262626" stroke-width="9"/>
+<path d="M 414.4,156 h 38 M 610,154 h 38" stroke="#000" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+<path d="M 162,188 q 18,-12 46,-14 l -4,12 q -22,2 -42,14 z" fill="#fff" opacity=".95"/>
+<path d="M 840,144 q -20,-6 -44,-6 l 2,12 q 22,0 42,8 z" fill="#E0121C"/>
+<g transform="translate(277.6 255)"><circle r="53" fill="#050505"/><circle r="38.16" fill="url(#c60rim)"/><circle r="38.16" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="9.01" fill="#101010" stroke="#777" stroke-width="1.5"/></g><g transform="translate(709.6 255)"><circle r="53" fill="#050505"/><circle r="38.16" fill="url(#c60rim)"/><circle r="38.16" fill="none" stroke="#000" stroke-width="2"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(0)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(36)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(72)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(108)"/><rect x="-3" y="-37.099999999999994" width="6" height="74.19999999999999" fill="#1b1b1b" transform="rotate(144)"/><circle r="9.01" fill="#101010" stroke="#777" stroke-width="1.5"/></g></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="22.5" fill="#fff" fill-opacity=".55"><text x="1755" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  TOYOTA RAV4  1/8 FRONT THREE-QUARTER (LEAD)</text><rect x="1761" y="1147.8" width="12.6" height="16.2" fill="#D0111B" fill-opacity="1"/></g>
+</svg>
