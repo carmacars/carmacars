@@ -1,0 +1,36 @@
+CarmaCars  |  Commissions
+
+========================================
+
+[Commission paid]
+Your commission is paid
+
+Hi {{first_name}}. We recorded the payment of the commissions below.
+
+Paid: {{commission_total}}
+{{commission_count}} line(s), clawbacks included
+
+How: {{payout_method}}
+Date: {{payout_date}}
+{{#if payout_reference}}
+Reference: {{payout_reference}}
+{{/if}}
+
+{{#each commissions}}
+  Booking: {{booking}} | Month: {{month}} | Rate: {{what}} | Amount: {{amount}}
+{{/each}}
+
+See your commissions:
+{{sales_url}}
+
+If something looks wrong, reply to this email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

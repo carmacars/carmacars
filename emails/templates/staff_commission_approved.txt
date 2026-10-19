@@ -1,0 +1,30 @@
+CarmaCars  |  Commissions
+
+========================================
+
+[Commission approved]
+Your commission is approved
+
+Hi {{first_name}}. An Admin approved the commissions below. They are paid by hand, on your pay statement or by transfer, and we will email you when that is done.
+
+Approved: {{commission_total}}
+{{commission_count}} commission(s)
+
+{{#each commissions}}
+  Booking: {{booking}} | Month: {{month}} | Rate: {{what}} | Amount: {{amount}}
+{{/each}}
+
+See your commissions:
+{{sales_url}}
+
+A refund or chargeback after a commission is paid is taken off a later payment. Questions: reply to this email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

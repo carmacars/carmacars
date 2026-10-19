@@ -31,7 +31,7 @@ export default {
     price({
       rows: [
         ['Rentals collected (rental charge and mileage overage)', '{{rentals_total}}'],
-        ['Referral kickbacks deducted', '{{kickbacks_deducted}}'],
+        ['Kickbacks and staff commissions deducted', '{{kickbacks_deducted}}'],
         ['Owner Revenue', '{{owner_revenue_total}}'],
         ['Revenue share kept by CarmaCars', '{{revenue_share_total}}'],
         ['Deductions (unpaid fees, late fees, owner costs)', '{{deductions_total}}'],

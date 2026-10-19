@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 150,
+  "count": 152,
   "emails": [
     {
       "code": "account_password_reset",
@@ -14475,6 +14475,181 @@
       ],
       "template_html": "templates/staff_review_received.html",
       "template_text": "templates/staff_review_received.txt"
+    },
+    {
+      "code": "staff_commission_approved",
+      "audience": "staff_va_sales",
+      "also_sent_to": [
+        "staff_va_cs",
+        "staff_va_finance",
+        "staff_va_fleet",
+        "staff_field"
+      ],
+      "category": "transactional",
+      "trigger": "An Admin approves one or more of a staff member's commissions (Admin > Money > Staff commissions). One email to that staff member, at their own address, for each approval. A Sales commission is approved after its month ends. Nothing is paid yet: the payment is recorded separately.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Commission approved: {{commission_total}}",
+      "preheader": "{{commission_count}} commission(s) approved. You will hear from us again when it is paid.",
+      "sample_subject": "Commission approved: $184.50",
+      "variables": [
+        {
+          "name": "commission_count",
+          "type": "string",
+          "sample": "3"
+        },
+        {
+          "name": "commission_total",
+          "type": "string",
+          "sample": "$184.50"
+        },
+        {
+          "name": "commissions",
+          "type": "list",
+          "sample": [
+            {
+              "booking": "CC-10482",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$90.00"
+            },
+            {
+              "booking": "CC-10497",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$63.00"
+            },
+            {
+              "booking": "CC-10511",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$31.50"
+            }
+          ],
+          "fields": [
+            "booking",
+            "month",
+            "what",
+            "amount"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Marco",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "sales_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/va/my-sales"
+        }
+      ],
+      "template_html": "templates/staff_commission_approved.html",
+      "template_text": "templates/staff_commission_approved.txt"
+    },
+    {
+      "code": "staff_commission_paid",
+      "audience": "staff_va_sales",
+      "also_sent_to": [
+        "staff_va_cs",
+        "staff_va_finance",
+        "staff_va_fleet",
+        "staff_field"
+      ],
+      "category": "transactional",
+      "trigger": "An Admin records the payment of a staff member's approved commissions (Admin > Money > Staff commissions > Record a payment): e-Transfer, bank transfer, Wise, cash, another way, or the monthly pay statement. One email to that staff member, at their own address, for each payment recorded.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Commission paid: {{commission_total}}",
+      "preheader": "{{payout_method}}, {{payout_date}}.",
+      "sample_subject": "Commission paid: $184.50",
+      "variables": [
+        {
+          "name": "commission_count",
+          "type": "string",
+          "sample": "3"
+        },
+        {
+          "name": "commission_total",
+          "type": "string",
+          "sample": "$184.50"
+        },
+        {
+          "name": "commissions",
+          "type": "list",
+          "sample": [
+            {
+              "booking": "CC-10482",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$90.00"
+            },
+            {
+              "booking": "CC-10497",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$63.00"
+            },
+            {
+              "booking": "CC-10511",
+              "month": "October 2026",
+              "what": "15%",
+              "amount": "$31.50"
+            }
+          ],
+          "fields": [
+            "booking",
+            "month",
+            "what",
+            "amount"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Marco",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "payout_date",
+          "type": "string",
+          "sample": "November 5, 2026"
+        },
+        {
+          "name": "payout_method",
+          "type": "string",
+          "sample": "e-Transfer"
+        },
+        {
+          "name": "payout_reference",
+          "type": "string",
+          "sample": "CA7xQ2"
+        },
+        {
+          "name": "sales_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/va/my-sales"
+        }
+      ],
+      "template_html": "templates/staff_commission_paid.html",
+      "template_text": "templates/staff_commission_paid.txt"
     },
     {
       "code": "staff_digest_eod_va_sales",
