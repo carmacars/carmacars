@@ -106,7 +106,18 @@ Staff commissions, the booking's credit (sourced, claims, typed prices), a staff
 
 ## 9. Deploy and checks
 
-@@RUNS@@
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 39193850143, 39197264309, 39200715492 | Green, except 39197264309: test 20's scorecard failed in the first hours of a Toronto Monday (it fails on the previous commit too); the test now keeps its tasks inside the week |
+| Deploy with the full suite | 39194242545 | Failed in end to end: `pipeline.spec.ts` found two refunds to issue (the new spec left an approved one in the shared database); the spec now records its refund as paid |
+| Deploy with the full suite | 39197282819 | Full suite green (199 passed, 15 skipped by design); not deployed (the fast job's test 20 above) |
+| Deploy with the full suite | 39200727700 | Fast and full green (198 end to end passed); migration 0058 applied (history 58); the Worker build first stopped on a database statement timeout while prerendering `/book/toyota-corolla` (57014), the deploy job run again: deployed, carmacars.ca, /cars and photos answer 200 |
+| Guides after the deploy (auto) | 39204484011 | Green: 21 screenshots, 2 sections rewritten automatically (owner/home-and-your-vehicles, field/report-rentals-referrals-and-profile; the 0058 text kept for the one-click revert), PDFs of the owner and field guides |
+| verify, full | 39207830795 | Green: every check passed |
+| verify, full, before it | 39204570682, 39206601310 | Failed on sign-in, sign-up and reset steps while the Worker answered Error 1102 (`503 exceeded resource limits`; the first ran beside the guides run) and one Turnstile bot check; no failure on a page this work changed |
+
+**Error 1102 (separate).** Cloudflare stopped 262 requests in 24 hours with Error 1102 (52 in the hour of the first
+verification). It caused the two failed verifications. Workers Paid removes the limit.
 
 ## 10. What still needs the owner
 
@@ -118,3 +129,7 @@ Staff commissions, the booking's credit (sourced, claims, typed prices), a staff
   the price floor (none), the rates and tiers.
 - Staff home addresses (a staff member's Sales page, "Home address") if the automatic household check should apply;
   otherwise reverse a household rental's commission by hand.
+- Admin > Settings > Guides: three chapters got the 0058 text as a suggestion because their live text had changed since
+  the last release (admin/owner-money with the Staff commissions task, admin/settings, field/my-jobs): accept the
+  suggestion. Sections "To review" after the upkeep run: va/shared-tools, va/finance, va/fleet, admin/owner-money,
+  admin/settings, owner/notices-profile-and-leaving, investor/statements, investor/profile-and-notices.
