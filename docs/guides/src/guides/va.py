@@ -17,6 +17,7 @@ def build():
         first_steps=[
             f'Open the invitation email and press its link within 24 hours. Choose a password of 8 characters or more and press {B("Save the new password")}.',
             f'You land in your portal, on {B("To do")}, working as your main function.',
+            f'At the top of the page, fill in your Home address and Postal code and press {B("Save my home address")}. You need it before you add a rental or earn a commission. Change it later under {B("Profile")}, at the top of the menu.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password, then {B("Sign in")}.',
             f'Link expired? Press {B("Send me a new link")} on the page it opens, or ask an Admin for a password link.',
         ],
@@ -280,7 +281,7 @@ def build():
               'Every function adds rentals that come in by phone, at the counter, from Turo, a partner, an insurer or '
               'someone you know. The rental is confirmed and on the calendar at once.',
               blurb='Choose the car and dates, find the renter, price it, record how it is paid.')
-    g.task('Add a rental', f'Open {P("Bookings", "Add a rental")}.')
+    g.task('Add a rental', f'Open {P("Bookings", "Add a rental")}. Your home address must be in your profile first: until it is, the page asks for it.')
     g.steps([
         'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
         'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
@@ -305,10 +306,11 @@ def build():
         'A website request earns nothing by itself. If you sourced it anyway, choose I sourced this client on its offer: an Admin decides.',
     ])
     g.table([
-        ['Sales', 'By the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all of that month\'s rentals'],
+        ['Sales', 'Commission only, with no base pay and no set hours. By the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all of that month\'s rentals'],
         ['Customer service, finance, fleet', '10%'],
         ['How much', 'The rate on the rental charge before tax, after discounts, less refunds'],
         ['When earned', 'When the rental is completed and paid in full. Never on a cancelled, refunded, unpaid or charged-back rental, or on your own or a household rental'],
+        ['Your home address', 'It must be in your profile. Until it is, a commission waits as not earned yet, and you cannot add a rental or mark I sourced this client'],
         ['Paid', 'After an Admin approves it, by transfer or on your pay statement. My sales shows each step: not earned yet, pending approval, approved, paid, reversed'],
     ], head=['', 'Commission'])
     g.tip('A refund or chargeback after a commission was paid comes off your next payment. Your staff agreement has the full rule.')

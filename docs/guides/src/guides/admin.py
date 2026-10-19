@@ -134,6 +134,7 @@ def build():
         'Follow-ups due lists their open deals with the next step. Deals lists each booking they created, added or sent an offer on, with what it counts.',
         f'A deal credited to the wrong person, or marked sourced when it was not? Press {B("Reassign")} beside it, choose who, say whether they sourced the client, and write the reason.',
         f'{B("Commission rate")} gives this person their own flat rate (empty: the Program settings). {B("Reverse")} beside a commission stops it, for example for a household rental found later.',
+        f'Staff enter their own home address (at their first sign-in, before they sign their agreement, or in their profile). It is needed before they add a rental or earn a commission, and spots a household rental. {B("Home address")} here changes it if it is wrong.',
         f'The whole team: {P("Today", "Overview")}, the Sales card at the bottom. Choose another month and press {B("Show")}.',
     ])
     g.table([
@@ -518,8 +519,8 @@ def build():
         'Turnaround between trips: the time held between two trips. The cleaning block after a trip is this time.',
         'Settings come in groups such as Company, Booking requests and offers, Owner debits and statement emails, Deposits, Delivery, Owners and fleet, and Tolls and damage. Open one to see its fields.',
         'First reply target for customer service and sales (minutes), under Booking requests and offers: 5 by default. New booking requests, enquiries, changes renters ask for and renter messages are due that many minutes after they come in; the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) is separate.',
-        'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%).',
-        f'Staff agreement defaults by function, at the bottom: pay (a month or an hour), the rate, full or part time, days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Press {B("Save the defaults")}.',
+        'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
+        f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
@@ -537,7 +538,8 @@ def build():
     g.steps([
         f'Investor: open {P("People", "Investors")} and the investor. Under Investment agreement, press {B("Send the agreement to sign")}. Check the values it is filled with (amount, yearly percentage, dates, exemption) and press {B("Send to sign")}.',
         f'Once the investor signs, the agreement shows {B("Awaiting countersignature")} on the investor\'s page and on To do. It is not countersigned automatically: check it and press {B("Countersign")}. CarmaCars is bound once it has countersigned and the funds clear.',
-        f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Pay, schedule, hours and the other values start from the staff profile and the defaults of their function in Program settings; change any before sending.',
+        f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Pay, schedule, hours and the other values start from the staff profile and the defaults of their function in Program settings; change any before sending. For Sales the Pay is Commission only: the agreement then has no rate, schedule or hours, and pays the commission of section 3.4.',
+        'A field staff member\'s agreement prints the home address they entered themselves. Staff enter their home address at their first sign-in, before they sign, or in their profile.',
         'They get a notice, check the key values and sign in their portal in a few taps (their name is the signature, or they draw it). The signed copy is filed with their documents.',
         f'Your own PDF instead? {B("Send a PDF to sign")} still works.',
         f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',
@@ -557,9 +559,10 @@ def build():
         'Every screenshot is taken again on the new version of the site. One whose screen changed replaces the old one in the guide.',
         'The text of each section whose screen changed, or that names a button the portals no longer show, is rewritten from the portal\'s own labels and menu, checked, and published. The PDFs of those guides are printed again.',
         f'Such a section says {B("Changed automatically on")} and the date, in the list of guides and in the guide\'s editor. Not right? Open the section and press {B("Revert")}: the text it replaced comes back, published at once.',
-        f'A rewrite that did not pass the checks is not published. Its section shows {B("Needs review")} with the suggested text: press {B("Use this text as the draft")} or {B("Dismiss the suggestion")}, then {B("Mark reviewed")}.',
+        'This includes sections you edited: the newest automatic text is published, and every earlier version stays in the section\'s history. There is nothing to review.',
+        'A rewrite that does not pass the checks is asked again, more strictly. If it still does not pass, the screenshots and button names are updated, the rest of the text stays as it was, and the next run tries again.',
     ])
-    g.tip('The card "The guides keep up by themselves" at the top of Guides lists the last runs: when, how many screenshots were replaced, how many sections were rewritten or wait for review, and how many PDFs were printed.')
+    g.tip('The card "The guides keep up by themselves" at the top of Guides lists the last runs: when, how many screenshots were replaced, how many sections were rewritten, and how many PDFs were printed.')
 
     g.task('Insurers and the other lists')
     g.steps([

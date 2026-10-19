@@ -24,6 +24,7 @@ def build():
             f'You land on {B("My jobs")}. Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password.',
             f'In your browser\'s menu, choose {B("Add to Home Screen")}. The portal then opens full screen, like an app.',
             f'Open {B("Profile")}, add your mobile number and press {B("Save my phone")}.',
+            f'At the top of the page, fill in your Home address and Postal code and press {B("Save my home address")}. You need it before you add a rental or earn a commission.',
         ],
         shot=S('field/04-profile-phone', 0, 595, 390, 1165, pins=[(4, 365, 1113)]),
         note=f'Recommended: on Profile, press {B("Set up two-step sign-in")} and follow the steps with an authenticator app.')
@@ -145,7 +146,7 @@ def build():
     ], shot=S('field/03-report-phone', 0, 595, 390, 1500, pins=[(1, 360, 820), (2, 360, 895), (3, 360, 1340), (4, 360, 1480)]))
     g.warn('In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 647-575-3377 before you send the report.')
 
-    g.task('Add a rental for a renter you found')
+    g.task('Add a rental for a renter you found', 'Your home address must be in your profile first: until it is, the page asks for it.')
     g.steps([
         f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email.',
         f'Press {B("Check the calendar and the price")}. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.',
@@ -155,13 +156,13 @@ def build():
     g.task('Commissions')
     g.steps([
         'You earn 10% of the rental charge (before tax, after discounts, less refunds) of each rental you sourced: one you added and marked I sourced this client, or a booking made with your referral link.',
-        'It is earned when the rental is completed and paid in full, then an Admin approves it and it is paid on your pay date.',
+        'It is earned when the rental is completed and paid in full, then an Admin approves it and it is paid on your pay date. Your home address must be in your profile: until it is, a commission waits as not earned yet.',
         f'{B("My sales")} shows each commission: not earned yet, pending approval, approved, paid or reversed. A refund after payment comes off a later commission.',
     ])
     g.task('Referrals and profile')
     g.steps([
         f'{B("Referrals")}: your own referral link. Press {B("Copy the link")}, or let someone scan its QR code. A booking made with it counts as a rental you sourced.',
-        f'{B("Profile")}: {B("Save my phone")}, {B("Set up two-step sign-in")}, {B("Change my password")} and {B("Sign out")}.',
+        f'{B("Profile")}: {B("Save my phone")}, your home address ({B("Change my home address")}), {B("Set up two-step sign-in")}, {B("Change my password")} and {B("Sign out")}.',
     ], shot=S('field/04-profile-phone', 0, 595, 390, 1440, pins=[(2, 365, 1113)]))
 
     g.reference(
@@ -171,7 +172,7 @@ def build():
                   ('Add a rental', 'A renter you found: a payment link or the saved card'),
                   ('My sales', 'Your rentals and commissions'),
                   ('Referrals', 'Your link and QR code'),
-                  ('Profile', 'Phone, two-step sign-in, password, Sign out')],
+                  ('Profile', 'Phone, home address, two-step sign-in, password, Sign out')],
         top_tasks=[('Start a job', f'{B("Open the job")}, {B("Acknowledge")}, {B("Start")}'),
                    ('Hand over a car', f'Every step, then {B("Hand over the keys")}'),
                    ('Stop a handover', f'{B("Stop: do not release the car")}, call us'),

@@ -5,6 +5,9 @@ import { useAct } from '@/features/portal/useAct';
 import { createSignRequest, prepareGeneratedAgreement, sendGeneratedAgreement, voidSignRequest } from '@/server/actions/manual-records';
 import type { Field } from '@/features/person-agreements/model';
 
+// a field not asked for the value of another (the hours and Rate of a commission-only engagement, 0059); as fieldShown in the model
+const fieldShown = (f: Field, v: Record<string, string>) => !f.hiddenWhen || (v[f.hiddenWhen.key] ?? '') !== f.hiddenWhen.value;
+
 // An Admin sends a PDF to an investor (their investment agreement) or a staff member (their agreement) to sign in their
 // portal with the built-in signature, and sees what was sent and signed (migration 0044).
 export function SendToSign({ docType, who, defaultTitle, refresh }: { docType: 'investment_agreement' | 'staff_agreement'; who: string; defaultTitle: string; refresh: string[] }) {
@@ -111,7 +114,7 @@ export function SendGenerated({ docType, who, refresh }: { docType: 'investment_
     <form className="stack pt-sheet" noValidate onSubmit={send} aria-label="Send the agreement to sign" data-testid="send-generated-form">
       <p className="small"><b>{title}</b>, filled in from the record. Check these values; everything else is the standard text.</p>
       <div className="ad-fields">
-        {fields.map((f) => (
+        {fields.filter((f) => fieldShown(f, vals)).map((f) => (
           <div key={f.key} className="field ad-field"><label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>
             {f.options ? (
               <select className="select" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`}>

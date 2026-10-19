@@ -18,12 +18,18 @@ export interface InvestorFacts {
 }
 export interface StaffFacts {
   staff: { user_id: string; full_name: string; email: string | null; phone: string | null; staff_type: string; va_function: string | null; field_function: string | null; started_on: string | null;
-    referral_code: string | null; single_limit_cents: number | null; dual_approval_threshold_cents: number | null; has_signed: boolean };
+    referral_code: string | null; single_limit_cents: number | null; dual_approval_threshold_cents: number | null; has_signed: boolean; home_address?: string | null };
   defaults: Record<string, string>;
   company: Company;
 }
 /** The values an Admin confirms before sending (a field the record does not hold starts from the settings' defaults). */
-export interface Field { key: string; label: string; value: string; hint?: string; required?: boolean; options?: Array<[string, string]> }
+export interface Field { key: string; label: string; value: string; hint?: string; required?: boolean; options?: Array<[string, string]>;
+  /** Not asked (and not required) when another field has this value: the hours and the Rate of a commission-only engagement (0059). */
+  hiddenWhen?: { key: string; value: string } }
+/** Whether a field is asked, given the values typed so far. */
+export const fieldShown = (f: Field, v: Record<string, string>) => !f.hiddenWhen || (v[f.hiddenWhen.key] ?? '') !== f.hiddenWhen.value;
+/** The labels of the required fields still empty (a field not asked is not required). */
+export const missingRequired = (fields: Field[], v: Record<string, string>) => fields.filter((f) => f.required && fieldShown(f, v) && !(v[f.key] ?? '').trim()).map((f) => f.label);
 
 const ON_SIGNATURE = 'given electronically (see the signature record)';
 const DATE_SIGNED = 'the date of the electronic signature';
@@ -32,10 +38,16 @@ const VA_ROLE: Record<string, string> = { finance: 'Finance and Billing Coordina
 const FIELD_ROLE: Record<string, string> = { driver: 'Driver', detailer: 'Detailer', driver_detailer: 'Driver and detailer', both: 'Driver and detailer' };
 const companyName = (c: Company) => c.legal_name || c.brand;
 const num = (v: string | undefined) => !!v && /^\d+(\.\d+)?$/.test(v.trim());
-/** "350.00 a month, in USD" or "6.00 an hour, in USD" (a monthly Rate since 0057). */
-export const rateWords = (v: Record<string, string>) => `${v.rate ?? ''} ${v.pay_basis === 'hourly' ? 'an hour' : 'a month'}, in ${v.currency ?? ''}`;
-/** "Full time: 6 days a week, 10 hours a day". */
-export const scheduleWords = (v: Record<string, string>) => `${v.schedule === 'part_time' ? 'Part time' : 'Full time'}: ${v.days_per_week ?? ''} days a week, ${v.hours_per_day ?? ''} hours a day`;
+/** "350.00 a month, in USD" or "6.00 an hour, in USD" (a monthly Rate since 0057); commission only: no Rate (0059). */
+export const isCommissionOnly = (v: Record<string, string>) => v.pay_basis === 'commission';
+export const rateWords = (v: Record<string, string>) => (isCommissionOnly(v) ? 'None: commission only' : `${v.rate ?? ''} ${v.pay_basis === 'hourly' ? 'an hour' : 'a month'}, in ${v.currency ?? ''}`);
+/** "Full time: 6 days a week, 10 hours a day"; commission only: a flexible schedule. */
+export const scheduleWords = (v: Record<string, string>) => (isCommissionOnly(v) || v.schedule === 'flexible' ? 'Flexible: you choose when you work'
+  : `${v.schedule === 'part_time' ? 'Part time' : 'Full time'}: ${v.days_per_week ?? ''} days a week, ${v.hours_per_day ?? ''} hours a day`);
+/** The Pay row of Schedule A. */
+export const payWords = (v: Record<string, string>) => (isCommissionOnly(v) ? 'Commission only, under section 3.4: no Rate, no set days or hours' : 'The Rate below and the commission in section 3.4');
+/** Remove the table row whose first cell starts with the label (rows that make no sense for a commission-only engagement). */
+const dropRow = (md: string, label: string) => md.replace(new RegExp(`^\\| ${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^|]*\\|[^\n]*\n`, 'm'), '');
 
 /** Replace the second cell of the table row whose first cell starts with the label. */
 function row(md: string, label: string, value: string): string {
@@ -111,18 +123,20 @@ export function staffFields(f: StaffFacts): Field[] {
   const s = f.staff;
   const d = f.defaults;
   if (s.staff_type === 'va') {
-    // pay, schedule and hours start from the defaults of the person's function (Program settings, 0057)
+    // pay, schedule and hours start from the defaults of the person's function (Program settings, 0057); Sales is
+    // commission only (0059): no Rate, no hours asked
     const perWeek = num(d.days_per_week) && num(d.hours_per_day) ? String(+(Number(d.days_per_week) * Number(d.hours_per_day)).toFixed(2)) : (d.hours_per_week ?? '');
+    const hours = { key: 'pay_basis', value: 'commission' };
     return [
       { key: 'country', label: 'Country', value: d.country ?? '', required: true },
-      { key: 'pay_basis', label: 'Pay', value: d.pay_basis ?? '', required: true, options: [['monthly', 'A month'], ['hourly', 'An hour']] },
-      { key: 'rate', label: 'Rate', value: d.rate ?? '', required: true, hint: 'For example 350.00 a month, or 6.00 an hour' },
+      { key: 'pay_basis', label: 'Pay', value: d.pay_basis ?? '', required: true, options: [['monthly', 'A month'], ['hourly', 'An hour'], ['commission', 'Commission only']] },
+      { key: 'rate', label: 'Rate', value: d.rate ?? '', required: true, hint: 'For example 350.00 a month, or 6.00 an hour', hiddenWhen: hours },
       { key: 'currency', label: 'Currency', value: d.currency ?? '', required: true },
-      { key: 'schedule', label: 'Schedule', value: d.schedule ?? '', required: true, options: [['full_time', 'Full time'], ['part_time', 'Part time']] },
-      { key: 'days_per_week', label: 'Days a week', value: d.days_per_week ?? '', required: true },
-      { key: 'hours_per_day', label: 'Hours a day', value: d.hours_per_day ?? '', required: true },
-      { key: 'hours_per_week', label: 'Hours a week', value: perWeek, required: true, hint: 'Days a week times hours a day, unless agreed otherwise' },
-      { key: 'coverage', label: 'Coverage Hours: days and times (Toronto time)', value: d.coverage ?? '', required: true },
+      { key: 'schedule', label: 'Schedule', value: d.schedule ?? '', required: true, options: [['full_time', 'Full time'], ['part_time', 'Part time'], ['flexible', 'Flexible']], hiddenWhen: hours },
+      { key: 'days_per_week', label: 'Days a week', value: d.days_per_week ?? '', required: true, hiddenWhen: hours },
+      { key: 'hours_per_day', label: 'Hours a day', value: d.hours_per_day ?? '', required: true, hiddenWhen: hours },
+      { key: 'hours_per_week', label: 'Hours a week', value: perWeek, required: true, hint: 'Days a week times hours a day, unless agreed otherwise', hiddenWhen: hours },
+      { key: 'coverage', label: 'Coverage Hours: days and times (Toronto time)', value: d.coverage ?? '', required: true, hiddenWhen: hours },
       { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
       { key: 'platform', label: 'Hiring platform (payment)', value: d.platform ?? '', required: true },
       { key: 'pay_timing', label: 'Payment timing', value: d.pay_timing ?? '', required: true },
@@ -130,7 +144,7 @@ export function staffFields(f: StaffFacts): Field[] {
     ];
   }
   return [
-    { key: 'address', label: 'Home address', value: '', required: true },
+    { key: 'address', label: 'Home address', value: s.home_address ?? '', required: true, hint: 'The staff member enters it in their profile; change it here only if it is wrong' },
     { key: 'licence', label: 'Driver\'s licence number', value: '', required: true },
     { key: 'wage', label: 'Hourly Wage (CA$)', value: d.wage ?? '', required: true, hint: 'For example 18.00' },
     { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
@@ -151,9 +165,15 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
     let md = signatureLines(VA_MD, c, s.full_name);
     md = row(md, 'Contractor', `${s.full_name} (legal name), ${v.country ?? ''} (country), ${s.email ?? ''} (email)`);
     md = row(md, 'Role', VA_ROLE[s.va_function ?? ''] ?? (s.va_function ?? ''));
-    md = row(md, 'Schedule', scheduleWords(v));
-    md = row(md, 'Coverage Hours', `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`);
-    md = row(md, 'Rate', rateWords(v));
+    md = row(md, 'Pay', payWords(v));
+    if (isCommissionOnly(v)) {
+      // commission only (0059): no Rate, no schedule, no Coverage Hours (section 3.1 says they do not apply)
+      md = dropRow(dropRow(dropRow(md, 'Schedule'), 'Coverage Hours'), 'Rate');
+    } else {
+      md = row(md, 'Schedule', scheduleWords(v));
+      md = row(md, 'Coverage Hours', `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`);
+      md = row(md, 'Rate', rateWords(v));
+    }
     md = row(md, 'Start Date', v.start ?? '');
     md = row(md, 'CarmaCars notice email', c.email ?? '');
     md = row(md, 'Payment Method', `Through ${v.platform ?? ''}`);
@@ -184,8 +204,9 @@ export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ 
   const base = s.staff_type === 'va' ? null : '/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
   return s.staff_type === 'va'
     ? [{ label: 'Contractor', value: `${s.full_name}, ${v.country ?? ''}, ${s.email ?? ''}`, fix: base }, { label: 'Role', value: VA_ROLE[s.va_function ?? ''] ?? '', fix: null },
-       { label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
-       { label: 'Rate', value: rateWords(v), fix: null },
+       { label: 'Pay', value: payWords(v), fix: null },
+       ...(isCommissionOnly(v) ? [] : [{ label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
+         { label: 'Rate', value: rateWords(v), fix: null }]),
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
     : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: `Ontario Class G, number ${v.licence ?? ''}`, fix: null },
        { label: 'Role', value: FIELD_ROLE[s.field_function ?? ''] ?? '', fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },

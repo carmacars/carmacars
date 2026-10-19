@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { adminSaveRow } from '@/server/actions/admin-portal';
 
 // Program settings > Staff agreement defaults by function (migration 0057): what a staff agreement generated from the
-// record starts with. Assistants: pay (monthly or hourly), the rate, full or part time, days a week and hours a day for
+// record starts with. Assistants: pay (monthly, hourly or commission only, 0059), the rate, full or part time, days a week and hours a day for
 // each function, and the values every assistant's agreement shares. Field staff: the hourly wage and pay dates. Saved
 // as one value (program_settings.staff_agreement_defaults) in a new dated row; the Admin can still change any value
 // before sending an agreement.
@@ -55,7 +55,7 @@ export function StaffDefaults({ value }: { value: StaffDefaultsValue }) {
 
   return (
     <form className="stack" noValidate onSubmit={save} data-testid="staff-defaults-form">
-      <p className="small muted">What a staff agreement starts with when you press Send the agreement to sign. You can still change any value before sending. An empty value is asked for at that time. The agreements allow no commission.</p>
+      <p className="small muted">What a staff agreement starts with when you press Send the agreement to sign. You can still change any value before sending. An empty value is asked for at that time. Every function also earns the commission of section 3.4 of the agreement. Commission only (Sales) has no rate and no set days or hours.</p>
       <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="Assistants by function">
         <table className="ad-table ad-table--dense">
           <caption className="vh">Assistants by function</caption>
@@ -65,12 +65,12 @@ export function StaffDefaults({ value }: { value: StaffDefaultsValue }) {
               <th scope="row">{l}</th>
               <td><label className="vh" htmlFor={`${idp}-${f}-pay`}>{l}: pay</label>
                 <select className="select" id={`${idp}-${f}-pay`} value={by[f].pay_basis} onChange={(e) => setFn(f, 'pay_basis', e.target.value)} data-testid={`sd-${f}-pay_basis`}>
-                  <option value="">Not set</option><option value="monthly">A month</option><option value="hourly">An hour</option></select></td>
+                  <option value="">Not set</option><option value="monthly">A month</option><option value="hourly">An hour</option><option value="commission">Commission only</option></select></td>
               <td><label className="vh" htmlFor={`${idp}-${f}-rate`}>{l}: rate</label>
                 <input className="input" id={`${idp}-${f}-rate`} inputMode="decimal" value={by[f].rate} onChange={(e) => setFn(f, 'rate', e.target.value)} data-testid={`sd-${f}-rate`} size={8} /></td>
               <td><label className="vh" htmlFor={`${idp}-${f}-sch`}>{l}: schedule</label>
                 <select className="select" id={`${idp}-${f}-sch`} value={by[f].schedule} onChange={(e) => setFn(f, 'schedule', e.target.value)} data-testid={`sd-${f}-schedule`}>
-                  <option value="">Not set</option><option value="full_time">Full time</option><option value="part_time">Part time</option></select></td>
+                  <option value="">Not set</option><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="flexible">Flexible</option></select></td>
               <td><label className="vh" htmlFor={`${idp}-${f}-days`}>{l}: days a week</label>
                 <input className="input" id={`${idp}-${f}-days`} inputMode="numeric" value={by[f].days_per_week} onChange={(e) => setFn(f, 'days_per_week', e.target.value)} data-testid={`sd-${f}-days_per_week`} size={3} /></td>
               <td><label className="vh" htmlFor={`${idp}-${f}-hours`}>{l}: hours a day</label>

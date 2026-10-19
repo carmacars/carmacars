@@ -20,7 +20,8 @@ export default async function VaProfile() {
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
-          <p><Link prefetch={false} className="btn btn--ghost btn--sm" href="/reset-password">Change my password</Link></p></section>
+          <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/va/profile">Set up two-step sign-in</Link>
+            <Link prefetch={false} className="btn btn--ghost btn--sm" href="/reset-password">Change my password</Link></p></section>
       </div>
     </>
   );
