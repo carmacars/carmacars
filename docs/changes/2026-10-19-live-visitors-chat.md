@@ -142,9 +142,9 @@ live visits.
 
 | Suite | Result |
 | --- | --- |
-| Database (`scripts/test.sh`) | see section 6 |
-| Unit (`npm run test:unit`) | guardrails and the assistant: invented prices refused, a quote's amounts allowed, discounts, promises, insurance words, provider names, escalation before the model, a model failure becomes a hand-over |
-| End to end, 375 and 1440 | `live-chat.spec.ts`: signals on the Live page, chat with the assistant (the amount equals `quote_booking`), hand-over, take-over, reply, hand back, close, proactive chat, Admin pages |
+| Database (`scripts/test.sh`) | 3856 passed, 0 failed (new suite 39, 83 assertions; 03 lists the new high-volume tables among those not audited; 07 counts the 2 new emails and links and builds both) |
+| Unit (`npm run test:unit`) | 136 passed. New: guardrails and the assistant: invented prices refused, a quote's amounts allowed, discounts, promises, insurance words, provider names, escalation before the model, a model failure becomes a hand-over |
+| End to end, 375 and 1440 | `live-chat.spec.ts` 8 of 8 locally; the full suite in the deploy run: 213 passed, 15 skipped by design. `live-chat.spec.ts`: signals on the Live page, chat with the assistant (the amount equals `quote_booking`), hand-over, take-over, reply, hand back, close, proactive chat, Admin pages |
 
 ## 5. Guides
 
@@ -153,4 +153,19 @@ for renters. Released by the 0060 guides block.
 
 ## 6. Deploy and checks
 
-(filled in after the runs)
+| What | Run | Result |
+| --- | --- | --- |
+| Push CI (fast gates) | 39231564605 and later pushes | Green |
+| Deploy with the full suite | 39231576920 | Failed: `signin.spec.ts` (4 tests) found two "Email" labels on the sign-in pages: the new cookie banner text of the Necessary group said "open one of our email links". Reworded ("follow a link we sent you"), same meaning |
+| Deploy with the full suite | 39237832452 | Green: 213 end-to-end tests passed (15 skipped by design), crawl, SEO and emails 0 problems; 1 migration applied (history 60); carmacars.ca, /cars and photos answer 200; the guides workflow started for the deployed commit |
+| Production after the deploy | SQL | Cookie banner version 2026-10-19, privacy policy section 10 live, "Last updated" October 19, 2026, pg_cron `carmacars-visitor-followups` and `carmacars-visitor-housekeeping` scheduled, 3 guide chapters mention Live chat |
+| verify, full | 39246157107 | Green: every check passed |
+| verify, full, before it | 39243167781, 39244803965 | Each failed one sign-in step (an auth link or sign-up page) on Error 1102 (`503 exceeded resource limits`); 300 to 337 requests stopped with Error 1102 in 24 hours, as before this release. Workers Paid removes the limit |
+
+Worker CPU: the beacon's own work in the Worker entry measured 0.15 ms for a batch of 30 events (parse, bot check, clean, one SHA-256), before the one database call. The chat route waits on the model and the database (not counted as CPU). The widget and beacon load after the page is idle, in their own files.
+
+## 7. What still needs the owner
+
+- The lawyer: section 3 above (privacy policy and cookie banner).
+- Program settings, "Live visitors and live chat": the chat greeting is off; the AI's daily allowance is 6,000 neurons (about 10 chats). Raise `chat_ai_daily_neurons` and `chat_ai_total_daily_neurons` on Workers Paid if the chat is busy (US$0.011 per 1,000 neurons above 10,000 a day).
+- Staff: turn on "Email me when a chat waits" in Live chat if wanted. With nobody on shift, chats collect contact details.
