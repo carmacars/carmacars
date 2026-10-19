@@ -25,7 +25,7 @@ export const VA_GROUPS: Record<Fn, NavGroup[]> = {
     { key: 'renters', label: 'Renters and bookings', links: [{ href: '/va/renters', label: 'Find a renter' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] }, SELL],
   fleet: [WORK,
     { key: 'field', label: 'Field work', links: [{ href: '/va/fleet', label: 'Field jobs' }, { href: '/va/checks', label: 'Daily checks' }, { href: '/va/reviews', label: 'Photo reviews' }] },
-    { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
+    { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }, { href: '/va/calendar-sync', label: 'Calendar sync' }] },
     { key: 'renters', label: 'Renters', links: [{ href: '/va/renters', label: 'Find a renter' }] }, SELL]
 };
 /** Every page of a function (kept for the crawl and the guide's quick reference). */

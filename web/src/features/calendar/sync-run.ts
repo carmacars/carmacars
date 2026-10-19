@@ -1,6 +1,7 @@
 // The calendar sync run (migration 0062): read each calendar link that is due, parse it (ical.ts) and hand the result
 // to the database (app.calendar_feed_apply, or app.calendar_feed_failed with the reason in plain words). Used by the
-// calendar-sync Edge Function (every link due) and by the site's "Sync now" (one link), each with its own Store.
+// calendar-sync Edge Function (every link due; the deploy copies this file there as run.ts) and by the site's
+// "Sync now" (one link), each with its own Store.
 import { IcalError, parseIcal, type IcalEvent } from './ical.ts';
 
 export interface DueFeed { id: string; url: string; platform: string; etag: string | null; last_modified: string | null }

@@ -1,5 +1,4 @@
-// Unit tests for calendar sync's iCal reader and run (supabase/functions/calendar-sync/ical.ts and run.ts, migration
-// 0062): the sample feeds in the shapes Turo, Getaround and Google Calendar write (folded lines, UTC times, all-day
+// Unit tests for calendar sync's iCal reader and run (ical.ts and sync-run.ts, migration 0062): the sample feeds in the shapes Turo, Getaround and Google Calendar write (folded lines, UTC times, all-day
 // dates across the end of daylight saving, TZID with a VTIMEZONE block, DURATION, free and cancelled events, a weekly
 // rule with EXDATE and a moved occurrence, an Outlook zone name, a floating time), errors in plain words, and one run
 // with a mocked database and platform (not modified, 404, a web page in place of a calendar, a private address).
@@ -8,10 +7,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { IcalError, parseDuration, parseIcal, resolveZone, unfold, zonedToUtc } from '../../../../supabase/functions/calendar-sync/ical.ts';
-import { httpReason, normalizeUrl, privateHost, syncDue, syncOne, type DueFeed, type Store } from '../../../../supabase/functions/calendar-sync/run.ts';
+import { IcalError, parseDuration, parseIcal, resolveZone, unfold, zonedToUtc } from './ical.ts';
+import { httpReason, normalizeUrl, privateHost, syncDue, syncOne, type DueFeed, type Store } from './sync-run.ts';
 
-const SAMPLES = join(import.meta.dirname, '../../../../supabase/functions/calendar-sync/samples');
+const SAMPLES = join(import.meta.dirname, 'samples');
 const sample = (f: string) => readFileSync(join(SAMPLES, f), 'utf8');
 const NOW = new Date('2026-10-19T12:00:00Z');
 const brief = (r: ReturnType<typeof parseIcal>) => r.events.map((e) => `${e.starts_at.slice(0, 16)} ${e.ends_at.slice(0, 16)} ${e.all_day ? 'D' : 'T'} ${e.summary}`);

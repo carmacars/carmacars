@@ -7,6 +7,13 @@ import { BookingLink, Card, PageHead, t } from '@/features/admin/ui';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
 
+interface Health {
+  enabled: boolean; interval: number; alert_email: string;
+  checks: Array<{ key: string; label: string; kind: string; status: 'ok' | 'failing' | 'unknown'; checked_at: string | null; ok_at: string | null; detail: string | null; failures: number; day: { checks: number; failed: number } }>;
+  open: Array<{ id: string; label: string; opened_at: string; detail: string | null; emailed: boolean; advice: string }>;
+  recent: Array<{ label: string; opened_at: string; resolved_at: string; detail: string | null }>;
+}
+
 interface Todo {
   items: Array<{ key: string; label: string; button: string; href: string; count: number }>;
   pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string; ready: boolean }>;
@@ -20,6 +27,7 @@ interface Todo {
 export default async function AdminToDo() {
   const { user } = await page('/admin');
   const d = await door<Todo>(user.id, 'ops_read', 'admin_todo');
+  const h = await door<Health>(user.id, 'admin_read', 'site_health').catch(() => null);
   const open = d.items.filter((i) => i.count > 0);
   const clear = d.items.filter((i) => i.count === 0);
   const time = (iso: string) => t(iso).split(', ').pop();
@@ -57,6 +65,33 @@ export default async function AdminToDo() {
           {d.late > 0 && <p className="small"><Link prefetch={false} className="link" href="/admin/bookings?status=on_rent">{d.late} car{d.late > 1 ? 's' : ''} late now</Link></p>}
         </Card>
       </div>
+      {h && <SiteHealth h={h} />}
     </>
+  );
+}
+
+// Site health (migration 0062): the site check's last result for each page and service, open problems with what to
+// do, and the last week's resolved ones. The check runs from the database every few minutes.
+function SiteHealth({ h }: { h: Health }) {
+  const failing = h.checks.filter((c) => c.status === 'failing').length;
+  const words = (s: string) => (s === 'ok' ? 'Working' : s === 'failing' ? 'Problem' : 'Not checked yet');
+  return (
+    <Card id="site-health" title={failing ? `Site health: ${failing} problem${failing > 1 ? 's' : ''}` : 'Site health'} testId="site-health" tone={failing ? 'warn' : undefined}
+      aside={<span className="small muted">{h.enabled ? `Checked every ${h.interval} minutes. Alerts go to ${h.alert_email}` : 'The site check is off (Program settings)'}</span>}>
+      {h.open.length > 0 && (
+        <ul className="ad-list" data-testid="site-alerts">{h.open.map((a) => (
+          <li key={a.id}><span><b>{a.label}</b>: {a.detail} <span className="small muted">since {t(a.opened_at)}{a.emailed ? ', emailed' : ''}</span></span>
+            <span className="ad-sub">{a.advice}</span></li>))}</ul>
+      )}
+      <ul className="sh-list">{h.checks.map((c) => (
+        <li key={c.key} data-testid={`check-${c.key}`} data-status={c.status}>
+          <span className={`sh-dot is-${c.status}`} aria-hidden="true" />
+          <span>{c.label}</span>
+          <span className={c.status === 'failing' ? 'small ad-late' : 'small'}>{words(c.status)}</span>
+          <span className="ad-sub">{c.detail ?? ''}{c.checked_at ? ` · ${t(c.checked_at)}` : ''}{c.day.checks ? ` · ${c.day.failed} of ${c.day.checks} checks failed in 24 hours` : ''}</span>
+        </li>))}</ul>
+      {h.recent.length > 0 && <details className="todo__clear"><summary className="small muted">{h.recent.length} resolved in the last 7 days</summary>
+        <ul className="small muted">{h.recent.map((r, i) => <li key={i}>{r.label}: {r.detail} ({t(r.opened_at)} to {t(r.resolved_at)})</li>)}</ul></details>}
+    </Card>
   );
 }

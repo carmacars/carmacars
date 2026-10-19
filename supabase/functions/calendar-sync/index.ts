@@ -2,8 +2,9 @@
 // trips as External booking blocks (docs/changes/2026-10-19-calendar-sync-recovery-uptime.md). Called every 5 minutes
 // by pg_cron through pg_net (job `carmacars-calendar-sync`, scheduled by the deploy: scripts/deploy/supabase.sh
 // calsync) with `Authorization: Bearer <CALSYNC_JOB_TOKEN>`; any other caller gets 403. The database decides which
-// links are due (app.calendar_feeds_due: calendar_sync_minutes, 10 by default), the run is in run.ts and the reader in
-// ical.ts (the same files the site's "Sync now" and the unit tests use).
+// links are due (app.calendar_feeds_due: calendar_sync_minutes, 10 by default). The run and the reader are the site's
+// own files, web/src/features/calendar/sync-run.ts and ical.ts, which the deploy copies beside this file as run.ts
+// and ical.ts (the same code the site's "Sync now" and the unit tests use).
 //
 // Secrets (Edge Function secrets, set by the deploy): CALSYNC_JOB_TOKEN. SUPABASE_DB_URL is provided.
 import postgres from 'npm:postgres@3.4.5';

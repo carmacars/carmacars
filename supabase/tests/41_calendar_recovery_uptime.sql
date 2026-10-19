@@ -87,7 +87,7 @@ select test.eq('not modified: the clash is not raised twice', (select count(*) f
   || ' ' || (select count(*) from tasks where task_type = 'calendar_conflict' and booking_id = test.id('booking:C62-B1')), '1 1');
 select test.flush62();
 select test.eq('the clash email reaches Fleet with the times in Toronto',
-  (select format('%s | %s | %s', to_address, payload ->> 'external_start', payload ->> 'calendar_url') from notification_outbox where code = 'staff_calendar_conflict' and booking_id = test.id('booking:C62-B1') and audience = 'staff_va_fleet'),
+  (select format('%s | %s | %s', to_address, payload ->> 'external_start', payload ->> 'calendar_url') from notification_outbox where code = 'staff_calendar_conflict' and booking_id = test.id('booking:C62-B1') and to_address = 'c62_fleet@example.test'),
   'c62_fleet@example.test | Sun, Mar 9 at 10:00 am | https://carmacars.ca/va/calendar-sync');
 select test.eq('Calendar sync shows the clash to Fleet', (select count(*) from jsonb_array_elements(app.door(test.id('c62_fleet'), '', 'va_read', 'calendar_sync') -> 'conflicts') x where x ->> 'booking_number' = 'C62-B1'), 1::bigint);
 -- the trip is cancelled on Turo: it leaves the link; the block goes and the clash closes by itself
@@ -129,7 +129,7 @@ select test.eq('the third failure: one Fleet task and one email, not again at th
 select test.eq('To do counts the link', (select x ->> 'count' from jsonb_array_elements(app.admin_todo(test.id('c62_admin')) -> 'items') x where x ->> 'key' = 'calendar_feeds'), '1');
 select test.flush62();
 select test.eq('the email says how many tries and the last good sync',
-  (select payload ->> 'failures' || ' | ' || (payload ->> 'last_success') from notification_outbox where code = 'staff_calendar_feed_failing' and entity_id = test.f62() and audience = 'staff_admin'),
+  (select payload ->> 'failures' || ' | ' || (payload ->> 'last_success') from notification_outbox where code = 'staff_calendar_feed_failing' and entity_id = test.f62() and to_address = 'c62_admin@example.test'),
   '3 | Sat, Mar 1 at 12:40 pm');
 select app.calendar_feed_apply(test.f62(), null, '{}', test.at62('2031-03-01 13:40'));
 select test.eq('it works again: the task closes and the count starts over',

@@ -1,6 +1,7 @@
 // The iCal reader of calendar sync (migration 0062; docs/changes/2026-10-19-calendar-sync-recovery-uptime.md). Plain
-// TypeScript with no imports, so the same file runs in the calendar-sync Edge Function (Deno), in the site's
-// "Sync now" (the Worker) and in the unit tests (Node: web/src/features/calendar/ical.test.ts).
+// TypeScript with no imports, so the same file runs in the site's "Sync now" (the Worker), in the unit tests (Node:
+// ical.test.ts) and in the calendar-sync Edge Function (Deno: the deploy copies this file and sync-run.ts beside
+// supabase/functions/calendar-sync/index.ts; scripts/deploy/supabase.sh calsync).
 //
 // What it keeps: every VEVENT that holds time (not cancelled, not marked free), from a day ago to 18 months ahead,
 // as UTC instants. Times with a TZID are read in that zone (IANA names, and the Windows names Outlook writes);

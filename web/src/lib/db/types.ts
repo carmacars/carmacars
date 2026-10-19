@@ -1497,6 +1497,153 @@ export type Database = {
         };
         Relationships: [];
       };
+      calendar_conflicts: {
+        Row: {
+          id: string;
+          event_id: string;
+          booking_id: string;
+          kind: string;
+          task_id: string | null;
+          found_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          booking_id: string;
+          kind: string;
+          task_id?: string | null;
+          found_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          booking_id?: string;
+          kind?: string;
+          task_id?: string | null;
+          found_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      calendar_feed_events: {
+        Row: {
+          id: string;
+          feed_id: string;
+          vehicle_id: string;
+          uid: string;
+          summary: string | null;
+          starts_at: string;
+          ends_at: string;
+          all_day: boolean;
+          block_id: string | null;
+          first_seen_at: string;
+          last_seen_at: string;
+          changed_at: string | null;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          feed_id: string;
+          vehicle_id: string;
+          uid: string;
+          summary?: string | null;
+          starts_at: string;
+          ends_at: string;
+          all_day?: boolean;
+          block_id?: string | null;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          changed_at?: string | null;
+          removed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          feed_id?: string;
+          vehicle_id?: string;
+          uid?: string;
+          summary?: string | null;
+          starts_at?: string;
+          ends_at?: string;
+          all_day?: boolean;
+          block_id?: string | null;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          changed_at?: string | null;
+          removed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      calendar_feeds: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          platform: string;
+          label: string | null;
+          url: string;
+          enabled: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          last_attempt_at: string | null;
+          last_success_at: string | null;
+          last_status: string;
+          last_error: string | null;
+          consecutive_failures: number;
+          failing_since: string | null;
+          alerted_at: string | null;
+          event_count: number;
+          calendar_name: string | null;
+          etag: string | null;
+          last_modified: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          platform: string;
+          label?: string | null;
+          url: string;
+          enabled?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          last_attempt_at?: string | null;
+          last_success_at?: string | null;
+          last_status?: string;
+          last_error?: string | null;
+          consecutive_failures?: number;
+          failing_since?: string | null;
+          alerted_at?: string | null;
+          event_count?: number;
+          calendar_name?: string | null;
+          etag?: string | null;
+          last_modified?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          platform?: string;
+          label?: string | null;
+          url?: string;
+          enabled?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          last_attempt_at?: string | null;
+          last_success_at?: string | null;
+          last_status?: string;
+          last_error?: string | null;
+          consecutive_failures?: number;
+          failing_since?: string | null;
+          alerted_at?: string | null;
+          event_count?: number;
+          calendar_name?: string | null;
+          etag?: string | null;
+          last_modified?: string | null;
+        };
+        Relationships: [];
+      };
       chat_conversations: {
         Row: {
           id: string;
@@ -8256,6 +8403,27 @@ export type Database = {
           chat_greeting_text: string;
           chat_shift_minutes: number;
           chat_keep_days: number;
+          calendar_sync_enabled: boolean;
+          calendar_sync_minutes: number;
+          calendar_feed_alert_failures: number;
+          calendar_export_turnaround: boolean;
+          recovery_emails_enabled: boolean;
+          recovery_request_hours: number;
+          recovery_offer_hours: number;
+          recovery_pay_minutes: number;
+          recovery_change_hours: number;
+          recovery_second_hours: number;
+          recovery_max_emails: number;
+          recovery_send_from_hour: number;
+          recovery_send_until_hour: number;
+          uptime_enabled: boolean;
+          uptime_interval_minutes: number;
+          uptime_fail_threshold: number;
+          uptime_alert_email: string;
+          uptime_alert_cooldown_minutes: number;
+          uptime_backup_max_hours: number;
+          uptime_email_failures: number;
+          uptime_keep_days: number;
         };
         Insert: {
           id?: string;
@@ -8499,6 +8667,27 @@ export type Database = {
           chat_greeting_text?: string;
           chat_shift_minutes?: number;
           chat_keep_days?: number;
+          calendar_sync_enabled?: boolean;
+          calendar_sync_minutes?: number;
+          calendar_feed_alert_failures?: number;
+          calendar_export_turnaround?: boolean;
+          recovery_emails_enabled?: boolean;
+          recovery_request_hours?: number;
+          recovery_offer_hours?: number;
+          recovery_pay_minutes?: number;
+          recovery_change_hours?: number;
+          recovery_second_hours?: number;
+          recovery_max_emails?: number;
+          recovery_send_from_hour?: number;
+          recovery_send_until_hour?: number;
+          uptime_enabled?: boolean;
+          uptime_interval_minutes?: number;
+          uptime_fail_threshold?: number;
+          uptime_alert_email?: string;
+          uptime_alert_cooldown_minutes?: number;
+          uptime_backup_max_hours?: number;
+          uptime_email_failures?: number;
+          uptime_keep_days?: number;
         };
         Update: {
           id?: string;
@@ -8742,6 +8931,27 @@ export type Database = {
           chat_greeting_text?: string;
           chat_shift_minutes?: number;
           chat_keep_days?: number;
+          calendar_sync_enabled?: boolean;
+          calendar_sync_minutes?: number;
+          calendar_feed_alert_failures?: number;
+          calendar_export_turnaround?: boolean;
+          recovery_emails_enabled?: boolean;
+          recovery_request_hours?: number;
+          recovery_offer_hours?: number;
+          recovery_pay_minutes?: number;
+          recovery_change_hours?: number;
+          recovery_second_hours?: number;
+          recovery_max_emails?: number;
+          recovery_send_from_hour?: number;
+          recovery_send_until_hour?: number;
+          uptime_enabled?: boolean;
+          uptime_interval_minutes?: number;
+          uptime_fail_threshold?: number;
+          uptime_alert_email?: string;
+          uptime_alert_cooldown_minutes?: number;
+          uptime_backup_max_hours?: number;
+          uptime_email_failures?: number;
+          uptime_keep_days?: number;
         };
         Relationships: [];
       };
@@ -8976,6 +9186,57 @@ export type Database = {
           set_by?: string | null;
           set_by_owner?: boolean;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      recovery_emails: {
+        Row: {
+          id: string;
+          kind: string;
+          subject_key: string;
+          step: number;
+          signal_id: string | null;
+          renter_id: string | null;
+          user_id: string | null;
+          booking_id: string | null;
+          change_id: string | null;
+          vehicle_id: string | null;
+          event_id: number | null;
+          created_at: string;
+          stopped_at: string | null;
+          stop_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          subject_key: string;
+          step: number;
+          signal_id?: string | null;
+          renter_id?: string | null;
+          user_id?: string | null;
+          booking_id?: string | null;
+          change_id?: string | null;
+          vehicle_id?: string | null;
+          event_id?: number | null;
+          created_at?: string;
+          stopped_at?: string | null;
+          stop_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          subject_key?: string;
+          step?: number;
+          signal_id?: string | null;
+          renter_id?: string | null;
+          user_id?: string | null;
+          booking_id?: string | null;
+          change_id?: string | null;
+          vehicle_id?: string | null;
+          event_id?: number | null;
+          created_at?: string;
+          stopped_at?: string | null;
+          stop_reason?: string | null;
         };
         Relationships: [];
       };
@@ -9759,6 +10020,39 @@ export type Database = {
           seconds_to_sign?: number | null;
           signed_at?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      site_alerts: {
+        Row: {
+          id: string;
+          check_key: string;
+          opened_at: string;
+          resolved_at: string | null;
+          detail: string | null;
+          failures: number;
+          emailed: boolean;
+          task_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          check_key: string;
+          opened_at?: string;
+          resolved_at?: string | null;
+          detail?: string | null;
+          failures?: number;
+          emailed?: boolean;
+          task_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          check_key?: string;
+          opened_at?: string;
+          resolved_at?: string | null;
+          detail?: string | null;
+          failures?: number;
+          emailed?: boolean;
+          task_id?: string | null;
         };
         Relationships: [];
       };
@@ -11193,6 +11487,108 @@ export type Database = {
         };
         Relationships: [];
       };
+      uptime_checks: {
+        Row: {
+          key: string;
+          label: string;
+          kind: string;
+          path: string | null;
+          sort: number;
+          enabled: boolean;
+          advice: string;
+          status: string;
+          consecutive_failures: number;
+          last_checked_at: string | null;
+          last_ok_at: string | null;
+          last_http: number | null;
+          last_ms: number | null;
+          last_detail: string | null;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          kind: string;
+          path?: string | null;
+          sort?: number;
+          enabled?: boolean;
+          advice: string;
+          status?: string;
+          consecutive_failures?: number;
+          last_checked_at?: string | null;
+          last_ok_at?: string | null;
+          last_http?: number | null;
+          last_ms?: number | null;
+          last_detail?: string | null;
+        };
+        Update: {
+          key?: string;
+          label?: string;
+          kind?: string;
+          path?: string | null;
+          sort?: number;
+          enabled?: boolean;
+          advice?: string;
+          status?: string;
+          consecutive_failures?: number;
+          last_checked_at?: string | null;
+          last_ok_at?: string | null;
+          last_http?: number | null;
+          last_ms?: number | null;
+          last_detail?: string | null;
+        };
+        Relationships: [];
+      };
+      uptime_probes: {
+        Row: {
+          request_id: number;
+          check_key: string;
+          url: string;
+          sent_at: string;
+        };
+        Insert: {
+          request_id: number;
+          check_key: string;
+          url: string;
+          sent_at?: string;
+        };
+        Update: {
+          request_id?: number;
+          check_key?: string;
+          url?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
+      uptime_results: {
+        Row: {
+          id: number;
+          check_key: string;
+          at: string;
+          ok: boolean;
+          http_status: number | null;
+          ms: number | null;
+          detail: string | null;
+        };
+        Insert: {
+          id?: number;
+          check_key: string;
+          at?: string;
+          ok: boolean;
+          http_status?: number | null;
+          ms?: number | null;
+          detail?: string | null;
+        };
+        Update: {
+          id?: number;
+          check_key?: string;
+          at?: string;
+          ok?: boolean;
+          http_status?: number | null;
+          ms?: number | null;
+          detail?: string | null;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
           user_id: string;
@@ -11358,6 +11754,33 @@ export type Database = {
           updated_at?: string;
           booking_id?: string | null;
           source?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_calendar_exports: {
+        Row: {
+          vehicle_id: string;
+          token: string;
+          created_at: string;
+          rotated_at: string | null;
+          last_fetched_at: string | null;
+          fetches: number;
+        };
+        Insert: {
+          vehicle_id: string;
+          token?: string;
+          created_at?: string;
+          rotated_at?: string | null;
+          last_fetched_at?: string | null;
+          fetches?: number;
+        };
+        Update: {
+          vehicle_id?: string;
+          token?: string;
+          created_at?: string;
+          rotated_at?: string | null;
+          last_fetched_at?: string | null;
+          fetches?: number;
         };
         Relationships: [];
       };
@@ -13813,6 +14236,7 @@ export type Database = {
       calc_round: { Args: { n: number }; Returns: number };
       calc_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_cents: number; p_company_share_bps: number }; Returns: { owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
       calc_total_loss: { Args: { p_settlement_cents: number; p_lender_due_cents: number; p_owner_owes_cents: number }; Returns: { lender_cents: number; company_cents: number; owner_cents: number }[] };
+      calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };
@@ -13830,6 +14254,7 @@ export type Database = {
       guide_pdf_file: { Args: { p_by: string; p_portal: string }; Returns: Json };
       guide_read: { Args: { p_by: string; p_portal: string }; Returns: Json };
       handover_places: { Args: { p_vehicle: string }; Returns: Json };
+      health_ping: { Args: never; Returns: Json };
       load_form_draft: { Args: { p_form_code: string; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string }; Returns: Json };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       model_hub: { Args: { p_hub: string }; Returns: Json };
