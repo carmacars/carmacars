@@ -232,9 +232,10 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
   await check(page, 'commission payments');
 
   // a refund after payment: reversed, taken off the next payment
-  await sql`insert into refunds (booking_id, payment_id, reason, amount_cents, status, requested_by, approved_by, note)
+  // recorded as paid, so it does not wait in Money > Refunds for another test's "Issue the refund"
+  await sql`insert into refunds (booking_id, payment_id, reason, amount_cents, status, paid_at, requested_by, approved_by, note)
     select b.id, (select p.id from payments p where p.booking_id = b.id and p.status = 'succeeded' limit 1), 'other',
-           (select sum(p.amount_cents) from payments p where p.booking_id = b.id and p.status = 'succeeded'), 'approved', ${admin.id}, ${admin.id}, 'E2E: refunded in full'
+           (select sum(p.amount_cents) from payments p where p.booking_id = b.id and p.status = 'succeeded'), 'paid', now(), ${admin.id}, ${admin.id}, 'E2E: refunded in full'
       from bookings b where b.booking_number = ${number}`;
   await sp.goto('/va/my-sales', { waitUntil: 'networkidle' });
   await expect(sp.getByTestId(`commission-status-${number}-commission`)).toContainText('Paid');
