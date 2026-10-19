@@ -20,6 +20,8 @@ create or replace function test.c62v() returns uuid language sql immutable as $$
 create or replace function test.at62(p text) returns timestamptz language sql immutable as $$ select (p::timestamp at time zone 'America/Toronto') $$;
 create or replace function test.flush62() returns integer language sql as $$ select app.process_events(100000) $$;
 create temp table s41 (k text primary key, v jsonb);
+-- the site alert emails of this suite (07 builds one of each for the catalogue)
+create or replace function test.ev62(p_code text) returns bigint language sql stable as $$ select count(*) from app_events where code = p_code and entity_id is distinct from test.id('nt_alert') $$;
 grant all on s41 to public;
 create or replace function test.s41(p_k text) returns jsonb language sql stable as $$ select v from pg_temp.s41 where k = p_k $$;
 update program_settings set turnaround_buffer_minutes = 120, turnaround_block_enabled = true, calendar_sync_minutes = 10, calendar_feed_alert_failures = 3,
@@ -251,23 +253,23 @@ select test.eq('pages: two failures in a row do not alert', app.uptime_record('h
 insert into s41 values ('h3', to_jsonb(app.uptime_record('home', false, 503, 900, 'Answered 503 with Error 1102 (the web host stopped the page)')));
 select test.eq('the third does: an alert, an urgent Admin task, one email event', (test.s41('h3') #>> '{}')
   || ' ' || (select priority || ' ' || title from tasks where task_type = 'site_alert' and status = 'open' and dedupe_key = 'site_alert:home')
-  || ' ' || (select count(*) from app_events where code = 'staff_site_alert'), 'alert urgent Site problem: Home page 1');
-select test.eq('still failing: no second email', app.uptime_record('home', false, 503, 900, 'x') || ' ' || (select count(*) from app_events where code = 'staff_site_alert'), 'still failing 1');
+  || ' ' || test.ev62('staff_site_alert'), 'alert urgent Site problem: Home page 1');
+select test.eq('still failing: no second email', app.uptime_record('home', false, 503, 900, 'x') || ' ' || test.ev62('staff_site_alert'), 'still failing 1');
 select test.eq('To do: the site problem first', (app.admin_todo(test.id('c62_admin')) -> 'items' -> 0 ->> 'key') || '=' || (app.admin_todo(test.id('c62_admin')) -> 'items' -> 0 ->> 'count'), 'site_alerts=1');
 select test.flush62();
 select test.eq('the alert goes to the alert address of Program settings only',
-  (select string_agg(to_address || ' ' || (payload ->> 'check_label') || ' ' || (payload ->> 'failures'), ', ') from notification_outbox where code = 'staff_site_alert'),
+  (select string_agg(to_address || ' ' || (payload ->> 'check_label') || ' ' || (payload ->> 'failures'), ', ') from notification_outbox where code = 'staff_site_alert' and entity_id is distinct from test.id('nt_alert')),
   'site.alerts@example.test Home page 4');
 insert into s41 values ('h4', to_jsonb(app.uptime_record('home', true, 200, 120, 'Answered 200')));
 select test.eq('it passes again: recovered, the task closes, one recovery email', (test.s41('h4') #>> '{}')
-  || ' ' || (select status from tasks where task_type = 'site_alert' and dedupe_key = 'site_alert:home') || ' ' || (select count(*) from app_events where code = 'staff_site_recovered'), 'recovered done 1');
+  || ' ' || (select status from tasks where task_type = 'site_alert' and dedupe_key = 'site_alert:home') || ' ' || test.ev62('staff_site_recovered'), 'recovered done 1');
 select test.flush62();
-select test.eq('the recovery email says how long', (select payload ->> 'alert_duration' from notification_outbox where code = 'staff_site_recovered'), '1 minutes');
+select test.eq('the recovery email says how long', (select payload ->> 'alert_duration' from notification_outbox where code = 'staff_site_recovered' and entity_id is distinct from test.id('nt_alert')), '1 minutes');
 -- within the cooldown: a new alert shows on To do without another email
 select app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)'), app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)'), app.uptime_record('home', false, 500, 300, 'Answered 500 (server error)');
-select test.eq('within the cooldown: alert open, not emailed', (select emailed::text from site_alerts where check_key = 'home' and resolved_at is null) || ' ' || (select count(*) from app_events where code = 'staff_site_alert'), 'false 1');
+select test.eq('within the cooldown: alert open, not emailed', (select emailed::text from site_alerts where check_key = 'home' and resolved_at is null) || ' ' || test.ev62('staff_site_alert'), 'false 1');
 select app.uptime_record('home', true, 200, 100, 'Answered 200');
-select test.eq('its recovery sends nothing either', (select count(*) from app_events where code = 'staff_site_recovered'), 1::bigint);
+select test.eq('its recovery sends nothing either', test.ev62('staff_site_recovered'), 1::bigint);
 -- the checks without requests
 select app.uptime_internal(now());
 select test.eq('internal checks: emails, jobs, backup and Stripe all pass on a quiet database',

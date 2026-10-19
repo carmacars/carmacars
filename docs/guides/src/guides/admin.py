@@ -222,6 +222,38 @@ def build():
         f'Turnaround between trips on this car shows the time used. Press {B("Change")} to give this car its own time.',
     ], shot=S('admin/07-vehicle-calendar-desktop', 0, 0, 1440, 560, pins=[(1, 606, 174), (2, 740, 228)]))
 
+    # ---------------------------------------------------------------- calendar sync (0062)
+    g.chapter('Calendar sync with Turo and other platforms',
+              'A car rented on Turo, Getaround or another site must never be booked twice. Calendar sync works both ways '
+              'through calendar links (iCal): their trips block the car here, and our bookings block it there.',
+              blurb='Paste each platform\'s calendar link, paste ours into the platform, clashes, links that stop working.')
+    g.task('Bring Turo\'s trips in', f'{P("Cars", "Calendar sync")}. Do this once for each car listed on another platform.')
+    g.steps([
+        'On Turo, open the car\'s calendar and its calendar sync (export) settings, and copy the calendar link (it ends in .ics). On Getaround or another site, look for "Export calendar" or "iCal".',
+        f'On Calendar sync, find the car, open {B("Add a calendar link")}, choose the platform and paste the link. Press {B("Add the link")}.',
+        'The link is read at once and then every 10 minutes. The card shows "Working", when it was read and the next trips it found.',
+        'Each trip becomes an "External booking" block on the car, with the turnaround before and after it. The car cannot be requested, offered or booked here for those times, and the public calendar shows them as taken.',
+        f'A trip that moves or is cancelled on the platform moves or frees the block at the next read. {B("Sync now")} reads the link at once.',
+    ])
+    g.task('Send our bookings to Turo')
+    g.steps([
+        'Each car has its own CarmaCars link under "This car\'s CarmaCars calendar": one for Turo, one for Getaround, one for any other platform. Each leaves out the trips that came from that platform, so nothing comes back twice.',
+        f'Press {B("Copy")} next to "For Turo" and paste it into the car\'s calendar import on Turo. Do the same for each platform.',
+        'The link shows only "Booked" for our bookings (with the turnaround) and our blocks. No names, numbers or prices.',
+        f'If a link was shared by mistake, press {B("Make a new link")}. The old one stops working at once: paste the new one into every platform again.',
+    ])
+    g.task('Double bookings', 'If a trip on another platform overlaps a confirmed CarmaCars booking of the same car, we tell you at once.')
+    g.bullets([
+        'An urgent Fleet task "Double booking: <car> on Turo and CC-1042", a line on To do and an email to Fleet and the Admins.',
+        'Calendar sync lists it at the top with both trips. Move, swap or cancel one of the two. The task closes by itself once they no longer overlap.',
+        'An offer or a booking awaiting payment over a trip on another platform raises a task for customer service: its payment would be refused, so withdraw the offer or change the dates.',
+    ])
+    g.task('A link that stops working')
+    g.para('A platform answers an error when a link is reset or removed. After 3 failed reads in a row (a Program setting) Fleet gets a task and an email, and To do shows "Calendar links not working". '
+           'The trips already read stay on the calendar. Copy the link from the platform again, remove the old one and add the new one.')
+    g.tip('A block from another platform can be removed from the calendar like any block; calendar sync will not put it back. '
+          'In Program settings, "Calendar sync": on or off, how often links are read (10 minutes), failures before an alert, and whether our links include the turnaround.', label='Good to know')
+
     # ---------------------------------------------------------------- 5
     g.chapter('Fleet and listings',
               'Vehicles is the fleet. Listings is the pipeline that turns a car into a page on carmacars.ca: '
@@ -520,6 +552,13 @@ def build():
         'A task closes by itself when the renter answers the offer, pays or answers the proposal. Each signal raises one task only.',
         f'The thresholds are in {P("Settings", "Program")}, group "Live visitors and live chat". Follow-ups done count in My sales.',
     ])
+    g.task('Recovery emails', 'Known renters who stop before finishing get one polite reminder, and at most one more a day later.')
+    g.bullets([
+        'An offer opened and not answered: after 4 hours. The pay page left without paying: after an hour. A change proposal opened and not answered: after 4 hours.',
+        'A booking request started and not sent: after 2 hours, and only to renters who agreed to hear from us (marketing consent).',
+        'Sent only between 9:00 and 21:00 Toronto time, never to someone who unsubscribed, and never while a staff member is handling the renter (a task they took, a chat with a person, a message from staff).',
+        'They stop as soon as the renter answers, pays or sends the request; a reminder still waiting is not sent. The delays and hours are in Program settings, "Booking recovery emails".',
+    ])
     g.task('Interest in a car')
     g.para(f'{P("Cars", "Vehicles")}, a car, Overview: "Interest on the site" shows who is looking now, views today and in 7 days, '
            'conversion over 30 days (requests from the people who viewed it) and the last 14 days. The Vehicles list has "Most viewed cars this week".')
@@ -565,6 +604,7 @@ def build():
         'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
+        'Calendar sync, Booking recovery emails and Site check: how often calendar links are read, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca).',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
@@ -618,7 +658,7 @@ def build():
     # ---------------------------------------------------------------- 10
     g.chapter('Email, backups and site health',
               'Keep an eye on email use against the daily limit, the nightly backup and the occasional error page.',
-              blurb='The email outbox and daily limit, suppressions, backups and Error 1102.')
+              blurb='The email outbox and daily limit, suppressions, backups, the site check and its alerts, and Error 1102.')
     g.task('Email', f'{P("Settings", "Email log")}')
     g.steps([
         'The banner shows today\'s emails against the daily limit. From 80, Admins get a notice; near the limit, digests and marketing wait first and booking and sign-in emails are held last.',
@@ -631,9 +671,18 @@ def build():
     g.bullets([
         'The database is backed up every night, encrypted, kept for 30 days and test-restored on the spot.',
         'Every Monday the newest backup is checked again: it must be under 30 hours old and restore cleanly.',
-        'Nothing is emailed. A failed backup shows as a failed scheduled job under Alerts on the Overview. Tell your developer the same day.',
+        'A failed backup, or none for 30 hours, opens a site alert: an email, a task and a line on To do. Tell your developer the same day.',
         'Keep a copy of the backup key in the company password manager. Without it no backup can be read.',
     ])
+
+    g.task('Site health and alerts', f'{P("Today", "To do")}, the Site health card at the bottom.')
+    g.steps([
+        'Every 5 minutes the site checks itself: the home page, a car page, the sign-in page and the site\'s health check, and also emails, scheduled jobs, the nightly backup and Stripe payments.',
+        'Each line shows Working, Problem or Not checked yet, what was found and how many checks failed in the last 24 hours.',
+        'A page that fails 3 checks in a row (a single Error 1102 does not count) opens an alert: an email to rent@carmacars.ca, an urgent task and "Site problems found by the site check" first on To do. Emails failing, a failed job or backup, or a Stripe event that failed alert at once.',
+        'When the check passes again you get one "Recovered" email and the task closes by itself. A new problem of the same kind within an hour shows on To do without another email.',
+    ])
+    g.tip('The address the alerts go to and the timings are in Program settings, "Site check".', label='Good to know')
 
     g.task('When a page shows "Error 1102"')
     g.para('Our web host\'s free plan sometimes stops a page that takes too long. Reload the page; you are still signed in. '
@@ -643,7 +692,7 @@ def build():
         nav_rows=[('To do', 'What needs you now, most urgent first'),
                   ('Search', 'Any booking, plate, VIN, name or email'),
                   ('Bookings', 'Requests, bookings, the calendar, adding a rental'),
-                  ('Cars', 'Vehicles, listings, sample photos'),
+                  ('Cars', 'Vehicles, listings, calendar sync, sample photos'),
                   ('Owners and partners', 'Applications, owners, partners, owner forms'),
                   ('Money', 'Owner invoices and debits, payments, statements, tolls'),
                   ('People', 'Renters, staff, investors, View as'),

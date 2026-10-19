@@ -10,6 +10,8 @@
 #   scripts/deploy/supabase.sh outbox    deploy the send-outbox Edge Function and schedule it every minute
 #   scripts/deploy/supabase.sh debit     deploy the owner-debit Edge Function (the automatic monthly owner debit) and
 #                                        schedule it hourly
+#   scripts/deploy/supabase.sh calsync   deploy the calendar-sync Edge Function (Turo and other calendar links) and
+#                                        schedule it every 5 minutes
 #   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
 #                                        has no R2: STORAGE_PROVIDER=supabase); vehicle-public is public
 #   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
@@ -233,6 +235,46 @@ debit() {
   code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/owner-debit" -H "Authorization: Bearer $token")
   [ "$code" = "200" ] && notice "Owner debit: Edge Function owner-debit answers ($(head -c 300 "$dir.json")), pg_cron job carmacars-owner-debit hourly" \
     || warn "owner-debit with the token answered $code: $(head -c 300 "$dir.json")"
+  rm -f "$dir.json"
+}
+
+# Calendar sync (docs/changes/2026-10-19-calendar-sync-recovery-uptime.md): the calendar-sync Edge Function with the
+# site's own reader (web/src/features/calendar/ical.ts and sync-run.ts, copied beside index.ts), its job token in the
+# vault, and the pg_cron call every 5 minutes. The database decides which calendar links are due
+# (calendar_sync_minutes, 10 by default), so a call with nothing due costs one query.
+calsync() {
+  local token dir out code
+  token=$(vault_get calsync_job_token)
+  if [ -z "$token" ]; then
+    token=$(openssl rand -hex 32)
+    vault_set calsync_job_token "$token" "Bearer token pg_cron sends to the calendar-sync Edge Function"
+  fi
+  mask "$token"
+  sbapi POST "/secrets" "$(jq -n --arg t "$token" '[{name: "CALSYNC_JOB_TOKEN", value: $t}]')" > /dev/null
+  dir=$(mktemp -d)
+  cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$dir/index.ts"
+  cp "$ROOT/web/src/features/calendar/ical.ts" "$dir/ical.ts"
+  cp "$ROOT/web/src/features/calendar/sync-run.ts" "$dir/run.ts"
+  out=$(mktemp)
+  code=$(cd "$dir" && curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/functions/deploy?slug=calendar-sync" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+    -F 'metadata={"entrypoint_path":"index.ts","name":"calendar-sync","verify_jwt":false};type=application/json' \
+    -F 'file=@index.ts;type=application/typescript' -F 'file=@ical.ts;type=application/typescript' -F 'file=@run.ts;type=application/typescript')
+  [ "${code:0:1}" = "2" ] || die "calendar-sync deploy failed ($code): $(head -c 800 "$out")"
+  log "calendar-sync deployed: $(jq -c '{slug, version, status}' "$out")"
+  rm -rf "$dir" "$out"
+  sbq "select cron.schedule('carmacars-calendar-sync', '*/5 * * * *', \$c\$
+         select net.http_post(
+           url := 'https://$REF.supabase.co/functions/v1/calendar-sync',
+           headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
+                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'calsync_job_token')),
+           body := '{}'::jsonb, timeout_milliseconds := 120000)
+       \$c\$)" > /dev/null
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/calendar-sync")
+  [ "$code" = "403" ] || warn "calendar-sync without a token answered $code (expected 403)"
+  code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/calendar-sync" -H "Authorization: Bearer $token")
+  [ "$code" = "200" ] && notice "Calendar sync: Edge Function calendar-sync answers ($(head -c 300 "$dir.json")), pg_cron job carmacars-calendar-sync every 5 minutes" \
+    || warn "calendar-sync with the token answered $code: $(head -c 300 "$dir.json")"
   rm -f "$dir.json"
 }
 

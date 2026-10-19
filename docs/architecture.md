@@ -78,6 +78,7 @@ Each lives in `src/integrations/<name>/` behind a small TypeScript interface, wi
 | `storage` | Cloudflare R2 | upload; signed download link | `documents`, `condition_report_photos`, `vehicle_photos` |
 | `photos` | The vehicle photo pipeline | enqueue a photo job; receive processed images | `photo_jobs`, `vehicle_photos` |
 | `turo` | None at launch (manual entry or CSV) | import trips and payouts | `turo_trips` |
+| `calendar` (0062) | iCal calendar links of Turo, Getaround and any platform; no account or API | read a car's calendar link (`web/src/features/calendar/ical.ts`, `sync-run.ts`, run by the `calendar-sync` Edge Function and by "Sync now"); give each car a private iCal link of its busy times (`/api/ical/<token>.ics`) | `calendar_feeds`, `calendar_feed_events`, `vehicle_calendar_blocks` (`source = 'external'`), `calendar_conflicts`, `vehicle_calendar_exports` |
 
 Rules that apply to the adapters:
 
@@ -99,7 +100,7 @@ Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 
 `pg_cron` runs on UTC. A job that belongs to a Toronto time is scheduled every hour (or more often); the wrapper works out the Toronto date and hour itself and claims a row in `job_runs (job_name, run_key)` with `app.job_claim()`, so a daylight-saving shift or a retry cannot run a business day (or a slot) twice. A run that fails is marked `failed` with its error, raises one urgent admin task and the `staff_job_failed` email, and is tried again on the next call. Every wrapper takes the instant to judge by, so a missed run can be made by hand, for example `select app.job_owner_invoices(timestamptz '2026-11-15 06:00 America/Toronto')`; the run key still stops a second run. Where `pg_cron` is absent (a plain local database) the migrations schedule nothing. Times below are Toronto time.
 
-### Run by pg_cron inside the database (23 jobs)
+### Run by pg_cron inside the database (27 jobs)
 
 | Cron job | When | Wrapper | What it does | Migration |
 | --- | --- | --- | --- | --- |
@@ -127,6 +128,8 @@ Jobs are started by `pg_cron` inside the Supabase database. There are two kinds:
 | `carmacars-booking-changes` | Every 15 minutes | `app.job_booking_changes()` | A change staff proposed to a confirmed booking: one reminder `booking_change_reminder_hours` before its deadline, then it expires (the booking stays as it was; renter and customer service are told) | 0040 |
 | `carmacars-commission-month` | Hourly; acts once after each month ends, from 06:00 | `app.job_commission_month()` | The month's staff commissions once more (the Sales tiers on the month's rental days), then an Admin task when commissions wait for approval. Pays nothing | 0058 |
 | `carmacars-visitor-followups` | Every 15 minutes | `app.job_visitor_followups()` | Resolves buying signals whose moment passed; raises one follow-up task per signal of a known visitor past its threshold (offer not answered, pay page left, proposal opened, request stopped, viewing spree) and closes those whose reason passed | 0060 |
+| `carmacars-booking-recovery` | Every 15 minutes | `app.job_booking_recovery()` | Booking recovery emails from the live visitor signals: an offer opened and not answered, the pay page left, a change proposal opened and not answered, a request started and not sent (marketing consent); one reminder and at most one more, inside the sending hours; a series stops (and a reminder still waiting is skipped) once the renter acts or staff handle them | 0062 |
+| `carmacars-uptime` | Every minute | `app.job_uptime()` | The site check: collects the answers of the pages asked before (pg_net), and every `uptime_interval_minutes` (5) checks the outbox, the scheduled jobs, the nightly backup and the Stripe webhook and asks the home page, a car page, sign-in and `/api/health` again; a problem opens one alert (task, To do, email to `uptime_alert_email`), its recovery one more email | 0062 |
 | `carmacars-visitor-housekeeping` | Daily 04:23 | `app.job_visitor_housekeeping()` | Deletes visit events and sessions past `visitor_events_keep_days` (90), chats of non-customers past `chat_keep_days` (365); closes quiet assistant chats. Daily counts per car are kept | 0060 |
 
 These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.sql`, `09_operations.sql`, `10_tolls_statements.sql` and `12_end_to_end.sql`, by calling each wrapper with chosen instants.
@@ -146,6 +149,7 @@ These are tested in `05_jobs.sql`, `06_request_to_book.sql`, `07_notifications.s
 | `payouts` | 10th | After admin approval: pay by bank transfer, list field staff kickbacks for payroll | Bank, email |
 | `owner-debit` (built, 0037) | Hourly (`carmacars-owner-debit`); acts on the debit day and on retry days | `app.owner_debit_claim()`, one off-session PaymentIntent per invoice and attempt, `app.owner_debit_submitted()`; asks Stripe again about debits processing too long; results also arrive through the Stripe webhook (`app.owner_debit_result()`) | Stripe |
 | `owner-billing` (investor part) | 15th | Pay investor returns | Bank |
+| `calendar-sync` (built, 0062) | Every 5 minutes (`carmacars-calendar-sync`, scheduled by the deploy); each link every `calendar_sync_minutes` (10) | `app.calendar_feeds_due()`, read each calendar link (ETag, 20-second timeout, 3 MB), `app.calendar_feed_apply()` (External booking blocks with the turnaround, clashes) or `app.calendar_feed_failed()` (an alert after `calendar_feed_alert_failures`) | Turo, Getaround and other calendar links |
 
 The 1st and the 15th each have the SQL step at 06:00 (`returns-accrue`, `owner-invoices`) and the step that needs Stripe or email after it (`month-open`, `owner-billing`). `statements-draft` runs 5 days before the payout date, which leaves the admins until the 9th to approve.
 
@@ -178,7 +182,7 @@ Tracker position history stays with the tracker service for 12 months; only the 
 | Automatic identity checks | Staff review. Stripe Identity can be switched on later in the `identity` module |
 | SMS and WhatsApp | Email only. A provider can be added behind the `messaging` module |
 | Stripe Billing and Stripe Invoicing | The platform builds its own invoices and charges saved payment methods on its own schedule |
-| Turo integration | Trips and Turo payouts are entered by hand or imported from a file |
+| Turo integration | No Turo account or API: trips and blocks sync both ways through each car's iCal calendar links (0062, Cars > Calendar sync); Turo payouts are entered by hand or imported from a file |
 | Insurer and broker integration | Claims are run by an admin; the ledger records money in and out |
 | Selling coverage (Option 3) | Listed in the catalogue with no price; cannot be sold until priced and cleared by the lawyer |
 | Payroll | Staff commissions are approved by an Admin and paid by hand (recorded in Admin > Money > Staff commissions); the platform pays nothing itself |

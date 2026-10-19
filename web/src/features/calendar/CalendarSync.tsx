@@ -71,7 +71,7 @@ function Feed({ f, onDone }: { f: FeedRow; onDone: (msg: string) => void }) {
         <button type="button" className="btn btn--ghost btn--sm" disabled={pending}
           onClick={() => run(() => calendarAct('calendar_feed_save', { id: f.id, platform: f.platform, label: f.label, url: f.url, enabled: !f.enabled }), f.enabled ? 'Turned off' : 'Turned on')}>
           {f.enabled ? 'Turn off' : 'Turn on'}</button>
-        <button type="button" className="btn btn--quiet btn--sm ad-btn--danger" disabled={pending}
+        <button type="button" className="btn btn--ghost btn--sm" disabled={pending}
           onClick={() => { if (confirm(`Remove the ${f.name} link? Its trips stop blocking the car.`)) run(() => calendarAct('calendar_feed_remove', { id: f.id }), 'Removed'); }}>Remove</button>
       </div>
       {err && <p className="small ad-late" role="alert">{err}</p>}

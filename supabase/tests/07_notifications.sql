@@ -32,7 +32,7 @@ select test.eq('A priority classes: customer, owner and investor, staff, digests
   '1:renter,2:owner,3:staff,4:staff,5:mkt');
 select test.eq('A each come-back email needs express consent, the review request implied consent',
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
-  'renter_comeback_1m=express,renter_comeback_1w=express,renter_review_request=implied');
+  'renter_comeback_1m=express,renter_comeback_1w=express,renter_recovery_request=express,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
   (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
@@ -691,7 +691,26 @@ select app.chat_send_transcript(test.id('nt_chat'));
 insert into chat_staff_prefs (user_id, email_when_waiting, last_seen_at) values (test.id('nt_admin'), true, now())
 on conflict (user_id) do update set email_when_waiting = true, last_seen_at = now();
 select app.emit_event('staff_chat_waiting', 'chat_conversation', test.id('nt_chat'), '{"reason": "asked for a person"}', 'staff_chat_waiting:nt');
+-- calendar sync, booking recovery and the site check (0062): a clash, a link that fails, a site alert and its
+-- recovery (to a test address, never the real Admin's), and the four recovery reminders
+update program_settings set uptime_alert_email = 'nt.alerts@example.test';
+insert into calendar_feeds (id, vehicle_id, platform, url, enabled, consecutive_failures, last_error, failing_since)
+values (test.id('nt_feed'), test.id('vehicle:NT1'), 'turo', 'https://turo.example/ical/nt.ics', false, 3, 'The platform answered 404 (not found)', now());
+insert into calendar_feed_events (id, feed_id, vehicle_id, uid, summary, starts_at, ends_at)
+values (test.id('nt_fev'), test.id('nt_feed'), test.id('vehicle:NT1'), 'nt-1', 'Turo trip', timestamptz '2031-05-11 14:00Z', timestamptz '2031-05-12 14:00Z');
+insert into calendar_conflicts (id, event_id, booking_id, kind, resolved_at) values (test.id('nt_cfl'), test.id('nt_fev'), test.id('booking:NT-3'), 'booking', now());
+select app.emit_event('staff_calendar_conflict', 'calendar_conflict', test.id('nt_cfl'), jsonb_build_object('booking_id', test.id('booking:NT-3'), 'vehicle_id', test.id('vehicle:NT1')), 'staff_calendar_conflict:nt');
+select app.emit_event('staff_calendar_feed_failing', 'calendar_feed', test.id('nt_feed'), jsonb_build_object('vehicle_id', test.id('vehicle:NT1'), 'failures', 3), 'staff_calendar_feed_failing:nt');
+insert into site_alerts (id, check_key, opened_at, resolved_at, detail, failures, emailed)
+values (test.id('nt_alert'), 'home', now() - interval '2 days 25 minutes', now() - interval '2 days', 'Answered 503 with Error 1102 (the web host stopped the page)', 3, true);
+select app.emit_event('staff_site_alert', 'site_alert', test.id('nt_alert'), '{}', 'staff_site_alert:nt');
+select app.emit_event('staff_site_recovered', 'site_alert', test.id('nt_alert'), '{}', 'staff_site_recovered:nt');
+select app.emit_event('renter_recovery_offer', 'booking', test.id('booking:NT-1'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'renter_id', test.id('renter:nt_rita')), 'renter_recovery_offer:nt');
+select app.emit_event('renter_recovery_pay', 'booking', test.id('booking:NT-2'), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'renter_id', test.id('renter:nt_rita')), 'renter_recovery_pay:nt');
+select app.emit_event('renter_recovery_change', 'booking', test.id('booking:NT-3'), jsonb_build_object('booking_id', test.id('booking:NT-3'), 'renter_id', test.id('renter:nt_rob')), 'renter_recovery_change:nt');
+select app.emit_event('renter_recovery_request', 'renter', test.id('renter:nt_rita'), jsonb_build_object('renter_id', test.id('renter:nt_rita'), 'vehicle_id', test.id('vehicle:NT1')), 'renter_recovery_request:nt');
 select test.flush();
+update program_settings set uptime_alert_email = 'rent@carmacars.ca';
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',

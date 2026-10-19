@@ -239,6 +239,14 @@ def build():
     ], shot=S('admin/11-plate-editor-phone', 0, 0, 390, 776, hdr=True, pins=[(3, 205, 612), (4, 195, 340), (5, 240, 482), (6, 168, 716)]))
     g.warn('Publishing waits until every public photo is covered or marked. The covered photo replaces the public one; the original is kept privately.')
 
+    g.task('Calendar sync with Turo and other platforms', f'{P("Cars", "Calendar sync")}: a car listed on Turo or Getaround must never be booked twice.')
+    g.steps([
+        f'On the platform, copy the car\'s calendar link (iCal, it ends in .ics). Here, find the car, open {B("Add a calendar link")}, choose the platform, paste it and press {B("Add the link")}.',
+        'Its trips block the car here with the turnaround before and after, read every 10 minutes. The card shows "Working" and the next trips.',
+        f'Copy the car\'s CarmaCars link "For Turo" (or Getaround) with {B("Copy")} and paste it into the platform\'s calendar import. It shows only "Booked".',
+        'A double booking raises an urgent task for you and an email: move, swap or cancel one trip. A link that stops working raises a task after 3 failed reads: copy it from the platform again.',
+    ])
+
     # ---------------------------------------------------------------- 5
     g.chapter('Sales',
               'You turn enquiries into bookings and owners into fleet: requests and offers, quotes for callers, '
@@ -327,6 +335,8 @@ def build():
         f'Press {B("Pages")} for the whole visit. Press {B("Start a chat")}, write a short friendly message and press {B("Send")}: the visitor sees it in a bubble.',
     ])
     g.task('Follow-ups', 'Signals of known visitors raise tasks on To do with what to do, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours". Call or message, then mark the task done. A task closes by itself when the renter answers or pays. Follow-ups done count in My sales.')
+    g.para('Renters also get one polite reminder email (and at most one more) when they leave an offer, the pay page or a change unanswered. '
+           'Taking the follow-up task, a chat with you or a message from you stops these reminders: you are handling it.')
     g.task('Live chat')
     g.steps([
         f'Open {P("My work", "Live chat")}. The menu counts chats waiting for a person. Reply within 5 minutes.',
