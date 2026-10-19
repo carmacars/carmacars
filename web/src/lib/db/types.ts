@@ -3785,6 +3785,9 @@ export type Database = {
           auto_update_reason: string | null;
           auto_update_run: string | null;
           auto_prev: Json | null;
+          auto_retry_at: string | null;
+          auto_retry_note: string | null;
+          auto_retry_count: number;
         };
         Insert: {
           id?: string;
@@ -3820,6 +3823,9 @@ export type Database = {
           auto_update_reason?: string | null;
           auto_update_run?: string | null;
           auto_prev?: Json | null;
+          auto_retry_at?: string | null;
+          auto_retry_note?: string | null;
+          auto_retry_count?: number;
         };
         Update: {
           id?: string;
@@ -3855,6 +3861,9 @@ export type Database = {
           auto_update_reason?: string | null;
           auto_update_run?: string | null;
           auto_prev?: Json | null;
+          auto_retry_at?: string | null;
+          auto_retry_note?: string | null;
+          auto_retry_count?: number;
         };
         Relationships: [];
       };
@@ -9922,6 +9931,8 @@ export type Database = {
           commission_bps: number | null;
           home_address: string | null;
           home_postal_code: string | null;
+          home_address_set_at: string | null;
+          home_address_set_by: string | null;
         };
         Insert: {
           user_id: string;
@@ -9941,6 +9952,8 @@ export type Database = {
           commission_bps?: number | null;
           home_address?: string | null;
           home_postal_code?: string | null;
+          home_address_set_at?: string | null;
+          home_address_set_by?: string | null;
         };
         Update: {
           user_id?: string;
@@ -9960,6 +9973,8 @@ export type Database = {
           commission_bps?: number | null;
           home_address?: string | null;
           home_postal_code?: string | null;
+          home_address_set_at?: string | null;
+          home_address_set_by?: string | null;
         };
         Relationships: [];
       };
