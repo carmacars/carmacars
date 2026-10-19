@@ -1354,7 +1354,7 @@ update site_content_blocks
      'text', 'We use necessary cookies to keep the site working, your bookings secure and live chat running. With your consent we also measure visits ourselves (pages and cars viewed, approximate city, device), so our team can help you and we can improve the site. No third-party analytics.',
      'groups', jsonb_build_array(
         jsonb_build_object('code', 'necessary_cookies', 'name', 'Necessary', 'always', true,
-          'text', 'Sign-in, security, your booking request and live chat. When you are signed in or open one of our email links, we note when you open your own offer, proposal or pay page. Always on.'),
+          'text', 'Sign-in, security, your booking request and live chat. When you are signed in or follow a link we sent you, we note when you open your own offer, proposal or pay page. Always on.'),
         jsonb_build_object('code', 'analytics_cookies', 'name', 'Analytics', 'always', false,
           'text', 'Records the pages and cars you view, the dates you search and the site that sent you, with your approximate city and device. Our team sees it while you browse. Off unless you turn it on.')))
  where block_key = 'cookies.banner' and coalesce(data ->> 'version', '') < '2026-10-19';

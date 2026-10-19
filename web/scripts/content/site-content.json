@@ -381,7 +381,7 @@
         "code": "necessary_cookies",
         "name": "Necessary",
         "always": true,
-        "text": "Sign-in, security, your booking request and live chat. When you are signed in or open one of our email links, we note when you open your own offer, proposal or pay page. Always on."
+        "text": "Sign-in, security, your booking request and live chat. When you are signed in or follow a link we sent you, we note when you open your own offer, proposal or pay page. Always on."
       },
       {
         "code": "analytics_cookies",
