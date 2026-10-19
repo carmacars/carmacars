@@ -59,8 +59,8 @@ select test.throws('va: Finance does not work requests', format($$select public.
 select test.throws('va: no per-booking price override for an assistant',
   format($$select public.door(%L, null, 'va_do', 'booking_save', jsonb_build_object('booking', %L, 'changes', '{"daily_rate_cents": 100}'::jsonb))$$, test.id('sp_cs'), test.b('spA')), 'Only an Admin changes daily rate cents');
 select test.throws('va: an offer open longer than 48 hours is refused',
-  format($$select public.door(%L, null, 'va_do', 'send_offer', jsonb_build_object('booking', %L, 'expires_at', now() + interval '72 hours'))$$, test.id('sp_cs'), test.b('spA')), '48 hours');
-create temp table sp_offer as select public.door(test.id('sp_cs'), null, 'va_do', 'send_offer', jsonb_build_object('booking', test.b('spA'), 'message', 'Here is your offer.', 'expires_at', now() + interval '24 hours')) as r;
+  format($$select public.door(%L, null, 'va_do', 'send_offer', jsonb_build_object('booking', %L, 'expires_at', now() + interval '72 hours', 'sales_choice', 'for_carmacars'))$$, test.id('sp_cs'), test.b('spA')), '48 hours');
+create temp table sp_offer as select public.door(test.id('sp_cs'), null, 'va_do', 'send_offer', jsonb_build_object('booking', test.b('spA'), 'message', 'Here is your offer.', 'expires_at', now() + interval '24 hours', 'sales_choice', 'for_carmacars')) as r;
 select test.eq('va: customer service sends the offer through the rules of 0016, as the actor',
   (select (r ->> 'version') from sp_offer) || '/' || (select status::text from bookings where id = test.b('spA'))
      || '/' || (select (sent_by = test.id('sp_cs'))::text from booking_offers where booking_id = test.b('spA') order by version desc limit 1), '1/offered/true');

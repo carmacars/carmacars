@@ -113,16 +113,16 @@ select test.ok('new renter: made with the licence, as a driver on the booking',
   exists (select 1 from booking_drivers d join drivers dv on dv.id = d.driver_id where d.booking_id = (test.smb('r_clash')).id and d.role = 'renter' and dv.licence_number = 'N1234-56789-01234'));
 
 -- assistants: the rate sheet, the allowed ways of payment, their single limit, no past rentals
-select test.throws('assistant: no price typed by hand', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"rental_charge_cents": 100, "price_reason": "x", "payment": {"mode": "link"}}'))$$,
-  test.id('sm_cs'), test.smv('partner_car')), 'rate sheet');
+select test.throws('assistant: a price typed by hand needs its reason (0058: any staff member may type one)', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"rental_charge_cents": 100, "payment": {"mode": "link"}}'))$$,
+  test.id('sm_cs'), test.smv('partner_car')), 'needs its reason');
 select test.throws('assistant: unpaid is not one of their ways (setting)', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"payment": {"mode": "unpaid"}}'))$$,
   test.id('sm_cs'), test.smv('partner_car')), 'for an Admin');
 select test.throws('assistant: over the single limit, an Admin records it', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '16 days', '{"payment": {"mode": "other_way", "method": "cash"}}'))$$,
   test.id('sm_cs'), test.smv('partner_car')), 'single limit');
 select test.throws('assistant: no past rental', format($$select app.manual_rental_create(%L, test.smr(%L, interval '-10 days', interval '-9 days', '{"past": true, "payment": {"mode": "unpaid"}}'))$$,
   test.id('sm_cs'), test.smv('partner_car')), 'for an Admin');
-select test.throws('finance alone does not add rentals', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"payment": {"mode": "link"}}'))$$,
-  test.id('sm_fin'), test.smv('partner_car')), 'Only an Admin, customer service or Sales');
+select test.throws('finance adds rentals too (0058), choosing "I sourced this client" or "Entered for CarmaCars" at the door', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create', test.smr(%L, interval '10 days', interval '11 days', '{"payment": {"mode": "link"}}'))$$,
+  test.id('sm_fin'), test.smv('partner_car')), 'I sourced this client');
 -- an assistant sends a payment link on the partner car: the standard flow (offer approved, signing and payment online)
 insert into sm select 'r_link', app.manual_rental_create(test.id('sm_sales'), test.smr(test.smv('partner_car'), interval '10 days', interval '12 days', '{"payment": {"mode": "link"}}'));
 select test.eq('payment link: awaiting signing and payment, the offer approved for the renter', (select status::text || '/' || (offer_approved_version is not null) from test.smb('r_link')), 'pending_payment/true');
@@ -323,9 +323,9 @@ select test.eq('partner agreement on paper: a void puts it back', (select agreem
 select test.throws('door: customer service does not read partners', format($$select app.door(%L, 'aal2', 'ops_read', 'partners', '{}')$$, test.id('sm_cs')), 'admin');
 select test.lives('door: customer service quotes a rental', format($$select app.door(%L, 'aal2', 'ops_read', 'manual_rental_quote', %L)$$, test.id('sm_cs'),
   test.smr(test.smv('partner_car'), interval '40 days', interval '41 days')));
-select test.eq('quote: an assistant may take the payment ways of the setting, no price override',
+select test.eq('quote: an assistant may take the payment ways of the setting, and type a price (0058)',
   (select (q ->> 'may_override_price') || '/' || (q -> 'payment_modes')::text from (select app.manual_rental_quote(test.id('sm_cs'), test.smr(test.smv('partner_car'), interval '40 days', interval '41 days')) q) x),
-  'false/["other_way", "link", "card"]');
+  'true/["other_way", "link", "card"]');
 select test.ok('privileges: the new functions are for the server only',
   not has_function_privilege('authenticated', 'app.manual_rental_create(uuid, jsonb)', 'execute')
   and not has_function_privilege('anon', 'app.vehicle_delete(uuid, jsonb)', 'execute')

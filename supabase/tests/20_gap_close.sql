@@ -253,15 +253,15 @@ select test.eq('find: with a reason the record opens for 24 hours, with the book
 -- ---------------------------------------------------------------- 9. Sales quotes
 create temp table gc_q as select public.door(test.id('gc_sales'), null, 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.id('vehicle:gcV'),
   'pickup_at', (now() + interval '40 days')::text, 'return_at', (now() + interval '43 days')::text, 'source', 'phone',
-  'full_name', 'Quinn Caller', 'email', 'quinn.gc@example.test', 'mobile', '647-555-0177', 'date_of_birth', '1985-02-03', 'note', 'Called about a weekend trip')) r;
+  'full_name', 'Quinn Caller', 'email', 'quinn.gc@example.test', 'mobile', '647-555-0177', 'date_of_birth', '1985-02-03', 'note', 'Called about a weekend trip', 'sales_choice', 'sourced')) r;
 select test.eq('quotes: Sales takes a phone lead as a request, with the source and who took it, priced',
   (select b.status || '/' || b.source || '/' || b.created_by || '/' || (b.rental_charge_cents > 0) || '/' || (select count(*) from booking_drivers d where d.booking_id = b.id)
      from bookings b where b.id = ((select r from gc_q) ->> 'booking_id')::uuid), 'requested/phone/' || test.id('gc_sales') || '/true/1');
 select test.eq('quotes: the lead becomes a renter (no consent is recorded for them)',
   (select count(*) || '/' || (select count(*) from consents c join renters r on r.user_id = c.user_id where r.email = 'quinn.gc@example.test') from renters where email = 'quinn.gc@example.test'), '1/0');
-select test.throws('quotes: Finance does not take quotes', format($$select public.door(%L, null, 'va_do', 'quote_create', '{}'::jsonb)$$, test.id('gc_fin')), 'Not permitted');
+select test.throws('quotes: Finance takes quotes since 0058, with the choice "I sourced this client" or "Entered for CarmaCars"', format($$select public.door(%L, null, 'va_do', 'quote_create', '{}'::jsonb)$$, test.id('gc_fin')), 'I sourced this client');
 select test.throws('quotes: a lead needs a date of birth',
-  format($$select public.door(%L, null, 'va_do', 'quote_create', jsonb_build_object('vehicle_id', %L, 'pickup_at', %L, 'return_at', %L, 'full_name', 'A B', 'email', 'ab@example.test', 'mobile', '1'))$$,
+  format($$select public.door(%L, null, 'va_do', 'quote_create', jsonb_build_object('vehicle_id', %L, 'pickup_at', %L, 'return_at', %L, 'full_name', 'A B', 'email', 'ab@example.test', 'mobile', '1', 'sales_choice', 'for_carmacars'))$$,
          test.id('gc_sales'), test.id('vehicle:gcV'), (now() + interval '50 days')::text, (now() + interval '52 days')::text), 'date of birth');
 
 -- ---------------------------------------------------------------- 10. the scorecard

@@ -195,19 +195,22 @@ create temp view pv as select v.fleet_number, sv.* from owner_statement_vehicles
   where sv.owner_statement_id = (select id from st_paula);
 
 select test.eq('VA C1 Owner Revenue $910 ($840 + 200 km x $0.35)', (select owner_revenue_cents from booking_splits where booking_id = test.id('booking:C1')), test.money('910.00'));
-select test.eq('VA C2 kickback $108 comes off first (20% of $540 after the discount), referred by field staff',
-  (select kickback_cents || '/' || referrer_type from booking_splits where booking_id = test.id('booking:C2')), '10800/field_staff');
-select test.eq('VA C2 Owner Revenue $432', (select owner_revenue_cents from booking_splits where booking_id = test.id('booking:C2')), test.money('432.00'));
+-- 0058 (the owner's decisions of October 18, 2026): a field staff referral earns the staff commission, 10% of the rental
+-- charge, deducted before Owner Revenue like every kickback (Enrollment Agreement 8.1 and 8.3); the 20% field staff
+-- Referral Kickback is no longer taken as well. Owner referrals keep the 20% Referral Kickback.
+select test.eq('VA C2 staff commission $54 comes off first (10% of $540 after the discount), referred by field staff',
+  (select kickback_cents || '/' || staff_commission_cents || '/' || referrer_type from booking_splits where booking_id = test.id('booking:C2')), '5400/5400/field_staff');
+select test.eq('VA C2 Owner Revenue $486', (select owner_revenue_cents from booking_splits where booking_id = test.id('booking:C2')), test.money('486.00'));
 select test.eq('VA C3 carries no kickback: the referring Owner''s own vehicle',
   (select kickback_cents || '/' || kickback_ineligible_reason from booking_splits where booking_id = test.id('booking:C3')), '0/referring Owner''s own vehicle');
 select test.eq('VA D2 keeps $100 of Rental Charge, counted in November, with no kickback',
   (select owner_revenue_cents || '/' || payout_month from booking_splits where booking_id = test.id('booking:D2')), '10000/2026-11-01');
 select test.eq('VA D3 belongs to December', (select payout_month from booking_splits where booking_id = test.id('booking:D3')), date '2026-12-01');
-select test.eq('VA Vehicle 1 Owner Revenue $910 + $432 + $400 = $1,742.00', (select owner_revenue_cents from pv where fleet_number = 'F-V1'), test.money('1,742.00'));
-select test.eq('VA Vehicle 1 Revenue Share 35% $609.70', (select revenue_share_cents from pv where fleet_number = 'F-V1'), test.money('609.70'));
-select test.eq('VA Vehicle 1 net earnings $1,132.30', (select net_earnings_cents from pv where fleet_number = 'F-V1'), test.money('1,132.30'));
+select test.eq('VA Vehicle 1 Owner Revenue $910 + $486 + $400 = $1,796.00', (select owner_revenue_cents from pv where fleet_number = 'F-V1'), test.money('1,796.00'));
+select test.eq('VA Vehicle 1 Revenue Share 35% $628.60', (select revenue_share_cents from pv where fleet_number = 'F-V1'), test.money('628.60'));
+select test.eq('VA Vehicle 1 net earnings $1,167.40', (select net_earnings_cents from pv where fleet_number = 'F-V1'), test.money('1,167.40'));
 select test.eq('VA Vehicle 1 Owner cost, plate renewal $120.00', (select owner_costs_deducted_cents from pv where fleet_number = 'F-V1'), test.money('120.00'));
-select test.eq('VA Vehicle 1 payable $1,012.30', (select payable_cents from pv where fleet_number = 'F-V1'), test.money('1,012.30'));
+select test.eq('VA Vehicle 1 payable $1,047.40', (select payable_cents from pv where fleet_number = 'F-V1'), test.money('1,047.40'));
 select test.eq('VA Vehicle 2 Owner Revenue $1,190 + $100 = $1,290.00', (select owner_revenue_cents from pv where fleet_number = 'F-V2'), test.money('1,290.00'));
 select test.eq('VA Vehicle 2 Revenue Share 35% $451.50', (select revenue_share_cents from pv where fleet_number = 'F-V2'), test.money('451.50'));
 select test.eq('VA Vehicle 2 net earnings $838.50', (select net_earnings_cents from pv where fleet_number = 'F-V2'), test.money('838.50'));
@@ -215,14 +218,16 @@ select test.eq('VA Vehicle 2 unpaid Fees ($475 + HST $61.75) $536.75', (select f
 select test.eq('VA Vehicle 2 Late Fee $50.00', (select late_fees_deducted_cents from pv where fleet_number = 'F-V2'), test.money('50.00'));
 select test.eq('VA Vehicle 2 payable $251.75', (select payable_cents from pv where fleet_number = 'F-V2'), test.money('251.75'));
 select test.eq('VA Referral Kickback earned on E9: $100.00', (select kickbacks_earned_cents from st_paula), test.money('100.00'));
-select test.eq('VA PAYOUT ON DECEMBER 10: $1,364.05', (select payout_cents from st_paula), test.money('1,364.05'));
+select test.eq('VA PAYOUT ON DECEMBER 10: $1,399.15', (select payout_cents from st_paula), test.money('1,399.15'));
 select test.eq('VA the $425 of company-only fees never enters',
   (select sum(company_only_cents) from booking_splits where owner_id = test.id('owner:paula') and payout_month = date '2026-11-01'), test.money('425.00'));
 select test.eq('VA the toll amount is a pass-through with no HST; only the $15 fee is taxed',
   (select string_agg(charge_type || ':' || revenue_class || ':' || hst_cents, ' ' order by charge_type) from booking_line_items
     where booking_id = test.id('booking:D1') and charge_type like 'toll%'), 'toll_admin_fee:company_only:195 toll_amount:pass_through:0');
-select test.eq('VA field staff kickback goes to payroll, not to an Owner statement',
-  (select referrer_type || '/' || status || '/' || amount_cents from referral_kickbacks where booking_id = test.id('booking:C2')), 'field_staff/earned/10800');
+select test.eq('VA field staff referral: a staff commission of $54 for Admin approval, not an Owner statement line of theirs',
+  (select count(*) || '/' || string_agg(c.status || '/' || c.amount_cents, ',') from staff_commissions c where c.booking_id = test.id('booking:C2') and c.kind = 'commission'), '1/pending_approval/5400');
+select test.eq('VA no field staff Referral Kickback is recorded as well', (select count(*) from referral_kickbacks where booking_id = test.id('booking:C2') and status <> 'reversed'), 0::bigint);
+select test.eq('VA the statement line shows the staff commission apart', (select staff_commission_cents from owner_statement_lines where booking_id = test.id('booking:C2') and line_type = 'rental'), 5400::bigint);
 
 -- ------------------------------------------------------------------ kickback rules (owner spec section 8)
 select test.mk_renter('k1', false);

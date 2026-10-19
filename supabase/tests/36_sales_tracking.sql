@@ -112,15 +112,15 @@ insert into s36 select 'm1', app.manual_rental_create(test.id('st_sales'), jsonb
   'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:st_ron'), 'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash', 'note', 'Paid at the counter')));
 select test.eq('rental added by Sales: confirmed at once, credited as a rental added',
   (select status || ' ' || added_by_staff || ' ' || sales_source || ' ' || (sales_staff_id = test.id('st_sales')) from test.s36b('m1')), 'confirmed true manual_rental true');
-select test.throws('Sales: no price typed by hand', format($$select app.manual_rental_create(%L, %L)$$, test.id('st_sales'), jsonb_build_object('vehicle_id', test.s36v(),
+select test.throws('Sales: a price typed by hand needs its reason (0058)', format($$select app.manual_rental_create(%L, %L)$$, test.id('st_sales'), jsonb_build_object('vehicle_id', test.s36v(),
   'pickup_at', date_trunc('hour', now()) + interval '50 days', 'return_at', date_trunc('hour', now()) + interval '52 days', 'source', 'phone', 'coverage_option', 1,
-  'renter_id', test.id('renter:st_ron'), 'rental_charge_cents', 100, 'price_reason', 'friend', 'payment', jsonb_build_object('mode', 'link'))), 'Admin');
+  'renter_id', test.id('renter:st_ron'), 'rental_charge_cents', 100, 'payment', jsonb_build_object('mode', 'link'))), 'needs its reason');
 select test.throws('Sales: never over a clash', format($$select app.manual_rental_create(%L, %L)$$, test.id('st_sales'), jsonb_build_object('vehicle_id', test.s36v(),
   'pickup_at', date_trunc('hour', now()) + interval '31 days', 'return_at', date_trunc('hour', now()) + interval '32 days', 'source', 'phone', 'coverage_option', 1,
   'renter_id', test.id('renter:st_rita'), 'payment', jsonb_build_object('mode', 'link'))), null);
-select test.throws('Finance does not add rentals', format($$select app.manual_rental_create(%L, %L)$$, test.id('st_fin'), jsonb_build_object('vehicle_id', test.s36v(),
+select test.throws('Finance adds rentals too (0058), choosing at the door', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create', %L)$$, test.id('st_fin'), jsonb_build_object('vehicle_id', test.s36v(),
   'pickup_at', date_trunc('hour', now()) + interval '60 days', 'return_at', date_trunc('hour', now()) + interval '62 days', 'source', 'phone',
-  'renter_id', test.id('renter:st_ron'), 'payment', jsonb_build_object('mode', 'link'))), 'adds a rental');
+  'renter_id', test.id('renter:st_ron'), 'payment', jsonb_build_object('mode', 'link'))), 'I sourced this client');
 
 -- the credit is the server's: a browser session that is not an Admin cannot change it
 do $$
@@ -148,7 +148,7 @@ select test.eq('reassign: credited to Sales by an Admin', (select sales_staff_id
 select test.ok('reassign: the deal stays in its week', (test.s36b('web1')).sales_attributed_at = (test.s36('web1_at') ->> 'at')::timestamptz);
 select test.ok('reassign: in the booking''s history with the reason',
   exists (select 1 from booking_events e where e.booking_id = (test.s36b('web1')).id and e.kind = 'sales_credit'
-           and e.note = 'Sales credit: St Cs to St Sales. Sales handled the calls'));
+           and e.note = 'Sales credit: St Cs to St Sales (entered for CarmaCars). Sales handled the calls'));
 select test.ok('reassign: in the audit log', exists (select 1 from audit_log a where a.entity_id = (test.s36b('web1')).id::text and a.entity_table = 'bookings'
   and a.after ->> 'sales_source' = 'admin' and a.before ->> 'sales_source' = 'offer'));
 -- to nobody: a later offer does not credit anyone
@@ -178,8 +178,8 @@ select test.eq('revenue: a cancelled booking counts the share of the rental kept
   (select round((test.s36('m2_net'))::text::bigint * (10000 - c.refund_bps) / 10000.0)::bigint from booking_cancellations c where c.booking_id = (test.s36b('m2')).id));
 
 -- ================================================================ 6. My sales and the team's month
-select test.throws('My sales: for the Sales function', $$select app.door(test.id('st_cs'), 'aal2', 'va_read', 'my_sales', '{}')$$, 'Sales function');
-select test.throws('My sales: only their own (an assistant cannot read another''s)', format($$select app.staff_sales(%L, %L)$$, test.id('st_sales'), test.id('st_cs')), 'Sales function');
+select test.ok('My sales: for every staff function since 0058 (commissions)', (app.door(test.id('st_cs'), 'aal2', 'va_read', 'my_sales', '{}') -> 'commissions') is not null);
+select test.throws('My sales: only their own (an assistant cannot read another''s)', format($$select app.staff_sales(%L, %L)$$, test.id('st_sales'), test.id('st_cs')), 'your own');
 insert into s36 select 'mine', app.door(test.id('st_sales'), 'aal2', 'va_read', 'my_sales', '{"period": "week", "count": 2}');
 select test.eq('My sales: this week first, two weeks', (select jsonb_array_length(test.s36('mine') -> 'periods') || ' ' || (test.s36('mine') #>> '{periods,0,current}')), '2 true');
 create or replace function test.s36w(p_f text) returns text language sql stable as $$ select test.s36('mine') #>> array['periods', '0', p_f] $$;

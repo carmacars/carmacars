@@ -72,9 +72,9 @@ select test.eq('samples: deleting a library photo returns its file to remove', t
 
 -- ================================================================ 3. To do and search
 select test.eq('to do: one list, every item with a count, a button and a page', (select count(*) filter (where i ? 'count' and i ? 'button' and i ->> 'href' like '/admin%')
-  from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i), 10::bigint);
+  from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i), 14::bigint);
 select test.eq('to do: the items, in order', (select string_agg(i ->> 'key', ',') from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i),
-  'applications,requests,changes,payments,countersign,tolls,listings,plates,insurance,samples');
+  'applications,requests,changes,payments,countersign,tolls,listings,plates,insurance,samples,commissions,commissions_pay,prices,claims');
 select test.throws('to do: Admins only', $$select test.ar_read('ar_cs', 'admin_todo')$$, '');
 select test.eq('search: a plate finds the car', (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', jsonb_build_object('q', (select plate from vehicles where id = test.id('vehicle:ARS')))) -> 'groups') g where g ->> 'key' = 'cars'),
   '/admin/vehicles/' || test.id('vehicle:ARS'));

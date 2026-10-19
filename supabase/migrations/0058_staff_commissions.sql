@@ -316,7 +316,7 @@ language sql stable security definer set search_path = public, app as $$
     select 1 from user_roles r join users u on u.id = r.user_id
       join staff_profiles sp on sp.user_id = r.user_id and sp.staff_type = 'va' and sp.is_active
      where r.user_id = p_user and r.role = 'va' and u.status = 'active')
-    or (p_user is not null and nullif(current_setting('app.field_rental_by', true), '') = p_user::text and app.user_is_field(p_user))
+    or coalesce(p_user is not null and nullif(current_setting('app.field_rental_by', true), '') = p_user::text and app.user_is_field(p_user), false)
 $$;
 
 -- Field staff do not search renters (they type the renter's details; an existing renter is found by email).
@@ -1076,6 +1076,26 @@ begin
   return null;
 end $$;
 
+-- The base of a commission: the booked revenue of My sales (app.sales_revenue_cents), for a booking that went ahead
+-- even when it carries no confirmation time (a rental recorded after the fact).
+create or replace function app.commission_base_cents(p_booking uuid) returns bigint
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  b bookings;
+  v_net bigint;
+  v_other bigint;
+begin
+  select * into b from bookings where id = p_booking;
+  if b.id is null then return 0; end if;
+  if b.confirmed_at is not null then return app.sales_revenue_cents(p_booking); end if;
+  if b.status not in ('confirmed', 'on_rent', 'returned', 'closed') then return 0; end if;
+  v_net := greatest(b.rental_charge_cents - b.discount_cents - b.staff_discount_cents - b.promo_discount_cents, 0);
+  select coalesce(sum(round(r.amount_cents * 10000.0 / (10000 + b.hst_bps))), 0)::bigint into v_other
+    from refunds r where r.booking_id = b.id and r.status in ('approved', 'processing', 'paid')
+     and not exists (select 1 from booking_change_requests q where q.refund_id = r.id);
+  return greatest(v_net - v_other, 0);
+end $$;
+
 -- How a person is paid: a flat rate an Admin set for them, the Sales tiers, or the flat staff rate.
 create or replace function app.commission_scheme(p_staff uuid) returns text
 language sql stable security definer set search_path = public, app as $$
@@ -1198,8 +1218,8 @@ begin
                    when b.status in ('cancelled', 'no_show', 'expired', 'declined') then 'Cancelled booking'
                    when exists (select 1 from disputes d where d.booking_id = b.id and d.status = 'lost') then 'Charged back'
                    else app.commission_own_reason(b.id, v_staff) end;
-  v_base := case when v_reason is null then app.sales_revenue_cents(b.id) else 0 end;
-  if v_reason is null and b.confirmed_at is not null and b.status in ('returned', 'closed') and v_base <= 0 then v_reason := 'Refunded'; end if;
+  v_base := case when v_reason is null then app.commission_base_cents(b.id) else 0 end;
+  if v_reason is null and b.status in ('returned', 'closed') and v_base <= 0 then v_reason := 'Refunded'; end if;
   v_earned := v_reason is null and b.status in ('returned', 'closed') and app.booking_paid_in_full(b.id)
               and not exists (select 1 from disputes d where d.booking_id = b.id and d.status in ('open', 'evidence_submitted'));
   v_month := app.month_start(app.local_date(coalesce(b.checked_in_at, b.return_at)));
@@ -1748,9 +1768,8 @@ declare
   u users;
 begin
   if p_staff is null then raise exception 'Choose the staff member' using errcode = '22023'; end if;
-  if not v_admin and not (p_by = p_staff and app.user_is_sales_staff(p_by)) then
-    raise exception 'My sales is for staff' using errcode = '42501';
-  end if;
+  if not v_admin and p_by is distinct from p_staff then raise exception 'You can read your own sales only' using errcode = '42501'; end if;
+  if not v_admin and not app.user_is_sales_staff(p_by) then raise exception 'My sales is for staff' using errcode = '42501'; end if;
   select * into u from users where id = p_staff;
   if u.id is null or not exists (select 1 from user_roles r where r.user_id = u.id and r.role in ('va', 'admin', 'field')) then
     raise exception 'Staff member not found' using errcode = 'P0002';
@@ -2068,7 +2087,7 @@ begin
               'user_is_sales_staff', 'bookings_sales_sourced', 'kickback_ineligible_reason', 'custom_price_flags', 'booking_rate_sheet_cents', 'record_custom_price',
               'adjust_booking', 'va_guard_booking_edit', 'price_review', 'manual_rental_role', 'manual_rental_renters', 'manual_rental_quote', 'manual_rental_create_0058',
               'manual_rental_create', 'staff_quote_request', 'staff_quote_create', 'offer_sales_choice', 'sales_claim_decide', 'sales_reassign', 'sales_staff_options',
-              'booking_paid_in_full', 'commission_own_reason', 'commission_scheme', 'sales_tier_bps', 'commission_month_days', 'commission_retier', 'commission_close',
+              'booking_paid_in_full', 'commission_base_cents', 'commission_own_reason', 'commission_scheme', 'sales_tier_bps', 'commission_month_days', 'commission_retier', 'commission_close',
               'commission_sync', 'commission_sync_trigger', 'staff_profiles_commission_retier', 'commission_approve', 'commission_reverse', 'commission_payout_record',
               'staff_commission_rate_set', 'job_commission_month', 'booking_staff_commission_cents', 'compute_booking_split', 'owner_statement_lines_commission',
               'commission_split_refresh', 'sales_month_progress', 'bps_words', 'staff_commissions_json', 'staff_sales', 'staff_scorecard', 'field_referrals',

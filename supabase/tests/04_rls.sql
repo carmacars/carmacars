@@ -337,8 +337,10 @@ select test.eq('field: only the vehicle of his job', (select string_agg(fleet_nu
 select test.eq('field: no owners, statements, payouts of others, tasks or audit log',
   test.visible('select * from owners') + test.visible('select * from owner_statements') + test.visible('select * from payouts')
   + test.visible('select * from tasks') + test.visible('select * from audit_log'), 0::bigint);
-select test.eq('field: sees his own referral kickbacks only',
-  (select bool_and(referrer_staff_id = test.id('field_frank')) || '/' || count(*) from referral_kickbacks), 'true/1');
+select test.eq('field: sees no referral kickbacks (0058: a field staff referral earns the staff commission instead)',
+  (select count(*) from referral_kickbacks), 0::bigint);
+select test.eq('field: sees his own staff commissions only (the referral of 0058)',
+  (select bool_and(staff_id = test.id('field_frank')) || '/' || count(*) from staff_commissions), 'true/1');
 select test.eq('field: may acknowledge his job', test.affected($$update field_jobs set status = 'acknowledged', acknowledged_at = now()$$), 1::bigint);
 select test.throws('field: cannot reassign or redirect his job', format('update field_jobs set assigned_to = %L', test.id('field_gus')), 'only update the progress');
 select test.lives('field: files the Condition Report for his job',
