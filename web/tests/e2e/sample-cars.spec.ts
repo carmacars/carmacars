@@ -130,6 +130,8 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
   await check(page, 'sample cars page');
   // a real car without photos, once published, shows its sample photo on the site
   if (o) {
+    // onboarding, then ready to list, then available (the allowed steps of 0011)
+    await sql`update vehicles set status = 'ready_to_list' where id = ${vid}`;
     await sql`update vehicles set status = 'available' where id = ${vid}`;
     await sql`insert into rate_cards (vehicle_id, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, km_allowance_per_day, overage_cents_per_km, deposit_cents, delivery_fee_cents, pickup_fee_cents, effective_from)
               values (${vid}, 5500, 6000, 33000, 110000, 200, 25, 50000, 0, 0, now() - interval '1 day')`;

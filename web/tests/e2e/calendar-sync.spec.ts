@@ -191,7 +191,7 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
   const r = await account(sql, 'renter');
   const [u] = await sql`select full_name from users where id = ${r.id}`;
   const from = new Date(Date.now() + (200 + Math.floor(Math.random() * 150)) * 86_400_000); const to = new Date(from.getTime() + 3 * 86_400_000);
-  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' order by random() limit 1`;
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const req = {
     request_key: randomUUID(), vehicle_id: car!.id, pickup_at: `${ymd(from)}T10:00:00-04:00`, return_at: `${ymd(to)}T10:00:00-04:00`, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' },

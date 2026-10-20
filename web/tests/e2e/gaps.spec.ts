@@ -317,7 +317,7 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   const sp = await ctx(browser, phone);
   await signIn(sp, sales.email, '/va');
   await sp.goto('/va/quotes/new'); await check(sp, 'va quote');
-  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published' order by random() limit 1`;
+  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published' and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const at = (days: number) => { const d = new Date(Date.now() + days * 86_400_000); return `${d.toISOString().slice(0, 10)}T10:00`; };
   await sp.locator('#q-car').selectOption(v!.id as string);
   await sp.locator('#q-from').fill(at(210 + (phone ? 0 : 5))); await sp.locator('#q-to').fill(at(213 + (phone ? 0 : 5)));
