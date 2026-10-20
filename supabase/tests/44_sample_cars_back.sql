@@ -1,10 +1,10 @@
--- 43: the sample cars back (migration 0065). The catalogue of the 20 sample cars, "Show sample cars" (recreates the
+-- 44: the sample cars back (migration 0065). The catalogue of the 20 sample cars, "Show sample cars" (recreates the
 -- missing ones with photos, rates and listings, restores and publishes the others, still noindex and out of the
 -- sitemap), "Hide sample cars" (one click, never refused: not by an enquiry, an old request or a booking), a request on
 -- a sample car becoming an enquiry with a customer service task (never a booking, from anywhere), the chat's facts, why
 -- a real car is not on the site (app.vehicle_public_gates), and the sample photos of a real car without photos on its
 -- public page. Fixtures start with "sx".
-select test.suite('43 sample cars back');
+select test.suite('44 sample cars back');
 
 select test.mk_user('sx_admin', 'admin');
 select test.mk_user('sx_cs', 'va', 'cs');
