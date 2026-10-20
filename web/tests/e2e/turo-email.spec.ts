@@ -190,7 +190,9 @@ test('Site health: /api/health answering 404 from a website older than the datab
   await check(page, 'admin to do with the health check waiting');
   // this website (the local server) answers its own health check with its marker
   const h = await page.request.get('/api/health');
-  expect(h.headers()['x-carmacars-schema'] ?? (await h.json()).schema).toBe('0063');
-  await sql`select app.uptime_page_result('health', 200, '{"x-carmacars-schema": "0063"}'::jsonb, '{"ok":true}', false, null, 40)`;
+  // (the newest migration, whichever it is: 0064 made this follow the database)
+  const m = String((await sql`select app.schema_marker() as m`)[0]!.m);
+  expect(h.headers()['x-carmacars-schema'] ?? (await h.json()).schema).toBe(m);
+  await sql`select app.uptime_page_result('health', 200, ${sql.json({ 'x-carmacars-schema': m })}, '{"ok":true}', false, null, 40)`;
   await sql.end();
 });
