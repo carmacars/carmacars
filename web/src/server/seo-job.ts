@@ -38,6 +38,8 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
     indexNow: indexNowOn() ? sendIndexNow : null,
     sent: (paths, status, error) => rpc('server_indexnow_sent', { p: { paths, status, error } as unknown as Json }, SR)
   }, o);
+  // the landing pages' cars and prices (0068): one read of the fleet; pg_cron also does it every 10 minutes
+  try { await rpc('server_seo_snapshots', {}, SR); } catch { /* the next run or pg_cron */ }
   // the pages whose copy changed are rebuilt now rather than at their next hourly revalidation
   for (const p of s.changed) { try { revalidatePath(p); } catch { /* outside a request */ } }
   if (s.changed.some((p) => p.startsWith('/car-rental/'))) { try { revalidatePath('/car-rental'); } catch { /* ignore */ } }

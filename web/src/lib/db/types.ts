@@ -10455,6 +10455,10 @@ export type Database = {
           updated_by: string | null;
           created_at: string;
           updated_at: string;
+          cars_snapshot: Json | null;
+          snapshot_stamp: string | null;
+          snapshot_at: string | null;
+          cars_changed_at: string | null;
         };
         Insert: {
           slug: string;
@@ -10482,6 +10486,10 @@ export type Database = {
           updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          snapshot_at?: string | null;
+          cars_changed_at?: string | null;
         };
         Update: {
           slug?: string;
@@ -10509,6 +10517,10 @@ export type Database = {
           updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          snapshot_at?: string | null;
+          cars_changed_at?: string | null;
         };
         Relationships: [];
       };
@@ -15460,6 +15472,7 @@ export type Database = {
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
+      server_seo_snapshots: { Args: never; Returns: number };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
