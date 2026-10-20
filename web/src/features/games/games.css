@@ -1,0 +1,83 @@
+/* Discount games (migration 0069): the card and the five games. Loaded with the game only, after a trigger. Fixed in
+   place, so nothing on the page moves (no layout shift). A slide-in card on a computer (bottom left, the chat is on the
+   right), a bottom sheet on a phone (never full screen). */
+.ccg { position: fixed; left: 16px; bottom: 16px; z-index: 61; width: 380px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+  background: var(--white); color: var(--black); border-radius: 18px; box-shadow: 0 16px 48px rgb(0 0 0 / 0.28); font-family: var(--font-text); overscroll-behavior: contain; }
+.ccg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 16px 16px 12px; background: var(--black); color: var(--white);
+  border-radius: 18px 18px 0 0; position: sticky; top: 0; z-index: 1; }
+.ccg-kicker { margin: 0; font-size: var(--fs-2xs); letter-spacing: 0.08em; text-transform: uppercase; color: #ff5a62; font-weight: 700; }
+.ccg-title { margin: 2px 0 0; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.15; font-weight: 800; outline: none; }
+.ccg-x { min-width: 44px; min-height: 44px; margin: -8px -8px 0 0; border: 0; background: transparent; color: var(--white); font-size: 30px; line-height: 1; cursor: pointer; border-radius: 10px; }
+.ccg-x:focus-visible, .ccg button:focus-visible, .ccg a:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.ccg-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
+.ccg-pitch { margin: 0; font-size: var(--fs-body); line-height: 1.45; }
+.ccg-play { width: 100%; min-height: 50px; font-weight: 700; }
+.ccg-fine { margin: 0; font-size: var(--fs-2xs); line-height: 1.45; color: var(--grey-700, #555); }
+.ccg-prize { margin: 0; font-size: var(--fs-body); }
+.ccg-prize strong { color: var(--red-600); font-size: 1.25rem; }
+.ccg-form { display: grid; gap: 8px; }
+.ccg-field { display: grid; gap: 4px; font-size: var(--fs-sm); font-weight: 600; }
+.ccg-field em { font-weight: 400; font-style: normal; color: var(--grey-700, #555); }
+.ccg-field .input { min-height: 46px; font-size: 16px; }
+.ccg-check { font-size: var(--fs-2xs); line-height: 1.4; }
+.ccg-err { margin: -2px 0 2px; color: var(--red-700, #a1121a); font-size: var(--fs-xs); }
+.ccg-done { display: grid; gap: 12px; }
+.ccg-codebox { margin: 0; padding: 16px; text-align: center; border: 2px dashed var(--red-600); border-radius: 12px; background: #fff5f5; }
+.ccg-codebox strong { font-family: var(--font-display); font-size: 1.75rem; letter-spacing: 0.06em; user-select: all; }
+.ccg-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ccg-row > * { flex: 1 1 140px; }
+.ccg-stage { min-height: 300px; display: grid; gap: 12px; justify-items: center; align-content: start; }
+.ccg-live { margin: 0; min-height: 1.4em; text-align: center; font-weight: 700; font-size: var(--fs-body); }
+.ccg-live b { color: var(--red-600); }
+
+/* the wheel */
+.ccg-wheel { position: relative; width: min(280px, 100%); aspect-ratio: 1; }
+.ccg-wheel svg { width: 100%; height: 100%; display: block; }
+.ccg-wheel__disc { transform-origin: 50% 50%; will-change: transform; }
+.ccg-wheel__pin { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent;
+  border-top: 26px solid var(--red-600); filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.35)); z-index: 1; }
+
+/* the scratch card */
+.ccg-scratch { position: relative; width: min(300px, 100%); aspect-ratio: 2 / 1; border-radius: 14px; overflow: hidden; background: var(--red-600); color: var(--white);
+  display: grid; place-items: center; text-align: center; touch-action: none; user-select: none; }
+.ccg-scratch__prize { font-family: var(--font-display); font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.ccg-scratch__prize small { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 6px; }
+.ccg-scratch canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity 400ms ease; }
+.ccg-scratch canvas.is-gone { opacity: 0; pointer-events: none; }
+
+/* blackjack */
+.ccg-table { width: 100%; background: #0f5132; color: var(--white); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.ccg-hand { display: grid; gap: 6px; }
+.ccg-hand__label { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.04em; }
+.ccg-cards { display: flex; gap: 6px; min-height: 64px; flex-wrap: wrap; }
+.ccg-card { width: 44px; height: 62px; border-radius: 6px; background: var(--white); color: var(--black); display: grid; place-items: center; font-weight: 800; font-size: 1.05rem;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.3); }
+.ccg-card.is-red { color: var(--red-600); }
+.ccg-card.is-down { background: repeating-linear-gradient(45deg, var(--red-600) 0 6px, #a30d15 6px 12px); color: transparent; }
+@media (prefers-reduced-motion: no-preference) { .ccg-card { animation: ccg-deal 220ms ease-out; } }
+@keyframes ccg-deal { from { transform: translateY(-14px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* the cups */
+.ccg-cups { position: relative; width: 100%; max-width: 300px; height: 150px; }
+.ccg-cup { position: absolute; bottom: 10px; width: 30%; height: 110px; border: 0; padding: 0; background: none; cursor: pointer; transition: transform 380ms cubic-bezier(.5,0,.3,1); }
+.ccg-cup:disabled { cursor: default; }
+.ccg-cup__shape { position: absolute; inset: 0; background: linear-gradient(180deg, #e3141f, #9f0c13); clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%); border-radius: 6px;
+  transition: transform 300ms ease; box-shadow: inset 0 -10px 0 rgb(0 0 0 / 0.18); }
+.ccg-cup.is-up .ccg-cup__shape { transform: translateY(-70px); }
+.ccg-ball { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--black); color: var(--white);
+  display: grid; place-items: center; font-size: 0.6rem; font-weight: 800; }
+.ccg-cup__prize { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); white-space: nowrap; font-weight: 800; color: var(--red-600); font-size: 1.1rem; }
+
+/* plinko */
+.ccg-plinko { width: min(300px, 100%); }
+.ccg-plinko svg { width: 100%; height: auto; display: block; }
+.ccg-plinko__disc { transition: transform 210ms cubic-bezier(.4,0,.6,1); }
+
+@media (max-width: 599px) {
+  .ccg { left: 0; right: 0; bottom: 0; width: 100%; max-width: none; max-height: 85dvh; border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .ccg-stage { min-height: 260px; }
+  .ccg-wheel { width: min(240px, 100%); }
+}
+@media (prefers-reduced-motion: no-preference) { .ccg { animation: ccg-in 260ms cubic-bezier(.2,.8,.2,1); } }
+@media (prefers-reduced-motion: reduce) { .ccg-cup, .ccg-cup__shape, .ccg-plinko__disc, .ccg-scratch canvas { transition: none; } }
+@keyframes ccg-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }

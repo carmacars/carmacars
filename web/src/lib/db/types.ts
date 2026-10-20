@@ -4158,6 +4158,126 @@ export type Database = {
         };
         Relationships: [];
       };
+      game_claims: {
+        Row: {
+          id: string;
+          play_id: string;
+          visitor_id: string;
+          session_id: string | null;
+          first_name: string;
+          email: string;
+          phone: string | null;
+          marketing_consent: boolean;
+          consent_text: string | null;
+          consent_version: string | null;
+          promo_code_id: string;
+          lead_id: string | null;
+          renter_id: string | null;
+          user_id: string | null;
+          cars_viewed: number;
+          pages_viewed: number;
+          seconds_on_site: number;
+          task_id: string | null;
+          expires_at: string;
+          resent_at: string | null;
+          reminder_sent_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          play_id: string;
+          visitor_id: string;
+          session_id?: string | null;
+          first_name: string;
+          email: string;
+          phone?: string | null;
+          marketing_consent?: boolean;
+          consent_text?: string | null;
+          consent_version?: string | null;
+          promo_code_id: string;
+          lead_id?: string | null;
+          renter_id?: string | null;
+          user_id?: string | null;
+          cars_viewed?: number;
+          pages_viewed?: number;
+          seconds_on_site?: number;
+          task_id?: string | null;
+          expires_at: string;
+          resent_at?: string | null;
+          reminder_sent_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          play_id?: string;
+          visitor_id?: string;
+          session_id?: string | null;
+          first_name?: string;
+          email?: string;
+          phone?: string | null;
+          marketing_consent?: boolean;
+          consent_text?: string | null;
+          consent_version?: string | null;
+          promo_code_id?: string;
+          lead_id?: string | null;
+          renter_id?: string | null;
+          user_id?: string | null;
+          cars_viewed?: number;
+          pages_viewed?: number;
+          seconds_on_site?: number;
+          task_id?: string | null;
+          expires_at?: string;
+          resent_at?: string | null;
+          reminder_sent_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      game_plays: {
+        Row: {
+          id: string;
+          token: string;
+          visitor_id: string;
+          session_id: string | null;
+          game: string;
+          prize: Json;
+          device: string | null;
+          path: string | null;
+          trigger: string | null;
+          created_at: string;
+          revealed_at: string | null;
+          claimed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          token?: string;
+          visitor_id: string;
+          session_id?: string | null;
+          game: string;
+          prize: Json;
+          device?: string | null;
+          path?: string | null;
+          trigger?: string | null;
+          created_at?: string;
+          revealed_at?: string | null;
+          claimed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          token?: string;
+          visitor_id?: string;
+          session_id?: string | null;
+          game?: string;
+          prize?: Json;
+          device?: string | null;
+          path?: string | null;
+          trigger?: string | null;
+          created_at?: string;
+          revealed_at?: string | null;
+          claimed_at?: string | null;
+        };
+        Relationships: [];
+      };
       generated_documents: {
         Row: {
           kind: string;
@@ -9031,6 +9151,17 @@ export type Database = {
           stale_request_email_renter: boolean;
           addon_portal_cutoff_hours: number;
           owner_invoice_due_days: number;
+          game_enabled: boolean;
+          game_weights: Json;
+          game_prizes: Json;
+          game_max_discount_cents: number | null;
+          game_code_valid_days: number;
+          game_trigger_car_pages: number;
+          game_trigger_seconds: number;
+          game_exit_intent: boolean;
+          game_dismiss_days: number;
+          game_task_min_cars: number;
+          game_reminder_hours: number;
         };
         Insert: {
           id?: string;
@@ -9320,6 +9451,17 @@ export type Database = {
           stale_request_email_renter?: boolean;
           addon_portal_cutoff_hours?: number;
           owner_invoice_due_days?: number;
+          game_enabled?: boolean;
+          game_weights?: Json;
+          game_prizes?: Json;
+          game_max_discount_cents?: number | null;
+          game_code_valid_days?: number;
+          game_trigger_car_pages?: number;
+          game_trigger_seconds?: number;
+          game_exit_intent?: boolean;
+          game_dismiss_days?: number;
+          game_task_min_cars?: number;
+          game_reminder_hours?: number;
         };
         Update: {
           id?: string;
@@ -9609,6 +9751,17 @@ export type Database = {
           stale_request_email_renter?: boolean;
           addon_portal_cutoff_hours?: number;
           owner_invoice_due_days?: number;
+          game_enabled?: boolean;
+          game_weights?: Json;
+          game_prizes?: Json;
+          game_max_discount_cents?: number | null;
+          game_code_valid_days?: number;
+          game_trigger_car_pages?: number;
+          game_trigger_seconds?: number;
+          game_exit_intent?: boolean;
+          game_dismiss_days?: number;
+          game_task_min_cars?: number;
+          game_reminder_hours?: number;
         };
         Relationships: [];
       };
@@ -9628,6 +9781,8 @@ export type Database = {
           is_active: boolean;
           created_by: string | null;
           created_at: string;
+          max_discount_cents: number | null;
+          min_rental_days: number | null;
         };
         Insert: {
           id?: string;
@@ -9644,6 +9799,8 @@ export type Database = {
           is_active?: boolean;
           created_by?: string | null;
           created_at?: string;
+          max_discount_cents?: number | null;
+          min_rental_days?: number | null;
         };
         Update: {
           id?: string;
@@ -9660,6 +9817,8 @@ export type Database = {
           is_active?: boolean;
           created_by?: string | null;
           created_at?: string;
+          max_discount_cents?: number | null;
+          min_rental_days?: number | null;
         };
         Relationships: [];
       };
@@ -15307,6 +15466,10 @@ export type Database = {
       effective_fee: { Args: { p_fee: string; p_vehicle: string; p_on?: string }; Returns: { amount_cents: number; cap_cents: number; percent_bps: number; source: string }[] };
       featured_cars: { Args: { p_limit?: number }; Returns: Json[] };
       fleet: { Args: { p_filters?: Json }; Returns: Json[] };
+      game_cfg: { Args: never; Returns: Json };
+      game_reveal: { Args: { p_token: string }; Returns: boolean };
+      game_start: { Args: { p: Json }; Returns: Json };
+      game_terms: { Args: never; Returns: string };
       guide_banner: { Args: { p_by: string; p_portal: string }; Returns: boolean };
       guide_dismiss: { Args: { p_by: string; p_portal: string }; Returns: boolean };
       guide_opened: { Args: { p_by: string; p_portal: string }; Returns: Json };
@@ -15424,6 +15587,7 @@ export type Database = {
       server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
       server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_game_claim: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_guide_auto_update: { Args: { p: Json }; Returns: Json };
       server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };

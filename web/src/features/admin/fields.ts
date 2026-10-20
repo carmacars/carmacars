@@ -30,6 +30,12 @@ const LABELS: Record<string, string> = {
   chat_shift_minutes: 'Live chat: staff count as on shift when active within (minutes)', chat_keep_days: 'Live chat: keep chats of visitors who are not customers (days)',
   default_km_allowance_per_day: 'Kilometres included a day on a new rate card (the default)', stale_request_expire: 'Expire a booking request whose pickup time passed without an offer',
   stale_request_email_renter: 'Email the renter when their request expires that way',
+  game_enabled: 'Discount games: show the game to visitors who browse (on by default)', game_max_discount_cents: 'Discount games: most a percentage code takes off one booking',
+  game_code_valid_days: 'Discount games: a code is good for (days)', game_trigger_car_pages: 'Discount games: show after this many car pages (0 is off)',
+  game_trigger_seconds: 'Discount games: or after this many seconds on the site (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers)',
+  game_dismiss_days: 'Discount games: after a visitor closes it, wait (days)', game_task_min_cars: 'Discount games: Sales task when the visitor viewed this many cars (0: every claim)',
+  game_reminder_hours: 'Discount games: reminder email before an unused code expires (hours, 0 is off)',
+  game_prizes: 'Discount games: prize table (edit it under Settings, Discount games)', game_weights: 'Discount games: games and their weights (edit it under Settings, Discount games)',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -53,6 +59,9 @@ const HINTS: Record<string, string> = {
   visitor_events_keep_days: 'The privacy policy says 90 days. Change it only with the lawyer. The daily counts per car (no personal information) are kept.',
   default_km_allowance_per_day: 'Used when staff keep "Use the defaults" on a car\'s rates (200 by default). The extra kilometre rate comes from Fee defaults, Mileage overage, by class.',
   stale_request_email_renter: 'Off by default: the request expires with a note in the booking history only. On: the renter gets the "request declined" email saying the pickup time passed.',
+  game_max_discount_cents: 'Applies to percentage prizes only ($75 by default). A dollar prize is its own amount. Empty: no cap.',
+  game_trigger_car_pages: 'Never on the first page of a visit from a search engine on a phone, never on booking, pay, sign or sign-in pages, never for someone signed in.',
+  game_task_min_cars: 'A claim from a visitor who viewed this many different cars raises a Sales follow-up task ("Claimed 10% off, viewed 6 cars").',
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks

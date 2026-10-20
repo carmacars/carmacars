@@ -83,6 +83,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       marketing: { opted_in: v.marketing, version: consent.marketing.version, text: consent.marketing.text }
     },
     // a referral link (/r/<code>: a field staff member's or an owner's) kept for 30 days
+    promo_code: v.promo ? v.promo.toUpperCase() : null,
     referred_by_code: (() => { const c = cookieRef; return c && /^[A-Z0-9]{4,12}$/.test(c) ? c : null; })(),
     details: { referrer_name: v.referrer || null, pickup_place_id: v.pickupAddress.placeId || null, return_place_id: returnAddress.placeId || null, source: 'web' }
   };

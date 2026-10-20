@@ -69,6 +69,10 @@ export function RequestWizard(p: WizardProps) {
     if (sp.get('deliver')) fromLink.pickupAt = sp.get('deliver') === 'airport' ? 'airport' : 'delivery';
     if (sp.get('collect')) fromLink.returnAt = sp.get('collect') === 'airport' ? 'airport' : 'delivery';
     if (sp.get('addons')) fromLink.addons = addonsFromQuery(sp.get('addons'));
+    // a promo code from the link (?promo=), or the code a discount game gave on this device (0066)
+    const linkPromo = sp.get('promo');
+    if (linkPromo && /^[A-Za-z0-9-]{3,40}$/.test(linkPromo)) fromLink.promo = linkPromo.toUpperCase();
+    else { try { const g = JSON.parse(localStorage.getItem('cc_game') ?? 'null') as { code?: string } | null; if (g?.code && /^[A-Z0-9-]{3,40}$/.test(g.code)) fromLink.promo = g.code; } catch { /* private mode */ } }
     const apply = (base: RequestData, st: number, was: boolean) => {
       const next = migrateExtras({ ...base, ...fromLink });
       if (next.from && next.from < today) { next.from = ''; next.to = ''; }
@@ -109,8 +113,9 @@ export function RequestWizard(p: WizardProps) {
     pickup_location: d.pickupAt === 'airport' ? { kind: 'airport', airport_code: d.pickupAirport } : d.pickupAt === 'delivery' ? { kind: 'delivery' } : undefined,
     return_location: d.returnAt === 'airport' ? { kind: 'airport', airport_code: d.returnAirport } : d.returnAt === 'delivery' ? { kind: 'delivery' } : undefined,
     drivers: [{ role: 'renter', age_band: band(age) }, ...d.drivers.map((x) => ({ role: 'additional', age_band: band(ageOn(x.dobY, x.dobM, x.dobD, d.from || today)) }))],
-    addons: addonsPayload(d.addons)
-  }), [d.bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today]);
+    addons: addonsPayload(d.addons),
+    promo_code: /^[A-Za-z0-9-]{3,40}$/.test(d.promo) ? d.promo.toUpperCase() : undefined
+  }), [d.bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today, d.promo]);
   const haveDates = !!(car && d.from && d.to);
   const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
@@ -351,6 +356,15 @@ export function RequestWizard(p: WizardProps) {
             <table className="spec req__review"><tbody>
               {reviewRows.map(([k, v, n]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td><td><button type="button" className="link small" onClick={() => show(n)}>Edit<span className="vh"> {k}</span></button></td></tr>)}
             </tbody></table>
+            <div className={fieldCls('promo')}>
+              <label className="label" htmlFor="rq-promo">Promo code <span className="opt">optional</span></label>
+              <input className="input" id="rq-promo" name="promo" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={40} value={d.promo}
+                onChange={(e) => set('promo', e.target.value.toUpperCase().replace(/\s+/g, ''))} aria-describedby="rq-promo-hint" data-testid="promo-code" />
+              <p className="hint" id="rq-promo-hint" role="status" data-testid="promo-status">{!d.promo ? 'One code per booking. It comes off the rental charge.' : !q ? '' : q.promo?.applied
+                ? `Code ${q.promo.code} applied: ${money(-(q.lines.find((l) => l.charge_type === 'promo_discount')?.amount_cents ?? 0), { cents: true })} off the rental charge.`
+                : q.promo?.problem ?? ''}</p>
+              {errEl('promo', 'rq-promo')}
+            </div>
             <div className="alert"><span className="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
             <div className={fieldCls('agree')}>
               <label className="check"><input type="checkbox" name="agree" checked={d.agree} onChange={(e) => set('agree', e.target.checked)} aria-invalid={err('agree') ? true : undefined} aria-describedby={err('agree') ? 'rq-agree-err' : undefined} /><span>{p.agreeLine.replace(/Terms of use and Privacy policy\.$/, '')}<Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>

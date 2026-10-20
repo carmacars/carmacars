@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 167,
+  "count": 169,
   "emails": [
     {
       "code": "account_password_reset",
@@ -3589,6 +3589,186 @@
       ],
       "template_html": "templates/renter_final_statement.html",
       "template_text": "templates/renter_final_statement.txt"
+    },
+    {
+      "code": "renter_game_code",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A visitor plays a discount game on the site (spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko) and claims the prize with their first name and email. One email to that address with the single-use code. Transactional: it is the code they asked for, sent with or without marketing consent.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars code: {{prize_label}}",
+      "preheader": "Code {{discount_code}}, good until {{discount_expires}}.",
+      "sample_subject": "Your CarmaCars code: 10% off",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "discount_applies_to",
+          "type": "string",
+          "sample": "the rental charge, up to $75.00"
+        },
+        {
+          "name": "discount_code",
+          "type": "string",
+          "sample": "WIN-7KQ4-XM2P"
+        },
+        {
+          "name": "discount_expires",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "discount_terms",
+          "type": "string",
+          "sample": "Off the rental charge only, not fees, the Deposit or tax."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "prize_label",
+          "type": "string",
+          "sample": "10% off"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_game_code.html",
+      "template_text": "templates/renter_game_code.txt"
+    },
+    {
+      "code": "renter_game_code_reminder",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A code won in a discount game on the site has not been used and runs out in game_reminder_hours (24 by default). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for. Not sent once the code is on a booking request.",
+      "timing": "24 hours before the code expires",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your {{prize_label}} code ends tomorrow",
+      "preheader": "Code {{discount_code}} is good until {{discount_expires}}.",
+      "sample_subject": "Your 10% off code ends tomorrow",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "discount_applies_to",
+          "type": "string",
+          "sample": "the rental charge, up to $75.00"
+        },
+        {
+          "name": "discount_code",
+          "type": "string",
+          "sample": "WIN-7KQ4-XM2P"
+        },
+        {
+          "name": "discount_expires",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "discount_terms",
+          "type": "string",
+          "sample": "Off the rental charge only, not fees, the Deposit or tax."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "prize_label",
+          "type": "string",
+          "sample": "10% off"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_game_code_reminder.html",
+      "template_text": "templates/renter_game_code_reminder.txt"
     },
     {
       "code": "renter_google_review_request",

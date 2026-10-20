@@ -17,6 +17,7 @@ const LINK_HOURS = 24;
 const UNCONFIRMED = 'Confirm your email first. We emailed you a link when the account was made (subject "Confirm your CarmaCars account"); it works for 24 hours. Press "Send a new confirmation link" below to get a new one.';
 const scrypt = promisify(scryptCb) as (p: string, s: Buffer, n: number) => Promise<Buffer>;
 const COOKIE = 'cc-local-session';
+const HINT = 'cc-local-in';
 const key = () => new TextEncoder().encode(required('LOCAL_AUTH_SECRET'));
 const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
 
@@ -35,6 +36,9 @@ async function setSession(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1') {
   const jwt = await new SignJWT({ email: u.email, role: 'authenticated', aal }).setProtectedHeader({ alg: 'HS256' })
     .setSubject(u.id).setIssuedAt().setExpirationTime('7d').sign(key());
   (await cookies()).set(COOKIE, jwt, { httpOnly: true, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 });
+  // readable by the page (no secret in it): the site's own scripts tell a signed-in visitor apart, as they can with
+  // Supabase's session cookie (the discount game never shows to someone signed in)
+  (await cookies()).set(HINT, '1', { httpOnly: false, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 });
 }
 
 export function localAuth(): AuthAdapter {
@@ -113,6 +117,7 @@ export function localAuth(): AuthAdapter {
     },
     async signOut() {
       (await cookies()).delete(COOKIE);
+      (await cookies()).delete(HINT);
     },
     async requestPasswordReset(email, redirectTo) {
       const e = email.trim().toLowerCase();

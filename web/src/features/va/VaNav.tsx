@@ -7,7 +7,7 @@ export type Fn = 'finance' | 'fleet' | 'cs' | 'sales';
 // every function sees its own sales and commissions (0057 for Sales, 0058 for all)
 const WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today' }, { href: '/va/scorecard', label: 'My scorecard' }, { href: '/va/my-sales', label: 'My sales' }] };
 // customer service and Sales also watch the site and answer the live chat (0060)
-const LIVE_WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today' }, { href: '/va/scorecard', label: 'My scorecard' }, { href: '/va/my-sales', label: 'My sales' }, { href: '/va/live', label: 'Live visitors' }, { href: '/va/chat', label: 'Live chat' }] };
+const LIVE_WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today' }, { href: '/va/scorecard', label: 'My scorecard' }, { href: '/va/my-sales', label: 'My sales' }, { href: '/va/live', label: 'Live visitors' }, { href: '/va/chat', label: 'Live chat' }, { href: '/va/game-leads', label: 'Game leads' }] };
 const SALES_WORK = LIVE_WORK;
 // every function adds rentals and takes quotes (0058)
 const SELL: NavGroup = { key: 'sell', label: 'Rentals', links: [{ href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }] };

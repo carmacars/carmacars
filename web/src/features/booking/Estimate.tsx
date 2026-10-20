@@ -11,6 +11,7 @@ export interface Quote {
   lines: QuoteLine[]; hst_cents: number; total_cents: number; deposit_cents: number; deposit_method: string; billable_days: number;
   km_allowance_total: number; overage_cents_per_km: number; available: boolean; problems: { code: string; message: string }[];
   coverage: { option: number | null; priced_in_offer: boolean; price_note: string | null };
+  promo?: { code: string; applied: boolean; problem: string | null } | null;
 }
 export interface QuoteInput { vehicleId: string; from: string; to: string; tf: string; tt: string; options: Record<string, unknown> }
 
@@ -60,6 +61,7 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
     case 'winter_tire': return { k: 'Winter tires', note: perDay && `${perDay} a day${cap}` };
     case 'baby_seat': return { k: typeof d.seats === 'number' && d.seats > 1 ? `Baby seats (${d.seats})` : 'Baby seat', note: perDay && `${perDay} a day each${cap} each` };
     case 'coverage_sold': return { k: 'Protection Plan' };
+    case 'promo_discount': return { k: 'Promo code', note: 'Off the rental charge' };
     default: return { k: l.label };
   }
 }

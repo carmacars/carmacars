@@ -1,0 +1,31 @@
+CarmaCars  |  Your prize
+
+========================================
+
+[Quick reminder]
+Your code ends {{discount_expires}}
+
+Hi {{first_name}}. Your {{prize_label}} code has not been used yet. Pick a car before it runs out.
+
+Your code: {{discount_code}}
+{{prize_label}} {{discount_applies_to}}.
+
+Choose a car:
+https://carmacars.ca/cars
+
+- Enter the code in the promo code box when you send your booking request.
+- {{discount_terms}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

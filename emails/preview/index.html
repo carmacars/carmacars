@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>167 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>63</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>169 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>65</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (63)</h2>
+<h2 id="renter">Renter (65)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -223,6 +223,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A renter statement for a returned booking is issued (statement sent_at is set by Finance), which captures charges from the deposit and releases the balance. Due within 7 business days of check-in. (Message template T9.)</div>
 <div class="ln"><a href="../dist/renter_final_statement.html">HTML</a><a href="../dist/renter_final_statement.txt">Text</a><a href="../shots/renter_final_statement.desktop.png">Desktop</a><a href="../shots/renter_final_statement.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_game_code.html"><img loading="lazy" src="../shots/renter_game_code.desktop.png" alt="Screenshot of renter_game_code"></a><div class="b">
+<div class="code">renter_game_code</div><div class="sub">Your CarmaCars code: 10% off</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A visitor plays a discount game on the site (spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko) and claims the prize with their first name and email. One email to that address with the single-use code. Transactional: it is the code they asked for, sent with or without marketing consent.</div>
+<div class="ln"><a href="../dist/renter_game_code.html">HTML</a><a href="../dist/renter_game_code.txt">Text</a><a href="../shots/renter_game_code.desktop.png">Desktop</a><a href="../shots/renter_game_code.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_game_code_reminder.html"><img loading="lazy" src="../shots/renter_game_code_reminder.desktop.png" alt="Screenshot of renter_game_code_reminder"></a><div class="b">
+<div class="code">renter_game_code_reminder</div><div class="sub">Your 10% off code ends tomorrow</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A code won in a discount game on the site has not been used and runs out in game_reminder_hours (24 by default). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for. Not sent once the code is on a booking request.</div>
+<div class="ln"><a href="../dist/renter_game_code_reminder.html">HTML</a><a href="../dist/renter_game_code_reminder.txt">Text</a><a href="../shots/renter_game_code_reminder.desktop.png">Desktop</a><a href="../shots/renter_game_code_reminder.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_google_review_request.html"><img loading="lazy" src="../shots/renter_google_review_request.desktop.png" alt="Screenshot of renter_google_review_request"></a><div class="b">
 <div class="code">renter_google_review_request</div><div class="sub">Would you review CarmaCars on Google?</div>

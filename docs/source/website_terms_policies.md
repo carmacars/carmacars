@@ -56,6 +56,8 @@ You must repay any loss we suffer because you broke section 5.
 
 **13. Law and general.** Ontario law governs these terms, and claims may be brought in the Ontario courts. If part of these terms is unenforceable, the rest stands. We may transfer these terms. You may not. Contact us at [●].
 
+**14. Promo codes and discount games.** A discount game on the Site is a free giveaway: no purchase or payment is needed to play, and every play wins a promo code. The prizes and that their chances differ are shown with the game. A code comes off the rental charge only, never fees, the Deposit or tax, up to the maximum shown with it, on one booking request, and cannot be combined with another promo code. It expires on the date in the email that delivers it, and a code for a minimum rental length applies only to a booking that long. One code per person, email address, mobile number and device. A code has no cash value, cannot be sold or transferred, and is void if claimed with false details or by automated means. We may end a game at any time; codes already sent stay valid until they expire.
+
 ## Part 2 – Privacy Policy
 
 CarmaCars collects only the personal information it needs to rent cars safely, and uses it only with your consent or as the law allows. This policy covers renters, additional drivers, owners, staff and Site visitors. It follows Canada's Personal Information Protection and Electronic Documents Act (PIPEDA). Terms defined in Part 1 apply here. "Tracker" means the GPS tracking and remote disabling device in each vehicle.
@@ -75,6 +77,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Owner information: business and HST details, vehicle, ownership, lender and insurance documents, and banking details | To enrol vehicles, prepare registration forms, bill fees and pay payouts |
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
+| Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 
@@ -110,6 +113,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Rental, payment and owner records, including condition reports and messages | 7 years |
 | Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
+| Discount game claims | 24 months after the code expires, unless you become a customer |
 | Marketing contact details | Until you unsubscribe |
 
 We keep information longer only while a claim, dispute, unpaid amount or legal duty requires it. We then delete or anonymise it.
@@ -133,6 +137,8 @@ Essential cookies keep you signed in and keep bookings secure. Analytics cookies
 We measure visits ourselves, with no third-party analytics. With your consent we record the pages and cars you view, the dates you search, the booking steps you start or finish, the site that sent you, your type of device and an approximate city worked out from your connection. We do not store your network address for this. Our customer service and sales staff see this while you are on the Site, and use it to help you, for example to answer a question about a car you are looking at. Without your consent we record none of it, except what follows.
 
 Two things are recorded without the analytics choice, because they are part of the service you asked for. When you open live chat, we keep the conversation and the page you were on. When you are signed in, or open a link from one of our emails, we record when you open your offer, a change we proposed, the agreement or the pay page for your own booking, so we can follow up if something is stuck.
+
+Discount games are shown to visitors who browse several cars or stay a while. To decide when, your browser counts the pages and cars you view and the time on the Site, and remembers whether you closed or played a game. This stays on your device and is not sent to us unless you claim a prize. When you claim a prize, we keep your first name, email, mobile number if you give it, the code, the game and the pages and cars you viewed in that visit, so we can send the code and help you book. We send the code and one reminder before it expires. We send offers only if you tick the marketing box.
 
 Live chat is answered first by an automated assistant that uses our own information about cars, prices and policies, and then by our staff. The assistant does not make decisions about you; a person reviews anything it collects. Chat conversations are kept with your rental records if you are a customer, and otherwise for 12 months. If you give an email address in the chat, we can email you a copy of the conversation.
 

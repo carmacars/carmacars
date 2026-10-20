@@ -10,6 +10,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['forms', 'Forms', 'The official ServiceOntario PDFs and what goes in each field'],
+  ['discount-games', 'Discount games', 'The giveaway game for visitors: on or off, games, prizes and chances, code rules, when it shows, and its report'],
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],

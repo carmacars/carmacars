@@ -30,7 +30,7 @@ def build():
               'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
               'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
-    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales (customer service and Sales also have Live visitors and Live chat). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales (customer service and Sales also have Live visitors, Live chat and Game leads). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
         ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
@@ -371,6 +371,21 @@ def build():
         'Tick "Email me when a chat waits (while I am on shift)" or desktop alerts if you want them.',
     ])
     g.tip('Prices: send a quote from New quote, never a price from memory. If you handled the chat, choose "I sourced this client" on the quote; nothing is credited by itself.')
+
+    # ---------------------------------------------------------------- discount games (0066)
+    g.chapter('Discount game leads',
+              'Visitors who are not signed in play a quick game on the site and win a promo code. To get it they give a first name, an email '
+              'and sometimes a mobile number. Customer service and Sales follow them up.',
+              blurb='Game leads to call or email, the code they won, whether it is used, and the Sales task.')
+    g.task('Game leads', f'{P("My work", "Game leads")}.')
+    g.steps([
+        'Each claim: when, the name (and "on the site now"), email and phone, the prize, the code and whether it is used, marketing consent, and the cars and pages they viewed.',
+        f'Press {B("Call")} or {B("Email")}. Help them pick a car and send a request; the code goes in the promo code box (on their own device it is filled in). Then press {B("Contacted")}.',
+        f'{B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
+    ])
+    g.para('A visitor who viewed 3 cars or more also raises a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.')
+    g.tip('Without marketing consent, talk only about their request and the code they asked for: no other offers. The code takes up to $75 '
+          'off the rental charge (a percentage), or $50 off a rental of 3 days or more, on one booking within 7 days.')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Add-ons',

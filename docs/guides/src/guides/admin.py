@@ -670,6 +670,33 @@ def build():
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
 
+    # ---------------------------------------------------------------- discount games (0066)
+    g.chapter('Discount games and leads',
+              'Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, '
+              'cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number '
+              'is optional), so you get a lead. It is on by default; nothing needs setting up.',
+              blurb='The giveaway game, the code it sends, game leads to call, and the report.')
+    g.task('What the visitor sees')
+    g.bullets([
+        'After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.',
+        'Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.',
+        'Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.',
+        'The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.',
+        'On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.',
+    ])
+    g.task('Leads', f'{P("Bookings", "Leads")}.')
+    g.steps([
+        'The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.',
+        'Each claim: when, the name (and "on the site now"), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.',
+        f'Press {B("Call")} or {B("Email")}, then {B("Contacted")} (it is yours). {B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
+        'A visitor who viewed 3 cars or more also gets a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.',
+    ])
+    g.task('Settings', f'{P("Settings", "Discount games")}.')
+    g.bullets([
+        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
+        f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
+    ])
+
     # ---------------------------------------------------------------- 9
     g.chapter('Search: car pages, landing pages and guides',
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
@@ -725,6 +752,7 @@ def build():
         'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
+        'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
