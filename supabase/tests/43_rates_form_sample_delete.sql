@@ -134,12 +134,13 @@ select test.ok('A after the one-pass save the publish gate is past the rates (it
 -- ================================================================ B1. delete: requests that never confirmed or took money do not block
 select test.mk_vehicle('rfsample', 'rf_sam');
 select test.mk_vehicle('rfsample2', 'rf_sam');
-update vehicles set is_sample = true where id in (test.id('vehicle:rfsample'), test.id('vehicle:rfsample2'));
 select test.mk_booking('RF-10001', 'rfsample', 'rf_rita', '2031-03-02 10:00', '2031-03-04 10:00', 'declined', 0);
 select test.mk_booking('RF-10002', 'rfsample', 'rf_ron', '2031-03-12 10:00', '2031-03-14 10:00', 'requested', 0);
 select test.mk_booking('RF-10003', 'rfsample', 'rf_rita', '2031-03-20 10:00', '2031-03-22 10:00', 'expired', 0);
 select test.mk_booking('RF-20001', 'rfsample2', 'rf_rita', '2031-04-02 10:00', '2031-04-04 10:00', 'expired', 0);
 select test.mk_booking('RF-20002', 'rfsample2', 'rf_ron', '2026-09-02 10:00', '2026-09-04 10:00', 'closed');
+-- the bookings are from before the cars were marked samples (0065: no booking is created on a sample car)
+update vehicles set is_sample = true where id in (test.id('vehicle:rfsample'), test.id('vehicle:rfsample2'));
 insert into booking_events (booking_id, kind, from_status, to_status, note, actor_type) values (test.id('booking:RF-10002'), 'requested', null, 'requested', 'test request', 'renter');
 select test.eq('B nothing blocks a car whose bookings are only requests, declined and expired with no money', to_jsonb(app.vehicle_delete_blockers(test.id('vehicle:rfsample'))), '[]'::jsonb);
 select test.eq('B the confirmation lists exactly the requests that go',
