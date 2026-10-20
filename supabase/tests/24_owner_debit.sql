@@ -289,7 +289,7 @@ select test.eq('sections: every section of blueprint 11 section 3.3 is stored wi
   (select string_agg(s ->> 'key', ',' order by ord) from company_statements cs, jsonb_array_elements(cs.sections) with ordinality x(s, ord) where cs.statement_month = '2027-01-01'),
   'income,fleet,recoveries,held,hst,receivables,cash,owner_fees,funnel,investors,checks,adjustments,supply');
 select test.eq('sections: the income summary''s total revenue is the sum of its revenue lines',
-  (select (r -> 12 ->> 'cents')::bigint = (select sum((x ->> 'cents')::bigint) from jsonb_array_elements(r) with ordinality q(x, n) where n <= 12)
+  (select (r -> 13 ->> 'cents')::bigint = (select sum((x ->> 'cents')::bigint) from jsonb_array_elements(r) with ordinality q(x, n) where n <= 13)
      from (select s -> 'rows' r from company_statements cs, jsonb_array_elements(cs.sections) s where cs.statement_month = '2027-01-01' and s ->> 'key' = 'income') z), true);
 select test.eq('sections: owner fees billed for January match the statement''s owner fee columns',
   (select (s -> 'rows' -> 0 ->> 'cents')::bigint = (select insurance_fees_cents + tracker_fees_cents + install_fees_cents + other_owner_fees_cents

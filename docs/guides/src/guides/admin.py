@@ -745,6 +745,45 @@ def build():
     ])
 
     # ---------------------------------------------------------------- 10
+    g.chapter('Add-ons',
+              'Add-ons are things renters buy with a rental. They are on, with prices set, from the start: change any of them '
+              'when you want.',
+              blurb='The catalogue, prices, which cars, notice, stock, confirmation and the money.')
+    g.task('The catalogue', f'Open {P("Settings", "Add-ons")}.')
+    g.steps([
+        'Each add-on shows its price, whether it is on, the notice it needs, its stock and how many are booked in the next 30 days.',
+        f'Press {B("Edit")} to change it: name, short description, price, Priced (per trip, per day or per hour), the most per trip, the most days, the minimum hours, HST.',
+        'Price by car: one line each, such as suv premium = 110 or body:van = 110. The first that matches the car wins.',
+        'Which cars: only some classes, only some cars, cars left out, fuel types left out (prepaid fuel is not for electric cars), months (winter tires October to April).',
+        'Notice needed in hours, In stock for physical items, the most on one booking, staff confirmation (a chauffeur), a Fleet task to get it ready (flowers, a chauffeur), and Not refunded once its notice has started.',
+        f'Press {B("Save")}. Add a photo with {B("Add a photo")}. {B("Add an add-on")} at the bottom adds a new one; it stays off until it has a price.',
+    ])
+    g.table([
+        ['Flowers', '$150 a trip, 24 hours notice, Fleet prepares'],
+        ['Baby seat (rear-facing), Child seat', '$15 a day, up to $75 a trip, 2 in stock each'],
+        ['Booster seat', '$10 a day, up to $50 a trip, 2 in stock'],
+        ['Chauffeur', '$45 an hour, 3 hours minimum, staff confirm, 24 hours notice'],
+        ['Umbrella, Phone charger', '$5 a trip, 4 in stock each'],
+        ['Full tank of gas (prepaid)', '$85 a trip; $110 for SUVs, vans and premium cars; not for electric cars'],
+        ['Winter tires', '$15 a day, up to $150, October to April'],
+    ], head=['Add-on', 'As set at launch'])
+    g.task('Where renters and staff see them')
+    g.bullets([
+        'The car page (Add-ons, priced live) and step 4 of the request.',
+        'Offers and rentals added by hand: staff tick them; a chauffeur is confirmed with the offer.',
+        'The renter portal: add one until 24 hours before pickup (Program settings, addon_portal_cutoff_hours) or the add-on\'s own notice, charged on the card on file.',
+        'The agreement summary, the offer, the receipt and the statement list each add-on as a line.',
+        'Field staff see what to put in the car on the handover, and the prepaid fuel note.',
+    ])
+    g.task('The money')
+    g.bullets([
+        'Add-on revenue is CarmaCars\' own: never Owner Revenue or a partner\'s share, and never in a commission or kickback base.',
+        'The company statement shows Add-ons as its own income line (account 4150).',
+        'A cancellation refunds add-ons by the booking\'s tier, except one marked Not refunded once its notice has started.',
+        'Removing a paid add-on after booking creates a refund for it, waiting for approval.',
+    ])
+
+    # ---------------------------------------------------------------- email
     g.chapter('Email, backups and site health',
               'Keep an eye on email use against the daily limit, the nightly backup and the occasional error page.',
               blurb='The email outbox and daily limit, suppressions, backups, the site check and its alerts, and Error 1102.')

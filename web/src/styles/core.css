@@ -466,3 +466,17 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 .footer-investor { color: var(--grey-400); font-size: var(--fs-xs); }
 .footer-investor:hover { color: var(--white); }
 a[href^="tel:"] { white-space: nowrap; }
+
+/* add-ons (0066): the picker on the car page, the request, the portal and staff screens */
+.addons { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.addon { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-3); align-items: center; padding: var(--s-3) var(--s-4); border: var(--bw) solid var(--grey-300); border-radius: var(--r-2); background: var(--white); color: var(--black); }
+.addon:not(:has(.addon__img)) { grid-template-columns: 1fr auto; }
+.addon.is-on { border-color: var(--red-600); }
+.addon.is-off { border-style: dashed; }
+.addon__img { width: 56px; height: 56px; object-fit: cover; border-radius: var(--r-1); }
+.addon__body { display: grid; gap: 0.2rem; min-width: 0; }
+.addon__title { overflow-wrap: anywhere; }
+.addon__hours { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-1); }
+.addon__hours .select { width: auto; min-width: 8rem; }
+.addons--compact .addon { padding: var(--s-2) var(--s-3); }
+@media (max-width: 30rem) { .addon { grid-template-columns: 1fr; } .addon .qty { justify-self: start; } }

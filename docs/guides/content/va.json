@@ -70,6 +70,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "add-ons",
+   "title": "Add-ons",
+   "blurb": "Add-ons in offers and rentals, confirming a chauffeur, Fleet tasks and stock.",
+   "body_md": "Renters buy add-ons with a rental: seats, flowers, a chauffeur, an umbrella, a phone charger, a full tank. You add them in offers and rentals, confirm the ones that need it, and Fleet keeps the stock.\n\n## In an offer or a rental you add\n\n1. On the review screen of a request, under Add-ons, tick or count what the renter wants. The price on the right follows. Choose the hours for a chauffeur.\n2. Add-ons the renter asked for are already ticked. One waiting for confirmation (a chauffeur) is confirmed when you keep it and send the offer; untick it to remove it.\n3. In **Bookings** > **Add a rental**, the Add-ons list sits under The rental: tick them before you press **Check the calendar and the price**.\n4. Notice is yours to judge: you may add flowers with less than 24 hours if Fleet can do it.\n\n## After booking\n\n1. The booking page shows the add-ons, paid or not, and any waiting for confirmation.\n2. A renter asked for a chauffeur from their portal: you get a task. Press **Confirm and charge** (the card on file is charged) or **Decline**.\n3. Press **Remove** and give the reason to take one off. Unpaid, it goes; paid, a refund for it waits for approval.\n\n## Fleet: tasks and stock\n\nFlowers and a chauffeur give Fleet a task to get them ready, due before pickup by their notice.\n\n1. Open **Cars** > **Add-ons**. Each add-on shows its price, its notice and how many are booked in the next 30 days.\n2. For seats, umbrellas and chargers, type how many we have under In stock and press **Save**. Renters cannot ask for more than are free for their dates.\n3. A confirmed booking with more than we have gives you an urgent task: find another or tell the renter.\n\nAdd-on revenue is CarmaCars' own. It is never in a commission: your commission stays on the rental charge.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "shared-tools",
    "title": "Shared tools",
    "blurb": "The calendar and Find a renter.",

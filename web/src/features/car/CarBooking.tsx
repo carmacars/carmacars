@@ -9,6 +9,8 @@ import { Estimate, useQuote, type LabelTokens } from '@/features/booking/Estimat
 import { browserRpc } from '@/lib/browser-rpc';
 import { addDays, shortDate, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
+import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
+import { addonsPayload, type AddonChoice } from '@/features/addons/model';
 
 export interface CarBookingProps {
   vehicleId: string; slug: string; name: string; deliveryFee: number; pickupFee: number;
@@ -47,6 +49,9 @@ export function CarBooking(p: CarBookingProps) {
   const [collect, setCollect] = useState(!!sp.get('collect'));
   const [age, setAge] = useState<AgeBand>(() => { const a = sp.get('age') as AgeBand | null; return a && a in AGE_BANDS ? a : '26_plus'; });
   const [clashNote, setClashNote] = useState('');
+  // 0066: add-ons chosen here are priced live and carried to the request (?addons=code:count:hours)
+  const [addons, setAddons] = useState<AddonChoice[]>(() => (sp.get('addons') ?? '').split(',').map((x) => x.split(':'))
+    .filter(([c]) => /^[a-z0-9_]{2,40}$/.test(c ?? '')).map(([c, n, h]) => ({ code: c!, quantity: Math.min(Math.max(Number(n) || 1, 1), 20), hours: h ? Number(h) || null : null })));
   const checked = useRef(false);
 
   // dates carried from the fleet that this car cannot do are cleared, with a note
@@ -65,14 +70,17 @@ export function CarBooking(p: CarBookingProps) {
   const options = useMemo(() => ({
     pickup_method: deliver ? 'delivered' : 'collected', return_method: collect ? 'picked_up' : 'returned',
     ...(deliver ? { pickup_location: { kind: 'delivery' } } : {}), ...(collect ? { return_location: { kind: 'delivery' } } : {}),
-    drivers: [{ role: 'renter', age_band: age }]
-  }), [deliver, collect, age]);
+    drivers: [{ role: 'renter', age_band: age }], addons: addonsPayload(addons)
+  }), [deliver, collect, age, addons]);
+  const { options: addonOptions } = useAddonOptions(p.vehicleId, ready ? from : undefined, ready ? to : undefined, tf, tt);
   const { q, error, loading } = useQuote(ready ? { vehicleId: p.vehicleId, from, to, tf, tt, options } : null);
   const problem = ready ? timeProblem({ name: p.name, from, tf, to, tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   const query = new URLSearchParams();
   if (ready) { query.set('from', from); query.set('to', to); query.set('tf', tf); query.set('tt', tt); }
   if (deliver) query.set('deliver', '1'); if (collect) query.set('collect', '1'); if (age !== '26_plus') query.set('age', age);
+  const chosen = addons.filter((c) => c.quantity > 0);
+  if (chosen.length) query.set('addons', chosen.map((c) => [c.code, c.quantity, c.hours ?? ''].join(':').replace(/:$/, '')).join(','));
   const href = `/book/${p.slug}${query.size ? '?' + query : ''}`;
 
   useEffect(() => {
@@ -106,6 +114,12 @@ export function CarBooking(p: CarBookingProps) {
                 {p.allowsYoung && <option value="18_to_20">{p.tokens.youngA}</option>}
               </select>
             </div>
+            {addonOptions.length > 0 && (
+              <details className="booking__addons" open={addons.length > 0} data-testid="car-addons">
+                <summary className="label">Add-ons <span className="opt">optional</span>{addons.length ? <span className="muted"> ({addons.length} chosen)</span> : null}</summary>
+                <AddonPicker idPrefix="car" compact options={addonOptions} value={addons} onChange={setAddons} />
+              </details>
+            )}
             <p className="small muted">Pickup and return any time, day or night, with at least {p.tokens.notice}’ notice. You choose the place in your request.</p>
           </div>
         </div>

@@ -6,6 +6,8 @@ import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
+import { AddonPicker } from '@/features/addons/AddonPicker';
+import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -25,6 +27,8 @@ export interface B {
   renter_due_at_booking_cents: number | null; insurer_share_cents: number | null; promo_code: string | null;
   vehicle: { id: string; name: string; plate: string | null } | null; lines: Line[];
   /** 0058: the choice, a claim, a price typed by hand */
+  /** 0066 */
+  addons?: BookingAddon[];
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
@@ -64,7 +68,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const va = kind === 'va';
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
-  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type));
+  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type) && !['addon', 'baby_seat', 'winter_tire'].includes(l.charge_type));
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
@@ -87,6 +91,12 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const [done, setDone] = useState<string | null>(null);
   const [pending, run] = useTransition();
   const [opts, setOpts] = useState<Opt[]>([]);
+  // add-ons (0066): staff add, remove and confirm them here; the price below follows
+  const addons0 = useMemo<AddonChoice[]>(() => (b.addons ?? []).filter((a) => !a.after_booking).map((a) => ({ code: a.code, quantity: a.quantity, hours: a.hours })), [b]);
+  const [addons, setAddons] = useState<AddonChoice[]>(addons0);
+  const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
+  const norm = (l: AddonChoice[]) => JSON.stringify(addonsPayload(l).sort((x, y) => x.code.localeCompare(y.code)));
+  const addonsChanged = norm(addons) !== norm(addons0);
   const set = (k: string) => (x: string | boolean) => { setDone(null); setV((s) => ({ ...s, [k]: x })); };
   const changed = (k: string) => v[k] !== start[k];
 
@@ -114,8 +124,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     const fees = feeLines.filter((l) => changed(`fee:${l.charge_type}`)).map((l) => ({ fee: l.charge_type, amount_cents: cents(String(v[`fee:${l.charge_type}`])) ?? 0, reason: String(v.fee_reason).trim() || null }));
     if (fees.length) p.fee_terms = fees;
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
+    if (addonsChanged) p.addons = addonsPayload(addons);
     return p;
-  }, [v]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v, addons]); // eslint-disable-line react-hooks/exhaustive-deps
   const dirty = Object.keys(payload.changes as object).length > 0 || Object.keys(payload).some((k) => !['booking', 'changes'].includes(k));
 
   // live re-pricing, debounced
@@ -132,6 +143,17 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     }, 350);
     return () => clearTimeout(t);
   }, [payload, dirty, adminPreview]);
+
+  // the add-ons offered for the car and dates (staff see every one; notice is theirs to judge)
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!v.vehicle_id) return;
+      const r = await adminPreview<AddonOption[]>('addons_for_car', { vehicle_id: v.vehicle_id, booking: b.id,
+        pickup_at: v.pickup_at ? new Date(String(v.pickup_at)).toISOString() : null, return_at: v.return_at ? new Date(String(v.return_at)).toISOString() : null });
+      if (r.ok) setAddonOptions(r.data ?? []);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [v.vehicle_id, v.pickup_at, v.return_at, b.id, adminPreview]);
 
   // the car picker: bookable cars with whether each is free for the dates
   useEffect(() => {
@@ -220,6 +242,13 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           </>}
           {!va && <div className={`field ad-field${changed('blocks_calendar') ? ' ad-diff' : ''}`}><label className="check"><input type="checkbox" checked={Boolean(v.blocks_calendar)} onChange={(e) => set('blocks_calendar')(e.target.checked)} /> <span>Blocks the calendar</span></label></div>}
           {changed('blocks_calendar') && <F k="blocks_reason" l="Reason for the calendar switch" />}
+        </fieldset>
+        <fieldset className="ad-fields" disabled={!editable} data-testid="review-addons">
+          <legend className="pt-kicker">Add-ons</legend>
+          <div className={`ad-field--wide${addonsChanged ? ' ad-diff' : ''}`}>
+            {(b.addons ?? []).some((a) => a.status === 'pending') && <p className="small"><b>Waiting for confirmation:</b> {(b.addons ?? []).filter((a) => a.status === 'pending').map((a) => a.name).join(', ')}. Keep it to confirm it with the offer, or remove it.</p>}
+            <AddonPicker idPrefix="rv" staff compact options={addonOptions} value={addons} onChange={(x) => { setDone(null); setAddons(x); }} />
+          </div>
         </fieldset>
         <div className="field ad-field"><label className="label" htmlFor="rv-note">Internal note</label><textarea className="input ad-textarea" id="rv-note" value={String(v.note)} onChange={(e) => set('note')(e.target.value)} /></div>
         {editable && <button className="btn btn--ghost btn--sm" type="submit" disabled={pending} data-testid="review-save">{pending ? 'Saving' : 'Save changes'}</button>}

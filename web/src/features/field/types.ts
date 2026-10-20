@@ -9,6 +9,8 @@ export interface FieldJob {
     renter: { name: string; mobile: string | null } | null;
     drivers: Array<{ name: string; role: string; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified: boolean; accepted: boolean }>;
     card: { brand: string | null; last4: string | null } | null; extras: string[];
+    /** 0066: the add-ons to put in the car, and whether fuel is prepaid (no fuel charge at the return) */
+    addons?: Array<{ name: string; quantity: number; hours: number | null; status: string; handover_note: string | null; prepaid_fuel: boolean }>; prepaid_fuel?: boolean;
   };
   ready: null | { identity: boolean; coverage: boolean; drivers_accepted: boolean; calendar: boolean; agreement: boolean; deposit: 'taken' | 'waived' | 'declined' | 'not_taken' | 'none';
     /** False while a rental staff added by hand waits for the renter's signature (0051): the car is not released. */

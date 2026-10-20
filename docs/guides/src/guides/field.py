@@ -98,6 +98,14 @@ def build():
         (H('33-handover-13-signatures-phone', 1500), f'Signatures: the renter signs, then you. {B("Use this signature")} for each.'),
     ])
     g.steps([f'Press {B("Hand over the keys")}. You see "Handed over. The rental has started."'])
+    g.task('Add-ons to put in the car', 'A booking may come with add-ons: a baby seat, a child or booster seat, flowers, an umbrella, a phone charger or a prepaid full tank.')
+    g.steps([
+        'Open the job. Under Put in the car you see each add-on, how many, and what to do (for example "Put the bouquet on the front passenger seat").',
+        'Put every item in the car before the handover. The Car ready step lists them again.',
+        'Prepaid fuel: the renter may return the car at any fuel level. Do not charge for fuel at the return.',
+        'A chauffeur on the booking: Fleet tells you who drives and when.',
+    ])
+    g.tip('An item missing? Write it in the note for Fleet on the Car ready step and call the office before the handover.')
     g.tip('The photo count shows "19 of 19 photos taken · all uploaded" when the set is complete. The first photo must show the plate. '
           'Open circles on the damage diagram were recorded before; add only what is new.')
 

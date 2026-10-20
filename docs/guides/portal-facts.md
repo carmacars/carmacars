@@ -187,7 +187,7 @@ Every function starts with **Queue** (the function's tasks, oldest due first: "T
 | --- | --- |
 | Customer service | My sales; Requests; New quote; Add a rental; Renter messages; Find a renter; Calendar; Listings; Similar cars; Owners and enquiries; Owner forms; Scorecard |
 | Finance | My sales; Payments, deposits, refunds; Tolls and tickets (with "Read a notice" and reading profiles); Reconciliation; Turo trips; Find a renter; Calendar; Add a rental; New quote; Scorecard |
-| Fleet | My sales; Field jobs; Daily checks; Photo reviews; Calendar; Listings; Similar cars; Find a renter; Add a rental; New quote; Scorecard |
+| Fleet | My sales; Field jobs; Daily checks; Photo reviews; Calendar; Listings; Similar cars; Add-ons (stock); Find a renter; Add a rental; New quote; Scorecard |
 | Sales | My sales; Requests and offers; New quote; Add a rental; Owner leads; Calendar; Scorecard |
 
 Main tasks:
@@ -234,3 +234,11 @@ Main tasks:
 | "Error 1102" from Cloudflare | Reload the page. |
 | "You are signed in as ..." with no access | You are in the wrong account for this portal: "Sign out", then sign in with the right one, or choose the portal under "Your other portals". |
 | An Admin cannot change anything | They are viewing as someone (red banner): press "Exit". |
+
+## Add-ons (migration 0066, October 19, 2026)
+
+- **Renter:** the car page (Add-ons under Dates and price, priced live in Your estimate, carried to the request), the request's step 4 "Add-ons" (five steps: Dates and delivery, Driver details, Licence and coverage, Add-ons, Review and send; buttons "Continue to add-ons", "Review request"), the booking page's Add-ons card ("Add something to your trip", "Add and pay", "Ask for it" for a chauffeur) until 24 hours before pickup or the add-on's notice, charged on the card on file.
+- **Admin:** Settings > Add-ons: the catalogue (price, Priced per trip, per day or per hour, the most per trip, the most days, minimum hours, price by car, HST, on, only some classes or cars, cars left out, fuel types left out, months, notice, In stock, most on one booking, staff confirmation, Fleet task, not refunded after the notice, order, photo; "Edit", "Save", "Add a photo", "Add an add-on"). The booking's Overview has an Add-ons card ("Confirm and charge", "Decline", "Remove").
+- **Assistants:** the review screen of a request has Add-ons (ticks, counts, hours); Add a rental has Add-ons under The rental. Fleet: Cars > Add-ons (In stock, "Save"); tasks "Get ready: ..." for flowers and a chauffeur, "Not enough ..." for stock. Customer service: "Confirm ..." tasks for a chauffeur asked for after booking.
+- **Field:** the job shows "Put in the car" with each add-on and its note, and "Prepaid fuel ... Do not charge for fuel"; the Car ready step lists them.
+

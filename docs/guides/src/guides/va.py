@@ -365,6 +365,32 @@ def build():
     g.tip('Prices: send a quote from New quote, never a price from memory. If you handled the chat, choose "I sourced this client" on the quote; nothing is credited by itself.')
 
     # ---------------------------------------------------------------- 6
+    g.chapter('Add-ons',
+              'Renters buy add-ons with a rental: seats, flowers, a chauffeur, an umbrella, a phone charger, a full tank. '
+              'You add them in offers and rentals, confirm the ones that need it, and Fleet keeps the stock.',
+              blurb='Add-ons in offers and rentals, confirming a chauffeur, Fleet tasks and stock.')
+    g.task('In an offer or a rental you add')
+    g.steps([
+        'On the review screen of a request, under Add-ons, tick or count what the renter wants. The price on the right follows. Choose the hours for a chauffeur.',
+        'Add-ons the renter asked for are already ticked. One waiting for confirmation (a chauffeur) is confirmed when you keep it and send the offer; untick it to remove it.',
+        f'In {P("Bookings", "Add a rental")}, the Add-ons list sits under The rental: tick them before you press {B("Check the calendar and the price")}.',
+        'Notice is yours to judge: you may add flowers with less than 24 hours if Fleet can do it.',
+    ])
+    g.task('After booking')
+    g.steps([
+        'The booking page shows the add-ons, paid or not, and any waiting for confirmation.',
+        f'A renter asked for a chauffeur from their portal: you get a task. Press {B("Confirm and charge")} (the card on file is charged) or {B("Decline")}.',
+        f'Press {B("Remove")} and give the reason to take one off. Unpaid, it goes; paid, a refund for it waits for approval.',
+    ])
+    g.task('Fleet: tasks and stock', 'Flowers and a chauffeur give Fleet a task to get them ready, due before pickup by their notice.')
+    g.steps([
+        f'Open {P("Cars", "Add-ons")}. Each add-on shows its price, its notice and how many are booked in the next 30 days.',
+        f'For seats, umbrellas and chargers, type how many we have under In stock and press {B("Save")}. Renters cannot ask for more than are free for their dates.',
+        'A confirmed booking with more than we have gives you an urgent task: find another or tell the renter.',
+    ])
+    g.para('Add-on revenue is CarmaCars\' own. It is never in a commission: your commission stays on the rental charge.')
+
+    # ---------------------------------------------------------------- shared
     g.chapter('Shared tools',
               'Every function has the calendar and Find a renter. Use them to answer questions fast.',
               blurb='The calendar and Find a renter.')

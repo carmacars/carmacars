@@ -7,7 +7,8 @@ import { getFacts, getFleet } from '@/lib/site';
 import { consentTexts, rules } from '@/server/booking-data';
 import { maps } from '@/integrations/maps';
 import { verifyTurnstile } from '@/integrations/turnstile';
-import { dobIso, requestSchema, type RequestData } from '@/features/booking/schema';
+import { dobIso, migrateExtras, requestSchema, type RequestData } from '@/features/booking/schema';
+import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 
@@ -72,7 +73,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     return_location: await loc(v.returnAt, returnAddress, v.returnAirport),
     note: v.notes.trim() || null,
     coverage_option: Number(v.coverage),
-    extras: { winter_tire: v.winter, baby_seats: v.babySeats },
+    // 0066: add-ons (an older draft's winter tires and baby seats included); the database checks notice and stock
+    addons: addonsPayload(migrateExtras(v).addons),
     renter: { email: v.email, full_name: `${v.first} ${v.last}`, mobile: v.phone, date_of_birth: dobIso(v.dobY, v.dobM, v.dobD), licence_class: lic, licence_issuer: v.licClass === 'other' ? v.licIssuer : 'ON' },
     additional_drivers: v.drivers.map((d) => ({ full_name: `${d.first} ${d.last}`, date_of_birth: dobIso(d.dobY, d.dobM, d.dobD), email: d.email, licence_class: d.licClass || null })),
     consents: {

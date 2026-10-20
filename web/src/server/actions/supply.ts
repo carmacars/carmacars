@@ -26,7 +26,7 @@ function rebuild(paths: string[]) {
   }
 }
 
-export type SupplyRead = 'supply_settings' | 'partners' | 'partner' | 'vehicle_delete_blockers' | 'vehicle_delete_preview' | 'sample_cars' | 'manual_rental_renters' | 'manual_rental_quote' | 'manual_rental_vehicles' | 'bookings_by_supply';
+export type SupplyRead = 'supply_settings' | 'partners' | 'partner' | 'vehicle_delete_blockers' | 'vehicle_delete_preview' | 'sample_cars' | 'manual_rental_renters' | 'manual_rental_quote' | 'manual_rental_vehicles' | 'bookings_by_supply' | 'addons_for_car';
 export async function supplyRead<T = Record<string, unknown>>(what: SupplyRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }

@@ -56,16 +56,20 @@ test('request to book creates a requested booking and its event', async ({ page 
   await page.locator('#rq-ad0-doby').fill('1988');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   // step 3: an error first, then the right answers
-  await page.getByRole('button', { name: 'Review request' }).click();
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await expect(page.getByText('Choose your licence class.')).toBeVisible();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
   await page.locator('label.option', { hasText: 'Option 2' }).click();
-  await page.locator('label.option', { hasText: 'Winter tires' }).click();
   await page.locator('#rq-notes').fill('Flight AC 123.');
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
+  // step 4: add-ons (0070), priced in the estimate
+  await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
+  await page.locator('#rq-umbrella').check();
   await page.getByRole('button', { name: 'Review request' }).click();
-  // step 4
+  // step 5
   await expect(page.getByRole('heading', { name: 'Check it and send' })).toBeVisible();
   await expect(page.locator('.req__review')).toContainText('Avery Tester');
+  await expect(page.locator('.req__review')).toContainText('Umbrella');
   await noOverflow(page);
   await page.getByRole('button', { name: 'Send request' }).click();
   await expect(page.getByText('Tick this box to send your request.')).toBeVisible();

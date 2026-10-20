@@ -6,6 +6,8 @@
 -- handover guards; two-step sign-in for staff; and row-level security for every role on every
 -- new table and wrapper.
 select test.suite('08 booking app');
+-- 0066: winter tires are an add-on offered October to April; this suite prices them on dates all year, so here every month
+update addons set available_months = '{}' where code = 'winter_tire';
 
 -- ------------------------------------------------------------------ helpers and fixture
 create or replace function test.at(p_local text) returns timestamptz
@@ -262,21 +264,21 @@ select test.keep('q6', app.quote_booking(test.id('vehicle:BAY'), test.at('2029-0
                                jsonb_build_object('date_of_birth', '1980-01-01', 'name', 'Olga Older')),
   'extras', jsonb_build_object('winter_tire', true, 'baby_seats', 2))));
 select test.eq('Q 12 days, every per-day fee at its cap per rental: young driver 18 to 20 $35 x 12 capped at $350; 21 to 25 $20 x 12 capped at $200; '
-               || 'additional driver $10 x 12 capped at $70, per driver; winter tire $15 x 12 capped at $150; baby seat $12 x 12 capped at $70, per seat',
+               || 'additional driver $10 x 12 capped at $70, per driver; winter tire $15 x 12 capped at $150; baby seat $15 x 12 capped at $75, per seat (0066)',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || ':' || (l -> 'detail' ->> 'capped'), ' ' order by o)
      from test.out('q6') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)),
   -- 0025: young driver fees have no maximum; the additional driver fee is 25% of the $100 daily rate a day, no maximum
-  'rental_charge=96000:false young_driver_18_20=42000:false young_driver_21_25=24000:false additional_driver=30000:false additional_driver=30000:false winter_tire=15000:true baby_seat=14000:true');
+  'rental_charge=96000:false young_driver_18_20=42000:false young_driver_21_25=24000:false additional_driver=30000:false additional_driver=30000:false winter_tire=15000:true baby_seat=15000:true');
 select test.eq('Q each per-driver line names its driver and their age band',
   (select string_agg((l ->> 'description'), ' | ' order by o) from test.out('q6') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)
     where l ->> 'charge_type' like 'young%'), 'Young driver, 18 to 20: Yara Young | Young driver, 21 to 25: Tom Twenty');
-select test.eq('Q the total is the sum of the lines, HST per line: $2,510.00 + $326.30 (0025 fees)',
-  (select (v ->> 'subtotal_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents') from test.out('q6') v), '251000/32630/283630');
-select test.eq('Q the fees are per day: 3 days, a driver of 19 ($105) and one additional driver of 30 ($75: 25% of $100 a day, 0025), one baby seat ($36)',
+select test.eq('Q the total is the sum of the lines, HST per line: $2,520.00 + $327.60 (0025 fees, 0066 add-ons)',
+  (select (v ->> 'subtotal_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents') from test.out('q6') v), '252000/32760/284760');
+select test.eq('Q the fees are per day: 3 days, a driver of 19 ($105) and one additional driver of 30 ($75: 25% of $100 a day, 0025), one baby seat ($45, 0066)',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || ':' || (l -> 'detail' ->> 'capped'), ' ' order by o)
      from app.quote_booking(test.id('vehicle:BAY'), test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'),
             '{"drivers": [{"age": 19}, {"age": 30}], "extras": {"baby_seats": 1}}') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)),
-  'rental_charge=30000:false young_driver_18_20=10500:false additional_driver=7500:false baby_seat=3600:false');
+  'rental_charge=30000:false young_driver_18_20=10500:false additional_driver=7500:false baby_seat=4500:false');
 select test.eq('Q a driver under 18 is a problem the quote names; a driver of 18 to 20 is not (0025: every car takes them)',
   (select string_agg(p ->> 'code', ',' order by p ->> 'code')
      from app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-05-10 09:00'), '{"drivers": [{"age": 19}, {"age": 17}]}') v,
@@ -397,13 +399,13 @@ select test.eq('R the drivers are on the booking with their age band at pickup',
 select test.eq('R every line of the price is created with the request: rental (weekly rule, $800), delivery, the young driver and additional driver fees, winter tires, the baby seat',
   (select string_agg(charge_type || '=' || amount_cents || '+' || hst_cents, ' ' order by f.sort_order)
      from booking_line_items li join fee_types f on f.code = li.charge_type where li.booking_id = test.ba('r1') and li.voided_at is null),
-  'rental_charge=80000+10400 delivery=7500+975 young_driver_21_25=20000+2600 additional_driver=25000+3250 winter_tire=15000+1950 baby_seat=7000+910');
+  'rental_charge=80000+10400 delivery=7500+975 young_driver_21_25=20000+2600 additional_driver=25000+3250 winter_tire=15000+1950 baby_seat=7500+975');
 select test.eq('R the per-driver lines carry their driver',
   (select count(*) filter (where li.driver_id is not null) || '/' || count(*) from booking_line_items li
     where li.booking_id = test.ba('r1') and li.charge_type in ('young_driver_21_25', 'additional_driver')), '2/2');
 select test.eq('R the totals are the sum of the lines: $1,545.00 + HST $200.85 (0025 fees)',
   (select subtotal_at_booking_cents || '/' || hst_at_booking_cents || '/' || total_due_at_booking_cents || '/' || renter_due_at_booking_cents
-     from bookings where id = test.ba('r1')), '154500/20085/174585/174585');
+     from bookings where id = test.ba('r1')), '155000/20150/175150/175150');
 select test.eq('R the quote for the same choices and the booking agree, line by line and in total',
   (select (q ->> 'total_cents')::bigint = b.total_due_at_booking_cents
           and (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || '+' || (l ->> 'hst_cents'), ' ' order by o)
@@ -418,7 +420,7 @@ select test.eq('R the quote for the same choices and the booking agree, line by 
 select test.eq('R the fee terms of the booking are snapshotted with where each came from',
   (select count(*) || '/' || string_agg(fee_type_code || '=' || coalesce(amount_cents::text, 'not priced') || ':' || coalesce(cap_cents::text, '-') || ':' || source, ' ' order by fee_type_code)
      from booking_fee_terms where booking_id = test.ba('r1')),
-  '6/additional_driver=not priced:-:default baby_seat=1200:7000:default coverage_sold=not priced:-:default winter_tire=1500:15000:default young_driver_18_20=3500:-:default young_driver_21_25=2000:-:default');
+  '6/additional_driver=not priced:-:default baby_seat=1500:7500:default coverage_sold=not priced:-:default winter_tire=1500:15000:default young_driver_18_20=3500:-:default young_driver_21_25=2000:-:default');
 select test.eq('R the request as sent is kept on the booking: extras, what else the customer said, the consent versions, the flags',
   (select (d -> 'extras' ->> 'winter_tire') || '/' || (d -> 'extras' ->> 'baby_seats') || '/' || (d ->> 'accepts_similar') || '/' || (d ->> 'landing_path')
           || '/' || (d ->> 'terms_version') || '/' || (d ->> 'privacy_version') || '/' || (d ->> 'marketing_opt_in') || '/' || (d ->> 'conflict_at_submit')

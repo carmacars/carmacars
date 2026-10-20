@@ -8,6 +8,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['classes', 'Vehicle classes', 'Classes shown on the site'],
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
+  ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['forms', 'Forms', 'The official ServiceOntario PDFs and what goes in each field'],
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],

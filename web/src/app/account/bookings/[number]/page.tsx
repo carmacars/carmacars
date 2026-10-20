@@ -15,6 +15,7 @@ import { myBooking } from '@/server/portal/data';
 import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
 import { DriverLink } from '@/features/portal/DriverLink';
+import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -35,7 +36,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     door<Array<{ kind: string; key: string; title: string; at: string }>>(user.id, 'ops_read', 'files', { for: 'booking', id: b.id }).catch(() => []),
     // the booking's messages, read as the signed-in renter (migration 0033)
     rpc('my_booking_messages', { p_number: b.booking_number }, { role: 'authenticated', userId: user.id }).then((x) => (x ?? []) as unknown as Msg[]).catch(() => [] as Msg[])]);
-  const [sp, s] = await Promise.all([searchParams, getSettings()]);
+  const [sp, s, addons] = await Promise.all([searchParams, getSettings(),
+    // the add-ons on the booking and what may still be added (0066)
+    b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null)]);
+  const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
   const openQ = b.info_requests.filter((q) => q.status === 'open');
@@ -89,6 +93,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             ]} />
             {live && phone && <p><a className="btn btn--ghost btn--sm" href={`tel:${s.phone ?? phone}`}>Call us {phone}</a></p>}
           </section>
+          {addons && (addons.items.length > 0 || addons.can_add) && <PortalAddons number={b.booking_number} data={addons} />}
           <section className="pt-card" aria-labelledby="pt-drivers"><h2 className="d4" id="pt-drivers">Drivers</h2>
             <ul className="pt-list">{b.drivers.map((d) => (
               <li key={d.id} className="stack" style={{ gap: 'var(--s-2)' }}>
@@ -118,7 +123,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="pt-price"><h2 className="d4" id="pt-price">Price</h2>
-            <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking')} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
+            <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
             {b.payments.length > 0 && <Dl rows={b.payments.map((p) => [`${p.purpose.replace(/_/g, ' ')} (${p.status})`, `${money(p.amount_cents, { cents: true })}${p.card_last4 ? `, card ending ${p.card_last4}` : ''}`])} />}
           </section>
           <section className="pt-card" aria-labelledby="pt-act"><h2 className="d4" id="pt-act">Need something else?</h2>

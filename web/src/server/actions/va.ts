@@ -34,7 +34,7 @@ export async function vaAct<T = Record<string, unknown>>(action: string, p: Reco
   } catch (e) { return fail(e); }
 }
 
-export async function vaPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity', p: Record<string, unknown>): Promise<R<T>> {
+export async function vaPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity' | 'addons_for_car', p: Record<string, unknown>): Promise<R<T>> {
   try {
     const { user, aal } = await assertVa();
     return { ok: true, data: await door<T>(user.id, 'va_read', what, p, aal) };

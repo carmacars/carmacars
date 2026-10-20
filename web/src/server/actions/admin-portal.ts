@@ -65,7 +65,7 @@ export async function adminSaveRow<T = Record<string, unknown>>(table: string, v
 }
 
 /** A read from a client component (previews: re-pricing, calendar moves, bulk rates). */
-export async function adminPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity', p: Record<string, unknown>): Promise<R<T>> {
+export async function adminPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity' | 'addons_for_car', p: Record<string, unknown>): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
     return { ok: true, data: await adminRead<T>(admin.id, what, p) };

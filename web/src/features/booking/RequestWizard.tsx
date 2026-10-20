@@ -13,10 +13,12 @@ import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, val
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { loadRequestDraft, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
+import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
+import { addonsPayload } from '@/features/addons/model';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
-import { ageOn, checkRequest, dobIso, emptyRequest, stepOfKey, type RequestData, type RequestRules } from './schema';
+import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, type RequestData, type RequestRules } from './schema';
 
-// Request to book: four steps, autosaved to form_drafts (and this device) and resumable, one schema
+// Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
 // idempotency key. No card and no payment at this step.
 export interface WizardCar { slug: string; vehicleId: string; name: string; year: number; trim: string | null; daily: number; weekend: number; weekly: number; monthly: number; delivery: number; pickup: number; ownerLocation: boolean; allowsYoung: boolean; cover: { path: string; alt: string } | null }
@@ -27,7 +29,11 @@ export interface WizardProps {
 }
 
 const KEY = 'cc.request.v2';
-const STEPS = [['Dates', ' and delivery'], ['Driver', ' details'], ['Licence', ' and coverage'], ['Review', ' and send']] as const;
+const STEPS = [['Dates', ' and delivery'], ['Driver', ' details'], ['Licence', ' and coverage'], ['Add-ons', ' for your trip'], ['Review', ' and send']] as const;
+const LAST = STEPS.length;
+/** add-ons carried from the car page: ?addons=baby_seat:2,chauffeur:1:4 */
+const addonsFromQuery = (q: string | null) => (q ?? '').split(',').map((x) => x.split(':')).filter(([c]) => /^[a-z0-9_]{2,40}$/.test(c ?? ''))
+  .map(([c, n, h]) => ({ code: c!, quantity: Math.min(Math.max(Number(n) || 1, 1), 20), hours: h ? Number(h) || null : null })).slice(0, 30);
 type Store = { data: RequestData; step: number; token: string | null; draftId: string | null; key: string; at: number };
 const readStore = (): Store | null => { try { return JSON.parse(localStorage.getItem(KEY) ?? 'null') as Store | null; } catch { return null; } };
 const writeStore = (s: Store) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
@@ -62,10 +68,11 @@ export function RequestWizard(p: WizardProps) {
     if (validTime(sp.get('tt'))) fromLink.tt = sp.get('tt')!;
     if (sp.get('deliver')) fromLink.pickupAt = sp.get('deliver') === 'airport' ? 'airport' : 'delivery';
     if (sp.get('collect')) fromLink.returnAt = sp.get('collect') === 'airport' ? 'airport' : 'delivery';
+    if (sp.get('addons')) fromLink.addons = addonsFromQuery(sp.get('addons'));
     const apply = (base: RequestData, st: number, was: boolean) => {
-      const next = { ...base, ...fromLink };
+      const next = migrateExtras({ ...base, ...fromLink });
       if (next.from && next.from < today) { next.from = ''; next.to = ''; }
-      setD(next); setStep(fresh ? 1 : Math.min(Math.max(st, 1), 4)); setRestored(was && !fresh); ready.current = true;
+      setD(next); setStep(fresh ? 1 : Math.min(Math.max(st, 1), LAST)); setRestored(was && !fresh); ready.current = true;
     };
     if (s && !fresh) apply({ ...emptyRequest(), ...s.data }, s.step, true);
     else {
@@ -102,9 +109,10 @@ export function RequestWizard(p: WizardProps) {
     pickup_location: d.pickupAt === 'airport' ? { kind: 'airport', airport_code: d.pickupAirport } : d.pickupAt === 'delivery' ? { kind: 'delivery' } : undefined,
     return_location: d.returnAt === 'airport' ? { kind: 'airport', airport_code: d.returnAirport } : d.returnAt === 'delivery' ? { kind: 'delivery' } : undefined,
     drivers: [{ role: 'renter', age_band: band(age) }, ...d.drivers.map((x) => ({ role: 'additional', age_band: band(ageOn(x.dobY, x.dobM, x.dobD, d.from || today)) }))],
-    extras: { winter_tire: d.winter, baby_seats: d.babySeats }
-  }), [d.bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.winter, d.babySeats, today]);
+    addons: addonsPayload(d.addons)
+  }), [d.bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today]);
   const haveDates = !!(car && d.from && d.to);
+  const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
@@ -131,7 +139,7 @@ export function RequestWizard(p: WizardProps) {
   }
   async function send(e: React.FormEvent) {
     e.preventDefault(); setFailure('');
-    for (let n = 1; n <= 4; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
+    for (let n = 1; n <= LAST; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
     const token = form.current?.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? (publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
     const r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
@@ -211,7 +219,8 @@ export function RequestWizard(p: WizardProps) {
     ['Additional drivers', d.drivers.length ? d.drivers.map((x) => `${x.first} ${x.last}`).join(', ') : 'None', 2],
     ['Licence', d.licClass === 'other' ? `Other (${d.licIssuer}), for review` : d.licClass ? `Ontario class ${d.licClass}` : '', 3], ['Coverage', covText[d.coverage] ?? '', 3],
     ['Booking type', d.bookingType === 'non_refundable' ? `Non-refundable, ${p.tokens.nonRef} off the rental charge` : 'Standard, refund by cancellation tier', 3],
-    ['Extras', [d.winter ? 'Winter tires' : '', d.babySeats ? `${d.babySeats} baby seat${d.babySeats > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ') || 'None', 3]
+    ['Add-ons', d.addons.filter((c) => c.quantity > 0).map((c) => { const o = addonOptions.find((x) => x.code === c.code); const n = o?.name ?? c.code.replace(/_/g, ' ');
+      return `${c.quantity > 1 ? `${c.quantity} x ` : ''}${n}${c.hours ? `, ${c.hours} hours` : ''}`; }).join(', ') || 'None', 4]
   ];
   const [sumOpen, setSumOpen] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(min-width: 64rem)'); const f = () => { if (mq.matches) setSumOpen(true); }; f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
@@ -232,7 +241,7 @@ export function RequestWizard(p: WizardProps) {
             );
           })}
         </ol>
-        <p className="req__meta small"><span className="strong">Step {step} of 4</span>{saved && <span className="muted">Saved</span>}
+        <p className="req__meta small"><span className="strong">Step {step} of {LAST}</span>{saved && <span className="muted">Saved</span>}
           <button type="button" className="link" onClick={() => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } meta.current = { token: null, draftId: null, key: newKey() }; setD({ ...emptyRequest(), car: d.car }); setErrors({}); setRestored(false); show(1); }}>Start over</button></p>
         {restored && <p className="alert alert--ok"><span className="alert__title">We kept your place</span><span>Your earlier answers are filled in. Change anything you like.</span></p>}
       </div>
@@ -326,17 +335,19 @@ export function RequestWizard(p: WizardProps) {
                 <label className="option"><input type="radio" name="bookingType" value="non_refundable" checked={d.bookingType === 'non_refundable'} onChange={() => set('bookingType', 'non_refundable')} /><span className="option__title">Non-refundable, {p.tokens.nonRef} off the rental charge</span><span className="option__body">Cheaper, but no refund if you cancel, miss pickup or return early.</span></label>
               </div>
             </fieldset>
-            <fieldset className="field"><legend className="label">Extras <span className="opt">optional</span></legend>
-              <label className="option"><input type="checkbox" checked={d.winter} onChange={(e) => set('winter', e.target.checked)} /><span className="option__title">Winter tires</span><span className="option__body">{p.tokens.winter} a day, up to {p.tokens.winterCap} per rental. On request, subject to availability for the car.</span></label>
-              <div className="req__seat"><span id="rq-seat-l"><b>Baby seats</b><br /><span className="small muted">{p.tokens.baby} a day each, up to {p.tokens.babyCap}. You install it and check it suits your child.</span></span>
-                <div className="qty"><button type="button" aria-label="Fewer baby seats" disabled={!d.babySeats} onClick={() => set('babySeats', d.babySeats - 1)}>−</button><output aria-labelledby="rq-seat-l">{d.babySeats}</output><button type="button" aria-label="More baby seats" disabled={d.babySeats >= p.rules.maxSeats} onClick={() => set('babySeats', d.babySeats + 1)}>+</button></div></div>
-            </fieldset>
             <div className={fieldCls('notes')}><label className="label" htmlFor="rq-notes">Anything we should know? <span className="opt">optional</span></label><textarea className="textarea" id="rq-notes" maxLength={p.rules.noteMax} value={d.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Flight number, a trip outside Ontario, a pet coming along" aria-describedby="rq-notes-hint" /><p className="hint" id="rq-notes-hint">Trips outside Ontario and pets need our approval first, so mention them here.</p>{errEl('notes', 'rq-notes')}</div>
-            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(2)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(3)) show(4); }}>Review request</button></div>
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(2)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(3)) show(4); }}>Continue to add-ons</button></div>
           </section>
 
           <section data-step="4" className="req__step stack-lg" aria-labelledby="rs4" hidden={step !== 4}>
-            <h2 className="d3" id="rs4" tabIndex={-1}>Check it and send</h2>
+            <h2 className="d3" id="rs4" tabIndex={-1}>Add-ons</h2>
+            <p className="hint">Optional extras for your trip. The estimate shows the price as you choose. Anything that needs our confirmation is confirmed in your offer.</p>
+            {!car ? <p className="muted">Choose a car first.</p> : <AddonPicker idPrefix="rq" options={addonOptions} value={d.addons} onChange={(v) => set('addons', v)} />}
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(4)) show(5); }}>Review request</button></div>
+          </section>
+
+          <section data-step="5" className="req__step stack-lg" aria-labelledby="rs5" hidden={step !== 5}>
+            <h2 className="d3" id="rs5" tabIndex={-1}>Check it and send</h2>
             <table className="spec req__review"><tbody>
               {reviewRows.map(([k, v, n]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td><td><button type="button" className="link small" onClick={() => show(n)}>Edit<span className="vh"> {k}</span></button></td></tr>)}
             </tbody></table>
@@ -347,7 +358,7 @@ export function RequestWizard(p: WizardProps) {
             </div>
             <label className="check"><input type="checkbox" name="marketing" checked={d.marketing} onChange={(e) => set('marketing', e.target.checked)} /><span className="small">{p.marketingText}</span></label>
             <Turnstile action="booking_request" />
-            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending}>{sending ? 'Sending' : 'Send request'}</button></div>
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending}>{sending ? 'Sending' : 'Send request'}</button></div>
             <p className="small muted">No payment now. No card needed.</p>
           </section>
         </form>

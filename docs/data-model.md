@@ -258,6 +258,14 @@ Columns added: the swap's replacement terms; `booking_line_items.arose_vehicle_i
 
 No new table. Columns: `vehicles.created_seq` (insertion order, which breaks ties between vehicles created in one transaction); `vehicle_listings.publish_scheduled_by` and `publish_error` (timed publishing); `booking_change_requests.source`; `program_settings.housekeeping_hour` and `rate_limit_keep_hours`.
 
+### Add-ons (0066)
+
+| Table | Holds |
+| --- | --- |
+| `addons` | The catalogue: name, description, photo, pricing unit (`per_trip`, `per_day`, `per_hour`), price, prices by class or body type, most days, most per item, minimum hours, HST, active, car classes, cars, cars and fuel types left out, months, notice, stock, most per booking, staff confirmation, Fleet prep, prepaid fuel, refund after notice, order. `baby_seat` and `winter_tire` keep their fee codes |
+| `booking_addons` | A booking's add-ons with the price snapshot, status (`pending`, `confirmed`, `cancelled`, `declined`), how it was added, bought after booking (its payment), its line, kept on a cancellation |
+| `booking_line_items.booking_addon_id` | The add-on a line prices (one line per add-on, revenue class `company_only`, account 4150) |
+
 ## 2. Status flows
 
 Enforced by `app.enforce_status_flow()` from `status_transitions`. A change not listed is refused. A row may be inserted in any status, which is how the manual records kept before the platform are imported.

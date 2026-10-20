@@ -19,7 +19,9 @@ export const requestShape = z.object({
   drivers: z.array(driverSchema).default([]), referrer: z.string().trim().max(100).default(''),
   licClass: z.string().default(''), licIssuer: z.string().trim().max(100).default(''),
   coverage: z.string().default(''), bookingType: z.enum(['standard', 'non_refundable']).default('standard'),
+  // 0066: add-ons replace the winter tire and baby seat fields (kept so an older saved draft still loads; it is converted)
   winter: z.boolean().default(false), babySeats: z.number().int().min(0).default(0), notes: z.string().default(''),
+  addons: z.array(z.object({ code: z.string().trim().regex(/^[a-z0-9_]{2,40}$/), quantity: z.number().int().min(0).max(20), hours: z.number().min(0).max(24).nullable().optional() })).max(30).default([]),
   agree: z.boolean().default(false), marketing: z.boolean().default(false)
 });
 export type RequestData = z.infer<typeof requestShape>;
@@ -29,7 +31,7 @@ export const emptyRequest = (): RequestData => requestShape.parse({});
 export const STEP_OF: Record<string, number> = {
   car: 1, dates: 1, from: 1, to: 1, tf: 1, tt: 1, pickupAt: 1, pickupAddress: 1, pickupAirport: 1, returnAt: 1, returnAddress: 1, returnAirport: 1,
   first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2,
-  licClass: 3, licIssuer: 3, coverage: 3, bookingType: 3, winter: 3, babySeats: 3, notes: 3, agree: 4, marketing: 4
+  licClass: 3, licIssuer: 3, coverage: 3, bookingType: 3, notes: 3, addons: 4, winter: 4, babySeats: 4, agree: 5, marketing: 5
 };
 
 export function ageOn(y: string, m: string, d: string, onIso: string): number | null {
@@ -86,14 +88,23 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
   if (!classes.includes(v.licClass)) set('licClass', 'Choose your licence class.');
   if (v.licClass === 'other' && v.licIssuer.length < 2) set('licIssuer', 'Tell us which province, state or country issued it.');
   if (!['1', '2', '3'].includes(v.coverage)) set('coverage', 'Choose how the car will be covered. You can change it before pickup.');
-  if (v.babySeats > r.maxSeats) set('babySeats', `Up to ${r.maxSeats} baby seats.`);
   if (v.notes.length > r.noteMax) set('notes', `Keep the note under ${r.noteMax} characters.`);
-  // step 4
+  // step 4: add-ons are checked by the database (notice, stock, the car)
+  // step 5
   if (!v.agree) set('agree', 'Tick this box to send your request.');
   return e;
 }
 
-export const stepOfKey = (k: string) => STEP_OF[k.split('.')[0]!] ?? 4;
+export const stepOfKey = (k: string) => STEP_OF[k.split('.')[0]!] ?? 5;
+
+/** An older draft's winter tires and baby seats, as add-ons. */
+export function migrateExtras(v: RequestData): RequestData {
+  if (!v.winter && !v.babySeats) return v;
+  const a = v.addons.filter((c) => c.code !== 'winter_tire' && c.code !== 'baby_seat');
+  if (v.babySeats) a.push({ code: 'baby_seat', quantity: v.babySeats, hours: null });
+  if (v.winter) a.push({ code: 'winter_tire', quantity: 1, hours: null });
+  return { ...v, addons: a, winter: false, babySeats: 0 };
+}
 
 /** The zod schema the browser and the server both run: structure from requestShape, rules above. */
 export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean }) {

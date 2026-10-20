@@ -16,6 +16,7 @@ import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/Staff
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
+import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -34,7 +35,7 @@ const SITE_GROUPS: Array<[string, string[]]> = [
 ];
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
-  ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_)/.test(k)],
+  ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_|addon_)/.test(k)],
   ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
@@ -97,6 +98,11 @@ export default async function Section({ params }: { params: Promise<{ section: s
           </details>))}</Card>))}
       <Card title="Add a block"><SaveForm table="site_content_blocks" label="Add" fields={[{ name: 'block_key', label: 'Key', required: true }, { name: 'page', label: 'Page', required: true }, { name: 'kind', label: 'Kind', type: 'select', options: [['text', 'Text'], ['rich_text', 'Rich text'], ['faq', 'FAQ'], ['list', 'List']], required: true, value: 'text' }, { name: 'body', label: 'Text', type: 'textarea' }, { name: 'is_published', label: 'Published', type: 'bool', value: true }]} /></Card>
     </>);
+  case 'addons': {
+    // add-ons (0066): the catalogue, its prices and rules; Fleet sets stock from its own screen
+    const data = await door<AddonsData>(user.id, 'ops_read', 'addons');
+    return (<>{head}<AddonsAdmin data={data} /></>);
+  }
   case 'sample-photos': {
     // a car listed without real photos shows sample photos (0054): the library, the built-in pictures, the cars using them
     const sp = await door<{ photos: Array<{ id: string; body_type: string | null; make: string | null; model: string | null; path: string; alt: string; active: boolean }>; builtin: string[];

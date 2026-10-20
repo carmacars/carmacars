@@ -28,7 +28,7 @@ def build():
     g.chapter('Find a car and send a request',
               'Every booking starts as a request. A person checks the car and the price, then sends you an offer. '
               'Nothing is charged until you approve, sign and pay.',
-              blurb='Search the fleet, pick dates and send a request in four short steps.')
+              blurb='Search the fleet, pick dates and add-ons, and send a request in five short steps.')
     g.flow([('Request', 'You pick a car and dates'), ('Offer', 'We confirm the price'),
             ('Sign', 'The rental agreement'), ('Pay', 'Your card is authorized'),
             ('Verify', 'Licence, selfie, coverage'), ('Pick up', 'We hand over the keys')])
@@ -46,13 +46,13 @@ def build():
     g.steps([
         'Under Dates and price, tap your pickup date, then your return date. Hatched days are already booked.',
         'Choose the Pickup time and the Return time.',
-        f'Want it brought to you? Tick {B("Deliver it to me")} or {B("Pick it up from me at the end")}.',
-        f'Check Your estimate, then press {B("Request to book")}.',
+        f'Want it brought to you? Tick {B("Deliver it to me")} or {B("Pick it up from me at the end")}. Open Add-ons to add a baby seat, flowers, a full tank and more.',
+        f'Check Your estimate, then press {B("Request to book")}. The add-ons you chose come with you.',
     ], shot=S('public/03-car-page-desktop', 290, 1350, 1410, 2110,
               pins=[(1, 563, 1652), (2, 435, 1868), (3, 300, 1929), (4, 1388, 1730)]))
     g.warn('A request does not hold the car. The car is booked only once you approve the offer, sign and pay.')
 
-    g.task('Send your request', 'The request has four short steps. Your answers are saved as you go, so you can come back.')
+    g.task('Send your request', 'The request has five short steps. Your answers are saved as you go, so you can come back.')
     g.steps([
         'Step 1, Dates and delivery: check the car and tap your dates in the calendar.',
         'Set the Pickup time and Return time. Any time, day or night, with at least 2 hours of notice.',
@@ -73,12 +73,12 @@ def build():
         'Step 3: choose your Licence class, for example Ontario G2.',
         'Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup.',
         'Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.',
-        'Add extras such as Winter tires or Baby seats, and anything we should know.',
-        f'Press {B("Review request")}.',
+        'Add anything we should know in the notes, for example a flight number.',
+        f'Press {B("Continue to add-ons")}. Step 4, Add-ons: tick what you want (see Add-ons below), then press {B("Review request")}.',
     ], shot=S('public/06-book-3-licence-desktop', 0, 380, 760, 1760,
               pins=[(9, 470, 470), (10, 700, 776), (11, 700, 1040), (12, 700, 1279), (13, 545, 1716)]), fig_w=3.0)
     g.steps([
-        'Step 4, Check it and send: read every line. Use Edit beside a line to change it.',
+        'Step 5, Check it and send: read every line. Use Edit beside a line to change it.',
         'Tick the box to confirm you are 18 or older and agree to the Terms of use and Privacy policy.',
         f'Press {B("Send request")}. Nothing is charged and no card is needed.',
     ], shot=S('public/07-book-4-review-desktop', 0, 1480, 760, 1900, pins=[(14, 700, 1530), (15, 30, 1700), (16, 560, 1846)]), fig_w=3.4)
@@ -86,6 +86,15 @@ def build():
         'The confirmation shows your request number, for example CC-10021. Keep it for any question.',
         'A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.',
     ], shot=S('public/08-book-5-sent-phone', 0, 595, 390, 1290, pins=[(17, 128, 628)]))
+
+    g.task('Add-ons', 'Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.')
+    g.steps([
+        'On the car page (under Add-ons) or in step 4 of the request, tick an add-on or use + and − for seats. The estimate shows the price at once.',
+        'Each add-on shows its price: a trip, a day (with the most for a trip) or an hour. HST is added.',
+        'Some need notice, for example flowers need 24 hours. Seats and other items show how many are left for your dates.',
+        'A chauffeur is confirmed by our team in your offer.',
+    ])
+    g.para('With a full tank of gas (prepaid) you can return the car at any fuel level, with no fuel charge.')
 
     g.task('Ask in the chat', 'The chat button sits in the corner of every page.')
     g.steps([
@@ -185,6 +194,15 @@ def build():
         'Each driver adds their own licence photos and selfie, like you did.',
     ])
     g.warn('Signing links expire after 72 hours. A new link ends the older one, so always send the newest.')
+
+    g.task('Add something to your trip', 'Until 24 hours before pickup (or the notice an add-on needs), add add-ons from your booking.')
+    g.steps([
+        f'On your booking, under Add-ons, press {B("Add something to your trip")}.',
+        'Tick the add-on you want. Its price shows below.',
+        f'Press {B("Add and pay")}. It is charged at once on the card you paid with, and shows on your booking and receipt.',
+        f'A chauffeur needs our confirmation: press {B("Ask for it")}. We confirm it and charge your card then.',
+    ])
+    g.tip('If you cancel, add-ons are refunded like the rest of your booking. Flowers and a chauffeur are not refunded once their notice before pickup has started.')
 
     g.task('What to bring to pickup')
     g.bullets([

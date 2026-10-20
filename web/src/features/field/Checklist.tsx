@@ -94,7 +94,8 @@ export function Checklist({ j }: { j: FieldJob }) {
     { title: 'Car ready', body: (
       <div className="stack">
         <YesNo label="Fuel full, or charge 80% or more" value={r.fuel_or_charge_ok} set={(v) => set({ fuel_or_charge_ok: v })} />
-        {j.booking?.extras?.length ? <p className="small">Extras ordered: {j.booking.extras.join(', ')}</p> : null}
+        {j.booking?.addons?.length ? <p className="small" data-testid="checklist-addons">Add-ons to put in the car: {j.booking.addons.map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}`).join(', ')}{j.booking.prepaid_fuel ? '. Prepaid fuel: no fuel charge at the return.' : ''}</p>
+          : j.booking?.extras?.length ? <p className="small">Extras ordered: {j.booking.extras.join(', ')}</p> : null}
         <label className="field"><span className="label">Note for Fleet (anything missing or not clean)</span><textarea className="input" value={r.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} /></label>
       </div>) },
     ...(unattended ? [] : [

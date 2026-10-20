@@ -36,6 +36,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      addons: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          photo_path: string | null;
+          fee_type_code: string;
+          pricing_unit: string;
+          price_cents: number | null;
+          price_overrides: Json;
+          max_days: number | null;
+          cap_cents: number | null;
+          min_hours: number | null;
+          hst_applies: boolean;
+          active: boolean;
+          vehicle_classes: Database["public"]["Enums"]["vehicle_class"][];
+          vehicle_ids: string[];
+          excluded_vehicle_ids: string[];
+          excluded_fuel_types: Database["public"]["Enums"]["fuel_type"][];
+          available_months: number[];
+          lead_time_hours: number;
+          stock_count: number | null;
+          max_per_booking: number;
+          needs_confirmation: boolean;
+          needs_prep: boolean;
+          prep_note: string | null;
+          handover_note: string | null;
+          prepaid_fuel: boolean;
+          non_refundable_after_lead: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          description?: string | null;
+          photo_path?: string | null;
+          fee_type_code?: string;
+          pricing_unit: string;
+          price_cents?: number | null;
+          price_overrides?: Json;
+          max_days?: number | null;
+          cap_cents?: number | null;
+          min_hours?: number | null;
+          hst_applies?: boolean;
+          active?: boolean;
+          vehicle_classes?: Database["public"]["Enums"]["vehicle_class"][];
+          vehicle_ids?: string[];
+          excluded_vehicle_ids?: string[];
+          excluded_fuel_types?: Database["public"]["Enums"]["fuel_type"][];
+          available_months?: number[];
+          lead_time_hours?: number;
+          stock_count?: number | null;
+          max_per_booking?: number;
+          needs_confirmation?: boolean;
+          needs_prep?: boolean;
+          prep_note?: string | null;
+          handover_note?: string | null;
+          prepaid_fuel?: boolean;
+          non_refundable_after_lead?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          name?: string;
+          description?: string | null;
+          photo_path?: string | null;
+          fee_type_code?: string;
+          pricing_unit?: string;
+          price_cents?: number | null;
+          price_overrides?: Json;
+          max_days?: number | null;
+          cap_cents?: number | null;
+          min_hours?: number | null;
+          hst_applies?: boolean;
+          active?: boolean;
+          vehicle_classes?: Database["public"]["Enums"]["vehicle_class"][];
+          vehicle_ids?: string[];
+          excluded_vehicle_ids?: string[];
+          excluded_fuel_types?: Database["public"]["Enums"]["fuel_type"][];
+          available_months?: number[];
+          lead_time_hours?: number;
+          stock_count?: number | null;
+          max_per_booking?: number;
+          needs_confirmation?: boolean;
+          needs_prep?: boolean;
+          prep_note?: string | null;
+          handover_note?: string | null;
+          prepaid_fuel?: boolean;
+          non_refundable_after_lead?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       airports: {
         Row: {
           id: string;
@@ -252,6 +357,93 @@ export type Database = {
           after?: Json | null;
           ip_address?: string | null;
           request_id?: string | null;
+        };
+        Relationships: [];
+      };
+      booking_addons: {
+        Row: {
+          id: string;
+          booking_id: string;
+          addon_id: string;
+          quantity: number;
+          hours: number | null;
+          name: string;
+          fee_type_code: string;
+          pricing_unit: string;
+          unit_price_cents: number;
+          max_days: number | null;
+          cap_cents: number | null;
+          min_hours: number | null;
+          hst_applies: boolean;
+          status: string;
+          added_via: string;
+          added_by: string | null;
+          added_at: string;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          after_booking: boolean;
+          payment_id: string | null;
+          line_item_id: string | null;
+          kept_on_cancel: boolean;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          addon_id: string;
+          quantity?: number;
+          hours?: number | null;
+          name: string;
+          fee_type_code: string;
+          pricing_unit: string;
+          unit_price_cents: number;
+          max_days?: number | null;
+          cap_cents?: number | null;
+          min_hours?: number | null;
+          hst_applies: boolean;
+          status?: string;
+          added_via: string;
+          added_by?: string | null;
+          added_at?: string;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancel_reason?: string | null;
+          after_booking?: boolean;
+          payment_id?: string | null;
+          line_item_id?: string | null;
+          kept_on_cancel?: boolean;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          addon_id?: string;
+          quantity?: number;
+          hours?: number | null;
+          name?: string;
+          fee_type_code?: string;
+          pricing_unit?: string;
+          unit_price_cents?: number;
+          max_days?: number | null;
+          cap_cents?: number | null;
+          min_hours?: number | null;
+          hst_applies?: boolean;
+          status?: string;
+          added_via?: string;
+          added_by?: string | null;
+          added_at?: string;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancel_reason?: string | null;
+          after_booking?: boolean;
+          payment_id?: string | null;
+          line_item_id?: string | null;
+          kept_on_cancel?: boolean;
         };
         Relationships: [];
       };
@@ -799,6 +991,7 @@ export type Database = {
           assessment_key: string | null;
           supporting_refs: Json | null;
           arose_vehicle_id: string | null;
+          booking_addon_id: string | null;
         };
         Insert: {
           id?: string;
@@ -830,6 +1023,7 @@ export type Database = {
           assessment_key?: string | null;
           supporting_refs?: Json | null;
           arose_vehicle_id?: string | null;
+          booking_addon_id?: string | null;
         };
         Update: {
           id?: string;
@@ -861,6 +1055,7 @@ export type Database = {
           assessment_key?: string | null;
           supporting_refs?: Json | null;
           arose_vehicle_id?: string | null;
+          booking_addon_id?: string | null;
         };
         Relationships: [];
       };
@@ -8717,6 +8912,7 @@ export type Database = {
           default_km_allowance_per_day: number;
           stale_request_expire: boolean;
           stale_request_email_renter: boolean;
+          addon_portal_cutoff_hours: number;
         };
         Insert: {
           id?: string;
@@ -9004,6 +9200,7 @@ export type Database = {
           default_km_allowance_per_day?: number;
           stale_request_expire?: boolean;
           stale_request_email_renter?: boolean;
+          addon_portal_cutoff_hours?: number;
         };
         Update: {
           id?: string;
@@ -9291,6 +9488,7 @@ export type Database = {
           default_km_allowance_per_day?: number;
           stale_request_expire?: boolean;
           stale_request_email_renter?: boolean;
+          addon_portal_cutoff_hours?: number;
         };
         Relationships: [];
       };
@@ -10038,6 +10236,27 @@ export type Database = {
           updated_at?: string;
           publish_consent_at?: string | null;
           google_prompt_clicked_at?: string | null;
+        };
+        Relationships: [];
+      };
+      sample_car_catalogue: {
+        Row: {
+          slug: string;
+          sort_order: number;
+          data: Json;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          sort_order: number;
+          data: Json;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          sort_order?: number;
+          data?: Json;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -13548,6 +13767,7 @@ export type Database = {
           retired_by: string | null;
           retired_reason: string | null;
           added_by: string | null;
+          sample_bookable: boolean;
         };
         Insert: {
           id?: string;
@@ -13599,6 +13819,7 @@ export type Database = {
           retired_by?: string | null;
           retired_reason?: string | null;
           added_by?: string | null;
+          sample_bookable?: boolean;
         };
         Update: {
           id?: string;
@@ -13650,6 +13871,7 @@ export type Database = {
           retired_by?: string | null;
           retired_reason?: string | null;
           added_by?: string | null;
+          sample_bookable?: boolean;
         };
         Relationships: [];
       };
@@ -14858,6 +15080,7 @@ export type Database = {
       };
     };
     Functions: {
+      addons_for_car: { Args: { p_vehicle: string; p_pickup?: string; p_return?: string }; Returns: Json };
       admin_account_index: { Args: { p_admin: string }; Returns: Json };
       admin_account_link: { Args: { p_admin: string; p_user: string; p_kind?: string }; Returns: Json };
       admin_approve_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_approve?: boolean }; Returns: Json };
@@ -15010,6 +15233,9 @@ export type Database = {
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
       server_attach_owner_signed_copy: { Args: { p_request: string; p_path: string; p_sha256: string }; Returns: string };
       server_attach_signed_amendment: { Args: { p_amendment: string; p_storage_path: string; p_sha256: string }; Returns: string };
+      server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
+      server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
+      server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
@@ -15048,6 +15274,7 @@ export type Database = {
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
+      server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };

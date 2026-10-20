@@ -1,9 +1,11 @@
 'use client';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
+import { AddonPicker } from '@/features/addons/AddonPicker';
+import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -40,8 +42,18 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
     pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
-    received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }), baby_seats: '0' });
-  const [flags, setFlags] = useState({ past: false, do_not_email: false, winter_tire: false, new_renter: field, policy: false });
+    received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) });
+  const [flags, setFlags] = useState({ past: false, do_not_email: false, new_renter: field, policy: false });
+  // add-ons (0066): the car's, with what is left for the dates; priced in the check below
+  const [addons, setAddons] = useState<AddonChoice[]>([]);
+  const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
+  useEffect(() => {
+    if (!f.vehicle_id) return;
+    let live = true;
+    supplyRead<AddonOption[]>('addons_for_car', { vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at) })
+      .then((r) => { if (live && r.ok) setAddonOptions(r.data ?? []); });
+    return () => { live = false; };
+  }, [f.vehicle_id, f.pickup_at, f.return_at]);
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Renter[]>([]);
   const [renter, setRenter] = useState<Renter | null>(null);
@@ -63,7 +75,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
 
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
     pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, past: flags.past, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
-    extras: { winter_tire: flags.winter_tire, baby_seats: Number(f.baby_seats || 0) },
+    addons: addonsPayload(addons),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const check = () => start(async () => {
     setErr(null);
@@ -169,13 +181,14 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         <div className="ad-fields">
           {select('booking_type', 'Booking', [['standard', 'Standard'], ['non_refundable', 'Non-refundable (fixed discount)']])}
           {select('coverage_option', 'Damage coverage', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: the CarmaCars Protection Plan']])}
-          <div className="field ad-field"><label className="check" htmlFor={id('winter')}><input id={id('winter')} type="checkbox" checked={flags.winter_tire} onChange={flag('winter_tire')} /> <span>Winter tires</span></label></div>
-          {text('baby_seats', 'Baby seats', { inputMode: 'numeric' })}
           {select('source', 'Where it came from', SOURCES)}
           {f.source === 'other' && text('source_note', 'Say where')}
           {text('promo_code', 'Promo code')}
           {text('note', 'Note (on the booking)', { wide: true })}
         </div>
+        {f.vehicle_id && addonOptions.length > 0 && (
+          <div className="stack" data-testid="mr-addons-block"><p className="small"><b>Add-ons</b> <span className="muted">optional, priced with the rental</span></p>
+            <AddonPicker idPrefix="mr" staff compact options={addonOptions} value={addons} onChange={(v) => { setAddons(v); setQuote(null); }} /></div>)}
         <p><button className="btn btn--ghost" type="button" onClick={check} disabled={pending} data-testid="mr-check">{pending ? 'Checking' : 'Check the calendar and the price'}</button></p>
         {quote && (
           <div className="stack" data-testid="mr-quote">

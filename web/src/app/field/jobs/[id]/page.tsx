@@ -47,6 +47,13 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
           {b.drivers.length > 0 && <ul className="small">{b.drivers.map((d) => <li key={d.name}>{d.name}, {d.role.replace(/_/g, ' ')}: licence {d.licence_number ?? ''}, class {d.licence_class ?? ''}, expires {d.licence_expiry ?? ''}</li>)}</ul>}
         </>}
       </header>
+      {b?.addons && b.addons.length > 0 && (
+        <section className="fd-card" aria-labelledby="addons-t" data-testid="job-addons">
+          <h2 className="d4" id="addons-t">{j.report_kind === 'return' ? 'Add-ons on this rental' : 'Put in the car'}</h2>
+          <ul className="small">{b.addons.map((a) => <li key={a.name}><b>{a.quantity > 1 ? `${a.quantity} x ` : ''}{a.name}</b>{a.hours ? `, ${+a.hours} hours` : ''}{a.handover_note ? `: ${a.handover_note}` : ''}</li>)}</ul>
+          {b.prepaid_fuel && <p className="pt-note small" data-testid="job-prepaid-fuel"><b>Prepaid fuel.</b> The renter may return the car at any fuel level. Do not charge for fuel.</p>}
+        </section>
+      )}
       {j.job.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" />}
       {j.job.status === 'acknowledged' && <FieldButton action="start" payload={{ job: id }} label="Start" primary testId="start" />}
       {j.job.status === 'in_progress' && checklist && <Checklist j={j} />}

@@ -124,6 +124,9 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ['Deposit', `${money(b.deposit_cents)}, taken at pickup: a card hold for rentals of 7 days or less, otherwise charged and refunded`],
     ['Coverage Option', coverageText],
     ['Deductible', money(deductible)],
+    // add-ons (0066): named in the summary; each is a charge line below
+    ...(() => { const ad = f.lines.filter((l) => ['addon', 'baby_seat', 'winter_tire'].includes(l.charge_type) && l.stage === 'booking').map((l) => l.description);
+      return ad.length ? [['Add-ons', ad.join('; ')]] : []; })(),
     ['Card on File', f.card ? `${f.card.brand.toUpperCase()} ending ${f.card.last4}  Cardholder: ${or(f.card.cardholder_name, '')}` : 'Saved when you pay at booking']
   ];
   const charges: string[][] = f.lines.map((l) => [l.description, money(l.amount_cents, { cents: true })]);

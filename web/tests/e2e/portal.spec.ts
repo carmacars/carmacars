@@ -86,6 +86,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
   await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();
   await page.locator('input[name="agree"]').check();
   await page.getByRole('button', { name: 'Send request' }).click();

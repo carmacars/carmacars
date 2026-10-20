@@ -6,7 +6,7 @@ import { money, plural } from '@/lib/format';
 
 // PriceBreakdown (docs/blueprint/00-overview.md section 6): shows exactly the lines
 // public.quote_booking returns. No arithmetic on money here; the labels only describe the lines.
-export interface QuoteLine { charge_type: string; label: string; amount_cents: number; quantity: number; unit_amount_cents: number; detail: Record<string, unknown> }
+export interface QuoteLine { charge_type: string; label: string; description?: string; amount_cents: number; quantity: number; unit_amount_cents: number; detail: Record<string, unknown> }
 export interface Quote {
   lines: QuoteLine[]; hst_cents: number; total_cents: number; deposit_cents: number; deposit_method: string; billable_days: number;
   km_allowance_total: number; overage_cents_per_km: number; available: boolean; problems: { code: string; message: string }[];
@@ -41,6 +41,14 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
   const cap = typeof d.cap_cents === 'number' ? `, up to ${money(d.cap_cents)}` : ', no maximum';
   const distance = d.needs_distance ? 'Plus distance from our location, priced in your offer' : typeof d.distance_km === 'number' ? `${d.distance_km} km from our location` : undefined;
   const airport = d.kind === 'airport';
+  // 0066: an add-on line (the old baby seat and winter tire codes included) names itself
+  if (typeof d.pricing_unit === 'string' && typeof d.unit_price_cents === 'number') {
+    const each = money(d.unit_price_cents, { cents: true });
+    const upTo = typeof d.cap_cents === 'number' ? `, up to ${money(d.cap_cents)}` : '';
+    const note = d.status === 'pending' ? 'We confirm it in your offer'
+      : d.pricing_unit === 'per_day' ? `${each} a day${upTo}${l.quantity > 1 ? ' each' : ''}` : d.pricing_unit === 'per_hour' ? `${each} an hour${upTo}` : undefined;
+    return { k: (l.description ?? l.label).replace(/ \(to be confirmed\)$/, ''), note };
+  }
   switch (l.charge_type) {
     case 'rental_charge': return { k: 'Rental charge', note: `${String(d.rate_rule ?? '')}${d.capped ? ', capped' : ''}`.replace(/^./, (c) => c.toUpperCase()) };
     case 'non_refundable_discount': return { k: `Non-refundable booking, ${t.nonRef} off` };

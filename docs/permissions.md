@@ -156,6 +156,17 @@ Every function in the `app` schema is revoked from `public`, `anon` and `authent
 
 Two-step sign-in (0019): with `program_settings.require_staff_two_step` on, `app.is_admin()`, `app.va_has()` and `app.is_field()` are true only for a session signed in with a second factor, so a staff session without one reads and writes nothing as staff. Off by default until every staff member has enrolled.
 
+### Add-ons (0066)
+
+| Table or function | Who |
+| --- | --- |
+| `addons` | Admin all; assistants read. Changes through `addon_save` (door): an Admin any field, Fleet `stock_count` only |
+| `booking_addons` | Admin all; customer service, finance, fleet and Sales read; the renter reads their own booking's live add-ons |
+| `public.addons_for_car` | anon and authenticated (a listed car only, unless staff) |
+| `booking_addons_set` | staff (offers, rentals added by hand, quotes); the creating functions for the request |
+| `server_booking_addon_buy`, `_paid`, `_failed`, `server_my_booking_addons` | service role, `p_by` the renter of the booking |
+| `booking_addon_confirm`, `booking_addon_remove`, `booking_addon_paid` (door) | staff |
+
 ## 4. What each role must never do, and what stops it
 
 | Rule | Enforced by |
