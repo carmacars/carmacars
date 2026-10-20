@@ -267,7 +267,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
   const [rid] = await sql`select id from renters where user_id = ${renter.id}`;
   const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit) values (${rid!.id}, 'visa', '4242', ${renter.name}, 12, 2031, true) returning id`;
   await sql`insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id) values (${pm!.id}, 'stripe', 'cus_fake_lr', 'pm_fake_lr')`;
-  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.retired_at is null order by v.created_at desc limit 1`;
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.retired_at is null and (not v.is_sample or v.sample_bookable) order by v.created_at desc limit 1`;
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });

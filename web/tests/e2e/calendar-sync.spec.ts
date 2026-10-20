@@ -52,7 +52,7 @@ async function signIn(page: Page, email: string, expectPath: string) {
 /** Two public cars of their own for each width (the two widths run at the same time). */
 async function twoCars(sql: Sql) {
   const rows = await sql`select v.id, l.slug, x.token from vehicles v join vehicle_listings l on l.vehicle_id = v.id join vehicle_calendar_exports x on x.vehicle_id = v.id
-    where l.status = 'published' order by l.slug`;
+    where l.status = 'published' and (not v.is_sample or v.sample_bookable) order by l.slug`;
   const off = isPhone() ? 0 : 2;
   return { a: rows[off]!, b: rows[off + 1]! };
 }
