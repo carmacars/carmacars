@@ -174,7 +174,6 @@ test('delete a sample car whose bookings are only requests; Add a rental for a c
   // a sample car with a request and a declined request, no money
   const [s] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2023, make: 'Toyota', model: `Corolla ${tag()}`, rates: { daily: 6000 } })}) as r`;
   const sid = (s!.r as { vehicle_id: string }).vehicle_id;
-  await sql`update vehicles set is_sample = true where id = ${sid}`;
   const [pl] = await sql`select plate from vehicles where id = ${sid}`;
   const nums: string[] = [];
   for (const [st, days] of [['requested', 40], ['declined', 50]] as const) {
@@ -183,6 +182,8 @@ test('delete a sample car whose bookings are only requests; Add a rental for a c
         weekly_rate_cents, monthly_rate_cents, rate_applied, rental_charge_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents)
       values (${n}, ${st}, ${sid}, ${renter!.id}, now() + ${`${days} days`}::interval, now() + ${`${days + 2} days`}::interval, now() + ${`${days + 2} days`}::interval, 2, 6000, 6000, 36000, 132000, 'daily', 12000, 200, 400, 35, 50000)`;
   }
+  // marked a sample only after its bookings are written (0065 refuses a booking on a sample car)
+  await sql`update vehicles set is_sample = true where id = ${sid}`;
   await page.goto(`/admin/vehicles/${sid}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('delete-blocked')).toHaveCount(0);
   await page.getByTestId('vehicle-delete').click();

@@ -47,8 +47,14 @@ build() {
   run "$ADMIN" -c "drop database if exists $DB with (force)" -c "create database $DB"
   run "$URL" -c "alter database $DB set timezone to 'UTC'"
   run "$URL" -f "$ROOT/supabase/tests/shim/00_supabase_shim.sql" >/dev/null
+  # the migration history, as the deploy keeps it (scripts/deploy/supabase.sh): app.schema_marker() reads it, so the
+  # local database reports its newest migration like production does
+  run "$URL" -c "create schema if not exists supabase_migrations" \
+    -c "create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text)"
   for f in "$ROOT"/supabase/migrations/*.sql; do
     run "$URL" -1 -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; run "$URL" -1 -f "$f" >/dev/null; }
+    b="$(basename "$f" .sql)"
+    run "$URL" -c "insert into supabase_migrations.schema_migrations (version, name) values ('${b%%_*}', '${b#*_}') on conflict do nothing"
   done
   run "$URL" -f "$WEB/local/local_auth.sql" >/dev/null
   echo "   migrations applied: $(ls "$ROOT"/supabase/migrations/*.sql | wc -l)"

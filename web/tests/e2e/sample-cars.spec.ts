@@ -55,6 +55,7 @@ test('a request on a sample car becomes an enquiry for a similar real car, never
   await page.locator('label', { hasText: 'Ontario G' }).first().click();
   await page.locator('label.option', { hasText: 'Option 2' }).click();
   await page.locator('#rq-notes').fill('A truck for a move.');
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();
   await page.locator('input[name="agree"]').check();
   await page.getByRole('button', { name: 'Send request' }).click();
@@ -85,7 +86,7 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, 'Sam Admin')`;
   await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
   // a real car in onboarding without photos (the owner has not signed yet)
-  const [o] = await sql`select id from owners where email <> 'sample.owner@example.test' order by created_at limit 1`;
+  const [o] = await sql`select id from owners where kind = 'program' and email <> 'sample.owner@example.test' order by created_at limit 1`;
   const vid = randomUUID();
   if (o) {
     await sql`insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method, body_type)
