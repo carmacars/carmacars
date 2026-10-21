@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 170,
+  "count": 171,
   "emails": [
     {
       "code": "account_password_reset",
@@ -13310,6 +13310,79 @@
       ],
       "template_html": "templates/staff_statements_ready_for_approval.html",
       "template_text": "templates/staff_statements_ready_for_approval.txt"
+    },
+    {
+      "code": "staff_usage_alert",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Usage guard (every hour, from the database): a metered service (Workers AI, Worker requests and CPU, image transformations, Resend emails, the Supabase database, file storage and egress, R2 storage, the Claude assistant) reached 80% of its included allowance for the period, or used all of it. Sent to the alert address in Program settings (uptime_alert_email), once per service, level and period, never from uptime_quiet_from_hour to uptime_quiet_until_hour (it waits for the morning). The same alert shows on Admin > To do.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{usage_title}}",
+      "preheader": "{{usage_used}} of {{usage_included}} used. {{usage_effect}}",
+      "sample_subject": "Included Workers AI used up for today",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "service_label",
+          "type": "string",
+          "sample": "Workers AI (assistant, live chat, copy)"
+        },
+        {
+          "name": "usage_advice",
+          "type": "string",
+          "sample": "Open Usage to allow paid usage until the end of today or this month, up to an amount you choose, or keep it paused."
+        },
+        {
+          "name": "usage_cost",
+          "type": "string",
+          "sample": "About US$0.011 per 1,000 neurons. A busy day above the allowance costs cents."
+        },
+        {
+          "name": "usage_effect",
+          "type": "string",
+          "sample": "AI features are paused until the allowance resets. Nothing is broken: each feature shows a short message and waits."
+        },
+        {
+          "name": "usage_included",
+          "type": "string",
+          "sample": "10,000 neurons"
+        },
+        {
+          "name": "usage_period",
+          "type": "string",
+          "sample": "Today, Toronto time"
+        },
+        {
+          "name": "usage_resets",
+          "type": "string",
+          "sample": "Thu, Oct 22 at 12:00 am"
+        },
+        {
+          "name": "usage_share",
+          "type": "string",
+          "sample": "100%"
+        },
+        {
+          "name": "usage_title",
+          "type": "string",
+          "sample": "Included Workers AI used up for today"
+        },
+        {
+          "name": "usage_used",
+          "type": "string",
+          "sample": "10,000 neurons"
+        }
+      ],
+      "template_html": "templates/staff_usage_alert.html",
+      "template_text": "templates/staff_usage_alert.txt"
     },
     {
       "code": "staff_weekly_summary",

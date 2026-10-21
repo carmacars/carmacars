@@ -1,0 +1,32 @@
+CarmaCars  |  Usage guard
+
+========================================
+
+[Usage]
+{{usage_title}}
+
+{{usage_effect}}
+
+Service: {{service_label}}
+Used: {{usage_used}} of {{usage_included}} ({{usage_share}})
+Period: {{usage_period}}
+Resets: {{usage_resets}}
+If you allow paid usage: {{usage_cost}}
+
+Open Usage:
+https://carmacars.ca/admin/settings/usage
+
+What to do
+{{usage_advice}}
+
+Sent by the usage guard, once per service and period. Change the address in Program settings, "Site check".
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

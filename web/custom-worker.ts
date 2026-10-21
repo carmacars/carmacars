@@ -117,6 +117,8 @@ const worker = {
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
+    // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick
+    if (new Date().getUTCMinutes() >= 10 && new Date().getUTCMinutes() < 15) run('/api/jobs/usage');
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
