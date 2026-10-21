@@ -119,7 +119,9 @@ select test.eq('several at once: each car on its own; the one that cannot is nam
   '2/2021 Volkswagen Jetta GX4: A Turo-only car is not on the CarmaCars fleet policy');
 select test.eq('the two are on the policy', (select count(*) from vehicles where id in (test.id('vehicle:GX2'), test.id('vehicle:GX5')) and on_fleet_policy), 2::bigint);
 select test.throws('nothing ticked', format($$select app.confirm_fleet_policy_bulk(%L, '{"vehicle_ids": []}')$$, test.id('gx_admin')), 'Tick the cars');
-select test.eq('no bulk prompt once fewer than two cars wait', test.gx_has('insurer_bulk'), false);
+select test.eq('the cars marked are gone from the several-cars prompt',
+  coalesce((select count(*) from jsonb_array_elements(test.gx_prompt('insurer_bulk') -> 'cars') c
+             where c ->> 'vehicle_id' in (test.id('vehicle:GX1')::text, test.id('vehicle:GX2')::text, test.id('vehicle:GX3')::text, test.id('vehicle:GX5')::text)), 0), 0::bigint);
 
 -- ================================================================ 5. renter documents, reviewed from the booking
 select test.mk_booking('GX-D', 'GX0', 'gx_rob', test.gx_day(1), test.gx_day(4), 'confirmed');
@@ -191,7 +193,7 @@ select test.eq('with real customer service on staff, their task stays in their q
 create temp table gx_va as select user_id, is_active from staff_profiles where staff_type = 'va';
 update staff_profiles set is_active = false where staff_type = 'va';
 -- the live verification's account does not count as staff
-update users set email = 'verify-va-cs@carmacars.ca' where id = test.id('gx_cs');
+update users set email = 'verify-va-gx@carmacars.ca' where id = test.id('gx_cs');
 update staff_profiles set is_active = true where user_id = test.id('gx_cs');
 select test.eq('only the live verification''s account holds customer service: nobody real does', app.va_function_staffed('cs'), false);
 select test.ok('the task comes to the Admin''s To do, saying why',
