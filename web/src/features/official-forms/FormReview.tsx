@@ -47,7 +47,10 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
   // a link to this form (#<code>) opens the review at once
   useEffect(() => {
     const h = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-    if (h === code || h === `review-${code}`) { document.getElementById(`form-card-${code}`)?.scrollIntoView({ block: 'start' }); open(); }
+    if (h !== code && h !== `review-${code}`) return;
+    document.getElementById(`form-card-${code}`)?.scrollIntoView({ block: 'start' });
+    const t = window.setTimeout(open, 0);
+    return () => window.clearTimeout(t);
     // only on arrival
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,7 +80,8 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
         {shown && (
           <div className="stack" data-testid={`${tid}-sample`}>
             <p className="small" role="status">{shown.filled} field(s) filled.{shown.empty.length ? ` Empty for this car: ${shown.empty.join(', ')}.` : ''}{shown.missing.length ? ` Not in the PDF: ${shown.missing.join(', ')}.` : ''}</p>
-            <div className="ad-form-pages">{shown.pages.map((src, i) => <img key={i} src={src} alt={`${code}, page ${i + 1}, filled`} width={700} />)}</div>
+            <div className="ad-form-pages">{shown.pages.map((src, i) => /* a page drawn in the browser (a data URL) */ // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt={`${code}, page ${i + 1}, filled`} width={700} />)}</div>
           </div>
         )}
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
