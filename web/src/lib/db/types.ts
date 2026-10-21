@@ -11739,6 +11739,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      todo_dismissals: {
+        Row: {
+          key: string;
+          dismissed_by: string | null;
+          dismissed_at: string;
+          note: string | null;
+        };
+        Insert: {
+          key: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+          note?: string | null;
+        };
+        Update: {
+          key?: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
       toll_import_batches: {
         Row: {
           id: string;
