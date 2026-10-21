@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow } from './helpers';
 
 // Migration 0064 end to end, at 375 and 1440 pixels: posting a car with its rates and kilometres in one pass (Add a
 // car for the three supply types, a car's Rates tab, Fleet), the field messages, the preview priced like bookings;
@@ -66,9 +66,7 @@ async function addCar(page: Page, supply: 'company' | 'partner' | 'program_owner
   if (o.ownerId) await page.getByTestId('add-car-owner').selectOption({ index: 1 });
   await page.getByTestId('add-car-vin').fill(vin());
   await page.getByTestId('add-car-plate').fill(plate());
-  await page.getByTestId('add-car-year').fill('2023');
-  await page.getByTestId('add-car-make').fill('Hyundai');
-  await page.getByTestId('add-car-model').fill(`Elantra ${tag()}`);
+  await carByHand(page, 'add-car', { year: '2023', make: 'Hyundai', model: `Elantra ${tag()}` });
   for (const [k, v] of Object.entries(o.rates)) await page.getByTestId(`add-car-${k}`).fill(v);
   // the check answers after a short pause (and may add the similar cars line above the fields)
   await expect(page.getByTestId('add-car-example-friday_sunday')).toBeVisible({ timeout: 15_000 });

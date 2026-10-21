@@ -47,3 +47,43 @@ export function storeFixturePdf(bucket: string, key: string) {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 }
+
+// ---------------------------------------------------------------- VIN-first entry (migration 0079)
+/** Year, make and model from the lists (a VIN the decoder could not read, or a car added by its plate). */
+export async function fillYmm(page: Page, prefix: string, c: { year: string; make: string; model: string }) {
+  await page.getByTestId(`${prefix}-year`).selectOption(c.year);
+  const make = page.getByTestId(`${prefix}-make`);
+  if ((await make.evaluate((e) => e.tagName)) === 'SELECT') {
+    if (await make.locator(`option[value="${c.make}"]`).count()) await make.selectOption(c.make);
+    else { await make.selectOption('__other'); await page.getByTestId(`${prefix}-make`).fill(c.make); }
+  } else await make.fill(c.make);
+  const model = page.getByTestId(`${prefix}-model`);
+  // the list of models loads for the make and year: a list, or a box to type in
+  await expect(async () => {
+    const tag = await model.evaluate((e) => e.tagName);
+    if (tag === 'SELECT') expect(await model.isEnabled()).toBe(true);
+  }).toPass({ timeout: 15_000 });
+  if ((await model.evaluate((e) => e.tagName)) === 'SELECT') {
+    if (await model.locator(`option[value="${c.model}"]`).count()) await model.selectOption(c.model);
+    else { await model.selectOption('__other'); await page.getByTestId(`${prefix}-model`).fill(c.model); }
+  } else await model.fill(c.model);
+}
+
+/** The car's year, make and model by hand on staff Add a car, whatever the decoder answered: decoded, Edit and type
+ *  them; not decoded, choose them from the lists. */
+export async function carByHand(page: Page, prefix: string, c: { year: string; make: string; model: string }) {
+  const sum = page.getByTestId(`${prefix}-summary`);
+  const fb = page.getByTestId(`${prefix}-ymm`);
+  await expect(sum.or(fb)).toBeVisible({ timeout: 20_000 });
+  if (await sum.isVisible()) {
+    await page.getByTestId(`${prefix}-edit`).click();
+    await page.getByTestId(`${prefix}-edit-year`).fill(c.year);
+    await page.getByTestId(`${prefix}-edit-make`).fill(c.make);
+    await page.getByTestId(`${prefix}-edit-model`).fill(c.model);
+  } else await fillYmm(page, prefix, c);
+}
+
+/** One tap on a colour swatch. */
+export async function tapColour(page: Page, prefix: string, colour: string) {
+  await page.getByTestId(`${prefix}-colour`).locator('label', { hasText: new RegExp(`^${colour}$`) }).click();
+}

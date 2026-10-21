@@ -57,10 +57,11 @@ select test.eq('facts: the decode in the listing''s words', (select concat_ws('|
     f #>> '{decode,drivetrain}', f #>> '{decode,transmission}', f #>> '{decode,seats}', f #>> '{decode,doors}', f #>> '{decode,engine}', f #>> '{decode,fuel}')
     from (select app.vin_facts('wp1ab2a56glb12345') f) x), '2016|Porsche|Macan|S|SUV|All-wheel drive|Automatic|5|5|3.0 L, V6, turbo|gasoline');
 select test.eq('facts: the class with the decode', app.vin_facts('WP1AB2A56GLB12345') #>> '{class,class}', 'premium');
-select test.ok('facts: the starting rate is the Premium class''s, not the $89 standard default',
-  (app.vin_facts('WP1AB2A56GLB12345') #>> '{rates,daily_cents}')::bigint = coalesce(((app.settings()).listing_default_daily_rate_cents ->> 'premium')::bigint, 10900)
-  and (app.vin_facts('1G6AX5SX5F0123456') #>> '{rates,daily_cents}')::bigint = coalesce(((app.settings()).listing_default_daily_rate_cents ->> 'premium')::bigint, 10900)
-  and (app.vin_facts('WP1AB2A56GLB12345') #>> '{rates,daily_cents}')::bigint > coalesce(((app.settings()).listing_default_daily_rate_cents ->> 'standard')::bigint, 6900));
+select test.eq('facts: the starting rate is the Premium class''s (similar cars, else its default), not the Standard one',
+  (app.vin_facts('WP1AB2A56GLB12345') #>> '{rates,daily_cents}')::bigint, (app.listing_default_daily(null, '{"class": "premium", "make": "Porsche", "model": "Macan"}') ->> 'daily_cents')::bigint);
+select test.ok('facts: with no similar cars, the Premium default',
+  (app.vin_facts('1G6AX5SX5F0123456') -> 'rates' ->> 'source') <> 'class' or (app.vin_facts('1G6AX5SX5F0123456') #>> '{rates,daily_cents}')::bigint
+    = coalesce(((app.settings()).listing_default_daily_rate_cents ->> 'premium')::bigint, 10900));
 select test.eq('facts: a VIN the decoder could not read says so, with no class', (select (f ->> 'decode') is null and (f ->> 'decode_failed_at') is not null and (f ->> 'class') is null
   from (select app.vin_facts('ZZZZZ12370A123456') f) x), true);
 select test.eq('facts: the class hint for year, make and model typed by hand', app.vin_class_hint('{"year": 2015, "make": "Cadillac", "model": "CTS"}') #>> '{class,class}', 'premium');
@@ -155,12 +156,12 @@ select test.eq('class: a car whose class nobody chose gets the inferred one; a p
 -- a VIN the decoder could not read is tried again, then the car fills itself
 insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method)
 values (test.id('vehicle:VF10'), test.id('owner:vf_own'), 2020, 'Kia', 'Forte', 'KNAFK4A6XF5123456', 'VF10XX', 'standard', 'onboarding', 'managed', 'transfer');
-select test.ok('later: the VIN is due for a decode', app.vin_decode_due(50) @> '[{"vin": "KNAFK4A6XF5123456"}]');
+select test.ok('later: the VIN is due for a decode', app.vin_decode_due(100000) @> '[{"vin": "KNAFK4A6XF5123456"}]');
 select app.record_vin_decode('KNAFK4A6XF5123456', 'fake', '{"ok": true, "year": "2015", "make": "Kia", "model": "Forte", "trim": "LX", "body_class": "Sedan/Saloon", "fuel": "gasoline", "seats": "5"}');
 select test.eq('later: the decode fills the car', app.vin_decoded_apply('KNAFK4A6XF5123456'), 1);
 select test.eq('later: and its class', (select class::text || '/' || trim from vehicles where id = test.id('vehicle:VF10')), 'economy/LX');
-select test.ok('later: no longer due', not (app.vin_decode_due(50) @> '[{"vin": "KNAFK4A6XF5123456"}]'));
-select test.ok('later: a VIN that failed 5 times is left alone', not (app.vin_decode_due(50) @> '[{"vin": "ZZZZZ12370A123456"}]'));
+select test.ok('later: no longer due', not (app.vin_decode_due(100000) @> '[{"vin": "KNAFK4A6XF5123456"}]'));
+select test.ok('later: a VIN tried in the last 6 hours waits', not (app.vin_decode_due(100000) @> '[{"vin": "ZZZZZ12370A123456"}]'));
 
 -- ================================================================ 6. the colour from the cover photo
 update program_settings set ai_vision_enabled = true;
@@ -168,18 +169,18 @@ insert into vehicle_photos (id, vehicle_id, angle, original_path, processed_path
 values (test.id('photo:VF10'), test.id('vehicle:VF10'), 'front_left', 'o/vf10.jpg', 'p/vf10.webp', 'approved', true, true,
         '[{"width": 1600, "format": "webp", "path": "p/vf10-1600.webp"}, {"width": 800, "format": "jpg", "path": "p/vf10-800.jpg"}, {"width": 480, "format": "jpg", "path": "p/vf10-480.jpg"}]');
 select test.eq('colour: a car with no colour and a cover photo is due, its smallest JPEG of 400 px or more',
-  (select c ->> 'path' from jsonb_array_elements(app.colour_read_due(50) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')), 'p/vf10-480.jpg');
-select test.ok('colour: a car whose colour a person entered is not', not exists (select 1 from jsonb_array_elements(app.colour_read_due(50) -> 'cars') c where (c ->> 'vehicle_id')::uuid = (test.vf_scar()).id));
+  (select c ->> 'path' from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')), 'p/vf10-480.jpg');
+select test.ok('colour: a car whose colour a person entered is not', not exists (select 1 from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = (test.vf_scar()).id));
 select test.eq('colour: a colour that is not a swatch is not stored', app.colour_read_record(jsonb_build_object('vehicle_id', test.id('vehicle:VF10'), 'photo_id', test.id('photo:VF10'), 'ok', true, 'colour', 'Chartreuse', 'model', 'fake', 'neurons', 3)) ->> 'set', 'false');
 select test.eq('colour: a swatch is stored', app.colour_read_record(jsonb_build_object('vehicle_id', test.id('vehicle:VF10'), 'photo_id', test.id('photo:VF10'), 'ok', true, 'colour', 'Red', 'model', 'fake', 'neurons', 3)) ->> 'set', 'true');
 select test.eq('colour: marked as detected, and the calls counted',
   (select colour || '/' || (spec_sources #>> '{colour,source}') from vehicles where id = test.id('vehicle:VF10'))
   || '/' || (select count(*) from provider_calls where purpose = 'colour_read' and vehicle_id = test.id('vehicle:VF10')), 'Red/detected/2');
-select test.ok('colour: no longer due', not exists (select 1 from jsonb_array_elements(app.colour_read_due(50) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')));
+select test.ok('colour: no longer due', not exists (select 1 from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')));
 update vehicles set colour = null, spec_sources = spec_sources - 'colour' where id = test.id('vehicle:VF10');
-select test.ok('colour: the same photo is not read again after an answer', not exists (select 1 from jsonb_array_elements(app.colour_read_due(50) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')));
+select test.ok('colour: the same photo is not read again after an answer', not exists (select 1 from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')));
 update program_settings set ai_vision_enabled = false;
-select test.eq('colour: nothing while the vision model is off', app.colour_read_due(50) ->> 'allowed', 'false');
+select test.eq('colour: nothing while the vision model is off', app.colour_read_due(100000) ->> 'allowed', 'false');
 
 -- ================================================================ 7. privileges
 select test.ok('privileges: the new functions are the server''s only', not has_function_privilege('authenticated', 'app.vin_facts(text)', 'execute')

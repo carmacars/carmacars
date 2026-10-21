@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch } from './helpers';
 
 // The owner billing path end to end, at 375 and 1440: an owner applies with three vehicles (the
 // wizard, a VIN decoded, autosave), an Admin sets the terms on the standard grid and issues the three
@@ -105,10 +105,10 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
     if (i > 0) await page.getByRole('button', { name: 'Add another vehicle' }).click();
     const id = (k: string) => `#ap-v${i}-${k}`;
     await page.locator(id('vin')).fill(c.vin);
-    await page.getByRole('button', { name: 'Look up' }).click();
-    if (c.decoded) await expect(page.locator(id('make'))).not.toHaveValue('');
-    else { await page.locator(id('year')).fill(c.year!); await page.locator(id('make')).fill(c.make!); await page.locator(id('model')).fill(c.model!); await page.locator(id('fuel')).selectOption(c.fuel!); }
-    await page.locator(id('colour')).fill(c.colour);
+    // looked up at the 17th character (0079): a decoded car shows one line; otherwise year, make and model from lists
+    if (c.decoded) await expect(page.getByTestId('apply-vin-summary')).toBeVisible({ timeout: 20_000 });
+    else { await expect(page.getByTestId('apply-ymm')).toBeVisible({ timeout: 20_000 }); await fillYmm(page, 'apply', { year: c.year!, make: c.make!, model: c.model! }); }
+    await tapColour(page, 'apply', c.colour);
     await page.locator(id('plate')).fill(c.plate);
     await page.locator(id('odo')).fill(c.odo);
     await page.locator(id('ins')).fill(c.insurer);

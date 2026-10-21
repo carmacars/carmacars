@@ -127,7 +127,7 @@ def build():
     g.task('Add a car for an owner', f'Open {P("Owners", "Add a car for an owner")} (fleet: under Cars). You enter everything for the owner; they never fill in the application.')
     g.steps([
         'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
-        'The car: type the VIN and press Decode, then the details. Upload the ownership permit, the insurance slip and the lender\'s information if you have them. Photos are optional.',
+        'The car: type the VIN. The car is looked up at once and shown in one line with the year, make, model, trim and details (Edit if something is wrong). No VIN at hand: add it by its plate and choose the year, make and model. Tap the colour and check the class. Upload the ownership permit, the insurance slip and the lender\'s information if you have them. Photos are optional.',
         'Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.',
         'Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.',
         f'Press {B("Add the car and send to an Admin")}. The application waits in the Admin\'s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.',

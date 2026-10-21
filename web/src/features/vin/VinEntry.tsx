@@ -44,17 +44,27 @@ export function ColourSwatches({ value, onChange, prefix, hint, err, legend = 'C
 /** Year, make and model from lists (the fallback when the VIN is not decoded, or a car added by its plate). */
 export function YearMakeModel({ value, onChange, prefix, errs = {} }: { value: CarEdits; onChange: (e: CarEdits) => void; prefix: string; errs?: Record<string, string | undefined> }) {
   const uid = useId().replace(/[^\w-]/g, '');
-  const [models, setModels] = useState<string[]>([]);
+  // the models of that make and year (null while they load); a make or model not on the lists is typed
+  const [loaded, setLoaded] = useState<{ key: string; list: string[] } | null>(null);
   const [otherMake, setOtherMake] = useState(!!value.make && !MAKES.includes(value.make));
   const [otherModel, setOtherModel] = useState(false);
   const year = Number(value.year);
+  const key = value.make && year && !otherMake ? `${value.make}|${year}` : '';
+  const models: string[] | null = !key ? [] : loaded?.key === key ? loaded.list : null;
   useEffect(() => {
+    if (!key) return;
     let live = true;
-    if (!value.make || !year || otherMake) { setModels([]); return; }
-    void vinModels(value.make, year).then((r) => { if (live && r.ok) { setModels(r.data); setOtherModel(!!value.model && !r.data.includes(value.model) || r.data.length === 0); } });
+    const [make] = key.split('|');
+    void vinModels(make!, year).then((r) => {
+      if (!live) return;
+      const list = r.ok ? r.data : [];
+      setLoaded({ key, list });
+      setOtherModel(list.length === 0 || (!!value.model && !list.includes(value.model)));
+    }).catch(() => { if (live) { setLoaded({ key, list: [] }); setOtherModel(true); } });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value.make, year, otherMake]);
+  }, [key]);
+  const typedModel = otherMake || (models !== null && (otherModel || (!models.length && !!value.make && !!year)));
   const field = (k: string, label: string, el: React.ReactNode) => (
     <div className={`field ad-field${errs[k] ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-${k}`}>{label}</label>{el}<p className="error" role="alert">{errs[k] ?? ''}</p></div>);
   return (
@@ -65,10 +75,10 @@ export function YearMakeModel({ value, onChange, prefix, errs = {} }: { value: C
         ? <input className="input" id={`${uid}-make`} value={value.make ?? ''} onChange={(e) => onChange({ ...value, make: e.target.value })} data-testid={`${prefix}-make`} />
         : <select className="select" id={`${uid}-make`} value={value.make ?? ''} onChange={(e) => { if (e.target.value === '__other') { setOtherMake(true); onChange({ ...value, make: '', model: '' }); } else onChange({ ...value, make: e.target.value, model: '' }); }} data-testid={`${prefix}-make`}>
             <option value="">Choose</option>{MAKES.map((m) => <option key={m} value={m}>{m}</option>)}<option value="__other">Another make</option></select>)}
-      {field('model', 'Model', otherModel || otherMake || (!models.length && !!value.make && !!year)
+      {field('model', 'Model', typedModel
         ? <input className="input" id={`${uid}-model`} value={value.model ?? ''} onChange={(e) => onChange({ ...value, model: e.target.value })} data-testid={`${prefix}-model`} />
-        : <select className="select" id={`${uid}-model`} value={value.model ?? ''} disabled={!models.length} onChange={(e) => { if (e.target.value === '__other') { setOtherModel(true); onChange({ ...value, model: '' }); } else onChange({ ...value, model: e.target.value }); }} data-testid={`${prefix}-model`}>
-            <option value="">{value.make && year ? 'Choose' : 'Year and make first'}</option>{models.map((m) => <option key={m} value={m}>{m}</option>)}<option value="__other">Another model</option></select>)}
+        : <select className="select" id={`${uid}-model`} value={value.model ?? ''} disabled={!models?.length} onChange={(e) => { if (e.target.value === '__other') { setOtherModel(true); onChange({ ...value, model: '' }); } else onChange({ ...value, model: e.target.value }); }} data-testid={`${prefix}-model`}>
+            <option value="">{models === null ? 'Loading the models' : value.make && year ? 'Choose' : 'Year and make first'}</option>{(models ?? []).map((m) => <option key={m} value={m}>{m}</option>)}<option value="__other">Another model</option></select>)}
     </div>
   );
 }
@@ -82,7 +92,8 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
   const [problem, setProblem] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const asked = useRef('');
-  const vref = useRef(value); vref.current = value;
+  const vref = useRef(value);
+  useEffect(() => { vref.current = value; }, [value]);
   const set = (p: Partial<VinValue>) => onChange({ ...vref.current, ...p });
   const st = vinState(value.vin);
 

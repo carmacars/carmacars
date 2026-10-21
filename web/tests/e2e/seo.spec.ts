@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow } from './helpers';
 
 // Migration 0061 end to end (phone 375 and desktop 1440): a car added in Admin gets its page copy written by itself
 // (the plain copy at once, the written copy from the model, nobody types), an edited field is locked and kept; landing
@@ -66,9 +66,7 @@ test('car copy: a car added in Admin gets its page copy by itself, nothing typed
   await page.getByTestId('add-car-supply-company').check();
   await page.getByTestId('add-car-vin').fill(vin());
   await page.getByTestId('add-car-plate').fill(`SEO${randomBytes(2).toString('hex').toUpperCase()}`);
-  await page.getByTestId('add-car-year').fill('2022');
-  await page.getByTestId('add-car-make').fill('Mazda');
-  await page.getByTestId('add-car-model').fill(`CX-${tag()}`);
+  await carByHand(page, 'add-car', { year: '2022', make: 'Mazda', model: `CX-${tag()}` });
   await page.getByTestId('add-car-daily').fill('83');
   await page.getByTestId('add-car-deposit').fill('300');
   await page.getByTestId('add-car-submit').click();

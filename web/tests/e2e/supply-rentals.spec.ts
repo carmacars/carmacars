@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow } from './helpers';
 
 // Migration 0046 end to end: Admin > Partners (add a partner), Admin > Vehicles > Add a car (a partner's car and a
 // CarmaCars-owned car), Add a rental by hand (Admin, and customer service in the VA portal within its limits), the renter
@@ -75,9 +75,7 @@ async function addCar(page: Page, supply: 'company' | 'partner', o: { partnerId?
   if (o.partnerId) await page.getByTestId('add-car-partner').selectOption(o.partnerId);
   await page.getByTestId('add-car-vin').fill(o.vin);
   await page.getByTestId('add-car-plate').fill(o.plate);
-  await page.getByTestId('add-car-year').fill('2022');
-  await page.getByTestId('add-car-make').fill('Toyota');
-  await page.getByTestId('add-car-model').fill('Corolla');
+  await carByHand(page, 'add-car', { year: '2022', make: 'Toyota', model: 'Corolla' });
   if (o.daily) { await page.getByTestId('add-car-daily').fill(o.daily); await page.getByTestId('add-car-deposit').fill('300'); }
   await page.getByTestId('add-car-submit').click();
   await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 30_000 });

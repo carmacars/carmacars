@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, pdfText } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow, pdfText } from './helpers';
 
 // Owner terms and invoices (migration 0067), end to end at 375 and 1440:
 //   Approve with custom terms and the first and last month recorded as paid by e-Transfer, a registration fee sent to the
@@ -276,9 +276,7 @@ test('customer service adds a car for a new owner; an Admin approves; one set-up
   await f.getByTestId('addcar-email').fill(email);
   await f.getByTestId('addcar-phone').fill('+16475550188');
   await f.getByTestId('addcar-vin').fill(vin());
-  await f.getByTestId('addcar-year').fill('2021');
-  await f.getByTestId('addcar-make').fill('Toyota');
-  await f.getByTestId('addcar-model').fill('Corolla');
+  await carByHand(page, 'addcar', { year: '2021', make: 'Toyota', model: 'Corolla' });
   await f.getByTestId('addcar-plate').fill(plate());
   await f.getByTestId('addcar-doc-ownership_permit').setInputFiles({ name: 'permit.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4c20000000049454e44ae426082', 'hex') });
   await f.getByTestId('addcar-terms-ins').fill('420.00');

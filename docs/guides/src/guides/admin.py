@@ -361,15 +361,17 @@ def build():
               'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. '
               'You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.',
               blurb='Add a car, partners, add a rental, retire or delete a car, sample cars and tolls with two rentals.')
-    g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. First choose who supplies it.')
+    g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. Start with the VIN: everything else about the car comes from it.')
     g.steps([
-        B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
-        f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
-        B("A partner rental company's car") + ': choose the partner. Leave the commission empty to use the partner\'s, or type one for this car.',
-        f'Type the VIN, the plate and the details.',
-        f'Under Rates and kilometres, type the rates now (only the daily rate is needed) and keep the default kilometres, or leave the rates empty and set them later on the car\'s Rates tab. What renters pay shows as you type. Press {B("Add the car")}.',
+        'Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.',
+        f'No VIN at hand? Press {B("No VIN at hand? Add the car by its plate")} and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.',
+        'Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.',
+        'Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.',
+        'Choose who supplies it: ' + B("A program owner's car") + ' (choose the owner; the car starts its onboarding), ' + B("CarmaCars-owned (company fleet)") + ' (no owner; all of its revenue is CarmaCars\') or ' + B("A partner rental company's car") + ' (choose the partner; leave the commission empty to use the partner\'s).',
+        f'The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car\'s Rates tab. Press {B("Add the car")}.',
     ])
-    g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
+    g.tip('The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car\'s listing; a field you change is kept.')
+    g.tip('A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
     g.task('Partners', f'{P("Owners and partners", "Partners")}. Partner rental companies whose cars we rent out on commission.')
@@ -449,7 +451,7 @@ def build():
     g.task('Add a car for an owner', f'{P("Owners and partners", "Add a car for an owner")}, or {B("Add another car")} on an owner\'s page. The owner never has to fill in the application.')
     g.steps([
         'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
-        'The car: type the VIN and press Decode, then the plate, colour, odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
+        'The car: type the VIN. The car is looked up at once and shown in one line (Edit if something is wrong); no VIN at hand, add it by its plate with the year, make and model from the lists. Tap the colour, check the class, then the odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
         'Terms and first invoice: the same fields as Approve. For another car of the same owner they start from that owner\'s terms.',
         'Who sourced the owner: Entered for CarmaCars, or I sourced this owner (only then are you recorded as the one who brought the owner). How the owner signs: by email, or on paper.',
         f'Press {B("Add the car and set it up")}. The owner gets one email: review the details, correct anything, and sign. An owner with no sign-in gets the link to choose a password in that same email.',
