@@ -137,10 +137,11 @@ begin
     if not app.rate_limit('game-start:' || v_vid, 10, interval '1 hour') or not app.rate_limit('game-start', 3000, interval '1 hour') then
       return jsonb_build_object('ok', false, 'reason', 'limited');
     end if;
-    insert into game_plays (visitor_id, session_id, game, prize, device, path, trigger, context, user_id)
+    -- clock_timestamp: plays of one transaction keep their order
+    insert into game_plays (visitor_id, session_id, game, prize, device, path, trigger, context, user_id, created_at)
     values (v_vid, v_sid, app.game_next_kind(v_vid, p_user, v_seen, g.game), coalesce(g.prize, app.game_draw(ps.game_prizes)),
             case when p ->> 'device' in ('phone', 'tablet', 'desktop') then p ->> 'device' end, left(p ->> 'path', 300),
-            case when v_ctx = 'booking' then 'booking' when p ->> 'trigger' in ('pages', 'time', 'exit') then p ->> 'trigger' end, v_ctx, p_user)
+            case when v_ctx = 'booking' then 'booking' when p ->> 'trigger' in ('pages', 'time', 'exit') then p ->> 'trigger' end, v_ctx, p_user, clock_timestamp())
     returning * into g;
     r := app.game_play_json(g);
   end if;

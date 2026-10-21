@@ -5,10 +5,12 @@ import { currentUser } from '@/server/portal/data';
 import { ipKey } from '@/lib/track/shared';
 import { env } from '@/lib/env';
 
-// Discount games (migration 0069): the claim. The game itself (settings, the play, the reveal) is read straight from
-// the database by the browser; only the claim comes here, once per visitor at most, so the server can check the
-// visitor is not signed in and rate-limit by a salted key of the network address (the address is never stored). The
-// database checks everything again, creates the code, the lead and the task, and queues the email.
+// Discount games (migrations 0069 and 0076): the claim, and the request-to-book form's play. The site's game itself
+// (settings, the play, the reveal) is read straight from the database by the browser; the claim comes here, once per
+// visitor at most, so the server can say who is signed in and rate-limit by a salted key of the network address (the
+// address is never stored). The database checks everything again, creates the code, the lead and the task, and
+// queues the email. 0076: { action: 'start', p } starts (or with p.dry only checks) a play of the request-to-book
+// form, where signed-in renters may play too: the server passes who is signed in, the database refuses staff.
 export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
 const H = { 'cache-control': 'no-store' };
@@ -19,6 +21,7 @@ export async function POST(req: Request) {
   const origin = req.headers.get('origin');
   if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (b && b.action === 'start') return start(b.p);
   if (!b || typeof b.token !== 'string' || !/^[0-9a-f]{64}$/.test(b.token)) return NextResponse.json({ ok: false, error: 'not_found', message: 'This game has ended. Reload the page.' }, { status: 400, headers: H });
   const user = await currentUser().catch(() => null);
   const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
@@ -34,5 +37,21 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error('game claim', e instanceof Error ? e.message.slice(0, 300) : e);
     return NextResponse.json({ ok: false, error: 'unavailable', message: 'We could not send the code. Please try again.' }, { status: 500, headers: H });
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+async function start(raw: unknown) {
+  const q = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  if (typeof q.vid !== 'string' || !UUID.test(q.vid)) return NextResponse.json({ ok: false, reason: 'bad ids' }, { status: 400, headers: H });
+  const seen = Array.isArray(q.seen) ? q.seen.filter((x): x is string => typeof x === 'string' && /^[a-z]{3,12}$/.test(x)).slice(0, 10) : [];
+  const p = { vid: q.vid, sid: typeof q.sid === 'string' && UUID.test(q.sid) ? q.sid : undefined, device: str(q.device, 10), path: str(q.path, 300), context: 'booking', seen, dry: q.dry === true };
+  const user = await currentUser().catch(() => null);
+  try {
+    const r = await rpc('server_game_start', { p: p as unknown as Json, p_user: user?.id }, SR);
+    return NextResponse.json(r, { headers: H });
+  } catch (e) {
+    console.error('game start', e instanceof Error ? e.message.slice(0, 300) : e);
+    return NextResponse.json({ ok: false, reason: 'unavailable' }, { status: 500, headers: H });
   }
 }

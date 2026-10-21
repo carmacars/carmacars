@@ -15,6 +15,7 @@ import { photoUrl } from '@/lib/photo';
 import { loadRequestDraft, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
 import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload } from '@/features/addons/model';
+import { useBookingGame } from '@/features/games/BookingGame';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
 import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, type RequestData, type RequestRules } from './schema';
 
@@ -119,6 +120,12 @@ export function RequestWizard(p: WizardProps) {
   const haveDates = !!(car && d.from && d.to);
   const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
+  // discount games (0076): the offer on the add-ons and review steps; a won code goes in the promo code box
+  const promoText = !d.promo ? '' : !q ? 'The price beside the form is being updated.' : q.promo?.applied
+    ? `Code ${q.promo.code} applied: ${money(-(q.lines.find((l) => l.charge_type === 'promo_discount')?.amount_cents ?? 0), { cents: true })} off the rental charge.`
+    : q.promo?.problem ? `${q.promo.problem}. The code stays yours until it expires.` : '';
+  const game = useBookingGame({ step, steps: [4, 5], first: d.first, email: d.email, phone: d.phone, promoApplied: !!(d.promo && q?.promo?.applied), applied: promoText,
+    onCode: (code) => set('promo', code) });
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   function validate(n: number): boolean {
@@ -355,6 +362,7 @@ export function RequestWizard(p: WizardProps) {
             <h2 className="d3" id="rs4" tabIndex={-1}>Add-ons</h2>
             <p className="hint">Optional extras for your trip. The estimate shows the price as you choose. Anything that needs our confirmation is confirmed in your offer.</p>
             {!car ? <p className="muted">Choose a car first.</p> : <AddonPicker idPrefix="rq" options={addonOptions} value={d.addons} onChange={(v) => set('addons', v)} />}
+            {game.card(4)}
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(4)) show(5); }}>Review request</button></div>
           </section>
 
@@ -363,6 +371,7 @@ export function RequestWizard(p: WizardProps) {
             <table className="spec req__review"><tbody>
               {reviewRows.map(([k, v, n]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td><td><button type="button" className="link small" onClick={() => show(n)}>Edit<span className="vh"> {k}</span></button></td></tr>)}
             </tbody></table>
+            {game.card(5)}
             <div className={fieldCls('promo')}>
               <label className="label" htmlFor="rq-promo">Promo code <span className="opt">optional</span></label>
               <input className="input" id="rq-promo" name="promo" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={40} value={d.promo}
@@ -401,6 +410,7 @@ export function RequestWizard(p: WizardProps) {
           </details>
         </aside>
       </div>
+      {game.popup}
     </div>
   );
 }

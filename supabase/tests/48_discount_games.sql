@@ -32,10 +32,10 @@ on conflict (block_key) do nothing;
 delete from game_claims; delete from game_plays;
 
 -- ================================================================ 1. settings and the prize table
-select test.eq('settings: on, five games at equal weights, 7 days, $75 cap, 2 car pages or 60 seconds or exit intent, 14 days after closing, 3 cars for a task, reminder 24 hours',
+select test.eq('settings: on, five games at equal weights, 7 days, $75 cap, 1 car page or 15 seconds or exit intent (0076), the prize kept 14 days, 3 cars for a task, reminder 24 hours',
   (select format('%s %s %s %s %s/%s/%s %s %s %s', game_enabled, game_weights::text, game_code_valid_days, game_max_discount_cents, game_trigger_car_pages, game_trigger_seconds,
                  game_exit_intent, game_dismiss_days, game_task_min_cars, game_reminder_hours) from (select (app.settings()).*) s),
-  't {"cups": 1, "wheel": 1, "plinko": 1, "scratch": 1, "blackjack": 1} 7 7500 2/60/t 14 3 24');
+  't {"cups": 1, "wheel": 1, "plinko": 1, "scratch": 1, "blackjack": 1} 7 7500 1/15/t 14 3 24');
 select test.eq('the owner''s prize table: 5% 70, 10% 25, 15% 4, $50 off 3+ days 1',
   (select string_agg(app.game_prize_label(x) || coalesce(' ' || (x ->> 'min_days') || '+d', '') || ' ' || (x ->> 'weight'), ', ' order by o)
      from jsonb_array_elements((app.settings()).game_prizes) with ordinality t(x, o)), '5% off 70, 10% off 25, 15% off 4, $50 off 3+d 1');
@@ -60,7 +60,8 @@ select test.eq('the short terms list the prizes and say the chances differ',
 select test.eq('the consent wording with the tokens filled from Site settings',
   (app.game_marketing_text() ->> 'text') = 'Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars'
     || coalesce(', ' || nullif((select mailing_address from site_settings), ''), '') || ', ' || coalesce((select public_email from site_settings), '') || '.', true);
-select test.eq('the browser''s settings', public.game_cfg(), '{"on": true, "exit": true, "seconds": 60, "car_pages": 2, "dismiss_days": 14}'::jsonb);
+select test.eq('the browser''s settings (0076: sooner, the re-show and the booking form)', public.game_cfg(),
+  '{"on": true, "exit": true, "booking": true, "seconds": 15, "car_pages": 1, "per_visit": 3, "reshow_pages": 2, "reshow_seconds": 180}'::jsonb);
 
 -- ================================================================ 2. who may play
 select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in ('pct5', 'pct10', 'pct15', 'amt50'))
