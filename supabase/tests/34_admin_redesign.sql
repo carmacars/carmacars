@@ -38,9 +38,9 @@ select test.mk_owner('ar_owen');
 select test.mk_vehicle('ARS', 'ar_owen');
 update vehicles set body_type = 'Sport Utility Vehicle (SUV)' where id = test.id('vehicle:ARS');
 select test.eq('samples: the body type is read from the car (an SUV)', app.sample_body_key(test.id('vehicle:ARS')), 'suv');
-select test.eq('samples: no real photo: the car uses sample photos, the built-in SUV placeholder',
-  app.vehicle_uses_sample_photos(test.id('vehicle:ARS')) || '/' || (app.vehicle_sample_photos(test.id('vehicle:ARS')) -> 0 ->> 'path') || '/' || (app.vehicle_sample_photos(test.id('vehicle:ARS')) -> 0 ->> 'sample'),
-  'true//sample-photos/suv.jpg/true');
+select test.eq('samples: no real photo: the car uses sample photos, the studio SUV stand-ins (0073)',
+  app.vehicle_uses_sample_photos(test.id('vehicle:ARS')) || '/' || (app.vehicle_sample_photos(test.id('vehicle:ARS')) -> 0 ->> 'path' like '/sample-photos/studio/suv/%/lead/%.svg') || '/' || (app.vehicle_sample_photos(test.id('vehicle:ARS')) -> 0 ->> 'sample'),
+  'true/true/true');
 select test.eq('samples: while publishing, no photo problem for a car that uses samples (the checklist still shows photos to do)',
   (select cardinality(app.listing_photo_problems(test.id('vehicle:ARS'))) > 0) || '/' || (select set_config('app.sample_photos_ok', test.id('vehicle:ARS')::text, true) is not null)
   || '/' || cardinality(app.listing_photo_problems(test.id('vehicle:ARS'))), 'true/true/0');

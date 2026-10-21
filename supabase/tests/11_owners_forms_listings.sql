@@ -492,7 +492,7 @@ select test.eq('K the worker claims the decode job (skip locked) and completes i
   (select count(*) from (select app.complete_listing_job(j.id, test.ofl_output(j), 'vpic', 0, 120) from app.claim_listing_jobs('w1', 10, array['decode_vin']) j) q), 1::bigint);
 select test.eq('K the decode fills what nobody typed (model, body, seats, transmission) and keeps what a person confirmed (trim AMG Line, colour Black)',
   (select v.model || '/' || v.trim || '/' || v.colour || '/' || v.body_type || '/' || l.seats || '/' || l.transmission || '/' || (v.spec_sources -> 'trim' ->> 'source')
-     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = test.id('vehicle:oflC')), 'C 300/AMG Line/Black/Sedan/5/automatic/person');
+     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = test.id('vehicle:oflC')), 'C 300/AMG Line/Black/Sedan/5/Automatic/person');  -- 0073: the samples' words
 select test.eq('K the decode is cached and the intake waits for submission with every photo in', (select count(*) from vin_decodes where vin = (select upper(vin) from vehicles where id = test.id('vehicle:oflC'))) || '/' || (select state from listing_intakes where id = test.ofl_ki()), '1/photos_uploaded');
 select test.eq('K submit: state drafting', (app.submit_listing_intake(test.id('ofl_field'), test.ofl_ki()) ->> 'state'), 'drafting');
 select test.eq('K a copy draft and one photo job per photo',
@@ -582,8 +582,8 @@ update vehicles set status = 'available' where id = test.id('vehicle:oflC');
 create temp table ofl_pub as select app.publish_listing(test.id('vehicle:oflC'), test.id('ofl_cs')) as r;
 grant all on ofl_pub to authenticated, anon;
 create function test.ofl_slug(p_label text) returns text language sql security definer as $$ select slug from vehicle_listings where vehicle_id = test.id('vehicle:' || p_label) $$;
-select test.eq('K published: a stable slug from year, make, model, trim, colour and the id; intake published; tasks closed; the owner is told',
-  (select (r ->> 'slug') = '2023-mercedes-benz-c-300-amg-line-black-' || substr(md5(test.id('vehicle:oflC')::text), 1, 4) from ofl_pub)::text
+select test.eq('K published: a clean slug from year, make, model and trim (0073); intake published; tasks closed; the owner is told',
+  (select (r ->> 'slug') = '2023-mercedes-benz-c-300-amg-line' from ofl_pub)::text
   || '/' || (select state from listing_intakes where id = test.ofl_ki())
   || '/' || (select status from tasks where task_type = 'review_listing' and related_id = test.ofl_ki())
   || '/' || (select count(*) from app_events where code = 'owner_vehicle_listed' and entity_id = test.id('vehicle:oflC')), 'true/published/done/1');
@@ -597,7 +597,7 @@ select app.confirm_vehicle_specs(test.id('ofl_admin'), test.id('vehicle:oflD'), 
 select test.eq('L an Admin''s listing needs no review: it publishes itself when the worker is done',
   (test.ofl_list(test.id('vehicle:oflD'), test.id('ofl_admin'), 'Black') ->> 'state'), 'published');
 select test.eq('L and the listing is live', (select status from vehicle_listings where vehicle_id = test.id('vehicle:oflD')), 'published');
-select test.eq('L the twin gets its own slug (never the same address)', test.ofl_slug('oflD') <> test.ofl_slug('oflC') and test.ofl_slug('oflD') like '2023-mercedes-benz-c-300-amg-line-black-%', true);
+select test.eq('L the twin gets its own slug (never the same address)', test.ofl_slug('oflD') <> test.ofl_slug('oflC') and test.ofl_slug('oflD') like '2023-mercedes-benz-c-300-amg-line-black%', true);
 update vehicle_listings set canonical_vehicle_id = test.id('vehicle:oflC') where vehicle_id = test.id('vehicle:oflD');
 select test.eq('L a fleet assistant lists a third car of the model in another colour (review not required for assistants)',
   (select (r ->> 'state') from test.ofl_list(test.id('vehicle:oflE'), test.id('ofl_fleet'), 'White') r), 'published');
