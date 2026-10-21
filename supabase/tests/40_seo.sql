@@ -17,8 +17,8 @@ create or replace function test.s40v(p_k text) returns uuid language sql stable 
 grant all on s40 to public;
 
 -- ================================================================ 1. settings
-select test.eq('settings: the car copy fits the listing lint (heading 20 to 70, intro 40 to 160 words, 3 to 12 highlights)',
-  (select listing_headline_chars::text || ' ' || listing_description_words::text || ' ' || listing_features_count::text from (select (app.settings()).*) s), '[20,71) [40,161) [3,13)');
+select test.eq('settings: the car copy fits the listing lint (heading 20 to 70, intro 8 to 160 words since 0073, 3 to 12 highlights)',
+  (select listing_headline_chars::text || ' ' || listing_description_words::text || ' ' || listing_features_count::text from (select (app.settings()).*) s), '[20,71) [8,161) [3,13)');
 select test.eq('settings: the search budget, attempts, retry, similarity, landing threshold, rating threshold, Google review delay, IndexNow',
   (select concat_ws('/', seo_ai_daily_neurons, seo_copy_max_attempts, seo_copy_retry_hours, seo_copy_similarity_max_bps, seo_landing_min_real_cars, seo_rating_min_reviews, google_review_delay_days, indexnow_enabled)
      from (select (app.settings()).*) s), '4000/3/6/5000/2/3/3/t');
@@ -48,10 +48,10 @@ select test.eq('a real car gets its copy row and the plain copy at once (no pers
 select test.eq('plain copy: live on the listing, from the facts, passing the listing lint',
   (select cc.source || '/' || cc.status || '/' || (l.headline = cc.copy ->> 'h1') || '/' || cardinality(app.listing_copy_problems(l.headline, l.description, l.features, l.faq))
      from car_copy cc join vehicle_listings l on l.vehicle_id = cc.vehicle_id where cc.vehicle_id = test.s40v('car1')), 'template/pending/true/0');
-select test.eq('plain copy: the heading names the car and the city', (select copy ->> 'h1' from car_copy where vehicle_id = test.s40v('car1')), '2023 Toyota Corolla rental in Toronto');
+select test.eq('plain copy: the heading names the car and the city', (select copy ->> 'h1' from car_copy where vehicle_id = test.s40v('car1')), '2023 Toyota Corolla for rent in Toronto');
 select test.ok('facts: the car, its prices from the rate card in force, the place, the rules, what is included',
   (select facts -> 'car' ->> 'model' = 'Corolla' and facts -> 'prices' ->> 'daily' = '$70' and facts -> 'prices' ->> 'monthly' = '$1,450'
-          and facts -> 'place' ->> 'area' = 'Etobicoke' and (facts -> 'rules' ->> 'min_age')::integer = 18 and jsonb_array_length(facts -> 'included') >= 3
+          and facts -> 'place' ->> 'city' = 'Toronto' and facts #> '{place,area}' is null and (facts -> 'rules' ->> 'min_age')::integer = 18 and jsonb_array_length(facts -> 'included') >= 3
      from car_copy where vehicle_id = test.s40v('car1')));
 select test.ok('facts: never the VIN, the plate or the owner', (select facts::text not like '%2SEAXVE%' and facts::text not like '%SE001%' from car_copy where vehicle_id = test.s40v('car1')));
 select test.ok('a sample car gets no written copy', not exists (select 1 from car_copy cc join vehicles v on v.id = cc.vehicle_id where v.is_sample));
@@ -78,14 +78,14 @@ select public.server_seo_result(jsonb_build_object('kind', 'car', 'id', test.s40
 select test.eq('result: the written copy is published by itself, nothing to review',
   (select cc.status || '/' || cc.source || '/' || cc.prompt_version || '/' || l.headline || '/' || (cc.copy_facts_hash = cc.facts_hash)
      from car_copy cc join vehicle_listings l on l.vehicle_id = cc.vehicle_id where cc.vehicle_id = test.s40v('car1')),
-  'published/ai/car-copy-v1/2023 Toyota Corolla in grey for rent in Toronto/true');
+  'published/ai/car-copy-v1/2023 Toyota Corolla for rent in Toronto/true');  -- 0073: every car the samples' headline
 select test.eq('result: the listing follows (description, highlights, questions, search text)',
   (select cardinality(features) || '/' || jsonb_array_length(faq) || '/' || seo_title || '/' || (description like 'The grey Corolla%') from vehicle_listings where vehicle_id = test.s40v('car1')),
   '4/4/2023 Toyota Corolla Rental in Toronto | CarmaCars/true');
 select test.eq('result: the call is logged with its neurons for the day''s budget',
   (select purpose || '/' || units from provider_calls where purpose = 'seo_car' and vehicle_id = test.s40v('car1')), 'seo_car/240');
 
-select public.server_seo_result(jsonb_build_object('kind', 'car', 'id', test.s40v('car2'), 'ok', true, 'copy', test.se_copy('A white Corolla ' || chr(8212) || ' for rent'), 'neurons', 200));
+select public.server_seo_result(jsonb_build_object('kind', 'car', 'id', test.s40v('car2'), 'ok', true, 'copy', test.se_copy('A white Corolla for rent', 'A white Corolla ' || chr(8212) || ' for rent with room for five.'), 'neurons', 200));
 select test.eq('result: a copy the database refuses (a long dash) is not published; the plain copy stays; tried again later',
   (select cc.status || '/' || cc.source || '/' || (cc.problems::text like '%long dash%') || '/' || (cc.next_attempt_at > now() + interval '5 hours') from car_copy cc where cc.vehicle_id = test.s40v('car2')),
   'failed/template/true/true');
