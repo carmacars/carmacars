@@ -8,7 +8,7 @@ import { screenFormBlocks, SCREEN_FORMS_VERSION, SCREEN_FORM_TITLE, type ScreenF
 import { FORM_C_SCREEN_VERSION, FORM_TITLE, screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERSION, type PartnerFacts } from '@/features/partner/agreement';
 import { sha256Hex } from '@/server/links';
-import { contentKey, type PdfInput } from './content';
+import { contentKey, type PdfInput, type PrepTarget } from './content';
 
 // Opening a document for signature without rendering it on the page (migration 0075). A sign page builds each
 // document's text blocks (cheap) and its content key, and asks the database for the open request with that key. Only
@@ -19,7 +19,7 @@ import { contentKey, type PdfInput } from './content';
 const SR = { role: 'service_role' as const };
 export const UNSIGNED_DATE = new Date('2026-01-01T00:00:00Z'); // fixed, so the same document gives the same bytes
 
-export type PrepTarget = { t: 'packet'; key: PacketKey } | { t: 'form'; code: 'A' | 'B' } | { t: 'partner' } | { t: 'form_c'; vehicle: string };
+export type { PrepTarget } from './content';
 
 export interface DocSpec {
   target: PrepTarget;
@@ -32,7 +32,7 @@ export interface DocSpec {
 }
 export interface OpenDoc { sha: string; id: string }
 
-export const targetId = (t: PrepTarget) => (t.t === 'packet' ? `packet-${t.key}` : t.t === 'form' ? `form-${t.code}` : t.t === 'form_c' ? `form_c-${t.vehicle}` : 'partner');
+export { parseTarget, targetId } from './content';
 
 // ---------------------------------------------------------------- the documents, from the records
 export async function ownerAgreementFacts(ownerId: string, by: string): Promise<OwnerAgreementFacts> {
@@ -137,15 +137,6 @@ export async function specFor(userId: string, ownerId: string, t: PrepTarget): P
   if (t.t === 'partner') { const f = await partnerFacts(userId); return f ? partnerSpec(userId, f) : null; }
   const f = await formCFacts(userId, t.vehicle);
   return f ? formCSpec(userId, ownerId, t.vehicle, f) : null;
-}
-
-export function parseTarget(x: unknown): PrepTarget | null {
-  const o = (x ?? {}) as Record<string, unknown>;
-  if (o.t === 'packet' && (o.key === 'enrollment' || o.key === 'title_holding' || o.key === 'additional')) return { t: 'packet', key: o.key };
-  if (o.t === 'form' && (o.code === 'A' || o.code === 'B')) return { t: 'form', code: o.code };
-  if (o.t === 'partner') return { t: 'partner' };
-  if (o.t === 'form_c' && typeof o.vehicle === 'string' && /^[0-9a-f-]{36}$/.test(o.vehicle)) return { t: 'form_c', vehicle: o.vehicle };
-  return null;
 }
 
 /** For callers that need the document open now (an Admin's action, a page that is not the sign page). */

@@ -316,6 +316,8 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await expect(page.locator('#partner-agreement')).toContainText('25%');
   await check(page, 'partner agreement');
   const form = page.getByTestId('portal-sign-form');
+  // 0075: the agreement is prepared in its own request; the sign form appears once it is open
+  await expect(form).toBeVisible({ timeout: 45_000 });
   await expect(form.getByTestId('signature-adopted')).toContainText(pu.name);
   await form.getByTestId('package-sign').click();
   await expect(page.getByTestId('package-signed').or(page.getByTestId('partner-agreement-signed'))).toBeVisible({ timeout: 30_000 });

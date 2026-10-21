@@ -64,6 +64,7 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   } as never)}, ${ownerId}) r`;
   const owner = (app!.r as { owner_id: string }).owner_id;
   for (const v of await sql`select id from vehicles where owner_id = ${owner}`) await sql`select public.admin_set_vehicle_terms(${v.id}, ${adminId}, '{}')`;
+  await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${owner}`; // 0075: the Admin's choice
   await sql`select public.admin_issue_upfront_invoices(${owner}, ${adminId})`;
   const invoices = await sql`select id, invoice_number, total_cents from owner_invoices where owner_id = ${owner} order by invoice_number`;
   expect(invoices).toHaveLength(2);

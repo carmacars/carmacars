@@ -81,6 +81,7 @@ create table if not exists pdf_jobs (
 );
 comment on table pdf_jobs is 'Signed copies made after signing (0075): the signature is recorded first, the PDF is rendered here in its own Worker request, with retries';
 alter table pdf_jobs enable row level security;
+create policy admin_all on pdf_jobs for all to authenticated using (app.is_admin()) with check (app.is_admin());
 create index if not exists pdf_jobs_due on pdf_jobs (next_attempt_at) where status in ('queued', 'running');
 
 -- p: [{kind, ref, owner_id?, user_id?, payload?}]. A job already queued for the same document is kept (its payload refreshed).
