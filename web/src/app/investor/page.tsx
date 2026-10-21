@@ -25,7 +25,7 @@ export default async function InvestorHome() {
   return (
     <div className="stack">
       <header><p className="pt-kicker">{h.agreement ? `Agreement ${h.agreement.agreement_number}` : 'Investor'}</p><h1 className="d2" data-testid="investor-name">{h.investor.legal_name}</h1></header>
-      {deck && <Link href="/investor/deck" prefetch={false} className="pt-card on-dark" data-testid="deck-promo" style={{ display: 'grid', gap: 'var(--s-2)', textDecoration: 'none' }}>
+      {deck && <Link href="/investor/deck" prefetch={false} className="pt-card on-dark" data-testid="deck-promo" style={{ display: 'grid', gap: 'var(--s-2)', textDecoration: 'none', background: 'var(--black)', color: 'var(--white)', borderColor: 'var(--black)' }}>
         <span className="pt-kicker" style={{ color: 'var(--red-400)' }}>New</span>
         <span className="d3">The CarmaCars investor deck</span>
         <span className="small">What we built, how CarmaCars makes money, how your Return builds month by month, and a calculator for your own numbers.</span>

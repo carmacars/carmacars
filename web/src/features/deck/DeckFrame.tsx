@@ -6,7 +6,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function DeckFrame({ titles, children }: { titles: string[]; children: React.ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   const [cur, setCur] = useState(0);
+  const [ready, setReady] = useState(false);
   const slides = useCallback(() => Array.from(root.current?.querySelectorAll<HTMLElement>('.dk-slide') ?? []), []);
+  // the slide under the reading line (40% down the window), read from the page at the moment of a key or a button
+  const here = useCallback(() => {
+    const all = slides();
+    const line = window.innerHeight * 0.4;
+    let k = 0;
+    all.forEach((el, i) => { if (el.getBoundingClientRect().top <= line) k = i; });
+    return k;
+  }, [slides]);
   const go = useCallback((i: number) => {
     const all = slides();
     const k = Math.max(0, Math.min(all.length - 1, i));
@@ -17,6 +26,7 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
 
   useEffect(() => {
     document.documentElement.classList.add('dk-on');
+    setReady(true);
     return () => document.documentElement.classList.remove('dk-on');
   }, []);
 
@@ -34,15 +44,15 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.closest('input, select, textarea, [contenteditable], details summary') || e.altKey || e.ctrlKey || e.metaKey)) return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === 'ArrowDown' && e.shiftKey)) { e.preventDefault(); go(cur + 1); }
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || (e.key === 'ArrowUp' && e.shiftKey)) { e.preventDefault(); go(cur - 1); }
+      if (t && (t.closest('input, select, textarea, [contenteditable], details summary, .dk-scroll, .dk-calc__table') || e.altKey || e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === 'ArrowDown' && e.shiftKey)) { e.preventDefault(); go(here() + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || (e.key === 'ArrowUp' && e.shiftKey)) { e.preventDefault(); go(here() - 1); }
       else if (e.key === 'Home') { e.preventDefault(); go(0); }
       else if (e.key === 'End') { e.preventDefault(); go(slides().length - 1); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [cur, go, slides]);
+  }, [go, here, slides]);
 
   // swipe: a mostly horizontal stroke of 60 px or more
   useEffect(() => {
@@ -53,20 +63,20 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
     const end = (e: TouchEvent) => {
       if (!on) return; on = false;
       const t0 = e.changedTouches[0]; if (!t0) return; const dx = t0.clientX - sx, dy = t0.clientY - sy;
-      if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+      if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(here() + (dx < 0 ? 1 : -1));
     };
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchend', end, { passive: true });
     return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchend', end); };
-  }, [cur, go]);
+  }, [go, here]);
 
   return (
-    <div className="dk-deck" ref={root} data-testid="deck">
+    <div className="dk-deck" ref={root} data-testid="deck" data-ready={ready ? 'true' : undefined}>
       <div className="dk-tools" role="toolbar" aria-label="Slides">
         <div className="dk-tools__nav">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(cur - 1)} disabled={cur === 0} aria-label="Previous slide" data-testid="deck-prev">Previous</button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() - 1)} disabled={cur === 0} aria-label="Previous slide" data-testid="deck-prev">Previous</button>
           <span className="dk-tools__count" aria-live="polite" data-testid="deck-count">{cur + 1} / {titles.length}</span>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(cur + 1)} disabled={cur >= titles.length - 1} aria-label="Next slide" data-testid="deck-next">Next</button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() + 1)} disabled={cur >= titles.length - 1} aria-label="Next slide" data-testid="deck-next">Next</button>
         </div>
         <label className="vh" htmlFor="dk-jump">Go to slide</label>
         <select id="dk-jump" className="select dk-tools__jump" value={cur} onChange={(e) => go(Number(e.target.value))}>

@@ -29,12 +29,14 @@ async function mkPerson(sql: Sql, kind: 'investor' | 'admin', name: string) {
   return { id, email };
 }
 async function signIn(page: Page, email: string) {
-  await page.goto('/sign-in', { waitUntil: 'networkidle' });
+  // a first visit can be cut short while the server compiles: once more
+  await page.goto('/sign-in', { waitUntil: 'networkidle' }).catch(() => page.goto('/sign-in', { waitUntil: 'networkidle' }));
   await acceptCookies(page);
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 20_000 });
+  await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 60_000 });
+  await page.waitForLoadState('networkidle');
 }
 async function ctx(browser: Browser) {
   const c = await browser.newContext({ viewport: isPhone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: isPhone(), baseURL: test.info().project.use.baseURL,
@@ -69,6 +71,7 @@ test.describe('investor deck', () => {
       await page.getByTestId('deck-promo').click();
       await page.waitForURL('**/investor/deck');
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+      await expect(page.getByTestId('deck')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
       const n = await page.getByTestId('deck-slide').count();
       expect(n).toBeGreaterThan(40);
       await expect(page.getByTestId('deck-count')).toHaveText(`1 / ${n}`);
@@ -81,7 +84,6 @@ test.describe('investor deck', () => {
       // next by button, then by keyboard
       await page.getByTestId('deck-next').click();
       await expect(page.getByTestId('deck-count')).toHaveText(`2 / ${n}`);
-      await page.locator('body').click({ position: { x: 2, y: 300 } });
       await page.keyboard.press('ArrowRight');
       await expect(page.getByTestId('deck-count')).toHaveText(`3 / ${n}`);
       await page.keyboard.press('End');
@@ -125,6 +127,7 @@ test.describe('investor deck', () => {
       const page = await ctx(browser);
       await signIn(page, inv.email);
       await page.goto('/investor/deck', { waitUntil: 'networkidle' });
+      await expect(page.getByTestId('deck')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
       const n = await page.getByTestId('deck-slide').count();
       await expect(page.getByTestId('deck-pdf')).toBeVisible();
       // what the button does: the browser's print, with the print styles

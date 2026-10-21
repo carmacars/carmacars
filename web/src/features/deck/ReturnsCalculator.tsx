@@ -84,7 +84,7 @@ export function ReturnsCalculator({ yearlyBps, minCents, lockupMonths, paymentDa
         </div>
         <details className="dk-screen-only" open>
           <summary className="strong">Month by month ({r.months.length} Return Months)</summary>
-          <div className="dk-calc__table">
+          <div className="dk-calc__table" tabIndex={0} role="region" aria-label="Month by month">
             <table className="dk-tbl" data-testid="calc-table">
               <thead><tr><th>#</th><th>Return Month</th><th className="n">Days</th><th className="n">Invested at start</th><th className="n">Return</th><th>How</th><th className="n">Invested at end</th></tr></thead>
               <tbody>{r.months.map((m) => <tr key={m.n}><td>{m.n}</td><td>{monthLabel(m.month)}</td><td className="n">{m.daysEarning === m.daysInMonth ? 'full' : `${m.daysEarning} of ${m.daysInMonth}`}</td>

@@ -64,7 +64,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'investor-portal', title: 'The investor portal', what: 'Each investment with its Invested Amount, Yearly Percentage, Investment Date, Lockup End Date and next payment date. Monthly statements as PDFs, and a yearly ZIP with a CSV summary.',
         why: 'Investors never have to ask where their money stands.', shots: [p('investor-investments.jpg', 'An investor\'s investments on a phone'), p('investor-statement.jpg', 'A monthly investor statement on a phone')] },
       { id: 'investor-notices', title: 'Notices and the agreement online', what: 'Switch between paid monthly and reinvested, ask to change the bank account, or ask to transfer, from the portal. The Investment Agreement is signed online.',
-        why: 'Requests reach the right person as a task, with a record of when they were received.', shots: [d('investor-profile.jpg', 'Investor profile and notices')] }
+        why: 'Requests reach the right person as a task, with a record of when they were received.', shots: [p('investor-profile.jpg', 'Investor profile and notices on a phone')] }
     ]
   },
   {

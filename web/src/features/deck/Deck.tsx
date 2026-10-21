@@ -174,7 +174,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
 
   add({ title: 'The owner program fees', node: <>
     <Head kicker="Owner program" title="Each owner car pays fixed monthly fees on top of its management fee" lead="Our published starting terms, by how many cars an owner brings. Each car's signed schedule sets its own amounts." />
-    <div className="dk-body"><div className="dk-scroll"><table className="dk-tbl" data-testid="deck-tiers">
+    <div className="dk-body"><div className="dk-scroll" tabIndex={0} role="region" aria-label="Owner program fees"><table className="dk-tbl" data-testid="deck-tiers">
       <thead><tr><th>Cars per owner</th><th className="n">Insurance fee a month</th><th className="n">Tracker fee a month</th><th className="n">Fixed fees a month</th><th className="n">Management fee</th></tr></thead>
       <tbody>{tiers.map((t) => <tr key={t.min_vehicles}><td>{tierLabel(t.min_vehicles, t.max_vehicles)}</td><td className="n">{$(t.insurance_fee_cents)}</td><td className="n">{$(t.tracker_fee_cents)}</td>
         <td className="n"><b>{$(t.monthly_fees_cents)}</b></td><td className="n">{pctOf(t.revenue_share_bps)} of rental revenue</td></tr>)}</tbody>
@@ -209,7 +209,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   add({ title: 'A sample 3-day rental', node: <>
     <Head kicker="Illustration" title={`How a ${s.days}-day rental stacks up, and who keeps what`} lead={`Built only from public prices: ${f.rates.source === 'real' ? 'the median daily rate of our listed cars' : 'our default daily rate for a standard car'}, ${s.delivery_cents ? 'delivery, ' : ''}one add-on and the young driver fee. Before HST.`} />
     <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 2 }}>
-      <div className="dk-scroll"><table className="dk-tbl" data-testid="deck-sample">
+      <div className="dk-scroll" tabIndex={0} role="region" aria-label="The sample rental"><table className="dk-tbl" data-testid="deck-sample">
         <thead><tr><th>Line</th><th className="n">Amount</th></tr></thead>
         <tbody>
           <tr><td>Rental: {s.days} days at {$(s.daily_rate_cents)}</td><td className="n">{$c(s.rental_cents)}</td></tr>
@@ -219,7 +219,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
           <tr className="dk-tot"><td>The renter pays (before HST)</td><td className="n">{$c(s.total_cents)}</td></tr>
         </tbody>
       </table></div>
-      <div className="dk-scroll"><table className="dk-tbl" data-testid="deck-splits">
+      <div className="dk-scroll" tabIndex={0} role="region" aria-label="Who keeps what"><table className="dk-tbl" data-testid="deck-splits">
         <thead><tr><th>The car is</th><th className="n">CarmaCars keeps</th><th className="n">Owner or partner</th></tr></thead>
         <tbody>{s.splits.map((x) => <tr key={x.label}>
           <td>{x.label}{x.kind !== 'company' ? ` (${pctOf(x.share_bps)} ${x.kind === 'partner' ? 'commission' : 'management fee'})` : ''}</td>
@@ -335,7 +335,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
           series={[{ name: 'Paid monthly: total received', color: '#000000', values: series(examples[0], false) }, { name: 'Reinvested: added to your investment', color: '#D0111B', values: series(examples[0], true) }]} />
         <p className="dk-legend"><span><i style={{ background: '#000' }} />Paid monthly: Returns received</span><span><i style={{ background: '#D0111B' }} />Reinvested: growth of the Invested Amount</span></p>
       </div>
-      <div className="dk-scroll"><table className="dk-tbl" data-testid="deck-examples">
+      <div className="dk-scroll" tabIndex={0} role="region" aria-label="Worked examples"><table className="dk-tbl" data-testid="deck-examples">
         <thead><tr><th>Invested</th><th>Returns</th>{horizons.map((y) => <th key={y} className="n">{y} {y === 1 ? 'yr' : 'yrs'}</th>)}</tr></thead>
         <tbody>{examples.flatMap((amt) => [
           <tr key={`${amt}p`}><td>{$(amt)}</td><td>Paid: received</td>{horizons.map((y) => <td key={y} className="n">{$c(ex(amt, y, false).totalPaidCents)}</td>)}</tr>,
