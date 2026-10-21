@@ -92,10 +92,20 @@ reinvested for 12 months it reaches $26,897.77 and then pays $672.44 a month.
 
 ## 5. Screens
 
-Public static assets in `web/public/deck/`, all with fictional people and sample cars: 33 from the guides' screenshots
-(`docs/guides/src/img`, made by `web/scripts/guide-shots.mjs`), resized; the rest photographed from the local build by
-`web/scripts/deck-shots.mjs`. Screens that show internal money or utilization (the Admin's Today page, Finance's money)
-are not used.
+Public static assets in `web/public/deck/` (38 JPEGs, about 2.8 MB), all with fictional people and sample cars:
+
+- 33 from the guides' screenshots (`docs/guides/src/img`, made by `web/scripts/guide-shots.mjs`), resized: the cars page,
+  a car page, the request's review step, an offer, the agreement ready to sign, payment, licence and coverage uploads,
+  extending a trip, a review; list your car, an owner's car, the owner calendar, a statement, an invoice, an official
+  form, banking; the investor's investments and statement (phone) and profile and notices (phone); the customer service
+  queue, review and offer, a new quote, field jobs, reading a toll notice, the sales scorecard, three field handover
+  steps (phone); the fleet calendar, the plate editor, the email outbox, View as, Program settings.
+- 5 photographed from the local build by `web/scripts/deck-shots.mjs`: a landing page (the top, without the sample
+  fleet's count), a car page's add-ons, the live chat answering, Calendar sync and Turo by email, the Admin guide.
+
+Screens that show internal money or utilization (the Admin's Today page, Finance's money) are not used. Four features
+have no screen (live visitors, discount games, recovery emails, partner fleets): the games and the visitor page do not
+show in automated browsers or without real visits.
 
 ## 6. Tests
 
@@ -104,5 +114,11 @@ are not used.
 | `supabase/tests/52_investor_deck.sql` | The settings row (defaults, one row, checks, row-level security, admin policy, audit trigger, privileges); who reads it (investor while shown, Admin always; renter, owner, assistant, field staff, an uninvited prospect never; the Admin preview refused to an assistant and an investor); the switch off and on; the save (values, refusals, audit); the figures (median, investment terms, tiers, partner commission, the sample rental adding up, each split, the company car, the email count, no internal figures, no numbered company name) |
 | `web/src/features/deck/returns.test.ts` | Schedule B examples 1 and 2 to the cent, part months at both ends, PostgreSQL month arithmetic, five years reinvested |
 | `web/tests/e2e/investor-deck.spec.ts` | At 375 and 1440: the home card and menu link, the slides by button and keyboard, the tiers from the database, the calculator ($500.00, about 7.5 months, $672.44, the minimum, $1,250.00 on $50,000), axe, overflow and the copy rules; the PDF (one page per slide, the notice, no portal menu, no long dash); the Admin's preview, settings saved, hidden from the investor (no link, no deck) and shown again from Admin > Investors; anyone else turned away |
+
+Run on October 21, 2026: the full database suite (`scripts/test.sh`) passed, 4,643 assertions in 55 files, 0 failed
+(52 investor deck: 46); the unit tests 5 of 5; typecheck and lint clean; the deck's end-to-end file 6 of 6 (2 skipped by
+design: the PDF and the switch run once, from the desktop). The production build (`next build`) could not run on the
+shared machine (killed for memory each time, with other worktrees building), so the end-to-end runs used `next dev` on
+the same local stack (`BASE_URL`); CI's build and full suite run on the branch as usual.
 
 No applied migration was edited.
