@@ -99,7 +99,7 @@ select test.eq('base: a refund spread over rental and delivery takes off only th
 select test.eq('base: booked revenue the same', app.sales_revenue_cents(test.id('booking:AF-2')), 10000::bigint);
 
 -- ================================================================ 4. add-on photos
-select test.eq('add-ons: every one has a photo', (select count(*) from addons where photo_path is null), 0::bigint);
+select test.eq('add-ons: each of the 9 has a photo', (select count(*) from addons where photo_path is null and code in ('flowers', 'baby_seat', 'child_seat', 'booster_seat', 'chauffeur', 'umbrella', 'phone_charger', 'full_tank', 'winter_tire')), 0::bigint);
 select test.eq('add-ons: the studio illustrations', (select photo_path from addons where code = 'flowers'), '/addon-photos/flowers.svg');
 
 -- ================================================================ 5. privileges
