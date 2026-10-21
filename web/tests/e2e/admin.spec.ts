@@ -96,7 +96,8 @@ test('admin: dashboard, review a request, adjust, re-price, send the offer, the 
 
   const ap = await adminCtx(browser, vp(phone), a.email);
   await expect(ap.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible();
-  await expect(ap.getByTestId('todo-requests')).toBeVisible();
+  // each request is a To do prompt of its own (0078) with Answer it
+  await expect(ap.locator('[data-kind="requests"]').first()).toBeVisible();
   await ap.goto('/admin/overview', { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('dash-requests')).toBeVisible();
   await ap.screenshot({ path: `${SHOTS}/dashboard-${info.project.name}.png`, fullPage: true });
