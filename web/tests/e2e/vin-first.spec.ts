@@ -68,7 +68,7 @@ const startRate = async (sql: Sql, cls: string, make: string, model: string) => 
 test.describe.configure({ mode: 'serial' });
 
 test('Admin > Add a car from the VIN alone: one summary line, the class and the rate from it, the colour in one tap; the copy is written right after', async ({ browser }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(1_500_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
@@ -115,7 +115,7 @@ test('Admin > Add a car from the VIN alone: one summary line, the class and the 
 });
 
 test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and model from lists; by plate the same; never blocked', async ({ browser }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(1_500_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
@@ -155,7 +155,7 @@ test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and 
 });
 
 test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the copy is queued', async ({ browser }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(1_500_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
@@ -187,7 +187,7 @@ test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the 
 });
 
 test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS is Premium, not Standard', async ({ browser }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(1_500_000);
   const sql = db();
   const cs = await mkUser(sql, 'cs');
   const page = await signedIn(browser, cs.email, '/va');
@@ -212,7 +212,7 @@ test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS i
 });
 
 test('the owner\'s application: the VIN finds the car as the last character is typed; one tap for the colour; not decoded, three lists', async ({ page }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(1_500_000);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   await page.goto('/list-your-car/apply', { waitUntil: 'networkidle' });

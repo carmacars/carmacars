@@ -84,8 +84,8 @@ select test.ok('add: the copy is queued and asked for first, with the plain copy
   exists (select 1 from car_copy c where c.vehicle_id = (test.vf_car()).id and c.status = 'pending' and c.asked_at is not null and c.copy <> '{}'::jsonb)
   and exists (select 1 from vehicle_listings l where l.vehicle_id = (test.vf_car()).id and l.headline like '2016 Porsche Macan S%'));
 select test.ok('add: published at once with its rates', (select (r #>> '{listing,published}')::boolean from vf_add));
-select test.eq('add: the search job takes the new car first',
-  (select (app.server_seo_claim('vf-test', 1) #>> '{cars,0,vehicle_id}')::uuid), (test.vf_car()).id);
+select test.eq('add: the search job takes the new car with the cars asked for first',
+  (select bool_or((c ->> 'vehicle_id')::uuid = (test.vf_car()).id) from jsonb_array_elements(app.server_seo_claim('vf-test', 1 + (select count(*)::integer from car_copy where asked_at is not null and vehicle_id <> (test.vf_car()).id)) -> 'cars') c), true);
 update car_copy set status = 'pending', locked_at = null where vehicle_id = (test.vf_car()).id;
 select test.eq('facts: the VIN is now taken, by that car', (app.vin_facts('WP1AB2A56GLB12345') #>> '{taken,vehicle_id}')::uuid, (test.vf_car()).id);
 
