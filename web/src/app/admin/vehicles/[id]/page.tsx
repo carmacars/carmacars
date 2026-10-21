@@ -16,6 +16,8 @@ import { DeleteCar } from '@/features/supply/DeleteCar';
 import { RateCardForm } from '@/features/rates/RateCardForm';
 import { door } from '@/server/door';
 import { adminOwners } from '@/server/admin/data';
+import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
+import '@/features/admin/todo/todo.css';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', noindex: true, description: 'One vehicle: rates, fees, calendar, listing.' });
@@ -69,6 +71,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <Kv rows={[['VIN', v.vin], ['Plate', v.plate ?? ''], ['Class', v.class ?? ''], ['Classes on the site', v.classes.join(', ')], ['Colour', v.colour ?? ''], ['Odometer', v.odometer_km ? `${v.odometer_km.toLocaleString('en-CA')} km` : ''],
               ['Mode', label(v.management_mode)], ['Enrolled', d(v.enrollment_date)], ['Exit date', d(v.exit_date)], ['Drivers 18 to 20', v.allows_18_to_20 ? 'Allowed' : 'Not allowed'], ['Bookings', v.bookings_enabled ? 'Open' : 'Closed']]} />
             <div className="ad-actions">
+              {ls?.can_insure && <InsurerConfirm vehicleId={id} name={v.name} refresh={refresh} label="Insurer confirmed" testId="vehicle-insurer-confirm" />}
               {v.transitions.length > 0 && <Act action="vehicle_status" payload={P} label="Change status" fields={[{ name: 'status', label: 'New status', type: 'select', required: true, options: v.transitions.map((s) => [s, label(s)]) }]} refresh={refresh} />}
               <Act action="vehicle_classes" payload={P} label="Classes" fields={[{ name: 'classes', label: 'Classes (comma separated codes)', type: 'list', value: v.classes, hint: classes.map((c) => c.code).join(', ') }]} refresh={refresh} />
             </div>
@@ -84,7 +87,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             {sp.added && <p className="alert alert--ok" role="status"><span>Car added. Its rates are on the Rates tab (set them there if you did not type them). Start its listing when it is ready.</span></p>}
             <Kv rows={[['Supplied by', <span key="s" data-testid="vehicle-supply-label">{v.supply_label}</span>], ...(v.supply_type === 'partner' ? [['Partner', supplier] as [string, React.ReactNode],
               ['Commission', `${(v.commission_effective_bps ?? 0) / 100}%${v.commission_bps == null ? ' (the partner\'s)' : ' (this car\'s own)'}`] as [string, React.ReactNode]] : []),
-              ['Revenue to CarmaCars', v.supply_type === 'company' ? '100%: no owner, no owner statement, fees or payouts' : v.supply_type === 'partner' ? 'The commission; the partner gets the rest' : 'The Revenue Share in the owner\'s schedule']]} />
+              ['Revenue to CarmaCars', v.supply_type === 'company' ? '100%: no owner, no owner statement, fees or payouts' : v.supply_type === 'partner' ? 'The commission; the partner gets the rest' : 'The Revenue Share (management fee) in the owner\'s schedule']]} />
             <div className="ad-actions">
               {v.supply_type === 'partner' && <Act ops action="vehicle_set_commission" payload={{ vehicle_id: id }} label="Commission for this car" testId="vehicle-commission" refresh={refresh}
                 fields={[{ name: 'commission_bps', label: 'Commission (empty: the partner\'s)', type: 'percent', value: v.commission_bps }]} />}
@@ -151,13 +154,13 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
             </div>
           </Card>
-          <ListingWarnings w={ls} />
+          <ListingWarnings w={ls} vehicleId={id} name={v.name} ownerId={v.owner?.id ?? null} intakeId={v.intake ? String(v.intake.id) : null} refresh={refresh} />
           <CarCopyPanel d={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: id }).catch(() => null)} slug={slug} />
         </div>
       )}
       {tab === 'records' && (
         <div className="ad-cols ad-cols--2">
-          <Card title={v.supply_type === 'program_owner' ? 'Owner terms' : 'Terms'}><Kv rows={[[v.supply_type === 'program_owner' ? 'Owner' : 'Supplied by', v.supply_type === 'program_owner' ? v.owner?.legal_name ?? '' : v.supply_type === 'partner' ? v.partner?.business_name ?? '' : 'CarmaCars'], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Revenue Share', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} />
+          <Card title={v.supply_type === 'program_owner' ? 'Owner terms' : 'Terms'}><Kv rows={[[v.supply_type === 'program_owner' ? 'Owner' : 'Supplied by', v.supply_type === 'program_owner' ? v.owner?.legal_name ?? '' : v.supply_type === 'partner' ? v.partner?.business_name ?? '' : 'CarmaCars'], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Revenue Share (management fee)', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} />
             {v.terms && <Act action="fee_change_notice" payload={P} label="Fee change notice" fields={[{ name: 'insurance_fee_cents', label: 'New Insurance Fee', type: 'money', required: true, value: v.terms.insurance_fee_cents }, { name: 'tracker_fee_cents', label: 'New Tracker Fee', type: 'money', required: true, value: v.terms.tracker_fee_cents }, { name: 'effective_from', label: 'Effective (30 days or more ahead)', type: 'date', required: true }, { name: 'reason', label: 'Reason', type: 'text' }]} refresh={refresh} />}</Card>
           <Card title="Tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last seen', t(v.tracker.device.last_seen_at)], ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''], ['Locked', v.tracker.status ? String(v.tracker.status.locked) : '']]} /> : <p className="small muted">No tracker installed.</p>}
             <p className="small" data-testid="tracker-coming-soon"><b>Coming soon:</b> {TRACKER_SOON}</p></Card>
@@ -170,18 +173,38 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
 
 // The listing's state and checklist (0070): only "Keeps it off the site" stops the listing; the rest are warnings, the
 // fleet policy waits for the first handover.
-type Item = { code: string; label: string; action: string; who: string; kind?: string };
-type ListingState = { public: boolean; can_publish: boolean; can_act: boolean; needs_default_rates: boolean; default_daily: { text?: string } | null;
+type Item = { code: string; label: string; action: string; who: string; kind?: string; act?: string };
+type ListingState = { public: boolean; can_publish: boolean; can_act: boolean; can_insure?: boolean; needs_default_rates: boolean; default_daily: { text?: string } | null;
   missing: Item[]; checklist: Item[]; handover_note: string | null; auto_publish: boolean };
 const KIND: Record<string, string> = { handover: 'Before the first handover', records: 'Paperwork, tracked', listing: 'Makes the page better' };
-function ListingWarnings({ w }: { w: ListingState | null }) {
+// each checklist item's button (0077): where its work is done, or the work itself (Insurer confirmed)
+const ONBOARDING = ['owner_details', 'documents', 'government_forms', 'signatures', 'witnessed_forms', 'upfront_payment', 'registry_visit', 'tracker_install', 'safety_certificate'];
+function itemLink(x: Item, base: string, ownerId: string | null, intakeId: string | null): [string, string] | null {
+  if (x.code === 'rates') return [`${base}?tab=rates`, 'Set the rates'];
+  if (x.code === 'vin') return [`${base}?tab=overview`, 'Add the VIN'];
+  if (['photos', 'photos_review', 'plates', 'details'].includes(x.code)) return intakeId ? [`/admin/listings/${intakeId}`, x.code === 'photos' ? 'Add photos' : 'Open the review'] : null;
+  if (x.code === 'terms' && ownerId) return [`/admin/owners/${ownerId}?tab=terms`, 'Set the terms'];
+  if (x.code === 'application') return ['/admin/applications', 'Open applications'];
+  if (x.code === 'similar') return ['/admin/similar-cars', 'Check'];
+  if (ONBOARDING.includes(x.code) && ownerId) return [`/admin/owners/${ownerId}`, 'Open the owner'];
+  return null;
+}
+function ListingWarnings({ w, vehicleId, name, ownerId, intakeId, refresh }: { w: ListingState | null; vehicleId: string; name: string; ownerId: string | null; intakeId: string | null; refresh: string[] }) {
   if (!w) return null;
+  const base = `/admin/vehicles/${vehicleId}`;
+  const row = (x: Item) => {
+    const l = itemLink(x, base, ownerId, intakeId);
+    return (
+      <li key={x.code} data-testid={`check-${x.code}`}><span><b>{x.label}</b>: {x.action}</span>
+        {x.act === 'insurer_confirm' && w.can_insure ? <InsurerConfirm vehicleId={vehicleId} name={name} refresh={refresh} label="Insurer confirmed" testId="checklist-insurer-confirm" />
+          : l ? <Link prefetch={false} className="btn btn--ghost btn--sm" href={l[0]}>{l[1]}</Link> : null}</li>);
+  };
   return (
     <Card title={w.public ? 'On the site' : 'Not on the site yet'} testId="listing-warnings">
-      {w.missing.length > 0 && <><p className="pt-kicker">Keeps it off the site</p><ul className="small">{w.missing.map((g) => <li key={g.code}><b>{g.label}</b>: {g.action}</li>)}</ul></>}
+      {w.missing.length > 0 && <><p className="pt-kicker">Keeps it off the site</p><ul className="small gd-checklist">{w.missing.map(row)}</ul></>}
       {!w.public && w.needs_default_rates && w.default_daily?.text && <p className="small" data-testid="listing-default-rates">{w.default_daily.text}</p>}
       {(['handover', 'records', 'listing'] as const).map((k) => { const xs = w.checklist.filter((x) => x.kind === k); return xs.length ? (
-        <div key={k}><p className="pt-kicker">{KIND[k]}</p><ul className="small">{xs.map((x) => <li key={x.code}><b>{x.label}</b>: {x.action}</li>)}</ul></div>) : null; })}
+        <div key={k}><p className="pt-kicker">{KIND[k]}</p><ul className="small gd-checklist">{xs.map(row)}</ul></div>) : null; })}
       {!w.missing.length && !w.checklist.length && <p className="small muted">Nothing open.</p>}
     </Card>
   );

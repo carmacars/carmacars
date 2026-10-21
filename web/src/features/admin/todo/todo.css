@@ -1,0 +1,25 @@
+/* Admin > Today, the guided prompts (migration 0077): one line each, what to do and why, its button on the right (under
+   the text on a phone). */
+.gd-list { list-style: none; margin: 0; padding: 0; }
+.gd-item { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--grey-100); }
+.gd-item:last-child { border-bottom: 0; }
+.gd-when { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--grey-600, #555); }
+.gd-item--p1 .gd-when { color: var(--red-600); }
+.gd-text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.gd-title { font-weight: 600; overflow-wrap: anywhere; }
+.gd-why { font-size: 0.875rem; color: var(--grey-600, #555); overflow-wrap: anywhere; }
+.gd-act { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: flex-end; }
+@media (max-width: 40rem) {
+  .gd-item { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+  .gd-act { justify-content: flex-start; }
+}
+.gd-dialog__head { display: flex; justify-content: space-between; align-items: start; gap: var(--s-3); }
+.gd-dialog--wide { width: min(56rem, calc(100vw - 2rem)); }
+.gd-cars { display: grid; gap: var(--s-2); border: 0; padding: 0; margin: 0 0 var(--s-3); }
+.gd-checks { display: grid; gap: var(--s-1, 0.25rem); border: 0; padding: 0; margin: 0; }
+.gd-driver { border-top: 1px solid var(--grey-100); padding-top: var(--s-3); }
+.gd-docs { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 48rem) { .gd-docs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.gd-doc img { max-width: 100%; height: auto; }
+.gd-checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-2); }
+.gd-checklist li { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; justify-content: space-between; }

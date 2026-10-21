@@ -560,7 +560,9 @@ begin
              'since', t.created_at, 'due_at', t.due_at, 'title', t.title,
              'why', coalesce(nullif(btrim(t.detail), ''), nullif(btrim(r.description), ''), r.completion_rule,
                              case when t.queue <> 'admin' then format('An assistant task (%s): no assistant holds that function yet, so it comes to you.', t.queue) end),
-             'booking_number', b.booking_number, 'vehicle_id', t.vehicle_id, 'owner_id', t.owner_id, 'related_table', t.related_table, 'related_id', t.related_id,
+             'booking_number', b.booking_number, 'vehicle_id', t.vehicle_id, 'name', case when t.vehicle_id is not null then app.vehicle_name(t.vehicle_id) end,
+             'owner_id', t.owner_id, 'related_table', t.related_table, 'related_id', t.related_id,
+             'invoice_number', case when t.related_table = 'owner_invoices' then (select i.invoice_number from owner_invoices i where i.id = t.related_id) end,
              'from_queue', t.queue <> 'admin') order by t.due_at nulls last, t.created_at)
       from tasks t left join task_rules r on r.task_type = t.task_type left join bookings b on b.id = t.booking_id
      where t.status in ('open', 'in_progress')
