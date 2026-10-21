@@ -42,7 +42,8 @@ def build():
         'The top line shows your function and how many tasks are open.',
         'Filter: All, Mine, Unassigned or Waiting; Any time, Overdue, Due today or Escalated; and by type.',
         'Each row has a priority, the task, its record, when it is due and how long it has waited. The oldest due is first.',
-        f'Press {B("Take it")} to make it yours. {B("Sheet")} opens the step-by-step procedure.',
+        f'Press {B("Take it")} to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. {B("Sheet")} opens the step-by-step procedure.',
+        'Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day\'s opening and closing checks close at the end of that day.',
     ], shot=S('va-cs/01-queue-desktop', 0, 60, 1440, 700, pins=[(1, 200, 92), (2, 520, 172), (3, 460, 340), (4, 1320, 395)]))
 
     g.task('Work a task', 'Open the task. The buttons along the top move it on.')
@@ -146,6 +147,14 @@ def build():
         'Check Signed by and Date signed, and upload the scan of every signed page.',
         f'Press {B("Record signature")}. It counts as signed, and the renter is not asked to sign again.',
     ])
+
+    g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
+    g.steps([
+        f'Open the task "identity documents or coverage proof to review", or open the booking: {B("Review")} shows the documents of any booking being arranged or under way, with no task needed.',
+        f'Tick every check under a document, then press {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}.',
+        'The coverage: OPCF 27 shows the insurer, policy number and expiry; credit card coverage shows the card, its type and whether the name matches. Approve or reject it as a whole.',
+    ])
+    g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
 
     g.task('A change to a confirmed booking')
     g.para('On a booking\'s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, '
