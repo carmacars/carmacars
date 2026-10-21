@@ -16,7 +16,20 @@ const i = process.argv.indexOf('--site');
 const problems = []; const report = { base: BASE, pages: {} };
 const bad = (where, what) => problems.push(`${where}: ${what}`);
 
-const get = async (p, opt = {}) => { const r = await fetch(BASE + p, { redirect: 'manual', ...opt }); return { status: r.status, headers: r.headers, body: r.headers.get('content-type')?.includes('text') || r.headers.get('content-type')?.includes('xml') ? await r.text() : '' }; };
+// one page at a time, 60 seconds each, one more try: a page that never answers is a problem named with its address
+// (it used to stop the whole audit with an undici headers timeout and no address)
+const get = async (p, opt = {}) => {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch(BASE + p, { redirect: 'manual', signal: AbortSignal.timeout(60_000), ...opt });
+      return { status: r.status, headers: r.headers, body: r.headers.get('content-type')?.includes('text') || r.headers.get('content-type')?.includes('xml') ? await r.text() : '' };
+    } catch (e) {
+      if (i < 1) continue;
+      console.log(`seo: no answer from ${p}: ${e?.cause?.code ?? e?.name ?? e}`);
+      return { status: 0, headers: new Headers(), body: '', error: String(e?.cause?.code ?? e?.name ?? e) };
+    }
+  }
+};
 const attr = (tag, name) => new RegExp(`\\b${name}="([^"]*)"`).exec(tag)?.[1]?.replace(/&amp;/g, '&');
 const meta = (html, key) => { for (const m of html.matchAll(/<meta\b[^>]*>/g)) { const t = m[0]; if (attr(t, 'name') === key || attr(t, 'property') === key) return attr(t, 'content') ?? null; } return null; };
 const decode = (s) => s?.replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>') ?? s;
