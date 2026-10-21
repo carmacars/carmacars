@@ -109,6 +109,19 @@ Admin: Add a car, Add a car for an owner. Assistants: Add a car for an owner. Ow
   and by customer service, the owner's application decoded and not decoded; axe and no horizontal scroll. The specs that
   typed the year, make and model (rates-form, seo, supply-rentals, owner-terms, owner, signup) use the new entry.
 
+### Results (October 21, 2026)
+
+- Full DB suite (`scripts/test.sh`, on main with 0074 to 0076): 4,702 assertions passed, 0 failed (suite 52: 67).
+- Unit: 233 tests, all pass (`npm run test:unit`, with the schema marker at 0082).
+- e2e, against `next dev` and the local stack (a production build was killed for memory on the shared machine):
+  the customer service entry point and the owner's application passed at 375. Admin > Add a car (decoded, and not
+  decoded) and Admin's Add a car for an owner got past the decode, the summary line, the class, the starting rate and
+  the colour, and their cars were saved as asserted (checked in the database: decoded details, Premium and inferred,
+  the AI copy published by the search job right after the add), but the runs ended in Chromium "Target crashed" or a
+  2-minute page compile on the overloaded machine, not on an assertion. The 1440 runs crashed the same way. Rerun
+  `npx playwright test tests/e2e/vin-first.spec.ts` (and rates-form, seo, supply-rentals, owner-terms, owner, signup)
+  on a normal machine before shipping.
+
 ## Not done
 
 - The class rules have no Admin screen yet (they are rows in `vehicle_class_rules`; an Admin can change them in the
