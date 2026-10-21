@@ -17,7 +17,7 @@ async function check(page: Page, where: string) {
   await noOverflow(page);
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${where} ${v.id}`)).toEqual([]);
-  expect((await page.locator('body').innerText()).match(/[—–]/)?.[0], `${where}: long dash`).toBeUndefined();
+  expect((await page.locator('body').innerText()).match(/[\u2014\u2013]/)?.[0], `${where}: long dash`).toBeUndefined();
 }
 async function admin(sql: Sql) {
   const id = randomUUID(); const email = `ga.admin.${Date.now()}.${tag()}@example.test`;
@@ -50,7 +50,7 @@ async function onboardingCar(sql: Sql, ownerId: string, step = 'terms_set') {
 const prompt = (page: Page, key: string) => page.getByTestId(`prompt-${key}`);
 async function today(page: Page) { await page.goto('/admin', { waitUntil: 'networkidle' }); await expect(page.getByTestId('todo-prompts')).toBeVisible(); }
 
-test('Insurer confirmed: from Today for one car, for several at once, and on the car’s checklist', async ({ page }) => {
+test('Insurer confirmed: from Today for one car, for several at once, and on the car checklist', async ({ page }) => {
   test.setTimeout(150_000);
   const sql = db();
   const a = await admin(sql);
