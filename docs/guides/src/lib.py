@@ -24,7 +24,7 @@ DESK_HDR = 72        # the site header on a desktop shot
 PHONE_OUT_W = 640    # output width of a phone image (px)
 DESK_OUT_MAX = 1600  # output width cap of a desktop image (px)
 
-SITE_PHONE = '289-321-5991'
+SITE_PHONE = '289-312-5991'
 SITE_EMAIL = 'contact@carmacars.ca'
 
 USED_IMAGES = set()

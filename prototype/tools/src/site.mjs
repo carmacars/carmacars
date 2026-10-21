@@ -21,9 +21,9 @@ export const SITE = {
     contact: 'contact@carmacars.ca', bookings: 'bookings@carmacars.ca', owners: 'owners@carmacars.ca',
     billing: 'billing@carmacars.ca', privacy: 'privacy@carmacars.ca', investors: 'investors@carmacars.ca'
   },
-  phone: { display: '289-321-5991', e164: '+12893215991' },     // phone, WhatsApp and the 24-hour line share one number
-  whatsapp: { display: '289-321-5991', link: 'https://wa.me/12893215991' },
-  roadsideLine: { display: '289-321-5991', e164: '+12893215991' },
+  phone: { display: '289-312-5991', e164: '+12893125991' },     // phone, WhatsApp and the 24-hour line share one number
+  whatsapp: { display: '289-312-5991', link: 'https://wa.me/12893125991' },
+  roadsideLine: { display: '289-312-5991', e164: '+12893125991' },
   address: null,                                      // street address: supplied later; shown when set
   mailingAddress: null,                               // for the marketing opt-in line and email footers
   hours: 'Open 24 hours, every day',
