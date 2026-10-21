@@ -202,6 +202,9 @@ insert into vehicles (id, owner_id, year, make, model, plate, class, status, man
 values (test.id('vehicle:AFX'), test.id('owner:af_owner'), 2020, 'Honda', 'Civic', 'AFX111', 'standard', 'onboarding', 'managed', 'transfer', app.car_code_make(test.id('vehicle:AFY'), 4));
 insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method)
 values (test.id('vehicle:AFY'), test.id('owner:af_owner'), 2020, 'Honda', 'Civic', 'AFY111', 'standard', 'onboarding', 'managed', 'transfer');
+insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method, car_code)
+values (test.id('vehicle:AFZ'), test.id('owner:af_owner'), 2020, 'Honda', 'Civic', 'AFZ111', 'standard', 'onboarding', 'managed', 'transfer', (select car_code from vehicles where id = test.id('vehicle:AF1')));
+select test.ok('car code: a copied code is replaced by the car''s own', (select car_code from vehicles where id = test.id('vehicle:AFZ')) <> (select car_code from vehicles where id = test.id('vehicle:AF1')));
 select test.eq('car code: a clash takes one more character', length((select car_code from vehicles where id = test.id('vehicle:AFY'))), 8);
 select test.eq('car code: found however it is typed',
   (select string_agg(coalesce(app.vehicle_by_code(x)::text, 'none'), ',') from unnest(array[

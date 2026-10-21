@@ -2948,7 +2948,8 @@ language plpgsql security definer set search_path = public, app as $$
 declare
   n integer := 4;
 begin
-  if new.car_code is not null then return new; end if;
+  -- a code given and free is kept; a copied row (a test or an import that copies a car) gets its own
+  if new.car_code is not null and not exists (select 1 from vehicles v where v.car_code = new.car_code and v.id <> new.id) then return new; end if;
   loop
     new.car_code := app.car_code_make(new.id, n);
     exit when not exists (select 1 from vehicles v where v.car_code = new.car_code and v.id <> new.id);

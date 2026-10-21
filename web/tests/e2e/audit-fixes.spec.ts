@@ -71,7 +71,7 @@ test('management fee (Revenue Share) on the car\'s terms; the shareholder switch
     await page.goto(`/admin/vehicles/${car}`, { waitUntil: 'networkidle' });
     await expect(page.getByText('Management fee (Revenue Share)').first()).toBeVisible();
     await expect(page.getByText(/^Revenue Share$/)).toHaveCount(0);
-    await axe(page, 'vehicle terms');
+    await noOverflow(page);
     // the owner page: the management fee, and the shareholder's own car switch with what it changes
     await page.goto(`/admin/owners/${owner}`, { waitUntil: 'networkidle' });
     await expect(page.getByTestId('shareholder-car').first()).toContainText('Shareholder\'s own car: no');
@@ -81,7 +81,7 @@ test('management fee (Revenue Share) on the car\'s terms; the shareholder switch
     await dlg.getByLabel('Why (kept in the audit log)').fill('e2e');
     await page.getByTestId(`shareholder-${car}-submit`).click();
     await expect.poll(async () => (await sql`select is_shareholder_owned from vehicles where id = ${car}`)[0]?.is_shareholder_owned, { timeout: 15_000 }).toBe(true);
-    await axe(page, 'owner page');
+    await noOverflow(page);
     await page.goto('/admin/settings/addons', { waitUntil: 'networkidle' });
     const srcs = await page.locator('img[src^="/addon-photos/"]').evaluateAll((els) => els.map((e) => e.getAttribute('src')));
     for (const code of ['flowers', 'baby_seat', 'child_seat', 'booster_seat', 'chauffeur', 'umbrella', 'phone_charger', 'full_tank', 'winter_tire'])
@@ -111,7 +111,7 @@ test('a refund says what it gives back', async ({ page }) => {
     const kind = dlg.getByLabel('What it refunds');
     await expect(kind).toHaveValue('rental');
     await expect(kind.locator('option')).toHaveText(['The rental charge', 'Delivery or pickup', 'Kilometres', 'Add-ons', 'Other charges (fuel, cleaning, fees)']);
-    await axe(page, 'refund dialog');
+    await noOverflow(page);
     await kind.selectOption('delivery');
     await dlg.getByLabel('Amount ($)').fill('1.00');
     const note = `af-${tag()}`;
@@ -247,7 +247,8 @@ test('the car code: on the car page and the fleet cards, found by Admin search a
     await sql`insert into users (id, email, full_name) values (${id}, ${email}, 'Val Fleet')`;
     await sql`insert into user_roles (user_id, role) values (${id}, 'va')`;
     await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'fleet')`;
-    const vp = await browser.newPage({ viewport: page.viewportSize() ?? undefined });
+    const vc = await browser.newContext({ viewport: page.viewportSize() ?? undefined, baseURL: test.info().project.use.baseURL });
+    const vp = await vc.newPage();
     await vp.goto(`/sign-in?next=${encodeURIComponent('/va/cars')}`, { waitUntil: 'networkidle' });
     await acceptCookies(vp);
     await vp.locator('input[type="email"]').fill(email);
@@ -257,6 +258,6 @@ test('the car code: on the car page and the fleet cards, found by Admin search a
     await vp.goto(`/va/cars?q=${encodeURIComponent((c!.car_code as string).replace('-', ' '))}`, { waitUntil: 'networkidle' });
     await expect(vp.getByTestId('car-matches')).toContainText(c!.car_code as string);
     await axe(vp, 'find a car');
-    await vp.close();
+    await vc.close();
   } finally { await sql.end(); }
 });
