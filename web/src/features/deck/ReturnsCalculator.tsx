@@ -77,7 +77,7 @@ export function ReturnsCalculator({ yearlyBps, minCents, lockupMonths, paymentDa
           <div className="dk-card"><div className="dk-stat"><span>Paid to you for the period</span><b className="num" data-testid="calc-paid">{c(r.totalPaidCents)}</b></div></div>
           <div className="dk-card dk-card--accent"><div className="dk-stat"><span>Invested Amount on {longDate(r.endDate)}</span><b className="num" data-testid="calc-value">{c(r.finalInvestedCents)}</b></div></div>
         </div>
-        <div>
+        <div className="dk-calc__chart">
           <LineChart title={`${money(cents)} at ${yearlyBps / 100}% a year: Invested Amount and money received`} labels={chart.labels} lockupMonths={chart.lock} floor={cents} height={240}
             series={[{ name: 'Invested Amount plus Returns paid to you', color: '#D0111B', values: chart.got }, { name: 'Invested Amount', color: '#000000', dash: true, values: chart.inv }]} />
           <p className="dk-legend"><span><i style={{ background: '#D0111B' }} />Invested Amount plus Returns paid to you</span><span><i style={{ background: '#000' }} />Invested Amount</span><span><i style={{ background: '#F0F0F0', border: '1px solid #ccc' }} />Lockup</span></p>

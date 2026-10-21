@@ -3,7 +3,8 @@
    printed page match); below that a slide is a plain card that grows with its content. Print: one slide per
    13.333 x 7.5 inch landscape page, nothing else of the site. */
 
-.dk-bleed { width: 100vw; margin-left: calc(50% - 50vw); padding-inline: var(--gutter); }
+.pt .container:has(.dk-bleed) { max-width: calc(82rem + 2 * var(--gutter)) !important; }
+.dk-bleed { width: 100%; }
 .dk-deck { max-width: 82rem; margin-inline: auto; display: grid; gap: var(--s-6); counter-reset: dk; }
 .dk-tools { position: sticky; top: calc(var(--header-h) + var(--s-2)); z-index: 20; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; justify-content: space-between;
   background: rgb(255 255 255 / 0.92); backdrop-filter: blur(8px); border: var(--bw) solid var(--line); border-radius: var(--r-3); padding: var(--s-2) var(--s-3); }
@@ -12,6 +13,11 @@
 .dk-tools__jump { max-width: 14rem; }
 .dk-tools .btn { min-height: 40px; }
 .dk-hint { font-size: var(--fs-xs); color: var(--text-2); }
+@media (max-width: 40rem) {
+  .dk-hint { display: none; }
+  .dk-tools__jump { flex: 1 1 100%; max-width: none; order: 3; }
+  .dk-slide { scroll-margin-top: calc(var(--header-h) + 8rem); }
+}
 .dk-preview-note { border-left: 4px solid var(--red-600); background: var(--red-50); padding: var(--s-3) var(--s-4); }
 
 /* ---------- a slide ---------- */
@@ -25,7 +31,8 @@
 .dk-title { font: 700 var(--fs-d2)/1.06 var(--font-display); letter-spacing: -0.025em; text-wrap: balance; }
 .dk-title--hero { font-size: var(--fs-d1); letter-spacing: -0.035em; }
 .dk-lead { font-size: var(--fs-lead); line-height: 1.45; color: var(--text-2); max-width: 46em; }
-.dk-body { flex: 1; display: grid; gap: var(--s-4); align-content: start; min-height: 0; }
+.dk-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); align-content: start; min-height: 0; }
+.dk-body > *, .dk-calc > * { min-width: 0; }
 .dk-foot { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); justify-content: space-between; align-items: end; border-top: 1px solid var(--line); padding-top: var(--s-2);
   font-size: 0.6875rem; line-height: 1.35; color: var(--text-2); }
 .dk-foot__brand { font: 800 0.8125rem/1 var(--font-display); letter-spacing: -0.03em; color: var(--text); }
@@ -36,7 +43,8 @@
 .dk-foot__n::before { content: counter(dk); font-variant-numeric: tabular-nums; font-weight: 600; }
 
 /* ---------- building blocks ---------- */
-.dk-cols { display: grid; gap: var(--s-4); }
+.dk-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+.dk-cols > * { min-width: 0; }
 .dk-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
 .dk-card { border: var(--bw) solid var(--line); border-radius: var(--r-2); padding: var(--s-3) var(--s-4); background: var(--surface, var(--grey-100)); }
 .dk-slide--dark .dk-card { background: var(--grey-950); }
@@ -90,14 +98,14 @@
 .dk-legend i { display: inline-block; width: 0.9em; height: 0.9em; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.1em; }
 
 /* calculator */
-.dk-calc { display: grid; gap: var(--s-4); }
+.dk-calc { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .dk-calc__form { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); align-items: end; }
 .dk-calc__form .field { margin: 0; }
 .dk-calc__out { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
 .dk-calc__table { max-height: 22rem; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-2); }
 .dk-calc__table .dk-tbl th { position: sticky; top: 0; background: var(--white); }
-.dk-seg { display: inline-flex; border: var(--bw) solid var(--black); border-radius: var(--r-2); overflow: hidden; }
-.dk-seg button { border: 0; background: var(--white); padding: 0.55em 0.9em; font-weight: 600; font-size: var(--fs-sm); min-height: 44px; }
+.dk-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: var(--bw) solid var(--black); border-radius: var(--r-2); overflow: hidden; }
+.dk-seg button { flex: 1 1 auto; border: 0; background: var(--white); padding: 0.55em 0.9em; font-weight: 600; font-size: var(--fs-sm); min-height: 44px; }
 .dk-seg button[aria-pressed="true"] { background: var(--black); color: var(--white); }
 
 /* ---------- 16:9 from 60rem of slide width ---------- */
@@ -133,6 +141,16 @@
   .dk-shot--phone img { max-height: 33cqi; }
   .dk-legend { font-size: 0.95cqi; }
   .dk-calc__table { max-height: 18cqi; }
+  .dk-calc { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: 1.2cqi 2cqi; align-items: start; }
+  .dk-calc__form, .dk-calc > .dk-note, .dk-calc > details { grid-column: 1 / -1; }
+  .dk-calc__form { grid-template-columns: repeat(5, minmax(0, auto)); gap: 1cqi; }
+  .dk-calc__form .label { font-size: 0.95cqi; }
+  .dk-calc__out { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8cqi; }
+  .dk-calc__out .dk-card { padding: 0.7cqi 1cqi; }
+  .dk-calc__out .dk-card--accent { grid-column: 1 / -1; }
+  .dk-calc .dk-stat b { font-size: 1.9cqi; }
+  .dk-calc .dk-stat span { font-size: 0.9cqi; }
+  .dk-slide--free .dk-slide__in { aspect-ratio: auto; min-height: 56.25cqi; }
 }
 @media (prefers-reduced-motion: no-preference) { .dk-deck { scroll-behavior: smooth; } }
 
@@ -148,6 +166,7 @@
     -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none; }
   html.dk-on .dk-slide__in { aspect-ratio: auto; height: 7.5in; }
   html.dk-on .dk-calc__table { max-height: none; overflow: hidden; }
+  html.dk-on .dk-slide--free .dk-slide__in { min-height: 0; }
   html.dk-on .dk-shot { box-shadow: none; }
 }
 .dk-print-only { display: none; }

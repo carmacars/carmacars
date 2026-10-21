@@ -23,11 +23,11 @@ const $c = (c: number) => money(c, { cents: true });
 const pctOf = (bps: number | null | undefined) => (bps === null || bps === undefined ? '' : `${+(bps / 100).toFixed(2)}%`);
 const tierLabel = (min: number, max: number | null) => (max === null ? `${min} or more cars` : min === max ? `${min} car` : `${min} to ${max} cars`);
 
-interface SlideDef { title: string; tone?: 'dark' | 'red' | 'grey'; id?: string; node: React.ReactNode }
+interface SlideDef { title: string; tone?: 'dark' | 'red' | 'grey'; id?: string; free?: boolean; node: React.ReactNode }
 
 function Slide({ s, n }: { s: SlideDef; n: number }) {
   return (
-    <section className={`dk-slide${s.tone ? ` dk-slide--${s.tone}` : ''}`} id={s.id ?? `slide-${n}`} aria-label={`Slide ${n}: ${s.title}`} tabIndex={-1} data-testid="deck-slide">
+    <section className={`dk-slide${s.tone ? ` dk-slide--${s.tone}` : ''}${s.free ? ' dk-slide--free' : ''}`} id={s.id ?? `slide-${n}`} aria-label={`Slide ${n}: ${s.title}`} tabIndex={-1} data-testid="deck-slide">
       <div className="dk-slide__in">
         {s.node}
         <footer className="dk-foot">
@@ -209,7 +209,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   add({ title: 'A sample 3-day rental', node: <>
     <Head kicker="Illustration" title={`How a ${s.days}-day rental stacks up, and who keeps what`} lead={`Built only from public prices: ${f.rates.source === 'real' ? 'the median daily rate of our listed cars' : 'our default daily rate for a standard car'}, ${s.delivery_cents ? 'delivery, ' : ''}one add-on and the young driver fee. Before HST.`} />
     <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 2 }}>
-      <table className="dk-tbl" data-testid="deck-sample">
+      <div className="dk-scroll"><table className="dk-tbl" data-testid="deck-sample">
         <thead><tr><th>Line</th><th className="n">Amount</th></tr></thead>
         <tbody>
           <tr><td>Rental: {s.days} days at {$(s.daily_rate_cents)}</td><td className="n">{$c(s.rental_cents)}</td></tr>
@@ -218,13 +218,13 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
           {s.young_driver_cents ? <tr><td>Young driver fee (21 to 25), {s.days} days</td><td className="n">{$c(s.young_driver_cents)}</td></tr> : null}
           <tr className="dk-tot"><td>The renter pays (before HST)</td><td className="n">{$c(s.total_cents)}</td></tr>
         </tbody>
-      </table>
-      <table className="dk-tbl" data-testid="deck-splits">
+      </table></div>
+      <div className="dk-scroll"><table className="dk-tbl" data-testid="deck-splits">
         <thead><tr><th>The car is</th><th className="n">CarmaCars keeps</th><th className="n">Owner or partner</th></tr></thead>
         <tbody>{s.splits.map((x) => <tr key={x.label}>
           <td>{x.label}{x.kind !== 'company' ? ` (${pctOf(x.share_bps)} ${x.kind === 'partner' ? 'commission' : 'management fee'})` : ''}</td>
           <td className="n"><b>{$c(x.company_cents)}</b></td><td className="n">{x.owner_cents ? $c(x.owner_cents) : ''}</td></tr>)}</tbody>
-      </table>
+      </table></div>
     </div>
     <p className="dk-note">CarmaCars keeps its share of the rental charge plus every delivery, add-on and renter fee line. An owner car also pays its fixed monthly fees ({feeRange} a month) whether or not it is booked. Illustration only: real rentals vary in length, price, extras and discounts.</p></div>
   </> });
@@ -251,7 +251,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   // ---------------------------------------------------------------- the platform
   add({ title: 'The platform at a glance', tone: 'dark', node: <>
     <Head kicker="What we built" title="One platform for everyone in the business" lead={`Seven portals on one website that works on any phone, and the automation behind them. ${groupTitles.length} features follow, each with what it is, why it matters, and the real screen.`} />
-    <div className="dk-body"><div className="dk-grid">
+    <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 3 }}>
       {FEATURE_GROUPS.map((g) => <div key={g.id} className="dk-card"><h3>{g.kicker}</h3><p>{g.features.map((x) => x.title).join('. ')}.</p></div>)}
     </div><p className="dk-note">Screens are shown with fictional people and sample cars.</p></div>
   </> });
@@ -346,7 +346,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
     </div></div>
   </> });
 
-  add({ title: 'Return calculator', id: 'calculator', node: <>
+  add({ title: 'Return calculator', id: 'calculator', free: true, node: <>
     <Head kicker="Calculator" title="Try your own numbers" />
     <div className="dk-body"><ReturnsCalculator yearlyBps={bps} minCents={minC} lockupMonths={inv.lockup_months} paymentDay={inv.payment_day} defaultDate={start} /></div>
   </> });
