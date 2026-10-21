@@ -26,6 +26,36 @@ test('cookie banner: shown first, choice stored in the database, not shown again
   await expect(page.getByRole('dialog', { name: 'Cookies on CarmaCars' })).toBeVisible();
 });
 
+test('cookie notice: Ontario gets a notice with analytics on and can opt out; Quebec is asked first', async ({ page, context, baseURL }) => {
+  const host = new URL(baseURL ?? 'http://localhost:3000').hostname;
+  await context.clearCookies();
+  await context.addCookies([{ name: 'cc_geo', value: 'CA-ON', domain: host, path: '/' }]);
+  await page.goto('/faq');
+  await expect(page.getByTestId('cookie-notice')).toBeVisible();
+  await expect(page.getByTestId('cookie-banner')).toHaveCount(0);
+  let choice = (await context.cookies()).find((c) => c.name === 'cc_cookie_choice')?.value ?? '';
+  expect(decodeURIComponent(choice)).toContain('"analytics":true');
+  await page.waitForTimeout(800);
+  const vid = (await context.cookies()).find((c) => c.name === 'cc_vid')?.value;
+  const sql = db();
+  const r = await sql`select choice, analytics, region from cookie_consents where visitor_id = ${vid!} order by recorded_at desc limit 1`;
+  expect(r[0]?.choice).toBe('implied');
+  expect(r[0]?.region).toBe('CA-ON');
+  await page.getByTestId('cookie-optout').click();
+  choice = (await context.cookies()).find((c) => c.name === 'cc_cookie_choice')?.value ?? '';
+  expect(decodeURIComponent(choice)).toContain('"analytics":false');
+  await page.goto('/delivery');
+  await expect(page.locator('section.cookie')).toHaveCount(0);
+
+  await context.clearCookies();
+  await context.addCookies([{ name: 'cc_geo', value: 'CA-QC', domain: host, path: '/' }]);
+  await page.goto('/faq');
+  await expect(page.getByTestId('cookie-banner')).toBeVisible();
+  await expect(page.getByTestId('cookie-notice')).toHaveCount(0);
+  expect((await context.cookies()).find((c) => c.name === 'cc_cookie_choice')).toBeUndefined();
+  await sql.end();
+});
+
 test('fleet: dates ask the database which cars are free; filters and sort', async ({ page }) => {
   const errors = watch(page);
   const d = new Date(); d.setUTCDate(d.getUTCDate() + 20); const from = d.toISOString().slice(0, 10); d.setUTCDate(d.getUTCDate() + 2); const to = d.toISOString().slice(0, 10);

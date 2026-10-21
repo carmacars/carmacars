@@ -490,3 +490,6 @@ a[href^="tel:"] { white-space: nowrap; }
 .cookie__link:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
 @media (min-width: 48rem) { .cookie--compact { left: auto; right: var(--s-5); margin: 0; grid-template-columns: 1fr auto; align-items: center; } .cookie--compact .cookie__accept { width: auto; padding-inline: var(--s-6); } .cookie--compact .cookie__more { grid-column: 1 / -1; text-align: left; } }
 .cookie--compact .cookie__line { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cookie--notice { grid-template-columns: 1fr; }
+.cookie__notice-btns { margin: 0; display: flex; align-items: center; gap: var(--s-3); }
+@media (min-width: 48rem) { .cookie--notice { grid-template-columns: 1fr auto; } }

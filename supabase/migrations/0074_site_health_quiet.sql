@@ -61,3 +61,48 @@ begin
     case when v_stripe = 0 then 'No failed Stripe event in the last hour' else format('%s Stripe events failed to process in the last hour', v_stripe) end, p_now));
   return v_out;
 end $function$;
+
+
+-- ================================================================ cookies: notice and opt out in Canada outside Quebec and the US
+-- Approved by the owner and the company's lawyer (October 21, 2026). Analytics are on with a notice for visitors from
+-- the regions in cookies.banner.implied_regions (country codes, or country-region) except implied_exceptions; everyone
+-- else (and a visitor whose location is unknown) is asked first, as before. The Worker gives the browser its location
+-- as the cookie cc_geo (country-region, for example CA-ON); nothing about it is stored except the region on the record
+-- of what the visitor was shown.
+alter table cookie_consents add column if not exists region text check (region is null or region ~ '^[A-Z]{2}(-[A-Z0-9]{1,3})?$');
+alter table cookie_consents drop constraint if exists cookie_consents_choice_check;
+alter table cookie_consents add constraint cookie_consents_choice_check check (choice in ('accept_all', 'necessary_only', 'custom', 'implied'));
+comment on column cookie_consents.region is 'Where the visitor was visiting from when shown the notice (0074), country-region; null when asked first';
+
+-- The notice was shown and the visitor did not opt out (yet): analytics on, recorded with the region and wording.
+create or replace function app.record_cookie_notice(p_visitor_id text, p_wording_version text, p_region text default null, p_user_agent text default null)
+returns jsonb language plpgsql security definer set search_path = public, app as $$
+declare
+  v_id uuid;
+  v_region text := nullif(upper(btrim(coalesce(p_region, ''))), '');
+begin
+  perform app.public_rate_check('cookie_choice');
+  if v_region is not null and v_region !~ '^[A-Z]{2}(-[A-Z0-9]{1,3})?$' then v_region := null; end if;
+  insert into cookie_consents (visitor_id, user_id, choice, analytics, consent_codes, wording_version, user_agent, region)
+  values (p_visitor_id, app.uid(), 'implied', true, array['necessary_cookies', 'analytics_cookies'], btrim(p_wording_version), left(p_user_agent, 300), v_region)
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'id', v_id, 'analytics', true);
+end $$;
+create or replace function public.record_cookie_notice(p_visitor_id text, p_wording_version text, p_region text default null, p_user_agent text default null)
+returns jsonb language sql set search_path = public, app as $$
+  select app.record_cookie_notice(p_visitor_id, p_wording_version, p_region, p_user_agent)
+$$;
+revoke all on function app.record_cookie_notice(text, text, text, text), public.record_cookie_notice(text, text, text, text) from public;
+grant execute on function app.record_cookie_notice(text, text, text, text), public.record_cookie_notice(text, text, text, text) to anon, authenticated, service_role;
+
+update site_content_blocks
+   set data = data || jsonb_build_object('version', '2026-10-21',
+     'notice', 'We use cookies to keep the site working and to measure visits ourselves, so our team can help you while you browse. No third-party analytics.',
+     'ok', 'OK', 'optout', 'Opt out', 'notice_seconds', 10,
+     'implied_regions', jsonb_build_array('CA', 'US'), 'implied_exceptions', jsonb_build_array('CA-QC'))
+ where block_key = 'cookies.banner' and coalesce(data ->> 'version', '') < '2026-10-21';
+update site_content_blocks
+   set body = replace(replace(body, 'Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used and are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.', 'Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used. If you visit from Canada outside Quebec or from the United States, analytics are on when you arrive and a notice tells you so; you can opt out on that notice or at any time with "Cookie choices" at the bottom of every page, and we then stop at once. If you visit from Quebec or from anywhere else, analytics are set only if you accept them. We work out where you are visiting from with your connection''s approximate location, which we do not store for this. You can also block cookies in your browser, but parts of the Site may then not work.'), 'Without your consent we record none of it, except what follows.', 'If you opt out, or if you visit from a place where we ask first and you do not accept, we record none of it, except what follows.')
+ where block_key = 'legal.privacy' and body like '%Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used and are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.%';
+update site_content_blocks set data = data || jsonb_build_object('last_updated', 'October 21, 2026')
+ where block_key = 'legal.meta' and (data ->> 'last_updated') in ('October 19, 2026');
