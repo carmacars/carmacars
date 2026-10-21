@@ -41,6 +41,8 @@ async function mkOwnerCar(sql: Sql) {
               insurance_fee_cents, tracker_fee_cents, install_fee_cents, revenue_share_bps, enrollment_date, signed_at)
             values (${car}, ${agr}, ${`VS-${t}`}, 1, 'individual', 'owned_outright', 'managed', 'transfer', 45000, 2500, 10000, 3500, current_date - 20, now())`;
   await sql`insert into vehicle_fee_history (vehicle_id, source, insurance_fee_cents, tracker_fee_cents, revenue_share_bps, effective_from) values (${car}, 'signed_schedule', 45000, 2500, 3500, current_date - 20)`;
+  // the owner's page lists the cars with their onboarding
+  await sql`insert into vehicle_onboardings (vehicle_id, status) values (${car}, 'intake')`;
   return { owner, car };
 }
 async function signIn(page: Page, email: string, next: string) {
@@ -107,7 +109,8 @@ test('a refund says what it gives back', async ({ page }) => {
       for (const name of ['Money', 'Payments']) { const tab = page.getByRole('link', { name, exact: true }).or(page.getByRole('tab', { name, exact: true })); if (await tab.count()) { await tab.first().click(); break; } }
     }
     await open.click();
-    const dlg = page.getByRole('dialog');
+    const dlg = page.getByRole('dialog', { name: 'New refund' });
+    await expect(dlg).toBeVisible();
     const kind = dlg.getByLabel('What it refunds');
     await expect(kind).toHaveValue('rental');
     await expect(kind.locator('option')).toHaveText(['The rental charge', 'Delivery or pickup', 'Kilometres', 'Add-ons', 'Other charges (fuel, cleaning, fees)']);

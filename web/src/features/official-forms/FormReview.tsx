@@ -46,11 +46,17 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
 
   // a link to this form (#<code>) opens the review at once
   useEffect(() => {
-    const h = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-    if (h !== code && h !== `review-${code}`) return;
-    document.getElementById(`form-card-${code}`)?.scrollIntoView({ block: 'start' });
-    const t = window.setTimeout(open, 0);
-    return () => window.clearTimeout(t);
+    let t = 0;
+    const check = () => {
+      const h = decodeURIComponent(window.location.hash.replace(/^#/, ''));
+      if (h !== code && h !== `review-${code}`) return;
+      document.getElementById(`form-card-${code}`)?.scrollIntoView({ block: 'start' });
+      if (!dlg.current?.open) t = window.setTimeout(open, 0);
+    };
+    check();
+    // the To do's link opens it from another page; a link on this page only changes the hash
+    window.addEventListener('hashchange', check);
+    return () => { window.removeEventListener('hashchange', check); window.clearTimeout(t); };
     // only on arrival
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
