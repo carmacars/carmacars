@@ -91,6 +91,8 @@ export function GameGate() {
     if (open.current && excludedPath(path)) { open.current = false; setPopup(null); setFired(null); const o = visitNow(); if (o) saveVisit(closed(o, Date.now())); }
     let v = visitNow();
     if (!v) v = { start: Date.now(), pages: 0, cars: [], fromSearch: isSearchReferrer(document.referrer), shows: 0 };
+    // a game left open by a full page load (or a closed tab) counts as closed when this page starts
+    else if (!open.current && (v.shows ?? 0) > 0 && v.closedAt === undefined) v = closed(v, Date.now());
     saveVisit(addPage(v, path));
     check();
   }, [path, check]);

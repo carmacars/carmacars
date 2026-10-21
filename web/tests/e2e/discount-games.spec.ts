@@ -58,6 +58,12 @@ async function browseUntilGame(page: Page) {
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
 }
 
+/** A car page, once the watcher (loaded when the page is idle) has counted it. */
+async function carPage(page: Page, slug: string) {
+  await page.goto(`/cars/${slug}`, { waitUntil: 'load' });
+  await page.waitForFunction((s) => (sessionStorage.getItem('cc_game_visit') ?? '').includes(`"${s}"`), slug, { timeout: 15_000 });
+}
+
 /** Plays whichever game is on screen to its prize. */
 async function playAny(page: Page) {
   const game = (await page.getByTestId('game').getAttribute('data-game'))!;
@@ -184,10 +190,10 @@ test('closed: a different game comes back after 2 more car pages, with the same 
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('game')).toHaveCount(0);
   // one more car page is not enough
-  await page.goto('/cars/kia-forte', { waitUntil: 'load' });
-  await page.waitForTimeout(2500);
+  await carPage(page, 'kia-forte');
+  await page.waitForTimeout(1500);
   await expect(page.getByTestId('game')).toHaveCount(0);
-  await page.goto('/cars/hyundai-elantra', { waitUntil: 'load' });
+  await carPage(page, 'hyundai-elantra');
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
   const second = await page.getByTestId('game').getAttribute('data-game');
   expect(second).not.toBe('wheel');
@@ -197,12 +203,14 @@ test('closed: a different game comes back after 2 more car pages, with the same 
   await axe(page, 'second game');
   // closed again: the third and last of this visit comes after 2 more car pages, then no more
   await page.getByTestId('game-close').click();
-  for (const c of ['mercedes-benz-a220', 'tesla-model-3']) await page.goto(`/cars/${c}`, { waitUntil: 'load' });
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  for (const c of ['mercedes-benz-a220', 'tesla-model-3']) await carPage(page, c);
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
   const third = await page.getByTestId('game').getAttribute('data-game');
   expect(['wheel', second]).not.toContain(third);
   await page.getByTestId('game-close').click();
-  for (const c of ['mercedes-benz-c300', 'toyota-camry', 'kia-forte']) await page.goto(`/cars/${c}`, { waitUntil: 'load' });
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  for (const c of ['mercedes-benz-c300', 'toyota-camry', 'honda-civic']) await carPage(page, c);
   await page.waitForTimeout(2500);
   await expect(page.getByTestId('game')).toHaveCount(0);
   await page.context().close();
