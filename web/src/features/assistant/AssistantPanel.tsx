@@ -82,7 +82,7 @@ export function AssistantPanel({ portal }: { portal: Portal }) {
           <span className="small muted as-panel__keys">Ctrl+/ opens and closes</span>
           <button type="button" className="btn btn--quiet btn--sm" onClick={() => dlg.current?.close()} data-testid="assistant-close">Close</button>
         </header>
-        <div className="as-panel__log" role="log" aria-live="polite" aria-busy={busy} data-testid="assistant-log">
+        <div className="as-panel__log" role="log" aria-live="polite" aria-label="Conversation" tabIndex={0} aria-busy={busy} data-testid="assistant-log">
           {!items.length && (
             <div className="as-empty small">
               <p>Ask about today&apos;s work, bookings, cars, renters, owners and invoices. Changes come as a card for you to confirm; nothing runs until you do.</p>

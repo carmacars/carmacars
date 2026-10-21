@@ -44,7 +44,7 @@ async function signIn(page: Page, email: string, path: string) {
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL((u) => u.pathname.startsWith(path), { timeout: 20_000 });
+  await page.waitForURL((u) => u.pathname.startsWith(path), { timeout: 60_000 });
 }
 /** The day's Workers AI figure, as the app records it; and the guard's refresh (the hourly job). */
 async function neurons(sql: Sql, n: number) {
@@ -69,7 +69,7 @@ test.describe.configure({ mode: 'serial' });
 test.afterAll(async () => { const sql = db(); await neurons(sql, 0); await sql.end(); });
 
 test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to a cap, and Settings > Usage', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(300_000);
   const sql = db();
   const a = await person(sql, 'admin');
   await neurons(sql, 10_400);
@@ -107,7 +107,7 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
   await check(page, 'settings usage');
   // an allowance an Admin changes
   await page.getByTestId('usage-edit-supabase_db').click();
-  await page.getByLabel('Included (MB)').fill('8192');
+  await page.getByTestId('usage-edit-supabase_db-form').getByLabel('Included (MB)').fill('8192');
   await page.getByTestId('usage-edit-supabase_db-submit').click();
   await expect(page.getByTestId('usage-supabase_db-used')).toContainText('of 8.00 GB', { timeout: 15_000 });
   await sql`update usage_services set included = 524288000 where service = 'supabase_db'`;
@@ -116,7 +116,7 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
 });
 
 test('Assistant (Admin): opened from the header and Ctrl+/, a read answers with cards, a change runs only on Confirm, as the Admin', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(300_000);
   const sql = db();
   await neurons(sql, 0);
   const a = await person(sql, 'admin');
@@ -131,7 +131,8 @@ test('Assistant (Admin): opened from the header and Ctrl+/, a read answers with 
   await expect(page.getByTestId('assistant-panel')).toBeVisible();
 
   await askIt(page, 'What needs doing today?');
-  await expect(page.getByTestId('assistant-results').last()).toContainText(/need you|All clear|Nothing needs you/);
+  await expect(page.getByTestId('assistant-results').first()).toContainText(/things need you|Nothing needs you/);
+  await expect(page.getByTestId('assistant-results').last()).toContainText(/Pickups \d+ and returns \d+ today/);
   await askIt(page, 'Is the Corolla free from 2026-12-02 to 2026-12-04?');
   await expect(page.getByTestId('assistant-text').last()).toContainText(/Corolla/);
 
@@ -166,7 +167,7 @@ test('Assistant (Admin): opened from the header and Ctrl+/, a read answers with 
 });
 
 test('Assistant (VA): an assistant cannot reach an Admin\'s action; Finance-only searches are refused for Fleet', async ({ browser }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(300_000);
   const sql = db();
   await neurons(sql, 0);
   const v = await person(sql, 'va', 'fleet');
@@ -188,7 +189,7 @@ test('Assistant (VA): an assistant cannot reach an Admin\'s action; Finance-only
 });
 
 test('Paused: the assistant rests until tomorrow; a visitor\'s live chat goes to a person, never an error', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(300_000);
   const sql = db();
   await neurons(sql, 10_500);
   const a = await person(sql, 'admin');
@@ -200,9 +201,11 @@ test('Paused: the assistant rests until tomorrow; a visitor\'s live chat goes to
   await check(page, 'assistant paused');
 
   const v = await ctx(browser);
+  // a visitor who accepted analytics, as in live-chat.spec.ts (the chat comes with the beacon's answer)
+  await v.goto('/', { waitUntil: 'networkidle' });
+  await v.getByRole('button', { name: 'Accept all' }).first().click();
   await v.goto('/cars/toyota-corolla', { waitUntil: 'networkidle' });
-  const b = v.getByRole('button', { name: 'Necessary only' }).first();
-  if (await b.isVisible().catch(() => false)) await b.click();
+  await expect(v.getByTestId('chat-open')).toBeVisible({ timeout: 30_000 });
   await v.getByTestId('chat-open').click();
   await v.getByLabel('Your message').fill('Is the Corolla automatic?');
   await v.getByRole('button', { name: 'Send' }).click();

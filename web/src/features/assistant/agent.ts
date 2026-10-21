@@ -95,7 +95,7 @@ async function one(d: Deps, kind: Parameters<Deps['find']>[0], q: string, what: 
   if (ex.length === 1) return { row: ex[0]! };
   return { out: { type: 'question', text: `More than one ${what} matches "${q}". Which one?`, options: rows.slice(0, 6).map(label) } };
 }
-const carLabel = (r: FindRow) => `${String(r.name ?? r.car)}${r.plate ? ` (${String(r.plate)})` : ''}`;
+const carLabel = (r: FindRow) => `${String(r.name ?? r.car)}${r.plate ? ` (${String(r.plate)})` : ''}${r.sample ? ' (example car)' : ''}`;
 const carExact = (q: string) => (r: FindRow) => norm(String(r.plate ?? '')) === norm(q) || norm(String(r.fleet_number ?? '')) === norm(q) || norm(String(r.name ?? '')) === norm(q);
 
 /** A local "YYYY-MM-DD HH:MM" as an instant. */
@@ -112,7 +112,7 @@ async function read(d: Deps, tool: ToolName, a: Record<string, unknown>): Promis
         booking: (r) => ({ title: `${String(r.booking_number)} · ${String(r.status).replace(/_/g, ' ')}`, sub: [r.renter, r.car, `${when(r.pickup_at)} to ${when(r.return_at)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/bookings/${String(r.booking_number)}` }),
         renter: (r) => ({ title: String(r.name), sub: [r.email, r.mobile, `${String(r.bookings)} bookings`].filter(Boolean).join(' · '), href: d.who.portal === 'admin' ? `/admin/renters?q=${encodeURIComponent(String(r.email ?? r.name))}` : undefined }),
         owner: (r) => ({ title: String(r.name), sub: [r.status, r.email, r.phone, `${String(r.cars)} cars`].filter(Boolean).join(' · '), href: d.who.portal === 'admin' ? `/admin/owners/${String(r.id)}` : undefined }),
-        car: (r) => ({ title: String(r.name), sub: [r.plate && `plate ${String(r.plate)}`, String(r.status).replace(/_/g, ' '), r.listing && `listing ${String(r.listing)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/vehicles/${String(r.id)}` }),
+        car: (r) => ({ title: `${String(r.name)}${r.sample ? ' (example car)' : ''}`, sub: [r.plate && `plate ${String(r.plate)}`, String(r.status).replace(/_/g, ' '), r.listing && `listing ${String(r.listing)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/vehicles/${String(r.id)}` }),
         invoice: (r) => ({ title: `${String(r.invoice_number)} · ${String(r.owner)}`, sub: `${String(r.status).replace(/_/g, ' ')} · total ${money(r.total_cents)} · balance ${money(r.balance_cents)}${r.due_on ? ` · due ${String(r.due_on)}` : ''}`, href: d.who.portal === 'admin' ? `/admin/invoices/${String(r.invoice_number)}` : undefined }),
         toll: (r) => ({ title: `${String(r.notice_number ?? 'Notice')} · ${String(r.authority ?? r.kind)}`, sub: `plate ${String(r.plate ?? '')} · ${when(r.occurred_at)} · ${money(r.amount_cents)}${r.booking_number ? ` · suggested: ${String(r.booking_number)}` : ' · no suggested match'}` })
       };

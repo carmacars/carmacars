@@ -865,13 +865,13 @@ begin
        order by o.created_at desc limit 6) s;
   elsif v_kind = 'car' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_rows from (
-      select jsonb_build_object('id', v.id, 'name', app.vehicle_name(v.id), 'plate', v.plate, 'status', v.status, 'fleet_number', v.fleet_number,
+      select jsonb_build_object('id', v.id, 'name', app.vehicle_name(v.id), 'plate', v.plate, 'status', v.status, 'fleet_number', v.fleet_number, 'sample', coalesce(v.is_sample, false),
                'slug', (select l2.slug from vehicle_listings l2 where l2.vehicle_id = v.id), 'listing', (select l2.status from vehicle_listings l2 where l2.vehicle_id = v.id)) x
         from vehicles v
-       where v.status not in ('exited', 'declined') and coalesce(v.is_sample, false) = false
+       where v.status not in ('exited', 'declined')
          and (q = '' or lower(concat_ws(' ', v.year::text, v.make, v.model, v.trim, v.colour)) like l or lower(coalesce(v.fleet_number, '')) like l
               or (n <> '' and (upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%' or upper(coalesce(v.vin, '')) like '%' || n || '%')))
-       order by v.make, v.model limit 6) s;
+       order by coalesce(v.is_sample, false), v.make, v.model limit 6) s;
   elsif v_kind = 'car_now' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_rows from (
       select jsonb_build_object('car', app.vehicle_name(v.id), 'vehicle_id', v.id, 'plate', v.plate, 'car_status', v.status,
@@ -881,7 +881,7 @@ begin
         from vehicles v
         left join lateral (select * from bookings b2 where b2.vehicle_id = v.id and b2.status = 'on_rent' order by b2.pickup_at desc limit 1) b on true
         left join renters r on r.id = b.renter_id
-       where v.status not in ('exited', 'declined') and coalesce(v.is_sample, false) = false
+       where v.status not in ('exited', 'declined')
          and (lower(concat_ws(' ', v.year::text, v.make, v.model, v.colour)) like l or lower(coalesce(v.fleet_number, '')) like l
               or (n <> '' and upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%'))
        order by v.make, v.model limit 6) s;
