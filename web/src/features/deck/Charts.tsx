@@ -51,8 +51,8 @@ export function BarChart({ groups, series, title, height = 240 }: { groups: stri
       {groups.map((g, gi) => {
         const x0 = L + gi * gw + (gw - bw * series.length) / 2;
         return <g key={g}>
-          {series.map((s, si) => <g key={s.name}><rect x={x0 + si * bw + 2} y={y(s.values[gi])} width={bw - 4} height={Math.max(0, y(0) - y(s.values[gi]))} fill={s.color} />
-            <text x={x0 + si * bw + bw / 2} y={y(s.values[gi]) - 4} fontSize="10" textAnchor="middle" fill="#1A1A1A">{fmtK(s.values[gi])}</text></g>)}
+          {series.map((s, si) => <g key={s.name}><rect x={x0 + si * bw + 2} y={y(s.values[gi] ?? 0)} width={bw - 4} height={Math.max(0, y(0) - y(s.values[gi] ?? 0))} fill={s.color} />
+            <text x={x0 + si * bw + bw / 2} y={y(s.values[gi] ?? 0) - 4} fontSize="10" textAnchor="middle" fill="#1A1A1A">{fmtK(s.values[gi] ?? 0)}</text></g>)}
           <text x={L + gi * gw + gw / 2} y={H - 10} fontSize="12" textAnchor="middle" fill="#1A1A1A">{g}</text>
         </g>;
       })}

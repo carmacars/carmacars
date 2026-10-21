@@ -51,7 +51,7 @@ export interface ReturnResult {
   finalInvestedCents: number;
 }
 
-const parse = (s: string) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d }; };
+const parse = (s: string) => { const [y = 0, m = 1, d = 1] = s.split('-').map(Number); return { y, m, d }; };
 const iso = (y: number, m: number, d: number) => `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 export const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
 const dayNum = (s: string) => { const { y, m, d } = parse(s); return Date.UTC(y, m - 1, d) / 86_400_000; };
@@ -134,6 +134,6 @@ export function firstOfNextMonth(today: string): string {
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-export const longDate = (s: string) => { const { y, m, d } = parse(s); return `${MONTHS[m - 1]} ${d}, ${y}`; };
+export const longDate = (s: string) => { const { y, m, d } = parse(s); return `${MONTHS[m - 1] ?? ''} ${d}, ${y}`; };
 export const monthLabel = (s: string) => { const { y, m } = parse(s); return `${MONTHS[m - 1]} ${y}`; };
-export const shortMonth = (s: string) => { const { y, m } = parse(s); return `${MONTHS[m - 1].slice(0, 3)} ${String(y).slice(2)}`; };
+export const shortMonth = (s: string) => { const { y, m } = parse(s); return `${(MONTHS[m - 1] ?? '').slice(0, 3)} ${String(y).slice(2)}`; };

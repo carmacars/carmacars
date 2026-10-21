@@ -49,10 +49,10 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
     const el = root.current;
     if (!el) return;
     let sx = 0, sy = 0, on = false;
-    const start = (e: TouchEvent) => { if (e.touches.length !== 1 || (e.target as HTMLElement).closest('.dk-scroll, .dk-calc__table, input, select')) { on = false; return; } on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
+    const start = (e: TouchEvent) => { if (e.touches.length !== 1 || (e.target as HTMLElement).closest('.dk-scroll, .dk-calc__table, input, select')) { on = false; return; } on = true; sx = e.touches[0]!.clientX; sy = e.touches[0]!.clientY; };
     const end = (e: TouchEvent) => {
       if (!on) return; on = false;
-      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      const t0 = e.changedTouches[0]; if (!t0) return; const dx = t0.clientX - sx, dy = t0.clientY - sy;
       if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
     };
     el.addEventListener('touchstart', start, { passive: true });

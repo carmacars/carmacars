@@ -12,7 +12,7 @@ import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 const SHOTS = 'test-results/investor-deck';
 const PW = 'correct horse battery';
 const LOCK = 780078; // the "Show the deck to investors" switch is global: tests that read or change it take turns
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b/, 'brand misspelled'], [/\d{6,}\s+Canada/, 'numbered company name']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b/, 'brand misspelled'], [/18122211|\d{6,}\s+Canada|Canada Inc\b/i, 'numbered company name']];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 

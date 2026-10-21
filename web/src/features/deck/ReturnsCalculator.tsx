@@ -27,7 +27,7 @@ export function ReturnsCalculator({ yearlyBps, minCents, lockupMonths, paymentDa
   // the chart: month 0 is the Investment Date; the lockup months are flat
   const chart = useMemo(() => {
     if (!r) return null;
-    const lock = r.months.length ? (Number(r.months[0].month.slice(0, 4)) * 12 + Number(r.months[0].month.slice(5, 7))) - (Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7))) : 0;
+    const m0 = r.months[0]; const lock = m0 ? (Number(m0.month.slice(0, 4)) * 12 + Number(m0.month.slice(5, 7))) - (Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7))) : 0;
     const inv: number[] = [], got: number[] = [], labels: string[] = [];
     for (let k = 0; k <= lock; k++) { inv.push(cents); got.push(cents); labels.push(k === 0 ? 'Start' : ''); }
     let paid = 0;

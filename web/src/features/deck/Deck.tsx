@@ -86,7 +86,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   const s = f.sample;
   const start = firstOfNextMonth(today);
   const minC = inv.min_cents;
-  const examples = [minC, Math.max(minC, 5_000_000)].filter((v, i, a) => a.indexOf(v) === i);
+  const examples: [number, ...number[]] = [minC, ...(minC < 5_000_000 ? [5_000_000] : [])];
   const horizons = [1, 2, 3, 5];
   const ex = (amt: number, y: number, reinvest: boolean) => computeReturns({ amountCents: amt, yearlyBps: bps, investmentDate: start, years: y, reinvestMonths: reinvest ? Infinity : 0,
     lockupMonths: inv.lockup_months, paymentDay: inv.payment_day });
