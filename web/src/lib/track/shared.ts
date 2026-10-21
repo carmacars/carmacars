@@ -19,12 +19,17 @@ export function deviceOf(ua: string | null | undefined): 'phone' | 'tablet' | 'd
 
 export interface Beacon {
   sid: string; vid: string; consent: 'analytics' | 'essential'; device?: string; ref?: string; landing?: string;
-  utm?: Record<string, string>;
+  utm?: Record<string, string>; ad?: '1';
   events: Array<{ k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> }>;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const KINDS = new Set(['page_view', 'page_leave', 'search', 'request_started', 'request_abandoned', 'email_link_opened', 'pay_left', 'chat_opened']);
+const KINDS = new Set(['page_view', 'page_leave', 'search', 'request_started', 'request_abandoned', 'email_link_opened', 'pay_left', 'chat_opened',
+  // 0086 (analytics consent only; the database checks each detail against its own short list again)
+  'quote_seen', 'request_step', 'help_open', 'contact_click', 'photos', 'browse', 'friction']);
+/** The details an event may carry: dates, the price shown, a form step, a question's topic, how they contacted us, photos
+ *  looked through, a sort or filter, a form error. Never anything a visitor types. */
+const DETAIL = ['pickup', 'return', 'days', 'total', 'avail', 'deliv', 'xdrv', 'step', 'topic', 'via', 'n', 'sort', 'filter', 'maxp', 'type'] as const;
 const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : undefined);
 
 /** The batch as the database expects it, or null when it is not one. Strings are cut short; unknown keys dropped. */
@@ -37,6 +42,7 @@ export function cleanBeacon(raw: unknown, ua: string | null): Beacon | null {
     sid: b.sid, vid: b.vid, consent: b.consent === 'analytics' ? 'analytics' : 'essential', device: deviceOf(ua),
     ref: str(b.ref, 120), landing: str(b.landing, 300), events: []
   };
+  if (b.ad === '1' || b.ad === 1 || b.ad === true) out.ad = '1';
   if (b.utm && typeof b.utm === 'object') {
     out.utm = {};
     for (const k of ['source', 'medium', 'campaign', 'term', 'content']) { const v = str((b.utm as Record<string, unknown>)[k], 120); if (v) out.utm[k] = v; }
@@ -46,10 +52,15 @@ export function cleanBeacon(raw: unknown, ua: string | null): Beacon | null {
     const x = e as Record<string, unknown>;
     if (typeof x.k !== 'string' || !KINDS.has(x.k)) continue;
     const d = x.d && typeof x.d === 'object' ? x.d as Record<string, unknown> : null;
+    let dd: Record<string, string> | undefined;
+    if (d) {
+      dd = {};
+      for (const k of DETAIL) { const v = typeof d[k] === 'number' ? String(d[k]) : str(d[k], 16); if (v) dd[k] = v; }
+    }
     out.events.push({
       k: x.k, path: str(x.path, 300), slug: str(x.slug, 120), bn: str(x.bn, 30), m: str(x.m, 36),
       ms: typeof x.ms === 'number' && x.ms >= 0 ? Math.min(Math.round(x.ms), 86_400_000) : undefined,
-      d: d ? { pickup: str(d.pickup, 16) ?? '', return: str(d.return, 16) ?? '' } : undefined
+      d: dd
     });
   }
   return out;

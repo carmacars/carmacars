@@ -24,7 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       counts = { '/admin/requests': c.requests, '/admin/listings': c.listings, '/admin/statements': c.statements, '/admin/tolls': c.tolls, '/admin/money': c.refunds, '/admin/applications': c.applications ?? 0 };
     } catch { counts = {}; }
     // chats waiting for a person (0060)
-    try { counts['/admin/chat'] = Number((await door<{ waiting: number }>(user.id, 'admin_read', 'chat_counts')).waiting) || 0; } catch { /* no count */ }
+    // and hot visitors on the site now (0086), from the same read
+    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/chat'] = Number(c.waiting) || 0; counts['/admin/live'] = Number(c.hot) || 0; } catch { /* no count */ }
   }
   return (
     <div className="ad">

@@ -11,7 +11,9 @@ export interface TimelineData {
 const WORDS: Record<string, string> = {
   page_view: 'Viewed', car_view: 'Opened a car', search: 'Searched dates', request_started: 'Started a booking request', request_abandoned: 'Left the request form',
   request_submitted: 'Sent a booking request', email_link_opened: 'Opened an email link', offer_viewed: 'Viewed the offer', change_viewed: 'Opened the change proposal',
-  pay_viewed: 'Viewed the pay page', pay_left: 'Left the pay page', chat_opened: 'Opened the chat'
+  pay_viewed: 'Viewed the pay page', pay_left: 'Left the pay page', chat_opened: 'Opened the chat',
+  quote_seen: 'Saw the price', request_step: 'Reached a step of the request form', help_open: 'Opened a question', contact_click: 'Tapped to contact us',
+  photos: 'Looked through photos', browse: 'Sorted or filtered the cars', friction: 'Had trouble with a form'
 };
 
 export function VisitorTimeline({ t, chatBase }: { t: TimelineData | null; chatBase: string }) {
