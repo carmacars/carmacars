@@ -45,8 +45,8 @@ export async function generateMetadata({ params }: Params) {
   // 0073: every car's search text is built the same way as the sample cars' (from the car and its price), unless a
   // person wrote and locked it on the car copy
   const locked = new Set(c.copy_locked ?? []);
-  // 0075: a car that shares its year, make and model with another car on the site gets its distinguishing part (its
-  // colour, fleet number or a short code) in both, so no two cars have the same title or description
+  // 0074: a car that shares its year, make and model with another car on the site gets its distinguishing part (its
+  // colour or a short code) in both, so no two cars have the same title or description
   const nm = `${name(c)}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
   const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
     : fit(65, `Rent a ${c.year} ${nm} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}} | {{brand}}`);

@@ -1,5 +1,5 @@
--- 52: one search title and description per car (migration 0075). Cars of the same year, make and model get what
--- tells them apart (colour, then fleet number, then a short code); a car with no twin gets nothing. Fixtures "su".
+-- 52: one search title and description per car (migration 0074). Cars of the same year, make and model get what
+-- tells them apart (colour, then a short code; never the fleet number, which public reads never carry); a car with no twin gets nothing. Fixtures "su".
 select test.suite('52 car search text unique');
 
 select test.mk_owner('su_own');
@@ -17,7 +17,7 @@ insert into vehicle_listings (vehicle_id, slug, headline, status, published_at, 
 select v.id, app.listing_slug(v.id), 'x', 'published', now(), 5, 'Automatic', 'Sedan' from vehicles v where v.id = test.id('vehicle:SU3');
 
 select test.eq('a colour no twin has', app.listing_seo_mark(test.id('vehicle:SU1')), 'white');
-select test.eq('the same colour as a twin: the fleet number', app.listing_seo_mark(test.id('vehicle:SU2')), 'SU-7');
+select test.eq('the same colour as a twin: a short code, never the fleet number (private)', app.listing_seo_mark(test.id('vehicle:SU2')), 'car ' || upper(left(md5(test.id('vehicle:SU2')::text), 4)));
 select test.eq('the same colour and no fleet number: a short code', app.listing_seo_mark(test.id('vehicle:SU3')), 'car ' || upper(left(md5(test.id('vehicle:SU3')::text), 4)));
 select test.eq('another year has no twin: nothing added', app.listing_seo_mark(test.id('vehicle:SU4')), null::text);
 select test.eq('the car page carries it', public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:SU1'))) ->> 'seo_mark', 'white');
