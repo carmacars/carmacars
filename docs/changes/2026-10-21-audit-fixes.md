@@ -162,7 +162,8 @@ car, the samples too, got its code in 0079.
 
 `renter/find-a-car-and-send-a-request`, `renter/before-pickup`, `admin/getting-around-admin`, `admin/fleet-and-listings`, `admin/partners-company-cars-and-rentals-added-by-hand`,
 `admin/owners-and-onboarding`, `admin/owner-money`, `admin/add-ons`, `admin/quick-reference`, `va/finance`, `va/fleet`,
-`va/commissions`, `va/shared-tools`; and 0072's never published `va/add-a-rental-by-hand` and `field/report-rentals-referrals-and-profile`.
+`va/commissions`, `va/shared-tools`; and, never published by their releases, 0072's `va/add-a-rental-by-hand` and
+`field/report-rentals-referrals-and-profile`, and main's `renter/during-your-trip` and `field/my-jobs` (0074 to 0076).
 
 ## Tests
 
