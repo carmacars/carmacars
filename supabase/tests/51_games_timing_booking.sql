@@ -62,11 +62,11 @@ insert into g2 values (22, test.g2start('b', array[(select v ->> 'game' from g2 
 select test.eq('the server remembers: a browser that kept only the last game still gets one it has not shown',
   (select v ->> 'game' from g2 where n = 22) not in ((select v ->> 'game' from g2 where n = 20), (select v ->> 'game' from g2 where n = 21))
   and (select v ->> 'token' from g2 where n = 22) <> (select v ->> 'token' from g2 where n = 21), true);
-update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 0}';
+update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 0, "pack": 0}';
 select test.eq('a game at weight 0 is never chosen, and the round is the four left',
-  (select bool_and(app.game_next_kind(test.g2vid('w0'), null, '{}', null) <> 'plinko') from generate_series(1, 200))
+  (select bool_and(app.game_next_kind(test.g2vid('w0'), null, '{}', null) not in ('plinko', 'pack')) from generate_series(1, 200))
   and app.game_next_kind(test.g2vid('w0'), null, array['wheel', 'scratch', 'blackjack'], 'blackjack') = 'cups', true);
-update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 1}';
+update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 1, "pack": 1}';
 select test.eq('the reveal and the claim of a re-shown play work as before',
   (public.game_reveal((select v ->> 'token' from g2 where n = 6)))::text || ' ' || (app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 6),
     'first_name', 'Gina', 'email', 'g2.a@example.test')) ->> 'ok'), 'true true');

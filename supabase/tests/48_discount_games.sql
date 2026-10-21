@@ -65,7 +65,7 @@ select test.eq('the browser''s settings (0076: sooner, the re-show and the booki
 
 -- ================================================================ 2. who may play
 select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in ('pct5', 'pct10', 'pct15', 'amt50'))
-  || ' ' || jsonb_array_length(r -> 'prizes') || ' ' || length(r ->> 'token') || ' ' || ((r ->> 'terms') like 'Prizes:%') || ' ' || ((r ->> 'consent') like 'Yes, send me%') from (select test.gstart('a') as r) x), 'true true true 4 64 true true');
+  || ' ' || jsonb_array_length(r -> 'prizes') || ' ' || length(r ->> 'token') || ' ' || ((r ->> 'terms') like 'Prizes:%') || ' ' || ((r ->> 'consent') like 'Yes, send me%') from (select test.gstart('a') as r) x), 'true true true 7 64 true true');
 select test.eq('the same visitor again: the same play (no new draw by reloading)', (select count(distinct x ->> 'token') from (select test.gstart('a') as x from generate_series(1, 5)) y), 1::bigint);
 select test.eq('one play recorded, with the device, page and trigger', (select count(*) || ' ' || min(device) || ' ' || min(path) || ' ' || min(trigger) from game_plays where visitor_id = test.vid('a')), '1 phone /cars/dg-car pages');
 update game_plays set created_at = now() - interval '15 days' where visitor_id = test.vid('a');
