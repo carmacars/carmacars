@@ -65,7 +65,7 @@ request; a fresh individual owner with one car, so three documents: the two agre
 | POST /api/sign/prepare, Form A | 20 to 30 ms | In the page request |
 | POST /api/sign/prepare, already open | 10 to 20 ms | Every page view rendered again |
 | GET /owner/sign, documents open | 120 to 200 ms | Every page view rendered again |
-| Sign (the server action) | 240 to 550 ms, the success page in 2.1 to 2.5 s | Plus the three signed copies (the job row below) in the same request |
+| Sign (the server action) | 240 to 550 ms, the success page in 2.1 to 2.5 s (a heavily loaded test machine) | Plus the three signed copies (the job row below) in the same request |
 | POST /api/jobs/pdf (two signed copies) | 470 to 840 ms, in its own request; all three copies attached 3 to 4.6 s after Sign | n/a |
 
 End to end at 375 and 1440 (local, `owner-signing.spec.ts`): the documents readable 0.3 to 0.6 s after "Check and sign";
@@ -81,6 +81,8 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 | Signing | Never makes or issues an invoice (0077 wraps `owner_sign_agreements`; tested) |
 | The choice | Each car carries the Admin's choice (`vehicle_onboardings.first_last_choice`): the amount (exact; default 2 x the Insurance Fee) and Send invoice now, Draft only, Already paid (method, date, reference) or No invoice |
 | Where it is set | Approve (the "First and last month" choice now has No invoice), "Add a car for an owner" (0067's `staff_add_owner_car`), and the owner's Terms tab (each car: the choice, its invoice, or "not decided") |
+| Defaults | Approve and "Add a car for an owner" start the first and last month choice on Draft only: nothing is sent unless the Admin picks Send invoice now |
+| Wording on staff screens | "Management fee (Revenue Share, %)" on Approve, Add a car for an owner, the Terms tab and the owner page's terms form; the legal documents keep "Revenue Share" |
 | No choice | Nothing is invoiced; a task "Decide the first and last month invoice for (car)" opens, and Admin > Today shows "First and last month invoices to decide" with the count and a link to the owner's Terms tab, until it is decided (Today also shows "Signed copies that could not be made") |
 | No invoice | The car moves past "upfront paid" once signed (nothing to wait for) |
 | The owner page's Issue | Now "Apply the choices made": it only makes the invoice a choice asks for (for example after that invoice was voided); a car without a choice gets the to-do |
@@ -92,7 +94,7 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 
 | Suite | Result |
 | --- | --- |
-| Database, full (`scripts/test.sh`) | 4,538 passed, 0 failed; new suite 54 (36 assertions): approve without a choice, the bulk path, the to-do, opening by content key (one per request, idempotent, other users see nothing), signing records the signature against the opened SHA-256 for a corporation and makes no invoice, the jobs (enqueue, claim, retry, already attached, failure task, the email held and released, attachments), each choice (send, draft, paid with its reference, none, from the Terms tab, after a void), privileges. Suites 11, 16 and 28 now choose the first and last month invoice before the owner page's Issue; 03 lists `pdf_jobs` with the work lists |
+| Database, full (`scripts/test.sh`, rebased on main with 0072 and 0073) | 4,635 passed, 0 failed; new suite 54 (36 assertions): approve without a choice, the bulk path, the to-do, opening by content key (one per request, idempotent, other users see nothing), signing records the signature against the opened SHA-256 for a corporation and makes no invoice, the jobs (enqueue, claim, retry, already attached, failure task, the email held and released, attachments), each choice (send, draft, paid with its reference, none, from the Terms tab, after a void), privileges. Suites 11, 16 and 28 now choose the first and last month invoice before the owner page's Issue; 03 lists `pdf_jobs` with the work lists; 34 counts the two new Admin > Today items |
 | Unit | `content.test.ts`: the content key is deterministic, changes with every input, carries the renderer version; prepare targets accept only known documents |
 | End to end | `owner-signing.spec.ts` at 375 and 1440: an individual owner, a corporation owner whose car staff added (No invoice), an owner with custom terms (and a failed preparation with Try again). Updated: `owner.spec.ts`, `guides-manual.spec.ts`, `legal-admin-redesign.spec.ts`, `supply-rentals.spec.ts`, `debit.spec.ts`, `portal.spec.ts`, `ops.spec.ts` (they wait for the background copies, and choose the first and last month invoice) |
 

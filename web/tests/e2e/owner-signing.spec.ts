@@ -115,7 +115,8 @@ async function expectSigned(sql: Sql, ownerId: string, role: string) {
   expect(await upfront(sql, ownerId), 'signing makes no first and last month invoice').toBe(0);
 }
 
-test.describe.configure({ mode: 'serial' });
+// each test signs in several people and waits for background jobs: more than the default minute on a busy runner
+test.describe.configure({ mode: 'serial', timeout: 180_000 });
 
 test('an individual owner: Check and sign, documents shown at once, prepared in the background, signed; no invoice, a to-do for the Admin', async ({ browser }) => {
   const sql = db();
