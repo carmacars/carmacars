@@ -59,18 +59,15 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
   return (
     <>
       {show && (
-        <section className="cookie on-dark" aria-labelledby="ck-t">
-          <div className="cookie__in">
-            <div className="cookie__text">
-              <h2 className="d4" id="ck-t">{w.title}</h2>
-              <p className="small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
-            </div>
-            <div className="cookie__btns">
-              <button type="button" className="btn btn--quiet btn--sm" onClick={(e) => { opener.current = e.currentTarget; dialog.current?.showModal(); }}>{w.prefs}</button>
-              <button type="button" className="btn btn--light btn--sm" onClick={() => save('necessary_only', false)}>{w.necessary}</button>
-              <button type="button" className="btn btn--primary btn--sm" onClick={() => save('accept_all', true)}>{w.accept}</button>
-            </div>
-          </div>
+        <section className="cookie cookie--compact on-dark" aria-labelledby="ck-t" data-testid="cookie-banner">
+          <h2 className="vh" id="ck-t">{w.title}</h2>
+          <p className="cookie__line small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">Learn more</Link></p>
+          <button type="button" className="btn btn--primary cookie__accept" onClick={() => save('accept_all', true)} data-testid="cookie-accept">{w.accept}</button>
+          <p className="cookie__more small">
+            <button type="button" className="cookie__link" onClick={() => save('necessary_only', false)} data-testid="cookie-necessary">{w.necessary}</button>
+            <span aria-hidden="true"> · </span>
+            <button type="button" className="cookie__link" onClick={(e) => { opener.current = e.currentTarget; dialog.current?.showModal(); }}>{w.prefs}</button>
+          </p>
         </section>
       )}
       <dialog className="modal" id="cookie-prefs" aria-labelledby="ck-pt" ref={dialog}

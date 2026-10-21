@@ -1,4 +1,5 @@
 'use client';
+import { PasswordInput } from './PasswordInput';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
@@ -26,7 +27,7 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
       {code === 'unconfirmed' && <ResendConfirmation email={() => email.current?.value ?? ''} />}
       <input type="hidden" name="next" value={n} />
       <Field float id={`${idPrefix}-email`} label="Email" error={e.email}><input ref={email} className="input" placeholder=" " id={`${idPrefix}-email`} name="email" type="email" autoComplete="username" aria-invalid={!!e.email || undefined} aria-describedby={describedBy(`${idPrefix}-email`, e.email)} onInput={() => clear('email')} /></Field>
-      <Field float id={`${idPrefix}-pass`} label="Password" error={e.password}><input className="input" placeholder=" " id={`${idPrefix}-pass`} name="password" type="password" autoComplete="current-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy(`${idPrefix}-pass`, e.password)} onInput={() => clear('password')} /></Field>
+      <Field float id={`${idPrefix}-pass`} label="Password" error={e.password}><PasswordInput className="input" placeholder=" " id={`${idPrefix}-pass`} name="password" autoComplete="current-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy(`${idPrefix}-pass`, e.password)} onInput={() => clear('password')} /></Field>
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Signing in' : 'Sign in'}</button>
       <p className="small"><Link className="link" href="/reset-password">Forgot your password?</Link></p>
     </form>
@@ -60,7 +61,7 @@ export function SignUpForm({ minAge }: { minAge: string }) {
       <Err s={state as never} />
       <Field float id="su-name" label="Full name" error={e.name}><input className="input" placeholder=" " id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
       <Field float id="su-email" label="Email" error={e.email}><input className="input" placeholder=" " id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>
-      <Field float id="su-pass" label="Password" error={e.password} hint="At least 8 characters."><input className="input" placeholder=" " id="su-pass" name="password" type="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('su-pass', e.password, true)} onInput={() => clear('password')} /></Field>
+      <Field float id="su-pass" label="Password" error={e.password} hint="At least 8 characters."><PasswordInput className="input" placeholder=" " id="su-pass" name="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('su-pass', e.password, true)} onInput={() => clear('password')} /></Field>
       <div className={`field${e.agree ? ' has-error' : ''}`}>
         <label className="check"><input type="checkbox" name="agree" aria-invalid={!!e.agree || undefined} aria-describedby={e.agree ? 'su-agree-err' : undefined} onChange={() => clear('agree')} /><span className="small">I am {minAge} or older and agree to the <Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
         <p className="error" role="alert" id="su-agree-err">{e.agree ?? ''}</p>
@@ -99,7 +100,7 @@ export function NewPasswordForm() {
     <form className="stack-lg" onSubmit={run} noValidate aria-label="Choose a new password">
       <Err s={state as never} />
       {sp.get('token') && <input type="hidden" name="token" value={sp.get('token')!} />}
-      <Field float id="np-pass" label="New password" error={e.password} hint="At least 8 characters."><input className="input" placeholder=" " id="np-pass" name="password" type="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('np-pass', e.password, true)} onInput={() => clear('password')} /></Field>
+      <Field float id="np-pass" label="New password" error={e.password} hint="At least 8 characters."><PasswordInput className="input" placeholder=" " id="np-pass" name="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('np-pass', e.password, true)} onInput={() => clear('password')} /></Field>
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Saving' : 'Save the new password'}</button>
     </form>
   );

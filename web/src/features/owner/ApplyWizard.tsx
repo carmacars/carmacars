@@ -1,4 +1,5 @@
 'use client';
+import { PasswordInput } from '@/features/forms/PasswordInput';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { money, pct } from '@/lib/format';
@@ -403,7 +404,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <section className="pt-card" aria-label="Your owner account">
               <h3 className="d4">Your owner account</h3>
               <p className="small">You sign in with {o.email} to follow each vehicle, sign your agreements and pay your invoices.</p>
-              <Field id="ap-pw" label="Choose a password" err={errs.password} hint="At least 10 characters."><input className="input" type="password" {...aria('ap-pw', errs.password, 'hint')} value={password} onChange={(e) => { setPassword(e.target.value); clearErr('password'); }} autoComplete="new-password" /></Field>
+              <Field id="ap-pw" label="Choose a password" err={errs.password} hint="At least 10 characters."><PasswordInput className="input" {...aria('ap-pw', errs.password, 'hint')} value={password} onChange={(e) => { setPassword(e.target.value); clearErr('password'); }} autoComplete="new-password" /></Field>
               <p className="small muted">Already have an account? <Link href={`/sign-in?next=${encodeURIComponent('/list-your-car/apply')}`}>Sign in</Link> and your answers are kept.</p>
             </section>
           )}
