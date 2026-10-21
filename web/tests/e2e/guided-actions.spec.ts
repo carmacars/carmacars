@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// Migration 0077 end to end, at 375 and 1440: Admin > Today lists each piece of work as one line (what to do, why) whose
+// Migration 0078 end to end, at 375 and 1440: Admin > Today lists each piece of work as one line (what to do, why) whose
 // pop-up does it in place, pre-filled: Insurer confirmed (one car, several at once, and on the car's checklist), rates and
 // Publish now, renter documents, a payment received another way, a paper signature, an official form, a chat waiting, an
 // assistant task while no assistant holds the function. Each line is gone once its work is done.
@@ -219,5 +219,45 @@ test('a chat waiting for a person opens the chat; an assistant task with nobody 
   await prompt(page, `chat:${c!.id}`).getByTestId(`todo-act-chat:${c!.id}`).click();
   await page.waitForURL((u) => u.pathname === '/admin/chat' && u.searchParams.get('id') === c!.id);
   await sql`update chat_conversations set status = 'closed' where id = ${c!.id}`;
+  await sql.end();
+});
+
+test('an owner who paid another way: the first and last month recorded per car, a draft voided; the terms agreed entered in their pop-up', async ({ page }) => {
+  test.setTimeout(150_000);
+  const sql = db();
+  const a = await admin(sql);
+  const o = await owner(sql, `Fay Firstlast ${tag()}`);
+  const car = await onboardingCar(sql, o);
+  const [inv] = await sql`insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, status, fees_cents) values (${o}, ${car.id}, 'upfront', current_date, 'issued', 80000) returning id`;
+  await sql`update owner_invoices set status = 'void', voided_at = now() where id = ${inv!.id}`;
+  const [draft] = await sql`insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, status, fees_cents) values (${o}, ${car.id}, 'upfront', current_date, 'draft', 60000) returning id, invoice_number`;
+  await signIn(page, a.email);
+  await today(page);
+  const line = prompt(page, `first_last_paid:${o}`);
+  await expect(line).toContainText('Record the first and last month paid by Fay Firstlast');
+  await line.getByTestId(`todo-act-first_last_paid:${o}`).click();
+  const dlg = page.getByTestId(`todo-act-first_last_paid:${o}-dialog`);
+  await expect(dlg.getByTestId(`todo-act-first_last_paid:${o}-draft`)).toContainText(draft!.invoice_number as string);
+  await check(page, 'first and last month pop-up');
+  await dlg.getByLabel(`${car.name} ($)`).fill('678');
+  await dlg.getByLabel('Reference').fill('ET-55');
+  await dlg.getByTestId(`todo-act-first_last_paid:${o}-draft-void`).check();
+  await dlg.getByTestId(`todo-act-first_last_paid:${o}-submit`).click();
+  await expect(prompt(page, `first_last_paid:${o}`)).toHaveCount(0, { timeout: 20_000 });
+  const [paid] = await sql`select i.total_cents::int t, (select count(*)::int from vehicle_prepaids p where p.vehicle_id = ${car.id}) pre from owner_invoices i where i.vehicle_id = ${car.id} and i.status = 'paid'`;
+  expect([paid!.t, paid!.pre]).toEqual([67800, 2]);
+  expect((await sql`select status::text s from owner_invoices where id = ${draft!.id}`)[0]!.s).toBe('void');
+  // the terms agreed
+  const terms = prompt(page, `terms:${o}`);
+  await expect(terms).toContainText('Enter the terms agreed with Fay Firstlast');
+  await terms.getByTestId(`todo-act-terms:${o}`).click();
+  const td = page.getByTestId(`todo-act-terms:${o}-dialog`);
+  const share = td.getByLabel('Management fee (Revenue Share) (%)').first();
+  await expect(share).not.toHaveValue('');
+  await check(page, 'terms pop-up');
+  await share.fill('27.5');
+  await td.getByTestId(`todo-act-terms:${o}-submit`).click();
+  await expect(prompt(page, `terms:${o}`)).toHaveCount(0, { timeout: 20_000 });
+  expect((await sql`select revenue_share_bps n from owner_terms where owner_id = ${o} and vehicle_id = ${car.id}`)[0]!.n).toBe(2750);
   await sql.end();
 });

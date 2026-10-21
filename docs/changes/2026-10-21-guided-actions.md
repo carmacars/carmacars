@@ -1,4 +1,4 @@
-# Guided actions: Insurer confirmed, renter documents, Admin > Today as prompts (October 21, 2026; migration 0077)
+# Guided actions: Insurer confirmed, renter documents, Admin > Today as prompts (October 21, 2026; migration 0078)
 
 The owner's standing rule: "admins and staff must never hunt through menus or remember processes". Every recurring task is
 prompted to the right person at the right moment and done in one small pop-up, pre-filled, on Admin > Today and on the
@@ -52,6 +52,8 @@ to do and why, each with its pop-up. A line is computed from the records, so it 
 | <INV-n> from <owner>: <amount> waiting for payment | Record payment (e-Transfer, cash, cheque, bank transfer), the balance filled in |
 | Draft <INV-n> for <owner>: send it or void it | Opens the draft |
 | <owner> has not signed <n> documents sent <date> | Record paper signature (sent two days ago or more) |
+| Record the first and last month paid by <owner> | Amount per car or one total for several cars (tax included), method, date, reference; keep or void a draft first and last month invoice. Each car's first and last month invoice is issued quietly and recorded as paid (0067's Already paid), so the two prepaid months are funded (`vehicle_prepaids`). Not needed dismisses it. Never for a shareholder or a shareholder-owned car |
+| Enter the terms agreed with <owner> | Pre-filled from the standard grid: Management fee (Revenue Share), Insurance Fee, Tracker Fee, Install Fee, first and last month, for the owner and for any car; saved with 0067's `owner_terms_save` (a signed schedule gets an updated schedule to sign). These are correct dismisses it |
 | Check the official form <form> and use it for owners | Checked: use for owners (`form_verify`), Preview it |
 | Check the plate on <n> photos of <car> / Add real photos of <car> | Open the car's listing |
 | An Admin task, or an assistant task while nobody real holds the function | Its own pop-up when one is registered (`features/admin/todo/registry.tsx`), else the general one: why, Go to where it is done, Done, Later |
@@ -85,9 +87,17 @@ verification's accounts (verify-...@carmacars.ca and the Admin test addresses) d
 | A live chat task closes when the chat is answered, handed back or closed | same |
 | "Fleet is below the franchise minimum" closes once the count is above the warning level, and shows only while true | same, and the prompt |
 | "List the new vehicle" closes once the car is listed; a car out on rental without confirmed insurance closes when insured | same |
+| "Owner application: <car>" closes when the application is decided (or the car is past intake) | Triggers on `vehicle_onboardings` and `owner_applications`, and the sweep |
+| Request, offer expired, re-offer and offer tasks close when the booking is over (expired, declined, cancelled, no show, returned, closed) | Trigger on `bookings`, and the sweep |
+| "Review the draft owner statements for <month>" closes once no statement of that month is a draft | Trigger on `owner_statements`, and the sweep |
 
-The migration runs the sweep once: the 8 collection tasks of the voided INV-1044 to INV-1051, the past opening and
-closing checks, the closed chat's task and the franchise minimum task (if the count is above the warning level) close.
+The migration runs the sweep once. On the live data of October 21 that closes: the 8 collection tasks of the voided
+INV-1044 to INV-1051, 18 opening and closing checks of past days, the closed chat's task (LC-1001), the franchise minimum
+task (20 cars on the policy count, above the warning level of 11; note the sample cars count there), the 8 owner
+application tasks whose applications are decided, the request, offer-expired and re-offer tasks of the expired CC-10002
+and CC-10003, and September's statement review once no draft is left.
+
+Dismissed prompts are kept in `todo_dismissals` (key kind:record).
 
 ## 6. Labels
 
@@ -99,14 +109,18 @@ Admin: To do (the prompts), Renter documents, Publish, Mark a car insured (Insur
 site, Sample photos, Add a rental by hand (the handover needs Insurer confirmed), Paid and signed (the To do lines), Live
 chat, Official forms, the duplicate flag wording, and the quick reference (Publish a car, Mark a car insured, Check renter
 documents). Assistants: To do (each task opens where it is done; tasks close by themselves) and Check renter documents.
-Published by the migration's guides block (`supabase/seed/0077_gen_guides.mjs`, base 4ff90d1).
+Published by the migration's guides block (`supabase/seed/0078_gen_guides.mjs`, base 619e919).
 
 ## Tests
 
-`supabase/tests/52_guided_actions.sql` (43 assertions); `supabase/tests/50_coverage_proof.sql` follows the review with no
+`supabase/tests/52_guided_actions.sql` (54 assertions); `supabase/tests/50_coverage_proof.sql` follows the review with no
 task; `web/src/features/va/tasks.test.ts`; `web/tests/e2e/guided-actions.spec.ts` (each pop-up at 375 and 1440).
+
+## Data to check
+
+- Mahad Hussain is not marked as a shareholder (`owners.is_shareholder` is false), so his car gets the first and last month
+  and terms prompts; press Not needed / These are correct, or mark him a shareholder.
 
 ## Not done here
 
-- The amounts each owner actually paid for the first and last month (needs the owner's numbers; group C).
 - `program_settings.company_address` (group C). The first and last month choice pop-up itself (the owner signing work).

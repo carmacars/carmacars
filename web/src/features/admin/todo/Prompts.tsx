@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Act } from '@/features/admin/Act';
 import { DocumentReview } from '@/features/admin/DocumentReview';
 import { InsurerBulk, InsurerConfirm } from '@/features/admin/InsurerConfirm';
+import { FirstLastPaid, TermsAgreed } from '@/features/admin/OwnerMoneyPrompts';
 import { ManualPaymentForm, PaperSignatureForm } from '@/features/manual/ManualRecords';
 import { paperDocs, type ChecklistItem } from '@/features/manual/OwnerChecklist';
 import { adminTaskHref } from '@/features/va/tasks';
@@ -10,7 +11,7 @@ import { TASK_PROMPTS } from './registry';
 import type { Prompt } from './types';
 import './todo.css';
 
-// Admin > Today as a list of prompts (migration 0077): each line says what to do and why, and its button opens a small
+// Admin > Today as a list of prompts (migration 0078): each line says what to do and why, and its button opens a small
 // pop-up that does it in place, pre-filled. A line disappears when its work is done. Most urgent first.
 const R = ['/admin'];
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -24,7 +25,11 @@ function Control({ p }: { p: Prompt }) {
     case 'insurer':
       return <InsurerConfirm vehicleId={p.vehicle_id!} name={p.name ?? ''} testId={tid} refresh={R} />;
     case 'insurer_bulk':
-      return <InsurerBulk cars={p.cars ?? []} refresh={R} />;
+      return <InsurerBulk cars={(p.cars ?? []).map((c) => ({ vehicle_id: c.vehicle_id, name: c.name, plate: c.plate ?? null }))} refresh={R} />;
+    case 'first_last_paid':
+      return <FirstLastPaid p={p} />;
+    case 'terms':
+      return <TermsAgreed p={p} />;
     case 'publish': {
       const r = p.rates ?? null;
       return (

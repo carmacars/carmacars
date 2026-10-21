@@ -1,14 +1,16 @@
 import type { ReviewCoverage } from '@/features/coverage/types';
 
-// What app.todo_prompts returns (migration 0077): one prompt per piece of work. title says what to do, why says why,
+// What app.todo_prompts returns (migration 0078): one prompt per piece of work. title says what to do, why says why,
 // both one line; the rest is what the prompt's pop-up needs, pre-filled.
 export type PromptKind = 'insurer' | 'insurer_bulk' | 'publish' | 'documents' | 'chat' | 'requests' | 'changes' | 'applications' | 'invoice_payment'
-  | 'invoice_draft' | 'paper' | 'forms' | 'plates' | 'photos' | 'task';
+  | 'invoice_draft' | 'paper' | 'forms' | 'plates' | 'photos' | 'task' | 'first_last_paid' | 'terms';
 
 export interface Prompt {
   key: string; kind: PromptKind; priority: 1 | 2 | 3; title: string; why: string | null; since: string | null;
   vehicle_id?: string; name?: string; plate?: string | null; booking_number?: string | null; onboarding_status?: string | null;
-  cars?: Array<{ vehicle_id: string; name: string; plate: string | null }>;
+  cars?: Array<{ vehicle_id: string; name: string; plate?: string | null; voided_cents?: number | null; signed?: boolean; terms?: Terms }>;
+  drafts?: Array<{ invoice_id: string; invoice_number: string; total_cents: number }>;
+  grid?: Terms;
   suggested?: { daily_cents: number; source: string; text: string } | null;
   rates?: { daily: number | null; weekend: number | null; weekly: number | null; monthly: number | null } | null;
   chat_id?: string; request_id?: string; application_id?: string;
@@ -38,3 +40,6 @@ export interface DocReview {
   coverage: (Omit<ReviewCoverage, 'proof'> & { proof: (Omit<ReviewProof, 'pages'> & { pages: Array<ReviewProof['pages'][number] & { url?: string | null }> }) | null }) | null;
   waiting: number;
 }
+
+/** An owner's or a car's terms as owner_terms_resolve gives them (numbers as text from the database). */
+export interface Terms { revenue_share_bps: string | number | null; insurance_fee_cents: string | number | null; tracker_fee_cents: string | number | null; install_fee_cents: string | number | null; first_last_cents: string | number | null }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { docReviewLoad, guidedAct } from '@/server/actions/guided';
 import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 
-// Renter documents of one booking (migration 0077): the licence images and selfie of each driver, the proof of coverage
+// Renter documents of one booking (migration 0078): the licence images and selfie of each driver, the proof of coverage
 // (OPCF 27 or the credit card's rental coverage) and the Protection Plan, approved or rejected with a reason the renter
 // sees. An Admin or customer service, with no review task. The images come through one-minute private links, loaded
 // when the pop-up opens (each opening is logged).

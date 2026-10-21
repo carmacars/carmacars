@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Prompt } from './types';
 
-// The pop-up of a task on Admin > Today, by task type (migration 0077). A task the database raises for the Admin (or for
+// The pop-up of a task on Admin > Today, by task type (migration 0078). A task the database raises for the Admin (or for
 // an assistant function nobody real holds yet) shows on Today by itself, as one line with its title and why. Without an
 // entry here it gets the general pop-up: what it is, a link to where the work is done, Done and Later.
 //

@@ -202,7 +202,7 @@ function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: str
   );
 }
 
-// The renter's licence, selfie and proof of coverage (0077): reviewed here by an Admin, no task needed. The images load
+// The renter's licence, selfie and proof of coverage (0078): reviewed here by an Admin, no task needed. The images load
 // when the pop-up opens.
 function RenterDocs({ b, refresh }: { b: Detail; refresh: string[] }) {
   const r = b.readiness ?? {};

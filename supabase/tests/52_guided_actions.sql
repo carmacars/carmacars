@@ -187,6 +187,65 @@ select test.eq('the sweep: the voided invoice''s task, yesterday''s checks and t
 update owner_invoices set status = 'paid', paid_at = now() where id = test.id('inv:ga:2');
 select test.eq('a paid upfront invoice closes its task', (select status from tasks where related_id = test.id('inv:ga:2') and task_type = 'collect_upfront'), 'done');
 
+-- decided applications, bookings that are over, statements reviewed
+insert into vehicles (id, owner_id, year, make, model, vin, class) values (test.id('vehicle:GXI'), test.id('owner:gx_own'), 2022, 'Kia', 'Soul GXI', 'GXIVIN00000000001', 'standard');
+insert into vehicle_onboardings (id, vehicle_id) values (test.id('onb:GXI'), test.id('vehicle:GXI'));
+select test.ok('a new application raises its intake task', exists (select 1 from tasks where task_type = 'owner_intake' and related_id = test.id('onb:GXI') and status = 'open'));
+update vehicle_onboardings set status = 'terms_set' where id = test.id('onb:GXI');
+select test.eq('its terms set (the application decided): the intake task closes', (select status from tasks where task_type = 'owner_intake' and related_id = test.id('onb:GXI')), 'done');
+select test.mk_booking('GX-R', 'GX0', 'gx_rita', test.gx_day(20), test.gx_day(22), 'requested');
+select app.raise_task(p_type => 'booking_request', p_title => 'New booking request GX-R', p_booking => test.id('booking:GX-R'), p_dedupe => 'gx:req');
+select app.raise_task(p_type => 'offer_expired', p_title => 'GX-R: the offer expired', p_booking => test.id('booking:GX-R'), p_dedupe => 'gx:exp');
+update bookings set status = 'expired' where id = test.id('booking:GX-R');
+select test.eq('a booking that expired closes its request and offer tasks',
+  (select string_agg(status, ',' order by dedupe_key) from tasks where dedupe_key in ('gx:req', 'gx:exp')), 'cancelled,cancelled');
+-- left open from before (as CC-10002 and CC-10003): the sweep closes them
+update tasks set status = 'open' where dedupe_key in ('gx:req', 'gx:exp');
+select app.raise_task(p_type => 'review_statements', p_title => 'Review the draft owner statements for January 2020', p_dedupe => 'review_statements:2020-01');
+select app.job_task_hygiene();
+select test.eq('the sweep closes them, and a month with no draft statement left closes its review task',
+  (select string_agg(status, ',' order by dedupe_key) from tasks where dedupe_key in ('gx:req', 'gx:exp', 'review_statements:2020-01')), 'cancelled,cancelled,done');
+
+-- the first and last month really paid, after the invoices were voided
+select test.mk_owner('gx_pay');
+insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method)
+values (test.id('vehicle:GXP1'), test.id('owner:gx_pay'), 2021, 'Kia', 'Forte GXP1', 'GXPVIN00000000001', 'GXP1', 'standard', 'onboarding', 'managed', 'transfer'),
+       (test.id('vehicle:GXP2'), test.id('owner:gx_pay'), 2021, 'Kia', 'Forte GXP2', 'GXPVIN00000000002', 'GXP2', 'standard', 'onboarding', 'managed', 'transfer');
+insert into vehicle_onboardings (vehicle_id, status) values (test.id('vehicle:GXP1'), 'terms_set'), (test.id('vehicle:GXP2'), 'terms_set');
+insert into owner_invoices (id, owner_id, vehicle_id, kind, billing_date, status, fees_cents)
+values (test.id('inv:gxp:1'), test.id('owner:gx_pay'), test.id('vehicle:GXP1'), 'upfront', app.today(), 'issued', 90400),
+       (test.id('inv:gxp:2'), test.id('owner:gx_pay'), test.id('vehicle:GXP2'), 'upfront', app.today(), 'issued', 90400);
+update owner_invoices set status = 'void', voided_at = now() where id in (test.id('inv:gxp:1'), test.id('inv:gxp:2'));
+insert into owner_invoices (id, owner_id, vehicle_id, kind, billing_date, status, fees_cents)
+values (test.id('inv:gxp:d'), test.id('owner:gx_pay'), test.id('vehicle:GXP1'), 'upfront', app.today(), 'draft', 67800);
+select test.ok('an owner whose first and last month invoices were voided: a prompt with both cars and the draft',
+  jsonb_array_length(test.gx_prompt('first_last_paid:' || test.id('owner:gx_pay')) -> 'cars') = 2
+  and (test.gx_prompt('first_last_paid:' || test.id('owner:gx_pay')) -> 'drafts' -> 0 ->> 'invoice_id')::uuid = test.id('inv:gxp:d'));
+select test.throws('how it was paid is needed', format($$select app.first_last_paid_record(%L, jsonb_build_object('owner_id', %L, 'total_cents', 100000, 'vehicle_ids', jsonb_build_array(%L)))$$,
+  test.id('gx_admin'), test.id('owner:gx_pay'), test.id('vehicle:GXP1')), 'Choose how it was paid');
+select app.first_last_paid_record(test.id('gx_admin'), jsonb_build_object('owner_id', test.id('owner:gx_pay'), 'method', 'e_transfer', 'reference', 'ET-1',
+  'received_on', app.today() - 3, 'total_cents', 100001, 'vehicle_ids', jsonb_build_array(test.id('vehicle:GXP1'), test.id('vehicle:GXP2')),
+  'drafts', jsonb_build_array(jsonb_build_object('invoice_id', test.id('inv:gxp:d'), 'action', 'void'))));
+select test.eq('recorded as paid per car (the total split, the odd cent on the first), the prepaid months funded, the draft voided, the prompt gone',
+  (select string_agg(i.total_cents || ':' || i.status, ',' order by v.vin) from owner_invoices i join vehicles v on v.id = i.vehicle_id
+    where i.owner_id = test.id('owner:gx_pay') and i.kind = 'upfront' and i.status = 'paid')
+  || '/' || (select count(*) from vehicle_prepaids where vehicle_id in (test.id('vehicle:GXP1'), test.id('vehicle:GXP2')))
+  || '/' || (select status from owner_invoices where id = test.id('inv:gxp:d')) || '/' || test.gx_has('first_last_paid:' || test.id('owner:gx_pay')),
+  '50001:paid,50000:paid/4/void/false');
+-- the terms agreed
+select test.ok('an owner on the standard grid has a terms prompt, pre-filled from the grid', test.gx_has('terms:' || test.id('owner:gx_pay'))
+  and (test.gx_prompt('terms:' || test.id('owner:gx_pay')) -> 'grid' ->> 'revenue_share_bps') is not null);
+select app.terms_agreed_save(test.id('gx_admin'), jsonb_build_object('owner_id', test.id('owner:gx_pay'), 'terms', jsonb_build_object('revenue_share_bps', 3000, 'insurance_fee_cents', 30000),
+  'cars', jsonb_build_array(jsonb_build_object('vehicle_id', test.id('vehicle:GXP1')), jsonb_build_object('vehicle_id', test.id('vehicle:GXP2'), 'terms', jsonb_build_object('revenue_share_bps', 2500)))));
+select test.eq('the owner''s terms and each car''s are kept; the prompt is gone',
+  (select string_agg(coalesce(vehicle_id::text, 'owner') || '=' || revenue_share_bps, ',' order by vehicle_id nulls first) from owner_terms where owner_id = test.id('owner:gx_pay'))
+  || '/' || test.gx_has('terms:' || test.id('owner:gx_pay')),
+  'owner=3000,' || least(test.id('vehicle:GXP1'), test.id('vehicle:GXP2'))::text || '=' || case when test.id('vehicle:GXP1') < test.id('vehicle:GXP2') then 3000 else 2500 end
+  || ',' || greatest(test.id('vehicle:GXP1'), test.id('vehicle:GXP2'))::text || '=' || case when test.id('vehicle:GXP1') < test.id('vehicle:GXP2') then 2500 else 3000 end || '/false');
+select app.todo_dismiss(test.id('gx_admin'), jsonb_build_object('key', 'terms:' || test.id('owner:gx_own')));
+select test.eq('These are correct: the prompt does not come back', test.gx_has('terms:' || test.id('owner:gx_own')), false);
+select test.throws('only those prompts are dismissed', format($$select app.todo_dismiss(%L, '{"key": "insurer:x"}')$$, test.id('gx_admin')), 'cannot be dismissed');
+
 -- ================================================================ 8. assistant work while nobody real holds the function
 select app.raise_task(p_type => 'check_owner_document', p_title => 'Check an owner document (ga)', p_owner => test.id('owner:gx_own'), p_dedupe => 'gx:check_doc');
 select test.eq('with real customer service on staff, their task stays in their queue', test.gx_has('task:' || (select id from tasks where dedupe_key = 'gx:check_doc')), false);
@@ -226,5 +285,5 @@ select test.throws('only an Admin checks an official form', format($$select app.
 select test.eq('the browser roles execute none of the new functions',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and p.proname in ('confirm_fleet_policy', 'confirm_fleet_policy_bulk', 'doc_review_read', 'doc_review_upload', 'doc_review_coverage',
-                                              'doc_review_plan', 'todo_prompts', 'todo_publish', 'form_verify', 'job_task_hygiene', 'ops77', 'va_function_staffed')
+                                              'doc_review_plan', 'todo_prompts', 'todo_publish', 'form_verify', 'job_task_hygiene', 'ops78', 'va_function_staffed')
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);

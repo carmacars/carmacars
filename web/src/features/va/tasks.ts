@@ -11,7 +11,7 @@ const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unack
 
 export function taskHref(t: Task): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
-  // a visitor who asked for a person: straight to that chat (0077)
+  // a visitor who asked for a person: straight to that chat (0078)
   if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return t.related_table === 'chat_conversations' && t.related_id ? `/va/chat?id=${t.related_id}` : '/va/chat';
   if (n && BOOKING_REVIEW.includes(t.task_type)) return `/va/bookings/${n}?task=${t.id}`;
   if (n && VERIFY.includes(t.task_type)) return `/va/verify/${n}?task=${t.id}`;
@@ -33,7 +33,7 @@ export function taskHref(t: Task): string {
   return `/va/tasks/${t.id}`;
 }
 
-// The same task on the Admin's side (migration 0077): Admin > Tasks and Admin > Today open the screen where the work is
+// The same task on the Admin's side (migration 0078): Admin > Tasks and Admin > Today open the screen where the work is
 // done, never the task sheet.
 export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 'vehicle_id' | 'related_table' | 'related_id'> & { owner_id?: string | null; invoice_number?: string | null }): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;

@@ -177,7 +177,7 @@ type Item = { code: string; label: string; action: string; who: string; kind?: s
 type ListingState = { public: boolean; can_publish: boolean; can_act: boolean; can_insure?: boolean; needs_default_rates: boolean; default_daily: { text?: string } | null;
   missing: Item[]; checklist: Item[]; handover_note: string | null; auto_publish: boolean };
 const KIND: Record<string, string> = { handover: 'Before the first handover', records: 'Paperwork, tracked', listing: 'Makes the page better' };
-// each checklist item's button (0077): where its work is done, or the work itself (Insurer confirmed)
+// each checklist item's button (0078): where its work is done, or the work itself (Insurer confirmed)
 const ONBOARDING = ['owner_details', 'documents', 'government_forms', 'signatures', 'witnessed_forms', 'upfront_payment', 'registry_visit', 'tracker_install', 'safety_certificate'];
 function itemLink(x: Item, base: string, ownerId: string | null, intakeId: string | null): [string, string] | null {
   if (x.code === 'rates') return [`${base}?tab=rates`, 'Set the rates'];

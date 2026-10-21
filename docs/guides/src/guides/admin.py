@@ -31,8 +31,8 @@ def build():
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
     g.task('To do', 'Start every shift here. Each line says what to do and why, and its button opens a small pop-up that does it, already filled in. Nothing to remember and no menu to search.')
     g.steps([
-        'Each piece of work is its own line, marked Now, Today or When you can: a car the insurer has not confirmed, a car not on the site, a renter\'s documents to check, a visitor waiting in live chat, a booking request, a change a renter asked for, an owner application, an owner invoice waiting for payment, documents an owner has not signed, an official form to check, a plate to check, a car showing sample photos, and any task of the Admin.',
-        'Press the line\'s button: Mark insured, Set rates and publish, Review documents, Record payment, Record paper signature, Checked: use for owners, Open the chat, and so on. The pop-up is filled in; check it and confirm. The line disappears once the work is done.',
+        'Each piece of work is its own line, marked Now, Today or When you can: a car the insurer has not confirmed, a car not on the site, a renter\'s documents to check, a visitor waiting in live chat, a booking request, a change a renter asked for, an owner application, an owner invoice waiting for payment, the first and last month an owner paid after their invoices were voided, the terms agreed with an owner still on the standard grid, documents an owner has not signed, an official form to check, a plate to check, a car showing sample photos, and any task of the Admin.',
+        'Press the line\'s button: Mark insured, Set rates and publish, Review documents, Record payment, Record what they paid, Enter the terms, Record paper signature, Checked: use for owners, Open the chat, and so on. A line you do not need has Not needed or These are correct. The pop-up is filled in; check it and confirm. The line disappears once the work is done.',
         'Under the lines, the counts with one button each (failed payments, agreements to countersign, tolls, listings, insurance, staff commissions, prices typed by hand, sales claims, Turo emails). A count with nothing waiting moves to the bottom, under "more with nothing waiting".',
         'While no assistant holds customer service, sales, finance or fleet (the live verification\'s test accounts do not count), their tasks come to To do too, and so do their emails, to rent@carmacars.ca.',
         'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
@@ -485,6 +485,12 @@ def build():
     ])
     g.para('The car is then on the fleet policy from that date: it can be handed over, its Enrollment Date is that date, its fee terms start, and the owner gets the email "Written confirmation: your car is on the fleet policy". '
            'Its paperwork (agreements, registry visit, tracker) stays on its checklist until done. A car already listed and Available stays Available.')
+    g.task('Owners who paid another way, and the terms you agreed', 'Two lines on To do keep an owner\'s money right without opening their page.')
+    g.steps([
+        f'"Record the first and last month paid by <owner>": their first and last month invoice was voided and nothing paid is recorded. Press {B("Record what they paid")}, type the amount for each car (tax included), or one total for several cars, how and when it was paid and the reference. A draft first and last month invoice is kept or voided, your choice. Each car\'s invoice is then marked paid, the owner gets the receipt and the two prepaid months count. Never for a shareholder.',
+        f'"Enter the terms agreed with <owner>": their cars still use the standard grid. Press {B("Enter the terms")}: the Management fee (Revenue Share), the Insurance Fee, the Tracker Fee, the Install Fee and the first and last month are filled in from the grid. Type what you agreed for the owner, and open a car to give it its own. A car whose schedule is signed gets an updated schedule for the owner to sign.',
+        f'Nothing to change? Press {B("Not needed")} or {B("These are correct")}: the line does not come back.',
+    ])
     g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
         'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',

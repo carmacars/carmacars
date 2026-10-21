@@ -13514,6 +13514,9 @@ export type Database = {
           terms_approved_by: string | null;
           terms_approved_at: string | null;
           checklist_marks: Json;
+          insured_before_paperwork_from: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by: string | null;
+          insurer_confirmation_note: string | null;
         };
         Insert: {
           id?: string;
@@ -13570,6 +13573,9 @@ export type Database = {
           terms_approved_by?: string | null;
           terms_approved_at?: string | null;
           checklist_marks?: Json;
+          insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by?: string | null;
+          insurer_confirmation_note?: string | null;
         };
         Update: {
           id?: string;
@@ -13626,6 +13632,9 @@ export type Database = {
           terms_approved_by?: string | null;
           terms_approved_at?: string | null;
           checklist_marks?: Json;
+          insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by?: string | null;
+          insurer_confirmation_note?: string | null;
         };
         Relationships: [];
       };

@@ -18,17 +18,17 @@ interface Health {
 }
 
 // The home page (the owner's request of October 16, 2026): one list of what needs you, most urgent first. Each piece of
-// work is a prompt that says what to do and why, with a pop-up that does it in place (0077); then the counts with one
+// work is a prompt that says what to do and why, with a pop-up that does it in place (0078); then the counts with one
 // button each; then today's pickups and returns. Everything else is one tap away in the
 // menu (the money, fleet and queue figures are under Today > Overview).
 export default async function AdminToDo() {
   const { user } = await page('/admin');
   const d = await door<Todo>(user.id, 'ops_read', 'admin_todo');
   const h = await door<Health>(user.id, 'admin_read', 'site_health').catch(() => null);
-  // the guided prompts (0077): each piece of work on its own line with its pop-up; the counts below are what has no
+  // the guided prompts (0078): each piece of work on its own line with its pop-up; the counts below are what has no
   // prompt of its own (a count whose records each have a prompt is not repeated)
   const prompts = d.prompts ?? [];
-  const covered = new Set(['applications', 'requests', 'changes', 'plates', 'samples']);
+  const covered = new Set(['applications', 'requests', 'changes', 'plates', 'samples', 'first_last_decide', 'signed_copy_failed']);
   const rest = d.items.filter((i) => !covered.has(i.key));
   const open = rest.filter((i) => i.count > 0);
   const clear = rest.filter((i) => i.count === 0);
