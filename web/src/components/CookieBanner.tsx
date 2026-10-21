@@ -10,7 +10,16 @@ import { toast } from '@/lib/toast';
 // A new wording version asks again. "Cookie choices" in the footer reopens the preferences.
 const CHOICE = 'cc_cookie_choice';
 const VISITOR = 'cc_vid';
-type Choice = { version: string; choice: 'accept_all' | 'necessary_only' | 'custom'; analytics: boolean };
+type Choice = { version: string; choice: 'accept_all' | 'necessary_only' | 'custom' | 'implied'; analytics: boolean };
+/** Where the visitor is browsing from (the Worker's cc_geo cookie, e.g. CA-ON); null when unknown. */
+const geo = () => { const g = readCookie('cc_geo'); return g && /^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(g) ? g : null; };
+/** Notice and opt out (0075) for the regions the wording lists; everyone else, and an unknown location, is asked first. */
+export function noticeOnly(w: Pick<CookieWording, 'implied_regions' | 'implied_exceptions' | 'notice'>, g: string | null): boolean {
+  if (!g || !w.notice) return false;
+  const country = g.split('-')[0]!;
+  if ((w.implied_exceptions ?? []).some((x) => x === g || x === country)) return false;
+  return (w.implied_regions ?? []).some((x) => x === g || x === country);
+}
 
 const readCookie = (n: string) => document.cookie.split('; ').find((c) => c.startsWith(n + '='))?.split('=').slice(1).join('=');
 const writeCookie = (n: string, v: string) => { document.cookie = `${n}=${v}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`; };
@@ -32,17 +41,31 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const [analytics, setAnalytics] = useState(false);
+  const [notice, setNotice] = useState(false);
 
   useEffect(() => {
     if (!w) return;
     const have = current(w.version);
     // the stored choice lives in a cookie this static page can only read after it loads
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!have) setShow(true); else setAnalytics(have.analytics);
+    if (!have && noticeOnly(w, geo())) {
+      // notice and opt out: analytics on now, recorded with the region; the notice fades after a few seconds
+      const v: Choice = { version: w.version, choice: 'implied', analytics: true };
+      writeCookie(CHOICE, encodeURIComponent(JSON.stringify(v)));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnalytics(true); setNotice(true); setShow(true);
+      window.dispatchEvent(new CustomEvent('cc:consent', { detail: { analytics: true } }));
+      browserRpc('record_cookie_notice', { p_visitor_id: visitorId(), p_wording_version: w.version, p_region: geo(), p_user_agent: navigator.userAgent.slice(0, 300) }).catch(() => { /* kept in the browser */ });
+    } else if (!have) setShow(true); else setAnalytics(have.analytics);
     const open = (e: Event) => { opener.current = (e as CustomEvent<HTMLElement>).detail ?? null; setAnalytics(current(w.version)?.analytics ?? false); dialog.current?.showModal(); };
     window.addEventListener('cc:cookie-prefs', open);
     return () => window.removeEventListener('cc:cookie-prefs', open);
   }, [w]);
+
+  useEffect(() => {
+    if (!notice || !show) return;
+    const t = setTimeout(() => setShow(false), Math.max(4, w?.notice_seconds ?? 10) * 1000);
+    return () => clearTimeout(t);
+  }, [notice, show, w]);
 
   if (!w) return null;
   const save = (choice: Choice['choice'], on: boolean) => {
@@ -58,19 +81,26 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
 
   return (
     <>
-      {show && (
-        <section className="cookie on-dark" aria-labelledby="ck-t">
-          <div className="cookie__in">
-            <div className="cookie__text">
-              <h2 className="d4" id="ck-t">{w.title}</h2>
-              <p className="small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
-            </div>
-            <div className="cookie__btns">
-              <button type="button" className="btn btn--quiet btn--sm" onClick={(e) => { opener.current = e.currentTarget; dialog.current?.showModal(); }}>{w.prefs}</button>
-              <button type="button" className="btn btn--light btn--sm" onClick={() => save('necessary_only', false)}>{w.necessary}</button>
-              <button type="button" className="btn btn--primary btn--sm" onClick={() => save('accept_all', true)}>{w.accept}</button>
-            </div>
-          </div>
+      {show && notice && (
+        <section className="cookie cookie--compact cookie--notice on-dark" aria-labelledby="ck-n" data-testid="cookie-notice">
+          <h2 className="vh" id="ck-n">{w.title}</h2>
+          <p className="cookie__line small">{w.notice} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">Learn more</Link></p>
+          <p className="cookie__notice-btns">
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => setShow(false)} data-testid="cookie-ok">{w.ok ?? 'OK'}</button>
+            <button type="button" className="cookie__link" onClick={() => save('necessary_only', false)} data-testid="cookie-optout">{w.optout ?? w.necessary}</button>
+          </p>
+        </section>
+      )}
+      {show && !notice && (
+        <section className="cookie cookie--compact on-dark" aria-labelledby="ck-t" data-testid="cookie-banner">
+          <h2 className="vh" id="ck-t">{w.title}</h2>
+          <p className="cookie__line small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">Learn more</Link></p>
+          <button type="button" className="btn btn--primary cookie__accept" onClick={() => save('accept_all', true)} data-testid="cookie-accept">{w.accept}</button>
+          <p className="cookie__more small">
+            <button type="button" className="cookie__link" onClick={() => save('necessary_only', false)} data-testid="cookie-necessary">{w.necessary}</button>
+            <span aria-hidden="true"> · </span>
+            <button type="button" className="cookie__link" onClick={(e) => { opener.current = e.currentTarget; dialog.current?.showModal(); }}>{w.prefs}</button>
+          </p>
         </section>
       )}
       <dialog className="modal" id="cookie-prefs" aria-labelledby="ck-pt" ref={dialog}

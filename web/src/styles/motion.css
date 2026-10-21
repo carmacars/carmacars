@@ -185,3 +185,13 @@
 @media (prefers-reduced-motion: reduce) {
   .rv, img.img-wait { opacity: 1 !important; transform: none !important; filter: none !important; }
 }
+
+/* Show / Hide on password fields (PasswordInput): the button sits inside the field on the right */
+.pw { position: relative; display: block; }
+.pw > .input { width: 100%; padding-right: 4.25rem; }
+.pw__btn { position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); min-height: 44px; min-width: 44px; padding: 0 0.6rem; border: 0; background: transparent; color: var(--black); font: inherit; font-size: 0.875rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; border-radius: var(--r-2, 6px); }
+.pw__btn:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.field--float > .pw > .input { min-height: 56px; padding-top: 1.45rem; padding-bottom: 0.45rem; }
+.field--float:has(> .pw > .input:not(:placeholder-shown)) > .label,
+.field--float:has(> .pw > .input:autofill) > .label { transform: translateY(-0.72rem) scale(0.78); color: var(--black); font-weight: 600; }
+.field--float:has(> .pw) > .label { max-width: calc(100% - 5.5rem); }

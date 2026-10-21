@@ -46,7 +46,7 @@ export default {
     small('The full agreement is also on the Banking page of your owner portal. Questions: reply to this email or call {{payee_phone}}.'),
   ],
   sample: {
-    payee_name: '18122211 Canada Inc., operating as CarmaCars', payee_address: '2967 Dundas St W, Unit 208B, Toronto, ON', payee_phone: '647-575-3377', payee_email: 'billing@carmacars.ca',
+    payee_name: '18122211 Canada Inc., operating as CarmaCars', payee_address: '2967 Dundas St W, Unit 208B, Toronto, ON', payee_phone: '289-321-5991', payee_email: 'billing@carmacars.ca',
     bank_name: 'TD Canada Trust', bank_last4: '6621', agreement_type: 'Personal', accepted_on: 'Fri, Oct 16, 2026', first_debit_date: 'Sun, Nov 15, 2026', notice_days: '10', agreement_kind: 'personal',
     agreement_1: 'You authorize 18122211 Canada Inc., operating as CarmaCars, to debit the bank account you give for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month\'s Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the 15th of each month.',
     agreement_2: 'If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.',

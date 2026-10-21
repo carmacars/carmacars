@@ -64,7 +64,7 @@ export const FROM = {
 
 // Values every email receives. The application sets these once, from program settings.
 export const GLOBALS = {
-  support_phone: '647-575-3377',
+  support_phone: '289-321-5991',
   contact_email: 'contact@carmacars.ca',
   opening_hours: 'Open 24 hours, every day',
   reply_time: 'within 2 hours',
