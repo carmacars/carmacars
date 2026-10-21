@@ -15,7 +15,7 @@
 
 /* ---------- static states (no movement, so outside the media query) ---------- */
 .btn, .icon-btn, .chip, .seg label, .option, .addon, .tab, .cal__day, .gallery__thumbs button, .menu-btn { -webkit-tap-highlight-color: transparent; }
-.btn { position: relative; overflow: hidden; isolation: isolate; }
+:where(.btn) { position: relative; overflow: hidden; isolation: isolate; }
 .btn::after { content: ""; position: absolute; z-index: -1; left: var(--rx, 50%); top: var(--ry, 50%); width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: currentColor; opacity: 0; pointer-events: none; transform: scale(0); }
 
 /* float labels (Field with float): the label sits in the input until it has a value or focus */
