@@ -1,4 +1,4 @@
--- 0074_rentals_in_progress.sql
+-- 0072_rentals_in_progress.sql
 -- A rental already underway, added by hand (the owner's request of October 21, 2026): "Staff must be able to enter a
 -- rental that is already in progress, easily, with no confusing errors." Before this, Add a rental took an upcoming
 -- rental (pickup no more than an hour ago) or, ticked by an Admin, a past one (return in the past): a car picked up

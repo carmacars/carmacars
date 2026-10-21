@@ -86,7 +86,7 @@ limit of $500.00. Record it as Unpaid and ask an Admin to record the payment, or
 
 ## 6. Files
 
-- `supabase/migrations/0074_rentals_in_progress.sql`: the case, the car check, the clash check, the rental written on
+- `supabase/migrations/0072_rentals_in_progress.sql`: the case, the car check, the clash check, the rental written on
   trip and its tasks, the quote, the signing and documents of a rental in progress, the online payment, the renter's
   email lines, the portal flags. Functions of 0046, 0051, 0053, 0058, 0064 and 0071 are restated with the change only.
 - `supabase/tests/51_rentals_in_progress.sql` (63 assertions); suites 30 and 37 read the new wording.
