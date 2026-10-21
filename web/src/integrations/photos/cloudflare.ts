@@ -40,15 +40,17 @@ export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestIni
       if (out.ok && out.bytes.length < MIN_CUTOUT_BYTES) return { ok: false, reason: 'no_subject', retryable: false, message: 'No car was found in the photo' };
       return out;
     },
-    async composite({ backdropUrl, shadowUrl, cutoutUrl, width, height }) {
-      // the car takes 86% of the width, standing on the floor line at 18% from the bottom; the shadow under it
-      const carW = Math.round(width * 0.86);
-      const floor = Math.round(height * 0.18);
+    async composite({ backdropUrl, shadowUrl, cutoutUrl, width, height, lettering }) {
+      // the sample cars' framing (studio.ts): the floor line at 74% of the height, so the car stands 26% above the
+      // bottom and takes about 80% of the width; behind it the model's name, as on the samples; the shadow under it
+      const carW = Math.round(width * 0.8);
+      const floor = Math.round(height * 0.25);
       return transform(backdropUrl, {
         width, height, fit: 'cover', format: 'jpeg', quality: 86,
         draw: [
+          ...(lettering ? [{ url: lettering.url, top: Math.round(lettering.top * height / 1200), left: 0, width: Math.round(lettering.width * width / 1800) }] : []),
           { url: shadowUrl, width: Math.round(carW * 0.96), bottom: Math.max(0, floor - Math.round(height * 0.035)) },
-          { url: cutoutUrl, width: carW, height: Math.round(height * 0.7), fit: 'contain', bottom: floor }
+          { url: cutoutUrl, width: carW, height: Math.round(height * 0.6), fit: 'contain', bottom: floor }
         ]
       }, 'image/jpeg');
     },

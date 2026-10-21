@@ -49,4 +49,33 @@ writeFileSync(join(OUT, 'shadow_v1.png'), png(SW, SH, 4, (x, y) => {
   const a = d >= 1 ? 0 : Math.round(150 * Math.pow(1 - d, 1.8));
   return [20, 20, 20, a];
 }));
+
+// 1800 x 1200 studio_v2 (migration 0073): the sample cars' studio (src/features/car/studio.ts) as pixels, so real photos
+// sit in the same black room: the overhead spot, the floor line at 74%, the floor fading to black, the pool of light.
+// The model's name is drawn over it per car (src/features/listing/lettering.ts).
+{
+  const W2 = 1800, H2 = 1200, FY = H2 * 0.74;
+  const lerp = (stops, t) => {
+    t = Math.min(1, Math.max(0, t));
+    for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { const [a, ca] = stops[i - 1], [b, cb] = stops[i]; const k = (t - a) / (b - a || 1); return ca.map((c, j) => c + (cb[j] - c) * k); }
+    return stops[stops.length - 1][1];
+  };
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const SPOT = [[0, hex('#6b6b6b')], [0.35, hex('#2a2a2a')], [0.75, hex('#0b0b0b')], [1, hex('#000000')]];
+  const POOL = [[0, [0.22]], [0.6, [0.05]], [1, [0]]];
+  writeFileSync(join(OUT, 'studio_v2.png'), png(W2, H2, 3, (x, y) => {
+    const px = x + 0.5, py = y + 0.5;
+    let c;
+    if (py < FY) c = lerp(SPOT, Math.hypot((px - W2 * 0.5) / (0.95 * W2), (py - 0.08 * FY) / (0.95 * FY)));
+    else { const t = (py - FY) / (H2 - FY); c = [0x16, 0x16, 0x16].map((v) => v * (1 - t)); }
+    // the pool of light on the floor
+    const rx = W2 * 0.52, ry = (H2 - FY) * 0.5, cy = FY + (H2 - FY) * 0.22;
+    const pd = Math.hypot((px - W2 * 0.5) / rx, (py - cy) / ry);
+    const pa = pd < 1 ? lerp(POOL, pd)[0] : 0;
+    c = c.map((v) => v + (255 - v) * pa);
+    // the floor line
+    if (py >= FY - 1 && py < FY + 1) c = c.map((v) => v + (255 - v) * 0.1);
+    return c.map((v) => Math.round(v));
+  }));
+}
 console.log('presets written to', OUT);

@@ -45,7 +45,8 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
       publicUrl: (path) => { const u = absolute(s.publicUrl(path)); issued.set(u, { bucket: 'vehicle-public', path }); return u; },
       getPrivate: (path) => s.get('vehicle-originals', path),
       putPrivate: (path, bytes, type) => s.put('vehicle-originals', path, bytes, type),
-      putPublic: (path, bytes, type) => s.put('vehicle-public', path, bytes, type)
+      putPublic: (path, bytes, type) => s.put('vehicle-public', path, bytes, type),
+      hasPublic: async (path) => (await s.get('vehicle-public', path)) !== null
     }
   }, o);
 }

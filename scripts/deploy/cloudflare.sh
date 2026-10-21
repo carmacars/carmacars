@@ -179,7 +179,7 @@ photos() {
   local bucket="$P-vehicle-public" marker=".seeded/stand-in-photos-v1" f
   cd "$ROOT/web"
   # the listing pipeline's studio backdrop and shadow, always refreshed (two small files)
-  for f in brand_background_v1.png shadow_v1.png; do
+  for f in brand_background_v1.png studio_v2.png shadow_v1.png; do
     npx wrangler r2 object put "$bucket/site/backdrop/$f" --file "src/features/listing/presets/$f" --content-type image/png --cache-control "public, max-age=31536000" --remote > /dev/null \
       || die "Could not upload the listing preset $f"
   done

@@ -305,7 +305,7 @@ storage() {
 presets() {
   service_key
   local base="https://$REF.supabase.co/storage/v1/object" f
-  for f in brand_background_v1.png shadow_v1.png; do
+  for f in brand_background_v1.png studio_v2.png shadow_v1.png; do
     curl -sS -f -o /dev/null -X POST "$base/vehicle-public/site/backdrop/$f" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
       -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: image/png' -H 'x-upsert: true' -H 'cache-control: max-age=31536000' \
       --data-binary "@$ROOT/web/src/features/listing/presets/$f" || die "Could not upload the listing preset $f"
