@@ -100,7 +100,7 @@ test('a refund says what it gives back', async ({ page }) => {
   try {
     const admin = await mkAdmin(sql);
     const [b] = await sql`select b.booking_number, b.id from bookings b where exists (select 1 from payments p where p.booking_id = b.id and p.status = 'succeeded' and p.kind in ('charge', 'capture'))
-                           order by b.created_at desc limit 1`;
+                           order by b.created_at desc limit 1 offset ${test.info().project.name === 'phone-375' ? 0 : 1}`; // one booking per width: the two run at once
     test.skip(!b, 'no paid booking in the local data');
     await signIn(page, admin.email, `/admin/bookings/${b!.booking_number}`);
     await page.goto(`/admin/bookings/${b!.booking_number}?tab=money`, { waitUntil: 'networkidle' });
@@ -116,6 +116,7 @@ test('a refund says what it gives back', async ({ page }) => {
     await expect(kind.locator('option')).toHaveText(['The rental charge', 'Delivery or pickup', 'Kilometres', 'Add-ons', 'Other charges (fuel, cleaning, fees)']);
     await noOverflow(page);
     await kind.selectOption('delivery');
+    await expect(kind).toHaveValue('delivery');
     await dlg.getByLabel('Amount ($)').fill('1.00');
     const note = `af-${tag()}`;
     await dlg.getByLabel('Note').fill(note);
@@ -156,9 +157,12 @@ test('an official form: Review and check from its link, filled for a car, then u
     await expect(pdlg).toBeHidden();
     await phone.context().close();
 
+    // as from the To do's line: another page first, then the form's link
+    await desk.goto('/admin', { waitUntil: 'networkidle' });
     await desk.goto(`/admin/settings/forms#${CODE}`, { waitUntil: 'networkidle' });
     const dlg = desk.getByTestId(`form-review-${CODE}-dialog`);
     await expect(dlg).toBeVisible();
+    await expect(dlg.getByRole('alert')).toHaveCount(0);
     await expect(dlg.getByTestId(`form-review-${CODE}-sample`)).toContainText('field(s) filled', { timeout: 30_000 });
     await expect(dlg.getByRole('img', { name: `${CODE}, page 1, filled` })).toBeVisible();
     await axe(desk, 'form review 1440');
