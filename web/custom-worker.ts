@@ -119,6 +119,8 @@ const worker = {
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
     if (due.seo) run('/api/jobs/seo');
+    // the phone line (migration 0085): booking texts that are due and the AI one-liners of calls
+    if (due.phone) run('/api/jobs/phone');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)

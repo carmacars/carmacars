@@ -5,12 +5,13 @@
 --      here: phone_threads (one per outside number) and phone_activity (one row per call or text). Each number is
 --      matched to a staff member, a renter (and their current booking), an owner or a lead (discount game claims, chat
 --      visitors who gave a phone); an unmatched number is an "Unknown caller" with Create lead and Link to a renter.
---   2. A missed call: one automatic text back from the Quo number (Program settings, Phone and texts), at most once per
---      number per phone_missed_call_text_hours (12), and a task for the person on duty in the chosen function (the
+--   2. A missed call: a task for the person on duty, and (off by default: the owner uses Quo's own missed-call
+--      auto-reply) one automatic text back from the Quo number, at most once per number per
+--      phone_missed_call_text_hours (12). The task goes to the person on duty in the chosen function (the
 --      Admins' queue when nobody holds that function). In the site check's quiet hours the task is due when they end.
 --   3. Texts in the Live chat inbox (Admin > Bookings > Live chat, Texts and calls; the assistants' Live chat): threads
 --      by number, staff replies sent through Quo from the CarmaCars number, AI drafts within a daily neuron allowance.
---      Nothing the AI writes is ever sent by itself; the only automatic text is the missed-call text.
+--      Nothing the AI writes is ever sent by itself; the only automatic text is the missed-call text (when switched on).
 --   4. Booking texts beside the existing emails (offer sent, payment confirmed, payment received, pickup tomorrow, return
 --      reminder, payment link): one text for each such renter email, to renters with a mobile number who did not opt
 --      out. STOP (and Quo's own carrier opt-out) stops them; START allows them again. Transactional only.
@@ -32,7 +33,7 @@ alter table program_settings
   add column if not exists phone_enabled boolean not null default true,
   add column if not exists phone_record_calls boolean not null default true,
   add column if not exists phone_record_texts boolean not null default true,
-  add column if not exists phone_missed_call_text_enabled boolean not null default true,
+  add column if not exists phone_missed_call_text_enabled boolean not null default false,
   add column if not exists phone_missed_call_text text not null default 'Sorry we missed your call. How can we help? Reply here, or book at carmacars.ca. CarmaCars',
   add column if not exists phone_missed_call_text_hours integer not null default 12 check (phone_missed_call_text_hours between 1 and 168),
   add column if not exists phone_missed_call_task boolean not null default true,
@@ -67,7 +68,7 @@ alter table program_settings add constraint program_settings_phone_texts_check c
 comment on column program_settings.phone_enabled is 'Phone and texts (Quo): record calls and texts on the CarmaCars number and use the features below. Off: webhooks are acknowledged and nothing is kept or sent.';
 comment on column program_settings.phone_record_calls is 'Phone and texts: keep each call (time, length, status, recording, transcript and summary).';
 comment on column program_settings.phone_record_texts is 'Phone and texts: keep each text and show it in the inbox.';
-comment on column program_settings.phone_missed_call_text_enabled is 'Phone and texts: text a caller back after a missed call (the template below), once per number in the hours below.';
+comment on column program_settings.phone_missed_call_text_enabled is 'Phone and texts: text a caller back after a missed call (the template below), once per number in the hours below. Off by default: Quo''s own missed-call auto-reply is used. Turn off Quo''s own missed-call auto-reply first, or callers get two texts.';
 comment on column program_settings.phone_missed_call_text is 'Phone and texts: the missed-call text. Short, no long dashes, names CarmaCars.';
 comment on column program_settings.phone_missed_call_text_hours is 'Phone and texts: at most one missed-call text per number in this many hours (12).';
 comment on column program_settings.phone_missed_call_task is 'Phone and texts: a "Missed call" task for the person on duty (one open task per number).';
@@ -269,41 +270,46 @@ create or replace function app.phone_match(p_number text) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
   n text := app.phone_e164(p_number);
-  v_staff uuid; v_renter uuid; v_owner uuid; v_lead uuid; v_claim uuid; v_chat uuid; v_visitor uuid;
-  v_name text; v_kind text := 'unknown';
+  st_id uuid; st_name text; re_id uuid; re_name text; ow_id uuid; ow_name text;
+  gc_id uuid; gc_lead uuid; gc_name text; gc_visitor uuid; ch_id uuid; ch_lead uuid; ch_name text; ch_visitor uuid; le_id uuid; le_name text;
+  v_lead uuid; v_visitor uuid; v_name text; v_kind text := 'unknown';
 begin
   if n is null then return jsonb_build_object('kind', 'unknown'); end if;
-  select u.id, u.full_name into v_staff, v_name from users u
+  -- each lookup into its own record: a lookup that finds nothing must not clear what an earlier one found
+  select u.id, u.full_name into st_id, st_name from users u
    where app.phone_e164(u.phone) = n and u.status = 'active'
      and exists (select 1 from user_roles r where r.user_id = u.id and r.role in ('admin', 'va', 'field'))
    order by u.created_at desc limit 1;
-  if v_staff is not null then v_kind := 'staff'; end if;
-  select r.id, coalesce(r.legal_name, v_name) into v_renter, v_name from renters r
-   where v_staff is null and (app.phone_e164(r.mobile) = n
-      or exists (select 1 from drivers d where d.renter_id = r.id and d.is_account_holder and app.phone_e164(d.mobile) = n))
-   order by r.created_at desc limit 1;
-  if v_staff is null and v_renter is not null then v_kind := 'renter'; end if;
-  if v_kind = 'unknown' then
-    select o.id, coalesce(o.corporation_name, o.legal_name) into v_owner, v_name from owners o
+  if st_id is null then
+    select r.id, r.legal_name into re_id, re_name from renters r
+     where app.phone_e164(r.mobile) = n
+        or exists (select 1 from drivers d where d.renter_id = r.id and d.is_account_holder and app.phone_e164(d.mobile) = n)
+     order by r.created_at desc limit 1;
+  end if;
+  if st_id is null and re_id is null then
+    select o.id, coalesce(o.corporation_name, o.legal_name) into ow_id, ow_name from owners o
      where app.phone_e164(o.phone) = n or exists (select 1 from partners p where p.owner_id = o.id and app.phone_e164(p.phone) = n)
      order by o.created_at desc limit 1;
-    if v_owner is not null then v_kind := 'owner'; end if;
   end if;
   -- the lead side is looked up for everyone (a renter who also played a game keeps the link to their visit)
-  select g.id, g.lead_id, coalesce(v_name, g.first_name), g.visitor_id into v_claim, v_lead, v_name, v_visitor from game_claims g
-   where app.phone_e164(g.phone) = n order by g.created_at desc limit 1;
-  select c.id, coalesce(v_lead, c.lead_id), coalesce(v_name, nullif(c.name, '')), coalesce(v_visitor, c.visitor_id) into v_chat, v_lead, v_name, v_visitor from chat_conversations c
-   where app.phone_e164(c.phone) = n order by c.created_at desc limit 1;
+  select g.id, g.lead_id, g.first_name, g.visitor_id into gc_id, gc_lead, gc_name, gc_visitor from game_claims g where app.phone_e164(g.phone) = n order by g.created_at desc limit 1;
+  select c.id, c.lead_id, nullif(c.name, ''), c.visitor_id into ch_id, ch_lead, ch_name, ch_visitor from chat_conversations c where app.phone_e164(c.phone) = n order by c.created_at desc limit 1;
+  v_lead := coalesce(gc_lead, ch_lead);
   if v_lead is null then
-    select l.id, coalesce(v_name, l.name) into v_lead, v_name from leads l where app.phone_e164(l.phone) = n order by l.created_at desc limit 1;
+    select l.id, l.name into le_id, le_name from leads l where app.phone_e164(l.phone) = n order by l.created_at desc limit 1;
+    v_lead := le_id;
   end if;
-  if v_kind = 'unknown' and (v_lead is not null or v_claim is not null or v_chat is not null) then v_kind := 'lead'; end if;
-  if v_visitor is null and v_renter is not null then
-    select s.visitor_id into v_visitor from visitor_sessions s where s.renter_id = v_renter order by s.last_seen_at desc limit 1;
+  v_visitor := coalesce(gc_visitor, ch_visitor);
+  if v_visitor is null and re_id is not null then
+    select s.visitor_id into v_visitor from visitor_sessions s where s.renter_id = re_id order by s.last_seen_at desc limit 1;
   end if;
-  return jsonb_build_object('kind', v_kind, 'name', v_name, 'staff_user_id', v_staff, 'renter_id', v_renter, 'owner_id', v_owner, 'lead_id', v_lead,
-    'game_claim_id', v_claim, 'chat_id', v_chat, 'visitor_id', v_visitor,
-    'booking_id', case when v_renter is not null then app.phone_current_booking(v_renter) end);
+  v_kind := case when st_id is not null then 'staff' when re_id is not null then 'renter' when ow_id is not null then 'owner'
+                 when v_lead is not null or gc_id is not null or ch_id is not null then 'lead' else 'unknown' end;
+  v_name := coalesce(st_name, re_name, ow_name, gc_name, ch_name, le_name);
+  if v_lead is not null and v_name is null then select l.name into v_name from leads l where l.id = v_lead; end if;
+  return jsonb_build_object('kind', v_kind, 'name', v_name, 'staff_user_id', st_id, 'renter_id', re_id, 'owner_id', ow_id, 'lead_id', v_lead,
+    'game_claim_id', gc_id, 'chat_id', ch_id, 'visitor_id', v_visitor,
+    'booking_id', case when re_id is not null then app.phone_current_booking(re_id) end);
 end $$;
 
 -- The thread of a number, created when new; the automatic match refreshed unless staff linked it by hand.
@@ -949,7 +955,7 @@ grant execute on function app.server_jobs_due(), app.server_jobs_due_pre0085() t
 update site_content_blocks
    set body = replace(body, '| Messages: emails, texts and portal messages with us | To serve you and keep a record |',
      '| Messages: emails, texts and portal messages with us | To serve you and keep a record |
-| Calls and texts with our phone number: your number, the time and length of each call, its recording, transcript and summary, and the content of texts | To answer you, keep a record with your booking and call you back |')
+| Calls and texts with our phone number: your number, the time and length of each call, its recording, transcript and summary when it is recorded, and the content of texts | To answer you, keep a record with your booking and call you back |')
  where block_key = 'legal.privacy' and body like '%| Messages: emails, texts and portal messages with us | To serve you and keep a record |%' and body not like '%Calls and texts with our phone number%';
 update site_content_blocks
    set body = replace(body, '| Live chat conversations | With your rental records if you are a customer; otherwise 12 months |',
@@ -960,7 +966,7 @@ update site_content_blocks
    set body = replace(body, 'If you give an email address in the chat, we can email you a copy of the conversation.',
      'If you give an email address in the chat, we can email you a copy of the conversation.
 
-Calls and texts to and from our phone number go through our business phone provider and are recorded: for a call, your number, the time, its length, the recording, a transcript and a short summary written by our provider or an automated tool; for a text, its content. We match your number to your booking or account so our staff see the conversation with your rental, and, if you gave the same number in live chat or a discount game, with your visit to the Site. If we miss your call, we text you once from the same number. Texts about your booking are not marketing; reply STOP to stop them. Calls and texts are kept with your rental records if you are a customer, and otherwise for 12 months.')
+Calls and texts to and from our phone number go through our business phone provider and are recorded: for a call, your number, the time and its length, and, when the call is recorded, the recording, a transcript and a short summary written by our provider or an automated tool; for a text, its content. We match your number to your booking or account so our staff see the conversation with your rental, and, if you gave the same number in live chat or a discount game, with your visit to the Site. If we miss your call, we text you once from the same number. Texts about your booking are not marketing; reply STOP to stop them. Calls and texts are kept with your rental records if you are a customer, and otherwise for 12 months.')
  where block_key = 'legal.privacy' and body like '%If you give an email address in the chat, we can email you a copy of the conversation.%' and body not like '%Calls and texts to and from our phone number%';
 
 -- ================================================================ 13. the doors and privileges
