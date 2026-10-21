@@ -32,6 +32,17 @@ export function RateFields({ v, set, context, prefix, delivery = false, optional
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, empty]);
+  // Add a car (0070): the daily rate starts pre-filled with the default (similar cars, else the class's), once
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || 'vehicle' in context || !ratesEmpty(v)) return;
+    prefilled.current = true;
+    void rateCheck({ ...context }).then((r) => {
+      const c = r.ok ? r.data?.defaults?.daily_default_cents : null;
+      if (c && ratesEmpty(v)) set('daily', centsInput(c));
+    }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const err = (k: string) => (empty ? undefined : chk?.errors?.[k]);
   const d = chk?.defaults;
   const id = (k: string) => `${prefix}-${k}`;

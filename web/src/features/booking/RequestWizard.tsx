@@ -149,6 +149,11 @@ export function RequestWizard(p: WizardProps) {
     for (let n = 1; n <= LAST; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
     const token = form.current?.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? (publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
+    // a request sent before the autosave's pause still closes its draft: the draft is saved first when it has no id yet
+    if (!meta.current.draftId) {
+      const sv = await saveRequestDraft({ data: d, step, token: meta.current.token }).catch(() => null);
+      if (sv?.ok) { meta.current.token = sv.data.token; meta.current.draftId = sv.data.draftId; }
+    }
     const r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
     setSending(false);
     if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }

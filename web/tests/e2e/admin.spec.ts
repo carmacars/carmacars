@@ -209,9 +209,10 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await check(ap, 'vehicles');
 
   // ---------------------------------------------------------------- a rate change reaches the public car page
+  // (a seeded car with its signed schedule: cars other specs add are published too since 0070)
   const [car] = await sql`select v.id, l.slug, r.daily_rate_cents::int d, r.weekend_rate_cents::int we, r.weekly_rate_cents::int wk, r.monthly_rate_cents::int m
     from vehicles v join vehicle_listings l on l.vehicle_id = v.id join rate_cards r on r.vehicle_id = v.id and r.effective_to is null
-    where l.status = 'published' and v.management_mode = 'managed' order by l.slug limit 1`;
+    where l.status = 'published' and v.management_mode = 'managed' and v.is_sample order by l.slug limit 1`;
   const daily = car!.d + 1300;
   await ap.goto(`/admin/vehicles/${car!.id}?tab=rates`, { waitUntil: 'networkidle' });
   await check(ap, 'vehicle rates');

@@ -59,5 +59,7 @@ export type RateCheck = {
   values: Record<string, number | string | boolean | null>; examples: Example[]; km_text: string | null;
   defaults: { class: string; km_per_day: number; overage_cents: number | null; overage_min_cents: number | null; overage_max_cents: number | null; deposit_cents: number | null;
     km_choices: number[]; deposit_tiers: Array<{ amount_cents: number; label: string }>; text: string;
-    suggestion: { daily_cents: number; weekend_cents: number; weekly_cents: number; monthly_cents: number; cars: number; basis: string; text: string } | null };
+    suggestion: { daily_cents: number; weekend_cents: number; weekly_cents: number; monthly_cents: number; cars: number; basis: string; text: string } | null;
+    /** 0070: the daily rate a new car starts from (similar cars, else Program settings by class) */
+    daily_default_cents?: number | null; daily_default_text?: string | null };
 };

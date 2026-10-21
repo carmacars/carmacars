@@ -179,7 +179,9 @@ test('search engines: sitemap index and parts, robots, the IndexNow key file, ve
   for (const part of ['pages', 'cars', 'landing', 'guides']) expect(idx).toContain(`/sitemap-${part}.xml`);
   const landing = await (await request.get('/sitemap-landing.xml')).text();
   expect(landing).toContain('/car-rental/toronto</loc>');
-  expect(landing).not.toContain('/car-rental/monthly</loc>');
+  // a use page is in the sitemap only when the database's rule makes it indexable (other specs publish real cars)
+  const [mi] = await sql`select app.seo_page_indexable(p) i from seo_pages p where p.slug = 'monthly'`;
+  if (mi!.i) expect(landing).toContain('/car-rental/monthly</loc>'); else expect(landing).not.toContain('/car-rental/monthly</loc>');
   expect(landing).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}T/);
   const guides = await (await request.get('/sitemap-guides.xml')).text();
   expect(guides).toContain('/guides/winter-driving-in-ontario-in-a-rental-car</loc>');
