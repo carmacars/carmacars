@@ -1,4 +1,4 @@
--- 0074_cpu_and_storage.sql
+-- 0076_cpu_and_storage.sql
 -- Database growth and the Worker's idle cron ticks (docs/changes/2026-10-21-cpu-and-storage.md).
 --
 --   1. The audit log keeps what changed. public.audit_log was 161 MB for about 23,000 rows: every UPDATE stored the
