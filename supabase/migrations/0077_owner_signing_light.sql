@@ -514,6 +514,15 @@ begin
                        'count', (select count(*) from tasks where task_type = 'signed_copy_failed' and status in ('open', 'in_progress', 'waiting')))));
 end $$;
 
+-- The cron gate (0076's app.server_jobs_due): the five-minute tick loads the app for the signed copies only when one is due.
+alter function app.server_jobs_due() rename to server_jobs_due_pre0077;
+create or replace function app.server_jobs_due() returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  return app.server_jobs_due_pre0077() || jsonb_build_object('pdf', exists (select 1 from pdf_jobs j
+           where (j.status = 'queued' and j.next_attempt_at <= now()) or (j.status = 'running' and j.locked_at < now() - interval '5 minutes')));
+end $$;
+
 -- ================================================================ 4. calls
 create or replace function app.ops_0077(p_user uuid, p_call text, p_name text, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
@@ -570,7 +579,7 @@ begin
               'portal_owner_or_null', 'open_by_content', 'document_content_key', 'pdf_jobs_enqueue', 'pdf_job_already_done', 'pdf_jobs_claim', 'pdf_job_after', 'pdf_job_done',
               'pdf_job_fail', 'outbox_owner', 'outbox_wait_signed_copies', 'outbox_attachments', 'first_last_state', 'first_last_todo', 'first_last_choose',
               'vehicle_onboarding_before_status', 'application_approve', 'admin_issue_upfront_invoices', 'issue_upfront_invoices', 'owner_sign_agreements',
-              'owner_terms_read', 'admin_todo', 'ops_0077', 'door'])))
+              'owner_terms_read', 'admin_todo', 'server_jobs_due', 'ops_0077', 'door'])))
         or (n.nspname = 'public' and p.proname = any (array['server_open_by_content', 'server_document_content_key', 'server_pdf_jobs_enqueue',
               'server_pdf_jobs_claim', 'server_pdf_job_done', 'server_pdf_job_fail', 'server_pdf_jobs_pending']))
   loop

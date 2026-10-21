@@ -122,7 +122,7 @@ const worker = {
     // signed copies waiting (0077): through the Worker's own service binding, so each run is its own invocation
     const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
     const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
-    ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
+    if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
   },

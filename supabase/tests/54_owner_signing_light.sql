@@ -81,6 +81,7 @@ select public.server_pdf_jobs_enqueue((select jsonb_agg(jsonb_build_object('kind
 select public.server_pdf_jobs_enqueue((select jsonb_agg(jsonb_build_object('kind', 'owner_signed_copy', 'ref', x ->> 'signature_request_id', 'owner_id', test.sl_owner(),
   'user_id', test.id('sl_sam'))) from jsonb_array_elements(test.slv('signed') -> 'signed') x));
 select test.eq('jobs: one job per signed copy, a second enqueue keeps them', (select count(*) from pdf_jobs where owner_id = test.sl_owner()), 2::bigint);
+select test.eq('jobs: the five-minute cron tick sees signed copies due (the gate loads the app only then)', app.server_jobs_due() ->> 'pdf', 'true');
 insert into notification_outbox (code, category, priority, audience, owner_id, dedupe_key, payload)
 values ('owner_agreement_signed', 'transactional', 2, 'owner', test.sl_owner(), 'sl-signed-email', '{}');
 select test.eq('jobs: the owner''s "Signed" email waits for the signed copies',
