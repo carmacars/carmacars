@@ -115,6 +115,7 @@ test('a refund says what it gives back', async ({ page }) => {
     await expect(kind).toHaveValue('rental');
     await expect(kind.locator('option')).toHaveText(['The rental charge', 'Delivery or pickup', 'Kilometres', 'Add-ons', 'Other charges (fuel, cleaning, fees)']);
     await noOverflow(page);
+    await dlg.getByLabel('Reason').selectOption('goodwill');
     await kind.selectOption('delivery');
     await expect(kind).toHaveValue('delivery');
     await dlg.getByLabel('Amount ($)').fill('1.00');
