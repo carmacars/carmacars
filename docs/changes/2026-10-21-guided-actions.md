@@ -109,7 +109,7 @@ Admin: To do (the prompts), Renter documents, Publish, Mark a car insured (Insur
 site, Sample photos, Add a rental by hand (the handover needs Insurer confirmed), Paid and signed (the To do lines), Live
 chat, Official forms, the duplicate flag wording, and the quick reference (Publish a car, Mark a car insured, Check renter
 documents). Assistants: To do (each task opens where it is done; tasks close by themselves) and Check renter documents.
-Published by the migration's guides block (`supabase/seed/0078_gen_guides.mjs`, base 619e919).
+Published by the migration's guides block (`supabase/seed/0078_gen_guides.mjs`, base db53997).
 
 ## Tests
 
