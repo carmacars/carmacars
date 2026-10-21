@@ -29,7 +29,7 @@ export async function vaAct<T = Record<string, unknown>>(action: string, p: Reco
     const { user, aal } = await assertVa();
     const data = await door<T>(user.id, 'va_do', action, p, aal);
     for (const x of refresh) if (x.startsWith('/va')) revalidatePath(x);
-    if (['listing_review', 'listing_publish', 'review_publish', 'block_create', 'block_end', 'block_update'].includes(action)) revalidatePath('/', 'layout');
+    if (['listing_review', 'listing_publish', 'listing_publish_now', 'review_publish', 'block_create', 'block_end', 'block_update'].includes(action)) revalidatePath('/', 'layout');
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

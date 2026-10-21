@@ -43,7 +43,7 @@ test('an Admin publishes a car with only the basics; its paperwork and the fleet
   test.setTimeout(120_000);
   const sql = db();
   const admin = await account(sql, 'admin', 'Lee Lister');
-  const [o] = await sql`select id from owners where kind = 'program' and email <> 'sample.owner@example.test' order by created_at limit 1`;
+  const [o] = await sql`insert into owners (owner_type, legal_name, status, email, phone) values ('individual', 'Lane Owner', 'active', ${`lc.owner.${tag()}@example.test`}, '416-555-0100') returning id`;
   const vid = randomUUID(); const model = `Forte ${tag().toUpperCase()}`;
   await sql`insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method, on_fleet_policy)
             values (${vid}, ${o!.id}, 2021, 'Kia', ${model}, ${('LC' + randomBytes(8).toString('hex').toUpperCase()).slice(0, 17)}, ${'LC' + tag().toUpperCase()},

@@ -288,6 +288,8 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   const [bk] = await sql`select b.status, b.payment_mode, b.added_by_staff and b.created_by = ${va.id} by_me from bookings b where b.booking_number = ${number}`;
   expect(`${bk!.status}/${bk!.payment_mode}/${bk!.by_me}`).toBe('pending_payment/link/true');
   await page.context().close();
+  // the fixture car was published by itself (0070) without the app rebuilding the fleet page: off the site again
+  await sql`update vehicle_listings set status = 'unpublished', unpublished_at = now(), unpublished_reason = 'e2e fixture' where vehicle_id = ${carId}`;
   await sql.end();
 });
 

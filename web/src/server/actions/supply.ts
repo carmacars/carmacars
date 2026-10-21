@@ -37,7 +37,8 @@ export async function supplyDo<T = Record<string, unknown>>(action: 'partner_sav
   try {
     const { user, aal } = await me();
     const data = await door<T>(user.id, 'ops_do', action, p, aal);
-    rebuild([...refresh, ...(action === 'vehicle_retire' || action === 'vehicle_restore' ? PUBLIC : [])]);
+    // a car added with its rates is published at once (0070): the public pages too
+    rebuild([...refresh, ...(action === 'vehicle_retire' || action === 'vehicle_restore' || action === 'vehicle_add' ? PUBLIC : [])]);
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

@@ -175,6 +175,7 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
     const call = roles.admin ? 'ops_do' : 'va_do';
     const r = await door<{ application_id: string; application_number: string; owner_id: string; vehicle_id: string; approved: boolean;
       approve: { setup: { needed: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null } | null }>(user.id, call, 'staff_add_owner_car', p, aal);
+    revalidatePath('/', 'layout'); // the car may be published at once (0070)
     let docs = 0;
     if (files.length) {
       const { storage } = await import('@/integrations/storage');

@@ -42,6 +42,8 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
   try { await rpc('server_seo_snapshots', {}, SR); } catch { /* the next run or pg_cron */ }
   // the pages whose copy changed are rebuilt now rather than at their next hourly revalidation
   for (const p of s.changed) { try { revalidatePath(p); } catch { /* outside a request */ } }
+  // a car's page changed (a car published by itself, 0070, gets its text here): the fleet page and home list it
+  if (s.changed.some((p) => p.startsWith('/cars/'))) { try { revalidatePath('/cars'); revalidatePath('/'); } catch { /* ignore */ } }
   if (s.changed.some((p) => p.startsWith('/car-rental/'))) { try { revalidatePath('/car-rental'); } catch { /* ignore */ } }
   if (s.changed.some((p) => p.startsWith('/guides/'))) { try { revalidatePath('/guides'); } catch { /* ignore */ } }
   if (s.changed.length) { try { revalidatePath('/sitemap.xml'); } catch { /* ignore */ } }

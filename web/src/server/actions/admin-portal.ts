@@ -22,6 +22,7 @@ const PUBLIC: Record<string, string[]> = {
   fee_override: ['/cars/[slug]'], fee_override_end: ['/cars/[slug]'],
   listing_review: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
   listing_publish: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
+  listing_publish_now: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
   listing_unlist: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
   vehicle_sample: ['/cars/[slug]', '/rent/[hub]', '/sitemap.xml'],
   review_publish: ['/cars/[slug]', '/'], review_hide: ['/cars/[slug]', '/'],

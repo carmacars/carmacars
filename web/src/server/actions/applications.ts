@@ -21,6 +21,8 @@ async function act(name: string, id: string, p: Record<string, unknown>): Promis
     const { user, aal } = await me();
     const r = await door<Record<string, unknown>>(user.id, 'ops_do', name, { id, ...p }, aal);
     refresh(id);
+    // approving publishes the application's cars when their basics are complete (0070)
+    if (name === 'application_approve') revalidatePath('/', 'layout');
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }

@@ -993,6 +993,39 @@ begin
   return app.door_pre0070(p_user, p_aal, p_call, p_name, p);
 end $$;
 
+-- ================================================================ 11b. one search title per car
+-- Cars listed with only the basics often share a year, make and model and get the same plain text, so the search
+-- title and description repeat (search engines show one of them). A copy that matches another car's gets the car's
+-- colour, else its fleet number, else a short code, in its title and description.
+alter function app.car_copy_apply(uuid, jsonb, text, text) rename to car_copy_apply_pre0070;
+create or replace function app.car_copy_apply(p_vehicle uuid, p_copy jsonb, p_source text, p_facts_hash text default null) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  c jsonb := coalesce(p_copy, '{}'::jsonb);
+  v vehicles;
+  v_mark text;
+  v_t text;
+  v_d text;
+begin
+  if exists (select 1 from car_copy o where o.vehicle_id <> p_vehicle and o.copy is not null
+               and (o.copy ->> 'seo_title' = c ->> 'seo_title' or o.copy ->> 'meta_description' = c ->> 'meta_description')) then
+    select * into v from vehicles where id = p_vehicle;
+    v_mark := coalesce(case when nullif(btrim(v.colour), '') is not null and position(lower(v.colour) in lower(coalesce(c ->> 'seo_title', ''))) = 0 then lower(btrim(v.colour)) end,
+                       nullif(btrim(v.fleet_number), ''), 'car ' || upper(left(md5(p_vehicle::text), 4)));
+    if c ? 'seo_title' then
+      v_t := regexp_replace(c ->> 'seo_title', ' \| [^|]+$', '');
+      v_t := left(v_t, 60 - length(v_mark) - 3) || ' (' || v_mark || ')';
+      c := c || jsonb_build_object('seo_title', v_t);
+    end if;
+    if c ? 'meta_description' then
+      v_d := c ->> 'meta_description';
+      v_d := case when length(v_d) + length(v_mark) + 7 <= 155 then v_d || ' Car: ' || v_mark || '.' else left(v_d, 155 - length(v_mark) - 9) || '. Car: ' || v_mark || '.' end;
+      c := c || jsonb_build_object('meta_description', v_d);
+    end if;
+  end if;
+  return app.car_copy_apply_pre0070(p_vehicle, c, p_source, p_facts_hash);
+end $$;
+
 -- ================================================================ 12a. a request on a car listed before its terms are signed
 -- A program owner's car on the site before its Vehicle Schedule is signed takes requests on the owner's agreed terms,
 -- or the standard grid when none are set (app.owner_terms_resolve, 0067): the split is never left empty (it failed the
@@ -1050,7 +1083,7 @@ declare
 begin
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             join (values ('door_pre0070', 'door'), ('rate_card_defaults_pre0070', 'rate_card_defaults'), ('review_listing_pre0070', 'review_listing'),
+             join (values ('door_pre0070', 'door'), ('car_copy_apply_pre0070', 'car_copy_apply'), ('rate_card_defaults_pre0070', 'rate_card_defaults'), ('review_listing_pre0070', 'review_listing'),
                           ('rate_card_save_pre0070', 'rate_card_save'), ('staff_add_owner_car_pre0070', 'staff_add_owner_car'),
                           ('application_approve_pre0070', 'application_approve')) m(old_name, new_name) on m.old_name = p.proname
             where n.nspname = 'app' loop
