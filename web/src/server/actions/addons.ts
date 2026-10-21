@@ -30,7 +30,7 @@ async function settle(f: ChargeFacts, record: (processor: Record<string, unknown
   onDecline: (message: string) => Promise<void>): Promise<string | null> {
   if (f.amount_cents <= 0 || !f.card?.method_id || !f.card.customer_id) {
     const r = await record(null, null);
-    return r.ok === false ? (r.message ?? 'Not added.') : f.amount_cents > 0 ? 'No card on file: we will contact you to pay for it.' : null;
+    return r.ok === false ? (r.message ?? 'Not added.') : f.amount_cents > 0 ? 'No card on file: press Pay for your add-ons to pay for it by card.' : null;
   }
   const i = await (await payments()).chargeOffSession({ customerId: f.card.customer_id, paymentMethodId: f.card.method_id, amountCents: f.amount_cents,
     description: `${f.name} for ${f.booking_number}`, metadata: { booking_id: f.booking_id, booking_addon_id: f.booking_addon_id, purpose: 'addon' },

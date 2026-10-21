@@ -62,16 +62,26 @@ async function axe(page: Page, where: string) {
   expect(bad.map((v) => `${where}: ${v.id} ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 }
 
-test('management fee (Revenue Share) on the car\'s terms; add-on illustrations in Settings', async ({ page }) => {
+test('management fee (Revenue Share) on the car\'s terms; the shareholder switch; add-on illustrations in Settings', async ({ page }) => {
   const sql = db();
   try {
     const admin = await mkAdmin(sql);
-    const { car } = await mkOwnerCar(sql);
+    const { car, owner } = await mkOwnerCar(sql);
     await signIn(page, admin.email, `/admin/vehicles/${car}`);
     await page.goto(`/admin/vehicles/${car}`, { waitUntil: 'networkidle' });
     await expect(page.getByText('Management fee (Revenue Share)').first()).toBeVisible();
     await expect(page.getByText(/^Revenue Share$/)).toHaveCount(0);
     await axe(page, 'vehicle terms');
+    // the owner page: the management fee, and the shareholder's own car switch with what it changes
+    await page.goto(`/admin/owners/${owner}`, { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('shareholder-car').first()).toContainText('Shareholder\'s own car: no');
+    await page.getByTestId(`shareholder-${car}`).click();
+    const dlg = page.getByRole('dialog');
+    await expect(dlg).toContainText('90/10');
+    await dlg.getByLabel('Why (kept in the audit log)').fill('e2e');
+    await page.getByTestId(`shareholder-${car}-submit`).click();
+    await expect.poll(async () => (await sql`select is_shareholder_owned from vehicles where id = ${car}`)[0]?.is_shareholder_owned, { timeout: 15_000 }).toBe(true);
+    await axe(page, 'owner page');
     await page.goto('/admin/settings/addons', { waitUntil: 'networkidle' });
     const srcs = await page.locator('img[src^="/addon-photos/"]').evaluateAll((els) => els.map((e) => e.getAttribute('src')));
     for (const code of ['flowers', 'baby_seat', 'child_seat', 'booster_seat', 'chauffeur', 'umbrella', 'phone_charger', 'full_tank', 'winter_tire'])
@@ -162,4 +172,57 @@ test('an official form: Review and check from its link, filled for a car, then u
     }
     await sql.end();
   }
+});
+
+test('an add-on bought after booking with no card on file is paid on its pay page', async ({ page }) => {
+  test.setTimeout(180_000);
+  const sql = db();
+  try {
+    const admin = await mkAdmin(sql);
+    const rid = randomUUID(); const remail = `af.renter.${tag()}@example.test`;
+    await sql`insert into local_auth.users (id, email, password_hash) values (${rid}, ${remail}, ${hash(PW)})`;
+    await sql`select public.register_account(${rid}, ${remail}, 'Nora Nocard', null)`;
+    await sql`insert into renters (user_id, legal_name, email, mobile, date_of_birth) values (${rid}, 'Nora Nocard', ${remail}, '+14165550143', '1988-04-12')
+              on conflict (user_id) do update set date_of_birth = excluded.date_of_birth`;
+    const [rn] = await sql`select id from renters where user_id = ${rid}`;
+    await sql`insert into drivers (renter_id, is_account_holder, user_id, full_name, date_of_birth, licence_class, licence_number) values (${rn!.id as string}, true, ${rid}, 'Nora Nocard', '1988-04-12', 'G', 'N1234-56789-01234') on conflict do nothing`;
+    const v = `3AXMX${randomBytes(6).toString('hex').toUpperCase().replace(/[IOQ]/g, 'A')}`.slice(0, 17).padEnd(17, '7');
+    const [car] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: v, plate: `N${randomBytes(3).toString('hex').toUpperCase()}`, year: 2024, make: 'Kia', model: 'K5',
+      rates: { daily: 10000, weekend: 10000, weekly: 70000, monthly: 300000, deposit: 30000 } })}) as r`;
+    const carId = (car!.r as { vehicle_id: string }).vehicle_id;
+    const pick = new Date(Date.now() + (9 + Math.floor(Math.random() * 200)) * 86_400_000); pick.setMinutes(0, 0, 0);
+    const [m] = await sql`select app.manual_rental_create(${admin.id}, ${sql.json({ vehicle_id: carId, pickup_at: pick.toISOString(), return_at: new Date(pick.getTime() + 2 * 86_400_000).toISOString(),
+      source: 'phone', coverage_option: 1, renter_id: rn!.id as string, payment: { mode: 'other_way', method: 'cash' } })}) as r`;
+    const b = m!.r as { booking_id: string; booking_number: string };
+    await sql`update bookings set card_on_file_id = null where id = ${b.booking_id}`;
+
+    await page.goto(`/sign-in?next=${encodeURIComponent(`/account/bookings/${b.booking_number}`)}`, { waitUntil: 'networkidle' });
+    await acceptCookies(page);
+    await page.locator('input[type="email"]').fill(remail);
+    await page.locator('input[type="password"]').fill(PW);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.waitForURL((u) => u.pathname.startsWith('/account'), { timeout: 20_000 });
+    await page.goto(`/account/bookings/${encodeURIComponent(b.booking_number)}`, { waitUntil: 'networkidle' });
+    const pa = page.getByTestId('portal-addons');
+    await pa.getByText('Add something to your trip').click();
+    await pa.locator('#pa-umbrella').check();
+    await page.getByTestId('portal-addon-add').click();
+    await expect(pa).toContainText('Pay for your add-ons', { timeout: 20_000 });
+    await page.getByTestId('portal-addons-pay').click();
+    await page.waitForURL('**/addons/pay');
+    await expect(page.getByTestId('addon-pay-summary')).toContainText('Umbrella');
+    await expect(page.getByTestId('addon-pay-summary')).toContainText('$5.65');
+    await axe(page, 'add-on pay page');
+    await page.getByLabel('Name on the card').fill('Nora Nocard');
+    await page.getByLabel('Card number').fill('4242 4242 4242 4242');
+    await page.getByLabel('Expiry (MM / YY)').fill('12 / 31');
+    await page.getByLabel('Security code').fill('123');
+    await page.getByTestId('addon-pay-submit').click();
+    await page.waitForURL((u) => u.searchParams.get('addons_paid') === '1', { timeout: 30_000 });
+    const [paid] = await sql`select count(*)::int n from payments where booking_id = ${b.booking_id} and purpose = 'addon' and status = 'succeeded' and amount_cents = 565`;
+    expect(paid!.n).toBe(1);
+    const [opened] = await sql`select count(*)::int n from payment_intents_opened where booking_id = ${b.booking_id} and purpose = 'addon_unpaid'`;
+    expect(opened!.n).toBe(1);
+    await expect(page.getByTestId('portal-addons-pay')).toHaveCount(0);
+  } finally { await sql.end(); }
 });
