@@ -10220,6 +10220,7 @@ export type Database = {
           paid_at: string | null;
           note: string | null;
           created_at: string;
+          refund_of: string | null;
         };
         Insert: {
           id?: string;
@@ -10237,6 +10238,7 @@ export type Database = {
           paid_at?: string | null;
           note?: string | null;
           created_at?: string;
+          refund_of?: string | null;
         };
         Update: {
           id?: string;
@@ -10254,6 +10256,7 @@ export type Database = {
           paid_at?: string | null;
           note?: string | null;
           created_at?: string;
+          refund_of?: string | null;
         };
         Relationships: [];
       };

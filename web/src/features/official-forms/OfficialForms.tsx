@@ -3,6 +3,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { staffDo, staffRead, uploadFormTemplate } from '@/server/actions/staff-tools';
 import type { PdfField, Spec } from './fill';
+import { FormReview } from './FormReview';
 
 // Admin > Settings > Forms (migration 0042): the official ServiceOntario PDFs. Upload the fillable PDF of a form;
 // its fields are read here in the browser; choose what goes in each field; preview it filled for a car; then
@@ -121,13 +122,14 @@ export function OfficialForms({ d }: { d: FormsData }) {
       {d.forms.map((f) => {
         const t = f.current; const official = !!t?.file_key;
         return (
-          <section key={f.form_code} className="pt-card ad-card" aria-labelledby={`of-${f.form_code}`} data-testid={`form-${f.form_code}`}>
+          <section key={f.form_code} id={`form-card-${f.form_code}`} className="pt-card ad-card" aria-labelledby={`of-${f.form_code}`} data-testid={`form-${f.form_code}`}>
             <div className="pt-card__head"><h2 className="d4" id={`of-${f.form_code}`}>{f.form_code}{t?.title && !t.title.startsWith(f.form_code) ? `: ${t.title}` : t?.title ? `: ${t.title.slice(f.form_code.length).trim()}` : ''}</h2>
               <span className={`ad-b ${t?.verified && official ? 'ad-b--dark' : official ? 'ad-b--amber' : 'ad-b--light'}`}>{t?.verified && official ? 'Official PDF in use' : official ? 'Mapping to check' : 'Data sheet in use'}</span></div>
             <p className="small">{official ? `${t!.file_name ?? 'PDF'}, ${t!.field_names.length} fields${t!.page_count ? ` on ${t!.page_count} page(s)` : ''}, version ${t!.version}` : 'No official PDF yet.'}
               {t?.verified_at ? ` Checked by ${t.verified_by_name ?? 'an Admin'}.` : ''} Owners now: {f.fills.pdf} with the official PDF, {f.fills.data_sheet} with the data sheet.</p>
             {official && t!.kind === 'overlay' && <p className="small" data-testid={`form-overlay-${f.form_code}`}>This form has no fillable fields (the publisher&apos;s PDF is an Adobe dynamic form). It was laid out as a plain PDF, and each value is printed in the box of its field.</p>}
             {official && t!.notes && <p className="small muted">{t!.notes}</p>}
+            {official && !t!.verified && t!.field_names.length > 0 && <FormReview code={f.form_code} templateId={t!.id} fieldMap={t!.field_map} vehicles={d.vehicles} />}
             <Upload code={f.form_code} />
             {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></FieldsPanel>}
           </section>);
