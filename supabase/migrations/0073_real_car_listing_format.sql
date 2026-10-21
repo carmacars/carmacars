@@ -15,9 +15,11 @@
 --   6. every real listing is brought to the new format now (section 7), through the same functions.
 
 -- ================================================================ 1. settings: the samples' short blurb is a valid description
-update program_settings set listing_description_words = int4range(8, 161)
+-- and, like the samples, a car needs no questions of its own (the page always answers the common ones)
+update program_settings set listing_description_words = int4range(8, 161), listing_faq_count = int4range(0, 9)
  where id = (app.settings()).id or effective_from > app.today();
-alter table program_settings alter column listing_description_words set default int4range(8, 161);
+alter table program_settings alter column listing_description_words set default int4range(8, 161),
+  alter column listing_faq_count set default int4range(0, 9);
 
 -- ================================================================ 2. specs in the sample cars' words
 create or replace function app.listing_norm_body(p text) returns text
@@ -193,6 +195,9 @@ begin
     'h1', app.car_copy_headline(p_facts),
     'intro', app.car_copy_blurb(p_facts),
     'highlights', hl,
+    -- the page answers prices, kilometres, delivery and payment for every car; the plain copy adds only the seats
+    'faq', jsonb_build_array(jsonb_build_object('question', 'How many people fit in the ' || (p_facts #>> '{car,model}') || '?',
+      'answer', coalesce('It has ' || (p_facts #>> '{car,seats}') || ' seats.', 'Ask us before you book.'))),
     'pickup_delivery', 'Collect it at our location at no charge, or we deliver it to your address'
                        || coalesce(' for ' || (p_facts #>> '{prices,delivery_fee}'), '') || '. We hand it over in person and walk around the car with you.');
 end $$;

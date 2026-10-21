@@ -79,7 +79,10 @@ export default async function CarPage({ params }: Params) {
   const classText = c.classes.map((k) => labels[k] ?? k).join(', ');
   const ev = c.fuel === 'electric';
   const ydA = terms.young_driver_18_20 ?? null; const ydB = terms.young_driver_21_25 ?? null; const addPerDay = terms.additional_driver ?? null;
-  const faq = [...carFaq(c, { ydA, ydB, ev }, t), ...c.faq];
+  // the car's own questions after the common ones, never the same question twice
+  const common = carFaq(c, { ydA, ydB, ev }, t);
+  const key = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const faq = [...common, ...c.faq.filter((q) => !common.some((x) => key(x.question) === key(q.question)))];
   const similar = fleet.filter((x) => x.slug !== c.slug)
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
     .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
@@ -234,7 +237,6 @@ export default async function CarPage({ params }: Params) {
               <tr><th scope="row">Picked up from you at the end</th><td><span className="num">{money(c.pickup_fee_cents)}</span> plus distance</td></tr>
               <tr><th scope="row">{F('At {{airports}}')}</th><td>The same, plus distance. An airport surcharge may apply</td></tr>
               <tr><th scope="row">Collect it yourself</th><td>No charge, at our location{places?.owner_location ? ' or at the car owner’s location' : ''}</td></tr>
-              {c.home_area && <tr><th scope="row">Where the car is kept</th><td>{c.home_area}, {s.city}</td></tr>}
             </tbody></table>
             <p className="small muted measure">Delivery goes anywhere. We price the distance in your offer. Whichever you choose, we hand the car to you in person, check your licence and card, and walk around the car together. <Link className="link" href="/delivery">How delivery works</Link>.</p>
           </section>
