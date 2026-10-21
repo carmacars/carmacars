@@ -6,7 +6,7 @@ import { decodeVin } from '@/integrations/vin';
 import { visionModel } from '@/integrations/vision';
 import { COLOUR_PROMPT, COLOUR_SYSTEM, colourFromAnswer } from '@/features/vin/vin';
 
-// The car details that come after the car is added (migration 0079), run by the listing worker's five-minute tick and
+// The car details that come after the car is added (migration 0082), run by the listing worker's five-minute tick and
 // right after a car is added: a VIN the decoder could not read is decoded again (the car fills itself), and a car with
 // no colour gets it from its cover photo (Workers AI vision; the database says which cars, which model and whether
 // today's allowance has room, and keeps a person's colour).

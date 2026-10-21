@@ -7,7 +7,7 @@ import { RateFields } from '@/features/rates/RateFields';
 import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
 import { ColourSwatches, VinEntry, effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
 
-// Admin > Vehicles > Add a car (migration 0046; VIN first since 0079): the VIN, decoded at once into one summary line
+// Admin > Vehicles > Add a car (migration 0046; VIN first since 0082): the VIN, decoded at once into one summary line
 // (year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine), the colour in one tap, the class
 // inferred and the rates pre-filled from it; then who supplies it (a program owner, CarmaCars, or a partner rental
 // company). The title, description and features are written by the listing pipeline right after the car is added.

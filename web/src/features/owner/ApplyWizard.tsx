@@ -134,7 +134,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     go(3);
   };
 
-  // the VIN looked up at the 17th character (0079): the details fill themselves, shown as one line with an Edit link
+  // the VIN looked up at the 17th character (0082): the details fill themselves, shown as one line with an Edit link
   const asked = useRef<Record<string, string>>({});
   const checkVin = async (i: number) => {
     const v = s.vehicles[i]!;

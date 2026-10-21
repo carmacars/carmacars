@@ -1,7 +1,7 @@
 import 'server-only';
 import { after } from 'next/server';
 
-// Right after a car is added (migration 0079), once the response has gone: the search job writes its title,
+// Right after a car is added (migration 0082), once the response has gone: the search job writes its title,
 // description and features (car-copy-v2, the car's copy row is asked for first), then the details that come later
 // (a VIN decoded again, the colour from a cover photo). The five-minute ticks do the same if this does not run.
 export function afterCarAdded(): void {

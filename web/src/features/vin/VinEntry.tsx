@@ -6,7 +6,7 @@ import { COLOURS, FUEL_WORDS, MAKES, carName, cleanVin, detailLine, vinMessage, 
 import { decoded, effectiveCar, type CarEdits, type VinValue } from './entry';
 export { effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from './entry';
 
-// VIN-first entry (migration 0079), shared by Admin > Add a car and Add a car for an owner (an Admin or an assistant):
+// VIN-first entry (migration 0082), shared by Admin > Add a car and Add a car for an owner (an Admin or an assistant):
 // the VIN, decoded at the 17th character into one summary line with an Edit link; the plate instead when the VIN is not
 // at hand (year, make and model then from lists); the colour in one tap; the class inferred, editable. The owner's own
 // application uses the same pieces (ColourSwatches, the summary) through its own VIN lookup.

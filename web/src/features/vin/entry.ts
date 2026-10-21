@@ -1,4 +1,4 @@
-// The state of VIN-first entry (migration 0079) and what it sends, without React, so the unit tests read it
+// The state of VIN-first entry (migration 0082) and what it sends, without React, so the unit tests read it
 // (src/features/vin/entry.test.ts). The component is VinEntry.tsx.
 import type { RateHint, VinFacts } from '../../server/actions/vin.ts';
 import { cleanVin, vinState, type DecodedCar } from './vin.ts';

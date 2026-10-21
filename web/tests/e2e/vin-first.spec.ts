@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { expectedCheckDigit } from '../../src/features/vin/vin';
 import { acceptCookies, db, fillYmm, noOverflow, tapColour } from './helpers';
 
-// Migration 0079 end to end, at 375 and 1440 pixels: a car added from its VIN alone at every entry point (Admin > Add a
+// Migration 0082 end to end, at 375 and 1440 pixels: a car added from its VIN alone at every entry point (Admin > Add a
 // car, Add a car for an owner by an Admin and by customer service, the owner's own application). The fake decoder
 // (VIN_DECODER=fake, src/integrations/vin.ts) knows the maker codes WP1 (Porsche Macan), 1FM (Ford Explorer), 1G6
 // (Cadillac CTS) and 2HG (Honda Civic); ZZZ is "not decoded". Each test makes VINs of its own with a valid check digit.

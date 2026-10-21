@@ -33,7 +33,7 @@ export function RateFields({ v, set, context, prefix, delivery = false, optional
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, empty]);
   // Add a car (0070): the daily rate starts pre-filled with the default (similar cars, else the class's). With the
-  // VIN first (0079) the class, make and model arrive after the form opens: the default follows them while the daily
+  // VIN first (0082) the class, make and model arrive after the form opens: the default follows them while the daily
   // rate is still the one filled in here (a rate a person typed is never replaced).
   const auto = useRef<string | null>(null);
   const ctxKey = JSON.stringify(['class' in context ? context.class : null, 'make' in context ? context.make : null, 'model' in context ? context.model : null]);

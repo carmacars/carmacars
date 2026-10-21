@@ -60,7 +60,7 @@ export async function emailResumeLink(email: string): Promise<R> {
 
 export interface VinResult {
   vin: string; valid: boolean; taken: boolean;
-  /** the decode in the listing's words (0079): year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine */
+  /** the decode in the listing's words (0082): year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine */
   decode: (DecodedCar & { body_class?: string | null }) | null;
   /** false when the check digit does not add up (the VIN may be mistyped; it can still be used) */
   check_ok: boolean;
@@ -162,7 +162,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
     }, p_by: user.id }, SR)) as unknown as { application_number: string; vehicles: Array<{ declined: boolean }> };
     (await cookies()).delete(DRAFT_COOKIE);
     if (confirmEmail || onRecord) await rememberEmail(user.email);
-    { const { afterCarAdded } = await import('@/server/car-added'); afterCarAdded(); }   // each car's copy at once (0079)
+    { const { afterCarAdded } = await import('@/server/car-added'); afterCarAdded(); }   // each car's copy at once (0082)
     return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}), ...(confirmEmail ? { confirmEmail } : {}) } };
   } catch (e) { return fail(dbMessage(e)); }
 }

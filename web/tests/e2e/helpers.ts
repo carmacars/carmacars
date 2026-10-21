@@ -48,7 +48,7 @@ export function storeFixturePdf(bucket: string, key: string) {
   writeFileSync(file, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 }
 
-// ---------------------------------------------------------------- VIN-first entry (migration 0079)
+// ---------------------------------------------------------------- VIN-first entry (migration 0082)
 /** Year, make and model from the lists (a VIN the decoder could not read, or a car added by its plate). */
 export async function fillYmm(page: Page, prefix: string, c: { year: string; make: string; model: string }) {
   await page.getByTestId(`${prefix}-year`).selectOption(c.year);

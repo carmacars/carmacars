@@ -7,7 +7,7 @@ import { decodeVin, modelsFor } from '@/integrations/vin';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 
-// VIN-first entry for staff (migration 0079): Admin > Add a car and Add a car for an owner (an Admin, customer service,
+// VIN-first entry for staff (migration 0082): Admin > Add a car and Add a car for an owner (an Admin, customer service,
 // fleet). One call at the 17th character: the decode on file, or vPIC now (recorded once per VIN, so a VIN is never
 // decoded twice), the check digit, a car already in the fleet, the class and the daily rate the car starts from.
 const SR = { role: 'service_role' as const };

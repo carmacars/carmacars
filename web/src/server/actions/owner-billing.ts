@@ -160,7 +160,7 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
     if (!String(o.phone ?? '').trim()) fe.phone = 'Enter the owner\'s phone.';
     if (o.owner_type === 'corporation' && !String(o.corporation_name ?? '').trim()) fe.corporation_name = 'Enter the corporation\'s name.';
   }
-  // the VIN, or the plate when the VIN is not at hand (0070; VIN first since 0079)
+  // the VIN, or the plate when the VIN is not at hand (0070; VIN first since 0082)
   if (v.vin && !/^[A-HJ-NPR-Z0-9]{17}$/i.test(String(v.vin).trim())) fe.vin = 'The VIN has 17 letters and digits, never I, O or Q.';
   if (!v.vin && !String(v.plate ?? '').trim()) fe.vin = 'Enter the 17-character VIN, or the plate.';
   if (!v.title_status) fe.title_status = 'Choose owned, financed or leased.';
@@ -193,7 +193,7 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
     if (r.approved && r.approve?.setup?.needed) note = await setupEmail(user.id, aal, r.application_id, r.approve.setup).catch((e) => `The set-up email did not go: ${(fail(e) as { message: string }).message}`);
     again(['/admin/applications', '/admin/owners', `/admin/owners/${r.owner_id}`, '/admin', '/admin/invoices']);
     const { afterCarAdded } = await import('@/server/car-added');
-    afterCarAdded();   // the title, description and features right after the response (0079)
+    afterCarAdded();   // the title, description and features right after the response (0082)
     return { ok: true, data: { application_id: r.application_id, application_number: r.application_number, owner_id: r.owner_id, vehicle_id: r.vehicle_id, approved: r.approved, note, docs } };
   } catch (e) { return fail(e); }
 }

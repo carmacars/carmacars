@@ -1,4 +1,4 @@
--- 52: VIN-first entry (migration 0079). The class inferred from the make, model, trim, body and age (Porsche Macan and
+-- 52: VIN-first entry (migration 0082). The class inferred from the make, model, trim, body and age (Porsche Macan and
 -- Cadillac CTS are not Standard; SUVs are SUV; a person's class is kept); what a VIN tells the form in one call (check
 -- digit, decode, the car already in the fleet, class, starting rate); a new car on every path gets its decoded details,
 -- its class and its copy queued at once; nothing a person entered is overwritten; a VIN decoded later fills the car;

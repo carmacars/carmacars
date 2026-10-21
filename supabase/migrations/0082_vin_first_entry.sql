@@ -1,4 +1,4 @@
--- 0079_vin_first_entry.sql
+-- 0082_vin_first_entry.sql
 -- The owner, October 21, 2026: "Put in a VIN and the description and title and everything gets generated automatically
 -- from that rather than having to type in any details manually." (docs/changes/2026-10-21-vin-first-entry.md)
 --   1. Every place a car is added (Admin > Add a car, Add a car for an owner by an Admin or an assistant, the owner's own
@@ -16,7 +16,7 @@
 --   5. A VIN the decoder could not read is decoded again later (the listing worker's run), and the car gets the details
 --      then. Existing real cars get their missing decoded details now; a program owner's car whose class nobody chose
 --      gets the inferred class.
--- Functions changed are wrapped (renamed with the suffix _pre0079). No applied migration is edited.
+-- Functions changed are wrapped (renamed with the suffix _pre0082). No applied migration is edited.
 
 -- ================================================================ 1. the class from the make, model, trim, body and age
 create table vehicle_class_rules (
@@ -37,7 +37,7 @@ create table vehicle_class_rules (
 );
 create index vehicle_class_rules_rank_idx on vehicle_class_rules (rank) where is_active;
 create trigger vehicle_class_rules_updated before update on vehicle_class_rules for each row execute function app.set_updated_at();
-comment on table vehicle_class_rules is 'How a new car''s pricing class is inferred (0079). The active rule of the lowest rank that matches wins: make_key (letters and digits of the make, lower case; null: any make), model_re, trim_re and body_re (case-insensitive patterns; null: any). aged_class applies once the car is aged_years old or more (a 2016 Porsche Macan is Premium, a new one Luxury). No rule: Standard.';
+comment on table vehicle_class_rules is 'How a new car''s pricing class is inferred (0082). The active rule of the lowest rank that matches wins: make_key (letters and digits of the make, lower case; null: any make), model_re, trim_re and body_re (case-insensitive patterns; null: any). aged_class applies once the car is aged_years old or more (a 2016 Porsche Macan is Premium, a new one Luxury). No rule: Standard.';
 
 -- The make as a rule names it: "Mercedes-Benz", "MERCEDES BENZ" and "mercedes-benz" are all mercedesbenz.
 create or replace function app.make_key(p text) returns text
@@ -349,11 +349,11 @@ begin
 end $$;
 
 -- An owner's car (the owner's application, a car staff add for an owner, Add a car for a program owner).
-alter function app.add_owner_vehicle(uuid, jsonb, uuid, uuid) rename to add_owner_vehicle_pre0079;
+alter function app.add_owner_vehicle(uuid, jsonb, uuid, uuid) rename to add_owner_vehicle_pre0082;
 create or replace function app.add_owner_vehicle(p_owner uuid, p_v jsonb, p_by uuid default null, p_application uuid default null)
 returns jsonb language plpgsql security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.add_owner_vehicle_pre0079(p_owner, p_v, p_by, p_application);
+  v_out jsonb := app.add_owner_vehicle_pre0082(p_owner, p_v, p_by, p_application);
   v_staff boolean := p_by is not null and (app.user_is_admin(p_by) or app.user_va_has(p_by, 'cs', 'fleet'));
 begin
   -- the class is staff's to choose; an owner's own application gets the inferred class
@@ -362,11 +362,11 @@ begin
 end $$;
 
 -- Add a car (Admin): CarmaCars-owned and partner cars are inserted here directly.
-alter function app.vehicle_add_core(uuid, jsonb) rename to vehicle_add_core_pre0079;
+alter function app.vehicle_add_core(uuid, jsonb) rename to vehicle_add_core_pre0082;
 create or replace function app.vehicle_add_core(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.vehicle_add_core_pre0079(p_by, p);
+  v_out jsonb := app.vehicle_add_core_pre0082(p_by, p);
 begin
   if coalesce(p ->> 'supply_type', 'program_owner') = 'program_owner' then return v_out; end if;  -- done in add_owner_vehicle
   return v_out || jsonb_build_object('after_add', app.vehicle_after_add((v_out ->> 'vehicle_id')::uuid, p_by, p));
@@ -386,7 +386,7 @@ create table vehicle_colour_reads (
   updated_at  timestamptz not null default now()
 );
 create trigger vehicle_colour_reads_updated before update on vehicle_colour_reads for each row execute function app.set_updated_at();
-comment on table vehicle_colour_reads is 'The colour read from a car''s cover photo by the vision model (0079): one row per car, the photo read, the answer. Tried again for a new cover photo, else at most 3 times an hour apart.';
+comment on table vehicle_colour_reads is 'The colour read from a car''s cover photo by the vision model (0082): one row per car, the photo read, the answer. Tried again for a new cover photo, else at most 3 times an hour apart.';
 
 -- The cover photo of a car, as an image the vision model can read: the smallest JPEG or PNG size of 400 pixels or
 -- more, else the processed photo, else the original.
@@ -537,7 +537,7 @@ begin
   -- the wrapped ones: the new function gets the privileges the old one had
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             join (values ('add_owner_vehicle_pre0079', 'add_owner_vehicle'), ('vehicle_add_core_pre0079', 'vehicle_add_core')) m(old_name, new_name)
+             join (values ('add_owner_vehicle_pre0082', 'add_owner_vehicle'), ('vehicle_add_core_pre0082', 'vehicle_add_core')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;

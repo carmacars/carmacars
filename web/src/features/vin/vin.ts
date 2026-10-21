@@ -1,4 +1,4 @@
-// VIN-first entry (migration 0079): the VIN's own rules, the decoder's answer in our words, the one summary line and the
+// VIN-first entry (migration 0082): the VIN's own rules, the decoder's answer in our words, the one summary line and the
 // colour swatches. Pure, so the browser, the server and the unit tests share it (src/features/vin/vin.test.ts).
 // The database keeps the same check (app.vin_check_ok, 0040) and decides what is stored.
 

@@ -1,4 +1,4 @@
-// VIN-first entry (migration 0079): the check digit, the decoder's answer in our words, the summary line, the colour,
+// VIN-first entry (migration 0082): the check digit, the decoder's answer in our words, the summary line, the colour,
 // and what the form sends.   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

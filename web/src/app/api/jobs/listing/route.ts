@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (d !== 0) return new NextResponse('Forbidden', { status: 403 });
   try {
     const s = await runListingWorkerNow({ maxJobs: 16, deadlineMs: 25_000 });
-    // then the car details that come later (0079): a VIN decoded again, the colour from a cover photo
+    // then the car details that come later (0082): a VIN decoded again, the colour from a cover photo
     const c = await runCarDetailsNow({ vins: 3, colours: 2 }).catch((e) => ({ decoded: 0, filled: 0, colours: 0, errors: [String(e).slice(0, 200)] }));
     return NextResponse.json({ ok: true, claimed: s.claimed, succeeded: s.succeeded, failed: s.failed, held: s.held, due: s.due, errors: [...s.errors, ...c.errors].slice(0, 5),
       details: { decoded: c.decoded, filled: c.filled, colours: c.colours } });

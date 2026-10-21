@@ -9,7 +9,7 @@ export interface ApplyVehicle {
   finance_party_name: string; finance_party_account: string; finance_permission: '' | 'attached' | 'not_obtained' | 'proceed';
   management_mode: '' | 'managed' | 'self_managed' | 'turo_only'; onboarding_method: string; owners_lien: '' | 'elect' | 'decline';
   new_corporation_name: string; decoded: boolean;
-  /** the decode's details in one line ("Sedan · 5 seats · Gas"), and whether the owner opened the fields to edit (0079) */
+  /** the decode's details in one line ("Sedan · 5 seats · Gas"), and whether the owner opened the fields to edit (0082) */
   details?: string; editing?: boolean;
 }
 export interface ApplyOwner {

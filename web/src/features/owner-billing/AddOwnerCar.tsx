@@ -9,7 +9,7 @@ import { InvoiceChoice, inv, type Inv } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
 
 // Add a car for an owner (migration 0067): Admin, customer service and fleet enter everything for the owner in one
-// flow: the owner (found, or new), the car (VIN first since 0079: decoded at once into one summary line, the class
+// flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
 // inferred, the colour in one tap; the copy is written right after), the documents, who sourced the owner, how the owner signs, and
 // for an Admin the terms and first invoices (an assistant's go to an Admin as a proposal). The owner then gets one
 // email to review, correct and sign (or signs on paper).

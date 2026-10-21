@@ -1,4 +1,4 @@
-# VIN-first entry (October 21, 2026; migration 0079)
+# VIN-first entry (October 21, 2026; migration 0082)
 
 The owner, October 21, 2026: "Put in a VIN and the description and title and everything gets generated automatically
 from that rather than having to type in any details manually."
