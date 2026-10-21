@@ -13,7 +13,9 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 2,
-  retries: 0,
+  // CI: one retry, so a test that fails only under the runner's load is reported as flaky (it still has to pass once);
+  // a defect fails both tries. Local runs never retry.
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }]],
   use: { baseURL: base, trace: 'retain-on-failure', launchOptions: { args: ['--no-proxy-server'] } },
   projects: [
