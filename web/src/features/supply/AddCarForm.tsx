@@ -5,10 +5,14 @@ import Link from 'next/link';
 import { supplyDo } from '@/server/actions/supply';
 import { RateFields } from '@/features/rates/RateFields';
 import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
+import { ColourSwatches, VinEntry, effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
 
-// Admin > Vehicles > Add a car (migration 0046): who supplies it first (a program owner, CarmaCars, or a partner
-// rental company), then the car. The duplicate check is the database's: one VIN once in the fleet, a plate on one
-// active car, and the similarity check of 0040 (a likely twin waits for staff before it is published).
+// Admin > Vehicles > Add a car (migration 0046; VIN first since 0079): the VIN, decoded at once into one summary line
+// (year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine), the colour in one tap, the class
+// inferred and the rates pre-filled from it; then who supplies it (a program owner, CarmaCars, or a partner rental
+// company). The title, description and features are written by the listing pipeline right after the car is added.
+// The duplicate check is the database's: one VIN once in the fleet, a plate on one active car, and the similarity
+// check of 0040 (a likely twin waits for staff before it is published).
 type Opt = { id: string; name: string; note?: string };
 const SUPPLY: Array<[string, string, string]> = [
   ['program_owner', 'A program owner\'s car', 'The owner pays the fees and gets the owner statement. The car starts its onboarding (terms, agreements, registry).'],
@@ -19,7 +23,9 @@ const SUPPLY: Array<[string, string, string]> = [
 export function AddCarForm({ owners, partners, defaultCommission }: { owners: Opt[]; partners: Opt[]; defaultCommission: number }) {
   const router = useRouter();
   const [supply, setSupply] = useState('company');
-  const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed', fuel: 'gasoline', class: 'standard' });
+  const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed' });
+  const [car, setCar] = useState<VinValue>(emptyVin());
+  const [more, setMore] = useState(false);
   const [rates, setRates] = useState<Record<string, string>>({ km_mode: 'default' });
   const [chk, setChk] = useState<RateCheck | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -32,10 +38,13 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   );
   const submit = () => start(async () => {
     setErr(null);
+    const problem = vinProblem(car);
+    if (problem) { setErr(problem); return; }
+    if (car.facts?.taken && car.mode === 'vin') { setErr(`This VIN is already in the fleet: ${car.facts.taken.name}.`); return; }
     if (!ratesEmpty(rates) && chk && !chk.ok) { setErr(`Check the rates: ${chk.messages.join(' ')}`); return; }
     const p: Record<string, unknown> = {
-      supply_type: supply, vin: v.vin, plate: v.plate, year: v.year ? Number(v.year) : undefined, make: v.make, model: v.model, trim: v.trim, colour: v.colour,
-      odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, fuel: v.fuel, class: v.class, home_location: v.home_location,
+      supply_type: supply, ...vinPayload(car), plate: car.mode === 'plate' ? car.plate.toUpperCase().replace(/\s/g, '') : v.plate || undefined,
+      odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, home_location: v.home_location || undefined,
       rates: ratesEmpty(rates) ? undefined : ratePayload(rates)
     };
     if (supply === 'program_owner') Object.assign(p, { owner_id: v.owner_id, title_status: v.title_status, management_mode: v.management_mode, finance_party_name: v.finance_party_name });
@@ -44,8 +53,17 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
     if (!r.ok) { setErr(r.message); return; }
     router.push(`/admin/vehicles/${r.data.vehicle_id}?added=1`);
   });
+  const ec = effectiveCar(car);
   return (
     <form className="ad-form stack" noValidate data-testid="add-car" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <fieldset className="stack"><legend className="d4">The car</legend>
+        <VinEntry value={car} onChange={setCar} prefix="add-car" carHref={(id) => `/admin/vehicles/${id}`} />
+        <ColourSwatches value={car.colour} onChange={(c) => setCar((x) => ({ ...x, colour: c }))} prefix="add-car" legend="Colour (optional)"
+          hint="Not in the VIN. Leave it empty and it is read from the cover photo once there is one." />
+        {car.mode === 'vin' && input('plate', 'Plate', { hint: 'Optional when the VIN is given.' })}
+        {!more ? <button type="button" className="link vin-switch" onClick={() => setMore(true)} data-testid="add-car-more">Odometer and home area (optional)</button> : (
+          <div className="ad-fields">{input('odometer_km', 'Odometer (km)', { inputMode: 'numeric' })}{input('home_location', 'Home area')}</div>)}
+      </fieldset>
       <fieldset className="stack"><legend className="d4">Who supplies the car</legend>
         {SUPPLY.map(([k, l, note]) => (
           <label key={k} className="check ad-choice" htmlFor={`ac-s-${k}`}>
@@ -72,24 +90,9 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
             {!partners.length && <p className="hint">No partner yet: add one in <Link prefetch={false} className="link" href="/admin/partners">Partners</Link> first.</p>}</div>
           {input('commission', 'Commission for this car (%)', { inputMode: 'decimal', hint: `Empty: the partner's commission (the default is ${defaultCommission / 100}%).` })}
         </div>)}
-      <fieldset className="stack"><legend className="d4">The car</legend>
-        <div className="ad-fields">
-          {input('vin', 'VIN (17 characters)', { required: true })}
-          {input('plate', 'Plate')}
-          {input('year', 'Year', { inputMode: 'numeric', hint: 'Year, make and model are taken from the VIN decode when one is on file.' })}
-          {input('make', 'Make')}
-          {input('model', 'Model')}
-          {input('trim', 'Trim')}
-          {input('colour', 'Colour')}
-          {input('odometer_km', 'Odometer (km)', { inputMode: 'numeric' })}
-          <div className="field ad-field"><label className="label" htmlFor="ac-class">Deposit class</label>
-            <select className="select" id="ac-class" value={v.class} onChange={set('class')}>{['economy', 'standard', 'premium', 'suv', 'luxury', 'exotic'].map((c) => <option key={c} value={c}>{c[0]!.toUpperCase() + c.slice(1)}</option>)}</select></div>
-          {input('home_location', 'Home area')}
-        </div>
-      </fieldset>
       <fieldset className="stack"><legend className="d4">Rates and kilometres</legend>
-        <p className="small muted">Type the rates now to post the car in one pass, or leave them empty and set them on the car&apos;s Rates tab. The kilometres start from the defaults.</p>
-        <RateFields v={rates} set={(k, x) => setRates((s) => ({ ...s, [k]: x }))} context={{ class: v.class, make: v.make, model: v.model }} prefix="add-car" optional onCheck={setChk} />
+        <p className="small muted">The daily rate starts from similar cars, else the class. Keep it to post the car in one pass, change it, or empty it and set the rates on the car&apos;s Rates tab. The kilometres start from the defaults.</p>
+        <RateFields v={rates} set={(k, x) => setRates((s) => ({ ...s, [k]: x }))} context={{ class: car.class, make: ec.make ?? '', model: ec.model ?? '' }} prefix="add-car" optional onCheck={setChk} />
       </fieldset>
       {err && <p className="alert alert--error" role="alert" data-testid="add-car-error"><span>{err}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={pending} data-testid="add-car-submit">{pending ? 'Adding' : 'Add the car'}</button></div>

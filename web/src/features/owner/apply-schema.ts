@@ -9,6 +9,8 @@ export interface ApplyVehicle {
   finance_party_name: string; finance_party_account: string; finance_permission: '' | 'attached' | 'not_obtained' | 'proceed';
   management_mode: '' | 'managed' | 'self_managed' | 'turo_only'; onboarding_method: string; owners_lien: '' | 'elect' | 'decline';
   new_corporation_name: string; decoded: boolean;
+  /** the decode's details in one line ("Sedan · 5 seats · Gas"), and whether the owner opened the fields to edit (0079) */
+  details?: string; editing?: boolean;
 }
 export interface ApplyOwner {
   owner_type: '' | 'individual' | 'corporation'; first_name: string; middle_name: string; last_name: string;
@@ -63,8 +65,7 @@ export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type
   if (!/^(19[89]\d|20\d\d)$/.test(v.year)) e.year = 'Enter the year.';
   if (!v.make.trim()) e.make = 'Enter the make.';
   if (!v.model.trim()) e.model = 'Enter the model.';
-  if (!v.colour.trim()) e.colour = 'Enter the colour.';
-  if (!v.fuel) e.fuel = 'Choose the fuel.';
+  if (!v.colour.trim()) e.colour = 'Tap the colour.';
   if (!/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = 'Enter the plate as on the permit.';
   if (!/^\d{1,6}$/.test(v.odometer_km.replace(/[\s,]/g, ''))) e.odometer_km = 'Enter the kilometres on the odometer.';
   if (!v.current_insurer.trim()) e.current_insurer = 'Enter your insurer.';
@@ -91,7 +92,7 @@ export function planErrors(v: ApplyVehicle): Record<string, string> {
 export function vehiclePayload(v: ApplyVehicle) {
   return {
     vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, ''), year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
-    colour: v.colour.trim(), fuel: v.fuel, odometer_km: Number(v.odometer_km.replace(/[\s,]/g, '')), current_insurer: v.current_insurer.trim(),
+    colour: v.colour.trim(), fuel: v.fuel || undefined, odometer_km: Number(v.odometer_km.replace(/[\s,]/g, '')), current_insurer: v.current_insurer.trim(),
     title_brand_clear: v.branded !== 'yes', disclosures: { damage: v.damage === 'yes', details: v.damage_details.trim() || null },
     held_by: v.held_by, title_status: v.title_status, finance_party_name: v.title_status === 'owned_outright' ? null : v.finance_party_name.trim(),
     finance_party_account: v.finance_party_account.trim() || null,

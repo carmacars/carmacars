@@ -117,6 +117,8 @@ export function mapVpic(x: Record<string, unknown>): VinDecode {
 export interface DecodedCar {
   year: number | null; make: string | null; model: string | null; trim: string | null; body: string | null; fuel: string | null;
   drivetrain: string | null; transmission: string | null; doors: number | null; seats: number | null; engine: string | null;
+  /** the decoder's own words for the body ("Sport Utility Vehicle (SUV)/Multi-Purpose Vehicle (MPV)") */
+  body_class?: string | null;
 }
 export const FUEL_WORDS: Record<string, string> = { gasoline: 'Gas', diesel: 'Diesel', hybrid: 'Hybrid', plug_in_hybrid: 'Plug-in hybrid', electric: 'Electric' };
 

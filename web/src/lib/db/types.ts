@@ -13047,6 +13047,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_class_rules: {
+        Row: {
+          id: string;
+          rank: number;
+          make_key: string | null;
+          model_re: string | null;
+          trim_re: string | null;
+          body_re: string | null;
+          class: Database["public"]["Enums"]["vehicle_class"];
+          aged_years: number | null;
+          aged_class: Database["public"]["Enums"]["vehicle_class"] | null;
+          note: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          rank?: number;
+          make_key?: string | null;
+          model_re?: string | null;
+          trim_re?: string | null;
+          body_re?: string | null;
+          class: Database["public"]["Enums"]["vehicle_class"];
+          aged_years?: number | null;
+          aged_class?: Database["public"]["Enums"]["vehicle_class"] | null;
+          note: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          rank?: number;
+          make_key?: string | null;
+          model_re?: string | null;
+          trim_re?: string | null;
+          body_re?: string | null;
+          class?: Database["public"]["Enums"]["vehicle_class"];
+          aged_years?: number | null;
+          aged_class?: Database["public"]["Enums"]["vehicle_class"] | null;
+          note?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_classes: {
         Row: {
           code: string;
@@ -13069,6 +13117,45 @@ export type Database = {
           label?: string;
           sort_order?: number;
           is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_colour_reads: {
+        Row: {
+          vehicle_id: string;
+          photo_id: string | null;
+          attempts: number;
+          last_at: string | null;
+          ok: boolean | null;
+          colour: string | null;
+          model: string | null;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          photo_id?: string | null;
+          attempts?: number;
+          last_at?: string | null;
+          ok?: boolean | null;
+          colour?: string | null;
+          model?: string | null;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          photo_id?: string | null;
+          attempts?: number;
+          last_at?: string | null;
+          ok?: boolean | null;
+          colour?: string | null;
+          model?: string | null;
+          error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -15640,6 +15727,8 @@ export type Database = {
       server_chat_lead: { Args: { p_token: string; p: Json }; Returns: Json };
       server_chat_open: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
+      server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
+      server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_document_file: { Args: { p_document: string }; Returns: Json };
@@ -15720,6 +15809,10 @@ export type Database = {
       server_verify_signup_cleanup: { Args: { p_user: string }; Returns: Json };
       server_verify_signup_emails: { Args: { p_user: string }; Returns: Json };
       server_view_as_start: { Args: { p_admin: string; p_target: string; p_portal: string; p_fn?: string }; Returns: Json };
+      server_vin_class_hint: { Args: { p: Json }; Returns: Json };
+      server_vin_decode_due: { Args: { p_limit?: number }; Returns: Json };
+      server_vin_decoded_apply: { Args: { p_vin: string }; Returns: number };
+      server_vin_facts: { Args: { p_vin: string }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };

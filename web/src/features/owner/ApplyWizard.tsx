@@ -7,6 +7,8 @@ import { AddressInput } from '@/features/forms/AddressInput';
 import { Turnstile, FAKE_TOKEN } from '@/features/forms/Turnstile';
 import { publicEnv } from '@/lib/public-env';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
+import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
+import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
@@ -132,19 +134,40 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     go(3);
   };
 
+  // the VIN looked up at the 17th character (0079): the details fill themselves, shown as one line with an Edit link
+  const asked = useRef<Record<string, string>>({});
   const checkVin = async (i: number) => {
     const v = s.vehicles[i]!;
     const vin = cleanVin(v.vin);
-    setVinMsg((m) => ({ ...m, [v.key]: 'Checking' }));
+    asked.current[v.key] = vin;
+    setVinMsg((m) => ({ ...m, [v.key]: 'Looking up your VIN' }));
     const r = await lookupVin(vin);
+    if (asked.current[v.key] !== vin) return;
     if (!r.ok) { setVinMsg((m) => ({ ...m, [v.key]: '' })); setErrs((e) => ({ ...e, [`v${i}.vin`]: r.message })); return; }
     clearErr(`v${i}.vin`);
     const d = r.data.decode;
+    const warn = r.data.check_ok ? '' : ' This VIN does not add up: check it against the ownership permit.';
     if (d && d.make) {
-      setVehicle(i, { vin, year: v.year || String(d.year ?? ''), make: v.make || d.make || '', model: v.model || d.model || '', trim: v.trim || d.trim || '', fuel: v.fuel || d.fuel || '', decoded: true });
-      setVinMsg((m) => ({ ...m, [v.key]: `Found: ${[d.year, d.make, d.model, d.trim].filter(Boolean).join(' ')}. Check the details below.` }));
-    } else setVinMsg((m) => ({ ...m, [v.key]: 'VIN checked. Enter the year, make and model from the ownership permit.' }));
+      setVehicle(i, { vin, year: String(d.year ?? ''), make: d.make ?? '', model: d.model ?? '', trim: d.trim ?? '', fuel: d.fuel ?? '', decoded: true, editing: false, details: detailLine(d) });
+      ['year', 'make', 'model'].forEach((k) => clearErr(`v${i}.${k}`));
+      setVinMsg((m) => ({ ...m, [v.key]: `Found your car.${warn}` }));
+    } else {
+      setVehicle(i, { vin, decoded: false, details: '' });
+      setVinMsg((m) => ({ ...m, [v.key]: `We could not look this VIN up. Choose the year, make and model below.${warn}` }));
+    }
   };
+  const activeVin = s.active >= 0 ? cleanVin(s.vehicles[s.active]?.vin ?? '') : '';
+  useEffect(() => {
+    const v = s.active >= 0 ? s.vehicles[s.active] : null;
+    if (!v) return;
+    const st = vinState(v.vin);
+    if (st.kind !== 'ok' && st.kind !== 'check_digit') return;
+    if (asked.current[v.key] === st.vin) return;
+    // a draft opened again keeps what was found and edited; a new or changed VIN is looked up
+    if (asked.current[v.key] === undefined && (v.decoded || v.make)) { asked.current[v.key] = st.vin; return; }
+    void checkVin(s.active);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVin, s.active]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -278,20 +301,32 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             return (
               <div className="pt-card" data-testid="vehicle-editor">
                 <h3 className="d4">Vehicle {i + 1}{v.make ? `: ${vName(v)}` : ''}</h3>
-                <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || 'On the ownership permit and the driver\'s door frame. We look up the year, make and model.'}>
-                  <div className="ow-vin"><input className="input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => set({ vin: ev.target.value.toUpperCase(), decoded: false }, 'vin')} onBlur={() => { if (cleanVin(v.vin).length === 17 && !v.decoded) void checkVin(i); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
-                    <button type="button" className="btn btn--ghost" onClick={() => void checkVin(i)}>Look up</button></div>
+                <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || vinMessage(vinState(v.vin)) || 'On the ownership permit and the driver\'s door frame. Your car\'s details come from it.'}>
+                  <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" /></div>
                 </Field>
-                <div className="field-row field-row--3">
-                  <Field id={id('year')} label="Year" err={e('year')}><input className="input" inputMode="numeric" {...aria(id('year'), e('year'))} value={v.year} onChange={(ev) => set({ year: ev.target.value.replace(/\D/g, '').slice(0, 4) }, 'year')} /></Field>
-                  <Field id={id('make')} label="Make" err={e('make')}><input className="input" {...aria(id('make'), e('make'))} value={v.make} onChange={(ev) => set({ make: ev.target.value }, 'make')} /></Field>
-                  <Field id={id('model')} label="Model" err={e('model')}><input className="input" {...aria(id('model'), e('model'))} value={v.model} onChange={(ev) => set({ model: ev.target.value }, 'model')} /></Field>
-                </div>
-                <div className="field-row field-row--3">
-                  <Field id={id('trim')} label="Trim" optional><input className="input" id={id('trim')} value={v.trim} onChange={(ev) => set({ trim: ev.target.value })} /></Field>
-                  <Field id={id('colour')} label="Colour" err={e('colour')}><input className="input" {...aria(id('colour'), e('colour'))} value={v.colour} onChange={(ev) => set({ colour: ev.target.value }, 'colour')} /></Field>
-                  <Field id={id('fuel')} label="Fuel" err={e('fuel')}><select className="select" {...aria(id('fuel'), e('fuel'))} value={v.fuel} onChange={(ev) => set({ fuel: ev.target.value }, 'fuel')}><option value="">Choose</option>{FUELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-                </div>
+                {v.decoded && !v.editing ? (
+                  <div className="vin-sum" data-testid="apply-vin-summary">
+                    <p className="vin-sum__name"><b>{carName({ year: Number(v.year) || null, make: v.make, model: v.model, trim: v.trim })}</b> <button type="button" className="link" onClick={() => set({ editing: true })} data-testid="apply-vin-edit">Edit</button></p>
+                    {v.details && <p className="small muted vin-sum__line">{v.details}</p>}
+                  </div>
+                ) : v.decoded ? (
+                  <div className="stack" data-testid="apply-vin-edit-fields">
+                    <div className="field-row field-row--3">
+                      <Field id={id('year')} label="Year" err={e('year')}><input className="input" inputMode="numeric" {...aria(id('year'), e('year'))} value={v.year} onChange={(ev) => set({ year: ev.target.value.replace(/\D/g, '').slice(0, 4) }, 'year')} /></Field>
+                      <Field id={id('make')} label="Make" err={e('make')}><input className="input" {...aria(id('make'), e('make'))} value={v.make} onChange={(ev) => set({ make: ev.target.value }, 'make')} /></Field>
+                      <Field id={id('model')} label="Model" err={e('model')}><input className="input" {...aria(id('model'), e('model'))} value={v.model} onChange={(ev) => set({ model: ev.target.value }, 'model')} /></Field>
+                    </div>
+                    <div className="field-row field-row--3">
+                      <Field id={id('trim')} label="Trim" optional><input className="input" id={id('trim')} value={v.trim} onChange={(ev) => set({ trim: ev.target.value })} /></Field>
+                      <Field id={id('fuel')} label="Fuel" optional><select className="select" id={id('fuel')} value={v.fuel} onChange={(ev) => set({ fuel: ev.target.value })}><option value="">Choose</option>{FUELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+                    </div>
+                    <p className="small"><button type="button" className="link" onClick={() => set({ editing: false })}>Done</button></p>
+                  </div>
+                ) : (cleanVin(v.vin).length === 17 && vinMsg[v.key] !== 'Looking up your VIN' && (!!vinMsg[v.key] || !!v.make)) ? (
+                  <YearMakeModel value={{ year: v.year, make: v.make, model: v.model }} onChange={(x) => { set({ year: x.year ?? '', make: x.make ?? '', model: x.model ?? '' }); ['year', 'make', 'model'].forEach((k) => clearErr(`v${i}.${k}`)); }}
+                    prefix="apply" errs={{ year: e('year'), make: e('make'), model: e('model') }} />
+                ) : (e('year') || e('make') || e('model')) ? <p className="error" role="alert">Enter the VIN: we fill in the year, make and model from it.</p> : null}
+                <ColourSwatches value={v.colour} onChange={(c) => set({ colour: c }, 'colour')} prefix="apply" err={e('colour')} />
                 <div className="field-row field-row--3">
                   <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" /></Field>
                   <Field id={id('odo')} label="Odometer (km)" err={e('odometer_km')}><input className="input" inputMode="numeric" {...aria(id('odo'), e('odometer_km'))} value={v.odometer_km} onChange={(ev) => set({ odometer_km: ev.target.value.replace(/[^\d]/g, '') }, 'odometer_km')} /></Field>
