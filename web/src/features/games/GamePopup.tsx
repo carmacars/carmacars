@@ -7,7 +7,7 @@ import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
 import { remember, rememberSeen } from './GameGate';
 
-// Discount games (migrations 0069 and 0076): the game itself. A slide-in card on a computer and a bottom sheet on a
+// Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
 // phone, never a full-screen block, always closable (the close button and Esc). On the first page of a phone visit
 // from a search engine it starts as a small slide-in that opens into the card when tapped. The database has already
 // drawn the prize; the game only shows it. Then the visitor enters a first name, an email and (optional) a mobile

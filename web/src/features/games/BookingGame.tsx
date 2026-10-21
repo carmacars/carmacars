@@ -7,7 +7,7 @@ import { bookingIneligible } from './rules';
 import { automated, gameSettings, loadPopup, memory, remember } from './GameGate';
 import type { Claimed, GamePopupProps } from './GamePopup';
 
-// Discount games in the request-to-book form (migration 0076). The one place a signed-in renter sees a game: anyone who
+// Discount games in the request-to-book form (migration 0081). The one place a signed-in renter sees a game: anyone who
 // has not claimed a prize is offered "Play for a discount on this booking" on the add-ons and review steps (never on
 // the pay or sign pages, never to staff: the server says who may). The offer is decided in idle time when the form
 // opens and drawn only with a step that starts after that, so nothing on the page moves. It never blocks the booking:

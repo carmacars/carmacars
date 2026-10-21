@@ -1,9 +1,9 @@
--- 51: discount games, sooner and again, and in the request-to-book form (migration 0076). The new settings and the
+-- 53: discount games, sooner and again, and in the request-to-book form (migration 0081). The new settings and the
 -- live values moved from the old defaults; the re-show with a game not seen yet (all five before one repeats, from the
 -- browser's list and the server's plays), the same prize on every show (no new draw); the booking form: signed-in
 -- renters may play and claim with their account's email, never staff, never after a claim, a visitor known by email
 -- may; a dry check records nothing; privileges. Fixtures start with "g2".
-select test.suite('51 discount games: timing, re-show, booking form');
+select test.suite('53 discount games: timing, re-show, booking form');
 
 select test.mk_user('g2_admin', 'admin');
 select test.mk_user('g2_cs', 'va', 'cs');
@@ -115,13 +115,13 @@ select test.eq('a visitor in the booking form claims as on the site (one per ema
 select test.eq('privileges: the booking form''s play is the server''s; the site''s play stays open to the browser',
   has_function_privilege('anon', 'public.server_game_start(jsonb, uuid)', 'execute')::text || has_function_privilege('authenticated', 'public.server_game_start(jsonb, uuid)', 'execute')::text
   || has_function_privilege('service_role', 'public.server_game_start(jsonb, uuid)', 'execute')::text || has_function_privilege('anon', 'public.game_start(jsonb)', 'execute')::text
-  || has_function_privilege('anon', 'app.game_start_core(jsonb, uuid)', 'execute')::text || has_function_privilege('anon', 'app.server_game_claim_pre0076(jsonb, uuid)', 'execute')::text,
+  || has_function_privilege('anon', 'app.game_start_core(jsonb, uuid)', 'execute')::text || has_function_privilege('anon', 'app.server_game_claim_pre0081(jsonb, uuid)', 'execute')::text,
   'falsefalsetruetruefalsefalse');
 select test.eq('the privacy policy says when and where the games show where it still has our text (or the seed has not run)',
   coalesce((select (body like '%offered in the booking request form%' and body like '%which games you have seen%' and body not like '%browse several cars or stay a while%')::text
               from site_content_blocks where block_key = 'legal.privacy' and body like '%Discount games are shown%'), 'true'), 'true');
 
--- ================================================================ 5. the card pack and the rare prizes (0076, later the same day)
+-- ================================================================ 5. the card pack and the rare prizes (0081, later the same day)
 select test.eq('six games: the card pack is one, on at the same weight', array_to_string(app.game_kinds(), ' ') || ' | ' || ((app.settings()).game_weights ->> 'pack'),
   'wheel scratch blackjack cups plinko pack | 1');
 delete from app.rate_limit_hits where key like 'game-%';

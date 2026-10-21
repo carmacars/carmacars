@@ -3,11 +3,11 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { db, noOverflow } from './helpers';
 
-// Migrations 0069 and 0076 end to end, at 375 and 1440: each of the five games shows after one car page to a visitor
+// Migrations 0069 and 0081 end to end, at 375 and 1440: each of the five games shows after one car page to a visitor
 // who is not signed in, plays (the wheel turns, the card is scratched, a hand is played, the cups shuffle, the disc
 // drops) and reveals the prize the database drew; the unlock form gives the code (and the email is queued); the code
 // fills in the request form, takes the discount and goes on the booking request; a signed-in visitor never sees a game
-// on the site; the Admin's Leads page and Settings > Discount games show the claim. 0076: the first game after 15
+// on the site; the Admin's Leads page and Settings > Discount games show the claim. 0081: the first game after 15
 // seconds without a car page; on a phone visit from a search engine the small slide-in 15 seconds later; closed, a
 // different game after 2 more car pages; the request-to-book form's card applies the code to that booking and the
 // price changes; closing it leaves the booking as it was; a signed-in renter is offered it there. The card is checked
@@ -49,7 +49,7 @@ async function answerCookies(page: Page) {
   await page.waitForFunction(() => document.cookie.includes('cc_cookie_choice='));
 }
 
-/** One car page (0076): the game slides in once the cookie banner is answered, never over it. */
+/** One car page (0081): the game slides in once the cookie banner is answered, never over it. */
 async function browseUntilGame(page: Page) {
   await page.goto('/cars/toyota-corolla', { waitUntil: 'load' });
   await page.waitForTimeout(1500);
@@ -110,7 +110,7 @@ const GAMES_PLAYED = [
     await expect(p.getByText(/You found/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible();
   } },
   { game: 'plinko', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It landed on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } },
-  // 0076: the card pack, torn by dragging across the top strip (a computer) or by tapping it (a phone)
+  // 0081: the card pack, torn by dragging across the top strip (a computer) or by tapping it (a phone)
   { game: 'pack', play: async (p: Page) => {
     const strip = p.getByRole('button', { name: 'Tear the strip along the top of the pack' });
     if (isPhone()) { await strip.click(); await strip.click(); }
@@ -150,7 +150,7 @@ for (const g of GAMES_PLAYED) {
   });
 }
 
-test('a rare prize: the card pack turns a holographic card, and confetti over the card (0076)', async ({ browser }) => {
+test('a rare prize: the card pack turns a holographic card, and confetti over the card (0081)', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const { page } = await visitor(browser, sql, 'pack', { key: 'day1', free_days: 1, min_days: 3, max_cents: 15000, weight: 0.1 });
@@ -172,7 +172,7 @@ test('a rare prize: the card pack turns a holographic card, and confetti over th
   await sql.end();
 });
 
-test('the first game without a car page: after 15 seconds on the site (0076)', async ({ browser }) => {
+test('the first game without a car page: after 15 seconds on the site (0081)', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const { page } = await visitor(browser, sql, 'wheel', PRIZE10);
@@ -188,7 +188,7 @@ test('the first game without a car page: after 15 seconds on the site (0076)', a
   await sql.end();
 });
 
-test('a phone visit from a search engine: nothing on the landing page at first, then the small slide-in (0076)', async ({ browser }) => {
+test('a phone visit from a search engine: nothing on the landing page at first, then the small slide-in (0081)', async ({ browser }) => {
   test.setTimeout(90_000);
   test.skip(!isPhone(), 'phones only: a computer gets the usual card');
   const sql = db();
@@ -214,7 +214,7 @@ test('a phone visit from a search engine: nothing on the landing page at first, 
   await sql.end();
 });
 
-test('closed: a different game comes back after 2 more car pages, with the same prize (0076)', async ({ browser }) => {
+test('closed: a different game comes back after 2 more car pages, with the same prize (0081)', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const { page, vid } = await visitor(browser, sql, 'wheel', PRIZE10);
@@ -275,7 +275,7 @@ async function toAddons(page: Page, slug: string, days: number, email: string) {
 }
 const total = async (page: Page) => (await page.locator('.req__sum summary b.num').innerText()).trim();
 
-test('the request-to-book form: the card plays, the code goes on this booking and the price drops (0076)', async ({ browser }) => {
+test('the request-to-book form: the card plays, the code goes on this booking and the price drops (0081)', async ({ browser }) => {
   test.setTimeout(150_000);
   const sql = db();
   const { page, vid } = await visitor(browser, sql, 'plinko', PRIZE50, true);
@@ -319,7 +319,7 @@ test('the request-to-book form: the card plays, the code goes on this booking an
   await sql.end();
 });
 
-test('the request-to-book form: closing the game leaves the booking as it was (0076)', async ({ browser }) => {
+test('the request-to-book form: closing the game leaves the booking as it was (0081)', async ({ browser }) => {
   test.setTimeout(120_000);
   const sql = db();
   const { page } = await visitor(browser, sql, 'cups', PRIZE10, true);
@@ -406,7 +406,7 @@ test('a signed-in visitor never sees a game on the site, and is offered it in th
   for (const s of ['toyota-corolla', 'tesla-model-3', 'kia-forte']) await page.goto(`/cars/${s}`, { waitUntil: 'load' });
   await page.waitForTimeout(3000);
   await expect(page.getByTestId('game')).toHaveCount(0);
-  // 0076: the request-to-book form is the one place a signed-in renter is offered the game, with their account's email
+  // 0081: the request-to-book form is the one place a signed-in renter is offered the game, with their account's email
   await toAddons(page, 'mercedes-benz-c300', isPhone() ? 175 : 180, email);
   await expect(page.getByTestId('booking-game')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('booking-game-play').click();
@@ -442,7 +442,7 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.goto('/admin/settings/discount-games', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('game-rules')).toBeVisible();
   await expect(page.getByTestId('game-settings').locator('input').first()).toHaveValue('5');
-  // 0076: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
+  // 0081: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
   await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(7);
   await expect(page.getByLabel('Card pack')).toHaveValue('1');
   await expect(page.getByTestId('game-expected-cost')).toContainText(/Expected cost per claimed code: \$\d+\.\d\d/);

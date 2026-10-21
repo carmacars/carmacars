@@ -120,7 +120,7 @@ export function RequestWizard(p: WizardProps) {
   const haveDates = !!(car && d.from && d.to);
   const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
-  // discount games (0076): the offer on the add-ons and review steps; a won code goes in the promo code box
+  // discount games (0081): the offer on the add-ons and review steps; a won code goes in the promo code box
   const promoText = !d.promo ? '' : !q ? 'The price beside the form is being updated.' : q.promo?.applied
     ? `Code ${q.promo.code} applied: ${money(-(q.lines.find((l) => l.charge_type === 'promo_discount')?.amount_cents ?? 0), { cents: true })} off the rental charge.`
     : q.promo?.problem ? `${q.promo.problem}. The code stays yours until it expires.` : '';

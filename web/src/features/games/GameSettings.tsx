@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { adminSaveRow } from '@/server/actions/admin-portal';
 import { expectedCost, prizeCost, type PrizeRow } from './rules';
 
-// Settings > Discount games (migrations 0069 and 0076): the prize table and the games' weights in plain fields (the
+// Settings > Discount games (migrations 0069 and 0081): the prize table and the games' weights in plain fields (the
 // database checks them again). A prize is a percentage, dollars or free days, with its own minimum rental length and
 // its own cap (a percentage or free days without one takes the games' cap). Below the table: what one claimed code is
 // expected to cost on the average booking, worked out live from the table. Saved as a new dated Program settings row.

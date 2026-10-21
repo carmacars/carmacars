@@ -1,6 +1,6 @@
 # Discount games: sooner, again with a new game, and in the booking form (October 21, 2026)
 
-Migration `0076_games_timing_booking.sql`; tests `supabase/tests/51_games_timing_booking.sql` (and the settings lines
+Migration `0081_games_timing_booking.sql`; tests `supabase/tests/53_games_timing_booking.sql` (and the settings lines
 of `48_discount_games.sql`); unit tests `web/src/features/games/rules.test.ts`; end to end
 `web/tests/e2e/discount-games.spec.ts` (phone 375 and desktop 1440). No applied migration was edited.
 
@@ -75,7 +75,7 @@ any context it is sent and keeps the site's rules.
 - Admin > Settings > Discount games: the new fields (next game after more car pages, after seconds since the close, most
   games in one visit, the booking form's offer) with labels and hints; "a visitor keeps the same prize for (days)".
 - Admin guide, Discount games and leads; VA guide, Game leads: the new rules (`docs/guides/content`, published by the
-  migration's guides block, `supabase/seed/0076_gen_guides.mjs`).
+  migration's guides block, `supabase/seed/0081_gen_guides.mjs`).
 - Privacy policy (live copy only where it still has the words of 0069, and `docs/source/website_terms_policies.md`):
   the games are shown to visitors of the Site and offered in the booking request form, and the browser remembers which
   games were seen. Last updated October 21, 2026.
@@ -124,7 +124,7 @@ games with a weight of 1 (the live weights gain `"pack": 1` where they were stil
 
 ## 8. Tests
 
-- `51_games_timing_booking.sql`: the new settings and defaults, the checks on them, the odds and cap unchanged; five
+- `53_games_timing_booking.sql`: the new settings and defaults, the checks on them, the odds and cap unchanged; five
   shows give five games, the sixth is not the fifth, one prize for all; the server's memory; a game at weight 0 never
   chosen; claiming a re-shown play; the booking form: signed in may play, the site refuses them, the browser cannot ask
   for the booking rules, a dry check records nothing, the play recorded with its context and account, the same prize
@@ -142,7 +142,7 @@ games with a weight of 1 (the live weights gain `"pack": 1` where they were stil
   the site and is offered it in the booking form; the card pack (dragged on a computer, tapped on a phone) among the
   games; a rare prize (the free day in the pack: holographic card, confetti, the code with its minimum and cap); Admin
   shows seven prizes, the pack's weight and the expected cost; the earlier tests of 0069.
-- 0076, later the same day: in `51_games_timing_booking.sql` six games in six shows, the chances adding up to 100,
+- 0081, later the same day: in `53_games_timing_booking.sql` six games in six shows, the chances adding up to 100,
   20,000 draws within about four standard deviations of every prize's chance, the table's checks, the words, caps and
   minimum days through `app.promo_discount_cents`, one kind per code, every pricing function passing the length, a
   rare prize claimed (the code and its email), the report's average booking; in `48_discount_games.sql` the new table,

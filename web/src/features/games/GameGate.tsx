@@ -5,7 +5,7 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { addPage, addSeen, closed, excludedPath, ineligible, isSearchReferrer, nextCheck, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
-// Discount games (migrations 0069 and 0076): the watcher. Loaded after the page is idle (with the beacon and the chat),
+// Discount games (migrations 0069 and 0081): the watcher. Loaded after the page is idle (with the beacon and the chat),
 // it counts this visit's pages, car pages and time in the browser only (sessionStorage: nothing leaves the device for
 // this). The first game comes after 1 car page or 15 seconds (or the mouse leaving towards the tabs on a computer);
 // after a close another game this browser has not seen comes after 2 more car pages or 3 minutes, at most 3 a visit,

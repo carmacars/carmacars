@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { addPage, addSeen, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
-// Discount games (migrations 0069 and 0076): when a game may show (first, again after a close, in the request-to-book
+// Discount games (migrations 0069 and 0081): when a game may show (first, again after a close, in the request-to-book
 // form), the round of five games, and that every game lands on the prize the database drew.
 const CFG: GameCfg = { on: true, car_pages: 1, seconds: 15, exit: true, reshow_pages: 2, reshow_seconds: 180, per_visit: 3, booking: true };
 const NOW = Date.parse('2026-10-21T15:00:00Z');
@@ -20,7 +20,7 @@ describe('who may see a game on the site', () => {
   it('never again after a claim', () => assert.equal(ineligible({ ...base, mem: { claimed: true } }), 'claimed'));
   it('never a visitor the database knows (by email) or refused', () => assert.equal(ineligible({ ...base, mem: { never: 'known' } }), 'known'));
   it('not when the games are off', () => assert.equal(ineligible({ ...base, cfg: { ...CFG, on: false } }), 'off'));
-  it('no more 14-day wait after closing (0076): a close long ago or just now does not stop it', () => {
+  it('no more 14-day wait after closing (0081): a close long ago or just now does not stop it', () => {
     assert.equal(ineligible({ ...base, mem: { dismissedAt: NOW - 1000 } }), null);
   });
   it('at most 3 shows a visit', () => {
@@ -210,7 +210,7 @@ describe('every game lands on the drawn prize', () => {
 });
 
 const PRIZES7: PrizeWord[] = [...PRIZES, { key: 'pct25', short: '25%', label: '25% off' }, { key: 'amt100', short: '$100', label: '$100 off' }, { key: 'day1', short: 'FREE', label: '1 free day' }];
-describe('bigger prizes with low odds (0076)', () => {
+describe('bigger prizes with low odds (0081)', () => {
   it('the wheel shows all seven prizes, the common one on most slices', () => {
     const s = wheelSlices(PRIZES7);
     assert.equal(s.length, 12);
@@ -260,7 +260,7 @@ describe('bigger prizes with low odds (0076)', () => {
   });
 });
 
-describe('the card pack (0076)', () => {
+describe('the card pack (0081)', () => {
   it('five cards, CarmaCars pictures first, the prize last, no picture twice', () => {
     for (let i = 0; i < 50; i++) {
       const c = packCards(rand);

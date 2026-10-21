@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { packCards, tearProgress, TORN } from '../rules';
 import type { GameProps } from '../GamePopup';
 
-// The card pack (0076): a sealed CarmaCars foil pack. The visitor tears the strip along the top (drag across it, tap it
+// The card pack (0081): a sealed CarmaCars foil pack. The visitor tears the strip along the top (drag across it, tap it
 // a few times, or press the button); five cards fan out and turn one by one, and the last one is the prize the
 // database drew. A rare prize turns as a holographic card. CarmaCars' own picture cards only, never a real trading
 // card design or brand. With reduced motion the pack opens and every card shows at once.

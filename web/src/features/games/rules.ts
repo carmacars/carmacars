@@ -1,4 +1,4 @@
-// Discount games (migrations 0069 and 0076): the rules that decide when a game may show (first, again after a close,
+// Discount games (migrations 0069 and 0081): the rules that decide when a game may show (first, again after a close,
 // in the request-to-book form), and the layouts the games draw. Pure functions (no browser, no imports) so they are
 // unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
 // change it.

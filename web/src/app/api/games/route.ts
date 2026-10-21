@@ -5,11 +5,11 @@ import { currentUser } from '@/server/portal/data';
 import { ipKey } from '@/lib/track/shared';
 import { env } from '@/lib/env';
 
-// Discount games (migrations 0069 and 0076): the claim, and the request-to-book form's play. The site's game itself
+// Discount games (migrations 0069 and 0081): the claim, and the request-to-book form's play. The site's game itself
 // (settings, the play, the reveal) is read straight from the database by the browser; the claim comes here, once per
 // visitor at most, so the server can say who is signed in and rate-limit by a salted key of the network address (the
 // address is never stored). The database checks everything again, creates the code, the lead and the task, and
-// queues the email. 0076: { action: 'start', p } starts (or with p.dry only checks) a play of the request-to-book
+// queues the email. 0081: { action: 'start', p } starts (or with p.dry only checks) a play of the request-to-book
 // form, where signed-in renters may play too: the server passes who is signed in, the database refuses staff.
 export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
