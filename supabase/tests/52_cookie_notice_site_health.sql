@@ -1,6 +1,6 @@
 -- 52: the cookie notice for Canada outside Quebec and the US (migration 0074): the record of a notice shown, the
 -- region kept with it, an opt out after it, a bad region dropped; the banner wording; and site health's scheduled
--- jobs check, which no longer reports a run that could not start once the job has run since.
+-- jobs check, which no longer reports a run that could not start once the job has run since; the phone number.
 select test.suite('52 cookie notice and site health');
 
 select test.eq('a notice shown is recorded with analytics on and the region',
@@ -51,3 +51,12 @@ end $$;
 select test.eq('a run that could not start with no good run since is reported (or pg_cron is not installed here)',
   case when pg_temp.jobs_detail() = 'no-cron' or coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'reported');
 do $$ begin if to_regclass('cron.job_run_details') is not null then execute 'delete from cron.job_run_details where runid = 900001'; end if; end $$;
+
+-- the phone number moved to 289-321-5991 everywhere it is set
+select test.eq('the site phone, WhatsApp and roadside line are 289-321-5991',
+  (select phone || ' ' || phone_display || ' ' || whatsapp || ' ' || roadside_phone_display from site_settings limit 1),
+  '+12893215991 289-321-5991 +12893215991 289-321-5991');
+select test.eq('Program settings use 289-321-5991 for the company and the incident line',
+  (select company_phone || ' ' || incident_line_phone from program_settings), '+12893215991 +12893215991');
+select test.eq('no guide text keeps the old number',
+  (select count(*)::text from guide_sections where coalesce(body_md, '') || coalesce(published_html, '') like '%647-575-3377%'), '0');

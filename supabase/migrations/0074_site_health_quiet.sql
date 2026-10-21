@@ -106,3 +106,28 @@ update site_content_blocks
  where block_key = 'legal.privacy' and body like '%Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used and are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.%';
 update site_content_blocks set data = data || jsonb_build_object('last_updated', 'October 21, 2026')
  where block_key = 'legal.meta' and (data ->> 'last_updated') in ('October 19, 2026');
+
+-- ================================================================ the phone number (October 21, 2026: 289-321-5991)
+-- The company's number moves from 647-575-3377 to 289-321-5991 everywhere it is set: the site (phone, WhatsApp,
+-- roadside), Program settings (company and incident line, used in agreements, emails and notices) and the text of the
+-- guides. Only fields still holding the old number change; a number set to something else is left alone. History (sent
+-- emails, chat messages, the audit log, earlier guide versions) keeps what was true when it was written.
+update site_settings set phone = '+12893215991' where phone = '+16475753377';
+update site_settings set phone_display = '289-321-5991' where phone_display = '647-575-3377';
+update site_settings set whatsapp = '+12893215991' where whatsapp = '+16475753377';
+update site_settings set whatsapp_display = '289-321-5991' where whatsapp_display = '647-575-3377';
+update site_settings set roadside_phone = '+12893215991' where roadside_phone = '+16475753377';
+update site_settings set roadside_phone_display = '289-321-5991' where roadside_phone_display = '647-575-3377';
+update program_settings set company_phone = '+12893215991' where company_phone = '+16475753377';
+update program_settings set incident_line_phone = '+12893215991' where incident_line_phone = '+16475753377';
+update guide_sections
+   set body_md = replace(replace(body_md, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991'),
+       published_md = replace(replace(published_md, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991'),
+       published_html = replace(replace(published_html, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991'),
+       auto_prev = case when auto_prev is null then null else replace(replace(auto_prev::text, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991')::jsonb end
+ where body_md like '%647-575-3377%' or published_md like '%647-575-3377%' or published_html like '%647-575-3377%'
+    or auto_prev::text like '%647-575-3377%' or published_html like '%+16475753377%';
+update site_content_blocks set body = replace(replace(body, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991')
+ where body like '%647-575-3377%' or body like '%+16475753377%';
+update site_content_blocks set data = replace(replace(data::text, '647-575-3377', '289-321-5991'), '+16475753377', '+12893215991')::jsonb
+ where data::text like '%647-575-3377%' or data::text like '%+16475753377%';

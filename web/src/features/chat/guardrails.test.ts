@@ -9,7 +9,7 @@ import { runAgent, replyContext, type AgentDeps, type ChatFacts, type Step } fro
 
 const FACTS: ChatFacts = {
   today: '2026-10-19', weekday: 'Monday',
-  site: { brand: 'CarmaCars', city: 'Toronto', phone: '+16475753377', hours: 'Open 24 hours', reply: 'within 2 hours' },
+  site: { brand: 'CarmaCars', city: 'Toronto', phone: '+12893215991', hours: 'Open 24 hours', reply: 'within 2 hours' },
   rules: { min_age: 18, standard_min_age: 21, non_refundable_discount_bps: 1000, hst_bps: 1300,
     cancellation: { grace_bps: 9500, early_bps: 7500, mid_bps: 5000, late_bps: 0, grace_hours: 24, early_hours: 48, late_hours: 24 },
     fees: { cleaning: { label: 'Cleaning', unit: 'flat', amount_cents: 7500 } } },
