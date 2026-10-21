@@ -22,6 +22,8 @@ export interface CarPage extends CarRow {
   // 0061: the written copy (features/seo/copy.ts) and the car's own published reviews
   copy?: { seo_title: string; meta_description: string; h1: string; intro: string; highlights: string[]; good_for: string[]; included: string[];
     pickup_delivery: string; requirements: string[]; faq: { question: string; answer: string }[] } | null;
+  /** 0073: the copy fields a person wrote and locked (only those override the search text built from the car). */
+  copy_locked?: string[];
   reviews?: { count: number; average: number | null; min_for_rating: number;
     items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null }> };
 }
