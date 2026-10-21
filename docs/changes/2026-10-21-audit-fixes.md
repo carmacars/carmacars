@@ -75,7 +75,10 @@ Owner to-do: open Admin > To do (or Settings > Forms) and check SR-LV-006, SR-LV
 
 ## 7. Car page speed
 
-See the Measurements section.
+The car gallery now gives the browser the sizes the listing pipeline made of each photo (`srcset` from the photo's
+variants, with the original), for the main photo and the thumbnails, so a phone downloads the size it shows instead of
+the 1,800 px original. The first photo keeps `fetchpriority="high"` and is never lazy. Sample cars use SVG studio
+images and have no variants, so their pages are unchanged by this; real cars with processed photos gain the most.
 
 ## 8. The guides of 0070 to 0072, and the release rule
 
@@ -180,3 +183,16 @@ car, the samples too, got its code in 0079.
 - `scripts/check-change-guides.mjs`.
 
 ## Measurements
+
+Lighthouse (mobile, Lighthouse's default throttling, the CI build of this branch, run 39685568763):
+
+| Page | Performance | Accessibility | Best practices | SEO | LCP | CLS | TBT |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/cars/mercedes-benz-c300` (a car page) | 95 | 100 | 100 | 58 (a sample car is noindex) | 2.8 s | 0 | 110 ms |
+| `/cars` | 94 | 100 | 100 | 92 | 3.0 s | 0 | 60 ms |
+| `/` | 92 | 100 | 100 | 92 | 3.3 s | 0 | 100 ms |
+| `/car-rental/toronto` | 97 | 100 | 100 | 92 | 2.6 s | 0 | 50 ms |
+
+The car page measured 95 (the earlier report: 92). Lighthouse varies by a few points between runs on shared CI
+machines, and the sample car measured has no photo variants, so this is not a controlled before and after.
+
