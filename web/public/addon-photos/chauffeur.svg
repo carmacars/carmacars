@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Chauffeur">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f7"/><stop offset="0.72" stop-color="#ececec"/><stop offset="1" stop-color="#dedede"/></linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b4f"/><stop offset="1" stop-color="#26272a"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2343d"/><stop offset="1" stop-color="#a80d16"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <rect x="0" y="610" width="800" height="190" fill="#e2e2e3"/>
+  <ellipse cx="400" cy="616" rx="200" ry="22" fill="url(#shadow)"/>
+  <rect x="60" y="640" width="680" height="5" fill="#D0111B"/>
+  <g>
+    <circle cx="400" cy="440" r="160" fill="none" stroke="url(#paint)" stroke-width="34"/>
+    <circle cx="400" cy="440" r="160" fill="none" stroke="#26272a" stroke-width="4"/>
+    <circle cx="400" cy="440" r="48" fill="url(#paint)" stroke="#26272a" stroke-width="4"/>
+    <circle cx="400" cy="440" r="18" fill="#D0111B"/>
+    <g stroke="url(#paint)" stroke-width="30" stroke-linecap="round"><path d="M352 452 L250 470"/><path d="M448 452 L550 470"/><path d="M400 488 L400 590"/></g>
+    <path d="M250 200 Q400 110 550 200 L540 230 L260 230 Z" fill="url(#paint)" stroke="#26272a" stroke-width="6" stroke-linejoin="round"/>
+    <rect x="262" y="226" width="276" height="26" fill="#D0111B"/>
+    <path d="M262 252 L538 252 Q520 300 400 300 Q280 300 262 252 Z" fill="#26272a"/>
+    <circle cx="400" cy="185" r="14" fill="#e9e9ea" stroke="#a9b4bd" stroke-width="4"/>
+  </g>
+  <text x="740" y="740" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#6b6c70" text-anchor="end">Chauffeur</text>
+</svg>
