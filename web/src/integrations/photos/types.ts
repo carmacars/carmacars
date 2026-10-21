@@ -12,8 +12,10 @@ export interface PhotoProcessor {
   readonly name: 'cloudflare-images' | 'fake';
   /** The subject on a transparent background (PNG). */
   cutout(sourceUrl: string): Promise<PhotoOut>;
-  /** The backdrop with the shadow and the cut-out drawn on it, centred on the floor line (JPEG). */
-  composite(r: { backdropUrl: string; shadowUrl: string; cutoutUrl: string; width: number; height: number }): Promise<PhotoOut>;
+  /** The backdrop with the model-name lettering (a transparent band placed at lettering.top), the shadow and the
+   *  cut-out drawn on it, the car standing on the floor line (JPEG). */
+  composite(r: { backdropUrl: string; shadowUrl: string; cutoutUrl: string; width: number; height: number;
+    lettering?: { url: string; top: number; width: number } | null }): Promise<PhotoOut>;
   /** Orientation, crop to the aspect, size and exposure (JPEG); for interiors. */
   normalize(r: { sourceUrl: string; width: number; height: number }): Promise<PhotoOut>;
   /** One size variant (WebP). */

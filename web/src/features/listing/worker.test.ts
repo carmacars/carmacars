@@ -133,17 +133,19 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   const f = files();
   const calls: string[] = [];
   const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
-    composite: async (r: { backdropUrl: string; shadowUrl: string; cutoutUrl: string }) => { calls.push(`${r.backdropUrl}|${r.shadowUrl}|${r.cutoutUrl}`); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; },
+    composite: async (r: { backdropUrl: string; shadowUrl: string; cutoutUrl: string; lettering?: { url: string; top: number } | null }) => { calls.push(`${r.backdropUrl}|${r.lettering?.url ?? '-'}@${r.lettering?.top ?? '-'}|${r.shadowUrl}|${r.cutoutUrl}`); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; },
     cutout: async () => ({ ok: true as const, bytes: new Uint8Array(20000), contentType: 'image/png', transformations: 1 }) };
-  const r = await runJob(deps({ photos }, f), job('process_photo'), budget);
+  const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'RAV4' } }), budget);
   assert.equal(r.ok, true);
   const o = r.output as Record<string, unknown>;
   assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg');
-  assert.equal(o.preset_version, 'brand_background_v1');
+  assert.equal(o.preset_version, 'studio_v2');
+  const band = f.pub.get('site/backdrop/lettering-v1-rav4.png');
+  assert.ok(band && band[0] === 0x89 && band[1] === 0x50, 'the model-name band is a PNG in the public bucket');
   assert.deepEqual([o.width, o.height], [1800, 1200]);
   assert.ok(f.pub.has('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg'));
   assert.ok(f.priv.has('vehicles/v1/work/p1-cutout.png'), 'the cut-out stays private');
-  assert.equal(calls[0], 'pub:site/backdrop/brand_background_v1.png|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
+  assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|pub:site/backdrop/lettering-v1-rav4.png@348|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
   assert.deepEqual([r.units, r.unit, r.cost_microusd], [2, 'transformations', 0]);
 });
 
@@ -192,9 +194,10 @@ test('cloudflare adapter: segment=foreground as a PNG; an untouched JPEG back me
   assert.equal(c.ok, true);
   assert.equal(seen[0]!.segment, 'foreground');
   assert.equal(seen[0]!.format, 'png');
-  await ok.composite({ backdropUrl: 'b', shadowUrl: 's', cutoutUrl: 'c', width: 1800, height: 1200 });
+  await ok.composite({ backdropUrl: 'b', shadowUrl: 's', cutoutUrl: 'c', width: 1800, height: 1200, lettering: { url: 'l', top: 348, width: 1800 } });
   const draw = seen[1]!.draw as Array<Record<string, unknown>>;
-  assert.deepEqual(draw.map((x) => x.url), ['s', 'c'], 'the shadow first, the car on top');
+  assert.deepEqual(draw.map((x) => x.url), ['l', 's', 'c'], 'the lettering behind, then the shadow, the car on top');
+  assert.deepEqual([draw[0]!.top, draw[2]!.bottom], [348, 300], 'lettering and floor line where the sample cars have them');
   const off = cloudflareImages(async () => new Response(new Uint8Array(30000), { headers: { 'content-type': 'image/jpeg' } }));
   const r = await off.cutout('https://x/o.jpg');
   assert.deepEqual([r.ok, !r.ok && r.reason, !r.ok && r.retryable], [false, 'not_enabled', false]);

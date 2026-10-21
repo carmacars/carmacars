@@ -6,9 +6,11 @@ import type { TextGenerator } from '../../integrations/llm/types.ts';
 import type { PhotoOut, PhotoProcessor } from '../../integrations/photos/types.ts';
 import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDraft, systemPrompt, userPrompt, type CopyRules, type Draft } from './prompt.ts';
 import { plainDraft } from '../seo/copy.ts';
+import { LETTERING, letteringPath, letteringPng } from './lettering.ts';
 
-export const PRESET = 'brand_background_v1';
-export const BACKDROP_PATH = 'site/backdrop/brand_background_v1.png';
+// 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room)
+export const PRESET = 'studio_v2';
+export const BACKDROP_PATH = 'site/backdrop/studio_v2.png';
 export const SHADOW_PATH = 'site/backdrop/shadow_v1.png';
 /** The sizes the site uses (srcset of the car cards and the gallery); the master is 1800 wide. */
 export const VARIANT_WIDTHS = [480, 800, 1200] as const;
@@ -24,7 +26,7 @@ export interface JobContext {
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
-  photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string } | null;
+  photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number }
 export interface Claim { jobs: JobContext[]; budget: Budget; held: { photos: boolean; copy: boolean }; due: number }
@@ -49,6 +51,8 @@ export interface WorkerDeps {
     getPrivate(path: string): Promise<Uint8Array | null>;
     putPrivate(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
     putPublic(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
+    /** Whether a public file exists already (the model-name band is drawn once per model). */
+    hasPublic?(path: string): Promise<boolean>;
   };
   now?(): number;
   /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
@@ -192,7 +196,16 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     n += cut.transformations;
     const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-cutout.png`;
     await d.files.putPrivate(cutPath, cut.bytes, 'image/png');
-    out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), ...EXTERIOR });
+    // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
+    let lettering: { url: string; top: number; width: number } | null = null;
+    if (p.model) {
+      const lp = letteringPath(p.model);
+      try {
+        if (!(await d.files.hasPublic?.(lp))) await d.files.putPublic(lp, await letteringPng(p.model), 'image/png');
+        lettering = { url: d.files.publicUrl(lp), top: LETTERING.top, width: LETTERING.width };
+      } catch { lettering = null; /* the photo is still made, on the plain studio */ }
+    }
+    out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR });
   } else {
     size = INTERIOR;
     out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR });
