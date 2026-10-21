@@ -65,5 +65,5 @@ export interface ContentBlock { key: string; page: string; kind: 'text' | 'rich_
 export interface FaqItem { question: string; answer: string }
 export interface SlotPhoto { alt: string; wide: { path: string; width: number; height: number }; tall: { path: string; width: number; height: number } }
 export interface CookieWording { version: string; title: string; text: string; accept: string; necessary: string; prefs: string; save: string; groups: { code: string; name: string; always: boolean; text: string }[];
-  /** Notice and opt out (0074): where analytics start on with a notice, the notice and its labels. */
+  /** Notice and opt out (0075): where analytics start on with a notice, the notice and its labels. */
   notice?: string; ok?: string; optout?: string; notice_seconds?: number; implied_regions?: string[]; implied_exceptions?: string[] }

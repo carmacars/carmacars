@@ -1,4 +1,4 @@
--- 52: the cookie notice for Canada outside Quebec and the US (migration 0074): the record of a notice shown, the
+-- 52: the cookie notice for Canada outside Quebec and the US (migration 0075): the record of a notice shown, the
 -- region kept with it, an opt out after it, a bad region dropped; the banner wording; and site health's scheduled
 -- jobs check, which no longer reports a run that could not start once the job has run since; the phone number.
 select test.suite('52 cookie notice and site health');

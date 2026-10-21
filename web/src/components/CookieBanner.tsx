@@ -13,7 +13,7 @@ const VISITOR = 'cc_vid';
 type Choice = { version: string; choice: 'accept_all' | 'necessary_only' | 'custom' | 'implied'; analytics: boolean };
 /** Where the visitor is browsing from (the Worker's cc_geo cookie, e.g. CA-ON); null when unknown. */
 const geo = () => { const g = readCookie('cc_geo'); return g && /^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(g) ? g : null; };
-/** Notice and opt out (0074) for the regions the wording lists; everyone else, and an unknown location, is asked first. */
+/** Notice and opt out (0075) for the regions the wording lists; everyone else, and an unknown location, is asked first. */
 export function noticeOnly(w: Pick<CookieWording, 'implied_regions' | 'implied_exceptions' | 'notice'>, g: string | null): boolean {
   if (!g || !w.notice) return false;
   const country = g.split('-')[0]!;

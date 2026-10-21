@@ -152,7 +152,7 @@ const worker = {
     // the email link's outbox row, kept through a sign-in redirect for the beacon (Live visitors, 0060)
     if (request.method === 'GET' && path.startsWith('/account/bookings/')) { const m = emailLinkCookie(request.url, true); if (m) headers.append('set-cookie', m); }
     if (!type.includes('text/html')) return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-    // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice (0074); not stored
+    // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice (0075); not stored
     const geo = geoCode((request as Request & { cf?: { country?: string; regionCode?: string } }).cf);
     if (geo && !new RegExp(`(^|;\\s*)cc_geo=${geo}(;|$)`).test(request.headers.get('cookie') ?? '')) {
       headers.append('set-cookie', `cc_geo=${geo}; Path=/; Max-Age=86400; SameSite=Lax${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}`);

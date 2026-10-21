@@ -1,4 +1,4 @@
--- 0074_site_health_quiet.sql
+-- 0075_site_health_quiet.sql
 -- Site health, scheduled jobs: a pg_cron run that failed only because it could not start for a moment ('job startup
 -- timeout', when every database connection was briefly busy, for example during a full live check) no longer shows as
 -- an error once the same job has run successfully after it. A job that keeps failing, or fails for any other reason,
@@ -34,7 +34,7 @@ begin
       execute $q$select string_agg(distinct j.jobname, ', ') from cron.job_run_details d join cron.job j on j.jobid = d.jobid
                   where d.status = 'failed' and d.start_time > $1 - interval '1 hour'
                     -- a run pg_cron could not start (no free connection for a moment) is only a problem if the job has
-                    -- not run successfully since: the next minute's run catches up (0074)
+                    -- not run successfully since: the next minute's run catches up (0075)
                     and not (coalesce(d.return_message, '') ilike '%startup timeout%' and exists (
                       select 1 from cron.job_run_details n where n.jobid = d.jobid and n.status = 'succeeded' and n.start_time > d.start_time))$q$ into v_cron using p_now;
     exception when others then v_cron := null;
@@ -72,7 +72,7 @@ end $function$;
 alter table cookie_consents add column if not exists region text check (region is null or region ~ '^[A-Z]{2}(-[A-Z0-9]{1,3})?$');
 alter table cookie_consents drop constraint if exists cookie_consents_choice_check;
 alter table cookie_consents add constraint cookie_consents_choice_check check (choice in ('accept_all', 'necessary_only', 'custom', 'implied'));
-comment on column cookie_consents.region is 'Where the visitor was visiting from when shown the notice (0074), country-region; null when asked first';
+comment on column cookie_consents.region is 'Where the visitor was visiting from when shown the notice (0075), country-region; null when asked first';
 
 -- The notice was shown and the visitor did not opt out (yet): analytics on, recorded with the region and wording.
 create or replace function app.record_cookie_notice(p_visitor_id text, p_wording_version text, p_region text default null, p_user_agent text default null)
