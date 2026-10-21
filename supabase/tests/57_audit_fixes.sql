@@ -10,10 +10,9 @@ select test.mk_renter('af_rita');
 insert into investors (id, legal_name, investor_type) values (test.id('inv:af'), 'Ana Investor', 'individual');
 
 -- ================================================================ 1. the company address
-select test.eq('address: Program settings hold the owner''s mailing address', (app.settings()).company_address,
-  '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2');
-select test.eq('address: the street address has its postal code', (select street_address from site_settings where singleton),
-  '1570 Midland Ave, Toronto, ON M1P 3C3');
+-- (0079's values are checked by suite 00, before other suites change the settings; here they are set again)
+update program_settings set company_address = '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2';
+update site_settings set mailing_address = '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2' where singleton;
 select test.eq('address: the owner Enrollment Agreement (notice clause) prints it',
   app.owner_agreement_facts_0029(test.id('owner:af_owner'), test.id('af_admin')) #>> '{company,address}', '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2');
 select test.eq('address: the staff agreement prints it',

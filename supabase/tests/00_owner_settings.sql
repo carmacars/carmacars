@@ -7,4 +7,5 @@ select test.eq('settings: the signing officer and the date of the standing autho
   (select coalesce(signing_officer_name, '-') || '/' || coalesce(signing_officer_title, '-') || '/' || (signing_officer_authorized_on is not null) from app.settings()),
   (select coalesce(signing_officer_name, '-') || '/' || coalesce(signing_officer_title, '-') || '/true' from app.settings()));
 select test.eq('settings: the email footer address is the mailing address', app.ntf_contact() ->> 'company_address', '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2');
-
+select test.eq('settings: Program settings hold the mailing address for CarmaCars'' documents (0079)', (app.settings()).company_address,
+  '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2');

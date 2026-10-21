@@ -293,6 +293,10 @@ select test.eq('8 the pricer''s percentage basis: amount wins, else a percentage
 -- =====================================================================================
 -- 9. Coverage sold through CarmaCars
 -- =====================================================================================
+-- 0079 seeds a default Protection Plan price for every class and age band; this block tests the table without them
+create table if not exists test.cov_0079 as select * from coverage_prices where false;
+insert into test.cov_0079 select * from coverage_prices where note like 'Default of 0079%';
+delete from coverage_prices where note like 'Default of 0079%';
 select test.eq('9 with no default price the quote offers it and says it is priced in the offer',
   (select (q -> 'coverage' ->> 'sold_by_carmacars_available') || '/' || (q -> 'coverage' ->> 'price_note') || '/' || jsonb_array_length(q -> 'problems')
      from app.quote_booking(test.id('vehicle:BA3'), test.at('2034-01-09 09:00'), test.at('2034-01-12 09:00'), '{"coverage_option": 3}') q),
@@ -308,6 +312,9 @@ select test.eq('9 the default table, for a driver of 19, 23 and 40: none for 18 
 select test.oa_put('cv', (app.submit_booking_request(test.ba_req('oa-c1', 'oa.cover@example.test', 'BA3', test.at('2034-03-06 09:00'), test.at('2034-03-09 09:00'),
   '{"coverage_option": 3}')) ->> 'booking_id')::uuid);
 select test.eq('9 a request takes the default price', (select amount_cents from booking_line_items where booking_id = test.oa('cv') and charge_type = 'coverage_sold' and voided_at is null), 7500::bigint);
+-- the 0079 defaults back for the later suites
+insert into coverage_prices select * from test.cov_0079 on conflict (id) do nothing;
+delete from test.cov_0079;
 select test.throws('9 only customer service or an Admin prices it', $$select app.set_coverage_price(test.oa('cv'), test.id('oa_fleet'), 9900)$$, 'Customer service or an Admin');
 select test.eq('9 customer service overrides the price on the request: the line follows',
   app.set_coverage_price(test.oa('cv'), test.id('oa_cs'), 9900, 'priced for this renter'), 9900::bigint);

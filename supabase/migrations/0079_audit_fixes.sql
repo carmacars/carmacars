@@ -2389,3 +2389,7 @@ select x.class_code, x.age_band, x.amount_cents, true, 'Default of 0079 (a typic
  where exists (select 1 from vehicle_classes k where k.code = x.class_code)
    and not exists (select 1 from coverage_prices c where c.vehicle_id is null and c.class_code = x.class_code and c.age_band = x.age_band
                      and (c.effective_to is null or c.effective_to > app.today()));
+
+-- the trigger functions of this release run as their owner; the server role keeps execute on every function (suites 06 to 09)
+grant execute on function app.vehicle_listing_row(), app.vehicle_listing_replace_draft(), app.refund_kind_default(),
+  app.owner_invoice_shareholder_guard() to service_role;

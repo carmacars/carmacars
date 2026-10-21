@@ -195,7 +195,7 @@ create or replace function test.rfr(p jsonb default '{}') returns jsonb language
     'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:rf_rita'), 'payment', jsonb_build_object('mode', 'other_way', 'method', 'e_transfer', 'reference', 'RF-ET-1'), 'sales_choice', 'for_carmacars') || p $$;
 select test.eq('C a new owner''s car: onboarding, a draft listing, no rates, not on the fleet policy',
   (select format('%s %s %s %s', v.status, coalesce(l.status, 'none'), exists (select 1 from rate_cards r where r.vehicle_id = v.id), v.on_fleet_policy) from vehicles v left join vehicle_listings l on l.vehicle_id = v.id where v.id = test.unl()),
-  'onboarding none f f');
+  'onboarding draft f f');  -- 0079: every real car has its draft listing from the moment it is added
 select test.eq('C the Add a rental picker lists it, tagged',
   (select format('%s %s %s %s', c ->> 'bookable', c ->> 'listing_finished', c ->> 'has_rates', c ->> 'needs_policy_confirm') from jsonb_array_elements(test.rf('manual_rental_vehicles', '{}', 'rf_admin', 'ops_read')) c where c ->> 'id' = test.unl()::text),
   'true false false true');
