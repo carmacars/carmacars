@@ -29,7 +29,12 @@ export function pauseMessage(feature: keyof typeof PAUSE, gate: { ok?: boolean; 
   return PAUSE[feature];
 }
 
-export const usd = (n: number | null | undefined) => `US$${(Math.round((n ?? 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** US dollars: two decimals, three for a rate under 10 cents (US$0.011). */
+export const usd = (n: number | null | undefined) => {
+  const v = n ?? 0;
+  const small = v > 0 && v < 0.1 && Math.round(v * 100) / 100 !== v;
+  return `US$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: small ? 3 : 2 })}`;
+};
 
 /** What allowing paid usage would cost at the current rates: per unit, a typical day above the allowance, and the cap. */
 export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_unit' | 'included' | 'period' | 'pause_mode' | 'upgrade_text' | 'overage_usd'>): { rate: string; example: string; canPay: boolean } {
@@ -46,9 +51,12 @@ export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_uni
   }
 }
 
+/** A service's name without the note in brackets: "Workers AI". */
+export const shortLabel = (label: string) => label.replace(/ \(.*\)$/, '');
+
 /** The title of a used-up card: "Included Workers AI used up for today: Allow paid usage". */
 export function usedUpTitle(s: Pick<ServiceState, 'label' | 'period'>): string {
-  return `Included ${s.label} used up for ${s.period === 'day' ? 'today' : s.period === 'month' ? 'this month' : 'now'}`;
+  return `Included ${shortLabel(s.label)} used up for ${s.period === 'day' ? 'today' : s.period === 'month' ? 'this month' : 'now'}`;
 }
 
 /** The value a cap field must have: US$0.01 to US$1,000. Returns the error or null. */

@@ -98,7 +98,7 @@ create table usage_decisions (
   ends_on     date not null,
   cap_usd     numeric(10,2) check (cap_usd > 0 and cap_usd <= 1000),
   decided_by  uuid not null references users (id),
-  decided_at  timestamptz not null default now(),
+  decided_at  timestamptz not null default clock_timestamp(),
   note        text check (length(note) <= 300),
   check (ends_on >= starts_on),
   check (decision = 'keep_paused' or cap_usd is not null)
@@ -468,12 +468,14 @@ on conflict (code) do nothing;
 
 create or replace function app.usage_alert_title(p_level integer, p_state jsonb) returns text
 language sql immutable as $$
+  with x as (select p_state || jsonb_build_object('label', regexp_replace(p_state ->> 'label', ' \(.*\)$', '')) as p_state)
   select case
     when p_level = 80 then format('%s at %s%% of the included allowance', p_state ->> 'label', round((p_state ->> 'share_bps')::numeric / 100))
     when p_state ->> 'pause_mode' = 'alert' then format('Included %s used up for %s: no pause, estimated cost %s', p_state ->> 'label',
                                                          case p_state ->> 'period' when 'day' then 'today' when 'month' then 'this month' else 'now' end,
                                                          app.usage_usd((p_state ->> 'overage_usd')::numeric))
     else format('Included %s used up for %s', p_state ->> 'label', case p_state ->> 'period' when 'day' then 'today' when 'month' then 'this month' else 'now' end) end
+  from x
 $$;
 
 -- What a used-up allowance does and what to do, in a sentence for the email and the card.
@@ -740,7 +742,8 @@ create or replace function app.usage_service_save(p_user uuid, p jsonb) returns 
 language plpgsql security definer set search_path = public, app as $$
 declare
   s usage_services;
-  v_inc numeric := nullif(p ->> 'included', '')::numeric;
+  -- sizes may be typed in megabytes (included_mb), as the page shows them
+  v_inc numeric := coalesce(nullif(p ->> 'included', '')::numeric, nullif(p ->> 'included_mb', '')::numeric * 1048576);
   v_warn integer := nullif(p ->> 'warn_bps', '')::integer;
 begin
   perform app.assert_admin(p_user);
@@ -759,7 +762,7 @@ language plpgsql security definer set search_path = public, app as $$
 declare
   s usage_services;
   v_day date := coalesce(nullif(p ->> 'day', '')::date, app.today());
-  v_used numeric := nullif(p ->> 'used', '')::numeric;
+  v_used numeric := coalesce(nullif(p ->> 'used', '')::numeric, nullif(p ->> 'used_mb', '')::numeric * 1048576);
 begin
   perform app.assert_admin(p_user);
   select * into s from usage_services where service = p ->> 'service';
@@ -1040,7 +1043,9 @@ begin
   when 'usage_gate' then
     perform app.assistant_who(p_user, coalesce(p ->> 'portal', case when app.user_is_admin(p_user) then 'admin' when app.user_is_field(p_user) then 'field' else 'va' end));
     if coalesce(p ->> 'service', '') not in ('workers_ai', 'claude', 'images') then raise exception 'Unknown service' using errcode = '22023'; end if;
-    return app.usage_gate(p ->> 'service');
+    -- with what the assistant needs to run: on or off, and the Claude model and prices of Program settings
+    return app.usage_gate(p ->> 'service') || (select jsonb_build_object('assistant_enabled', s.assistant_enabled, 'claude_model', s.assistant_claude_model,
+             'claude_in_usd_per_m', s.assistant_claude_input_usd_per_m, 'claude_out_usd_per_m', s.assistant_claude_output_usd_per_m) from (select (app.settings()).*) s);
   when 'usage_decide' then return app.usage_decide(p_user, p);
   when 'usage_service_save' then return app.usage_service_save(p_user, p);
   when 'usage_reading_save' then return app.usage_reading_save(p_user, p);

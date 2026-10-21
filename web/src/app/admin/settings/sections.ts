@@ -13,6 +13,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['discount-games', 'Discount games', 'The giveaway game for visitors: on or off, games, prizes and chances, code rules, when it shows, and its report'],
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],
+  ['usage', 'Usage', 'What the plans include (AI, website, images, emails, database, storage), what is used, and paid usage'],
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],

@@ -3,6 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { torontoInstant } from '@/lib/dates';
 import { textGenerator } from '@/integrations/llm';
+import { PAUSE } from '@/features/usage/model';
 import { runAgent, STEP_SCHEMA, type AgentResult, type ChatFacts, type QuoteResult, type SearchRow, type Step, type Turn } from '@/features/chat/agent';
 
 // Live chat (migration 0060): the assistant's dependencies on the real database and model. The facts are read once
@@ -38,7 +39,9 @@ export async function answer(token: string, st: VisitorMessageState, text: strin
     await rpc('server_chat_ai_reply', { p_token: token, p: { body: result.reply, car: result.meta.car, meta: result.meta, ...usage } as unknown as Json }, SR);
   } else {
     await rpc('server_chat_ai_reply', { p_token: token, p: { body: null, ...usage } as unknown as Json }, SR);
-    await rpc('server_chat_handoff', { p_token: token, p_reason: result.handoff?.reason ?? 'the assistant handed over' }, SR);
+    // Workers AI refused for its daily allowance (quota): the visitor reads that the assistant rests (the usage guard, 0080)
+    if (result.error?.startsWith('quota')) await rpc('server_chat_handoff', { p_token: token, p_reason: 'the assistant is off for today (daily included AI usage reached)', p_message: PAUSE.chat }, SR);
+    else await rpc('server_chat_handoff', { p_token: token, p_reason: result.handoff?.reason ?? 'the assistant handed over' }, SR);
   }
   return result;
 }

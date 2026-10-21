@@ -3,6 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { answer, type VisitorMessageState } from '@/server/chat';
+import { PAUSE } from '@/features/usage/model';
 
 // Live chat (migration 0060), the visitor's side: open or continue a conversation, send a message (the assistant
 // answers while no person has the chat), ask for a person, leave contact details, end the chat. The conversation's
@@ -46,7 +47,10 @@ export async function POST(req: Request) {
         }
         else if (st.status === 'ai') {
           // the day's AI allowance is used, or this chat had its share of AI replies: a person takes it
-          await rpc('server_chat_handoff', { p_token: token, p_reason: st.ai_reason === 'budget' ? 'the assistant is off for today' : 'a long conversation for the assistant' }, SR);
+          // the day's included AI usage is used (the usage guard, 0080): the visitor reads that the assistant rests, never an error
+          await rpc('server_chat_handoff', st.ai_reason === 'budget'
+            ? { p_token: token, p_reason: 'the assistant is off for today (daily included AI usage reached)', p_message: PAUSE.chat }
+            : { p_token: token, p_reason: 'a long conversation for the assistant' }, SR);
         }
         return NextResponse.json(await rpc('chat_poll', { p_token: token, p_after: Math.max(0, Number(b.after) || 0) }, SR), { headers: H });
       }

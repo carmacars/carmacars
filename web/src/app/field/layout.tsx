@@ -6,6 +6,7 @@ import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { currentUser } from '@/server/portal/data';
 import { FieldNav } from '@/features/field/FieldNav';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { rolesOf } from '@/server/door';
 import { viewAs } from '@/server/view-as';
 import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
@@ -24,12 +25,13 @@ export default async function FieldLayout({ children }: { children: React.ReactN
   const user = await currentUser();
   const field = user ? (await rolesOf(user.id).catch(() => null))?.field ?? false : false;
   // the first sign-in (0059): the home address, asked on every page until it is in
-  const needsAddress = !!user && field && !(await viewAs()) && (await homeAddressOf(user.id, 'field')).missing;
+  const viewing = await viewAs();
+  const needsAddress = !!user && field && !viewing && (await homeAddressOf(user.id, 'field')).missing;
   return (
     <div className="fd">
       <div className="fd__frame">
         <header className="fd__top"><Link prefetch={false} className="link" href="/field"><b>CarmaCars field</b></Link>
-          {user && <span className="gd-frame-links">{field && <GuideLink portal="field" />}<SignOutOrExit /></span>}</header>
+          {user && <span className="gd-frame-links">{field && !viewing && <AssistantPanel portal="field" />}{field && <GuideLink portal="field" />}<SignOutOrExit /></span>}</header>
         {user && <PortalSwitch current="field" />}
         {user && <FieldNav />}
         {user && field && <GuideBanner portal="field" userId={user.id} />}
