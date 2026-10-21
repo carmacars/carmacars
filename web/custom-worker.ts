@@ -119,6 +119,10 @@ const worker = {
     if (due.seo) run('/api/jobs/seo');
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
+    // signed copies waiting (0075): through the Worker's own service binding, so each run is its own invocation
+    const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
+    const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
+    ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
   },

@@ -1,7 +1,7 @@
 import 'server-only';
 import { rpc } from '@/lib/db/repo';
 import { payments, type Intent } from '@/integrations/payments';
-import { attachSignedCopy } from './agreement';
+import { enqueuePdfJobs } from '@/server/pdf-jobs';
 
 // Paying for a booking (02-booking-and-renter.md section 6 and section 2 step 9). The card is
 // authorized first (manual capture); public.server_record_booking_payment then locks the car and
@@ -83,6 +83,7 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
       await rpc('server_booking_payment_capture_failed', { p_booking: bookingId, p_processor: { processor: 'stripe', payment_id: i.id }, p_error: e instanceof Error ? e.message : String(e) }, SR).catch(() => undefined);
     }
   }
-  try { await attachSignedCopy(bookingId, f.renter_user_id); } catch (e) { console.error('signed copy', e); }
+  // the signed copy: a background job in its own request (0075), so paying never waits for a PDF
+  try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: bookingId, user_id: f.renter_user_id }]); } catch (e) { console.error('signed copy job', e); }
   return { ok: true, status: 'confirmed', bookingNumber: f.booking_number };
 }

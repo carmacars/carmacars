@@ -8,7 +8,8 @@ import { PackageSignForm } from '@/features/signing/PackageSignForm';
 import { signOwnerPackage } from '@/server/actions/signing';
 import { screenFormBlocks, SCREEN_FORM_TITLE } from '@/features/owner-agreement/screen-forms';
 import { requireOwner } from '@/server/owner/data';
-import { formABFacts, openFormAB } from '@/server/sign-requests';
+import { findOpen, formABFacts, formSpec } from '@/server/signing/prepare';
+import { PrepareDocs } from '@/features/signing/PrepareDocs';
 import { viewAs } from '@/server/view-as';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,9 @@ export default async function ScreenForm({ params }: { params: Promise<{ code: s
   }
   // viewing as the owner (read only): show the form without opening it for signature
   const viewing = !!(await viewAs());
-  const open = viewing ? null : await openFormAB(user.id, code);
+  // no PDF is made on this page (0075): the open request with the same content, or the browser prepares it
+  const spec = await formSpec(user.id, code, facts);
+  const open = viewing ? null : (await findOpen(user.id, [spec])).get(spec.key) ?? null;
   return (
     <>
       <Back href="/owner/documents">Documents</Back>
@@ -52,7 +55,7 @@ export default async function ScreenForm({ params }: { params: Promise<{ code: s
           <PackageSignForm docs={[{ key: `form-${code}`, title }]} signerName={facts.owner.signer_name} fixNameHref="/owner/profile"
             consent={`By pressing Sign you sign ${title} electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment.`}
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title }], next: `/owner/documents/screen/${code.toLowerCase()}` })} testId="portal-sign-form" /></section>
-          : <p className="small muted">Read only.</p>}
+          : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
         <p className="small muted">Prefer paper? Print it from <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>, sign it and send us the scan. We record it and it counts the same.</p>
       </div>
     </>

@@ -9,7 +9,8 @@ import type { WForm } from '@/features/owner/WitnessedForms';
 import { FORM_TITLE, screenFormCBlocks, witnessStatement } from '@/features/owner-agreement/witnessed';
 import { signFormC } from '@/server/actions/form-c';
 import { requireOwner } from '@/server/owner/data';
-import { formCFacts, openFormC } from '@/server/sign-requests';
+import { findOpen, formCFacts, formCSpec } from '@/server/signing/prepare';
+import { PrepareDocs } from '@/features/signing/PrepareDocs';
 import { viewAs } from '@/server/view-as';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,9 @@ export default async function FormCScreen({ params }: { params: Promise<{ vehicl
   const facts = await formCFacts(user.id, vehicle);
   if (!facts) notFound();
   const viewing = !!(await viewAs());
-  const open = viewing ? null : await openFormC(user.id, home.owner.id, vehicle);
+  // no PDF is made on this page (0075): the open request with the same content, or the browser prepares it
+  const spec = await formCSpec(user.id, home.owner.id, vehicle, facts);
+  const open = viewing ? null : (await findOpen(user.id, [spec])).get(spec.key) ?? null;
   const blocks = screenFormCBlocks(facts);
   const acks = (blocks.find((b) => b.t === 'table' && b.head[0] === 'I acknowledge') as { rows: string[][] } | undefined)?.rows.map((r) => r[0]!) ?? [];
   return (
@@ -44,7 +47,7 @@ export default async function FormCScreen({ params }: { params: Promise<{ vehicl
         <AgreementView blocks={blocks} id="form-c" label={FORM_TITLE.C} />
         {open ? <section className="pt-card stack" aria-labelledby="fc-sign"><h2 className="d4" id="fc-sign">Sign Form C</h2>
           <FormCSignForm ownerName={facts.owner.legal_name} acknowledgments={acks} statement={witnessStatement(facts.owner.legal_name)} action={signFormC.bind(null, open.id, open.sha)} /></section>
-          : <p className="small muted">Read only.</p>}
+          : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
       </div>
     </>
   );

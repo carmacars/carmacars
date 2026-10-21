@@ -77,7 +77,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
     if ([n.ins, n.trk, n.inst, n.fl, n.share].some((x) => !Number.isFinite(x) || x < 0)) { setProblem('Enter every amount of the terms in dollars and cents.'); return; }
     const invoices: Array<Record<string, unknown>> = [];
     const pay = (x: Inv) => (x.action === 'paid' ? { payment: { method: x.method, received_on: x.on_date, reference: x.reference || undefined, amount_cents: x.paid ? toCents(x.paid) : undefined, note: x.method === 'other' ? x.reference : undefined } } : {});
-    if (fl.on) invoices.push({ type: 'first_last', amount_cents: toCents(fl.amount), action: fl.action, ...pay(fl) });
+    // the first and last month (0075): the Admin's choice; "No invoice" is a choice too; unticked, nothing is invoiced
+    if (fl.on) invoices.push(fl.action === 'none' ? { type: 'first_last', action: 'none' } : { type: 'first_last', amount_cents: toCents(fl.amount), action: fl.action, ...pay(fl) });
     if (reg.on) {
       if (!(toCents(reg.amount) > 0)) { setProblem('Enter the registration fee.'); return; }
       invoices.push({ type: 'registration', amount_cents: toCents(reg.amount), hst: reg.hst, action: reg.action, title: 'Registration fee', ...pay(reg) });
@@ -169,7 +170,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
                   onChange={(e) => { const val = e.target.value; const nt = { ...terms, [k]: val }; if (k === 'ins' && terms.fl === dollars(toCents(terms.ins!) * 2)) nt.fl = dollars(toCents(val) * 2); setTerms(nt); if (k === 'fl' || nt.fl !== terms.fl) setFl({ ...fl, amount: nt.fl! }); }} /></div>))}
           </div>
           {owner && facts.terms && <p className="small muted">Filled in from {Object.values(facts.terms.sources).includes('owner') ? 'this owner\'s terms' : Object.values(facts.terms.sources).includes('other_car') ? 'this owner\'s other car' : 'the standard grid'}.</p>}
-          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" set={(x) => { setFl(x); setTerms({ ...terms, fl: x.amount }); }} />
+          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" allowNone set={(x) => { setFl(x); if (x.action !== 'none') setTerms({ ...terms, fl: x.amount }); }} />
           <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" set={setReg} />
           {fl.on && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
         </>)}

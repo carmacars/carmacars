@@ -6,7 +6,7 @@ import { SIGN_STATEMENT } from '@/features/manual/constants';
 import type { PackageInput, PackageResult } from '@/features/signing/PackageSignForm';
 import { requestMeta } from '@/server/request';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
-import { attachOwnerSignedCopies, type SignedResult } from '@/server/owner/agreements';
+import { queueOwnerSignedCopies, type SignedResult } from '@/server/owner/agreements';
 import { currentUser } from '@/server/portal/data';
 import { signDocument, storeDrawnSignature } from '@/server/sign-requests';
 
@@ -63,7 +63,7 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
         initials: enrollment ? Object.fromEntries(CONFIRMATIONS.map((c) => [c.code, initials])) : null,
         documents: spec.packet.map((d) => ({ key: d.key, sha256: d.sha })) } }, SR)) as unknown as SignedResult;
       if (res.complete === false) waiting = res.waiting_for ?? [];
-      else { try { await attachOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy', e); } }
+      else { try { await queueOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy job', e); } }
       for (const d of res.signed) {
         const title = spec.packet.find((p) => p.key === d.key)?.title ?? d.key;
         signed.push({ signature_request_id: d.signature_request_id, title, consent_text: consentFor(title, titles) });
@@ -79,7 +79,7 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
     return { ok: true, data: { signed: signed.length, next: spec.next && SAFE_NEXT.test(spec.next) ? spec.next : '/owner?signed=1',
       message: waiting.length
         ? `Signed. The agreements take effect when every Owner has signed: we sent ${waiting.join(' and ')} their own link. CarmaCars countersigns then, and the signed copies go to Documents.`
-        : `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. CarmaCars countersigned, and your signed copies are in Documents.` } };
+        : `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. CarmaCars countersigned. Your signed copies are being made now: they appear in Documents within a few minutes and we email them to you.` } };
   } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }
 }
 
@@ -110,6 +110,6 @@ export async function signPortalPackage(spec: PortalPackageSpec, input: PackageI
     await recordPackage(user.id, spec.portal, input, signed, `One signature for ${titles.length} document${titles.length > 1 ? 's' : ''}: ${titles.join('; ')}.`);
     for (const p of ['/investor', '/investor/sign', '/va', '/va/sign', '/field', '/field/sign']) revalidatePath(p);
     return { ok: true, data: { signed: signed.length, next: spec.next && SAFE_NEXT.test(spec.next) ? spec.next : undefined,
-      message: `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. The signed ${signed.length > 1 ? 'copies are' : 'copy is'} below.` } };
+      message: `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. The signed ${signed.length > 1 ? 'copies appear' : 'copy appears'} below within a few minutes.` } };
   } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }
 }

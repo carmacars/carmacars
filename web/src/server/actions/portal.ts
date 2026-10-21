@@ -12,10 +12,11 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import { findBooking, requireUser } from '@/server/portal/data';
-import { attachSignedCopy, openAgreement } from '@/server/portal/agreement';
+import { openAgreement } from '@/server/portal/agreement';
+import { enqueuePdfJobs } from '@/server/pdf-jobs';
 import { bookingIntent, paymentFacts, reasonMessage, settleIntent, type SettleResult } from '@/server/portal/payment';
 import { consentTexts } from '@/server/booking-data';
-import { attachSignedAmendment, changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
+import { changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
 import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
 import { driverLinkUrl } from '@/server/portal/driver-links';
 
@@ -168,7 +169,8 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     if (added) declined = await chargeAddedRental(b.id, number, userId);
     // a rental staff added is confirmed already, so no payment step files the signed copy: file it now (the signed PDF
     // with the countersignature and "Added by", found by the legal review's section 6 test)
-    if (added) { try { await attachSignedCopy(b.id, userId); } catch (e) { console.error('signed copy', e); } }
+    // (0075: a background job, in its own request; the signature is recorded already)
+    if (added) { try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: b.id, user_id: userId }]); } catch (e) { console.error('signed copy job', e); } }
     refresh(number);
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');
     // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned; one added
@@ -382,7 +384,7 @@ export async function acceptChange(number: string, requestId: string, input: Acc
       p_typed_name: input.typedName?.trim() || undefined, p_drawn_signature: drawnPath ?? undefined, p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent }, SR);
     const paid = await payAndApply(await changeFacts(requestId, userId), userId);
     if (!paid.ok) { refresh(number); return fail(`Your amendment is signed, but the change is not applied yet. ${paid.message}`, 'payment'); }
-    await attachSignedAmendment(a.id, requestId, userId).catch((e) => console.error('signed amendment copy', e));
+    await enqueuePdfJobs([{ kind: 'amendment_signed_copy', ref: a.id, user_id: userId, payload: { request_id: requestId } }]).catch((e) => console.error('signed amendment copy job', e));
     refresh(number); revalidatePath(bookingPath(number, 'change'));
     target = `${bookingPath(number)}?changed=1`;
   } catch (e) { return fail(dbMessage(e)); }
@@ -399,7 +401,7 @@ export async function retryChangePayment(number: string, requestId: string): Pro
     if (!f.open || f.amendment?.status !== 'signed') return fail('There is nothing to pay for this change.', 'stale');
     const paid = await payAndApply(f, userId);
     if (!paid.ok) return fail(paid.message, 'payment');
-    await attachSignedAmendment(f.amendment.id, requestId, userId).catch((e) => console.error('signed amendment copy', e));
+    await enqueuePdfJobs([{ kind: 'amendment_signed_copy', ref: f.amendment.id, user_id: userId, payload: { request_id: requestId } }]).catch((e) => console.error('signed amendment copy job', e));
     refresh(number); revalidatePath(bookingPath(number, 'change'));
     target = `${bookingPath(number)}?changed=1`;
   } catch (e) { return fail(dbMessage(e)); }
