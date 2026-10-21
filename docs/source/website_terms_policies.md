@@ -132,7 +132,7 @@ You may ask to see the personal information we hold about you and to have it cor
 
 ### 10. Cookies and analytics
 
-Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used and are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.
+Essential cookies keep you signed in and keep bookings secure. Analytics cookies measure how the Site is used. If you visit from Canada outside Quebec or from the United States, analytics are on when you arrive and a notice tells you so; you can opt out on that notice or at any time with "Cookie choices" at the bottom of every page. If you visit from Quebec or from anywhere else, analytics are set only if you accept them. You can block cookies in your browser, but parts of the Site may then not work.
 
 We measure visits ourselves, with no third-party analytics. With your consent we record the pages and cars you view, the dates you search, the booking steps you start or finish, the site that sent you, your type of device and an approximate city worked out from your connection. We do not store your network address for this. Our customer service and sales staff see this while you are on the Site, and use it to help you, for example to answer a question about a car you are looking at. Without your consent we record none of it, except what follows.
 

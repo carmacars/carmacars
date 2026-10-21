@@ -369,7 +369,7 @@
     }
   ],
   "cookies": {
-    "version": "2026-10-19",
+    "version": "2026-10-21",
     "title": "Cookies on CarmaCars",
     "text": "We use necessary cookies to keep the site working, your bookings secure and live chat running. With your consent we also measure visits ourselves (pages and cars viewed, approximate city, device), so our team can help you and we can improve the site. No third-party analytics.",
     "accept": "Accept all",
@@ -389,6 +389,17 @@
         "always": false,
         "text": "Records the pages and cars you view, the dates you search and the site that sent you, with your approximate city and device. Our team sees it while you browse. Off unless you turn it on."
       }
+    ],
+    "notice": "We use cookies to keep the site working and to measure visits ourselves, so our team can help you while you browse. No third-party analytics.",
+    "ok": "OK",
+    "optout": "Opt out",
+    "notice_seconds": 10,
+    "implied_regions": [
+      "CA",
+      "US"
+    ],
+    "implied_exceptions": [
+      "CA-QC"
     ]
   },
   "carma_line": "Drive your carma.",
