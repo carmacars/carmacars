@@ -89,8 +89,10 @@ every chapter changed since the last release that published chapters (0069): 007
 - Admin, Owners and onboarding: the management fee in the Approve step, a shareholder's own car, cancellation refunds.
   Owner money: the commission base. Add-ons: paid online when there is no card.
 - Renter, Before pickup: paying add-ons with no card on file.
-- Admin, quick reference: "Publish a listing: Cover the plate, then Approve and publish" replaced (the same three lines
-  as the guided branch, so the two merge cleanly).
+- Admin, quick reference: "Publish a listing: Cover the plate, then Approve and publish" replaced by "Publish a car: Cars >
+  Vehicles, the car, then Publish now". The guided branch writes this line for its To do pop-ups ("Set rates and
+  publish", "Mark insured", "Review documents"): when both merge, keep the guided branch's lines, then export the guides
+  and run `supabase/seed/0079_gen_guides.mjs` again.
 - Assistants: Fleet (Publish now, the plate check, Similar cars no longer blocks), Finance (What it refunds),
   Commissions (the base).
 - Renter: Before pickup, the three coverage options and what each needs, and the review.
