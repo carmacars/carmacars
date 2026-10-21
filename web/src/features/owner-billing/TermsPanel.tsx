@@ -3,7 +3,8 @@ import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
-import { saveTerms, scheduleChange, type TermsInput } from '@/server/actions/owner-billing';
+import { chooseFirstLast, saveTerms, scheduleChange, type FirstLastAction, type TermsInput } from '@/server/actions/owner-billing';
+import { METHODS } from './ApproveStep';
 import { SOURCE_LABEL, dollars, pctOf, toCents } from './shared';
 
 // Negotiated terms (migration 0067): the owner's default for their cars, and each car's own exact amounts, each with
@@ -15,12 +16,61 @@ export interface CarTerms { vehicle_id: string; name: string; mode: string; bill
   resolved: T & { sources: Record<string, string>; standard: T };
   rows: T[]; schedule: (T & { schedule_number: string; signed_at: string | null; first_last_set: boolean }) | null;
   awaiting: { change_id: string; effective_from: string; text: string; new: T; created_at: string } | null;
-  versions: Array<{ schedule_number: string; signed_at: string | null; insurance_fee_cents: number; revenue_share_bps: number; superseded_at: string | null }> }
+  versions: Array<{ schedule_number: string; signed_at: string | null; insurance_fee_cents: number; revenue_share_bps: number; superseded_at: string | null }>;
+  first_last?: FirstLast }
+export interface FirstLast { choice: FirstLastAction | null; amount_cents: number | null; at: string | null; by: string | null; default_cents: number | null; needed: boolean;
+  invoice: { invoice_number: string; status: string; total_cents: number } | null }
+
+const CHOICES: Array<[FirstLastAction, string]> = [['send', 'Send invoice now'], ['draft', 'Draft only'], ['paid', 'Already paid'], ['none', 'No invoice']];
+
+// The first and last month invoice of one car (0077): never made by itself. The Admin's choice, the amount (default
+// 2 x the Insurance Fee) and what happens: sent now, kept as a draft, recorded as paid, or no invoice at all.
+function FirstLastChoice({ c, paths, today }: { c: CarTerms; paths: string[]; today: string }) {
+  const router = useRouter();
+  const a = useAct<{ choice: string; invoice: { invoice_number: string; status: string } | null }>();
+  const uid = `fl-${useId().replace(/[^\w-]/g, '')}`;
+  const st = c.first_last!;
+  const [action, setAction] = useState<FirstLastAction | ''>('');
+  const [amount, setAmount] = useState(dollars(st.amount_cents ?? st.default_cents));
+  const [method, setMethod] = useState('e_transfer');
+  const [on, setOn] = useState(today);
+  const [ref, setRef] = useState('');
+  const label = CHOICES.find(([k]) => k === st.choice)?.[1];
+  const submit = () => {
+    if (!action) return;
+    a.run(() => chooseFirstLast({ vehicle_id: c.vehicle_id, action, amount_cents: action === 'none' ? undefined : toCents(amount),
+      payment: action === 'paid' ? { method, received_on: on, reference: ref || undefined, note: method === 'other' ? ref : undefined } : undefined }, paths), (r) => { if (r.ok) router.refresh(); });
+  };
+  return (
+    <div className="stack" data-testid="first-last-choice">
+      <p className="small"><b>First and last month invoice:</b>{' '}
+        {st.invoice ? <>invoice {st.invoice.invoice_number} ({st.invoice.status}, {money(st.invoice.total_cents, { cents: true })}). Change it on the invoice screen.</>
+          : label ? <>{label}{st.choice !== 'none' && st.amount_cents ? `, ${money(st.amount_cents, { cents: true })}` : ''}{st.by ? ` (${st.by})` : ''}.</>
+          : <span className="ow-warn" data-testid="first-last-undecided">not decided. Nothing is invoiced until you choose.</span>}</p>
+      {!st.invoice && st.choice !== 'none' && (
+        <form className="stack" noValidate aria-label="First and last month invoice" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+          <div className="row" role="radiogroup" aria-label="What to do" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
+            {CHOICES.map(([k, l]) => <label key={k} className="check" htmlFor={`${uid}-${k}`}><input type="radio" id={`${uid}-${k}`} name={`${uid}-a`} checked={action === k} onChange={() => setAction(k)} data-testid={`first-last-${k}`} /><span>{l}</span></label>)}
+          </div>
+          {action && action !== 'none' && <div className="field"><label className="label" htmlFor={`${uid}-amt`}>Amount before HST ($)</label>
+            <input className="input" id={`${uid}-amt`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="first-last-amount" />
+            <p className="hint">Default 2 x the Insurance Fee; any exact amount.</p></div>}
+          {action === 'paid' && <div className="field-row">
+            <div className="field"><label className="label" htmlFor={`${uid}-m`}>Paid by</label><select className="select" id={`${uid}-m`} value={method} onChange={(e) => setMethod(e.target.value)}>{METHODS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+            <div className="field"><label className="label" htmlFor={`${uid}-d`}>Date received</label><input className="input" type="date" id={`${uid}-d`} value={on} max={today} onChange={(e) => setOn(e.target.value)} /></div>
+            <div className="field"><label className="label" htmlFor={`${uid}-r`}>{method === 'cheque' ? 'Cheque number' : 'Reference'}{['cash', 'other'].includes(method) ? ' (optional)' : ''}</label><input className="input" id={`${uid}-r`} value={ref} onChange={(e) => setRef(e.target.value)} data-testid="first-last-reference" /></div>
+          </div>}
+          {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
+          <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={a.pending || !action} data-testid="first-last-save">{a.pending ? 'Saving' : action === 'send' ? 'Send the invoice' : 'Save the choice'}</button></div>
+        </form>)}
+    </div>
+  );
+}
 export interface TermsData { owner: { rows: T[]; current: T | null }; standard: T | null; cars: CarTerms[] }
 
 const day = (iso?: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '');
 const FIELDS: Array<[keyof T, string, 'money' | 'pct']> = [['insurance_fee_cents', 'Insurance Fee a month ($)', 'money'], ['tracker_fee_cents', 'Tracker Fee a month ($)', 'money'],
-  ['revenue_share_bps', 'Revenue Share (%)', 'pct'], ['install_fee_cents', 'Install Fee ($)', 'money'], ['first_last_cents', 'First and last month amount ($)', 'money']];
+  ['revenue_share_bps', 'Management fee (Revenue Share, %)', 'pct'], ['install_fee_cents', 'Install Fee ($)', 'money'], ['first_last_cents', 'First and last month amount ($)', 'money']];
 
 function TermsForm({ base, scope, ownerId, vehicleId, today, paths, signed, testId }: { base: T; scope: 'owner' | 'car'; ownerId: string; vehicleId?: string; today: string; paths: string[]; signed?: boolean; testId: string }) {
   const router = useRouter();
@@ -117,9 +167,10 @@ export function TermsPanel({ data, ownerId, today }: { data: TermsData; ownerId:
         return (
           <section key={c.vehicle_id} className="pt-card stack" aria-label={`Terms of ${c.name}`} data-testid="terms-car">
             <div className="pt-card__head"><h2 className="d4">{c.name}</h2><span className="badge badge--outline">{c.schedule ? (c.schedule.signed_at ? `${c.schedule.schedule_number} signed ${day(c.schedule.signed_at)}` : `${c.schedule.schedule_number}, not signed`) : 'Terms not set'}</span></div>
-            <p className="small">{c.schedule ? 'On the Vehicle Schedule' : 'Would apply'}: {money(base.insurance_fee_cents)} insurance, {money(base.tracker_fee_cents)} tracker, {pctOf(base.revenue_share_bps)}% Revenue Share, {money(base.install_fee_cents)} install, {money(base.first_last_cents ?? (base.insurance_fee_cents ?? 0) * 2, { cents: true })} first and last.
+            <p className="small">{c.schedule ? 'On the Vehicle Schedule' : 'Would apply'}: {money(base.insurance_fee_cents)} insurance, {money(base.tracker_fee_cents)} tracker, {pctOf(base.revenue_share_bps)}% management fee (Revenue Share), {money(base.install_fee_cents)} install, {money(base.first_last_cents ?? (base.insurance_fee_cents ?? 0) * 2, { cents: true })} first and last.
               {!c.schedule && <> From: {Object.entries(r.sources).map(([k, s]) => `${k.replace(/_cents|_bps/g, '').replace(/_/g, ' ')} ${SOURCE_LABEL[s] ?? s}`).join('; ')}.</>}</p>
             {c.awaiting && <Awaiting c={c.awaiting} paths={paths} today={today} />}
+            {c.first_last?.needed && <FirstLastChoice c={c} paths={paths} today={today} />}
             <details><summary className="link">Change this car&apos;s terms</summary>
               <TermsForm base={base} scope="car" ownerId={ownerId} vehicleId={c.vehicle_id} today={today} paths={paths} signed={!!c.schedule?.signed_at} testId="terms-car-form" /></details>
             {c.versions.length > 1 && <p className="small muted">Versions: {c.versions.map((x) => `${x.schedule_number} (${money(x.insurance_fee_cents)}, ${pctOf(x.revenue_share_bps)}%${x.signed_at ? `, signed ${day(x.signed_at)}` : ''})`).join(' · ')}</p>}

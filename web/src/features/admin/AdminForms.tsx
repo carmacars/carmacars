@@ -55,7 +55,7 @@ export function TermsForm({ ownerId, vehicleId, standard, mode, method, options,
         <F id={id('trk')} label="Tracker Fee a month ($)" value={t.tracker} set={set('tracker')} err={a.err('tracker')} inputMode="decimal" />
       </div>
       <div className="field-row">
-        <F id={id('share')} label="Revenue Share (%)" value={t.share} set={set('share')} err={a.err('share')} inputMode="decimal" />
+        <F id={id('share')} label="Management fee (Revenue Share, %)" value={t.share} set={set('share')} err={a.err('share')} inputMode="decimal" />
         <F id={id('inst')} label="Install Fee ($)" value={t.install} set={set('install')} err={a.err('install')} inputMode="decimal" />
       </div>
       <F id={id('special')} label="Special terms (optional)" value={t.special_terms} set={set('special_terms')} />
@@ -79,14 +79,18 @@ export function PendingTerms({ ownerId, vehicleId }: { ownerId: string; vehicleI
   );
 }
 
+// The first and last month invoice (0077) is never issued by itself: each car carries the Admin's choice (Approve, Add
+// a car for an owner, or the Terms tab). This applies a choice whose invoice was voided since, and asks Today for the
+// cars without one.
 export function IssueInvoices({ ownerId, count }: { ownerId: string; count: number }) {
   const router = useRouter();
   const a = useAct<{ count: number }>();
   return (
     <div className="stack">
-      <button className="btn btn--primary" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })}>{a.pending ? 'Issuing' : count === 0 ? 'Nothing to issue now' : `Issue ${count} insurance invoice${count === 1 ? '' : 's'}`}</button>
+      <p className="small muted">The first and last month invoice follows your choice for each car, on the Terms tab: Send invoice now, Draft only, Already paid or No invoice. Nothing is invoiced without it.</p>
+      <button className="btn btn--ghost" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })}>{a.pending ? 'Applying' : count === 0 ? 'Nothing waiting' : 'Apply the choices made'}</button>
       <Problem a={a} />
-      {a.res?.ok && <p className="alert alert--ok" role="status"><span>{a.res.data.count} invoice{a.res.data.count === 1 ? '' : 's'} issued. The owner is emailed each one.</span></p>}
+      {a.res?.ok && <p className="alert alert--ok" role="status"><span>{a.res.data.count ? `${a.res.data.count} invoice${a.res.data.count === 1 ? '' : 's'} made as chosen.` : 'Nothing to make: a car without a choice is on Admin > Today.'}</span></p>}
     </div>
   );
 }

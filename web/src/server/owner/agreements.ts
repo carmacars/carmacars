@@ -4,45 +4,31 @@ import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
 import { agreementPdf } from '@/features/agreement/pdf';
 import { when, type Block, type SignatureRow } from '@/features/agreement/model';
-import { documentBlocks, OWNER_TEMPLATE_VERSION, packetKeys, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
+import { documentBlocks, OWNER_TEMPLATE_VERSION, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { sha256Hex } from '@/server/links';
+import { ownerAgreementFacts, packetFooter, packetSpecs, prepareSpec } from '@/server/signing/prepare';
+import { enqueuePdfJobs } from '@/server/pdf-jobs';
 
-// Built-in signing of the owner agreements, the same way as the rental agreement (0019, 0028): the
-// server renders each document from the owner's records, stores the PDF in the private agreements
-// bucket and opens it with its SHA-256 (public.owner_open_agreements); the owner signs every open
-// document at once (public.owner_sign_agreements); then the signed copies, with the signature images
-// and the signature record, are rendered and attached.
+// Built-in signing of the owner agreements, the same way as the rental agreement (0019, 0028): each document is
+// rendered from the owner's records, stored in the private agreements bucket and opened with its SHA-256
+// (public.owner_open_agreements; since 0077 one document per request, never on the sign page itself); the owner
+// signs every open document at once (public.owner_sign_agreements); then the signed copies, with the signature
+// images and the signature record, are rendered and attached by background jobs (pdf_jobs, 0077).
 const SR = { role: 'service_role' as const };
-const UNSIGNED_DATE = new Date('2026-01-01T00:00:00Z'); // fixed, so the same document gives the same bytes
-
-export async function ownerAgreementFacts(ownerId: string, by: string): Promise<OwnerAgreementFacts> {
-  return (await rpc('server_owner_agreement_facts', { p_owner: ownerId, p_by: by }, SR)) as unknown as OwnerAgreementFacts;
-}
-
-const footer = (f: OwnerAgreementFacts, key: PacketKey) =>
-  `CarmaCars ${TITLES[key]} ${f.agreements.find((a) => a.kind === key)?.agreement_number ?? ''} for ${f.owner.legal_name}. ${OWNER_TEMPLATE_VERSION}`;
+export { ownerAgreementFacts } from '@/server/signing/prepare';
 
 export interface PacketDoc { key: PacketKey; title: string; sha: string; blocks: Block[] }
 
-/** Renders, stores and opens every document the owner still has to sign. The same documents return the requests already open. */
+/** Opens every document the owner still has to sign, rendering only those not open yet (one after another). For an
+ *  action or a script; the sign page itself never renders (src/server/signing/prepare.ts, migration 0077). */
 export async function openOwnerPacket(ownerId: string, by: string): Promise<{ facts: OwnerAgreementFacts; docs: PacketDoc[] }> {
   const facts = await ownerAgreementFacts(ownerId, by);
-  const keys = packetKeys(facts);
-  // signed by the owner, waiting for the other Owners of the Title Schedule (0053): nothing is opened again
-  if (!keys.length || facts.waiting_for_owners) return { facts, docs: [] };
-  const s = await storage();
+  const specs = await packetSpecs(facts, ownerId, by);
   const docs: PacketDoc[] = [];
-  const open: Array<{ key: PacketKey; template_version: string; sha256: string; storage_path: string }> = [];
-  for (const key of keys) {
-    const blocks = documentBlocks(facts, key);
-    const pdf = await agreementPdf(blocks, { title: `${TITLES[key]}, ${facts.owner.legal_name}`, createdAt: UNSIGNED_DATE, footer: footer(facts, key) });
-    const sha = await sha256Hex(pdf);
-    const path = `owners/${ownerId}/agreements/${key}-${sha.slice(0, 16)}.pdf`;
-    await s.put('agreements', path, pdf, 'application/pdf');
-    open.push({ key, template_version: OWNER_TEMPLATE_VERSION, sha256: sha, storage_path: path });
-    docs.push({ key, title: TITLES[key], sha, blocks });
+  for (const s of specs) {
+    const o = await prepareSpec(by, s);
+    if (s.target.t === 'packet') docs.push({ key: s.target.key, title: s.title, sha: o.sha, blocks: s.blocks });
   }
-  await rpc('owner_open_agreements', { p_owner: ownerId, p_by: by, p_docs: open }, SR);
   return { facts, docs };
 }
 
@@ -54,11 +40,16 @@ interface SignedResult {
   complete?: boolean; waiting_for?: string[];
 }
 
-/** After signing: each signed copy with the signatures and the signature record, attached once. */
-export async function attachOwnerSignedCopies(ownerId: string, by: string, result: SignedResult): Promise<void> {
+/** After signing: one job per signed copy (migration 0077), made in its own request; the signature is already recorded. */
+export async function queueOwnerSignedCopies(ownerId: string, by: string, result: SignedResult): Promise<void> {
+  await enqueuePdfJobs(result.signed.map((doc) => ({ kind: 'owner_signed_copy' as const, ref: doc.signature_request_id, owner_id: ownerId, user_id: by, payload: { doc } })));
+}
+
+/** One signed copy with the signatures and the signature record, attached once (a pdf_jobs job). */
+export async function attachOwnerSignedCopy(ownerId: string, by: string, doc: SignedResult['signed'][number]): Promise<void> {
   const facts = await ownerAgreementFacts(ownerId, by);
   const s = await storage();
-  for (const doc of result.signed) {
+  {
     const owner = doc.records.find((r) => r.signer_role !== 'carmacars' && r.signer_name === facts.owner.signer_name) ?? doc.records.find((r) => r.signer_role !== 'carmacars');
     const cc = doc.records.find((r) => r.signer_role === 'carmacars');
     const otherRecords = doc.records.filter((r) => r.signer_role !== 'carmacars' && r !== owner);
@@ -79,7 +70,7 @@ export async function attachOwnerSignedCopies(ownerId: string, by: string, resul
       ...doc.records.map((r) => [`${r.signer_role.replace(/_/g, ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}${r.initials ? `; initials ${Object.values(r.initials).join(', ')}` : ''}`]),
       ...company.lines
     ];
-    const pdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: footer(facts, doc.key) });
+    const pdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: packetFooter(facts, doc.key) });
     const sha = await sha256Hex(pdf);
     const path = `owners/${ownerId}/agreements/${doc.key}-${doc.signature_request_id.slice(0, 8)}-signed.pdf`;
     await s.put('agreements', path, pdf, 'application/pdf');

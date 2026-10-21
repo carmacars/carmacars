@@ -229,6 +229,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await rp.waitForURL(/\?changed=1/, { timeout: 30_000 });
     await expect(rp.getByTestId('changed-panel')).toContainText('Booking updated');
     await check(rp, 'renter booking changed');
+    // 0077: the signed amendment copy is made by a background job, within seconds
+    await expect.poll(async () => (await sql`select count(*)::int n from booking_amendments where change_request_id = ${cr!.id} and status = 'signed' and signed_document_id is not null`)[0]!.n, { timeout: 60_000 }).toBe(1);
     const [after] = await sql`select b.return_at, (select status from booking_change_requests where id = ${cr!.id}) st,
         (select string_agg(p.status || ':' || p.amount_cents, ',') from payments p where p.booking_id = b.id and p.purpose <> 'booking_total') pay,
         (select status || '/' || (signed_document_id is not null) from booking_amendments where change_request_id = ${cr!.id} and status <> 'voided') amend

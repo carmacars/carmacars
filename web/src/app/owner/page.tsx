@@ -35,7 +35,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const fees = home.vehicles.reduce((s, v) => s + (v.status !== 'exited' && v.insurance_fee_cents ? v.insurance_fee_cents + (home.trackers_available ? v.tracker_fee_cents ?? 0 : 0) : 0), 0);
   return (
     <>
-      {sp.signed && <p className="alert alert--ok" role="status"><span className="alert__title">Signed</span><span>Thank you. Your signed agreements are in Documents.</span></p>}
+      {sp.signed && <p className="alert alert--ok" role="status" data-testid="owner-signed-banner"><span className="alert__title">Signed</span><span>Thank you: your signature is recorded and CarmaCars countersigned. Your signed copies appear in Documents within a few minutes, and we email them to you.</span></p>}
       {sp.applied && <p className="alert alert--ok" role="status"><span className="alert__title">Application received</span><span>We reply within 1 business day with the terms for each vehicle.</span></p>}
       <header className="stack"><p className="pt-kicker">{partner ? `Partner portal · ${partner.partner_number}` : 'Owner portal'}</p><h1 className="d2">Hello, {home.owner.first_name}</h1></header>
       {appTask && <ApplicationTask t={appTask} />}

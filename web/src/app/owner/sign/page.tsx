@@ -4,15 +4,15 @@ import { money, pct } from '@/lib/format';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { CONFIRMATIONS, type OwnerAgreementFacts } from '@/features/owner-agreement/model';
-import { screenFormBlocks, SCREEN_FORM_TITLE } from '@/features/owner-agreement/screen-forms';
-import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, type PartnerFacts } from '@/features/partner/agreement';
+import { CONFIRMATIONS, type PacketKey } from '@/features/owner-agreement/model';
+import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import type { Official } from '@/features/official-forms/OfficialForm';
 import { OwnerPackage } from '@/features/signing/OwnerPackage';
 import { SignProgress, SignSummary, type ProgressItem, type SummaryRow } from '@/features/signing/Progress';
 import { ownerForms, requireOwner } from '@/server/owner/data';
-import { openOwnerPacket } from '@/server/owner/agreements';
-import { formABFacts, openFormAB, openPartnerAgreement, partnerFacts } from '@/server/sign-requests';
+import { findOpen, formABFacts, formSpec, ownerAgreementFacts, packetSpecs, partnerFacts, partnerSpec } from '@/server/signing/prepare';
+import { PrepareDocs } from '@/features/signing/PrepareDocs';
+import { SignTrouble } from './SignTrouble';
 import { signOwnerPackage, type OwnerPackageSpec } from '@/server/actions/signing';
 import { viewAs } from '@/server/view-as';
 
@@ -31,31 +31,39 @@ const MODE: Record<string, string> = { managed: 'Managed', self_managed: 'Self-M
 // signed electronically in Ontario): they show in the checklist with their own page.
 export default async function OwnerSign() {
   const { user, home } = await requireOwner('/owner/sign');
+  try {
+    return await SignPage({ user, home });
+  } catch (e) {
+    // a redirect or another of Next's own signals goes on; anything else is shown as a friendly message (and logged)
+    if (e && typeof e === 'object' && 'digest' in e && /^NEXT_|^DYNAMIC_SERVER_USAGE/.test(String((e as { digest: unknown }).digest))) throw e;
+    console.error('owner sign page', e);
+    return <SignTrouble />;
+  }
+}
+
+async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>) {
   const viewing = !!(await viewAs());
   const partner = home.kind === 'partner';
-  const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, SR).catch(() => null)) as unknown as Checklist | null;
+  // what this package holds, read in parallel; no PDF is made here (migration 0077)
+  const [checklist, facts, screen, pFacts, ready] = await Promise.all([
+    rpc('server_my_signing_checklist', { p_by: user.id }, SR).catch(() => null) as unknown as Promise<Checklist | null>,
+    partner ? Promise.resolve(null) : ownerAgreementFacts(home.owner.id, user.id),
+    partner ? Promise.resolve([] as ScreenForm[]) : (rpc('owner_screen_forms', { p_by: user.id }, SR).catch(() => []) as unknown as Promise<ScreenForm[]>).then((x) => x.filter((f) => f.status !== 'signed')),
+    partner && home.partner?.agreement_status !== 'signed' ? partnerFacts(user.id) : Promise.resolve(null),
+    partner ? Promise.resolve([]) : ownerForms(user).then((x) => x.filter((f) => f.official && f.status === 'ready'))
+  ]);
+  const packetSpecsList = facts ? await packetSpecs(facts, home.owner.id, user.id) : [];
+  const formSpecs = await Promise.all(screen.map(async (f) => formSpec(user.id, f.code, await formABFacts(user.id, f.code))));
+  const paSpec = pFacts ? await partnerSpec(user.id, pFacts) : null;
+  const officials = (await Promise.all(ready.map((f) => rpc('owner_form_official', { p_by: user.id, p_fill: f.id }, SR).catch(() => null) as unknown as Promise<Official | null>)))
+    .filter((o): o is Official => !!o && Object.values(o.field_map).some((s) => typeof s !== 'string' && s.type === 'signature'));
+  const all = [...packetSpecsList, ...formSpecs, ...(paSpec ? [paSpec] : [])];
+  const open = await findOpen(user.id, all);
+  const missing = all.filter((d) => !open.has(d.key));
 
-  // what this package holds
-  const packet = partner ? { facts: null as OwnerAgreementFacts | null, docs: [] as Awaited<ReturnType<typeof openOwnerPacket>>['docs'] } : await openOwnerPacket(home.owner.id, user.id);
-  const screen = partner ? [] : ((await rpc('owner_screen_forms', { p_by: user.id }, SR).catch(() => [])) as unknown as ScreenForm[]).filter((f) => f.status !== 'signed');
-  const forms: Array<{ code: 'A' | 'B'; id: string; sha: string; title: string; blocks: ReturnType<typeof screenFormBlocks> }> = [];
-  for (const f of screen) {
-    const facts = await formABFacts(user.id, f.code);
-    const open = viewing ? { id: '', sha: '' } : await openFormAB(user.id, f.code);
-    forms.push({ code: f.code, id: open.id, sha: open.sha, title: SCREEN_FORM_TITLE[f.code], blocks: screenFormBlocks(facts) });
-  }
-  let pa: { id: string; sha: string; facts: PartnerFacts } | null = null;
-  if (partner && home.partner?.agreement_status !== 'signed') {
-    const facts = await partnerFacts(user.id);
-    if (facts) pa = viewing ? { id: '', sha: '', facts } : await openPartnerAgreement(user.id);
-  }
-  const officials: Official[] = [];
-  if (!partner) {
-    for (const f of (await ownerForms(user)).filter((x) => x.official && x.status === 'ready')) {
-      const o = (await rpc('owner_form_official', { p_by: user.id, p_fill: f.id }, SR).catch(() => null)) as unknown as Official | null;
-      if (o && Object.values(o.field_map).some((s) => typeof s !== 'string' && s.type === 'signature')) officials.push(o);
-    }
-  }
+  const packet = { facts, docs: packetSpecsList.map((d) => ({ key: (d.target as { key: PacketKey }).key, title: d.title, blocks: d.blocks, sha: open.get(d.key)?.sha ?? '' })) };
+  const forms = formSpecs.map((d) => ({ code: (d.target as { code: 'A' | 'B' }).code, id: open.get(d.key)?.id ?? '', sha: open.get(d.key)?.sha ?? '', title: d.title, blocks: d.blocks }));
+  const pa = paSpec && pFacts ? { id: open.get(paSpec.key)?.id ?? '', sha: open.get(paSpec.key)?.sha ?? '', facts: pFacts } : null;
 
   const docs = [
     ...packet.docs.map((d) => ({ key: d.key, title: d.title })),
@@ -132,7 +140,9 @@ export default async function OwnerSign() {
           </div>
           <aside className="pt-split__aside">
             <section className="pt-card" aria-labelledby="ow-sign"><h2 className="d4" id="ow-sign">Sign</h2>
-              {viewing ? <p className="small muted">Read only.</p> : (
+              {viewing ? <p className="small muted">Read only.</p> : missing.length ? (
+                <PrepareDocs targets={missing.map((d) => d.target)} titles={missing.map((d) => d.title)} />
+              ) : (
                 <OwnerPackage docs={docs} signerName={signer} officials={officials} initials={enrollment}
                   statements={enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : []}
                   consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device. ${(f?.cosigners ?? []).some((c) => c.status !== 'signed') ? `Every Owner named in the Title Schedule signs with their own link (${(f?.cosigners ?? []).map((c) => c.name).join(', ')}); CarmaCars countersigns when the last one signs.` : 'CarmaCars countersigns at the same moment.'}`}

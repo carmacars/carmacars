@@ -17,7 +17,7 @@ export interface PlanCar { vehicle_id: string; name: string; onboarding_status: 
 export interface Plan { id: string; application_number: string; status: string; trackers_available: boolean; today: string; entered_by_name: string | null; signing_method: string | null;
   plan: Record<string, { terms?: Record<string, number>; invoices?: Array<Record<string, unknown>> }> | null; cars: PlanCar[] }
 
-export type Action = 'send' | 'draft' | 'paid';
+export type Action = 'send' | 'draft' | 'paid' | 'none';
 export interface Inv { on: boolean; amount: string; hst: boolean; action: Action; method: string; on_date: string; reference: string; paid: string; title: string }
 interface CarState { mode: string; method: string; ins: string; trk: string; share: string; inst: string; fl: string; special: string; first_last: Inv; registration: Inv; tracker: Inv; custom: Inv & { desc: string } }
 export const METHODS: Array<[string, string]> = [['e_transfer', 'e-Transfer'], ['cash', 'Cash'], ['cheque', 'Cheque'], ['bank_transfer', 'Bank transfer'], ['other', 'Other']];
@@ -31,14 +31,14 @@ function initial(c: PlanCar, today: string, proposed?: { terms?: Record<string, 
   return {
     mode: c.mode, method: c.method ?? c.options.find((o) => o.recommended)?.method ?? c.options[0]?.method ?? '',
     ins: dollars(t.insurance_fee_cents), trk: dollars(t.tracker_fee_cents), share: pctOf(t.revenue_share_bps), inst: dollars(t.install_fee_cents), fl: dollars(fl), special: '',
-    first_last: inv(today, !c.invoices.some((x) => x.kind === 'upfront'), dollars(fl), ((has('first_last')?.action as Action) ?? 'send')),
+    first_last: inv(today, !c.invoices.some((x) => x.kind === 'upfront'), dollars(fl), ((has('first_last')?.action as Action) ?? 'draft')),
     registration: { ...inv(today, !!(has('registration') || reg), dollars(Number(has('registration')?.amount_cents ?? reg?.amount_cents ?? 0) || null), (has('registration')?.action as Action) ?? 'send'), title: 'Registration fee' },
     tracker: inv(today, false, dollars(t.install_fee_cents)),
     custom: { ...inv(today, false, '', 'draft'), desc: '' }
   };
 }
 
-export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId }: { uid: string; label: string; v: Inv; set: (x: Inv) => void; hstBps: number; children?: React.ReactNode; testId: string }) {
+export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, allowNone = false }: { uid: string; label: string; v: Inv; set: (x: Inv) => void; hstBps: number; children?: React.ReactNode; testId: string; allowNone?: boolean }) {
   const net = toCents(v.amount);
   const total = Number.isFinite(net) ? net + (v.hst ? hstOf(net, hstBps) : 0) : 0;
   return (
@@ -47,13 +47,13 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId }: 
       <label className="check" htmlFor={`${uid}-on`}><input type="checkbox" id={`${uid}-on`} checked={v.on} onChange={(e) => set({ ...v, on: e.target.checked })} data-testid={`${testId}-on`} /><span><b>{label}</b></span></label>
       {v.on && (<>
         {children}
-        <div className="field-row">
+        {v.action !== 'none' && <div className="field-row">
           <div className="field"><label className="label" htmlFor={`${uid}-amt`}>Amount before HST ($)</label>
             <input className="input" id={`${uid}-amt`} inputMode="decimal" value={v.amount} onChange={(e) => set({ ...v, amount: e.target.value })} data-testid={`${testId}-amount`} /></div>
           <p className="small ob-choice__total">With HST: <b data-testid={`${testId}-total`}>{money(total, { cents: true })}</b></p>
-        </div>
+        </div>}
         <div className="row ob-actions" role="radiogroup" aria-label={`${label}: what to do`} style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
-          {([['send', 'Send now'], ['draft', 'Save as draft'], ['paid', 'Already paid']] as Array<[Action, string]>).map(([k, l]) => (
+          {([['send', 'Send now'], ['draft', 'Save as draft'], ['paid', 'Already paid'], ...(allowNone ? [['none', 'No invoice']] : [])] as Array<[Action, string]>).map(([k, l]) => (
             <label key={k} className="check" htmlFor={`${uid}-a-${k}`}><input type="radio" id={`${uid}-a-${k}`} name={`${uid}-a`} checked={v.action === k} onChange={() => set({ ...v, action: k })} data-testid={`${testId}-${k}`} /><span>{l}</span></label>))}
         </div>
         {v.action === 'paid' && (
@@ -97,18 +97,20 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
         invoices.push({ type, amount_cents: amt, hst: v.hst, action: v.action, ...(v.action === 'paid' ? { payment: payment(v) } : {}), ...extra });
         return null;
       };
-      const e1 = add('first_last', s.first_last) ?? add('registration', s.registration, { title: s.registration.title || 'Registration fee' })
+      // the first and last month: the Admin's choice for this car (0077); left unticked, nothing is invoiced and Today asks for it
+      const firstLast = s.first_last.on && s.first_last.action === 'none' ? { action: 'none' } : undefined;
+      const e1 = (firstLast ? null : add('first_last', s.first_last)) ?? add('registration', s.registration, { title: s.registration.title || 'Registration fee' })
         ?? (plan.trackers_available ? add('tracker_install', s.tracker) : null)
         ?? (s.custom.on ? (s.custom.desc.trim() ? add('custom', s.custom, { title: s.custom.title || undefined, lines: [{ description: s.custom.desc, quantity: 1, unit_amount_cents: toCents(s.custom.amount), hst: s.custom.hst }] }) : `${c.name}: describe the other invoice.`) : null);
       if (e1) return e1;
-      if (s.first_last.on && toCents(s.first_last.amount) !== n.fl) return `${c.name}: the first and last invoice is ${money(toCents(s.first_last.amount), { cents: true })} but the terms say ${money(n.fl, { cents: true })}. Make them the same.`;
+      if (s.first_last.on && !firstLast && toCents(s.first_last.amount) !== n.fl) return `${c.name}: the first and last invoice is ${money(toCents(s.first_last.amount), { cents: true })} but the terms say ${money(n.fl, { cents: true })}. Make them the same.`;
       out.push({ vehicle_id: c.vehicle_id, terms: c.shareholder ? { management_mode: s.mode, onboarding_method: s.method } : {
         management_mode: s.mode, onboarding_method: s.method || undefined, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst,
-        first_last_cents: n.fl, special_terms: s.special || undefined }, invoices });
+        first_last_cents: n.fl, special_terms: s.special || undefined }, invoices, ...(firstLast ? { first_last: firstLast } : {}) });
     }
     return out;
   };
-  const summary = cars.map((c) => { const s = st[c.vehicle_id]!; const parts = (['first_last', 'registration', 'tracker', 'custom'] as const).filter((k) => s[k].on).map((k) => `${k === 'first_last' ? 'first and last' : k === 'tracker' ? 'tracker install' : k === 'registration' ? 'registration fee' : 'other'} (${s[k].action === 'paid' ? 'paid' : s[k].action === 'draft' ? 'draft' : 'send'})`); return `${c.name}: ${parts.length ? parts.join(', ') : 'no invoice'}`; }).join('; ');
+  const summary = cars.map((c) => { const s = st[c.vehicle_id]!; const parts = (['first_last', 'registration', 'tracker', 'custom'] as const).filter((k) => s[k].on).map((k) => `${k === 'first_last' ? 'first and last' : k === 'tracker' ? 'tracker install' : k === 'registration' ? 'registration fee' : 'other'} (${s[k].action === 'paid' ? 'paid' : s[k].action === 'draft' ? 'draft' : s[k].action === 'none' ? 'no invoice' : 'send'})`); return `${c.name}: ${parts.length ? parts.join(', ') : 'no invoice'}${s.first_last.on ? '' : ' (first and last month: decide later, on the Terms tab)'}`; }).join('; ');
   const submit = () => {
     setProblem(null);
     const cs = build();
@@ -140,7 +142,7 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
                   onChange={(e) => { const two = dollars(toCents(e.target.value) * 2); const keep = s.fl !== dollars(toCents(s.ins) * 2); upd(c.vehicle_id, { ins: e.target.value, ...(keep ? {} : { fl: two, first_last: { ...s.first_last, amount: two } }) }); }} />
                   <p className="hint">{src('insurance_fee_cents')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-trk`}>Tracker Fee a month ($)</label><input className="input" id={`${id}-trk`} inputMode="decimal" value={s.trk} onChange={(e) => upd(c.vehicle_id, { trk: e.target.value })} data-testid="approve-tracker" /><p className="hint">{src('tracker_fee_cents')}</p></div>
-                <div className="field"><label className="label" htmlFor={`${id}-share`}>Revenue Share (%)</label><input className="input" id={`${id}-share`} inputMode="decimal" value={s.share} onChange={(e) => upd(c.vehicle_id, { share: e.target.value })} data-testid="approve-share" /><p className="hint">{src('revenue_share_bps')}</p></div>
+                <div className="field"><label className="label" htmlFor={`${id}-share`}>Management fee (Revenue Share, %)</label><input className="input" id={`${id}-share`} inputMode="decimal" value={s.share} onChange={(e) => upd(c.vehicle_id, { share: e.target.value })} data-testid="approve-share" /><p className="hint">{src('revenue_share_bps')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-inst`}>Install Fee ($)</label><input className="input" id={`${id}-inst`} inputMode="decimal" value={s.inst} onChange={(e) => upd(c.vehicle_id, { inst: e.target.value })} /><p className="hint">{src('install_fee_cents')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-fl`}>First and last month amount ($)</label><input className="input" id={`${id}-fl`} inputMode="decimal" value={s.fl} data-testid="approve-first-last"
                   onChange={(e) => upd(c.vehicle_id, { fl: e.target.value, first_last: { ...s.first_last, amount: e.target.value } })} /><p className="hint">Default 2 x the Insurance Fee; any exact amount</p></div>
@@ -149,7 +151,8 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
               {c.invoices.length > 0 && <p className="small">Already made for this car: {c.invoices.map((x) => `${x.invoice_number} (${money(x.total_cents, { cents: true })}, ${x.status})`).join(', ')}.</p>}
               {s.mode !== 'turo_only' && (<>
                 <h4 className="label">First invoices</h4>
-                <InvoiceChoice uid={`${id}-fl`} label="First and last month" v={s.first_last} hstBps={hstBps} testId="approve-inv-first-last" set={(x) => upd(c.vehicle_id, { first_last: x, fl: x.amount })} />
+                <InvoiceChoice uid={`${id}-fl`} label="First and last month" v={s.first_last} hstBps={hstBps} testId="approve-inv-first-last" allowNone set={(x) => upd(c.vehicle_id, { first_last: x, fl: x.action === 'none' ? s.fl : x.amount })} />
+                {!s.first_last.on && <p className="small muted" data-testid="approve-first-last-later">First and last month: nothing is invoiced until you decide (Admin &gt; Today asks for it).</p>}
                 <InvoiceChoice uid={`${id}-rg`} label="Registration fee" v={s.registration} hstBps={hstBps} testId="approve-inv-registration" set={(x) => upd(c.vehicle_id, { registration: x })}>
                   <label className="check" htmlFor={`${id}-rg-hst`}><input type="checkbox" id={`${id}-rg-hst`} checked={s.registration.hst} onChange={(e) => upd(c.vehicle_id, { registration: { ...s.registration, hst: e.target.checked } })} /><span>Add HST</span></label>
                 </InvoiceChoice>

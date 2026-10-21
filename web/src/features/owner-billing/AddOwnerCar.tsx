@@ -34,7 +34,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const [signing, setSigning] = useState<'email' | 'paper'>('email');
   const t0 = initial.terms ?? (initial.standard ? { ...initial.standard, first_last_cents: initial.standard.insurance_fee_cents * 2, sources: {} } : null);
   const [terms, setTerms] = useState<Record<string, string>>({ ins: dollars(t0?.insurance_fee_cents), trk: dollars(t0?.tracker_fee_cents), share: pctOf(t0?.revenue_share_bps), inst: dollars(t0?.install_fee_cents), fl: dollars(t0?.first_last_cents) });
-  const [fl, setFl] = useState<Inv>(inv(initial.today, true, dollars(t0?.first_last_cents)));
+  const [fl, setFl] = useState<Inv>(inv(initial.today, true, dollars(t0?.first_last_cents), 'draft'));
   const [reg, setReg] = useState<Inv>({ ...inv(initial.today, false, ''), title: 'Registration fee' });
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [problem, setProblem] = useState<string | null>(null);
@@ -77,7 +77,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
     if ([n.ins, n.trk, n.inst, n.fl, n.share].some((x) => !Number.isFinite(x) || x < 0)) { setProblem('Enter every amount of the terms in dollars and cents.'); return; }
     const invoices: Array<Record<string, unknown>> = [];
     const pay = (x: Inv) => (x.action === 'paid' ? { payment: { method: x.method, received_on: x.on_date, reference: x.reference || undefined, amount_cents: x.paid ? toCents(x.paid) : undefined, note: x.method === 'other' ? x.reference : undefined } } : {});
-    if (fl.on) invoices.push({ type: 'first_last', amount_cents: toCents(fl.amount), action: fl.action, ...pay(fl) });
+    // the first and last month (0077): the Admin's choice; "No invoice" is a choice too; unticked, nothing is invoiced
+    if (fl.on) invoices.push(fl.action === 'none' ? { type: 'first_last', action: 'none' } : { type: 'first_last', amount_cents: toCents(fl.amount), action: fl.action, ...pay(fl) });
     if (reg.on) {
       if (!(toCents(reg.amount) > 0)) { setProblem('Enter the registration fee.'); return; }
       invoices.push({ type: 'registration', amount_cents: toCents(reg.amount), hst: reg.hst, action: reg.action, title: 'Registration fee', ...pay(reg) });
@@ -163,13 +164,13 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         {!facts.admin && <p className="small muted">An Admin checks these and approves; they are your proposal.</p>}
         {v.management_mode !== 'turo_only' && (<>
           <div className="ad-fields ob-terms">
-            {([['ins', 'Insurance Fee a month ($)'], ['trk', 'Tracker Fee a month ($)'], ['share', 'Revenue Share (%)'], ['inst', 'Install Fee ($)'], ['fl', 'First and last month amount ($)']] as Array<[string, string]>).map(([k, l]) => (
+            {([['ins', 'Insurance Fee a month ($)'], ['trk', 'Tracker Fee a month ($)'], ['share', 'Management fee (Revenue Share, %)'], ['inst', 'Install Fee ($)'], ['fl', 'First and last month amount ($)']] as Array<[string, string]>).map(([k, l]) => (
               <div key={k} className="field"><label className="label" htmlFor={`${uid}-t-${k}`}>{l}</label>
                 <input className="input" id={`${uid}-t-${k}`} inputMode="decimal" value={terms[k] ?? ''} data-testid={`addcar-terms-${k}`}
                   onChange={(e) => { const val = e.target.value; const nt = { ...terms, [k]: val }; if (k === 'ins' && terms.fl === dollars(toCents(terms.ins!) * 2)) nt.fl = dollars(toCents(val) * 2); setTerms(nt); if (k === 'fl' || nt.fl !== terms.fl) setFl({ ...fl, amount: nt.fl! }); }} /></div>))}
           </div>
           {owner && facts.terms && <p className="small muted">Filled in from {Object.values(facts.terms.sources).includes('owner') ? 'this owner\'s terms' : Object.values(facts.terms.sources).includes('other_car') ? 'this owner\'s other car' : 'the standard grid'}.</p>}
-          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" set={(x) => { setFl(x); setTerms({ ...terms, fl: x.amount }); }} />
+          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" allowNone set={(x) => { setFl(x); if (x.action !== 'none') setTerms({ ...terms, fl: x.amount }); }} />
           <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" set={setReg} />
           {fl.on && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
         </>)}

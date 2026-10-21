@@ -43,6 +43,18 @@ export async function scheduleChange(p: { change_id: string; do: 'paper' | 'canc
   return act('schedule_change_admin', p, paths);
 }
 
+// ---------------------------------------------------------------- the first and last month invoice: the Admin's choice (0077)
+export type FirstLastAction = 'send' | 'draft' | 'paid' | 'none';
+export interface FirstLastInput { vehicle_id: string; action: FirstLastAction; amount_cents?: number; payment?: { method: string; received_on: string; reference?: string; amount_cents?: number; note?: string } }
+export async function chooseFirstLast(c: FirstLastInput, paths: string[] = []) {
+  const fe: Record<string, string> = {};
+  if (!['send', 'draft', 'paid', 'none'].includes(c.action)) fe.action = 'Choose what to do.';
+  if (c.action !== 'none' && (!Number.isInteger(c.amount_cents) || (c.amount_cents ?? 0) <= 0)) fe.amount = 'Enter the amount in dollars and cents.';
+  if (c.action === 'paid' && ['e_transfer', 'cheque', 'bank_transfer'].includes(c.payment?.method ?? '') && (c.payment?.reference ?? '').trim().length < 3) fe.reference = 'Enter the reference of the payment.';
+  if (Object.keys(fe).length) return invalid(fe);
+  return act<{ choice: FirstLastAction; amount_cents: number | null; invoice: { invoice_number: string; status: string } | null }>('first_last_choose', c as unknown as J, ['/admin/invoices', '/admin', ...paths]);
+}
+
 // ---------------------------------------------------------------- invoices
 export interface LineInput { kind?: string; description: string; quantity: number | string; unit_amount_cents: number; hst: boolean; note?: string }
 export interface DraftInput { id?: string; vehicle_id?: string; kind?: string; title?: string; notes?: string; due_on?: string; application_id?: string; lines: LineInput[] }
@@ -105,7 +117,7 @@ export async function sendSetupEmail(applicationId: string) {
 }
 
 // ---------------------------------------------------------------- Approve: terms and the first invoices per car
-export interface ApproveCar { vehicle_id: string; terms: J; invoices: J[] }
+export interface ApproveCar { vehicle_id: string; terms: J; invoices: J[]; first_last?: J }
 export async function approveWithTerms(applicationId: string, cars: ApproveCar[]) {
   try {
     const { user, aal } = await me();

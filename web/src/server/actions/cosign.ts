@@ -5,7 +5,7 @@ import { CONFIRMATIONS, OWNER_SIGN_STATEMENT } from '@/features/owner-agreement/
 import type { PackageInput, PackageResult } from '@/features/signing/PackageSignForm';
 import { requestMeta } from '@/server/request';
 import { storeDrawnSignature } from '@/server/sign-requests';
-import { attachOwnerSignedCopies, type SignedResult } from '@/server/owner/agreements';
+import { queueOwnerSignedCopies, type SignedResult } from '@/server/owner/agreements';
 
 // Another Owner named in the Title Schedule signs with their own link (the legal review, migration 0053): no account, the
 // link's token names them. Their own signature record goes on each open document; the last Owner to sign completes the
@@ -40,7 +40,7 @@ export async function signAsCosigner(token: string, input: PackageInput): Promis
       consent_text: OWNER_SIGN_STATEMENT, initials: enrollment ? initials : null,
       documents: f.documents.map((d) => ({ signature_request_id: d.signature_request_id, sha256: d.sha256 })) } }, SR)) as unknown as SignedResult & { complete: boolean };
     if (res.complete && f.owner.user_id) {
-      try { await attachOwnerSignedCopies(f.owner.id, f.owner.user_id, res); } catch (e) { console.error('owner signed copy', e); }
+      try { await queueOwnerSignedCopies(f.owner.id, f.owner.user_id, res); } catch (e) { console.error('owner signed copy job', e); }
     }
     for (const p of ['/owner', '/owner/sign', '/owner/documents']) revalidatePath(p);
     return { ok: true, data: { signed: res.signed?.length ?? f.documents.length,
