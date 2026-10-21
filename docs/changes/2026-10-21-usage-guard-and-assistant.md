@@ -99,7 +99,9 @@ How the gates work: `app.settings()` (0001) is wrapped. The daily Workers AI gat
 
 - DB: `supabase/tests/60_usage_guard_assistant.sql` (102 assertions): ledger and sources, thresholds and once-per-period alerts, the email (address, quiet hours, daily maximum, values), pause by default, allow up to a cap and keep paused, never-paused services, Admin-only pages and answers, assistant reads by portal and function, propose and confirm through the door, a VA refused an Admin's action, audit actor and "via assistant", Cancel and expiry, Claude's US$0 budget.
 - Unit: `web/src/features/assistant/assistant.test.ts` (tool lists, argument checks, card texts, the one-call flow, ambiguity, paused states and their words, the stub and the Claude adapter), `web/src/features/usage/usage.test.ts` (paused photos, Toronto days, the Cloudflare figures).
-- End to end: `web/tests/e2e/assistant-usage.spec.ts` at 375 and 1440 (run with `--workers=1`: it changes the day's Workers AI figures).
+- End to end: `web/tests/e2e/assistant-usage.spec.ts` at 375 and 1440 (run with `--workers=1`: it changes the day's Workers AI figures): the usage card and pop-up, Settings > Usage, the Admin assistant (header button, Ctrl+/, a read, a confirmed change audited "via assistant", Cancel, a question listing the candidates), a VA refused an Admin's action, the paused assistant, a visitor's live chat while the assistant rests.
+- Results on October 21: the whole database suite 4,699 assertions passed (`scripts/test.sh`, `ALL TESTS PASSED`); unit 59 passed (the two new files with the listing worker and chat guardrail tests); the five end-to-end tests passed at 1440 and at 375. The machine was short of memory (other builds running), so `next build` was killed by the system each time: the end-to-end tests ran against `next dev`, each test on its own when a browser tab crashed for memory. Typecheck of every new and changed file and its imports passed; ESLint passed.
+- Also fixed for axe: the live chat's message log (and the assistant's) can take keyboard focus (a scrollable region).
 
 ## Not done
 
