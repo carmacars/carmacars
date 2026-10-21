@@ -5,7 +5,7 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { workerToken } from '@/server/listing-worker';
 
-// Signed copies in the background (migration 0075). Signing records the signatures in the database first; each
+// Signed copies in the background (migration 0077). Signing records the signatures in the database first; each
 // signed copy (a PDF with the signatures and the signature record) is a job in pdf_jobs, rendered in its own Worker
 // request (/api/jobs/pdf), so the person who signs never waits for it and a slow or failed render never undoes or
 // hides their signature. The job is kicked right after the response; the five-minute cron runs whatever is left,

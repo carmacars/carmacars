@@ -4,7 +4,7 @@ import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 
-// Owner signing that never crashes (migration 0075), end to end at 375 and 1440:
+// Owner signing that never crashes (migration 0077), end to end at 375 and 1440:
 //   an individual owner, a corporation owner whose car staff added for them (0067, "No invoice" chosen), and an owner
 //   with custom terms press "Check and sign" on /owner, read the documents at once (no PDF is made on the page), wait a
 //   few seconds while each document is prepared in its own request, sign once, and see the success screen at once; the

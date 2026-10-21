@@ -83,7 +83,7 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
       await rpc('server_booking_payment_capture_failed', { p_booking: bookingId, p_processor: { processor: 'stripe', payment_id: i.id }, p_error: e instanceof Error ? e.message : String(e) }, SR).catch(() => undefined);
     }
   }
-  // the signed copy: a background job in its own request (0075), so paying never waits for a PDF
+  // the signed copy: a background job in its own request (0077), so paying never waits for a PDF
   try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: bookingId, user_id: f.renter_user_id }]); } catch (e) { console.error('signed copy job', e); }
   return { ok: true, status: 'confirmed', bookingNumber: f.booking_number };
 }

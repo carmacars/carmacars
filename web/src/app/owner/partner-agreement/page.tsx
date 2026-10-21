@@ -37,7 +37,7 @@ export default async function PartnerAgreementPage() {
     );
   }
   const viewing = !!(await viewAs());
-  // no PDF is made on this page (0075): the open request with the same content, or the browser prepares it
+  // no PDF is made on this page (0077): the open request with the same content, or the browser prepares it
   const spec = await partnerSpec(user.id, facts);
   const open = viewing ? null : (await findOpen(user.id, [spec])).get(spec.key) ?? null;
   return (

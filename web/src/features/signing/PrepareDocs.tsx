@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // The sign page's documents are shown from their text at once; the PDFs the signature is recorded against are made
-// here, one request per document (POST /api/sign/prepare, migration 0075), then the page reloads its data with the
+// here, one request per document (POST /api/sign/prepare, migration 0077), then the page reloads its data with the
 // signing form. A failure says so, with Try again; nothing on the page breaks.
 // how many times this browser tab prepared and reloaded without the documents opening (a guard against a loop)
 let cycles = 0;

@@ -169,7 +169,7 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     if (added) declined = await chargeAddedRental(b.id, number, userId);
     // a rental staff added is confirmed already, so no payment step files the signed copy: file it now (the signed PDF
     // with the countersignature and "Added by", found by the legal review's section 6 test)
-    // (0075: a background job, in its own request; the signature is recorded already)
+    // (0077: a background job, in its own request; the signature is recorded already)
     if (added) { try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: b.id, user_id: userId }]); } catch (e) { console.error('signed copy job', e); } }
     refresh(number);
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');

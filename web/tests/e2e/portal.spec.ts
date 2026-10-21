@@ -176,7 +176,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await expect(page.getByTestId('status-badge').first()).toHaveText('Confirmed');
   await axe(page, 'booking');
 
-  // 0075: the signed copy is made by a background job, within seconds of the payment
+  // 0077: the signed copy is made by a background job, within seconds of the payment
   await expect.poll(async () => (await sql`select count(*)::int n from rental_agreements a join signature_requests s on s.id = a.signature_request_id
     where a.booking_id = ${bk!.id} and a.status = 'completed' and s.signed_document_id is not null`)[0]!.n, { timeout: 60_000 }).toBe(1);
   await page.reload({ waitUntil: 'networkidle' });

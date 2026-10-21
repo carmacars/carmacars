@@ -4,7 +4,7 @@ import { ownerHome } from '@/server/owner/data';
 import { parseTarget, prepareSpec, specFor, targetId } from '@/server/signing/prepare';
 import { viewAs } from '@/server/view-as';
 
-// Prepares one document for signature (migration 0075): the sign page shows the text at once and asks here, one
+// Prepares one document for signature (migration 0077): the sign page shows the text at once and asks here, one
 // request per document, for the PDF to be rendered, stored and opened (src/server/signing/prepare.ts). The document is
 // built from the signed-in owner's own records; the browser only names which one. Idempotent: an open document with
 // the same content answers at once.

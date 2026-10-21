@@ -1,8 +1,8 @@
-# Owner signing that never crashes; the first and last month invoice only by choice (October 21, 2026; migration 0075)
+# Owner signing that never crashes; the first and last month invoice only by choice (October 21, 2026; migration 0077)
 
-Migration `supabase/migrations/0075_owner_signing_light.sql`, tests `supabase/tests/54_owner_signing_light.sql`,
+Migration `supabase/migrations/0077_owner_signing_light.sql`, tests `supabase/tests/54_owner_signing_light.sql`,
 `web/src/server/signing/content.test.ts`, end to end `web/tests/e2e/owner-signing.spec.ts` (3 tests, 375 and 1440). No
-earlier migration was edited; the functions it changes are wrapped (renamed with the suffix `_pre0075`) or replaced with
+earlier migration was edited; the functions it changes are wrapped (renamed with the suffix `_pre0077`) or replaced with
 the same signature.
 
 ## 1. What happened
@@ -78,7 +78,7 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 
 | Item | Now |
 | --- | --- |
-| Signing | Never makes or issues an invoice (0075 wraps `owner_sign_agreements`; tested) |
+| Signing | Never makes or issues an invoice (0077 wraps `owner_sign_agreements`; tested) |
 | The choice | Each car carries the Admin's choice (`vehicle_onboardings.first_last_choice`): the amount (exact; default 2 x the Insurance Fee) and Send invoice now, Draft only, Already paid (method, date, reference) or No invoice |
 | Where it is set | Approve (the "First and last month" choice now has No invoice), "Add a car for an owner" (0067's `staff_add_owner_car`), and the owner's Terms tab (each car: the choice, its invoice, or "not decided") |
 | No choice | Nothing is invoiced; a task "Decide the first and last month invoice for (car)" opens, and Admin > Today shows "First and last month invoices to decide" with the count and a link to the owner's Terms tab, until it is decided (Today also shows "Signed copies that could not be made") |
@@ -98,6 +98,6 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 
 ## 6. Deploy notes
 
-Apply 0075, then deploy the Worker. The Worker's service binding to itself (`WORKER_SELF_REFERENCE`) already exists. Owners
+Apply 0077, then deploy the Worker. The Worker's service binding to itself (`WORKER_SELF_REFERENCE`) already exists. Owners
 who opened /owner/sign before the deploy have no content key on their documents: their first visit prepares them again,
 which finds the same SHA-256 and keeps the request already open.

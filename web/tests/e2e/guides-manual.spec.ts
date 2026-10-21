@@ -140,7 +140,7 @@ async function mkOwnerWithInvoices(sql: Sql, admin: string) {
   for (const c of cars) await sql`select public.admin_set_vehicle_terms(${c.id}, ${admin}, '{}')`;
   // the second car under a Lease method, so the owner signs Form B as well as Form A
   await sql`update vehicle_schedules set onboarding_method = 'lease_new_owner_corporation', owners_lien = 'not_available' where vehicle_id = ${cars[1]!.id} and superseded_by is null`;
-  await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${owner}`; // 0075: the Admin's choice
+  await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${owner}`; // 0077: the Admin's choice
   await sql`select public.admin_issue_upfront_invoices(${owner}, ${admin})`;
   const invoices = await sql`select id, invoice_number, total_cents from owner_invoices where owner_id = ${owner} order by invoice_number`;
   return { user: u, owner, cars: cars.map((c) => c.id as string), invoices };
@@ -277,7 +277,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await expect(op.locator('summary', { hasText: 'Form B: lease summary' })).toBeVisible();
   await expect(op.getByTestId('sign-progress')).toContainText('in this package');
   await check(op, 'owner signing package');
-  // 0075: the documents are prepared in their own requests; the sign form appears when they are open
+  // 0077: the documents are prepared in their own requests; the sign form appears when they are open
   await expect(op.getByTestId('package-sign')).toBeVisible({ timeout: 45_000 });
   const t0 = Date.now();
   if (await op.getByTestId('package-tick-all').isVisible()) await op.getByTestId('package-tick-all').check();
@@ -287,7 +287,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   console.log(`forms A and B package (${info.project.name}): signed in ${Math.round((Date.now() - t0) / 1000)} s after the first tap`);
   await op.goto('/owner/documents', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('screen-form-status')).toHaveText(['Signed on screen', 'Signed on screen']);
-  // 0075: the signed records are made by background jobs, within seconds
+  // 0077: the signed records are made by background jobs, within seconds
   await expect.poll(async () => (await sql`select count(*)::int n from sign_requests where owner_id = ${o.owner} and status = 'signed' and signed_document_id is not null`)[0]!.n, { timeout: 60_000 }).toBe(2);
   const forms = await sql`select r.doc_type, r.status, r.signed_document_id is not null as copy,
       (select string_agg(x.signer_role || ':' || x.method, ',' order by x.signer_role) from signature_records x where x.signature_request_id = r.signature_request_id) recs

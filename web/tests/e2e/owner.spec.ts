@@ -164,7 +164,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
     await expect(setButtons).toHaveCount(left - 1, { timeout: 15_000 });
   }
   await expect.poll(async () => (await sql`select count(*)::int n from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where v.owner_id = ${owner!.id}`)[0]!.n, { timeout: 15_000 }).toBe(3);
-  // 0075: the first and last month invoice follows the Admin's choice per car (here: Send invoice now); the owner page applies it
+  // 0077: the first and last month invoice follows the Admin's choice per car (here: Send invoice now); the owner page applies it
   await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${owner!.id}`;
   await admin.reload({ waitUntil: 'networkidle' });
   await admin.getByTestId('issue-upfront').click();
@@ -184,7 +184,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await expect(page.locator('summary', { hasText: 'Vehicle Enrollment Agreement' })).toBeVisible();
   await expect(page.locator('summary', { hasText: 'Title-Holding and Lease Agreement' })).toBeVisible();
   await expect(page.getByTestId('sign-progress-count')).toContainText(/^0 of \d+ signed$/);
-  // 0075: the documents are prepared in their own requests; the sign form appears once they are open
+  // 0077: the documents are prepared in their own requests; the sign form appears once they are open
   await expect(page.getByTestId('package-sign')).toBeVisible({ timeout: 45_000 });
   await expect(page.getByTestId('sign-summary-values')).toContainText('VIN');
   await expect(page.getByTestId('sign-fix').first()).toHaveAttribute('href', '/owner/profile');
@@ -202,7 +202,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   console.log(`owner package (${info.project.name}): ${total} documents, ${info.project.name.includes('desktop') ? 3 : 2} taps after opening, ${Math.round((Date.now() - opened) / 1000)} s in the test, ${pkg[0]!.seconds_to_sign} s recorded`);
   const signed = await sql`select string_agg(status, ',' order by kind) s from owner_agreements where owner_id = ${owner!.id}`;
   expect(signed[0]!.s).toBe('signed,signed');
-  // 0075: the signed copies are made by background jobs, within seconds
+  // 0077: the signed copies are made by background jobs, within seconds
   await expect.poll(async () => (await sql`select count(*)::int n from signature_requests r join owner_agreements a on a.signature_request_id = r.id where a.owner_id = ${owner!.id} and r.signed_document_id is not null`)[0]!.n,
     { timeout: 60_000, message: 'signed copies stored' }).toBe(2);
 

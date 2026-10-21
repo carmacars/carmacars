@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { workerToken } from '@/server/listing-worker';
 import { kickPdfJobs, runPdfJobs } from '@/server/pdf-jobs';
 
-// Signed copies (migration 0075): called right after a signing (src/server/pdf-jobs.ts) and by the Worker's cron,
+// Signed copies (migration 0077): called right after a signing (src/server/pdf-jobs.ts) and by the Worker's cron,
 // with the jobs' bearer token; any other caller gets 403. Two renders per request at most; when more are waiting it
 // starts the next request, so each one stays well inside the Worker's CPU and memory.
 export const dynamic = 'force-dynamic';

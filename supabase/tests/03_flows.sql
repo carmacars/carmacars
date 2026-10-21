@@ -397,7 +397,7 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'game_plays',
                             -- 0074: the count of guide opens per person (app_events, the internal event queue, is listed above)
                             'guide_reads',
-                            -- signed copies made after signing (0075): the server's work list; the signatures themselves are in signature_records
+                            -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',

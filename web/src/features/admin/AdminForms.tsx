@@ -55,7 +55,7 @@ export function TermsForm({ ownerId, vehicleId, standard, mode, method, options,
         <F id={id('trk')} label="Tracker Fee a month ($)" value={t.tracker} set={set('tracker')} err={a.err('tracker')} inputMode="decimal" />
       </div>
       <div className="field-row">
-        <F id={id('share')} label="Revenue Share (%)" value={t.share} set={set('share')} err={a.err('share')} inputMode="decimal" />
+        <F id={id('share')} label="Management fee (Revenue Share, %)" value={t.share} set={set('share')} err={a.err('share')} inputMode="decimal" />
         <F id={id('inst')} label="Install Fee ($)" value={t.install} set={set('install')} err={a.err('install')} inputMode="decimal" />
       </div>
       <F id={id('special')} label="Special terms (optional)" value={t.special_terms} set={set('special_terms')} />
@@ -79,7 +79,7 @@ export function PendingTerms({ ownerId, vehicleId }: { ownerId: string; vehicleI
   );
 }
 
-// The first and last month invoice (0075) is never issued by itself: each car carries the Admin's choice (Approve, Add
+// The first and last month invoice (0077) is never issued by itself: each car carries the Admin's choice (Approve, Add
 // a car for an owner, or the Terms tab). This applies a choice whose invoice was voided since, and asks Today for the
 // cars without one.
 export function IssueInvoices({ ownerId, count }: { ownerId: string; count: number }) {

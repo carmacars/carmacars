@@ -11,16 +11,16 @@ import { enqueuePdfJobs } from '@/server/pdf-jobs';
 
 // Built-in signing of the owner agreements, the same way as the rental agreement (0019, 0028): each document is
 // rendered from the owner's records, stored in the private agreements bucket and opened with its SHA-256
-// (public.owner_open_agreements; since 0075 one document per request, never on the sign page itself); the owner
+// (public.owner_open_agreements; since 0077 one document per request, never on the sign page itself); the owner
 // signs every open document at once (public.owner_sign_agreements); then the signed copies, with the signature
-// images and the signature record, are rendered and attached by background jobs (pdf_jobs, 0075).
+// images and the signature record, are rendered and attached by background jobs (pdf_jobs, 0077).
 const SR = { role: 'service_role' as const };
 export { ownerAgreementFacts } from '@/server/signing/prepare';
 
 export interface PacketDoc { key: PacketKey; title: string; sha: string; blocks: Block[] }
 
 /** Opens every document the owner still has to sign, rendering only those not open yet (one after another). For an
- *  action or a script; the sign page itself never renders (src/server/signing/prepare.ts, migration 0075). */
+ *  action or a script; the sign page itself never renders (src/server/signing/prepare.ts, migration 0077). */
 export async function openOwnerPacket(ownerId: string, by: string): Promise<{ facts: OwnerAgreementFacts; docs: PacketDoc[] }> {
   const facts = await ownerAgreementFacts(ownerId, by);
   const specs = await packetSpecs(facts, ownerId, by);
@@ -40,7 +40,7 @@ interface SignedResult {
   complete?: boolean; waiting_for?: string[];
 }
 
-/** After signing: one job per signed copy (migration 0075), made in its own request; the signature is already recorded. */
+/** After signing: one job per signed copy (migration 0077), made in its own request; the signature is already recorded. */
 export async function queueOwnerSignedCopies(ownerId: string, by: string, result: SignedResult): Promise<void> {
   await enqueuePdfJobs(result.signed.map((doc) => ({ kind: 'owner_signed_copy' as const, ref: doc.signature_request_id, owner_id: ownerId, user_id: by, payload: { doc } })));
 }

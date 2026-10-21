@@ -274,8 +274,8 @@ update vehicle_schedules set signed_at = now() where vehicle_id in (test.ofl_v(1
 update owner_agreements set status = 'signed' where owner_id = ((select r from ofl_app) ->> 'owner_id')::uuid;
 update vehicle_onboardings set status = 'documents_sent' where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
 update vehicle_onboardings set status = 'documents_signed' where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
--- 0075: the first and last month invoice is never issued by itself; signing and 0022's path make nothing
-select test.eq('D signing and the automatic path issue nothing without an Admin''s choice (0075)',
+-- 0077: the first and last month invoice is never issued by itself; signing and 0022's path make nothing
+select test.eq('D signing and the automatic path issue nothing without an Admin''s choice (0077)',
   (select count(*) from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_fin')))
   + (select count(*) from owner_invoices where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3)) and kind = 'upfront'), 0::bigint);
 -- the Admin chose "Send invoice now" for each car (the amount: 2 x the Insurance Fee); the owner page's path applies it

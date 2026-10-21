@@ -1,7 +1,7 @@
 import type { Block } from '@/features/agreement/model';
 import type { PacketKey } from '@/features/owner-agreement/model';
 
-// The content key of an unsigned document (migration 0075): the SHA-256 of everything its PDF is made from. The PDF
+// The content key of an unsigned document (migration 0077): the SHA-256 of everything its PDF is made from. The PDF
 // renderer is deterministic (the same blocks, title, footer and date give the same bytes), so documents with the same
 // content key have the same PDF and the same SHA-256. RENDERER changes whenever src/features/agreement/pdf.ts would
 // make different bytes, so a new renderer never reuses an older file.

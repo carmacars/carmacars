@@ -10,7 +10,7 @@ import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERS
 import { sha256Hex } from '@/server/links';
 import { contentKey, type PdfInput, type PrepTarget } from './content';
 
-// Opening a document for signature without rendering it on the page (migration 0075). A sign page builds each
+// Opening a document for signature without rendering it on the page (migration 0077). A sign page builds each
 // document's text blocks (cheap) and its content key, and asks the database for the open request with that key. Only
 // when there is none does the browser ask for the document to be prepared, one request per document (POST
 // /api/sign/prepare): that request renders the PDF exactly as before (the same bytes, so the same SHA-256), stores it

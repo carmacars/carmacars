@@ -43,7 +43,7 @@ export async function scheduleChange(p: { change_id: string; do: 'paper' | 'canc
   return act('schedule_change_admin', p, paths);
 }
 
-// ---------------------------------------------------------------- the first and last month invoice: the Admin's choice (0075)
+// ---------------------------------------------------------------- the first and last month invoice: the Admin's choice (0077)
 export type FirstLastAction = 'send' | 'draft' | 'paid' | 'none';
 export interface FirstLastInput { vehicle_id: string; action: FirstLastAction; amount_cents?: number; payment?: { method: string; received_on: string; reference?: string; amount_cents?: number; note?: string } }
 export async function chooseFirstLast(c: FirstLastInput, paths: string[] = []) {

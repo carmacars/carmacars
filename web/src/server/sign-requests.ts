@@ -73,7 +73,7 @@ export async function signDocument(userId: string, input: { id: string; sha: str
   const r = (await rpc('sign_request_sign', { p_by: userId, p_id: input.id, p: {
     typed_name: input.typedName?.trim() || null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: input.consent || SIGN_STATEMENT,
     document_sha256: input.sha, legal_advice_choice: input.legalAdvice || null, legal_adviser: input.adviser?.trim() || null, initials: input.initials?.trim() || null, ...(input.extra ?? {}) } }, SR)) as unknown as SignedRequest;
-  // the signed record, filed with the document by a background job (0075): the signature is recorded already
+  // the signed record, filed with the document by a background job (0077): the signature is recorded already
   try { await enqueuePdfJobs([{ kind: 'sign_request_record', ref: r.id, owner_id: r.owner_id, user_id: userId, payload: { signed: r, drawn_path: drawnPath } }]); }
   catch (e) { console.error('signed record job', e); }
   return { status: 'signed', signature_request_id: r.signature_request_id, title: r.title };

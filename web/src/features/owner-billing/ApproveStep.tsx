@@ -31,7 +31,7 @@ function initial(c: PlanCar, today: string, proposed?: { terms?: Record<string, 
   return {
     mode: c.mode, method: c.method ?? c.options.find((o) => o.recommended)?.method ?? c.options[0]?.method ?? '',
     ins: dollars(t.insurance_fee_cents), trk: dollars(t.tracker_fee_cents), share: pctOf(t.revenue_share_bps), inst: dollars(t.install_fee_cents), fl: dollars(fl), special: '',
-    first_last: inv(today, !c.invoices.some((x) => x.kind === 'upfront'), dollars(fl), ((has('first_last')?.action as Action) ?? 'send')),
+    first_last: inv(today, !c.invoices.some((x) => x.kind === 'upfront'), dollars(fl), ((has('first_last')?.action as Action) ?? 'draft')),
     registration: { ...inv(today, !!(has('registration') || reg), dollars(Number(has('registration')?.amount_cents ?? reg?.amount_cents ?? 0) || null), (has('registration')?.action as Action) ?? 'send'), title: 'Registration fee' },
     tracker: inv(today, false, dollars(t.install_fee_cents)),
     custom: { ...inv(today, false, '', 'draft'), desc: '' }
@@ -97,7 +97,7 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
         invoices.push({ type, amount_cents: amt, hst: v.hst, action: v.action, ...(v.action === 'paid' ? { payment: payment(v) } : {}), ...extra });
         return null;
       };
-      // the first and last month: the Admin's choice for this car (0075); left unticked, nothing is invoiced and Today asks for it
+      // the first and last month: the Admin's choice for this car (0077); left unticked, nothing is invoiced and Today asks for it
       const firstLast = s.first_last.on && s.first_last.action === 'none' ? { action: 'none' } : undefined;
       const e1 = (firstLast ? null : add('first_last', s.first_last)) ?? add('registration', s.registration, { title: s.registration.title || 'Registration fee' })
         ?? (plan.trackers_available ? add('tracker_install', s.tracker) : null)
@@ -142,7 +142,7 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
                   onChange={(e) => { const two = dollars(toCents(e.target.value) * 2); const keep = s.fl !== dollars(toCents(s.ins) * 2); upd(c.vehicle_id, { ins: e.target.value, ...(keep ? {} : { fl: two, first_last: { ...s.first_last, amount: two } }) }); }} />
                   <p className="hint">{src('insurance_fee_cents')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-trk`}>Tracker Fee a month ($)</label><input className="input" id={`${id}-trk`} inputMode="decimal" value={s.trk} onChange={(e) => upd(c.vehicle_id, { trk: e.target.value })} data-testid="approve-tracker" /><p className="hint">{src('tracker_fee_cents')}</p></div>
-                <div className="field"><label className="label" htmlFor={`${id}-share`}>Revenue Share (%)</label><input className="input" id={`${id}-share`} inputMode="decimal" value={s.share} onChange={(e) => upd(c.vehicle_id, { share: e.target.value })} data-testid="approve-share" /><p className="hint">{src('revenue_share_bps')}</p></div>
+                <div className="field"><label className="label" htmlFor={`${id}-share`}>Management fee (Revenue Share, %)</label><input className="input" id={`${id}-share`} inputMode="decimal" value={s.share} onChange={(e) => upd(c.vehicle_id, { share: e.target.value })} data-testid="approve-share" /><p className="hint">{src('revenue_share_bps')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-inst`}>Install Fee ($)</label><input className="input" id={`${id}-inst`} inputMode="decimal" value={s.inst} onChange={(e) => upd(c.vehicle_id, { inst: e.target.value })} /><p className="hint">{src('install_fee_cents')}</p></div>
                 <div className="field"><label className="label" htmlFor={`${id}-fl`}>First and last month amount ($)</label><input className="input" id={`${id}-fl`} inputMode="decimal" value={s.fl} data-testid="approve-first-last"
                   onChange={(e) => upd(c.vehicle_id, { fl: e.target.value, first_last: { ...s.first_last, amount: e.target.value } })} /><p className="hint">Default 2 x the Insurance Fee; any exact amount</p></div>

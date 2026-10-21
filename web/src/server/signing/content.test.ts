@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { contentKey, contentText, parseTarget, RENDERER, targetId } from './content.ts';
 
-// The content key of an unsigned document (migration 0075): the same text, title, footer and date give the same key
+// The content key of an unsigned document (migration 0077): the same text, title, footer and date give the same key
 // (so the sign page finds the open request without rendering); any change gives another.
 const blocks = [{ t: 'title', text: 'Vehicle Enrollment Agreement' }, { t: 'p', text: 'Fictional Owner Ltd. enrolls a 2020 Example Sedan.' }] as never;
 const x = { title: 'Vehicle Enrollment Agreement, Fictional Owner Ltd.', createdAt: new Date('2026-01-01T00:00:00Z'), footer: 'CarmaCars EA-0001 for Fictional Owner Ltd.' };

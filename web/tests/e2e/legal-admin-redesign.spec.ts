@@ -383,7 +383,7 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
   }
   // Form C on screen
   await op.goto(`/owner/documents/form-c/${v!.id}`, { waitUntil: 'networkidle' });
-  // 0075: the page shows the text at once; the sign form appears once the document is prepared in its own request
+  // 0077: the page shows the text at once; the sign form appears once the document is prepared in its own request
   await expect(op.getByTestId('form-c-sign')).toBeVisible({ timeout: 30_000 });
   await check(op, 'Form C on screen');
   await shot(op, 'form-c');
@@ -395,7 +395,7 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
   await expect.poll(async () => (await sql`select status || ':' || coalesce(signed_method, '') || ':' || coalesce(witness_1_name, '') s from owner_agreement_forms
     where owner_id = ${app.ownerId} and form_code = 'C' order by created_at desc limit 1`)[0]?.s, { timeout: 30_000 }).toBe('approved:screen:Wanda Witness');
   // an invoice paid by debit from its page with the second box unticked: this invoice only, no mandate kept
-  await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${app.ownerId}`; // 0075: the Admin's choice
+  await sql`update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and v.owner_id = ${app.ownerId}`; // 0077: the Admin's choice
   await sql`select public.admin_issue_upfront_invoices(${app.ownerId}::uuid, ${admin.id}::uuid, null)`;
   const [inv] = await sql`select invoice_number from owner_invoices where owner_id = ${app.ownerId} and status = 'issued' order by created_at limit 1`;
   if (inv) {

@@ -23,7 +23,7 @@ export interface FirstLast { choice: FirstLastAction | null; amount_cents: numbe
 
 const CHOICES: Array<[FirstLastAction, string]> = [['send', 'Send invoice now'], ['draft', 'Draft only'], ['paid', 'Already paid'], ['none', 'No invoice']];
 
-// The first and last month invoice of one car (0075): never made by itself. The Admin's choice, the amount (default
+// The first and last month invoice of one car (0077): never made by itself. The Admin's choice, the amount (default
 // 2 x the Insurance Fee) and what happens: sent now, kept as a draft, recorded as paid, or no invoice at all.
 function FirstLastChoice({ c, paths, today }: { c: CarTerms; paths: string[]; today: string }) {
   const router = useRouter();
@@ -70,7 +70,7 @@ export interface TermsData { owner: { rows: T[]; current: T | null }; standard: 
 
 const day = (iso?: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '');
 const FIELDS: Array<[keyof T, string, 'money' | 'pct']> = [['insurance_fee_cents', 'Insurance Fee a month ($)', 'money'], ['tracker_fee_cents', 'Tracker Fee a month ($)', 'money'],
-  ['revenue_share_bps', 'Revenue Share (%)', 'pct'], ['install_fee_cents', 'Install Fee ($)', 'money'], ['first_last_cents', 'First and last month amount ($)', 'money']];
+  ['revenue_share_bps', 'Management fee (Revenue Share, %)', 'pct'], ['install_fee_cents', 'Install Fee ($)', 'money'], ['first_last_cents', 'First and last month amount ($)', 'money']];
 
 function TermsForm({ base, scope, ownerId, vehicleId, today, paths, signed, testId }: { base: T; scope: 'owner' | 'car'; ownerId: string; vehicleId?: string; today: string; paths: string[]; signed?: boolean; testId: string }) {
   const router = useRouter();
@@ -167,7 +167,7 @@ export function TermsPanel({ data, ownerId, today }: { data: TermsData; ownerId:
         return (
           <section key={c.vehicle_id} className="pt-card stack" aria-label={`Terms of ${c.name}`} data-testid="terms-car">
             <div className="pt-card__head"><h2 className="d4">{c.name}</h2><span className="badge badge--outline">{c.schedule ? (c.schedule.signed_at ? `${c.schedule.schedule_number} signed ${day(c.schedule.signed_at)}` : `${c.schedule.schedule_number}, not signed`) : 'Terms not set'}</span></div>
-            <p className="small">{c.schedule ? 'On the Vehicle Schedule' : 'Would apply'}: {money(base.insurance_fee_cents)} insurance, {money(base.tracker_fee_cents)} tracker, {pctOf(base.revenue_share_bps)}% Revenue Share, {money(base.install_fee_cents)} install, {money(base.first_last_cents ?? (base.insurance_fee_cents ?? 0) * 2, { cents: true })} first and last.
+            <p className="small">{c.schedule ? 'On the Vehicle Schedule' : 'Would apply'}: {money(base.insurance_fee_cents)} insurance, {money(base.tracker_fee_cents)} tracker, {pctOf(base.revenue_share_bps)}% management fee (Revenue Share), {money(base.install_fee_cents)} install, {money(base.first_last_cents ?? (base.insurance_fee_cents ?? 0) * 2, { cents: true })} first and last.
               {!c.schedule && <> From: {Object.entries(r.sources).map(([k, s]) => `${k.replace(/_cents|_bps/g, '').replace(/_/g, ' ')} ${SOURCE_LABEL[s] ?? s}`).join('; ')}.</>}</p>
             {c.awaiting && <Awaiting c={c.awaiting} paths={paths} today={today} />}
             {c.first_last?.needed && <FirstLastChoice c={c} paths={paths} today={today} />}

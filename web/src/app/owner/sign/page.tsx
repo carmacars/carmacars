@@ -44,7 +44,7 @@ export default async function OwnerSign() {
 async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>) {
   const viewing = !!(await viewAs());
   const partner = home.kind === 'partner';
-  // what this package holds, read in parallel; no PDF is made here (migration 0075)
+  // what this package holds, read in parallel; no PDF is made here (migration 0077)
   const [checklist, facts, screen, pFacts, ready] = await Promise.all([
     rpc('server_my_signing_checklist', { p_by: user.id }, SR).catch(() => null) as unknown as Promise<Checklist | null>,
     partner ? Promise.resolve(null) : ownerAgreementFacts(home.owner.id, user.id),

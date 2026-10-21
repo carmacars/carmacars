@@ -1,4 +1,4 @@
--- 0075_owner_signing_light.sql
+-- 0077_owner_signing_light.sql
 -- Owner signing that never crashes (October 21, 2026), and the first and last month invoice only by an Admin's choice.
 --
 --   1. Opening without rendering. The sign pages render the documents from their text (HTML) and never make a PDF
@@ -16,12 +16,12 @@
 --      2 x the Insurance Fee) and Send invoice now, Draft only, Already paid (method, date, reference) or No invoice.
 --      With no choice nothing is invoiced and Admin > Today shows "Decide the first and last month invoice for
 --      <car>". The older bulk path (the owner page's Issue) only follows a choice. Existing invoices are not changed.
--- No earlier migration is edited; the functions this changes are wrapped (renamed with the suffix _pre0075) or
+-- No earlier migration is edited; the functions this changes are wrapped (renamed with the suffix _pre0077) or
 -- replaced with the same signature.
 
 -- ================================================================ 1. documents identified by their content
 alter table documents add column if not exists content_key text check (content_key ~ '^[0-9a-f]{64}$');
-comment on column documents.content_key is 'SHA-256 of what the unsigned PDF is made from (text blocks, title, footer, date, renderer version), 0075: the sign page finds the open request for the same content without rendering the PDF again';
+comment on column documents.content_key is 'SHA-256 of what the unsigned PDF is made from (text blocks, title, footer, date, renderer version), 0077: the sign page finds the open request for the same content without rendering the PDF again';
 create index if not exists documents_content_key on documents (content_key) where content_key is not null;
 
 -- The owner a signed-in person signs for (0022's app.portal_owner_id), or null for anyone else.
@@ -79,7 +79,7 @@ create table if not exists pdf_jobs (
   done_at         timestamptz,
   unique (kind, ref)
 );
-comment on table pdf_jobs is 'Signed copies made after signing (0075): the signature is recorded first, the PDF is rendered here in its own Worker request, with retries';
+comment on table pdf_jobs is 'Signed copies made after signing (0077): the signature is recorded first, the PDF is rendered here in its own Worker request, with retries';
 alter table pdf_jobs enable row level security;
 create policy admin_all on pdf_jobs for all to authenticated using (app.is_admin()) with check (app.is_admin());
 create index if not exists pdf_jobs_due on pdf_jobs (next_attempt_at) where status in ('queued', 'running');
@@ -200,7 +200,7 @@ drop trigger if exists outbox_wait_signed_copies on notification_outbox;
 create trigger outbox_wait_signed_copies before insert on notification_outbox for each row execute function app.outbox_wait_signed_copies();
 
 -- ... and carries them (the signed copies of the requests completed around the event).
-alter function app.outbox_attachments(uuid) rename to outbox_attachments_pre0075;
+alter function app.outbox_attachments(uuid) rename to outbox_attachments_pre0077;
 create or replace function app.outbox_attachments(p_outbox uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
@@ -208,7 +208,7 @@ declare
   v_owner uuid;
 begin
   select * into o from notification_outbox where id = p_outbox;
-  if o.id is null or o.code <> 'owner_agreement_signed' then return app.outbox_attachments_pre0075(p_outbox); end if;
+  if o.id is null or o.code <> 'owner_agreement_signed' then return app.outbox_attachments_pre0077(p_outbox); end if;
   v_owner := app.outbox_owner(o);
   return (select coalesce(jsonb_agg(jsonb_build_object('k', 'document', 'key', d.id::text, 'filename', 'CarmaCars ' || coalesce(d.title, 'signed agreement') || '.pdf')
                                     order by d.created_at), '[]'::jsonb)
@@ -225,7 +225,7 @@ alter table vehicle_onboardings
   add column if not exists first_last_choice_payment jsonb,
   add column if not exists first_last_choice_by uuid references users (id),
   add column if not exists first_last_choice_at timestamptz;
-comment on column vehicle_onboardings.first_last_choice is 'The Admin''s choice for the first and last month invoice (0075): send, draft, paid or none. Null: not decided; nothing is invoiced and Admin > Today asks for it';
+comment on column vehicle_onboardings.first_last_choice is 'The Admin''s choice for the first and last month invoice (0077): send, draft, paid or none. Null: not decided; nothing is invoiced and Admin > Today asks for it';
 
 -- What the car's first and last month invoice is now: the choice, the amount, the invoice made.
 create or replace function app.first_last_state(p_vehicle uuid) returns jsonb
@@ -366,7 +366,7 @@ end $$;
 
 -- Approve (0067's, wrapped): a first and last month entry of a car is the Admin's choice for that car ("none" is
 -- taken out before 0067's approve, which only knows invoices); a car left without a choice gets the to-do.
-alter function app.application_approve(uuid, jsonb) rename to application_approve_pre0075;
+alter function app.application_approve(uuid, jsonb) rename to application_approve_pre0077;
 create or replace function app.application_approve(p_admin uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -390,7 +390,7 @@ begin
     v_cars := v_cars || jsonb_build_array((c - 'first_last') || jsonb_build_object('invoices',
                 (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(coalesce(c -> 'invoices', '[]'::jsonb)) x where x ->> 'type' is distinct from 'first_last')));
   end loop;
-  v_out := app.application_approve_pre0075(p_admin, case when p ? 'cars' then jsonb_set(p, '{cars}', v_cars) else p end);
+  v_out := app.application_approve_pre0077(p_admin, case when p ? 'cars' then jsonb_set(p, '{cars}', v_cars) else p end);
   if coalesce((v_out ->> 'repeat')::boolean, false) then return v_out; end if;
   for c in select value from jsonb_array_elements(v_choices) loop
     res := app.first_last_choose(p_admin, c);
@@ -459,11 +459,11 @@ begin
 end $$;
 
 -- Signing (0053's, wrapped): never makes an invoice; a signed car still without a choice gets the to-do.
-alter function app.owner_sign_agreements(uuid, uuid, jsonb) rename to owner_sign_agreements_pre0075;
+alter function app.owner_sign_agreements(uuid, uuid, jsonb) rename to owner_sign_agreements_pre0077;
 create or replace function app.owner_sign_agreements(p_owner uuid, p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.owner_sign_agreements_pre0075(p_owner, p_by, p);
+  v_out jsonb := app.owner_sign_agreements_pre0077(p_owner, p_by, p);
   r record;
 begin
   for r in select v.id, ob.id as ob_id, ob.status, ob.first_last_choice from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = p_owner loop
@@ -476,11 +476,11 @@ begin
 end $$;
 
 -- The Terms tab shows each car's first and last month choice (0067's read, wrapped).
-alter function app.owner_terms_read(uuid, jsonb) rename to owner_terms_read_pre0075;
+alter function app.owner_terms_read(uuid, jsonb) rename to owner_terms_read_pre0077;
 create or replace function app.owner_terms_read(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.owner_terms_read_pre0075(p_by, p);
+  v_out jsonb := app.owner_terms_read_pre0077(p_by, p);
 begin
   return jsonb_set(v_out, '{cars}', (select coalesce(jsonb_agg(c || jsonb_build_object('first_last', app.first_last_state((c ->> 'vehicle_id')::uuid)) order by n), '[]'::jsonb)
                                        from jsonb_array_elements(coalesce(v_out -> 'cars', '[]'::jsonb)) with ordinality as e(c, n)));
@@ -499,11 +499,11 @@ begin
 end $$;
 
 -- Admin > Today: the first and last month invoices to decide, and any signed copy that could not be made.
-alter function app.admin_todo(uuid) rename to admin_todo_pre0075;
+alter function app.admin_todo(uuid) rename to admin_todo_pre0077;
 create or replace function app.admin_todo(p_admin uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := app.admin_todo_pre0075(p_admin);
+  v jsonb := app.admin_todo_pre0077(p_admin);
   v_first uuid := (select owner_id from tasks where task_type = 'first_last_decide' and status in ('open', 'in_progress', 'waiting') order by created_at limit 1);
 begin
   return jsonb_set(v, '{items}', coalesce(v -> 'items', '[]'::jsonb) || jsonb_build_array(
@@ -515,7 +515,7 @@ begin
 end $$;
 
 -- ================================================================ 4. calls
-create or replace function app.ops_0075(p_user uuid, p_call text, p_name text, p jsonb) returns jsonb
+create or replace function app.ops_0077(p_user uuid, p_call text, p_name text, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
   case p_name
@@ -529,16 +529,16 @@ begin
   end case;
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0075;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0077;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
   if (p_call in ('ops_do', 'admin_do') and p_name in ('first_last_choose', 'pdf_job_retry'))
      or (p_call in ('ops_read', 'admin_read') and p_name = 'first_last_state') then
     perform app.door_begin(p_user, p_aal);
-    return app.ops_0075(p_user, p_call, p_name, coalesce(p, '{}'::jsonb));
+    return app.ops_0077(p_user, p_call, p_name, coalesce(p, '{}'::jsonb));
   end if;
-  return app.door_pre0075(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0077(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 -- The server's own calls (service role).
@@ -566,11 +566,11 @@ declare
 begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where (n.nspname = 'app' and (p.proname like '%\_pre0075' or p.proname = any (array[
+     where (n.nspname = 'app' and (p.proname like '%\_pre0077' or p.proname = any (array[
               'portal_owner_or_null', 'open_by_content', 'document_content_key', 'pdf_jobs_enqueue', 'pdf_job_already_done', 'pdf_jobs_claim', 'pdf_job_after', 'pdf_job_done',
               'pdf_job_fail', 'outbox_owner', 'outbox_wait_signed_copies', 'outbox_attachments', 'first_last_state', 'first_last_todo', 'first_last_choose',
               'vehicle_onboarding_before_status', 'application_approve', 'admin_issue_upfront_invoices', 'issue_upfront_invoices', 'owner_sign_agreements',
-              'owner_terms_read', 'admin_todo', 'ops_0075', 'door'])))
+              'owner_terms_read', 'admin_todo', 'ops_0077', 'door'])))
         or (n.nspname = 'public' and p.proname = any (array['server_open_by_content', 'server_document_content_key', 'server_pdf_jobs_enqueue',
               'server_pdf_jobs_claim', 'server_pdf_job_done', 'server_pdf_job_fail', 'server_pdf_jobs_pending']))
   loop
