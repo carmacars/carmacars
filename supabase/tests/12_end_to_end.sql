@@ -65,6 +65,7 @@ select test.eq('A offered, approved, signed and paid: confirmed', test.ba_st('e2
 -- identity and coverage
 select test.ba_up('e2:1', 'renter', k, test.ba_user('eve.end@example.test')) from unnest(array['licence_front', 'licence_back', 'selfie']) k;
 select app.review_verification_upload(test.ba_upload('e2:1', 'renter', k), test.id('e2_cs'), true) from unnest(array['licence_front', 'licence_back', 'selfie']) k;
+select app.submit_card_coverage(test.ba('e2:1'), test.ba_user('eve.end@example.test'), true);
 select app.register_verification_upload(test.ba('e2:1'), test.ba_user('eve.end@example.test'), 'coverage_proof', null, 'bookings/e2/coverage.pdf',
   test.sha('e2cov'), 'application/pdf', '{"coverage_option": 2, "card_issuer": "Big Bank", "card_last4": "4242"}');
 select app.review_verification_upload(test.ba_upload('e2:1', null, 'coverage_proof'), test.id('e2_cs'), true);

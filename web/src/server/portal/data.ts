@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import type { BookingSummary, Doc, MyBooking, Notice, NoticePref, Profile } from '@/features/portal/types';
+import type { RenterCoverage } from '@/features/coverage/types';
 
 // Reads for the renter portal. Every read runs as the signed-in user (role authenticated), so
 // row-level security decides what comes back (migration 0028); nothing here uses the service role.
@@ -43,6 +44,11 @@ export async function myBooking(number: string, sub = ''): Promise<{ user: Sessi
   const b = await findBooking(user, n);
   if (!b) notFound();
   return { user, b };
+}
+
+/** The coverage of the renter's own booking (the coverage proof migration): the option, the proof and the card check. */
+export async function myCoverage(u: SessionUser, bookingId: string): Promise<RenterCoverage> {
+  return (await rpc('server_renter_coverage', { p_booking: bookingId, p_by: u.id }, { role: 'service_role' })) as unknown as RenterCoverage;
 }
 
 export async function myProfile(u: SessionUser): Promise<Profile> {

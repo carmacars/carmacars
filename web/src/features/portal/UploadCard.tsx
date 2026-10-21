@@ -8,7 +8,7 @@ import { confirmUpload, createUpload } from '@/server/actions/portal';
 // checks the real type and size and registers the upload (register_verification_upload).
 export type UploadKind = 'licence_front' | 'licence_back' | 'selfie' | 'coverage_proof';
 
-async function reencode(file: File): Promise<Blob> {
+export async function reencode(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');

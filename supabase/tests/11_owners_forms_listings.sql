@@ -560,24 +560,24 @@ select test.eq('K the odometer photo is approved but never public', (select is_p
 
 -- publish refused for each missing requirement, then published
 update rate_cards set effective_to = timestamptz '2026-09-02' where vehicle_id = test.id('vehicle:oflC');
-select test.ok('K no rates is a warning since 0070 (publishing sets them from similar cars), not a refusal', (select bool_or(x ->> 'code' = 'rates') from jsonb_array_elements(app.vehicle_listing_warnings(test.id('vehicle:oflC'))) x));
+select test.throws('K refused without rates', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'no rates are set');
 update rate_cards set effective_to = null where vehicle_id = test.id('vehicle:oflC');
 update vehicle_listings set seats = null where vehicle_id = test.id('vehicle:oflC');
-select test.ok('K a missing specification is a warning since 0070 (filled by default)', app.listing_spec_warnings(test.id('vehicle:oflC')) @> array['Seats'] and app.listing_spec_problems(test.id('vehicle:oflC')) = '{}');
+select test.ok('K a missing specification is a checklist item since 0070, not a refusal', exists (select 1 from jsonb_array_elements(app.listing_checklist(test.id('vehicle:oflC'))) x where x ->> 'code' = 'details' and x ->> 'label' like '%seats%') and jsonb_array_length(app.listing_basics_missing(test.id('vehicle:oflC'))) = 0);
 update vehicle_listings set seats = 5 where vehicle_id = test.id('vehicle:oflC');
 update vehicle_photos set status = 'processed' where vehicle_id = test.id('vehicle:oflC') and shot_type = 'rear' and replaced_at is null;
-select test.ok('K a required photo not approved is still listed (a warning since 0070)', array_to_string(app.listing_photo_problems(test.id('vehicle:oflC')), '; ') like '%Rear photo is not processed and approved%');
+select test.ok('K a photo not approved yet is a checklist item since 0070', exists (select 1 from jsonb_array_elements(app.listing_checklist(test.id('vehicle:oflC'))) x where x ->> 'code' = 'photos_review'));
 update vehicle_photos set status = 'approved' where vehicle_id = test.id('vehicle:oflC') and shot_type = 'rear' and replaced_at is null;
 update program_settings set listing_min_photos = 20 where id = (app.settings()).id;
-select test.ok('K under the minimum number of photos is listed (a warning since 0070)', array_to_string(app.listing_photo_problems(test.id('vehicle:oflC')), '; ') like '%at least 20 needed%');
+select test.ok('K fewer photos than the setting is no refusal since 0070 (the review still names it)', array_to_string(app.listing_photo_problems(test.id('vehicle:oflC')), '; ') like '%at least 20 needed%' and jsonb_array_length(app.listing_basics_missing(test.id('vehicle:oflC'))) = 0);
 update program_settings set listing_min_photos = 10 where id = (app.settings()).id;
 update vehicle_listings set headline = 'Too short' where vehicle_id = test.id('vehicle:oflC');
-select test.ok('K copy that breaks the rules is listed for the writer (a warning since 0070)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Headline must be 20 to 70 characters%');  -- 0061: the written copy's heading
+select test.ok('K copy that breaks the rules is replaced by the template at publishing since 0070 (the rules still name it)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Headline must be 20 to 70 characters%');  -- 0061: the written copy's heading
 update vehicle_listings set headline = 'Elevate your drive in a 2023 Mercedes-Benz C 300 sedan' where vehicle_id = test.id('vehicle:oflC');
-select test.ok('K a banned phrase is listed for the writer (a warning since 0070)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Remove the phrase "elevate"%');
+select test.ok('K a banned phrase is named by the rules (the template replaces it at publishing, 0070)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Remove the phrase "elevate"%');
 update vehicle_listings set headline = 'A 2023 Mercedes-Benz C 300 with all-wheel drive and heated seats' where vehicle_id = test.id('vehicle:oflC');
 update vehicles set status = 'out_of_service' where id = test.id('vehicle:oflC');
-select test.throws('K refused while the vehicle is out of service', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'the car is out of service');
+select test.throws('K refused while the vehicle is out of service', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'Out of service');
 update vehicles set status = 'available' where id = test.id('vehicle:oflC');
 create temp table ofl_pub as select app.publish_listing(test.id('vehicle:oflC'), test.id('ofl_cs')) as r;
 grant all on ofl_pub to authenticated, anon;

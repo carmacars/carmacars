@@ -127,7 +127,7 @@ select test.throws('A Add a car: a bad rate refuses before anything is added', $
 select test.ok('A Add a car: nothing was added by the refused call', not exists (select 1 from vehicles where vin = '1RFCXMPANY0000002'));
 select test.ok('A Add a car: no rates typed is still allowed (set them on the Rates tab)', (app.vehicle_add(test.id('rf_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1RFCXMPANY0000003',
   'year', 2024, 'make', 'Toyota', 'model', 'Camry')) ->> 'rates_set')::boolean = false);
-select test.ok('A missing rates are a warning since 0070 (publishing sets them from similar cars)', (select bool_or(x ->> 'code' = 'rates') from jsonb_array_elements(app.vehicle_listing_warnings((select id from vehicles where vin = '1RFCXMPANY0000003'))) x));
+select test.throws('A the publish gate still names missing rates', $$select app.publish_listing((select id from vehicles where vin = '1RFCXMPANY0000003'), test.id('rf_admin'))$$, '%no rates are set%');
 select test.ok('A after the one-pass save the publish gate is past the rates (it names what is still missing)',
   (select x not like '%no rates%' from (select test.err_of($$select app.publish_listing((test.s43('add_company') ->> 'vehicle_id')::uuid, test.id('rf_admin'))$$) x) y));
 

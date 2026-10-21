@@ -1394,24 +1394,24 @@ select test.eq('V every driver verified; coverage still to confirm, so the rente
   (select (v ->> 'all_drivers_verified') || '/' || (v ->> 'coverage_confirmed') || '/' || (v ->> 'identity_and_coverage_confirmed') from test.out('v1:ready1') v)
   || '/' || (select count(*) from app_events where code = 'renter_identity_approved' and entity_id = test.ba('v1')), 'true/false/false/0');
 select test.eq('V handover is refused: a Coverage Option first', test.go('v1'), 'No car is released until a Coverage Option is confirmed');
--- coverage
-select test.throws('V credit card coverage must be on the Card on File',
+-- coverage (0070: option 2 is the Card on File, a credit card in the renter's name, after the renter's tick; the
+-- card's benefit document is optional; suite 49 covers the rest)
+select test.throws('V credit card coverage: the benefit document follows the renter''s confirmation',
   $$select app.register_verification_upload(test.ba('v1'), test.ba_user('xan.xu@example.test'), 'coverage_proof', null, 'bookings/v1/coverage.pdf', null, 'application/pdf',
-      '{"coverage_option": 2, "card_issuer": "Big Bank", "card_last4": "9999"}')$$, 'the card that pays for the rental');
-select test.throws('V an auto policy must run to the return date',
+      '{"coverage_option": 2}')$$, 'Confirm that your card includes rental car coverage first');
+select test.throws('V a proof is for the booking''s own option',
   $$select app.register_verification_upload(test.ba('v1'), test.ba_user('xan.xu@example.test'), 'coverage_proof', null, 'bookings/v1/coverage.pdf', null, 'application/pdf',
-      jsonb_build_object('coverage_option', 1, 'insurer_name', 'A Test Mutual', 'policy_number', 'P-1', 'policy_expiry', app.today()))$$, 'run to the return date');
-select app.register_verification_upload(test.ba('v1'), test.ba_user('xan.xu@example.test'), 'coverage_proof', null, 'bookings/v1/coverage-nodetails.pdf', test.sha('cov0'), 'application/pdf', '{"coverage_option": 2}');
-select test.throws('V a proof without its details cannot be confirmed',
-  $$select app.review_verification_upload(test.ba_upload('v1', null, 'coverage_proof'), test.id('ba_cs'), true)$$, 'cannot be confirmed without its details');
+      jsonb_build_object('coverage_option', 1, 'insurer_name', 'A Test Mutual', 'policy_number', 'P-1', 'policy_expiry', app.today() + 400))$$, 'Change the option first');
+select test.throws('V the renter ticks the confirmation', $$select app.submit_card_coverage(test.ba('v1'), test.ba_user('xan.xu@example.test'), false)$$, 'Tick that your card');
+select app.submit_card_coverage(test.ba('v1'), test.ba_user('xan.xu@example.test'), true);
 select app.register_verification_upload(test.ba('v1'), test.ba_user('xan.xu@example.test'), 'coverage_proof', null, 'bookings/v1/coverage.pdf', test.sha('cov1'), 'application/pdf',
-  '{"coverage_option": 2, "card_issuer": "Big Bank", "card_last4": "4242"}');
-select test.eq('V the proof of coverage is registered against the booking: a coverage proof "submitted" with its details and its file (kept 7 years), and staff are asked to review',
-  (select c.coverage_option || '/' || c.status || '/' || c.card_issuer || '/' || c.card_last4 || '/' || d.kind || '/' || d.retention || '/' || coalesce(d.purge_after::text, 'no purge date')
-     from coverage_proofs c join documents d on d.id = c.proof_document_id where c.booking_id = test.ba('v1') and c.status = 'submitted')
+  '{"coverage_option": 2, "card_issuer": "Big Bank", "card_last4": "9999"}');
+select test.eq('V the proof of coverage is registered against the booking: a coverage proof "submitted" with the Card on File (not what was typed), its file kept 7 years after the return, and staff are asked to review once',
+  (select c.coverage_option || '/' || c.status || '/' || c.card_issuer || '/' || c.card_last4 || '/' || c.card_funding || '/' || d.kind || '/' || d.retention || '/' || (d.purge_after = b.return_at + interval '7 years')
+     from coverage_proofs c join documents d on d.id = c.proof_document_id join bookings b on b.id = c.booking_id where c.booking_id = test.ba('v1') and c.status = 'submitted')
   || '/' || (select string_agg(status, ',' order by uploaded_at) from verification_uploads where booking_id = test.ba('v1') and kind = 'coverage_proof')
   || '/' || (select count(*) from app_events where code = 'staff_identity_review' and entity_id = test.ba('v1') and payload ->> 'kind' = 'coverage'),
-  '2/submitted/Big Bank/4242/coverage_proof/records_7y/no purge date/replaced,submitted/2');
+  '2/submitted/Visa/4242/credit/coverage_proof/records_7y/true/submitted/1');
 select test.keep('v1:ready2', app.review_verification_upload(test.ba_upload('v1', null, 'coverage_proof'), test.id('ba_cs'), true));
 select test.eq('V approved: the Coverage Option is confirmed on the booking, and now that identity and coverage are both confirmed the renter is told, once',
   (select (v ->> 'identity_and_coverage_confirmed') || '/' || (v ->> 'missing') from test.out('v1:ready2') v)
@@ -1449,12 +1449,12 @@ select test.eq('V and the car is handed over', (test.out('go:v1') #>> '{}') || '
 -- retention follows the end of the rental
 insert into condition_reports (vehicle_id, booking_id, kind, odometer_km, fuel_pct) values (test.id('vehicle:BA7'), test.ba('v1'), 'return', 12300, 100);
 update bookings set status = 'returned' where id = test.ba('v1');
-select test.eq('V at Check-in the purge date of the licence images and face photos becomes 90 days after the rental ended; other documents are not touched',
+select test.eq('V at Check-in the purge date of the licence images and face photos becomes 90 days after the rental ended; other documents are not touched (the proof of coverage keeps its 7 years)',
   (select bool_and(d.purge_after = b.checked_in_at + interval '90 days') filter (where d.retention = 'id_face_90d') || '/' || count(*) filter (where d.retention = 'id_face_90d')
           || '/' || count(*) filter (where d.retention <> 'id_face_90d' and d.purge_after is not null)
      from documents d join bookings b on b.id = d.booking_id where b.id = test.ba('v1'))
   || '/' || (select bool_and(iv.purge_after = b.checked_in_at + interval '90 days') from identity_verifications iv join bookings b on b.id = iv.booking_id where b.id = test.ba('v1')),
-  'true/7/0/true');
+  'true/7/1/true');
 update program_settings set retention_id_face_days = 30 where effective_from = (select effective_from from app.settings());
 select test.ba_confirmed('v2', 'zed.zane@example.test', 'BA7', test.soon('20 days'), test.soon('22 days'));
 select test.ba_up('v2', 'renter', 'licence_front', test.id('ba_field'));
@@ -1567,7 +1567,7 @@ select test.logout();
 select test.login(test.ba_user('xan.xu@example.test'));
 select test.eq('renter 4: reads the uploads on his own booking (his and his additional driver''s) with the decision on each, and the files behind them',
   (select count(*) || '/' || bool_and(booking_id = test.ba('v1')) || '/' || count(*) filter (where status = 'rejected') from verification_uploads)
-  || '/' || (select count(*) from documents where kind in ('id_front', 'id_back', 'face_photo', 'coverage_proof')), '9/true/1/9');
+  || '/' || (select count(*) from documents where kind in ('id_front', 'id_back', 'face_photo', 'coverage_proof')), '8/true/1/8');
 select test.logout();
 
 -- ------------------------------------------------------------------ OWNER
@@ -1591,7 +1591,7 @@ select test.login(test.id('ba_cs'));
 select test.eq('cs: reads agreements, signers, change requests, questions and the uploads of customers in their working window; no processor events',
   (test.visible('select * from rental_agreements') > 10) || '/' || (test.visible('select * from rental_agreement_signers') > 20) || '/' || test.visible('select * from booking_change_requests')
   || '/' || test.visible('select * from booking_info_requests') || '/' || test.visible('select * from verification_uploads') || '/' || test.visible('select * from webhook_events'),
-  'true/true/7/3/10/0');
+  'true/true/7/3/9/0');
 select test.throws('cs: cannot write an agreement by hand', $$update rental_agreements set status = 'completed'$$, 'permission denied');
 select test.throws('cs: cannot approve an upload by editing it (the server''s function does, with its checks)', $$update verification_uploads set status = 'approved'$$, 'permission denied');
 select test.throws('cs: cannot write a change request or a question by hand',
@@ -1681,7 +1681,7 @@ select test.login(test.id('ba_admin'));
 select test.eq('admin: reads every new table, the processor events and the rate limit counters included',
   (test.visible('select * from rental_agreements') > 10) and (test.visible('select * from rental_agreement_signers') > 20) and test.visible('select * from webhook_events') >= 3
   and test.visible('select * from booking_change_requests') = 7 and test.visible('select * from booking_info_requests') = 3
-  and test.visible('select * from verification_uploads') = 10 and test.visible('select * from app.rate_limit_hits') > 0, true);
+  and test.visible('select * from verification_uploads') = 9 and test.visible('select * from app.rate_limit_hits') > 0, true);
 select test.throws('admin: even an admin does not write an agreement from the browser', $$update rental_agreements set status = 'voided'$$, 'permission denied');
 select test.throws('admin: nor change a signature', format($$update signature_records set signer_name = 'X' where id = %L$$, test.ba('f1:sig')), 'append-only');
 select test.throws('admin: nor delete anything', 'delete from verification_uploads', 'permission denied');

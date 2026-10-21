@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>169 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>65</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>170 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>66</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (65)</h2>
+<h2 id="renter">Renter (66)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -163,6 +163,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">7 days after booking status becomes closed, only if the renter's marketing consent is true, they have not unsubscribed, no future booking or open request exists, the renter is not blocked and has no unpaid balance. A single-use discount code is generated for the renter at send time.</div>
 <div class="ln"><a href="../dist/renter_comeback_1w.html">HTML</a><a href="../dist/renter_comeback_1w.txt">Text</a><a href="../shots/renter_comeback_1w.desktop.png">Desktop</a><a href="../shots/renter_comeback_1w.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_coverage_needed.html"><img loading="lazy" src="../shots/renter_coverage_needed.desktop.png" alt="Screenshot of renter_coverage_needed"></a><div class="b">
+<div class="code">renter_coverage_needed</div><div class="sub">Pickup in 24 hours: we still need your proof of coverage</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A confirmed booking whose Coverage Option is 1 (OPCF 27 on the renter's own policy) or 2 (credit card rental coverage) has no proof waiting for review and none confirmed: sent 48 hours before pickup and again 24 hours before pickup (app.job_coverage_reminders, every 15 minutes). Not sent while a proof is in review, nor for the Protection Plan. The 48-hour one is skipped while a driver's licence is also missing (renter_identity_needed then lists the proof too).</div>
+<div class="ln"><a href="../dist/renter_coverage_needed.html">HTML</a><a href="../dist/renter_coverage_needed.txt">Text</a><a href="../shots/renter_coverage_needed.desktop.png">Desktop</a><a href="../shots/renter_coverage_needed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_damage_found.html"><img loading="lazy" src="../shots/renter_damage_found.desktop.png" alt="Screenshot of renter_damage_found"></a><div class="b">
 <div class="code">renter_damage_found</div><div class="sub">Damage found on the 2024 Honda Civic Sport after your return</div>

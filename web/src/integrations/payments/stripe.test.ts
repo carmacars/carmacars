@@ -19,7 +19,7 @@ function mock(responses: Array<{ status?: number; body: unknown }>) {
 const pi = (over: Record<string, unknown> = {}) => ({
   id: 'pi_123', object: 'payment_intent', status: 'requires_capture', amount: 71190, amount_capturable: 71190, currency: 'cad',
   client_secret: 'pi_123_secret_x', customer: 'cus_1', metadata: { booking_id: 'b1', offer_version: '1' },
-  payment_method: { id: 'pm_1', card: { brand: 'visa', last4: '4242', exp_month: 12, exp_year: 2031, funding: 'credit', fingerprint: 'fp1' }, billing_details: { name: 'Gus Green' } },
+  payment_method: { id: 'pm_1', card: { brand: 'visa', last4: '4242', exp_month: 12, exp_year: 2031, funding: 'credit', fingerprint: 'fp1', country: 'CA' }, billing_details: { name: 'Gus Green' } },
   latest_charge: { id: 'ch_1' }, last_payment_error: null, ...over
 });
 
@@ -56,7 +56,7 @@ test('retrieve reads the card funding, the cardholder and the charge from the ex
   const i = await stripeAdapter('sk_test_abc', f).retrieveIntent('pi_123');
   assert.match(calls[0]!.url, /\/payment_intents\/pi_123\?expand%5B%5D=payment_method&expand%5B%5D=latest_charge$/);
   assert.equal(calls[0]!.init.method, 'GET');
-  assert.deepEqual(i.card, { brand: 'visa', last4: '4242', expMonth: 12, expYear: 2031, funding: 'credit', name: 'Gus Green', fingerprint: 'fp1' });
+  assert.deepEqual(i.card, { brand: 'visa', last4: '4242', expMonth: 12, expYear: 2031, funding: 'credit', name: 'Gus Green', fingerprint: 'fp1', country: 'CA' });
   assert.equal(i.status, 'requires_capture');
   assert.equal(i.paymentMethodId, 'pm_1');
   assert.equal(i.chargeId, 'ch_1');

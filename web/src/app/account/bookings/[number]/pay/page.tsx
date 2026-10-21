@@ -35,7 +35,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
       ) : (
         <div className="pt-split">
           <section className="pt-card" aria-labelledby="pt-pay"><h2 className="d4" id="pt-pay">Card</h2>
-            <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} />
+            <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} />
           </section>
           <aside className="pt-split__aside pt-first">
             <section className="pt-card" aria-labelledby="pt-sum"><h2 className="d4" id="pt-sum">What you pay now</h2>

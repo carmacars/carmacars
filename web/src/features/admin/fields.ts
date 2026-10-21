@@ -7,7 +7,9 @@ const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/
 const LABELS: Record<string, string> = {
   turnaround_buffer_minutes: 'Turnaround between trips (minutes)', turnaround_block_enabled: 'Show the turnaround as a cleaning block on the calendar',
   toll_read_min_confidence: 'Notice reading: confidence needed to import without a check (0 to 100)', toll_read_auto_charge: 'Notice reading: charge renters matched with high confidence when confirmed',
-  toll_read_max_pages: 'Notice reading: pages sent to the vision model', listing_plate_check_required: 'Every public listing photo needs its plate covered or marked not visible before publishing',
+  toll_read_max_pages: 'Notice reading: pages sent to the vision model', listing_plate_check_required: 'Keep each listing photo private until its plate is covered or marked not visible (the car is listed meanwhile)',
+  listing_publish_new_cars_automatically: 'Publish new cars automatically (as soon as the year, make, model, plate or VIN and rates are in)',
+  listing_default_daily_rate_cents: 'Starting daily rate by class, in cents (used when no similar car has rates)',
   plate_cover_style: 'Default way to cover a plate (cover, pixelate or blur)', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',

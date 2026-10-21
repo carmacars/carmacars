@@ -249,7 +249,7 @@ select test.eq('similar: unrelated copy is not', app.jaccard_bps(app.copy_shingl
 insert into vehicle_photos (vehicle_id, angle, original_path, status, content_sha256) values (test.id('vehicle:OGC'), 'front', 'vehicles/ogc/front.jpg', 'approved', repeat('9', 64));
 insert into vehicle_photos (vehicle_id, angle, original_path, status, content_sha256) values (test.id('vehicle:OGS'), 'front', 'vehicles/ogs/front.jpg', 'uploaded', repeat('9', 64));
 select test.eq('similar: the same photo as a listed car''s is flagged', (select count(*) from listing_similarity_flags where vehicle_id = test.id('vehicle:OGS') and kind = 'photo' and blocking), 1::bigint);
-select test.ok('publish: an open flag is a warning since 0070 (only a confirmed duplicate keeps a car off)', (select bool_or(x ->> 'code' = 'similar') from jsonb_array_elements(app.vehicle_listing_warnings(test.id('vehicle:OGV'))) x));
+select test.ok('publish: an open flag never refuses since 0070; the checklist names it', exists (select 1 from jsonb_array_elements(app.listing_checklist(test.id('vehicle:OGV'))) x where x ->> 'code' = 'similar') and not exists (select 1 from jsonb_array_elements(app.listing_basics_missing(test.id('vehicle:OGV'))) x where x ->> 'code' = 'duplicate'));
 select test.throws('decide: a note is needed', format('select app.decide_similarity(%L, %L, %L, %L)', test.id('og_fleet'),
   (select id from listing_similarity_flags where vehicle_id = test.id('vehicle:OGV') and kind = 'vin'), 'cleared', ''), 'what you checked');
 select test.throws('decide: Finance does not decide', format('select app.decide_similarity(%L, %L, %L, %L)', test.id('og_fin'),

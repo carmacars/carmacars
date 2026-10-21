@@ -10,6 +10,7 @@ export const FAKE_CARDS: Record<string, { brand: string; funding: IntentCard['fu
   '5555555555554444': { brand: 'mastercard', funding: 'credit' },
   '378282246310005': { brand: 'amex', funding: 'credit' },
   '4000056655665556': { brand: 'visa', funding: 'debit' },
+  '5105105105105100': { brand: 'mastercard', funding: 'prepaid' },
   '4000000000000002': { brand: 'visa', funding: 'credit', decline: 'Your card was declined.' },
   '4000000000009995': { brand: 'visa', funding: 'credit', decline: 'Your card has insufficient funds.' }
 };
@@ -137,7 +138,7 @@ export function fakePayments(): FakePayments {
       const known = FAKE_CARDS[number];
       if (!known) { i.lastError = 'Your card number is incorrect.'; return { ...i }; }
       if (known.decline) { i.lastError = known.decline; i.status = 'requires_payment_method'; return { ...i }; }
-      i.card = { brand: known.brand, last4: number.slice(-4), expMonth: c.expMonth, expYear: c.expYear, funding: known.funding, name: c.name || null, fingerprint: `fp_${number.slice(-6)}` };
+      i.card = { brand: known.brand, last4: number.slice(-4), expMonth: c.expMonth, expYear: c.expYear, funding: known.funding, name: c.name || null, fingerprint: `fp_${number.slice(-6)}`, country: 'US' };
       i.paymentMethodId = `pm_fake_${i.id.slice(8)}`;
       i.chargeId = `ch_fake_${i.id.slice(8)}`;
       i.lastError = null;

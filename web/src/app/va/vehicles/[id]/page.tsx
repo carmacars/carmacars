@@ -4,6 +4,7 @@ import { vaPage } from '@/server/va';
 import { door } from '@/server/door';
 import { RateCardForm } from '@/features/rates/RateCardForm';
 import { Card, Kv, PageHead, Table, t, label } from '@/features/admin/ui';
+import { Act } from '@/features/admin/Act';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/va', noindex: true, description: 'One vehicle for Fleet and customer service.' });
@@ -21,10 +22,17 @@ export default async function VaVehicle({ params }: { params: Promise<{ id: stri
   const c = v;
   // Fleet enters the rates (0064): the form shows only to Fleet (the database refuses anyone else)
   const rates = fn === 'fleet' ? await door<{ current: Record<string, unknown> | null }>(user.id, 'ops_read', 'rate_card_form', { vehicle: id }, aal).catch(() => null) : null;
+  // the listing (0070): Publish now and what is still open, for Fleet and customer service
+  const ls = await door<{ public: boolean; can_publish: boolean; can_act: boolean; path: string | null; checklist: Array<{ code: string; label: string; action: string }>; missing: Array<{ code: string; label: string; action: string }> }>(user.id, 'va_read', 'listing_state', { vehicle_id: id }, aal).catch(() => null);
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')} />
       <div className="ad-cols ad-cols--2">
+        {ls && <Card title={ls.public ? 'On the site' : 'Not on the site yet'} testId="va-listing">
+          {ls.missing.length > 0 && <ul className="small">{ls.missing.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul>}
+          {ls.checklist.length > 0 && <><p className="pt-kicker">Open items (the car stays listed)</p><ul className="small">{ls.checklist.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul></>}
+          {ls.can_publish && ls.can_act && <Act ops action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={[`/va/vehicles/${id}`]} testId="va-publish" done="Published." />}
+        </Card>}
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
           <RateCardForm vehicleId={id} card={rates.current} refresh={[`/va/vehicles/${id}`]} testId="va-rate-form" /></Card>}

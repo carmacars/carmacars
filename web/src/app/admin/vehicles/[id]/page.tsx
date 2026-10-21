@@ -46,6 +46,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
+  // the listing's state (0070): what is missing, the checklist, Publish now, the fleet policy
+  const ls = await door<ListingState>(user.id, 'ops_read', 'listing_state', { vehicle_id: id }).catch(() => null);
   const [partners, owners] = tab === 'overview' ? await Promise.all([door<Array<{ id: string; business_name: string }>>(user.id, 'ops_read', 'partners').catch(() => []), adminOwners(user)]) : [[], []];
   // a car with no real photo shows sample photos on its listing (0054)
   // what goes with the car on a delete: requests that never confirmed or took money (0064)
@@ -144,12 +146,12 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <div className="ad-actions">
               {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
               {!v.intake && <Act action="listing_start" payload={{ vehicle_id: id }} label="Start a listing" go="/admin/listings/{intake_id}" />}
-              {(!v.listing || v.listing.status !== 'published') && !v.retired_at && <Act action="listing_publish" payload={P} label="Publish" variant="primary" refresh={refresh} testId="vehicle-publish" />}
+              {ls?.can_publish && ls.can_act && <Act action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={refresh} testId="vehicle-publish" done={ls.needs_default_rates ? 'Published with the default rates. Change them on the Rates tab.' : 'Published.'} />}
               {v.is_sample && <Act action="vehicle_sample" payload={{ ...P, is_sample: false }} label="Not a sample" confirm="This car is real: its page goes into search results and the sitemap." refresh={refresh} testId="vehicle-sample-clear" />}
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
             </div>
           </Card>
-          <ListingWarnings w={await door<{ warnings: Warn[]; gates: Warn[] }>(user.id, 'ops_read', 'vehicle_listing_warnings', { vehicle_id: id }).catch(() => null)} />
+          <ListingWarnings w={ls} />
           <CarCopyPanel d={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: id }).catch(() => null)} slug={slug} />
         </div>
       )}
@@ -166,17 +168,21 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   );
 }
 
-// What is still open on the car (0070): nothing here keeps it off the site except the gates; the fleet policy waits
-// for the first handover.
-type Warn = { code: string; label: string; action: string; who: string; stage?: string };
-const STAGE: Record<string, string> = { handover: 'Before the first handover', paperwork: 'Paperwork, tracked', listing: 'Filled in by default' };
-function ListingWarnings({ w }: { w: { warnings: Warn[]; gates: Warn[] } | null }) {
-  if (!w || (!w.warnings.length && !w.gates.length)) return null;
+// The listing's state and checklist (0070): only "Keeps it off the site" stops the listing; the rest are warnings, the
+// fleet policy waits for the first handover.
+type Item = { code: string; label: string; action: string; who: string; kind?: string };
+type ListingState = { public: boolean; can_publish: boolean; can_act: boolean; needs_default_rates: boolean; default_daily: { text?: string } | null;
+  missing: Item[]; checklist: Item[]; handover_note: string | null; auto_publish: boolean };
+const KIND: Record<string, string> = { handover: 'Before the first handover', records: 'Paperwork, tracked', listing: 'Makes the page better' };
+function ListingWarnings({ w }: { w: ListingState | null }) {
+  if (!w) return null;
   return (
-    <Card title="Open items" testId="listing-warnings">
-      {w.gates.length > 0 && <><p className="pt-kicker">Keeps it off the site</p><ul className="small">{w.gates.map((g) => <li key={g.code}><b>{g.label}</b>: {g.action}</li>)}</ul></>}
-      {(['handover', 'paperwork', 'listing'] as const).map((st) => { const xs = w.warnings.filter((x) => x.stage === st); return xs.length ? (
-        <div key={st}><p className="pt-kicker">{STAGE[st]}</p><ul className="small">{xs.map((x) => <li key={x.code}><b>{x.label}</b>: {x.action}</li>)}</ul></div>) : null; })}
+    <Card title={w.public ? 'On the site' : 'Not on the site yet'} testId="listing-warnings">
+      {w.missing.length > 0 && <><p className="pt-kicker">Keeps it off the site</p><ul className="small">{w.missing.map((g) => <li key={g.code}><b>{g.label}</b>: {g.action}</li>)}</ul></>}
+      {!w.public && w.needs_default_rates && w.default_daily?.text && <p className="small" data-testid="listing-default-rates">{w.default_daily.text}</p>}
+      {(['handover', 'records', 'listing'] as const).map((k) => { const xs = w.checklist.filter((x) => x.kind === k); return xs.length ? (
+        <div key={k}><p className="pt-kicker">{KIND[k]}</p><ul className="small">{xs.map((x) => <li key={x.code}><b>{x.label}</b>: {x.action}</li>)}</ul></div>) : null; })}
+      {!w.missing.length && !w.checklist.length && <p className="small muted">Nothing open.</p>}
     </Card>
   );
 }

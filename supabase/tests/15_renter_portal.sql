@@ -72,7 +72,13 @@ select test.logout();
 -- ---------------------------------------------------------------- 3. uploads, details, marketing
 select test.throws('uploads: another renter cannot register one',
   $$select public.renter_register_upload(test.rpb('a'), test.rpu('b'), 'coverage_proof', 'bookings/a/c.pdf', repeat('c', 64), 'application/pdf', 'documents')$$, 'renter of the booking');
-select test.eq('uploads: the renter registers the coverage proof',
+-- paid with a credit card in the renter's name (the Card on File), then the tick (0071)
+with pm as (insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit, funding)
+            select x.renter_id, 'visa', '4242', r.legal_name, 12, 2031, true, 'credit' from bookings x join renters r on r.id = x.renter_id where x.id = test.rpb('a')
+            returning id)
+update bookings b set card_on_file_id = pm.id from pm where b.id = test.rpb('a');
+select app.submit_card_coverage(test.rpb('a'), test.rpu('a'), true);
+select test.eq('uploads: the renter registers the coverage proof (the card benefit document, after the tick)',
   (public.renter_register_upload(test.rpb('a'), test.rpu('a'), 'coverage_proof', 'bookings/a/c.pdf', repeat('c', 64), 'application/pdf', 'documents',
      null, '{"card_issuer":"Bank","card_last4":"4242"}') ->> 'ok')::boolean, true);
 select test.throws('details: an Ontario licence number must look like one',

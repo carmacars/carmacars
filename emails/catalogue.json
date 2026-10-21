@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 169,
+  "count": 170,
   "emails": [
     {
       "code": "account_password_reset",
@@ -2432,6 +2432,113 @@
       ],
       "template_html": "templates/renter_comeback_1w.html",
       "template_text": "templates/renter_comeback_1w.txt"
+    },
+    {
+      "code": "renter_coverage_needed",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A confirmed booking whose Coverage Option is 1 (OPCF 27 on the renter's own policy) or 2 (credit card rental coverage) has no proof waiting for review and none confirmed: sent 48 hours before pickup and again 24 hours before pickup (app.job_coverage_reminders, every 15 minutes). Not sent while a proof is in review, nor for the Protection Plan. The 48-hour one is skipped while a driver's licence is also missing (renter_identity_needed then lists the proof too).",
+      "timing": "48 hours and 24 hours before pickup, while the proof is missing or was declined",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Pickup in {{hours_left}}: we still need your proof of coverage",
+      "preheader": "Without it we cannot hand over the car. It takes a few minutes on your phone.",
+      "sample_subject": "Pickup in 24 hours: we still need your proof of coverage",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "coverage_choice",
+          "type": "string",
+          "sample": "OPCF 27 on your own auto policy"
+        },
+        {
+          "name": "coverage_what_to_send",
+          "type": "string",
+          "sample": "A PDF or photos of your policy document or the OPCF 27 endorsement, with the insurer, the policy number and the expiry date. The policy must still be active after your return date."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_reject_reason",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "hours_left",
+          "type": "string",
+          "sample": "24 hours"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reject_reason",
+          "type": "string",
+          "sample": "The policy shown ends before your return date."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "647-575-3377",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "verify_by",
+          "type": "string",
+          "sample": "Thu, Oct 22 at 10:00 am"
+        }
+      ],
+      "template_html": "templates/renter_coverage_needed.html",
+      "template_text": "templates/renter_coverage_needed.txt"
     },
     {
       "code": "renter_damage_found",

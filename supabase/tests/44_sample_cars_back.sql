@@ -130,18 +130,18 @@ values (test.id('vehicle:sxpub'), 'mercedes-c300-scpub', 'Mercedes-Benz C 300', 
 select test.ok('gates: a car on the site has none, and is not listed as not public',
   jsonb_array_length(app.vehicle_public_gates(test.id('vehicle:sxpub'))) = 0
   and not exists (select 1 from jsonb_array_elements(app.cars_not_public()) c where c ->> 'vehicle_id' = test.id('vehicle:sxpub')::text));
-select test.ok('gates: a car in onboarding has its open steps as warnings (0070) and only the listing as a gate',
-  exists (select 1 from jsonb_array_elements(app.vehicle_listing_warnings(test.id('vehicle:sxonb'))) g where g ->> 'code' = 'signatures' and g ->> 'stage' = 'paperwork')
+select test.ok('gates: a car in onboarding has its open steps on the checklist (0070); the listing is its only gate',
+  exists (select 1 from jsonb_array_elements(app.listing_checklist(test.id('vehicle:sxonb'))) g where g ->> 'code' = 'signatures')
   and not exists (select 1 from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxonb'))) g where g ->> 'code' = 'signatures')
   and exists (select 1 from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxonb'))) g where g ->> 'code' = 'listing'));
-select test.eq('gates: a car ready to list waits on publishing only; the details are filled in by default', (select string_agg(g ->> 'code' || ': ' || (g ->> 'action'), ',') from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxready'))) g),
-  'listing: Publish (Admin > Cars > the car > Listing): rates, details and photos are filled in by default');
-select test.ok('gates: no rates is a warning with its action (0070)',
-  exists (select 1 from jsonb_array_elements(app.vehicle_listing_warnings(test.id('vehicle:sxnorates'))) g where g ->> 'code' = 'rates' and g ->> 'action' like 'Publishing sets them%'));
+select test.eq('gates: a car ready to list waits on Publish now only (0070: details and photos are checklist items)', (select string_agg(g ->> 'code' || ': ' || (g ->> 'action'), ',') from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxready'))) g),
+  'listing: Press Publish now on the car');
+select test.ok('gates: no rates is named with its action',
+  exists (select 1 from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxnorates'))) g where g ->> 'code' = 'rates' and g ->> 'action' like 'Set the rates%'));
 select test.ok('gates: the plate check never applies to a car on sample photos',
   not exists (select 1 from jsonb_array_elements(app.vehicle_public_gates(test.id('vehicle:sxready'))) g where g ->> 'code' = 'plates'));
 select test.ok('not public: each real car with its next action and whether it shows sample photos; no sample car',
-  exists (select 1 from jsonb_array_elements(app.cars_not_public()) c where c ->> 'vehicle_id' = test.id('vehicle:sxready')::text and c ->> 'next' like 'Publish%'
+  exists (select 1 from jsonb_array_elements(app.cars_not_public()) c where c ->> 'vehicle_id' = test.id('vehicle:sxready')::text and c ->> 'next' like 'Press Publish now%'
             and (c ->> 'sample_photos')::boolean)
   and not exists (select 1 from jsonb_array_elements(app.cars_not_public()) c join vehicles v on v.id = (c ->> 'vehicle_id')::uuid where v.is_sample));
 select test.throws('not public: only an Admin reads it', $$select app.door(test.id('sx_cs'), '', 'ops_read', 'cars_not_public', '{}')$$, 'Admin');

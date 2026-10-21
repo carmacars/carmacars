@@ -42,7 +42,7 @@ export function toIntent(pi: Obj): Intent {
   const card: IntentCard | null = c ? {
     brand: str(c.brand) ?? 'card', last4: str(c.last4) ?? '', expMonth: num(c.exp_month), expYear: num(c.exp_year),
     funding: funding === 'credit' || funding === 'debit' || funding === 'prepaid' ? funding : 'unknown',
-    name: str(obj(pm?.billing_details)?.name), fingerprint: str(c.fingerprint)
+    name: str(obj(pm?.billing_details)?.name), fingerprint: str(c.fingerprint), country: str(c.country)
   } : null;
   return {
     id: String(pi.id), status: pi.status as Intent['status'], amountCents: num(pi.amount), amountCapturableCents: num(pi.amount_capturable),

@@ -241,6 +241,8 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
   } catch (e) { return fail(dbMessage(e)); }
 }
 
+const COVERAGE_CARD_REFUSED = 'This card is not a credit card. Debit and prepaid cards cannot pay for a rental, and the rental coverage you chose (option 2) counts only on the credit card that includes it. Nothing was charged. Pay with that credit card, or cover the car with OPCF 27 on your own auto policy or the Protection Plan.';
+
 /** Fake adapter only: what Stripe's frame does in the browser. */
 export async function fakeConfirmCard(number: string, intentId: string, card: { number: string; name: string; exp: string }): Promise<R<{ status: string; error: string | null }>> {
   const fake = await fakeOnly();
@@ -263,6 +265,10 @@ export async function finalizePayment(number: string, intentId: string): Promise
     if (i.metadata.booking_id !== b.id) return fail('This payment is not for this booking.');
     const r = await settleIntent(intentId, userId, null);
     refresh(number);
+    // credit card coverage (option 2) needs the credit card that includes it: say so, and offer the other options
+    if (!r.ok && r.reason === 'card_not_credit' && b.coverage_option === 2) {
+      return { ok: true, data: { ...r, reason: 'card_not_credit_coverage', message: COVERAGE_CARD_REFUSED } };
+    }
     return { ok: true, data: r };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -482,7 +488,7 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
   try {
     const d = details ?? {};
     const clean: Record<string, string> = {};
-    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry', 'card_issuer', 'card_last4']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
+    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
     const r = (await rpc('renter_register_upload', { p_booking: t.b, p_by: user.id, p_kind: t.k, p_driver: t.d ?? undefined, p_storage_path: t.key, p_sha256: await sha256Hex(bytes), p_mime_type: t.ct, p_details: clean, p_storage_bucket: t.bucket }, SR)) as unknown as { ok: boolean; error?: string };
     if (!r.ok) { await s.remove(t.bucket, t.key); return fail('Too many uploads in the last hour. Try again later.', 'rate_limited'); }
     refresh(t.n);
@@ -493,24 +499,36 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
   }
 }
 
-// ---------------------------------------------------------------- coverage option 2 (0070)
-export type CardCoverageState = { option: number | null; confirmed: boolean; wording: string; renter_confirmed: boolean;
-  paid_card: { brand: string | null; last4: string | null; credit: boolean | null } | null };
-
-export async function cardCoverageState(number: string): Promise<CardCoverageState | null> {
+// ---------------------------------------------------------------- coverage (the coverage proof migration)
+/** Option 1 (OPCF 27 on the renter's own policy) or 2 (credit card coverage), before pickup. */
+export async function setCoverageOption(number: string, option: 1 | 2): Promise<R> {
+  if (option !== 1 && option !== 2) return fail('Choose option 1 or option 2.');
   try {
     const { userId, b } = await mine(number);
-    return (await rpc('renter_coverage_state', { p_booking: b.id, p_by: userId }, SR)) as unknown as CardCoverageState;
-  } catch { return null; }
+    await rpc('renter_set_coverage_option', { p_booking: b.id, p_by: userId, p_option: option }, SR);
+    refresh(number); revalidatePath(bookingPath(number, 'verify'));
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
 }
 
-/** The renter confirms the rental coverage of the credit card they pay with; confirmed at once once paid with a credit card. */
-export async function confirmCardCoverage(number: string, issuer: string): Promise<R<{ state: string }>> {
+/** Option 2: the renter ticks that the card they paid with includes rental car coverage for this car and length. */
+export async function confirmCardCoverage(number: string, ticked: boolean, text: string): Promise<R> {
+  if (!ticked) return { ok: false, code: 'invalid', message: 'Tick the box to confirm.', fieldErrors: { confirm: 'Tick the box to confirm.' } };
   try {
     const { userId, b } = await mine(number);
-    const r = (await rpc('renter_coverage_card_confirm', { p_booking: b.id, p_by: userId, p: { issuer: (issuer ?? '').trim().slice(0, 60) } }, SR)) as unknown as { state: string };
-    refresh(number);
-    return { ok: true, data: { state: r.state } };
+    await rpc('renter_submit_card_coverage', { p_booking: b.id, p_by: userId, p_confirm: true, p_text: (text ?? '').slice(0, 600) || undefined }, SR);
+    refresh(number); revalidatePath(bookingPath(number, 'verify'));
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** Neither option 1 nor 2: the renter asks for the Protection Plan (a task for customer service). */
+export async function requestProtectionPlan(number: string, note: string): Promise<R> {
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_request_protection_plan', { p_booking: b.id, p_by: userId, p_note: (note ?? '').trim().slice(0, 500) || undefined }, SR);
+    refresh(number); revalidatePath(bookingPath(number, 'verify'));
+    return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
 

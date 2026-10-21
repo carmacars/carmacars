@@ -1,0 +1,47 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Proof of coverage]
+We still need your proof of coverage
+
+Your pickup is in {{hours_left}}, {{first_name}}. You chose {{coverage_choice}}.
+
+IMPORTANT: Due by {{verify_by}}
+We release the {{vehicle_name}} only once a person on our team has confirmed your coverage.
+
+{{#if has_reject_reason}}
+What to fix
+We could not accept what you sent last time: {{reject_reason}}
+{{/if}}
+
+What to send
+------------------------
+
+{{coverage_what_to_send}}
+
+Send my proof:
+https://carmacars.ca/account/bookings/{{booking_number}}/verify
+
+Other choices
+------------------------
+
+- OPCF 27 on your own auto policy. Your policy document or the OPCF 27 endorsement, the insurer, the policy number and the expiry date.
+- Rental coverage on your credit card. Only with the credit card you paid with, in your name. Debit and prepaid cards do not qualify.
+- The CarmaCars Protection Plan. Ask us from the upload page and we add it to your booking.
+
+A person on our team checks what you send. Your documents are kept privately with your rental records.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

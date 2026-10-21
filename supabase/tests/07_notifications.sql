@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '169/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '170/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -732,6 +732,9 @@ update program_settings set uptime_alert_email = 'rent@carmacars.ca';
 select app.server_game_claim(jsonb_build_object('token', (app.game_start(jsonb_build_object('vid', test.id('nt_game_vid'))) ->> 'token'),
   'first_name', 'Nora', 'email', 'nt.game@example.test'));
 select app.emit_event('renter_game_code_reminder', 'game_claim', (select id from game_claims where email = 'nt.game@example.test'), '{}', 'renter_game_code_reminder:nt');
+select test.flush();
+-- the proof of coverage reminder (0070)
+select app.emit_event('renter_coverage_needed', 'booking', test.id('booking:NT-9'), '{"hours": 24}', 'renter_coverage_needed:nt');
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

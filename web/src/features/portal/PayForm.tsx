@@ -24,14 +24,14 @@ function loadStripe(key: string): Promise<StripeJs> {
 }
 const same = (a: string, b: string) => a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
 
-export function PayForm({ number, amountCents, depositCents }: { number: string; amountCents: number; depositCents: number }) {
+export function PayForm({ number, amountCents, depositCents, coverageOption = null }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null }) {
   const router = useRouter();
   const [p, setP] = useState<StartedPayment | null>(null);
   const [fatal, setFatal] = useState<{ code: string; message: string } | null>(null);
   const [name, setName] = useState('');
   const [card, setCard] = useState({ number: '', exp: '', cvc: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [msg, setMsg] = useState<{ kind: 'error' | 'wait' | 'pushed'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ kind: 'error' | 'wait' | 'pushed'; text: string; coverage?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const stripe = useRef<{ js: StripeJs; elements: unknown } | null>(null);
   const mount = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export function PayForm({ number, amountCents, depositCents }: { number: string;
     if (r.ok && r.data.ok) { router.push(`/account/bookings/${encodeURIComponent(number)}?paid=1`); return; }
     const text = r.ok ? (r.data as { message: string }).message : r.message;
     const reason = r.ok && !r.data.ok ? r.data.reason : '';
-    setMsg({ kind: ['vehicle_taken', 'not_awaiting_payment', 'vehicle_not_bookable', 'offer_changed'].includes(reason) ? 'pushed' : 'error', text });
+    setMsg({ kind: ['vehicle_taken', 'not_awaiting_payment', 'vehicle_not_bookable', 'offer_changed'].includes(reason) ? 'pushed' : 'error', text, coverage: reason === 'card_not_credit_coverage' });
     setBusy(false);
   };
 
@@ -120,7 +120,9 @@ export function PayForm({ number, amountCents, depositCents }: { number: string;
       <div className={`field${err('name') ? ' has-error' : ''}`}>
         <label className="label" htmlFor="pt-card-name">Name on the card</label>
         <input className="input" id="pt-card-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="cc-name" aria-invalid={!!err('name') || undefined} aria-describedby="pt-card-name-hint pt-card-name-err" />
-        <p className="hint" id="pt-card-name-hint">The card must be a credit card in the renter&apos;s name.</p>
+        <p className="hint" id="pt-card-name-hint">{coverageOption === 2
+          ? 'You chose the rental coverage on your credit card: pay with that credit card, in the renter\'s name. Debit and prepaid cards do not qualify.'
+          : 'The card must be a credit card in the renter\'s name.'}</p>
         <p className="error" role="alert" id="pt-card-name-err">{err('name') ?? ''}</p>
       </div>
       {p?.provider === 'fake' ? (
@@ -134,7 +136,8 @@ export function PayForm({ number, amountCents, depositCents }: { number: string;
         </div>
       ) : <div className="pt-cardbox" ref={mount} aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit at pickup and any later charges, as you authorized when signing.</p>
-      {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'}><span>{msg.text}</span></p>}
+      {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="pay-message"><span>{msg.text}
+        {msg.coverage && <> <a className="link" href={`/account/bookings/${encodeURIComponent(number)}/verify#pt-cov`}>Change how the car is covered</a></>}</span></p>}
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy}>{busy ? 'Confirming' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>
       <p className="pt-lock"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor" /></svg>Your card is authorized now and charged only once your booking is confirmed.</p>
     </form>

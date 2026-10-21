@@ -64,7 +64,7 @@ select test.eq('samples: the public page and the card show the sample photos, ma
   (app.public_listing_photos(test.id('vehicle:ARS')) -> 0 ->> 'label') || '/' || coalesce(app.public_listing_row(test.id('vehicle:ARS')) ->> 'sample_photos', 'null'),
   'Sample photo/' || coalesce((app.public_listing_row(test.id('vehicle:ARS')) ->> 'sample_photos'), 'null'));
 insert into vehicle_photos (vehicle_id, shot_type, angle, status, processed_path, original_path, is_public, is_cover, sort_order, plate_status)
-select test.id('vehicle:ARS'), (select code from listing_shot_types where is_public order by seq limit 1), (select code from listing_shot_types where is_public order by seq limit 1), 'approved', 'vehicles/ars/front.jpg', 'vehicles/ars/front-original.jpg', true, true, 1, 'unchecked';
+select test.id('vehicle:ARS'), (select code from listing_shot_types where is_public order by seq limit 1), (select code from listing_shot_types where is_public order by seq limit 1), 'approved', 'vehicles/ars/front.jpg', 'vehicles/ars/front-original.jpg', true, true, 1, 'not_visible';
 select test.eq('samples: a real photo replaces the samples at once', app.vehicle_uses_sample_photos(test.id('vehicle:ARS')) || '/' || (app.public_listing_photos(test.id('vehicle:ARS')) -> 0 ->> 'path'),
   'false/vehicles/ars/front.jpg');
 select test.eq('samples: with a real photo the usual photo rules apply again', cardinality(app.listing_photo_problems(test.id('vehicle:ARS'))) > 0, true);

@@ -11,6 +11,8 @@ export interface IntentCard {
   funding: 'credit' | 'debit' | 'prepaid' | 'unknown';
   name: string | null;
   fingerprint: string | null;
+  /** The issuing country (ISO two letters), when Stripe gives it. */
+  country?: string | null;
 }
 
 export type IntentStatus =

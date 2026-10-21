@@ -92,6 +92,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
             </Card>
           </div>
+          {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span></p>}
           <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={b.status === 'requested'} />
         </>
       )}

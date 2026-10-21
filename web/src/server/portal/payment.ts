@@ -71,7 +71,7 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
     p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId, fingerprint: i.card?.fingerprint ?? null },
     p_amount_cents: i.amountCents,
     p_offer_version: offerVersion,
-    p_card: i.card ? { brand: i.card.brand, last4: i.card.last4, cardholder_name: i.card.name, exp_month: i.card.expMonth, exp_year: i.card.expYear, is_credit: i.card.funding === 'credit' } : null,
+    p_card: i.card ? { brand: i.card.brand, last4: i.card.last4, cardholder_name: i.card.name, exp_month: i.card.expMonth, exp_year: i.card.expYear, is_credit: i.card.funding === 'credit', funding: i.card.funding, country: i.card.country ?? null } : null,
     p_event_id: eventId ?? `action:${i.id}`,
     p_by: by ?? f.renter_user_id
   }, SR)) as unknown as { ok: boolean; reason?: string; message?: string; action?: string };

@@ -224,9 +224,16 @@ select test.eq('plates: nothing left to check', cardinality(app.listing_plate_pr
 
 -- the publish gate, on the car test 11 listed (every check of 0022 and 0040 passes; its photos have no plate decision)
 select app.unlist_listing(test.id('vehicle:oflC'), test.id('tp_admin'), 'Plate check test', null);
-select test.throws('plates: publishing waits for the plates, after every other check, naming the photos',
-  format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('tp_admin')), 'Cover the licence plate or mark it not visible on every public photo first: Front left, Front');
-select test.eq('plates: the refused publish changed nothing', (select status from vehicle_listings where vehicle_id = test.id('vehicle:oflC')), 'unpublished');
+-- since 0070 the plate check holds back each photo, not the listing: the car is published and every photo whose plate
+-- is not checked stays private until it is
+create temp table tp_pub as select app.publish_listing(test.id('vehicle:oflC'), test.id('tp_admin')) as r;
+select test.eq('plates: the car is published; photos with an unchecked plate stay private',
+  (select r ->> 'status' from tp_pub)
+  || '/' || (select count(*) from vehicle_photos ph join listing_shot_types st on st.code = ph.shot_type
+               where ph.vehicle_id = test.id('vehicle:oflC') and ph.replaced_at is null and ph.status = 'approved' and st.is_public and ph.plate_status = 'unchecked' and ph.is_public),
+  'published/0');
+select test.ok('plates: the checklist names the photos held back', exists (select 1 from jsonb_array_elements(app.listing_checklist(test.id('vehicle:oflC'))) x where x ->> 'code' = 'plates'));
+select app.unlist_listing(test.id('vehicle:oflC'), test.id('tp_admin'), 'Plate check test', null);
 select app.photo_plate_record(test.id('tp_fleet'), jsonb_build_object('photo', ph.id, 'status', 'not_visible'))
   from vehicle_photos ph join listing_shot_types st on st.code = ph.shot_type
  where ph.vehicle_id = test.id('vehicle:oflC') and ph.replaced_at is null and ph.status = 'approved' and st.is_public;

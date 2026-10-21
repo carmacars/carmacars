@@ -3083,11 +3083,19 @@ export type Database = {
           confirmed_at: string | null;
           rejection_reason: string | null;
           created_at: string;
-          renter_confirmed_at: string | null;
-          renter_confirmation_text: string | null;
-          card_funding: string | null;
           payment_method_id: string | null;
-          auto_confirmed: boolean;
+          card_brand: string | null;
+          card_funding: string | null;
+          cardholder_name: string | null;
+          name_matches: boolean | null;
+          renter_confirmed_at: string | null;
+          renter_confirmed_by: string | null;
+          confirmation_text: string | null;
+          vehicle_class_label: string | null;
+          rental_days: number | null;
+          submitted_by: string | null;
+          submitted_at: string | null;
+          reviewed_checks: Json | null;
         };
         Insert: {
           id?: string;
@@ -3108,11 +3116,19 @@ export type Database = {
           confirmed_at?: string | null;
           rejection_reason?: string | null;
           created_at?: string;
-          renter_confirmed_at?: string | null;
-          renter_confirmation_text?: string | null;
-          card_funding?: string | null;
           payment_method_id?: string | null;
-          auto_confirmed?: boolean;
+          card_brand?: string | null;
+          card_funding?: string | null;
+          cardholder_name?: string | null;
+          name_matches?: boolean | null;
+          renter_confirmed_at?: string | null;
+          renter_confirmed_by?: string | null;
+          confirmation_text?: string | null;
+          vehicle_class_label?: string | null;
+          rental_days?: number | null;
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_checks?: Json | null;
         };
         Update: {
           id?: string;
@@ -3133,11 +3149,19 @@ export type Database = {
           confirmed_at?: string | null;
           rejection_reason?: string | null;
           created_at?: string;
-          renter_confirmed_at?: string | null;
-          renter_confirmation_text?: string | null;
-          card_funding?: string | null;
           payment_method_id?: string | null;
-          auto_confirmed?: boolean;
+          card_brand?: string | null;
+          card_funding?: string | null;
+          cardholder_name?: string | null;
+          name_matches?: boolean | null;
+          renter_confirmed_at?: string | null;
+          renter_confirmed_by?: string | null;
+          confirmation_text?: string | null;
+          vehicle_class_label?: string | null;
+          rental_days?: number | null;
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_checks?: Json | null;
         };
         Relationships: [];
       };
@@ -8409,6 +8433,8 @@ export type Database = {
           is_credit: boolean | null;
           status: string;
           created_at: string;
+          funding: string | null;
+          card_country: string | null;
         };
         Insert: {
           id?: string;
@@ -8421,6 +8447,8 @@ export type Database = {
           is_credit?: boolean | null;
           status?: string;
           created_at?: string;
+          funding?: string | null;
+          card_country?: string | null;
         };
         Update: {
           id?: string;
@@ -8433,6 +8461,8 @@ export type Database = {
           is_credit?: boolean | null;
           status?: string;
           created_at?: string;
+          funding?: string | null;
+          card_country?: string | null;
         };
         Relationships: [];
       };
@@ -9177,6 +9207,8 @@ export type Database = {
           game_dismiss_days: number;
           game_task_min_cars: number;
           game_reminder_hours: number;
+          coverage_proof_max_pages: number;
+          coverage_reminder_hours: number[];
         };
         Insert: {
           id?: string;
@@ -9477,6 +9509,8 @@ export type Database = {
           game_dismiss_days?: number;
           game_task_min_cars?: number;
           game_reminder_hours?: number;
+          coverage_proof_max_pages?: number;
+          coverage_reminder_hours?: number[];
         };
         Update: {
           id?: string;
@@ -9777,6 +9811,8 @@ export type Database = {
           game_dismiss_days?: number;
           game_task_min_cars?: number;
           game_reminder_hours?: number;
+          coverage_proof_max_pages?: number;
+          coverage_reminder_hours?: number[];
         };
         Relationships: [];
       };
@@ -15547,8 +15583,6 @@ export type Database = {
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
       renter_cancel_booking: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
-      renter_coverage_card_confirm: { Args: { p_booking: string; p_by: string; p?: Json }; Returns: Json };
-      renter_coverage_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_decline_booking_change: { Args: { p_request: string; p_by: string; p_reason?: string }; Returns: undefined };
       renter_open_agreement: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
       renter_register_upload: { Args: { p_booking: string; p_by: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string; p_storage_bucket: string; p_driver?: string; p_details?: Json }; Returns: Json };
@@ -15556,12 +15590,15 @@ export type Database = {
       renter_request_booking_change: { Args: { p_booking: string; p_by: string; p_changes: Json; p_note?: string }; Returns: string };
       renter_request_extension: { Args: { p_booking: string; p_by: string; p_new_return: string; p_note?: string }; Returns: string };
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
+      renter_request_protection_plan: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_review_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_save_details: { Args: { p_by: string; p_details: Json; p_booking?: string }; Returns: Json };
       renter_send_message: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
+      renter_set_coverage_option: { Args: { p_booking: string; p_by: string; p_option: number }; Returns: Json };
       renter_set_marketing: { Args: { p_by: string; p_opt_in: boolean; p_text?: string; p_version?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
       renter_sign_amendment: { Args: { p_amendment: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
+      renter_submit_card_coverage: { Args: { p_booking: string; p_by: string; p_confirm: boolean; p_text?: string }; Returns: Json };
       renter_submit_review: { Args: { p_booking: string; p_by: string; p_rating: number; p_title?: string; p_body?: string; p_publish_consent?: boolean }; Returns: string };
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
@@ -15596,6 +15633,7 @@ export type Database = {
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_document_file: { Args: { p_document: string }; Returns: Json };
+      server_documents_due_for_purge: { Args: { p_limit?: number }; Returns: Json };
       server_draft_resume_link: { Args: { p_draft: string; p_email: string; p_user?: string; p_token?: string }; Returns: string };
       server_driver_link_renew: { Args: { p_signer: string; p_by: string }; Returns: Json };
       server_driver_link_send: { Args: { p_signer: string; p_by: string; p_version: number; p_url: string }; Returns: Json };
@@ -15619,6 +15657,7 @@ export type Database = {
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
+      server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
@@ -15647,6 +15686,7 @@ export type Database = {
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
+      server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };

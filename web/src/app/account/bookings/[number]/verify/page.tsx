@@ -4,10 +4,8 @@ import { when } from '@/features/agreement/model';
 import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
-import { CoverageUpload } from '@/features/portal/CoverageUpload';
-import { CardCoverage } from '@/features/portal/CardCoverage';
-import { cardCoverageState } from '@/server/actions/portal';
-import { myBooking } from '@/server/portal/data';
+import { CoverageSection } from '@/features/portal/CoverageSection';
+import { myBooking, myCoverage } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Licence, selfie and coverage', path: '/account/bookings', noindex: true, description: 'Upload your licence, a selfie and proof of coverage before pickup.' });
@@ -17,12 +15,11 @@ const MISSING: Record<string, string> = { identity: 'Licence photos and selfie f
 // Identity and coverage (02 section 7.3, 08-forms.md section 7): three photos per driver and the proof
 // for the chosen coverage option, each reviewed by our team. Status from booking_readiness.
 export default async function VerifyPage({ params }: { params: Promise<{ number: string }> }) {
-  const { b } = await myBooking((await params).number, 'verify');
+  const { b, user } = await myBooking((await params).number, 'verify');
   if (!['pending_payment', 'confirmed'].includes(b.status)) redirect(bookingPath(b.booking_number));
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
-  const cov = b.coverage_option;
-  const cc = cov === 2 ? await cardCoverageState(b.booking_number) : null;
+  const cov = await myCoverage(user, b.id).catch(() => null);
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -49,12 +46,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
       ))}
       <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
-        {cov === 1 || cov === 2 ? (
-          <div className="pt-card"><p>{cov === 1 ? 'Option 1: your own auto policy with the OPCF 27 endorsement. Upload the policy page or your insurer\u2019s letter with the insurer, policy number and expiry; our team checks it before pickup.' : 'Option 2: rental coverage on your credit card. It must be the credit card you pay with.'}</p>
-            {cov === 2 && cc && <CardCoverage number={b.booking_number} s={cc} />}
-            {cov === 2 && <p className="small muted">Optional, and it helps: a photo or PDF of your card\u2019s benefits certificate.</p>}
-            <CoverageUpload number={b.booking_number} option={cov} status={up('coverage_proof', null)?.status} reason={up('coverage_proof', null)?.reject_reason} /></div>
-        ) : <div className="pt-card"><p>{cov === 3 ? 'You chose the CarmaCars Protection Plan. We send you its terms before pickup.' : 'Tell us how you will cover damage to the car: call or message us.'}</p></div>}
+        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
       </section>
     </>
   );

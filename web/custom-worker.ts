@@ -115,6 +115,8 @@ const worker = {
     run('/api/jobs/seo');
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
+    // the retention purge of private files (0071), once an hour on the second tick
+    if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {

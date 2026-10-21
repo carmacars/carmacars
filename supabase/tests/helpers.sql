@@ -269,3 +269,8 @@ grant execute on all functions in schema test to authenticated, anon;
 -- of 0022 to 0041 with photos that carry no plate decision. 26_tolls_plates_forms.sql switches it on and tests it.
 alter table program_settings alter column listing_plate_check_required set default false;
 update program_settings set listing_plate_check_required = false;
+
+-- Publishing new cars automatically (0070, on by default) is off for the earlier suites: they add cars and set up their
+-- listings by hand. 49_listing_no_roadblocks.sql switches it on and tests it.
+alter table program_settings alter column listing_publish_new_cars_automatically set default false;
+update program_settings set listing_publish_new_cars_automatically = false;

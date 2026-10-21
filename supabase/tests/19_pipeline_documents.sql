@@ -155,10 +155,10 @@ select test.pd_work();
 create function test.pd_draft2() returns uuid language sql as $$ select id from listing_jobs where intake_id = test.pd_i2() and kind = 'draft_copy' $$;
 select test.eq('retry: a failed draft does not stop the listing',
   (select status from listing_jobs where id = test.pd_draft2()) || '/' || (select draft_failed from listing_intakes where id = test.pd_i2()), 'failed/true');
--- since 0070 the copy is not in the way: the Admin's listing is published with its copy left to the writer (0061),
--- and a published listing's draft is not retried
-select test.eq('retry: the listing is published with its copy marked for the writer',
-  (select status || '/' || needs_rewrite from vehicle_listings where vehicle_id = (select vehicle_id from listing_intakes where id = test.pd_i2())), 'published/true');
+-- since 0070 the copy is not in the way: the Admin's listing is published with the template text (the AI text replaces
+-- it by itself), and a published listing's draft is not retried
+select test.eq('retry: the listing is published with the template text',
+  (select status from vehicle_listings where vehicle_id = (select vehicle_id from listing_intakes where id = test.pd_i2())), 'published');
 select test.throws('retry: a published listing''s draft is not retried',
   format($$select public.door(%L, null, 'ops_do', 'listing_job_retry', jsonb_build_object('job', %L))$$, test.id('pd_admin'), test.pd_draft2()), 'This listing is published');
 
