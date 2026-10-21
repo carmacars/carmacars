@@ -394,6 +394,8 @@ create table if not exists todo_dismissals (
 );
 alter table todo_dismissals enable row level security;
 revoke all on todo_dismissals from anon, authenticated;
+create policy admin_all on todo_dismissals for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_todo_dismissals after insert or update or delete on todo_dismissals for each row execute function app.audit_row();
 comment on table todo_dismissals is 'Admin > Today prompts answered "These are correct" or "Not needed" (0078); the prompt does not come back.';
 
 -- ================================================================ 5. the guided To do: one prompt per piece of work
