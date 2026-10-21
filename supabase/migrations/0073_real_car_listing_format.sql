@@ -3,7 +3,8 @@
 -- The owner, October 21, 2026, after publishing the first real car (a 2022 Chevrolet Malibu LS): its page looked
 -- very different from the 20 sample cars, and its stand-in photo looked nothing like theirs. From now on every real
 -- car, existing and future, gets the sample cars' format automatically:
---   1. the specs in the samples' words ("Sedan", "Automatic (CVT)", "Front-wheel drive"), not the VIN decoder's
+--   1. the specs in the samples' words ("Sedan", "Automatic (CVT)", "Front-wheel drive"), not the VIN decoder's, and
+--      the class of its body ("Standard, Sedan")
 --   2. the copy: the samples' headline ("2022 Chevrolet Malibu LS for rent in Toronto"), a short blurb in their voice,
 --      six selling features from the VIN decode and the trim (the model may add only what is standard on that trim),
 --      nothing about where the car is kept; the description may be short (8 words and up), like the samples'
@@ -63,11 +64,20 @@ language sql immutable as $$
 $$;
 
 create or replace function app.vehicle_listing_norm_specs() returns trigger
-language plpgsql set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app as $$
 begin
   new.body_style := app.listing_norm_body(new.body_style);
   new.transmission := app.listing_norm_transmission(new.transmission);
   new.drivetrain := app.listing_norm_drive(new.drivetrain);
+  -- a real car joins the class of its body, as the sample cars show it ("Standard, Sedan")
+  insert into vehicle_class_links (vehicle_id, class_code, source)
+  select new.vehicle_id, k, 'vehicle'
+    from (select case when new.body_style ~* 'pick.?up|truck' then 'pickup' when new.body_style ~* 'van' then 'van'
+                      when new.body_style ~* 'suv|crossover|sport utility' then 'suv' when new.body_style ~* 'convertible|cabriolet' then 'convertible'
+                      when new.body_style ~* 'coupe' then 'coupe' when new.body_style ~* 'sedan' then 'sedan' end k) x
+   where k is not null and exists (select 1 from vehicle_classes c where c.code = k and c.is_active)
+     and exists (select 1 from vehicles v where v.id = new.vehicle_id and not v.is_sample)
+  on conflict do nothing;
   return new;
 end $$;
 drop trigger if exists vehicle_listings_norm_specs on vehicle_listings;
