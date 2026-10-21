@@ -4,7 +4,8 @@ name: guides
 # carmacars.ca), filled by the end-to-end suite with realistic records, every person then renamed to a fictional
 # name at example.com. Each portal's person signs in and the key screens are taken at desktop 1440 x 900 (scale 2)
 # and phone 390 x 844 (scale 3), with the public pages and the request-to-book steps. The files go to the private
-# Storage bucket deploy-reports under guides/<date>/<portal>/<nn>-<name>-<desktop|phone>.png with manifest.json.
+# Storage bucket deploy-reports under guides/<date>/<portal>/<nn>-<name>-<desktop|phone>.webp with manifest.json (WebP
+# copies of the PNGs; only the newest date is kept, scripts/backup/prune-reports.sh).
 # Nothing touches the live database while the screens are taken; the payment screen uses Stripe's test keys only.
 #
 # Guide upkeep (upkeep = true, the default; web/scripts/guide-upkeep.mjs, migration 0049): each new screenshot is cropped
@@ -177,10 +178,19 @@ jobs:
           echo "::add-mask::$K"
           S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
           curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
+          # the archive copy as WebP (quality 90, about two thirds of the PNG): the upkeep above already compared the PNGs,
+          # and only the newest date is kept (scripts/backup/prune-reports.sh in the nightly backup workflow)
           cd "$RUNNER_TEMP/guides"; n=0
-          for f in manifest.json upkeep.json */*.png; do
+          before=$(du -sb . | cut -f1)
+          command -v cwebp > /dev/null || sudo apt-get install -y -q webp > /dev/null 2>&1 || true
+          if command -v cwebp > /dev/null; then
+            for f in */*.png; do [ -f "$f" ] && cwebp -quiet -q 90 -m 4 "$f" -o "${f%.png}.webp" && rm "$f"; done
+            jq '(.. | strings | select(endswith(".png"))) |= sub("\\.png$"; ".webp")' manifest.json > manifest.tmp && mv manifest.tmp manifest.json
+          fi
+          echo "::notice title=guides::archive $(( before / 1048576 )) MB as PNG, $(( $(du -sb . | cut -f1) / 1048576 )) MB to upload"
+          for f in manifest.json upkeep.json */*.webp */*.png; do
             [ -f "$f" ] || continue
-            ct=image/png; case "$f" in *.json) ct=application/json;; esac
+            ct=image/png; case "$f" in *.json) ct=application/json;; *.webp) ct=image/webp;; esac
             for try in 1 2 3; do
               curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/guides/$GUIDE_DATE/$f" -H "Authorization: Bearer $K" -H "apikey: $K" -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$f" && break
               sleep 3

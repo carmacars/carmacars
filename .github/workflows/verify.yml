@@ -48,6 +48,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: The run's start (the window of the Worker's failures below)
+        run: echo "RUN_T0=$(date +%s000)" >> "$GITHUB_ENV"
       - run: npm ci --no-audit --no-fund
       - name: Playwright browser cache
         id: pw
@@ -141,6 +143,23 @@ jobs:
           { echo "## The Worker on Cloudflare"; echo; for w in 24h 1h; do echo "### Last $w"; echo '```json'; jq '.' "$RUNNER_TEMP/verify/worker-$w.json"; echo '```'; done; } >> "$GITHUB_STEP_SUMMARY"
           n=$(jq -r '.invocations.exceeded_resources // 0' "$f")
           if [ "${n:-0}" != 0 ]; then echo "::warning title=worker::Cloudflare stopped $n request(s) in the last 24 hours with Error 1102 (the plan's CPU limit). Workers Paid removes the 10 ms limit."; fi
+      - name: The Worker's failures (Workers Observability, this run and the last 24 hours)
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"
+          node scripts/cf-errors.mjs --from "${RUN_T0:-$(( ($(date +%s) - 3600) * 1000 ))}" --out "$RUNNER_TEMP/run.json" > /dev/null
+          node scripts/cf-errors.mjs --hours 24 --out "$RUNNER_TEMP/day.json" > /dev/null
+          jq -n --slurpfile r "$RUNNER_TEMP/run.json" --slurpfile d "$RUNNER_TEMP/day.json" '{run: $r[0], last_24h: $d[0]}' > "$RUNNER_TEMP/verify/worker-errors.json"
+          f="$RUNNER_TEMP/verify/worker-errors.json"
+          jq -r '.last_24h | if .unavailable then empty else "24h by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) + "; failures kept: \(.failures // [] | length)" end' "$f" | sed 's/^/::notice title=worker errors::/'
+          jq -r '.run | if .unavailable then empty else "this run by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) end' "$f" | sed 's/^/::notice title=worker errors::/'
+          jq -r '.last_24h.failures_by_route // [] | .[:8][] | "\(.count)x \(.key)"' "$f" | sed 's/^/::notice title=worker errors::/'
+          jq -r '.last_24h | select(.unavailable) | "Workers Observability could not be read: \(.unavailable). \(if .permission_needed then "Missing permission: \(.permission_needed)." else "" end)"' "$f" | sed 's/^/::warning title=worker errors::/'
+          { echo "## The Worker's failures"; echo; echo '```json'; jq '{run: .run.outcomes, last_24h: .last_24h.outcomes, by_route: .last_24h.failures_by_route, unavailable: .last_24h.unavailable}' "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Report and screenshots into Supabase Storage (deploy-reports)
         if: always()
         run: |

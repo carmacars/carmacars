@@ -9,6 +9,8 @@ import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
+import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
+import { jobsToRun } from './src/lib/edge/cron-gate';
 
 type Env = Record<string, unknown>;
 
@@ -110,9 +112,11 @@ const worker = {
     const auth = { authorization: `Bearer ${await workerToken(secret)}` };
     const run = (path: string) => ctx.waitUntil(handler.fetch(new Request(`${base.replace(/\/$/, '')}${path}`, { method: 'POST', headers: auth }), env, ctx)
       .then((r: Response) => r.text()).catch(() => undefined));
-    run('/api/jobs/listing');
+    // only when the database has work for them (src/lib/edge/cron-gate.ts, 0074): an idle tick then never loads the app
+    const due = await jobsToRun(env);
+    if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
-    run('/api/jobs/seo');
+    if (due.seo) run('/api/jobs/seo');
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
     // the retention purge of private files (0071), once an hour on the second tick
@@ -122,6 +126,9 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/media/')) return media(request, env, path);
+    // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
+    // on a fresh isolate)
+    if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env); if (t) return t; }
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
@@ -142,7 +149,16 @@ const worker = {
       if (isAdminArea(path)) h.set(ADMIN_AREA_HEADER, '1');
       req = new Request(req, { headers: h });
     }
-    const response: Response = await handler.fetch(req, env, ctx);
+    // The public pages the page cache answered before, from this data centre's copy, without loading the app
+    // (src/lib/edge/page-cache.ts); what OpenNext answers from its page cache is kept for the next request.
+    const version = deploymentOf(env);
+    const key = version ? edgeKey(req, version) : null;
+    const edge = key ? { cache: () => caches.open(EDGE_CACHE_NAME), env, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p) } : null;
+    let response: Response | null = key && edge ? await edgeMatch(key, edge) : null;
+    if (!response) {
+      response = (await handler.fetch(req, env, ctx)) as Response;
+      if (key && edge) response = edgeKeep(key, path, response, edge);
+    }
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(securityHeaders())) headers.set(k, v);

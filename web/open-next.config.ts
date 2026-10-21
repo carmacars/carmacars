@@ -6,10 +6,12 @@ import r2IncrementalCache from '@opennextjs/cloudflare/overrides/incremental-cac
 import { withRegionalCache } from '@opennextjs/cloudflare/overrides/incremental-cache/regional-cache';
 import doQueue from '@opennextjs/cloudflare/overrides/queue/do-queue';
 import d1NextTagCache from '@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache';
+import { withEdgeGeneration } from './src/lib/edge/tag-cache-gen';
 
 export default defineCloudflareConfig({
   incrementalCache: withRegionalCache(r2IncrementalCache, { mode: 'long-lived' }),
   queue: doQueue,
-  tagCache: d1NextTagCache,
+  // a rebuild on demand also retires the Worker entry's edge copies of the public pages (src/lib/edge/page-cache.ts)
+  tagCache: withEdgeGeneration(d1NextTagCache),
   enableCacheInterception: true
 });

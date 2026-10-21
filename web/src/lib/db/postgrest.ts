@@ -30,19 +30,27 @@ export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, ar
 
 // While `next build` pre-renders pages (the deploy's "Build the Worker"), a slow moment of the database must not fail
 // the whole build: a statement timeout (57014), a pooler or network error, or a 5xx is tried again with a growing wait.
-// At run time nothing is retried here (a visitor's request answers at once, and the page cache serves the last copy).
+// At run time only an error from before the statement ran is tried again (below).
 const RETRYABLE = new Set(['57014', '53300', '08000', '08003', '08006', '57P01', 'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003']);
 export function isRetryable(e: unknown): boolean {
   if (e instanceof RpcError) return (e.code !== undefined && RETRYABLE.has(e.code)) || (e.status !== undefined && (e.status >= 500 || e.status === 429));
   return e instanceof TypeError; // fetch failed: network
 }
+// At run time only an error raised before the statement ran is tried again, twice, quickly: PostgREST reloading its
+// schema cache right after a deploy's migrations (PGRST002, the 500s of the first car pages rendered after a deploy),
+// no connection from the pool, or the server refusing connections. The statement never ran, so a write is safe to send
+// again; a timeout or any other error is not repeated.
+const NOT_RUN = new Set(['PGRST000', 'PGRST001', 'PGRST002', 'PGRST003', '53300', '08000', '08003', '08006', '57P03']);
+export function didNotRun(e: unknown): boolean {
+  return e instanceof RpcError && e.code !== undefined && NOT_RUN.has(e.code);
+}
 export async function withBuildRetry<T>(run: () => Promise<T>, o: { building: boolean; tries?: number; waitMs?: number; sleep?: (ms: number) => Promise<void> }): Promise<T> {
-  const tries = o.building ? (o.tries ?? 5) : 1;
+  const tries = o.building ? (o.tries ?? 5) : 3;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   for (let i = 1; ; i++) {
     try { return await run(); } catch (e) {
-      if (i >= tries || !isRetryable(e)) throw e;
-      await sleep((o.waitMs ?? 1500) * 2 ** (i - 1));
+      if (i >= tries || !(o.building ? isRetryable(e) : didNotRun(e))) throw e;
+      await sleep(o.building ? (o.waitMs ?? 1500) * 2 ** (i - 1) : 300 * i);
     }
   }
 }
