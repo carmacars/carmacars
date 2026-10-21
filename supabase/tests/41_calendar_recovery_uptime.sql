@@ -178,9 +178,10 @@ select test.eq('offer opened: nothing before 4 hours', app.job_booking_recovery(
 select test.eq('after 4 hours: the first reminder', app.job_booking_recovery(test.t62('4 hours 5 minutes')), 'sent 1, stopped 0');
 select test.eq('not twice in a row', app.job_booking_recovery(test.t62('4 hours 20 minutes')), 'sent 0, stopped 0');
 select test.flush62();
-select test.eq('the reminder is queued to Rita, transactional, from bookings, with her booking''s values',
+select test.eq('the reminder is queued to Rita, transactional, from bookings, with her booking''s values (the car with its car code)',
   (select format('%s %s %s | %s | %s', to_address, category, status, payload ->> 'vehicle_name', payload ->> 'offer_expires_at') from notification_outbox where code = 'renter_recovery_offer' and booking_id = test.id('booking:C62-R1')),
-  'c62_rita@example.test transactional queued | 2023 Mercedes-Benz C 300 c62car2 | Fri, Mar 7 at 2:00 pm');
+  -- 0079: booking emails name the car with its public car code
+  'c62_rita@example.test transactional queued | 2023 Mercedes-Benz C 300 c62car2 (car code ' || (select car_code from vehicles where id = test.id('c62vid')) || ') | Fri, Mar 7 at 2:00 pm');
 -- the second: 24 hours later, but 23:00 is outside the sending hours; it waits for the morning
 select test.eq('outside the sending hours nothing goes', app.job_booking_recovery(test.at62('2031-03-05 23:00')), 'outside the sending hours, stopped 0');
 select test.eq('the second reminder the next morning', app.job_booking_recovery(test.at62('2031-03-06 09:10')), 'sent 1, stopped 0');
