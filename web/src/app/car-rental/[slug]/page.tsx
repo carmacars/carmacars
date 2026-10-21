@@ -66,7 +66,7 @@ export default async function LandingPage({ params }: Params) {
       </section>
       <section className="facts on-dark" aria-label="Prices here">
         <div className="wrap"><dl className="facts__list">
-          <div><dt>Cars</dt><dd className="num">{p.car_count}</dd></div>
+          <div><dt>Cars</dt><dd className="num" data-count>{p.car_count}</dd></div>
           {p.min_daily_cents !== null && <div><dt>From</dt><dd><span className="num">{money(p.min_daily_cents)}</span> a day</dd></div>}
           {p.min_weekly_cents !== null && <div><dt>Weekly from</dt><dd className="num">{money(p.min_weekly_cents)}</dd></div>}
           {p.min_monthly_cents !== null && <div><dt>{F('{{maxDays}} days from')}</dt><dd className="num">{money(p.min_monthly_cents)}</dd></div>}

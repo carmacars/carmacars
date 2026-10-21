@@ -1,0 +1,187 @@
+/* Motion (2026-10-21, docs/changes/2026-10-21-motion.md).
+   One layer over the design: page transitions, scroll reveals, press and focus feedback, field feedback, skeletons
+   and image fade-in. Rules:
+   - only transform, opacity, clip-path and filter move (no layout property is animated: CLS stays 0);
+   - nothing above the fold is hidden on first load (reveals and image fades are set by src/components/Effects.tsx on
+     elements that are still below the viewport or still loading, so the LCP element is never touched);
+   - everything that moves sits under prefers-reduced-motion: no-preference (the end-to-end tests run with reduce);
+   - CSS and src/lib/motion.ts only, no library. */
+
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* long settle, for entrances */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* a small overshoot, for pops */
+  --rv-y: 22px;
+}
+
+/* ---------- static states (no movement, so outside the media query) ---------- */
+.btn, .icon-btn, .chip, .seg label, .option, .addon, .tab, .cal__day, .gallery__thumbs button, .menu-btn { -webkit-tap-highlight-color: transparent; }
+.btn { position: relative; overflow: hidden; isolation: isolate; }
+.btn::after { content: ""; position: absolute; z-index: -1; left: var(--rx, 50%); top: var(--ry, 50%); width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: currentColor; opacity: 0; pointer-events: none; transform: scale(0); }
+
+/* float labels (Field with float): the label sits in the input until it has a value or focus */
+.field--float { position: relative; }
+.field--float > .label { position: absolute; z-index: 1; left: calc(0.85rem + var(--bw)); top: 0; height: 56px; display: flex; align-items: center; color: var(--grey-600); font-weight: 500; font-size: 1rem; pointer-events: none; transform-origin: left center; max-width: calc(100% - 1.7rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.field--float > .input, .field--float > .textarea { min-height: 56px; padding-top: 1.45rem; padding-bottom: 0.45rem; }
+.field--float > .textarea { padding-top: 1.75rem; }
+.field--float:focus-within > .label,
+.field--float:has(> .input:not(:placeholder-shown)) > .label,
+.field--float:has(> .textarea:not(:placeholder-shown)) > .label,
+.field--float:has(> .input:autofill) > .label { transform: translateY(-0.72rem) scale(0.78); color: var(--black); font-weight: 600; }
+.field--float:has(> .textarea) > .label { height: 2.4rem; }
+.field--float:has(> .textarea):focus-within > .label, .field--float:has(> .textarea:not(:placeholder-shown)) > .label { transform: translateY(-0.3rem) scale(0.78); }
+.field--float.has-error > .label { color: var(--red-600); }
+.field--float > .input::placeholder, .field--float > .textarea::placeholder { color: transparent; }
+
+/* skeletons on dark surfaces, and the quote while it loads */
+.on-dark .skeleton { background: var(--grey-900); }
+.on-dark .skeleton::after { background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.08) 50%, transparent 80%); }
+.sk-stack { display: grid; gap: var(--s-2); padding: var(--s-3) 0; }
+.sk-stack .sk-line:nth-child(3n + 2) { width: 82%; }
+.sk-stack .sk-line:nth-child(3n) { width: 64%; }
+
+/* the navigation progress line (Effects) */
+.nav-progress { position: fixed; z-index: 120; left: 0; top: 0; width: 100%; height: 3px; background: var(--red-600); transform-origin: left; transform: scaleX(0); opacity: 0; pointer-events: none; }
+
+/* the header and the portal tabs stay put while the page under them changes */
+.site-header { view-transition-name: site-header; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---------- page transitions ---------- */
+  /* full page loads within the site (forms that post, sign-in redirects): native cross-document transitions */
+  @view-transition { navigation: auto; }
+  /* the same-document transitions of src/lib/motion.ts (links, steps) */
+  ::view-transition-old(root) { animation: vt-out 180ms var(--ease-in-out) both; }
+  ::view-transition-new(root) { animation: vt-in 340ms var(--ease-out) both; }
+  ::view-transition-group(site-header) { animation: none; }
+  ::view-transition-old(site-header), ::view-transition-new(site-header) { animation: none; }
+  /* fallback where View Transitions are missing, or the page arrived after the transition gave up waiting */
+  main.page-enter { animation: page-enter 380ms var(--ease-out) backwards; }
+  /* the steps of request to book and the field checklist: the step that appears settles in */
+  [data-step-panel] { animation: step-in 420ms var(--ease-out) backwards; }
+  .req__step:not([hidden]) > * { animation: step-in 480ms var(--ease-out) backwards; }
+  .req__step:not([hidden]) > :nth-child(2) { animation-delay: 40ms; }
+  .req__step:not([hidden]) > :nth-child(3) { animation-delay: 80ms; }
+  .req__step:not([hidden]) > :nth-child(n + 4) { animation-delay: 120ms; }
+
+  .nav-progress.is-on { opacity: 1; transform: scaleX(0.82); transition: transform 8s cubic-bezier(0.08, 0.8, 0.1, 1), opacity 120ms; }
+  .nav-progress.is-done { opacity: 0; transform: scaleX(1); transition: transform 200ms var(--ease-out), opacity 300ms 160ms; }
+
+  /* ---------- scroll reveals (Effects marks only what is below the viewport) ---------- */
+  .rv { opacity: 0; transform: translate3d(0, var(--rv-y), 0); }
+  .rv.is-in { opacity: 1; transform: none; transition: opacity 700ms var(--ease-out) var(--rv-d, 0ms), transform 900ms var(--ease-out) var(--rv-d, 0ms); }
+  .rv.car-card .car-card__media img { transform: scale(1.08); }
+  .rv.car-card.is-in .car-card__media img { transform: none; transition: transform 1.2s var(--ease-out) var(--rv-d, 0ms); }
+  .rv.car-card.is-in:hover .car-card__media img { transform: scale(1.035); transition-duration: var(--t-4); transition-delay: 0ms; }
+
+  /* ---------- images: fade in from a blur when they arrive (lazy images only) ---------- */
+  img.img-wait { opacity: 0; filter: blur(14px); transform: scale(1.04); }
+  img.img-in { transition: opacity 600ms var(--ease-out), filter 700ms var(--ease-out), transform 900ms var(--ease-out); }
+  .photo:has(> img.img-wait)::before, .photo:has(> picture > img.img-wait)::before { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.07) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer 1.3s linear infinite; }
+
+  /* ---------- buttons, cards, chips, links ---------- */
+  .btn { transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform 160ms var(--ease-out), box-shadow var(--t-2) var(--ease); }
+  .btn:hover:not([disabled]):not([aria-disabled="true"]) { transform: translateY(-1px); }
+  .btn--primary:hover:not([disabled]):not([aria-disabled="true"]) { box-shadow: 0 10px 24px -14px rgb(208 17 27 / 0.9); }
+  .btn:active:not([disabled]):not([aria-disabled="true"]) { transform: translateY(0) scale(0.97); transition-duration: 60ms; }
+  .btn.is-ripple::after { animation: ripple 560ms var(--ease-out); }
+  .icon-btn { transition: background var(--t-1), color var(--t-1), transform 160ms var(--ease-out); }
+  .icon-btn:active:not([disabled]) { transform: scale(0.92); }
+  .icon-btn svg { transition: transform var(--t-2) var(--ease); }
+  .icon-btn[aria-label^="Next"]:hover:not([disabled]) svg { transform: translateX(2px); }
+  .icon-btn[aria-label^="Previous"]:hover:not([disabled]) svg { transform: translateX(-2px); }
+  .chip { transition: background var(--t-1), color var(--t-1), transform 160ms var(--ease-out), border-color var(--t-1); }
+  .chip:active { transform: scale(0.95); }
+  .chips > .chip { animation: pop-in 260ms var(--ease-spring) backwards; }
+  .seg label { transition: background var(--t-2) var(--ease), color var(--t-2) var(--ease), transform 140ms var(--ease-out); }
+  .seg label:active { transform: scale(0.96); }
+  .option, .addon { transition: border-color var(--t-1), box-shadow var(--t-2) var(--ease), transform 160ms var(--ease-out); }
+  .option:active, .addon:active { transform: scale(0.99); }
+  .check input:checked::after, .radio input:checked::after, .option input:checked::after { transition: transform 240ms var(--ease-spring); }
+  .switch input::after { transition: transform 260ms var(--ease-spring); }
+  .car-card { transition: transform 420ms var(--ease-out); }
+  .car-card__media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.28)); opacity: 0; transition: opacity var(--t-3) var(--ease); pointer-events: none; }
+  .car-card:hover .car-card__media::after { opacity: 1; }
+  .car-card__name a { background: linear-gradient(var(--red-600), var(--red-600)) left bottom / 0 2px no-repeat; transition: background-size var(--t-3) var(--ease-out); padding-bottom: 2px; }
+  .car-card:hover .car-card__name a, .car-card:focus-within .car-card__name a { background-size: 100% 2px; }
+  .car-card:active { transform: scale(0.99); }
+  .footer-grid a, .footer-btn { background: linear-gradient(var(--red-600), var(--red-600)) left bottom / 0 2px no-repeat; transition: background-size var(--t-2) var(--ease-out); }
+  .footer-grid a:hover, .footer-btn:hover { text-decoration: none; background-size: 100% 2px; }
+  .rail__end a { transition: background var(--t-2); }
+  .rail__end a .link--go svg { transition: transform var(--t-3) var(--ease-out); }
+  .rail__end a:hover .link--go svg { transform: translateX(8px); }
+  .menu-panel.is-open .menu-panel__links a { animation: menu-in 460ms var(--ease-out) backwards; }
+  .menu-panel.is-open .menu-panel__links li:nth-child(2) a { animation-delay: 30ms; }
+  .menu-panel.is-open .menu-panel__links li:nth-child(3) a { animation-delay: 60ms; }
+  .menu-panel.is-open .menu-panel__links li:nth-child(4) a { animation-delay: 90ms; }
+  .menu-panel.is-open .menu-panel__links li:nth-child(5) a { animation-delay: 120ms; }
+  .menu-panel.is-open .menu-panel__links li:nth-child(n + 6) a { animation-delay: 150ms; }
+  .gallery__thumbs button { transition: opacity var(--t-2), transform 160ms var(--ease-out); }
+  .gallery__thumbs button:active { transform: scale(0.95); }
+  .gallery__count b { display: inline-block; }
+  .faq summary { transition: color var(--t-1); }
+  .faq details[open] .faq__a { animation: reveal-down 420ms var(--ease-out) backwards; }
+  .tab { transition: color var(--t-2); }
+
+  /* ---------- focus rings: drawn in, same final ring ---------- */
+  :focus-visible { animation: focus-in 220ms var(--ease-out); }
+  .input:focus-visible, .select:focus-visible, .textarea:focus-visible, .datefield:focus-visible { animation: field-focus 240ms var(--ease-out); }
+  .field--float > .label { transition: transform 200ms var(--ease-out), color 200ms; }
+
+  /* ---------- field feedback ---------- */
+  .field.has-error .input, .field.has-error .select, .field.has-error .textarea, .field.has-error .datefield { animation: nudge 380ms var(--ease-out); }
+  .error:not(:empty) { animation: drop-in 260ms var(--ease-out) backwards; }
+  .field.is-ok .input { animation: ok-in 320ms var(--ease-out); }
+  .alert { animation: drop-in 320ms var(--ease-out) backwards; }
+  .alert--ok::before { animation: pop-in 420ms var(--ease-spring) 80ms backwards; }
+
+  /* ---------- popovers, sheets, toasts ---------- */
+  @media (min-width: 44rem) {
+    .popover { transform-origin: top left; transition: opacity 200ms var(--ease-out), transform 260ms var(--ease-out), display 260ms allow-discrete, overlay 260ms allow-discrete; }
+    .popover[hidden] { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    @starting-style { .popover:not([hidden]) { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+  }
+  .popover-scrim { animation: fade-in 260ms var(--ease) backwards; }
+  .toast { animation: toast-up 520ms var(--ease-spring) backwards; position: relative; overflow: hidden; }
+  .toast::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--red-600); transform-origin: left; animation: toast-time var(--toast-ms, 4500ms) linear both; }
+  .toast.is-out { transform: translateY(10px) scale(0.98); }
+  .cal__day { transition: background-color var(--t-1), color var(--t-1), box-shadow var(--t-1), transform 140ms var(--ease-out); }
+  .cal__day:active:not([aria-disabled="true"]) { transform: scale(0.92); }
+  .cal__day.is-start, .cal__day.is-end { animation: pop-in 260ms var(--ease-spring); }
+
+  .req__form[data-dir="back"] .req__step:not([hidden]) > * { animation-name: step-back; }
+  .estimate__lines, .estimate__total { transition: opacity var(--t-2) var(--ease); }
+  .estimate[aria-busy="true"] .estimate__lines { opacity: 0.5; }
+
+  /* ---------- car photos: depth as the gallery is swiped (scroll-driven, on the compositor; a photo at rest is
+     untouched) ---------- */
+  @supports (animation-timeline: view()) {
+    .gallery__track > li { overflow: hidden; }
+    .gallery__track > li > img { animation: gallery-depth linear both; animation-timeline: view(inline); animation-range: cover 0% cover 100%; }
+  }
+
+  /* ---------- counters (Effects): the number keeps its width while it counts ---------- */
+  [data-count].is-counting { font-variant-numeric: tabular-nums; }
+}
+
+@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes page-enter { from { opacity: 0; transform: translateY(10px); } }
+@keyframes step-in { from { opacity: 0; transform: translateX(18px); } }
+@keyframes step-back { from { opacity: 0; transform: translateX(-18px); } }
+@keyframes gallery-depth { 0% { transform: translateX(-8%) scale(1.16); } 50% { transform: none; } 100% { transform: translateX(8%) scale(1.16); } }
+@keyframes ripple { 0% { opacity: 0.22; transform: scale(0); } 100% { opacity: 0; transform: scale(36); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.82); } }
+@keyframes menu-in { from { opacity: 0; transform: translateY(14px); } }
+@keyframes reveal-down { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes focus-in { from { outline-offset: 8px; outline-color: transparent; } }
+@keyframes field-focus { from { box-shadow: 0 0 0 0 var(--white), 0 0 0 0 var(--red-600); } }
+@keyframes nudge { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes ok-in { from { background-size: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes toast-up { from { opacity: 0; transform: translateY(24px) scale(0.96); } }
+@keyframes toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv, img.img-wait { opacity: 1 !important; transform: none !important; filter: none !important; }
+}

@@ -42,7 +42,7 @@ export default async function AdminToDo() {
         {open.length ? (
           <ol className="todo">{open.map((i) => (
             <li key={i.key} className="todo__item" data-testid={`todo-${i.key}`}>
-              <span className="todo__count num">{i.count}</span>
+              <span className="todo__count num" data-count>{i.count}</span>
               <span className="todo__label">{i.label}</span>
               <Link prefetch={false} className="btn btn--primary btn--sm" href={i.href}>{i.button}</Link>
             </li>))}

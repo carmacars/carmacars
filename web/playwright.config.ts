@@ -17,7 +17,9 @@ export default defineConfig({
   // a defect fails both tries. Local runs never retry.
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }]],
-  use: { baseURL: base, trace: 'retain-on-failure', launchOptions: { args: ['--no-proxy-server'] } },
+  // test mode: prefers-reduced-motion, so the site's motion (src/styles/motion.css) never moves under a test or axe;
+  // tests/e2e/motion.spec.ts turns it on and checks it
+  use: { baseURL: base, trace: 'retain-on-failure', reducedMotion: 'reduce', launchOptions: { args: ['--no-proxy-server'] } },
   projects: [
     { name: 'phone-375', use: { viewport: { width: 375, height: 812 }, isMobile: false, hasTouch: true } },
     { name: 'desktop-1440', use: { viewport: { width: 1440, height: 900 } } }

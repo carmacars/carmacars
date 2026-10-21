@@ -1,4 +1,5 @@
 'use client';
+import { SkeletonLines } from '@/components/Skeleton';
 import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -99,7 +100,7 @@ function VisitorRow({ v, portal, open, onToggle, onChat }: { v: Visitor; portal:
       {msg && <p className="small" role="status">{msg}</p>}
       {open && (
         <div className="lv-detail">
-          {!detail ? <p className="small muted">Loading</p> : (
+          {!detail ? <SkeletonLines lines={4} /> : (
             <>
               <p className="small muted">{detail.visits} visit{detail.visits === 1 ? '' : 's'} in all, {detail.visits_7d} this week{detail.email ? ` · ${detail.email}` : ''}</p>
               <ol className="lv-events">{detail.events.filter((e) => e.kind !== 'page_leave').map((e, i) => (

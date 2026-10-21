@@ -25,13 +25,13 @@ export function ContactForm({ reply }: { reply: string }) {
       <div className="field"><label className="label" htmlFor="ct-topic">What is it about?</label>
         <select className="select" id="ct-topic" name="topic" defaultValue={topic}>{TOPICS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
       <div className="field-row">
-        <Field id="ct-name" label="Your name" error={e.name}><input className="input" id="ct-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('ct-name', e.name)} onInput={() => clear('name')} /></Field>
-        <Field id="ct-email" label="Email" error={e.email}><input className="input" id="ct-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('ct-email', e.email)} onInput={() => clear('email')} /></Field>
+        <Field float id="ct-name" label="Your name" error={e.name}><input className="input" placeholder=" " id="ct-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('ct-name', e.name)} onInput={() => clear('name')} /></Field>
+        <Field float id="ct-email" label="Email" error={e.email}><input className="input" placeholder=" " id="ct-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('ct-email', e.email)} onInput={() => clear('email')} /></Field>
       </div>
-      <Field id="ct-phone" label="Phone" optional error={e.phone}><input className="input" id="ct-phone" name="phone" type="tel" autoComplete="tel" aria-invalid={!!e.phone || undefined} aria-describedby={describedBy('ct-phone', e.phone)} /></Field>
-      <Field id="ct-ref" label="Booking or request number" optional error={e.ref}><input className="input" id="ct-ref" name="ref" /></Field>
-      <Field id="ct-msg" label="Message" error={e.message}>
-        <textarea className="textarea" id="ct-msg" name="message" defaultValue={car ? `About the car: ${car}\n` : ''} aria-invalid={!!e.message || undefined} aria-describedby={describedBy('ct-msg', e.message)} onInput={() => clear('message')} />
+      <Field float id="ct-phone" label="Phone" optional error={e.phone}><input className="input" placeholder=" " id="ct-phone" name="phone" type="tel" autoComplete="tel" aria-invalid={!!e.phone || undefined} aria-describedby={describedBy('ct-phone', e.phone)} /></Field>
+      <Field float id="ct-ref" label="Booking or request number" optional error={e.ref}><input className="input" placeholder=" " id="ct-ref" name="ref" /></Field>
+      <Field float id="ct-msg" label="Message" error={e.message}>
+        <textarea className="textarea" placeholder=" " id="ct-msg" name="message" defaultValue={car ? `About the car: ${car}\n` : ''} aria-invalid={!!e.message || undefined} aria-describedby={describedBy('ct-msg', e.message)} onInput={() => clear('message')} />
       </Field>
       <Turnstile action="contact" />
       <button className="btn btn--primary btn--lg" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send message'}</button>

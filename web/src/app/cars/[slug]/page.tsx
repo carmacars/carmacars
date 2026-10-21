@@ -205,8 +205,8 @@ export default async function CarPage({ params }: Params) {
           <section id="included" className="car-sec" aria-labelledby="h-inc">
             <h2 className="d2" id="h-inc">Kilometres and deposit</h2>
             <div className="twofacts">
-              <div><p className="twofacts__n num">{c.km_allowance_per_day} km</p><h3>included each day</h3><p className="muted small">Your allowance is {c.km_allowance_per_day} km times the days you book, used however you like across the trip. Past that it is {money(c.overage_cents_per_km, { cents: true })} a kilometre.</p></div>
-              <div><p className="twofacts__n num">{money(c.deposit_cents)}</p><h3>deposit before pickup</h3><p className="muted small">{F('Taken about {{depLead}} before pickup, never when you book. A card hold for rentals of {{holdDays}} days or less, charged and refunded for longer ones. We release the balance within {{releaseDays}} after return.')}</p></div>
+              <div><p className="twofacts__n num" data-count>{c.km_allowance_per_day} km</p><h3>included each day</h3><p className="muted small">Your allowance is {c.km_allowance_per_day} km times the days you book, used however you like across the trip. Past that it is {money(c.overage_cents_per_km, { cents: true })} a kilometre.</p></div>
+              <div><p className="twofacts__n num" data-count>{money(c.deposit_cents)}</p><h3>deposit before pickup</h3><p className="muted small">{F('Taken about {{depLead}} before pickup, never when you book. A card hold for rentals of {{holdDays}} days or less, charged and refunded for longer ones. We release the balance within {{releaseDays}} after return.')}</p></div>
             </div>
           </section>
 

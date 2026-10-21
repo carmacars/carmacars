@@ -191,8 +191,10 @@ export function Checklist({ j }: { j: FieldJob }) {
   return (
     <div className="fd-screen" data-testid="checklist">
       <p className="pt-kicker">Step {step + 1} of {screens.length}</p>
-      <h2 className="d3" data-testid="step-title">{s.title}</h2>
-      {s.body}
+      <div className="fd-screen" data-step-panel key={step}>
+        <h2 className="d3" data-testid="step-title">{s.title}</h2>
+        {s.body}
+      </div>
       {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
       <div className="fd-bar">
         {step > 0 && <button className="btn btn--ghost" type="button" onClick={() => { setMsg(null); setStep((n) => n - 1); }}>Back</button>}

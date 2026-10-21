@@ -1,4 +1,5 @@
 'use client';
+import { SkeletonLines } from '@/components/Skeleton';
 import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -114,7 +115,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
     catch (e) { setNote(e instanceof Error ? e.message : 'That did not work'); }
     setBusy(false);
   };
-  if (!t) return <div className="lc-thread"><p className="small muted">Loading</p></div>;
+  if (!t) return <div className="lc-thread"><SkeletonLines lines={4} title /></div>;
   const c = t.chat;
   const s = t.session;
   const quote = portal === 'va' ? '/va/quotes/new' : '/admin/bookings/new';

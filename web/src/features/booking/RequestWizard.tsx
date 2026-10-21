@@ -136,6 +136,8 @@ export function RequestWizard(p: WizardProps) {
     return true;
   }
   function show(n: number) {
+    // the step that appears comes in from the side it is on (src/styles/motion.css)
+    form.current?.setAttribute('data-dir', n < step ? 'back' : 'next');
     setStep(n);
     requestAnimationFrame(() => {
       const h = form.current?.querySelector<HTMLElement>(`[data-step="${n}"] h2`); h?.focus({ preventScroll: true });
