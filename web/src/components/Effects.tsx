@@ -115,17 +115,21 @@ export function Effects() {
     };
     const scan = () => {
       const h = vh();
+      // read every position first, then write the classes (no forced layout between reads)
+      const w = window.innerWidth || h;
+      const later: HTMLElement[] = [];
       document.querySelectorAll<HTMLElement>(REVEAL).forEach((el) => {
         if (done.has(el)) return; done.add(el);
         if (el.closest('dialog, .popover, .filters, .menu-panel, [hidden]')) return;
         const r = el.getBoundingClientRect();
         // below the fold only, and never a card off to the side (a horizontal rail: it would wait for good)
-        if (r.top > h && r.height > 0 && r.left < (window.innerWidth || h) && r.right > 0) { el.classList.add('rv'); io.observe(el); }
+        if (r.top > h && r.height > 0 && r.left < w && r.right > 0) later.push(el);
       });
       document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
         if (done.has(el)) return; done.add(el);
         if (el.getBoundingClientRect().top > h) io.observe(el);
       });
+      later.forEach((el) => { el.classList.add('rv'); io.observe(el); });
       document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => {
         if (done.has(img)) return; done.add(img);
         if (img.complete) return;
@@ -136,7 +140,9 @@ export function Effects() {
     };
     let raf = 0;
     const later = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; scan(); }); };
-    scan();
+    // the first scan when the browser is idle: off the hydration's main-thread work (only what is below the fold changes)
+    const ric = typeof window.requestIdleCallback === 'function';
+    const idle = ric ? window.requestIdleCallback(scan, { timeout: 600 }) : setTimeout(scan, 150);
     const mo = new MutationObserver(later);
     const main = document.getElementById('main');
     if (main) mo.observe(main, { childList: true, subtree: true });
@@ -150,7 +156,7 @@ export function Effects() {
     }); };
     window.addEventListener('scroll', net, { passive: true });
     window.addEventListener('resize', net, { passive: true });
-    return () => { io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(sraf); window.removeEventListener('scroll', net); window.removeEventListener('resize', net); };
+    return () => { if (ric) window.cancelIdleCallback(idle as number); else clearTimeout(idle as ReturnType<typeof setTimeout>); io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(sraf); window.removeEventListener('scroll', net); window.removeEventListener('resize', net); };
   }, [path]);
 
   // ripple from the pointer on buttons
