@@ -13,6 +13,7 @@ address, and stand-in images drawn by the same studio system as the samples, wit
 | Blurb | One short human sentence | Two robotic paragraphs, "kept in Pickering" twice | A short blurb in the samples' voice, nothing about where the car is kept |
 | About section | None | "About this Malibu" (highlights that were specs, Good for, What's included) and an "About" link in the page menu | Not shown, for any car |
 | Features ("In this car") | Six selling features | "5 seats", "Continuously Variable Transmission", "Gas fuel", "FWD drivetrain" | Six selling features from the VIN decode and the trim |
+| Classes | "Standard, Sedan" | "Standard" | The class of its body joins by itself (sedan, SUV, van, pickup, coupe, convertible) |
 | Key specs | Gearbox "Auto" | Gearbox "Continuously Variable Transmission (CVT)" | "Auto" for every automatic |
 | Spec table | Body "Sedan", Drive "Front-wheel drive" | Body "Sedan/Saloon", Drive "FWD/Front-Wheel Drive" | The samples' words, stored that way |
 | What you need | The table | An extra bullet list repeating the table | The table |

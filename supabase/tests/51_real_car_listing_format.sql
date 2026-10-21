@@ -29,6 +29,8 @@ select test.eq('other decoder words', concat_ws('|', app.listing_norm_body('Spor
   app.listing_norm_body('Pickup'), app.listing_norm_transmission('Automatic'), app.listing_norm_transmission('Manual/Standard'), app.listing_norm_drive('AWD/All-Wheel Drive'),
   app.listing_norm_drive('4WD/4-Wheel Drive/4x4')), 'SUV|Hatchback|Pickup truck|Automatic|Manual|All-wheel drive|Four-wheel drive');
 
+select test.eq('and the class of its body, as the samples show it', array_to_string(app.vehicle_class_list(test.id('vehicle:RFM1')), ','), 'standard,sedan');
+
 -- ================================================================ 2. the equipment the features may name
 select test.eq('known: the decoder''s standard items, the age rules and the basics, in order (never an optional item)',
   (select string_agg(x, ', ') from jsonb_array_elements_text(app.vehicle_equipment(test.id('vehicle:RFM1')) -> 'known') x),
