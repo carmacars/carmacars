@@ -188,7 +188,7 @@ test('Assistant (VA): an assistant cannot reach an Admin\'s action; Finance-only
   await sql.end();
 });
 
-test('Paused: the assistant rests until tomorrow; a visitor\'s live chat goes to a person, never an error', async ({ browser }) => {
+test('Paused: the assistant rests until tomorrow, never an error', async ({ browser }) => {
   test.setTimeout(300_000);
   const sql = db();
   await neurons(sql, 10_500);
@@ -199,12 +199,19 @@ test('Paused: the assistant rests until tomorrow; a visitor\'s live chat goes to
   await askIt(page, 'What needs doing today?');
   await expect(page.getByTestId('assistant-paused')).toHaveText('The assistant is unavailable until tomorrow (daily included usage reached). Everything still works from the screens and pop-ups.');
   await check(page, 'assistant paused');
+  await page.context().close();
+  await neurons(sql, 0);
+  await sql.end();
+});
 
+test('Paused: a visitor\'s live chat goes to a person with "Our assistant is resting", never an error', async ({ browser }) => {
+  test.setTimeout(300_000);
+  const sql = db();
+  await neurons(sql, 10_500);
   const v = await ctx(browser);
   // a visitor who accepted analytics, as in live-chat.spec.ts (the chat comes with the beacon's answer)
-  await v.goto('/', { waitUntil: 'networkidle' });
-  await v.getByRole('button', { name: 'Accept all' }).first().click();
   await v.goto('/cars/toyota-corolla', { waitUntil: 'networkidle' });
+  await v.getByRole('button', { name: 'Accept all' }).first().click();
   await expect(v.getByTestId('chat-open')).toBeVisible({ timeout: 30_000 });
   await v.getByTestId('chat-open').click();
   await v.getByLabel('Your message').fill('Is the Corolla automatic?');
