@@ -184,8 +184,13 @@ def build():
         f'Coverage for damage to the car: add what your option asks for, then press {B("Upload proof")}.',
     ], shot=S('renter/09-verify-desktop', 0, 280, 1440, 1440,
               pins=[(2, 267, 1012), (3, 720, 991), (4, 1170, 991), (5, 720, 1382)]), fig_w=6.2)
-    g.tip('For Option 1, add the policy page or insurer letter that shows OPCF 27. For Option 2 (your credit card coverage), add the card issuer, the last four digits and the card benefits '
-          'certificate; it must be the card you paid with. For Option 3, we send the Protection Plan\'s terms and activate it once it is paid. We delete licence and face photos 90 days after your rental ends.')
+    g.table([
+        ['Option 1, OPCF 27 on your own policy', 'Your insurer, the policy number and its expiry (after your return date), and the policy or endorsement that shows OPCF 27, as a PDF or photos (up to 6 pages).'],
+        ['Option 2, your credit card\'s rental coverage', 'Pay with that card: it must be a credit card (debit and prepaid cards are refused) in your name. Tick that it covers this kind of car for this many days. The card\'s benefits document is optional.'],
+        ['Option 3, the CarmaCars Protection Plan', 'Ask for it on your booking; we confirm it once it is active.'],
+    ], head=['Your option', 'What we need'])
+    g.tip('A person checks your proof and approves it, or tells you what to fix. The car is handed over only once it is approved. Changing your option replaces the earlier proof. '
+          'We remind you 48 and 24 hours before pickup while it is missing. We delete licence and face photos 90 days after your rental ends.')
 
     g.task('Additional drivers', 'Each additional driver signs the agreement with their own link.')
     g.steps([

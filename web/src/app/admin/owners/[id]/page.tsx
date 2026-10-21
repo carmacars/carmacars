@@ -85,10 +85,10 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
                 ['Declined', v.onboarding.decline_reason ?? '']]} />
               {v.onboarding.pending_terms && (
                 <div className="ow-warn"><b>Terms waiting for your approval</b>
-                  <span>{money(v.onboarding.pending_terms.insurance_fee_cents)} insurance, {money(v.onboarding.pending_terms.tracker_fee_cents)} tracker, {pct(v.onboarding.pending_terms.revenue_share_bps)} share, {money(v.onboarding.pending_terms.install_fee_cents)} install, {MODE_LABEL[v.onboarding.pending_terms.management_mode]}</span>
+                  <span>{money(v.onboarding.pending_terms.insurance_fee_cents)} insurance, {money(v.onboarding.pending_terms.tracker_fee_cents)} tracker, {pct(v.onboarding.pending_terms.revenue_share_bps)} management fee (Revenue Share), {money(v.onboarding.pending_terms.install_fee_cents)} install, {MODE_LABEL[v.onboarding.pending_terms.management_mode]}</span>
                   <PendingTerms ownerId={o.id} vehicleId={v.vehicle_id} /></div>
               )}
-              {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} Revenue Share, {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
+              {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} management fee (Revenue Share), {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
               {TERMS_OPEN.includes(v.onboarding.status) && !v.is_shareholder_owned && (
                 <details open={!v.schedule}><summary className="link">{v.schedule ? 'Change the terms' : 'Set the terms'}</summary>
                   <TermsForm ownerId={o.id} vehicleId={v.vehicle_id} standard={v.standard} mode={v.schedule?.management_mode ?? v.onboarding.proposed_management_mode ?? 'managed'}

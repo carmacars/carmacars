@@ -163,7 +163,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         {!facts.admin && <p className="small muted">An Admin checks these and approves; they are your proposal.</p>}
         {v.management_mode !== 'turo_only' && (<>
           <div className="ad-fields ob-terms">
-            {([['ins', 'Insurance Fee a month ($)'], ['trk', 'Tracker Fee a month ($)'], ['share', 'Revenue Share (%)'], ['inst', 'Install Fee ($)'], ['fl', 'First and last month amount ($)']] as Array<[string, string]>).map(([k, l]) => (
+            {([['ins', 'Insurance Fee a month ($)'], ['trk', 'Tracker Fee a month ($)'], ['share', 'Management fee (Revenue Share) (%)'], ['inst', 'Install Fee ($)'], ['fl', 'First and last month amount ($)']] as Array<[string, string]>).map(([k, l]) => (
               <div key={k} className="field"><label className="label" htmlFor={`${uid}-t-${k}`}>{l}</label>
                 <input className="input" id={`${uid}-t-${k}`} inputMode="decimal" value={terms[k] ?? ''} data-testid={`addcar-terms-${k}`}
                   onChange={(e) => { const val = e.target.value; const nt = { ...terms, [k]: val }; if (k === 'ins' && terms.fl === dollars(toCents(terms.ins!) * 2)) nt.fl = dollars(toCents(val) * 2); setTerms(nt); if (k === 'fl' || nt.fl !== terms.fl) setFl({ ...fl, amount: nt.fl! }); }} /></div>))}
