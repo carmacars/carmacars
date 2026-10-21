@@ -7,14 +7,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   allowedNumbers, articleProblems, carCopyProblems, inventedNumbers, normalizeArticle, normalizeCarCopy, normalizePageCopy, numbersIn,
-  pageCopyProblems, similarity, styleProblems, carUserPrompt, plainDraft, LIMITS, type CarCopy
+  pageCopyProblems, similarity, styleProblems, carUserPrompt, plainDraft, plainBlurb, carFixed, fillHighlights, LIMITS, type CarCopy
 } from './copy.ts';
 import { runSeoJob, type SeoClaim } from './worker.ts';
 import { fakeCarCopy, fakeText } from '../../integrations/llm/fake.ts';
 import type { TextGenerator } from '../../integrations/llm/types.ts';
 
 export const FACTS = {
-  car: { year: 2022, make: 'Chevrolet', model: 'Malibu', trim: 'LS', colour: 'Black', body_style: 'Sedan', seats: 5, doors: 4, fuel: 'Gas', transmission: 'Automatic', drivetrain: 'Front-wheel drive', classes: ['Standard', 'Sedan'] },
+  car: { year: 2022, make: 'Chevrolet', model: 'Malibu', trim: 'LS', colour: 'Black', body_style: 'Sedan', seats: 5, doors: 4, fuel: 'Gas', transmission: 'Automatic', drivetrain: 'Front-wheel drive', classes: ['Standard', 'Sedan'],
+    equipment_known: ['Backup camera', 'Push-button start', 'Turbocharged engine', 'Automatic high beams', 'LED headlights', 'Bluetooth', 'Air conditioning'], equipment_maybe: ['Apple CarPlay and Android Auto', 'Heated front seats'] },
   prices: { daily: '$69', weekend_day: '$79', weekly: '$420', monthly: '$1,450', monthly_days: 30, km_per_day: 250, extra_km: '$0.35', deposit: '$500', delivery_fee: '$60', return_pickup_fee: '$60', tax: 'HST 13% added' },
   place: { area: 'Pickering', city: 'Toronto', region: 'Ontario', delivery: "Delivered to any address for the car's delivery fee", airports: ['Toronto Pearson International Airport', 'Billy Bishop Toronto City Airport'], pickup: 'Collect it at our location at no charge, or have it delivered' },
   rules: { min_age: 18, young_driver_fee_ages: ['21 to 25'], drivers_18_to_20: false, licence: 'Ontario G or G2 licence', card: "A credit card in the renter's name", identity: 'Licence and identity checked before pickup', max_rental_days: 30, request: 'Request to book with no payment; pay after we confirm' },
@@ -57,7 +58,7 @@ test('car copy: a number not in the facts, equipment, economy or condition not i
   assert.match(p, /condition/);
   // the same equipment is fine when the facts list it
   const withEq = { ...FACTS, car: { ...FACTS.car, equipment: ['Heated seats', 'Apple CarPlay'] } };
-  assert.doesNotMatch(carCopyProblems({ ...good(), highlights: [...good().highlights.slice(0, 3), 'Heated seats and Apple CarPlay'] }, withEq).join(' | '), /equipment/);
+  assert.doesNotMatch(carCopyProblems({ ...good(), highlights: [...good().highlights.slice(0, 3), 'Heated seats and Apple CarPlay'] }, withEq).join(' | '), /do not claim equipment/);
 });
 
 test('car copy: the Protection Plan wording, the numbered company and private details are refused', () => {
@@ -112,8 +113,28 @@ test('plain draft (listing pipeline, no model) passes the listing lint ranges of
   const d = plainDraft({ year: 2021, make: 'Kia', model: 'Rio', seats: 5, transmission: 'automatic', fuel: 'gasoline', body_style: 'Hatchback', colour: 'Red', home_area: 'Etobicoke' });
   assert.ok(d.headline.length >= 20 && d.headline.length <= 70);
   const w = d.description.split(/\s+/).length;
-  assert.ok(w >= 40 && w <= 160, String(w));
+  assert.ok(w >= 8 && w <= 40, String(w));        // the sample cars' short blurb (0073)
+  assert.match(d.headline, /^2021 Kia Rio for rent in Toronto$/);
+  assert.doesNotMatch(d.description, /Etobicoke|kept in/);
   assert.ok(d.features.length >= 3 && d.faq.length >= 3);
+});
+
+test('car copy v2 (0073): the samples\' format: headline, short blurb, six offered features, nothing about where the car is kept', () => {
+  const f = carFixed(FACTS);
+  assert.equal(f.h1, '2022 Chevrolet Malibu LS for rent in Toronto');
+  assert.ok(f.seo_title.length <= 60 && f.meta_description.length >= 90 && f.meta_description.length <= 155, f.meta_description);
+  assert.doesNotMatch(f.pickup_delivery, /Pickering|kept/);
+  assert.deepEqual(fillHighlights(['Apple CarPlay and Android Auto', 'Leather seats', 'backup camera'], FACTS),
+    ['Apple CarPlay and Android Auto', 'Backup camera', 'Push-button start', 'Turbocharged engine', 'Automatic high beams', 'LED headlights']);
+  const base = { ...good(), ...f, intro: 'Room for five and a proper trunk. Easy to park downtown and quiet on the highway.', highlights: fillHighlights([], FACTS) };
+  assert.deepEqual(carCopyProblems(base, FACTS), []);
+  assert.match(carCopyProblems({ ...base, intro: 'This car is a 2022 Chevrolet Malibu LS. It is black and kept in Pickering.' }, FACTS).join(' | '), /where the car is kept.*This car/);
+  assert.match(carCopyProblems({ ...base, highlights: [...base.highlights.slice(0, 5), '5 seats'] }, FACTS).join(' | '), /word for word.*"5 seats"/);
+  assert.match(carCopyProblems({ ...base, intro: base.intro + ' ' + base.intro + ' ' + base.intro }, FACTS).join(' | '), /intro must be 8 to 40 words/);
+  const p = carUserPrompt(FACTS);
+  assert.match(p, /Room for four adults and their bags/);
+  assert.match(p, /standard on every 2022 Chevrolet Malibu LS sold in Canada/);
+  assert.doesNotMatch(plainBlurb({ make: 'Chevrolet', model: 'Malibu', seats: 5, body_style: 'Sedan' }), /\b(kept|Pickering|This car)\b/);
 });
 
 // ---------------------------------------------------------------- the job
@@ -128,7 +149,7 @@ test('job: a valid answer is published; IndexNow gets the changed addresses', as
   const s = await runSeoJob({ claim: async () => claim(), report: async (r) => { reports.push(r); }, text: fakeText(), tokens: async () => ({}),
     indexNow: async (_k, paths) => { sentTo = paths; return { status: 200 }; }, sent: async () => undefined });
   assert.equal(reports[0]!.ok, true);
-  assert.equal(reports[0]!.prompt_version, 'car-copy-v1');
+  assert.equal(reports[0]!.prompt_version, 'car-copy-v2');
   assert.deepEqual(s.changed, ['/cars/chevrolet-malibu-ab12']);
   assert.deepEqual(sentTo, ['/cars/chevrolet-malibu-ab12']);
   assert.equal(s.indexnow, 1);
