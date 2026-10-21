@@ -26,27 +26,28 @@ do $$
 declare v_job bigint;
 begin
   if to_regclass('cron.job_run_details') is null then return; end if;
-  select jobid into v_job from cron.job order by jobid limit 1;
+  if to_regclass('cron.job') is null then return; end if;
+  execute 'select jobid from cron.job order by jobid limit 1' into v_job;
   if v_job is null then return; end if;
-  delete from cron.job_run_details where jobid = v_job and start_time > now() - interval '2 hours';
-  insert into cron.job_run_details (jobid, runid, job_pid, database, username, command, status, return_message, start_time, end_time)
-  values (v_job, 900001, 0, current_database(), current_user, 'select 1', 'failed', 'job startup timeout', now() - interval '10 minutes', now() - interval '10 minutes'),
-         (v_job, 900002, 0, current_database(), current_user, 'select 1', 'succeeded', '1 row', now() - interval '9 minutes', now() - interval '9 minutes');
+  execute 'delete from cron.job_run_details where jobid = $1 and start_time > now() - interval ''2 hours''' using v_job;
+  execute $i$insert into cron.job_run_details (jobid, runid, job_pid, database, username, command, status, return_message, start_time, end_time)
+  values ($1, 900001, 0, current_database(), current_user, 'select 1', 'failed', 'job startup timeout', now() - interval '10 minutes', now() - interval '10 minutes'),
+         ($1, 900002, 0, current_database(), current_user, 'select 1', 'succeeded', '1 row', now() - interval '9 minutes', now() - interval '9 minutes')$i$ using v_job;
 end $$;
 create or replace function pg_temp.jobs_detail() returns text language plpgsql as $f$
 begin
-  if to_regclass('cron.job_run_details') is null or not exists (select 1 from cron.job) then return null; end if;
+  if to_regclass('cron.job_run_details') is null or to_regclass('cron.job') is null then return 'no-cron'; end if;
+  if not exists (select 1 from cron.job) then return 'no-cron'; end if;
   perform app.uptime_internal();
   return (select detail from uptime_results where check_key = 'jobs' order by at desc, id desc limit 1);
 end $f$;
 select test.eq('a run that could not start, then ran, is not reported',
-  case when to_regclass('cron.job_run_details') is null then 'quiet' when coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'quiet');
+  case when coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'quiet');
 do $$
 begin
   if to_regclass('cron.job_run_details') is null then return; end if;
-  delete from cron.job_run_details where runid = 900002;
+  execute 'delete from cron.job_run_details where runid = 900002';
 end $$;
-select test.eq('a run that could not start with no good run since is reported',
-  case when to_regclass('cron.job_run_details') is null or not exists (select 1 from cron.job) then 'reported'
-       when coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'reported');
-do $$ begin if to_regclass('cron.job_run_details') is not null then delete from cron.job_run_details where runid = 900001; end if; end $$;
+select test.eq('a run that could not start with no good run since is reported (or pg_cron is not installed here)',
+  case when pg_temp.jobs_detail() = 'no-cron' or coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'reported');
+do $$ begin if to_regclass('cron.job_run_details') is not null then execute 'delete from cron.job_run_details where runid = 900001'; end if; end $$;
