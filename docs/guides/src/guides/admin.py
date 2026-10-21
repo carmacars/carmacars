@@ -292,7 +292,7 @@ def build():
     g.steps([
         'Type the four rates. Only the daily rate is needed: an empty weekend rate is the daily rate, an empty weekly rate is 6 days at the daily rate, and an empty monthly rate is 22 days.',
         f'Kilometres: keep {B("Use the defaults")} (the kilometres a day in Settings, Kilometre choices, and the extra kilometre rate in Fee defaults for the car\'s class), or choose {B("Custom for this car")} and type them.',
-        'Check the deposit (the class default is filled in), and the delivery and pickup fees (0: not offered).',
+        'Check the deposit (the class default is filled in), and the delivery and pickup fees: each is one way, an empty pickup fee is the delivery fee, and 0 means not offered.',
         f'Read What renters pay under the fields: real prices for a weekend, a few weekdays, a week and a month, worked out the way bookings are priced. Press {B("Save the rates")}.',
     ])
     g.table([
@@ -489,6 +489,19 @@ def build():
     g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready). '
            'The confirmations to tick, then one signature: CarmaCars countersigns at the same moment, under the signing officer\'s standing authorization. '
            'A car with a second owner on the ownership waits for that owner too: they get their own link by email and sign the same documents.')
+    g.task('A shareholder\'s own car', f'On the owner\'s page, each car has {B("Shareholder\u2019s own car")}.')
+    g.steps([
+        'A shareholder\'s own car is split 90/10 (the share in Program settings) and pays no Insurance Fee, Tracker Fee, first and last month or tracker install.',
+        f'Press {B("Shareholder\u2019s own car")}, say why (it is kept in the audit log) and confirm. Press it again to undo. Bookings already made keep their split.',
+        'A first and last month or a tracker install invoice is refused for such a car, from any screen.',
+    ])
+    g.task('Cancellation refunds', f'{P("Settings", "Program")}: the refund for each cancellation tier.')
+    g.table([
+        ['Within 24 hours of booking, 48 hours or more before the start', '95%'],
+        ['48 hours or more before the start', '75%'],
+        ['24 to 48 hours before the start', '50%'],
+        ['Under 24 hours, or after the start', '0%'],
+    ], head=['When the renter cancels', 'Refund (default)'])
     g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
         'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',
@@ -863,6 +876,7 @@ def build():
     ])
     g.task('The money')
     g.bullets([
+        f'An add-on a renter adds with no card on file waits for payment: the renter pays it on the booking ({B("Pay for your add-ons")}), and the Finance task closes by itself. Paid another way, record it on the booking.',
         'Add-on revenue is CarmaCars\' own: never Owner Revenue or a partner\'s share, and never in a commission or kickback base.',
         'The company statement shows Add-ons as its own income line (account 4150).',
         'A cancellation refunds add-ons by the booking\'s tier, except one marked Not refunded once its notice has started.',

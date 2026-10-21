@@ -207,6 +207,7 @@ def build():
         f'Press {B("Add and pay")}. It is charged at once on the card you paid with, and shows on your booking and receipt.',
         f'A chauffeur needs our confirmation: press {B("Ask for it")}. We confirm it and charge your card then.',
     ])
+    g.para(f'No card on file for this booking? The add-on is added and waits for payment: press {B("Pay for your add-ons")} under Add-ons, enter a card and press {B("Pay")}. It is charged at once; that card is not kept.')
     g.tip('If you cancel, add-ons are refunded like the rest of your booking. Flowers and a chauffeur are not refunded once their notice before pickup has started.')
 
     g.task('What to bring to pickup')
