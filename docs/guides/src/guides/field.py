@@ -156,7 +156,7 @@ def build():
 
     g.task('Add a rental for a renter you found', 'Your home address must be in your profile first: until it is, the page asks for it.')
     g.steps([
-        f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email.',
+        f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email. Car already out with the renter? Enter the pickup as when it left: it is recorded as on trip.',
         f'Press {B("Check the calendar and the price")}. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.',
         f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. You never take payment yourself.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}, then press {B("Add the rental")}.',

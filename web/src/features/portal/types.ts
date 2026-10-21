@@ -40,6 +40,15 @@ export interface MyBooking extends BookingSummary {
   refunds: Array<{ id: string; amount_cents: number; status: string; created_at: string }>;
   statements: Array<Record<string, unknown>>;
   readiness: Readiness | null;
+  /** A rental staff added by hand (0046), live: confirmed, or on trip since it was added while already underway (0074). */
+  added_by_staff?: boolean; added_live?: boolean; added_mode?: string | null;
+  /** A rental added while underway with a payment link, waiting for the online payment after signing (0074). */
+  link_due?: boolean;
+}
+
+/** A live rental staff added by hand: the renter signs it with no payment step before it (0046, 0074). */
+export function addedLive(b: { added_by_staff?: boolean; added_live?: boolean; status: string }): boolean {
+  return b.added_live ?? (!!b.added_by_staff && b.status === 'confirmed');
 }
 
 export interface Profile {

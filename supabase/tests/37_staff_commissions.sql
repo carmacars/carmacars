@@ -87,7 +87,7 @@ select test.throws('custom price: a reason is needed', format($$select app.door(
 select test.throws('assistant: the Deposit is still an Admin''s', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create',
   test.s37r(test.s37v('car3'), interval '3 days', interval '5 days', '{"sales_choice": "sourced", "deposit_cents": 0}'))$$, test.id('sc_fleet')), 'Deposit');
 select test.throws('field staff: take no payment themselves', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create',
-  test.s37r(test.s37v('car3'), interval '3 days', interval '5 days', '{"sales_choice": "sourced", "payment": {"mode": "other_way", "method": "cash"}}'))$$, test.id('sc_field')), 'for an Admin');
+  test.s37r(test.s37v('car3'), interval '3 days', interval '5 days', '{"sales_choice": "sourced", "payment": {"mode": "other_way", "method": "cash"}}'))$$, test.id('sc_field')), 'Choose one of the ways shown under Payment');
 select test.throws('field staff: do not search renters', format($$select app.door(%L, 'aal2', 'ops_read', 'manual_rental_renters', '{"q": "sc_r"}')$$, test.id('sc_field')), 'renter''s details');
 insert into s37 select 'field1', app.door(test.id('sc_field'), 'aal2', 'ops_do', 'manual_rental_create',
   test.s37r(test.s37v('car3'), interval '3 days', interval '5 days', '{"sales_choice": "sourced"}') - 'renter_id'

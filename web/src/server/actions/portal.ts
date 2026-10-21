@@ -7,7 +7,7 @@ import { payments, fakeOnly } from '@/integrations/payments';
 import { storage, type Bucket } from '@/integrations/storage';
 import { consents, CONSENT_VERSION, consentLine, SIGN_STATEMENT } from '@/features/agreement/model';
 import { bookingPath } from '@/features/portal/status';
-import type { MyBooking } from '@/features/portal/types';
+import { addedLive, type MyBooking } from '@/features/portal/types';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
@@ -106,7 +106,7 @@ export async function saveDetails(number: string, d: DetailsInput): Promise<R> {
   try {
     const { userId, b } = await mine(number);
     await rpc('renter_save_details', { p_by: userId, p_booking: b.id, p_details: { ...d, licence_number: d.licence_number.toUpperCase() } }, SR);
-    const added = !!(b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
+    const added = addedLive(b);
     if ((b.status === 'pending_payment' || added) && b.agreement?.status === 'open') await openAgreement(b.id, userId);
     refresh(number);
     return { ok: true, data: null };
@@ -163,7 +163,7 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     }, SR);
     // a rental staff added by hand with the saved card (the legal review, 0053): the card is charged now, on "Accept and
     // sign", exactly as the amendment flow does (the key is the booking's, so it is never charged twice)
-    const added = (b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
+    const added = addedLive(b);
     let declined: string | null = null;
     if (added) declined = await chargeAddedRental(b.id, number, userId);
     // a rental staff added is confirmed already, so no payment step files the signed copy: file it now (the signed PDF
@@ -171,8 +171,9 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     if (added) { try { await attachSignedCopy(b.id, userId); } catch (e) { console.error('signed copy', e); } }
     refresh(number);
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');
-    // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned
-    target = added ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
+    // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned; one added
+    // while already underway with a payment link (0074) goes on to pay online
+    target = added && !b.link_due ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
   } catch (e) { return fail(dbMessage(e)); }
   redirect(target);
 }
@@ -229,7 +230,8 @@ export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string;
 export async function startPayment(number: string): Promise<R<StartedPayment>> {
   try {
     const { b } = await mine(number);
-    if (b.status !== 'pending_payment') return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
+    // a rental added while already underway with a payment link (0074) is paid here too, on trip
+    if (b.status !== 'pending_payment' && !b.link_due) return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
     const f = await paymentFacts(b.id);
     if (!f.agreement_signed) return fail('Sign the rental agreement first.', 'unsigned');
     if (f.renter_due_at_booking_cents <= 0) return fail('Nothing is due now. We will confirm the booking on your signature.', 'nothing_due');
@@ -454,7 +456,7 @@ export async function createUpload(number: string, kind: Kind, driverId: string 
     if (!KINDS.includes(kind)) return fail('Unknown upload.');
     if (!TYPES[contentType] || (contentType === 'application/pdf' && kind !== 'coverage_proof')) return fail(kind === 'coverage_proof' ? 'Upload a photo or a PDF.' : 'Upload a photo (JPEG or PNG).');
     if (!(size > 0 && size <= MAX_BYTES)) return fail('The file must be under 10 MB.');
-    if (!['pending_payment', 'confirmed'].includes(b.status)) return fail('Documents are uploaded once the offer is approved.');
+    if (!['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) return fail('Documents are uploaded once the offer is approved.');
     if (kind === 'coverage_proof' ? driverId !== null : !b.drivers.some((d) => d.driver_id === driverId)) return fail('That driver is not on this booking.');
     const bucket: Bucket = kind === 'coverage_proof' ? 'documents' : 'identity';
     const key = `renters/${userId}/${b.id}/${kind}-${driverId ?? 'booking'}-${crypto.randomUUID()}.${TYPES[contentType]}`;

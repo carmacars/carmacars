@@ -104,7 +104,7 @@ select test.throws('clash: the car is not free (the turnaround included)',
   'not free for these dates');
 select test.throws('clash: customer service never adds over a clash',
   format($$select app.manual_rental_create(%L, test.smr(%L, interval '3 days', interval '4 days', '{"clash_reason": "VIP", "payment": {"mode": "link"}}'))$$, test.id('sm_cs'), test.smv('company_car')),
-  'Admin decides on a clash');
+  'ask an Admin to add it over the clash');
 insert into sm select 'r_clash', app.manual_rental_create(test.id('sm_admin'), test.smr(test.smv('company_car'), interval '3 days', interval '4 days',
   '{"clash_reason": "Same family, sharing the car", "payment": {"mode": "unpaid"}, "renter_id": null, "renter": {"full_name": "Sm Newcomer", "email": "sm.new@example.test", "mobile": "647-555-0111", "date_of_birth": "1985-02-02", "licence_number": "N1234-56789-01234"}}'));
 select test.eq('clash: an Admin''s rental over a real overlap is stored, not blocking, with the reason',
@@ -116,11 +116,11 @@ select test.ok('new renter: made with the licence, as a driver on the booking',
 select test.throws('assistant: a price typed by hand needs its reason (0058: any staff member may type one)', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"rental_charge_cents": 100, "payment": {"mode": "link"}}'))$$,
   test.id('sm_cs'), test.smv('partner_car')), 'needs its reason');
 select test.throws('assistant: unpaid is not one of their ways (setting)', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '11 days', '{"payment": {"mode": "unpaid"}}'))$$,
-  test.id('sm_cs'), test.smv('partner_car')), 'for an Admin');
+  test.id('sm_cs'), test.smv('partner_car')), 'Choose one of the ways shown under Payment');
 select test.throws('assistant: over the single limit, an Admin records it', format($$select app.manual_rental_create(%L, test.smr(%L, interval '10 days', interval '16 days', '{"payment": {"mode": "other_way", "method": "cash"}}'))$$,
   test.id('sm_cs'), test.smv('partner_car')), 'single limit');
 select test.throws('assistant: no past rental', format($$select app.manual_rental_create(%L, test.smr(%L, interval '-10 days', interval '-9 days', '{"past": true, "payment": {"mode": "unpaid"}}'))$$,
-  test.id('sm_cs'), test.smv('partner_car')), 'for an Admin');
+  test.id('sm_cs'), test.smv('partner_car')), 'Only an Admin can record a rental that has already ended');
 select test.throws('finance adds rentals too (0058), choosing "I sourced this client" or "Entered for CarmaCars" at the door', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create', test.smr(%L, interval '10 days', interval '11 days', '{"payment": {"mode": "link"}}'))$$,
   test.id('sm_fin'), test.smv('partner_car')), 'I sourced this client');
 -- an assistant sends a payment link on the partner car: the standard flow (offer approved, signing and payment online)
@@ -189,9 +189,9 @@ select test.eq('past: the split pays the partner what is left after the commissi
   (select s.company_share_bps || '/' || s.owner_payout_cents || '/' || (s.owner_revenue_cents - s.company_share_cents) from booking_splits s where s.booking_id = (test.smb('r_past')).id),
   (select '1800/' || (r - public.calc_bps(r, 1800)) || '/' || (r - public.calc_bps(r, 1800)) from (select (test.smb('r_past')).rental_charge_cents as r) x));
 select test.throws('past: the return must be in the past', format($$select app.manual_rental_create(%L, test.smr(%L, interval '-1 day', interval '1 day', '{"past": true, "payment": {"mode": "unpaid"}}'))$$,
-  test.id('sm_admin'), test.smv('partner_car')), 'return in the past');
+  test.id('sm_admin'), test.smv('partner_car')), 'the return must already have happened');
 select test.throws('past: not a payment link', format($$select app.manual_rental_create(%L, test.smr(%L, interval '-9 days', interval '-8 days', '{"past": true, "payment": {"mode": "link"}}'))$$,
-  test.id('sm_admin'), test.smv('partner_car')), 'paid another way or recorded as unpaid');
+  test.id('sm_admin'), test.smv('partner_car')), 'Choose Paid another way or Unpaid');
 -- the partner's statement for that month, and none for the company row
 insert into sm select 'st_partner', to_jsonb(app.build_owner_statement((test.sm('partner') ->> 'owner_id')::uuid, app.month_start(app.local_date((test.smb('r_past')).return_at)), test.id('sm_admin')));
 select test.ok('partner statement: built like an owner''s, with the rental', test.sm('st_partner') is not null

@@ -55,6 +55,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       <Back href="/account">Your trips</Back>
       {sp.changed && <div className="pt-ok" role="status" data-testid="changed-panel"><h2 className="d3">Booking updated</h2><p>Your booking has the new details. The signed amendment is under Documents, and we emailed you a copy.</p></div>}
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
+      {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
       <header className="stack">
         <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} awaiting={awaitingSignature(b)} /><span className="small muted" data-testid="booking-number">{b.booking_number}</span></div>
@@ -123,14 +124,16 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="pt-price"><h2 className="d4" id="pt-price">Price</h2>
-            <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
+            <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.link_due ? 'Due now' : b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
             {b.payments.length > 0 && <Dl rows={b.payments.map((p) => [`${p.purpose.replace(/_/g, ' ')} (${p.status})`, `${money(p.amount_cents, { cents: true })}${p.card_last4 ? `, card ending ${p.card_last4}` : ''}`])} />}
           </section>
           <section className="pt-card" aria-labelledby="pt-act"><h2 className="d4" id="pt-act">Need something else?</h2>
             <div className="pt-actions">
               {b.status === 'offered' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'offer')}>Review the offer</Link>}
               {b.status === 'pending_payment' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign')}>{b.agreement?.renter_signed_at ? 'Pay now' : 'Sign the agreement'}</Link>}
-              {['confirmed', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>Licence and coverage</Link>}
+              {b.status === 'on_rent' && b.added_live && !b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'sign')} data-testid="live-sign">Sign the agreement</Link>}
+              {b.link_due && b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'pay')} data-testid="live-pay">Pay now</Link>}
+              {(['confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>Licence and coverage</Link>}
               {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'change')}>Ask to change dates</Link>}
               {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
               {(b.status === 'on_rent' || b.status === 'confirmed') && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}

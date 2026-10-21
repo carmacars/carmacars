@@ -80,7 +80,9 @@ export interface ManualRentalResult { booking_id: string; booking_number: string
   /** The saved card is charged when the renter signs (the legal review, 0053), never when staff add the rental. */
   charge_on_sign?: boolean;
   /** The choice and a price typed by hand (0058). */
-  sales_choice?: 'sourced' | 'for_carmacars' | null; sales_sourced?: boolean; price_flags?: string[]; rate_sheet_cents?: number | null }
+  sales_choice?: 'sourced' | 'for_carmacars' | null; sales_sourced?: boolean; price_flags?: string[]; rate_sheet_cents?: number | null;
+  /** The case the dates made (0074): upcoming, in progress (on trip) or past (completed); and how it is paid. */
+  phase?: 'upcoming' | 'in_progress' | 'past' | null; payment_mode?: string }
 
 /** Add a rental. With the saved card, nothing is charged here: the renter's "Accept and sign" charges it (0053). */
 export async function createManualRental(p: Record<string, unknown>): Promise<R<ManualRentalResult>> {

@@ -5,6 +5,7 @@ import { money } from '@/lib/format';
 import { consents, when } from '@/features/agreement/model';
 import { AgreementView } from '@/features/agreement/AgreementView';
 import { bookingPath, carName } from '@/features/portal/status';
+import { addedLive } from '@/features/portal/types';
 import { Back } from '@/features/portal/Blocks';
 import { DetailsForm } from '@/features/portal/DetailsForm';
 import { SignForm } from '@/features/portal/SignForm';
@@ -23,10 +24,11 @@ export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/
 export default async function SignPage({ params }: { params: Promise<{ number: string }> }) {
   const { user, b } = await myBooking((await params).number, 'sign');
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
-  // a rental staff added by hand (0046) is confirmed already: the renter signs it with no payment step after
-  const added = !!(b as { added_by_staff?: boolean }).added_by_staff && b.status === 'confirmed';
+  // a rental staff added by hand (0046) is confirmed already: the renter signs it with no payment step after; one added
+  // while already underway (0074) is on trip, signed the same way (with a payment link, paid online after signing)
+  const added = addedLive(b);
   if (b.status !== 'pending_payment' && !added) redirect(bookingPath(b.booking_number));
-  if (b.agreement?.renter_signed_at) redirect(added ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
+  if (b.agreement?.renter_signed_at) redirect(added && !b.link_due ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
   // its agreement is made the first time the renter opens this page (there was no offer to approve)
   if (added && !b.agreement && !(await viewAs())) { await openAgreement(b.id, user.id); redirect(bookingPath(b.booking_number, 'sign')); }
   const facts = await agreementFacts(b.id, user.id);
@@ -48,6 +50,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
         <div><span>Car</span>{carName(b)}</div>
         <div><span>Dates</span>{when(b.pickup_at)} to {when(b.return_at)}</div>
         {!added && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
+        {b.link_due && <div data-testid="sign-pay-after"><span>Paid online after you sign</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         {charge && <div data-testid="sign-charge"><span>Charged when you sign</span>{money(charge.amount_cents, { cents: true })}</div>}
         <div><span>Deposit at pickup</span>{money(b.deposit_cents)}</div>
         <div><span>Deductible</span>{money(b.deductible_cents)}</div>

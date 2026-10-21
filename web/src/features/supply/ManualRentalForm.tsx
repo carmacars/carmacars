@@ -11,12 +11,13 @@ import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/ad
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
 // reason, the promo codes and ways of payment the settings allow, never over a clash, never a past rental; field staff:
 // a payment link or the saved card, the renter's details typed) and refuses with the reason. Staff choose "I sourced
-// this client" or "Entered for CarmaCars".
+// this client" or "Entered for CarmaCars". The dates decide the case (0074): upcoming, already underway (recorded as on
+// trip) or past (an Admin's, kept as completed); the form says which, with nothing to tick.
 type Car = { id: string; name: string; plate: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null;
   has_rates?: boolean; listing_finished?: boolean; listing_status?: string; needs_policy_confirm?: boolean; status?: string };
 type Renter = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; card: { brand: string; last4: string } | null; bookings: number };
 type Line = { description: string; amount_cents: number; hst_cents: number; charge_type: string };
-type Quote = { role: 'admin' | 'va'; free: boolean; clashes: Array<{ kind: string; booking_number?: string; status?: string; starts_at: string; ends_at: string | null; renter?: string; reason?: string; overlaps: boolean }>;
+type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?: string; free: boolean; clashes: Array<{ kind: string; booking_number?: string; status?: string; starts_at: string; ends_at: string | null; renter?: string; reason?: string; overlaps: boolean }>;
   turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
   price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
@@ -29,12 +30,32 @@ const MODE: Record<string, [string, string]> = {
   card: ['Charge the saved card when the renter signs', 'The renter\'s card on file is charged when the renter presses Accept and sign, not before. Until then the rental is awaiting signature.'],
   unpaid: ['Unpaid: invoice later', 'Confirmed now; the balance is collected later.']
 };
+// what each way means for a rental already underway (0074): it is on trip from the start
+const LIVE_MODE: Record<string, string> = {
+  link: 'The renter gets an email to sign the agreement, then pay online from their booking. The rental is on trip already.',
+  card: 'The renter\'s card on file is charged when the renter signs the agreement (Accept and sign). The rental is on trip already.',
+  unpaid: 'Recorded on trip now; the balance is collected later.'
+};
 const SOURCES: Array<[string, string]> = [['phone', 'Phone'], ['walk_in', 'Walk-in'], ['turo', 'Turo'], ['partner', 'Partner'], ['insurer', 'Insurer'], ['email', 'Email'], ['other', 'Other']];
 const pad = (n: number) => String(n).padStart(2, '0');
 const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const iso = (s: string | undefined) => (s ? new Date(s).toISOString() : '');
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 const cents = (s: string) => (s.trim() ? Math.round(Number(s.replace(/[$,\s]/g, '')) * 100) : undefined);
+
+export type Phase = 'upcoming' | 'in_progress' | 'past';
+/** The case the dates make, as the database decides it (app.manual_rental_phase, 0074). */
+export function phaseOf(pickup: string | undefined, ret: string | undefined, now = Date.now()): Phase | null {
+  const a = pickup ? new Date(pickup).getTime() : NaN;
+  const b = ret ? new Date(ret).getTime() : NaN;
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return null;
+  return b <= now ? 'past' : a <= now ? 'in_progress' : 'upcoming';
+}
+const PHASE_NOTE: Record<Phase, string> = {
+  upcoming: 'This rental starts in the future: it is confirmed now and the car is handed over at pickup as usual.',
+  in_progress: 'This rental is already underway: it will be recorded as on trip, picked up at the time you entered. Anything still missing (signature, licence check, coverage proof, deposit, condition report) becomes a task.',
+  past: 'This rental has already ended: it will be recorded as completed, for the history and the statements.'
+};
 
 export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean }) {
   const field = base === '/field';
@@ -43,7 +64,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
     pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) });
-  const [flags, setFlags] = useState({ past: false, do_not_email: false, new_renter: field, policy: false });
+  const [flags, setFlags] = useState({ do_not_email: false, new_renter: field, policy: false });
   // add-ons (0066): the car's, with what is left for the dates; priced in the check below
   const [addons, setAddons] = useState<AddonChoice[]>([]);
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
@@ -63,7 +84,12 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const [done, setDone] = useState<ManualRentalResult | null>(null);
   const [pending, start] = useTransition();
   const set = (k: string) => (e: { target: { value: string } }) => { setF((s) => ({ ...s, [k]: e.target.value })); if (['vehicle_id', 'pickup_at', 'return_at', 'booking_type', 'promo_code', 'coverage_option', 'pickup_method', 'return_method'].includes(k)) setQuote(null); };
-  const flag = (k: keyof typeof flags) => (e: { target: { checked: boolean } }) => { setFlags((s) => ({ ...s, [k]: e.target.checked })); if (k === 'past') setQuote(null); };
+  const flag = (k: keyof typeof flags) => (e: { target: { checked: boolean } }) => { setFlags((s) => ({ ...s, [k]: e.target.checked })); };
+  // the case the dates make, kept current while the dates are typed (the clock moves too)
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+  const phase = phaseOf(f.pickup_at, f.return_at, now);
+  const past = phase === 'past';
   const id = (k: string) => `mr-${k}`;
   const text = (k: string, label: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean } = {}) => (
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{label}</label>
@@ -74,12 +100,15 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <select className="select" id={id(k)} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>);
 
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
-    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, past: flags.past, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
+    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
     addons: addonsPayload(addons),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const check = () => start(async () => {
     setErr(null);
     if (!f.vehicle_id) { setErr('Choose the car.'); return; }
+    if (!f.pickup_at || !f.return_at) { setErr('Enter the pickup and the return, each with a date and a time.'); return; }
+    if (!phase) { setErr('The return must be after the pickup: check both dates and times.'); return; }
+    if (past && !isAdmin) { setErr('This rental has already ended. Only an Admin can record it: check the return date and time, or ask an Admin to add it.'); return; }
     const r = await supplyRead<Quote>('manual_rental_quote', spec());
     if (!r.ok) { setErr(r.message); setQuote(null); return; }
     setQuote(r.data);
@@ -94,7 +123,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (cents(f.rental_charge ?? '') !== undefined && !(f.price_reason ?? '').trim()) { setErr('Give the reason for the price you typed.'); return; }
     if (quote && quote.has_rates === false && cents(f.rental_charge ?? '') === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
-    if (quote?.needs_policy_confirm && !flags.past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
+    if (quote?.needs_policy_confirm && !past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
     const p = { ...spec(), sales_choice: choice, pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, note: f.note || undefined,
       do_not_email: flags.do_not_email, additional_drivers: drivers.filter((d) => d.full_name.trim()),
       renter: renter ? undefined : { full_name: f.full_name, email: f.email, mobile: f.mobile, date_of_birth: f.date_of_birth, licence_number: f.licence_number, licence_class: f.licence_class || 'G',
@@ -111,10 +140,11 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     return (
       <section className="pt-card stack" aria-labelledby="mr-done" data-testid="mr-done">
         <h2 className="d3" id="mr-done">Rental {done.booking_number} added</h2>
-        <p>{done.status === 'confirmed' ? 'Confirmed and on the calendar.' : done.status === 'pending_payment' ? 'The renter has the email to sign and pay online; the rental is confirmed once they pay.' : done.status === 'closed' ? 'Recorded as a completed past rental. It counts on the owner\'s or partner\'s statement and the company statement.' : done.status}
+        <p>{done.status === 'confirmed' ? 'Confirmed and on the calendar.' : done.status === 'pending_payment' ? 'The renter has the email to sign and pay online; the rental is confirmed once they pay.' : done.status === 'closed' ? 'Recorded as a completed past rental. It counts on the owner\'s or partner\'s statement and the company statement.' : done.status === 'on_rent' ? 'Recorded as on trip from the pickup you entered, and on the calendar until the return. Anything still missing (signature, licence check, coverage proof, deposit, condition report) is a task under To do.' : done.status}
           {!done.blocks_calendar && done.status === 'confirmed' ? ' It was added over a clash, so it does not block the calendar: resolve the clash before the handover.' : ''}</p>
         <p className="small" data-testid="mr-done-choice">{done.sales_sourced ? 'Marked as sourced by you: your commission is counted once the rental is completed and paid in full.' : 'Entered for CarmaCars: no commission.'}
           {done.price_flags?.length ? ' The price you typed is flagged for an Admin to review.' : ''}</p>
+        {done.status === 'on_rent' && done.payment_mode === 'link' && <p className="alert alert--ok" role="status" data-testid="mr-pay-online"><span>The renter has the email to sign the agreement, then pay online from their booking.</span></p>}
         {done.charge_on_sign && <p className="alert alert--ok" role="status" data-testid="mr-charge-on-sign"><span>Awaiting signature. The saved card is charged when the renter signs the rental agreement (Accept and sign), not before.</span></p>}
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
         <p className="small">Total {fmt(done.total_cents)}. The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
@@ -124,16 +154,17 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       </section>
     );
   }
-  const modes = quote?.payment_modes ?? (isAdmin ? ['other_way', 'link', 'card', 'unpaid'] : field ? ['link', 'card'] : ['other_way', 'link', 'card']);
+  const modes = (quote?.payment_modes ?? (isAdmin ? ['other_way', 'link', 'card', 'unpaid'] : field ? ['link', 'card'] : ['other_way', 'link', 'card'])).filter((m) => !past || m === 'other_way' || m === 'unpaid');
+  const car = cars.find((x) => x.id === f.vehicle_id);
   const card = renter?.card ?? quote?.card ?? null;
   return (
     <form className="ad-form stack" noValidate data-testid="manual-rental" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <fieldset className="stack"><legend className="d4">1. The car and the dates</legend>
-        {isAdmin && <label className="check" htmlFor={id('past')}><input id={id('past')} type="checkbox" checked={flags.past} onChange={flag('past')} data-testid="mr-past" /> <span>Record a past rental (dates in the past, kept as completed, for the history and the statements)</span></label>}
         <div className="ad-fields">
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor={id('vehicle_id')}>Car</label>
             <select className="select" id={id('vehicle_id')} value={f.vehicle_id} onChange={set('vehicle_id')} data-testid="mr-vehicle_id"><option value="">Choose the car</option>
-              {cars.filter((c) => flags.past || (c.bookable && !c.retired)).map((c) => <option key={c.id} value={c.id}>{c.name}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates yet'}{c.listing_finished === false ? ' · Listing not finished' : ''}</option>)}</select>
+              {cars.filter((c) => past || !c.retired || c.id === f.vehicle_id).map((c) => <option key={c.id} value={c.id}>{c.name}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates yet'}{c.retired ? ' · retired' : !c.bookable ? ' · closed to new bookings' : c.listing_finished === false ? ' · Listing not finished' : ''}</option>)}</select>
+            {car && !car.bookable && !car.retired && phase === 'upcoming' && <p className="hint" data-testid="mr-closed-car">This car is closed to new bookings: it takes a rental already underway (pickup in the past), not an upcoming one.</p>}
             {(() => { const c = cars.find((x) => x.id === f.vehicle_id); return c && c.listing_finished === false ? <p className="hint" data-testid="mr-unlisted-tag"><span className="ad-flag">Listing not finished</span> The car stays off the public site. {c.has_rates === false ? 'It has no rates yet: you type the rental charge with the reason. ' : ''}{c.needs_policy_confirm ? (isAdmin ? 'It is not on the fleet insurance policy yet: you confirm it is insured before adding the rental.' : 'It is not on the fleet insurance policy yet: only an Admin can add its rentals.') : ''}</p> : null; })()}</div>
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}
           {text('return_at', 'Return', { type: 'datetime-local' })}
@@ -142,6 +173,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
           {select('return_method', 'Return', [['returned', 'Returned to us'], ['picked_up', 'Picked up']])}
           {text('return_place', 'Return place or address')}
         </div>
+        {phase && <p className={`alert ${past && !isAdmin ? 'alert--warn' : 'alert--ok'}`} role="status" aria-live="polite" data-testid="mr-phase" data-phase={phase}>
+          <span>{past && !isAdmin ? 'This rental has already ended. Only an Admin can record it: check the dates, or ask an Admin to add it.' : PHASE_NOTE[phase]}</span></p>}
       </fieldset>
 
       <fieldset className="stack"><legend className="d4">2. The renter</legend>
@@ -197,7 +230,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
                 {quote.may_override_clash ? ' You may still add it, with the reason.' : ' Choose other dates or another car.'}</span></div>}
             {!quote.free && quote.may_override_clash && text('clash_reason', 'Reason to add it over the clash', { wide: true })}
             {quote.notes?.length ? <div className="alert alert--warn" role="note" data-testid="mr-notes"><span>{quote.notes.join(' ')}</span></div> : null}
-            {quote.needs_policy_confirm && !flags.past && quote.role === 'admin' && <label className="check" htmlFor={id('policy')}><input id={id('policy')} type="checkbox" checked={flags.policy} onChange={flag('policy')} data-testid="mr-policy-confirm" /> <span>I checked that this car is insured for this rental</span></label>}
+            {quote.needs_policy_confirm && !past && quote.role === 'admin' && <label className="check" htmlFor={id('policy')}><input id={id('policy')} type="checkbox" checked={flags.policy} onChange={flag('policy')} data-testid="mr-policy-confirm" /> <span>I checked that this car is insured for this rental</span></label>}
             {quote.has_rates === false && quote.price_typed_cents == null ? null : <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption><tbody>
               {quote.quote.lines.map((l, i) => <tr key={i}><td>{l.description}</td><td className="num">{fmt(l.amount_cents)}</td></tr>)}
               <tr><td>HST</td><td className="num">{fmt(quote.quote.lines.reduce((s, l) => s + l.hst_cents, 0))}</td></tr>
@@ -218,9 +251,9 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       </fieldset>
 
       <fieldset className="stack"><legend className="d4">4. Payment</legend>
-        {modes.filter((m) => !flags.past || m === 'other_way' || m === 'unpaid').map((m) => (
+        {modes.map((m) => (
           <label key={m} className="check ad-choice" htmlFor={id(`mode-${m}`)}><input type="radio" id={id(`mode-${m}`)} name="mode" value={m} checked={f.mode === m} onChange={set('mode')} data-testid={`mr-mode-${m}`}
-            disabled={m === 'card' && !card} /> <span><b>{MODE[m]![0]}</b>{m === 'card' ? (card ? ` (${card.brand} ending ${card.last4})` : ' (no saved card)') : ''}<br /><span className="small muted">{MODE[m]![1]}</span></span></label>))}
+            disabled={m === 'card' && !card} /> <span><b>{MODE[m]![0]}</b>{m === 'card' ? (card ? ` (${card.brand} ending ${card.last4})` : ' (no saved card)') : ''}<br /><span className="small muted">{phase === 'in_progress' && LIVE_MODE[m] ? LIVE_MODE[m] : MODE[m]![1]}</span></span></label>))}
         {f.mode === 'other_way' && (
           <div className="ad-fields">
             {select('method', 'How it was paid', [['e_transfer', 'e-Transfer'], ['cheque', 'Cheque'], ['cash', 'Cash'], ['bank_transfer', 'Bank transfer'], ['other', 'Another way']])}
@@ -236,7 +269,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       </fieldset>
 
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit">{pending ? 'Working' : flags.past ? 'Record the past rental' : 'Add the rental'}</button>
+      <div className="row"><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit">{pending ? 'Working' : past ? 'Record the past rental' : phase === 'in_progress' ? 'Add the rental already underway' : 'Add the rental'}</button>
         {!quote && <span className="small muted">Check the calendar and the price first.</span>}</div>
     </form>
   );

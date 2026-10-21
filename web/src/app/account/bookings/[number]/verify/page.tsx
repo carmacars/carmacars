@@ -16,7 +16,8 @@ const MISSING: Record<string, string> = { identity: 'Licence photos and selfie f
 // for the chosen coverage option, each reviewed by our team. Status from booking_readiness.
 export default async function VerifyPage({ params }: { params: Promise<{ number: string }> }) {
   const { b, user } = await myBooking((await params).number, 'verify');
-  if (!['pending_payment', 'confirmed'].includes(b.status)) redirect(bookingPath(b.booking_number));
+  // licence photos, the selfie and the coverage proof: before pickup, or while a rental added already underway is out (0074)
+  if (!['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) redirect(bookingPath(b.booking_number));
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
   const cov = await myCoverage(user, b.id).catch(() => null);

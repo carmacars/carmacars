@@ -51,7 +51,13 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
       const soon = new Date(b.pickup_at).getTime() - now < 36 * 3600e3;
       return { title: soon ? `Pickup ${when(b.pickup_at)}` : 'You are all set', note: soon ? 'Bring your original licence and the card you paid with.' : `Pickup ${when(b.pickup_at)}.`, href: path(), cta: 'Pickup details' };
     }
-    case 'on_rent': return { title: `Return by ${when(b.return_at)}`, note: 'Need longer? Ask for an extension before the return time.', href: path(), cta: 'Return details' };
+    case 'on_rent':
+      // a rental staff added while already underway (0074): sign it, then pay online with a payment link
+      if (full?.added_live && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
+        return { title: 'Sign your rental agreement', note: 'Your rental has started. Read and sign the agreement now.', href: path('sign'), cta: 'Sign agreement', urgent: true };
+      }
+      if (full?.link_due) return { title: 'Pay for your rental', note: 'Your agreement is signed. Pay the amount due online.', href: path('pay'), cta: 'Pay now', urgent: true };
+      return { title: `Return by ${when(b.return_at)}`, note: 'Need longer? Ask for an extension before the return time.', href: path(), cta: 'Return details' };
     case 'returned': return { title: 'Car returned', note: 'Your final statement is on its way.', href: path(), cta: 'View booking' };
     case 'closed': return { title: 'Rental complete', note: 'Your statements and receipts are in your documents.', href: '/account/documents', cta: 'Documents' };
     case 'expired': return { title: 'Offer expired', note: 'Call or message us and we will send it again.', href: path(), cta: 'View booking' };

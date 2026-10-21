@@ -17,7 +17,7 @@ export default async function FieldAddRental() {
   return (
     <div className="stack">
       <h1 className="d3">Add a rental</h1>
-      <p className="small muted">For a renter you met or who called you. The renter gets an email to sign and pay online; you never take payment yourself.</p>
+      <p className="small muted">For a renter you met or who called you, including one who already has the car (enter the pickup as when it left). The renter gets an email to sign and pay online; you never take payment yourself.</p>
       {home.missing ? <p className="alert alert--error" role="status" data-testid="rental-needs-address"><span>Add your home address at the top of the page before you add a rental.</span></p>
         : <ManualRentalForm cars={cars} base="/field" isAdmin={false} />}
     </div>
