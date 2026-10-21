@@ -110,14 +110,20 @@ export function fakeCarCopy(prompt: string): Record<string, unknown> {
   const close = pick(['We walk around the car with you at the handover and note its condition together.', 'At the handover we check the car together and write down anything we see.',
     'Before you drive off, we go over the car with you and agree on its condition.', 'You get a short walk-around at pickup so we both know the state of the car.',
     'We meet you in person, show you the car and record its condition with you.'], 3);
-  const intro = `${open} ${where} ${drive}\n\n${how} ${close}`;
-  const hl = [c.seats ? `${c.seats} seats` : '', c.transmission ? `${c.transmission} transmission` : '', c.fuel ? `${c.fuel}` : '', c.drivetrain ? String(c.drivetrain) : '', pr.km_per_day ? `${pr.km_per_day} km a day included` : '', c.luggage ? String(c.luggage) : ''].filter(Boolean).slice(0, 6);
-  while (hl.length < 4) hl.push(['Delivery to your address', 'Handover in person', 'Request with no payment'][hl.length % 3]!);
+  void open; void where; void drive; void how; void close; void area;
+  // car-copy-v2 (0073): a short blurb in the sample cars' voice, and six features from the offered equipment
+  const intro = pick([`Easy to park downtown and quiet on the highway, with room for ${c.seats ?? 'five'} and a proper trunk.`,
+    `A comfortable ${body} for the week: errands in the city, a long drive on Friday, and space for the bags.`,
+    `Simple to drive, simple to park, and roomy enough for the airport run with luggage.`,
+    `The everyday ${c.make} ${c.model}. Room for the family, and a trunk that takes the weekend.`,
+    `A calm, easy ${body} that suits a commute as well as a road trip out of the city.`], 0);
+  const eq = [...(Array.isArray(c.equipment_known) ? (c.equipment_known as unknown as string[]) : []), ...(Array.isArray(c.equipment) ? (c.equipment as unknown as string[]) : [])];
+  const hl = [...new Set(eq)].slice(0, 6);
   return {
     seo_title: title, meta_description: meta.length <= 155 ? meta : `Rent the ${name} in ${city}. Collect it or have it delivered, and request with no payment up front.`, h1, intro,
     highlights: hl, good_for: [`Trips around ${city}`, body.includes('suv') || Number(c.seats ?? 0) > 5 ? 'Families and groups with bags' : 'Commutes and errands', 'Weekly and monthly rentals'],
     included: inc.slice(0, 5).length >= 3 ? inc.slice(0, 5) : [...inc, 'Third-party liability coverage', 'Roadside assistance, 24 hours a day'].slice(0, 3),
-    pickup_delivery: `The car is kept in ${area}. Collect it from our location at no charge, or we bring it to your address${pr.delivery_fee ? ` for ${pr.delivery_fee}` : ''}. We hand it over in person.`,
+    pickup_delivery: `Collect it from our location at no charge, or we bring it to your address${pr.delivery_fee ? ` for ${pr.delivery_fee}` : ''}. We hand it over in person.`,
     requirements: [ru.min_age ? `Drivers ${ru.min_age} or older` : 'Drivers of the minimum age', String(ru.licence ?? 'A valid Ontario licence'), String(ru.card ?? 'A credit card in your name'), String(ru.identity ?? 'An identity check before pickup')],
     faq: [
       { question: `How many people fit in the ${c.model}?`, answer: c.seats ? `The ${c.model} has ${c.seats} seats.` : 'Ask us before you book and we will tell you.' },

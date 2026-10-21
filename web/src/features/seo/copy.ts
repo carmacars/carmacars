@@ -4,7 +4,7 @@
 // support and no number that is not in the facts. A car's copy must also read differently from every other car's.
 // Pure functions: no server imports, so the unit tests run them directly (copy.test.ts).
 
-export const CAR_PROMPT_VERSION = 'car-copy-v1';
+export const CAR_PROMPT_VERSION = 'car-copy-v2';
 export const PAGE_PROMPT_VERSION = 'landing-v1';
 export const ARTICLE_PROMPT_VERSION = 'article-v1';
 
@@ -23,8 +23,9 @@ export const CAR_FIELD_LABEL: Record<CarField, string> = {
 
 /** The limits of every field (characters, words, items). */
 export const LIMITS = {
-  seo_title: [25, 60], meta_description: [90, 155], h1: [20, 70], intro_words: [50, 130], highlights: [3, 6], highlight_chars: 70,
-  good_for: [2, 4], included: [3, 5], item_chars: 90, pickup: [60, 420], requirements: [3, 5], faq: [4, 6], question_chars: 110, answer_chars: 360, alt_chars: 125,
+  // car-copy-v2 (0073): the intro is the short blurb of the sample cars, the highlights are six selling features
+  seo_title: [25, 60], meta_description: [90, 155], h1: [20, 70], intro_words: [8, 40], highlights: [4, 6], highlight_chars: 70,
+  good_for: [2, 4], included: [3, 5], item_chars: 90, pickup: [60, 420], requirements: [3, 5], faq: [3, 6], question_chars: 110, answer_chars: 360, alt_chars: 125,
   page_intro_words: [50, 160], page_sections: [2, 4], section_words: [40, 220], page_faq: [3, 6],
   article_words: [500, 2200], article_title: [20, 100], article_description: [90, 160]
 } as const;
@@ -151,9 +152,19 @@ const STYLE_RULES = [
   `Avoid these words and phrases: ${AI_WORDS.slice(0, 40).join(', ')}.`
 ];
 
+/** The voice of the car pages: the blurbs of the sample cars (supabase/seed/sample_cars_gen.mjs, prototype/tools/src/data.mjs). */
+export const VOICE_EXAMPLES = [
+  'Room for four adults and their bags, and the quiet cabin Toyota is known for.',
+  'A roomy trunk and a soft ride. The commuter that does not mind a road trip.',
+  'Cheap to rent, cheap to fuel, and it starts every morning.',
+  'A big boot, a high seat and all-wheel drive for whatever February brings.',
+  'Seven seats and doors that open themselves. The airport run with everybody in one car.',
+  'The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.'
+];
+
 export function carSystemPrompt(): string {
   return [
-    'You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure and is written only from the facts given.',
+    'You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.',
     ...STYLE_RULES,
     'Use only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.',
     'Do not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.',
@@ -164,28 +175,81 @@ export function carSystemPrompt(): string {
 export function carUserPrompt(facts: Record<string, unknown>, o: { locked?: string[]; avoid?: string[]; problems?: string[]; strict?: boolean } = {}): string {
   const car = (facts.car ?? {}) as Record<string, unknown>;
   const name = [car.year, car.make, car.model].filter(Boolean).join(' ');
+  const full = [name, car.trim].filter(Boolean).join(' ');
   const photos = Array.isArray(facts.photos) ? (facts.photos as string[]) : [];
+  const { known, maybe } = offeredEquipment(facts);
   const L = LIMITS;
   return [
     `<facts>${JSON.stringify(facts)}</facts>`,
-    'Write the page for this car:',
-    `- seo_title: ${L.seo_title[0]} to ${L.seo_title[1]} characters, with the year, make, model and the city, for example "${name} Rental in ${String((facts.place as Record<string, unknown> | undefined)?.city ?? 'Toronto')} | CarmaCars" when it fits.`,
-    `- meta_description: ${L.meta_description[0]} to ${L.meta_description[1]} characters, one or two sentences with the daily price and one useful detail.`,
-    `- h1: ${L.h1[0]} to ${L.h1[1]} characters, like "${name}${car.trim ? ' ' + String(car.trim) : ''} rental in ${String((facts.place as Record<string, unknown> | undefined)?.city ?? 'Toronto')}".`,
-    `- intro: ${L.intro_words[0] + 10} to ${L.intro_words[1] - 20} words in two short paragraphs separated by a blank line: what this car is like to drive and live with, who it suits, its colour and the area it is kept in.`,
-    `- highlights: ${L.highlights[0] + 1} to ${L.highlights[1]} short bullet points of 2 to 8 words, each a fact from the facts (seats, transmission, fuel, drivetrain, luggage, equipment, kilometres included).`,
+    `Write the page for this car, a ${full}:`,
+    `- intro: 1 or 2 short sentences, ${L.intro_words[0] + 2} to 30 words, in exactly the voice of these examples from other cars of the site:\n${VOICE_EXAMPLES.map((x) => `  "${x}"`).join('\n')}\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with "This car" or "This vehicle", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.`,
+    `- highlights: exactly ${L.highlights[1]} selling features, each copied word for word from these lists. Known to be on this car: ${JSON.stringify(known)}. Possibly on it: ${JSON.stringify(maybe)}. Take an item from the second list only if you are sure it is standard on every ${full} sold in Canada; if you are not sure, leave it out. The features renters care most about first.`,
     `- good_for: ${L.good_for[0]} to ${L.good_for[1]} short phrases naming the trips or people this car suits (for example "Airport runs with luggage"), based on its body, seats and fuel.`,
-    `- included: ${L.included[0]} to ${L.included[1]} items, each a rewording of an item in the facts' "included" list; add nothing.`,
-    `- pickup_delivery: 1 to 3 sentences on where the car is kept, collecting it, and delivery with its fee from the facts.`,
-    `- requirements: ${L.requirements[0]} to ${L.requirements[1]} items from the facts' "rules" (age, licence, card, identity check).`,
-    `- faq: ${L.faq[0]} to ${L.faq[1]} questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel, kilometres, delivery), each answered in one to three sentences from the facts. If the facts do not answer a question, do not ask it.`,
+    `- faq: ${L.faq[0]} to ${L.faq[0] + 1} questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.`,
     photos.length ? `- alt_texts: an object with exactly these keys: ${photos.join(', ')}. Each value describes that photo in under ${L.alt_chars} characters, like "${name} in ${String(car.colour ?? 'grey').toLowerCase()}, front left view".` : '- alt_texts: an empty object.',
+    '- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them.',
     o.locked?.length ? `These fields were written by a person and are kept: ${o.locked.join(', ')}. Still return them, unchanged.` : '',
     o.avoid?.length ? `Other cars of the same model already use these introductions. Write yours differently, with different sentences:\n${o.avoid.slice(0, 3).map((a) => `"${a.slice(0, 400)}"`).join('\n')}` : '',
     o.problems?.length ? `Your last answer had these problems. Fix every one:\n- ${o.problems.join('\n- ')}` : '',
-    o.strict ? 'Be strict: keep every sentence short and plain, use the facts word for word, and use no number that is not in the facts.' : ''
+    o.strict ? 'Be strict: keep every sentence short and plain, copy the features word for word, and use no number that is not in the facts.' : ''
   ].filter(Boolean).join('\n');
 }
+
+// ---------------------------------------------------------------- the fixed parts of a car page (car-copy-v2, 0073)
+const NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+const strList = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.trim()) : []);
+/** The equipment a car's features may name: known (VIN decode, the listing, safe for its year) and possibly (the model decides). */
+export function offeredEquipment(facts: Record<string, unknown>): { known: string[]; maybe: string[] } {
+  const car = (facts.car ?? {}) as Record<string, unknown>;
+  const known = [...new Set([...strList(car.equipment), ...strList(car.equipment_known)])];
+  const maybe = strList(car.equipment_maybe).filter((x) => !known.some((k) => k.toLowerCase() === x.toLowerCase()));
+  return { known, maybe };
+}
+/** The six features of the page: the model's picks that are on offer, then the known equipment in its order. */
+export function fillHighlights(picked: string[], facts: Record<string, unknown>, n: number = LIMITS.highlights[1]): string[] {
+  const { known, maybe } = offeredEquipment(facts);
+  const offered = new Map([...known, ...maybe].map((x) => [x.toLowerCase(), x]));
+  const out: string[] = [];
+  const add = (x: string) => { const k = offered.get(x.trim().toLowerCase()); if (k && !out.includes(k) && out.length < n) out.push(k); };
+  picked.forEach(add);
+  known.forEach(add);
+  return out;
+}
+/** The headline of every car page, as the sample cars have it: "2022 Chevrolet Malibu LS for rent in Toronto". */
+export function carHeadline(car: Record<string, unknown>, city = 'Toronto'): string {
+  const name = [car.year, car.make, car.model].filter(Boolean).join(' ');
+  const full = [name, car.trim].filter(Boolean).join(' ');
+  return `${full} for rent in ${city}`.length <= LIMITS.h1[1] ? `${full} for rent in ${city}` : `${name} for rent in ${city}`;
+}
+/** The parts of a car page the site writes itself (never the model): headline, search text, pickup, included, requirements. */
+export function carFixed(facts: Record<string, unknown>): Pick<CarCopy, 'h1' | 'seo_title' | 'meta_description' | 'pickup_delivery' | 'included' | 'requirements'> {
+  const car = (facts.car ?? {}) as Record<string, unknown>;
+  const pr = (facts.prices ?? {}) as Record<string, unknown>;
+  const pl = (facts.place ?? {}) as Record<string, unknown>;
+  const ru = (facts.rules ?? {}) as Record<string, unknown>;
+  const city = String(pl.city ?? 'Toronto');
+  const name = [car.year, car.make, car.model].filter(Boolean).join(' ');
+  const full = [name, car.trim].filter(Boolean).join(' ');
+  const brand = String(facts.brand ?? 'CarmaCars');
+  const titles = [`${name} for rent in ${city} | ${brand}`, `${name} for rent in ${city}`, `${name} rental ${city}`.slice(0, 60)];
+  const seo_title = titles.find((t) => t.length <= LIMITS.seo_title[1])!;
+  const seats = typeof car.seats === 'number' ? `${car.seats} seats` : '';
+  const tr = typeof car.transmission === 'string' ? car.transmission.toLowerCase() : '';
+  const metas = [
+    `Rent the ${full} in ${city}${pr.daily ? ` from ${pr.daily} a day` : ''}. ${[seats, tr].filter(Boolean).join(', ')}${seats || tr ? '. ' : ''}Pickup or delivery, and a request with no payment up front.`,
+    `Rent the ${name} in ${city}${pr.daily ? ` from ${pr.daily} a day` : ''}. Pickup or delivery, and a request with no payment up front.`,
+    `Rent the ${name} in ${city}. Collect it from us or have it delivered, and send a request with no payment up front.`];
+  const meta_description = metas.find((m) => m.length >= LIMITS.meta_description[0] && m.length <= LIMITS.meta_description[1]) ?? metas[metas.length - 1]!;
+  const inc = strList(facts.included);
+  return {
+    h1: carHeadline(car, city), seo_title, meta_description,
+    pickup_delivery: `Collect it at our location at no charge, or we deliver it to your address${pr.delivery_fee ? ` for ${pr.delivery_fee}` : ''}. We hand it over in person and walk around the car with you.`,
+    included: (inc.length >= 3 ? inc : [...inc, 'Third-party liability coverage', 'Roadside assistance, 24 hours a day', 'Handover in person with a walk-around of the car']).slice(0, LIMITS.included[1]),
+    requirements: [ru.min_age ? `Drivers ${ru.min_age} or older` : '', String(ru.licence ?? ''), String(ru.card ?? ''), String(ru.identity ?? '')].filter(Boolean).slice(0, LIMITS.requirements[1])
+  };
+}
+/** The seats of a car in words, for the plain blurbs ("room for five"). */
+export const seatsWord = (n: unknown) => (typeof n === 'number' && n >= 0 && n < NUM_WORDS.length ? NUM_WORDS[n]! : String(n ?? ''));
 
 export function normalizeCarCopy(x: unknown): CarCopy | null {
   if (!x || typeof x !== 'object') return null;
@@ -251,13 +315,26 @@ export function carCopyProblems(c: CarCopy, facts: Record<string, unknown>, o: C
   if (/\b(vin|licence plate|license plate|odometer|the owner of this car|owned by)\b/i.test(text)) p.push('never mention the VIN, the plate, the odometer or the owner');
   const factText = JSON.stringify(facts).toLowerCase();
   for (const cl of CLAIMS) {
-    const m = cl.re.exec(text);
-    if (!m) continue;
+    // every mention is checked (the features now name equipment the facts have, so the first one is often fine)
+    const m = [...text.matchAll(new RegExp(cl.re.source, 'gi'))].find((x) => (cl.label === 'equipment' ? !factText.includes(x[0].toLowerCase()) : !cl.needs.test(factText)));
     // equipment is allowed only when the facts name that very item
-    if (cl.label === 'equipment' ? !factText.includes(m[0].toLowerCase()) : !cl.needs.test(factText)) p.push(`do not claim ${cl.label} ("${m[0]}"): it is not in the facts`);
+    if (m) p.push(`do not claim ${cl.label} ("${m[0]}"): it is not in the facts`);
   }
   const bad = inventedNumbers(text, allowedNumbers(facts));
   if (bad.length) p.push(`these numbers are not in the facts: ${bad.join(', ')}. Use only numbers from the facts`);
+  // car-copy-v2: the features are the offered equipment only, and the intro reads like the sample cars' blurbs
+  const offer = offeredEquipment(facts);
+  if (!skip.has('highlights') && offer.known.length + offer.maybe.length > 0) {
+    const ok = new Set([...offer.known, ...offer.maybe].map((x) => x.toLowerCase()));
+    const off = c.highlights.filter((x) => !ok.has(x.toLowerCase()));
+    if (off.length) p.push(`the highlights must be copied word for word from the equipment lists (not: ${off.map((x) => `"${x}"`).join(', ')})`);
+  }
+  if (!skip.has('intro')) {
+    const area = String(((facts.place ?? {}) as Record<string, unknown>).area ?? '');
+    if (/\b(kept|parked|based|located|lives) (in|at)\b/i.test(c.intro) || (area && area !== String(((facts.place ?? {}) as Record<string, unknown>).city ?? '') && c.intro.toLowerCase().includes(area.toLowerCase())))
+      p.push('do not say where the car is kept');
+    if (/^\s*(this|the) (car|vehicle)\b/i.test(c.intro)) p.push('do not start the intro with "This car": say what it is like, as in the examples');
+  }
   if (!skip.has('intro') && o.others?.length) {
     const max = o.maxSimilarity ?? 0.5;
     const worst = Math.max(...o.others.map((x) => similarity(c.intro, x)));
@@ -398,18 +475,31 @@ export function articleUserPrompt(a: { title: string; description: string; brief
 // ---------------------------------------------------------------- the plain copy (no model)
 /** The same plain copy the database writes (app.car_copy_template), for the listing pipeline's draft step, which no
  *  longer calls the model: the search job writes the real copy. */
-export function plainDraft(f: { year?: number; make?: string; model?: string; trim?: string; colour?: string; seats?: number; transmission?: string; fuel?: string; drivetrain?: string; body_style?: string; home_area?: string }) {
+/** The plain blurb of a car with no written copy yet, in the samples' voice and from its body alone (the same words as
+ *  app.car_copy_blurb of migration 0073): nothing about where it is kept, nothing the facts do not say. */
+export function plainBlurb(f: { make?: string; model?: string; seats?: number | null; body_style?: string | null; fuel?: string | null; drivetrain?: string | null }): string {
+  const b = (f.body_style ?? '').toLowerCase();
+  const make = f.make ?? '';
+  const seats = f.seats ? seatsWord(f.seats) : '';
+  const awd = /all|four|4wd|awd|4x4/i.test(f.drivetrain ?? '');
+  if (/electric/i.test(f.fuel ?? '')) return `Electric, so no gas stations. Charge it up, return it with the charge you left with, and that is the whole fuel policy.`;
+  if (/van|mpv/.test(b)) return `Room for ${seats || 'everyone'} and their bags. The airport run or the cottage weekend with everybody in one car.`;
+  if (/pick.?up|truck/.test(b)) return `A ${make} pickup with an open box. Moving day, a hardware run or a load of firewood.`;
+  if (/convertible|cabriolet|roadster/.test(b)) return `Roof down along the lakeshore. The ${make} for the days when the drive is the point.`;
+  if (/coupe/.test(b)) return `A ${make} for the days when the drive is the point, with a low seat and a bit of life in the steering.`;
+  if (/suv|sport utility|crossover/.test(b)) return `A high seat, a big boot and room for ${seats || 'the family'}${awd ? ', with all-wheel drive for whatever February brings' : ''}. Good for weekends out of the city.`;
+  if (/hatch|wagon|liftback/.test(b)) return `Easy to park downtown, with a wide opening at the back for bags, groceries and a stroller.`;
+  return `A comfortable ${make} sedan with room for ${seats || 'four adults'} and a proper trunk. Easy to park in the city and quiet on the highway.`;
+}
+
+/** The same plain copy the database writes (app.car_copy_template), for the listing pipeline's draft step, which no
+ *  longer calls the model: the search job writes the real copy. */
+export function plainDraft(f: { year?: number; make?: string; model?: string; trim?: string; colour?: string; seats?: number; transmission?: string; fuel?: string; drivetrain?: string; body_style?: string; home_area?: string; equipment_known?: string[] }) {
   const name = [f.year, f.make, f.model].filter(Boolean).join(' ');
-  const full = [name, f.trim].filter(Boolean).join(' ');
-  const area = f.home_area || 'Toronto';
-  const headline = `${full} rental in Toronto`.length <= 70 ? `${full} rental in Toronto` : `${name} rental in Toronto`;
-  const description = `This ${full} is a ${f.colour ? f.colour.toLowerCase() + ' ' : ''}${(f.body_style ?? 'car').toLowerCase()}${f.seats ? ` with ${f.seats} seats` : ''}${f.transmission ? ` and an ${f.transmission.toLowerCase()} transmission` : ''}. `
-    + `It is kept in ${area}, and you can collect it from our location or have it delivered to your door. `
-    + 'Send a request with your dates. We confirm the car and the price before you pay anything, and we hand the car over in person with a walk-around. '
-    + 'The rates, the kilometres included and the deposit are shown on this page.';
-  const features = [f.seats ? `${f.seats} seats` : '', f.transmission ? `${f.transmission} transmission` : '', f.fuel ? `${f.fuel.replace(/_/g, ' ')}` : '', f.drivetrain ?? '', f.body_style ?? '']
-    .filter(Boolean).map((x) => x.charAt(0).toUpperCase() + x.slice(1));
-  while (features.length < 3) features.push(['Delivery available', 'Pickup in person', 'Request with no payment'][features.length]!);
+  const headline = carHeadline(f as Record<string, unknown>);
+  const description = plainBlurb(f);
+  const features = (f.equipment_known ?? []).slice(0, LIMITS.highlights[1]);
+  for (const x of ['Bluetooth', 'Air conditioning', 'Cruise control']) if (features.length < 3 && !features.includes(x)) features.push(x);
   return {
     headline, description, features,
     faq: [
@@ -417,7 +507,7 @@ export function plainDraft(f: { year?: number; make?: string; model?: string; tr
       { question: `Where do I pick up the ${f.model ?? 'car'}?`, answer: 'At our location at no charge, or we deliver it to your address.', check: false },
       { question: 'Do I pay when I send a request?', answer: 'No. We confirm the car and the price first, and you pay only when you approve.', check: false }
     ],
-    seo_title: `Rent a ${name} in Toronto`.slice(0, 60),
+    seo_title: `${name} for rent in Toronto`.slice(0, 60),
     seo_description: `Rent this ${name} in Toronto. Pickup or delivery, request with no payment up front.`.slice(0, 155),
     classes: [] as string[]
   };

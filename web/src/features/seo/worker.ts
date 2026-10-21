@@ -6,7 +6,7 @@ import type { TextGenerator } from '../../integrations/llm/types.ts';
 import {
   ARTICLE_PROMPT_VERSION, ARTICLE_SCHEMA, CAR_COPY_SCHEMA, CAR_PROMPT_VERSION, PAGE_COPY_SCHEMA, PAGE_PROMPT_VERSION,
   allowedNumbers, articleProblems, articleSystemPrompt, articleUserPrompt, carCopyProblems, carSystemPrompt, carUserPrompt,
-  normalizeArticle, normalizeCarCopy, normalizePageCopy, numbersIn, pageCopyProblems, pageSystemPrompt, pageUserPrompt,
+  carFixed, fillHighlights, normalizeArticle, normalizeCarCopy, normalizePageCopy, numbersIn, pageCopyProblems, pageSystemPrompt, pageUserPrompt,
   type CarCopy, type Faq, type PageCopy
 } from './copy.ts';
 
@@ -116,7 +116,14 @@ export async function writeCar(t: TextGenerator, car: SeoClaim['cars'][number], 
   const rest = (car.all_intros ?? []).filter((x) => x && !same.includes(x));
   const r = await attempt(t, o.tries,
     (problems, strict) => ({ task: 'car_copy', system: carSystemPrompt(), prompt: carUserPrompt(car.facts, { locked, avoid: car.others, problems, strict }), schema: CAR_COPY_SCHEMA as unknown as Record<string, unknown>, max: 1800 }),
-    (x) => { const c = normalizeCarCopy(x); if (!c) return null; for (const k of locked) if (k in (car.current ?? {})) (c as unknown as Record<string, unknown>)[k] = (car.current as Record<string, unknown>)[k]; return c; },
+    (x) => {
+      const c = normalizeCarCopy(x); if (!c) return null;
+      // the site's own parts (headline, search text, pickup, included, requirements) and six features from the offered equipment
+      Object.assign(c, carFixed(car.facts));
+      c.highlights = fillHighlights(c.highlights, car.facts);
+      for (const k of locked) if (k in (car.current ?? {})) (c as unknown as Record<string, unknown>)[k] = (car.current as Record<string, unknown>)[k];
+      return c;
+    },
     (c) => carCopyProblems(c, car.facts, { banned: o.banned, others: same, maxSimilarity: o.maxSimilarity, skip: locked })
       .concat(carCopyProblems(c, car.facts, { others: rest, maxSimilarity: Math.max(o.maxSimilarity, 0.8), skip: locked }).filter((x) => /repeats another/.test(x))));
   return { ok: !!r.best, copy: r.best ?? undefined, problems: r.problems, error: r.best ? undefined : r.error ?? (r.problems.length ? 'The copy did not pass the checks' : 'No answer'),
