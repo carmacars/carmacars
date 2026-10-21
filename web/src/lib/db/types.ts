@@ -9861,6 +9861,7 @@ export type Database = {
           created_at: string;
           max_discount_cents: number | null;
           min_rental_days: number | null;
+          free_days: number | null;
         };
         Insert: {
           id?: string;
@@ -9879,6 +9880,7 @@ export type Database = {
           created_at?: string;
           max_discount_cents?: number | null;
           min_rental_days?: number | null;
+          free_days?: number | null;
         };
         Update: {
           id?: string;
@@ -9897,6 +9899,7 @@ export type Database = {
           created_at?: string;
           max_discount_cents?: number | null;
           min_rental_days?: number | null;
+          free_days?: number | null;
         };
         Relationships: [];
       };
