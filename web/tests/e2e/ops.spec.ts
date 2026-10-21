@@ -244,12 +244,18 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     expect(after!.pay).toBe(`succeeded:${cr!.diff}`);
     // the signed amendment downloads as a PDF from the booking's documents
     const link = rp.getByTestId('doc-rental_amendment').last();
-    const pdf = await rp.request.get(await link.getAttribute('href') as string);
+    // the signed copy is made by a job right after signing (0077): wait for it rather than reading the copy opened before
+    let pdf = await rp.request.get(await link.getAttribute('href') as string);
+    let text = '';
+    for (let i = 0; i < 20; i++) {
+      pdf = await rp.request.get(await link.getAttribute('href') as string);
+      if (pdf.status() === 200) { text = await pdfText(await pdf.body()); if (/Signed electronically for [^,]+, operating as CarmaCars/.test(text)) break; }
+      await rp.waitForTimeout(1500);
+    }
     expect(pdf.status()).toBe(200);
     expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
     // the signed PDF: the corporate countersignature in the signing officer's name, with the approved wording, in the
     // signature block and the record; the staff member only as "Proposed by" (the legal review, section 6)
-    const text = await pdfText(await pdf.body());
     // in the signature block and in the signature record
     expect(text.match(/Signed electronically for [^,]+, operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(text).toContain('CarmaCars signs this amendment electronically at the moment the Renter signs it.');

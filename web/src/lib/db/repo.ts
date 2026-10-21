@@ -87,7 +87,7 @@ const buildReads = new Map<string, Promise<unknown>>();
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */
 export const BROWSER_FUNCTIONS = new Set<FnName>([
-  'public_vehicle_calendar', 'quote_booking', 'addons_for_car', 'search_available', 'record_cookie_choice', 'cookie_choice', 'handover_places', 'chat_poll', 'chat_typing',
+  'public_vehicle_calendar', 'quote_booking', 'addons_for_car', 'search_available', 'record_cookie_choice', 'record_cookie_notice', 'cookie_choice', 'handover_places', 'chat_poll', 'chat_typing',
   // discount games (0069): the settings, a play and its reveal
   'game_cfg', 'game_start', 'game_reveal'
 ]);

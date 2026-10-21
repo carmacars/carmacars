@@ -118,4 +118,13 @@ if (TICK > 0 && secret) {
     r.end('{"check":true}');
   };
   setInterval(tick, TICK).unref();
+  // the signed copies queued as jobs (0077): on Cloudflare the Worker starts them right after the response and its cron
+  // picks up the rest; here a short tick does both
+  const pdfTick = () => {
+    const r = http.request({ host: '127.0.0.1', port: INNER, method: 'POST', path: '/api/jobs/pdf',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' } }, (res) => res.resume());
+    r.on('error', () => {});
+    r.end('{}');
+  };
+  setInterval(pdfTick, Number(process.env.PDF_JOBS_TICK_MS ?? 3_000)).unref();
 }
