@@ -96,3 +96,12 @@ PGOPTIONS='-c session_replication_role=replica' pg_restore --no-owner --data-onl
 ## Proof
 
 The first runs and their results are in `docs/audit/2026-10-14-retest.md` (section "Backups").
+
+## deploy-reports retention
+
+The private bucket `deploy-reports` (verify reports and screenshots, guide screenshots, forms reports) is not a backup.
+`scripts/backup/prune-reports.sh`, run by the backup workflow every night, keeps verify runs 3 days, the newest
+`guides/<date>` and the newest 3 forms runs, and lists everything it keeps and removes. It removes only when
+`PRUNE_REPORTS` is `'1'` in `.github/workflows/backup.yml`, or by hand with the `prune_now` input
+(docs/changes/2026-10-21-cpu-and-storage.md).
+

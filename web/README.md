@@ -257,6 +257,13 @@ The free plan also allows 10 ms of CPU per request. Cached public pages stay wel
 on a cold isolate sometimes does not, and Cloudflare answers Error 1102 ("Worker exceeded resource limits"; a reload
 works). The live verification counts these. The Workers Paid plan (30 seconds per request) removes the limit.
 
+What costs CPU and what avoids it (docs/changes/2026-10-21-cpu-and-storage.md): loading the Next.js server on a fresh
+isolate is about a second. The Worker entry therefore answers repeat requests for the public pages and the sitemaps from
+the data centre's Cache API (`src/lib/edge/page-cache.ts`, header `x-edge-cache: HIT`) without loading the app, refuses
+scanner paths before the app, and the cron tick asks `server_jobs_due` before running the job routes
+(`src/lib/edge/cron-gate.ts`). A rebuild on demand of a public page retires the kept copies (the tag cache wrapper,
+`src/lib/edge/tag-cache-gen.ts`).
+
 ## Live verification
 
 The `verify` workflow (`scripts/verify-live.mjs`) checks the public pages, headers and nonce, and with `--auth` signs in

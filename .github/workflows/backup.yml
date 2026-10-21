@@ -7,6 +7,10 @@ name: backup
 #   - every Monday: the newest backup must be under 30 hours old and complete; it is downloaded, decrypted with the
 #     private key from the vault and restored again. Nothing is emailed: a failed run shows on Admin > Today (a
 #     failed job_runs row) and in the Actions tab.
+#   - every night, after the backup: the retention list of the private bucket deploy-reports
+#     (scripts/backup/prune-reports.sh): verify runs older than 3 days, every guides/<date> but the newest, every forms
+#     run but the newest 3. It lists what it would remove; it removes only when PRUNE_REPORTS (below) is 1 or when run
+#     by hand with prune_now.
 # Needs only the repository secrets the deploy already uses (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF,
 # SUPABASE_DB_PASSWORD); the age keys are vault secrets backup_age_recipient and backup_age_identity.
 on:
@@ -16,10 +20,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: backup (dump, upload, restore test) or check (the newest backup is recent; restore it)
+        description: backup (dump, upload, restore test), check (the newest backup is recent; restore it) or prune (list the deploy-reports retention)
         type: choice
-        options: [backup, check]
+        options: [backup, check, prune]
         default: backup
+      prune_now:
+        description: Remove the old deploy-reports folders the list names (off = list only)
+        type: boolean
+        default: false
 
 concurrency:
   group: backup
@@ -73,6 +81,24 @@ jobs:
             [ -f "$R" ] && jq -r '"- Restore into \(.restored_into): \(.matched) of \(.tables) tables with the same row count, \(.rows_restored) rows, \(.different | length) different, \(.missing | length) missing; \(.pg_restore_errors) pg_restore errors about Supabase-only objects; \(.seconds) s"' "$R"
           } >> "$GITHUB_STEP_SUMMARY"
           [ "$st" = succeeded ]
+
+  # deploy-reports retention: the list every night; the removal when PRUNE_REPORTS is '1' or by hand with prune_now
+  prune-reports:
+    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *') || (github.event_name == 'workflow_dispatch' && (inputs.prune_now || inputs.mode == 'prune'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PRUNE_REPORTS: '0'
+      REPORTS_KEEP_DAYS: '3'
+      GUIDES_KEEP: '1'
+      FORMS_KEEP: '3'
+    steps:
+      - uses: actions/checkout@v4
+      - name: deploy-reports retention (3 days of verify runs, the newest guides date, the newest 3 forms runs)
+        run: |
+          PRUNE=0 scripts/backup/prune-reports.sh | tee "$RUNNER_TEMP/prune.txt"
+          { echo "## deploy-reports retention"; echo; echo '```'; cat "$RUNNER_TEMP/prune.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$PRUNE_REPORTS" = 1 ] || [ "${{ inputs.prune_now }}" = true ]; then PRUNE=1 scripts/backup/prune-reports.sh | tail -n 1; fi
 
   check:
     if: (github.event_name == 'schedule' && github.event.schedule == '41 13 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'check')

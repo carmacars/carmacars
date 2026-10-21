@@ -15658,6 +15658,7 @@ export type Database = {
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
+      server_jobs_due: { Args: never; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
