@@ -395,9 +395,19 @@ begin
   for c in select value from jsonb_array_elements(v_choices) loop
     res := app.first_last_choose(p_admin, c);
     if jsonb_typeof(res -> 'invoice') = 'object' then
-      v_out := jsonb_set(v_out, '{invoices}', coalesce(v_out -> 'invoices', '[]'::jsonb) || jsonb_build_array(res -> 'invoice'));
+      v_out := jsonb_set(v_out, '{invoices}', jsonb_build_array(res -> 'invoice') || coalesce(v_out -> 'invoices', '[]'::jsonb));
     end if;
   end loop;
+  -- the decision note lists every invoice made, the first and last month ones included (0067's wording)
+  if jsonb_array_length(v_choices) > 0 then
+    update owner_application_notes n
+       set body = format('Approved: terms set for %s car(s); invoices: %s.', jsonb_array_length(coalesce(v_out -> 'terms', '[]'::jsonb)),
+                         coalesce((select string_agg(format('%s %s (%s)', x ->> 'invoice_number', app.fmt_money((x ->> 'total_cents')::bigint),
+                                                            case x ->> 'action' when 'send' then 'sent' when 'paid' then 'recorded as paid' else 'draft' end), ', ' order by o)
+                                     from jsonb_array_elements(v_out -> 'invoices') with ordinality as e(x, o)), 'none'))
+                  || case when exists (select 1 from jsonb_array_elements(v_choices) y where y ->> 'action' = 'none') then ' First and last month: no invoice.' else '' end
+     where n.id = (select id from owner_application_notes where application_id = a.id and kind = 'decision' order by created_at desc limit 1);
+  end if;
   for r in select v.id from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.owner_id = a.owner_id and ob.application_id = a.id loop
     perform app.first_last_todo(r.id, p_admin);
   end loop;

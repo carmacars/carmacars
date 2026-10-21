@@ -109,8 +109,9 @@ async function expectSigned(sql: Sql, ownerId: string, role: string) {
   expect(recs.map((r) => `${r.kind}/${r.keyed}/${r.recs}`)).toEqual([`enrollment/true/carmacars:true,${role}:true`, `title_holding/true/carmacars:true,${role}:true`]);
   await expect.poll(async () => (await sql`select count(*)::int n from owner_agreements a join signature_requests q on q.id = a.signature_request_id
       where a.owner_id = ${ownerId} and a.kind in ('enrollment', 'title_holding') and q.signed_document_id is not null`)[0]!.n, { timeout: 60_000, message: 'signed copies made by the jobs' }).toBe(2);
-  const jobs = await sql`select status, count(*)::int n from pdf_jobs where owner_id = ${ownerId} group by status`;
-  expect(jobs.map((j) => `${j.status}:${j.n}`)).toEqual(['done:2']);
+  // every signed copy of the package (the agreements and Form A or B when the car needs it) was made by a job
+  await expect.poll(async () => (await sql`select string_agg(distinct status, ',') s from pdf_jobs where owner_id = ${ownerId}`)[0]!.s, { timeout: 60_000 }).toBe('done');
+  expect((await sql`select count(*)::int n from pdf_jobs where owner_id = ${ownerId} and kind = 'owner_signed_copy'`)[0]!.n).toBe(2);
   expect(await upfront(sql, ownerId), 'signing makes no first and last month invoice').toBe(0);
 }
 
@@ -159,7 +160,9 @@ test('a corporation owner whose car staff added (0067, No invoice chosen) signs 
   const added = (await sql`select public.door(${admin.id}, null, 'ops_do', 'staff_add_owner_car', ${sql.json({ owner: ownerFields(officer, true), vehicle: car(), signing: 'email',
     plan: { terms: { insurance_fee_cents: 41000 }, invoices: [{ type: 'first_last', action: 'none' }] } })}) r`)[0]!.r as { owner_id: string; vehicle_id: string; approved: boolean };
   expect(added.approved).toBe(true);
+  // the officer's sign-in, linked as the set-up email would (0067)
   await sql`update owners set user_id = ${officer.id} where id = ${added.owner_id}`;
+  await sql`insert into user_roles (user_id, role) values (${officer.id}, 'owner') on conflict do nothing`;
   expect((await sql`select first_last_choice from vehicle_onboardings where vehicle_id = ${added.vehicle_id}`)[0]!.first_last_choice).toBe('none');
   const op = await ctx(browser);
   await signIn(op, officer.email, '/owner');
@@ -186,7 +189,7 @@ test('an owner with custom terms sees and signs the agreed numbers; a failed pre
   // the first preparation fails: a friendly message with Try again; the page itself stays whole
   let fail = true;
   await op.route('**/api/sign/prepare', (r) => (fail ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"ok":false,"message":"We could not prepare this document. Try again in a moment."}' }) : r.continue()));
-  await op.goto('/owner/sign', { waitUntil: 'networkidle' });
+  await op.goto('/owner/sign', { waitUntil: 'domcontentloaded' });
   await expect(op.getByTestId('prepare-docs-error')).toBeVisible({ timeout: 20_000 });
   await expect(op.getByTestId('prepare-docs-error')).toContainText('nothing was signed');
   await expect(op.locator('.sg-docs summary').first()).toBeVisible();
