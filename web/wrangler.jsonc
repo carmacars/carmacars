@@ -12,6 +12,9 @@
   "minify": true,
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
+  // the deployment's version id: the Worker entry's edge copies of the public pages belong to one deployment
+  // (src/lib/edge/page-cache.ts)
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   // Served only on the custom domains below, never on workers.dev or preview URLs.
   "workers_dev": false,
   "preview_urls": false,
@@ -51,6 +54,7 @@
   "env": {
     "staging": {
       "name": "carmacars-staging",
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "routes": [],
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "carmacars-staging" }],
       "r2_buckets": [

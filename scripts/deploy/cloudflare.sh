@@ -92,7 +92,7 @@ resources() {
   case "$cache" in
     kv) cp "$HERE/open-next/kv.config.ts" "$ROOT/web/open-next.config.ts" ;;
     assets) cp "$HERE/open-next/assets.config.ts" "$ROOT/web/open-next.config.ts" ;;
-    r2) [ "$tag" = d1 ] || sed -i '/tagCache: d1NextTagCache,/d; /d1-next-tag-cache/d' "$ROOT/web/open-next.config.ts" ;;
+    r2) [ "$tag" = d1 ] || sed -i '/tagCache: withEdgeGeneration(d1NextTagCache),/d; /d1-next-tag-cache/d; /tag-cache-gen/d' "$ROOT/web/open-next.config.ts" ;;
   esac
   node "$ROOT/scripts/deploy/wrangler-config.mjs" --cache "$cache" --tag "$tag" --storage "$storage" ${kv_id:+--kv-id "$kv_id"} ${d1_id:+--d1-id "$d1_id"}
   export_env STORAGE_PROVIDER "$storage"

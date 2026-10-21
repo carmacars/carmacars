@@ -64,3 +64,24 @@ test('build: a refusal (42501) or a missing row is never tried again; five timeo
   await assert.rejects(withBuildRetry(async () => { n++; throw new RpcError('timeout', '57014', undefined, 500); }, { building: true, sleep: async () => {} }), /timeout/);
   assert.equal(n, 5);
 });
+
+test('run time: an error from before the statement ran (schema cache reload, no connection) is tried twice more, quickly', async () => {
+  for (const code of ['PGRST002', 'PGRST001', '53300', '08006']) {
+    let n = 0; const waits: number[] = [];
+    const flaky = async () => { n++; if (n < 3) throw new RpcError('Could not query the database for the schema cache. Retrying.', code, undefined, 503); return 'car'; };
+    assert.equal(await withBuildRetry(flaky, { building: false, sleep: async (ms) => { waits.push(ms); } }), 'car');
+    assert.equal(n, 3);
+    assert.deepEqual(waits, [300, 600]);
+  }
+  let n = 0;
+  const down = async () => { n++; throw new RpcError('schema cache', 'PGRST002', undefined, 503); };
+  await assert.rejects(withBuildRetry(down, { building: false, sleep: async () => {} }), /schema cache/);
+  assert.equal(n, 3);
+});
+test('run time: a timeout, a refusal or a network error is not repeated', async () => {
+  for (const e of [new RpcError('timeout', '57014', undefined, 500), new RpcError('denied', '42501', undefined, 401), new TypeError('fetch failed'), new RpcError('bad gateway', undefined, undefined, 502)]) {
+    let n = 0;
+    await assert.rejects(withBuildRetry(async () => { n++; throw e; }, { building: false, sleep: async () => {} }));
+    assert.equal(n, 1);
+  }
+});

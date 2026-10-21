@@ -82,3 +82,14 @@ October 18, 152 neurons; the car copy on October 19, 110 neurons, published; the
 - The sample cars keep their own photos and text; nothing about them changed.
 - Consumption and luggage rows appear only when the listing has them (the samples have them typed in); nothing is
   invented for a real car.
+
+## 7. One search title per car again (migration 0074)
+
+The deploy's SEO audit found the same title and description on several cars of the same year, make and model and
+price ("Rent a 2024 Kia K5 in Toronto from $100 a day | CarmaCars" on five addresses): building the search text from
+the car, as for the samples, had dropped the per-car part of 0070. `app.listing_seo_mark` gives a car that shares its
+year, make and model with another car on the site what tells it apart: its colour when no other of them has that
+colour, else a short code from the car (not the fleet number: the public reads never carry it, suite 11 checks that). The car page adds it to
+the name in both the title and the description ("Rent a 2024 Kia K5 (white) in Toronto from $100 a day"). A car with
+no twin keeps the samples' format exactly. The web addresses of such cars were already unique (`app.listing_slug` adds
+the colour, then a short code). Test: `supabase/tests/52_car_seo_unique.sql`.

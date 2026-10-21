@@ -129,7 +129,7 @@ select test.eq('A an Admin edits the settings and the content from the portal',
 select test.throws('A nobody deletes settings from a browser session', $$delete from site_settings$$, 'permission denied');
 select test.logout();
 select test.eq('A every change is in the audit log with the row before and after (the version history)',
-  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' = '+16475753377' and after ->> 'phone' = '416-555-0142'), true);
+  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' = '+12893215991' and after ->> 'phone' = '416-555-0142'), true);
 select test.eq('A the editor is recorded on the row', (select updated_by from site_settings), test.id('ofl_admin'));
 
 set role anon;

@@ -45,13 +45,16 @@ export async function generateMetadata({ params }: Params) {
   // 0073: every car's search text is built the same way as the sample cars' (from the car and its price), unless a
   // person wrote and locked it on the car copy
   const locked = new Set(c.copy_locked ?? []);
+  // 0074: a car that shares its year, make and model with another car on the site gets its distinguishing part (its
+  // colour or a short code) in both, so no two cars have the same title or description
+  const nm = `${name(c)}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
   const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
-    : fit(65, `Rent a ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}} | {{brand}}`);
+    : fit(65, `Rent a ${c.year} ${nm} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}} | {{brand}}`);
   const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
   const description = locked.has('meta_description') && c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
-    : fit(160, `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
-      `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
-      `Rent the ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
+    : fit(160, `Rent the ${c.year} ${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
+      `Rent the ${c.year} ${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
+      `Rent the ${c.year} ${nm} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
   return seoMeta({
     title, description,
     path: c.canonical_path, image: c.photos[0] ? absUrl(c.photos[0].path) : null,

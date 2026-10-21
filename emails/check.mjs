@@ -219,7 +219,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const e of cat.emails) {
     if (e.audience.startsWith('staff_')) continue;
     const t = read('dist', e.code + '.txt');
-    for (const need of ['contact@carmacars.ca', '647-575-3377', 'Open 24 hours', 'within 2 hours', 'https://instagram.com/carmacars.ca', 'https://tiktok.com/@carmacars.ca']) if (!t.includes(need)) p.push(`${e.code}: footer lacks ${need}`);
+    for (const need of ['contact@carmacars.ca', '289-321-5991', 'Open 24 hours', 'within 2 hours', 'https://instagram.com/carmacars.ca', 'https://tiktok.com/@carmacars.ca']) if (!t.includes(need)) p.push(`${e.code}: footer lacks ${need}`);
   }
   check('no info@ or rent@ anywhere; every customer email carries contact@, the phone, hours, reply time and Instagram and TikTok', p);
 }

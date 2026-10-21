@@ -2993,6 +2993,7 @@ export type Database = {
           wording_version: string;
           recorded_at: string;
           user_agent: string | null;
+          region: string | null;
         };
         Insert: {
           id?: string;
@@ -3004,6 +3005,7 @@ export type Database = {
           wording_version: string;
           recorded_at?: string;
           user_agent?: string | null;
+          region?: string | null;
         };
         Update: {
           id?: string;
@@ -3015,6 +3017,7 @@ export type Database = {
           wording_version?: string;
           recorded_at?: string;
           user_agent?: string | null;
+          region?: string | null;
         };
         Relationships: [];
       };
@@ -15645,6 +15648,7 @@ export type Database = {
       public_vehicle_calendar: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: { unavailable_from: string; unavailable_to: string; first_date: string; last_date: string }[] };
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
       record_cookie_choice: { Args: { p_visitor_id: string; p_choice: string; p_wording_version: string; p_analytics?: boolean; p_user_agent?: string }; Returns: Json };
+      record_cookie_notice: { Args: { p_visitor_id: string; p_wording_version: string; p_region?: string; p_user_agent?: string }; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
@@ -15719,6 +15723,7 @@ export type Database = {
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
+      server_jobs_due: { Args: never; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };

@@ -42,7 +42,7 @@ export const SAMPLES = {
   deposit_amount: v('$500.00', 'Security deposit for this booking, taken at pickup.'),
   card_last4: v('4242', 'Last four digits of the Card on File.'),
   card_brand: v('Visa'),
-  roadside_phone: v('647-575-3377', 'The 24-hour roadside and incident line (site_settings.roadside_phone_display).'),
+  roadside_phone: v('289-321-5991', 'The 24-hour roadside and incident line (site_settings.roadside_phone_display).'),
 
   vehicle_id: v('v-3f81c2', 'Vehicle id as used in portal URLs.'),
   renter_phone: v('416-555-0142'),

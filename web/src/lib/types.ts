@@ -26,6 +26,8 @@ export interface CarPage extends CarRow {
     pickup_delivery: string; requirements: string[]; faq: { question: string; answer: string }[] } | null;
   /** 0073: the copy fields a person wrote and locked (only those override the search text built from the car). */
   copy_locked?: string[];
+  /** 0074: what tells this car apart from another of the same year, make and model (its colour or a short code); null when none. */
+  seo_mark?: string | null;
   reviews?: { count: number; average: number | null; min_for_rating: number;
     items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null }> };
 }
@@ -66,4 +68,6 @@ export interface SiteFacts {
 export interface ContentBlock { key: string; page: string; kind: 'text' | 'rich_text' | 'faq' | 'list'; body: string | null; data: Record<string, unknown> }
 export interface FaqItem { question: string; answer: string }
 export interface SlotPhoto { alt: string; wide: { path: string; width: number; height: number }; tall: { path: string; width: number; height: number } }
-export interface CookieWording { version: string; title: string; text: string; accept: string; necessary: string; prefs: string; save: string; groups: { code: string; name: string; always: boolean; text: string }[] }
+export interface CookieWording { version: string; title: string; text: string; accept: string; necessary: string; prefs: string; save: string; groups: { code: string; name: string; always: boolean; text: string }[];
+  /** Notice and opt out (0075): where analytics start on with a notice, the notice and its labels. */
+  notice?: string; ok?: string; optout?: string; notice_seconds?: number; implied_regions?: string[]; implied_exceptions?: string[] }
