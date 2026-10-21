@@ -57,14 +57,15 @@ export function GameGate() {
   const open = useRef(false);
   const pathRef = useRef(path);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const exitOn = useRef(false);
+  // the latest check, for timers and listeners set up earlier
+  const again = useRef<(exit?: boolean) => void>(() => undefined);
 
   const may = useCallback(() => !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow() }), []);
 
   const fire = useCallback((f: Fire) => {
     if (open.current || !may()) return;
     // the cookie banner first: one thing at a time
-    if (!answeredCookies()) { addEventListener('cc:consent', () => fire(f), { once: true }); return; }
+    if (!answeredCookies()) { addEventListener('cc:consent', () => again.current(), { once: true }); return; }
     open.current = true;
     const v = visitNow();
     if (v) saveVisit(shown(v));
@@ -79,8 +80,9 @@ export function GameGate() {
     const f = trigger({ cfg: c, visit: v, now: Date.now(), exit, phone: phone() });
     if (f) { fire(f); return; }
     const wait = nextCheck({ cfg: c, visit: v, now: Date.now(), phone: phone() });
-    if (wait !== null) timer.current = setTimeout(() => check(), wait + 250);
+    if (wait !== null) timer.current = setTimeout(() => again.current(), wait + 250);
   }, [fire, may]);
+  useEffect(() => { again.current = check; }, [check]);
 
   // the visit: one more page on every address, then look again
   useEffect(() => {
@@ -102,7 +104,7 @@ export function GameGate() {
       cfg.current = await gameSettings();
       if (!live || !cfg.current || !may()) return;
       idle(() => { if (live && may()) void loadPopup().catch(() => undefined); });
-      if (cfg.current.exit && !phone()) { document.documentElement.addEventListener('mouseleave', onLeave); exitOn.current = true; }
+      if (cfg.current.exit && !phone()) { document.documentElement.addEventListener('mouseleave', onLeave); }
       check();
     })();
     return () => { live = false; if (timer.current) clearTimeout(timer.current); document.documentElement.removeEventListener('mouseleave', onLeave); };

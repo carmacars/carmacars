@@ -117,3 +117,6 @@ select test.eq('privileges: the booking form''s play is the server''s; the site'
   || has_function_privilege('service_role', 'public.server_game_start(jsonb, uuid)', 'execute')::text || has_function_privilege('anon', 'public.game_start(jsonb)', 'execute')::text
   || has_function_privilege('anon', 'app.game_start_core(jsonb, uuid)', 'execute')::text || has_function_privilege('anon', 'app.server_game_claim_pre0076(jsonb, uuid)', 'execute')::text,
   'falsefalsetruetruefalsefalse');
+select test.eq('the privacy policy says when and where the games show where it still has our text (or the seed has not run)',
+  coalesce((select (body like '%offered in the booking request form%' and body like '%which games you have seen%' and body not like '%browse several cars or stay a while%')::text
+              from site_content_blocks where block_key = 'legal.privacy' and body like '%Discount games are shown%'), 'true'), 'true');
