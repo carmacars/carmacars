@@ -28,7 +28,9 @@ ownership permit. You can still save it." Letters a VIN never has are named ("O 
 The form asks only the year, make and model, from lists: the years, the common makes (or "Another make", typed), and
 the models of that make and year from NHTSA vPIC (`GetModelsForMakeYear`; "Another model" types one). Saving is never
 blocked by the decoder. The listing worker's five-minute run (`/api/jobs/listing`, `web/src/server/car-details.ts`)
-decodes such VINs again (at most 5 tries, 6 hours apart) and the car fills itself (`app.vin_decoded_apply`).
+decodes such VINs again (at most 5 tries, 6 hours apart) and the car fills itself (`app.vin_decoded_apply`). The
+Worker's cron gate (`app.server_jobs_due`, 0076) counts a VIN waiting for a decode, or a colour waiting to be read, as
+work for the listing worker.
 
 ## 3. The class
 

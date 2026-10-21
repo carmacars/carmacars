@@ -488,6 +488,22 @@ begin
   return n;
 end $$;
 
+-- The Worker's cron gate (0076) calls the listing worker only when it has work: a VIN to decode again or a colour to
+-- read is work too (the listing worker's run does both, web/src/server/car-details.ts).
+alter function app.server_jobs_due() rename to server_jobs_due_pre0082;
+create or replace function app.server_jobs_due() returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v jsonb := app.server_jobs_due_pre0082();
+  c jsonb;
+begin
+  if coalesce((v ->> 'listing')::boolean, false) then return v; end if;
+  if jsonb_array_length(app.vin_decode_due(1)) > 0 then return v || jsonb_build_object('listing', true); end if;
+  c := app.colour_read_due(1);
+  if coalesce((c ->> 'allowed')::boolean, false) and jsonb_array_length(c -> 'cars') > 0 then return v || jsonb_build_object('listing', true); end if;
+  return v;
+end $$;
+
 -- ================================================================ 6. the doors (the server's service role)
 create or replace function public.server_vin_facts(p_vin text) returns jsonb
 language sql stable security invoker set search_path = public, app as $$ select app.vin_facts(p_vin) $$;
@@ -537,7 +553,7 @@ begin
   -- the wrapped ones: the new function gets the privileges the old one had
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             join (values ('add_owner_vehicle_pre0082', 'add_owner_vehicle'), ('vehicle_add_core_pre0082', 'vehicle_add_core')) m(old_name, new_name)
+             join (values ('add_owner_vehicle_pre0082', 'add_owner_vehicle'), ('vehicle_add_core_pre0082', 'vehicle_add_core'), ('server_jobs_due_pre0082', 'server_jobs_due')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;

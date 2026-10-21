@@ -158,6 +158,7 @@ select test.eq('class: a car whose class nobody chose gets the inferred one; a p
 insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method)
 values (test.id('vehicle:VF10'), test.id('owner:vf_own'), 2020, 'Kia', 'Forte', 'KNAFK4A6XF5123456', 'VF10XX', 'standard', 'onboarding', 'managed', 'transfer');
 select test.ok('later: the VIN is due for a decode', app.vin_decode_due(100000) @> '[{"vin": "KNAFK4A6XF5123456"}]');
+select test.ok('later: the cron gate calls the listing worker while a VIN waits', (app.server_jobs_due() ->> 'listing')::boolean);
 select app.record_vin_decode('KNAFK4A6XF5123456', 'fake', '{"ok": true, "year": "2015", "make": "Kia", "model": "Forte", "trim": "LX", "body_class": "Sedan/Saloon", "fuel": "gasoline", "seats": "5"}');
 select test.eq('later: the decode fills the car', app.vin_decoded_apply('KNAFK4A6XF5123456'), 1);
 select test.eq('later: and its class', (select class::text || '/' || trim from vehicles where id = test.id('vehicle:VF10')), 'economy/LX');
