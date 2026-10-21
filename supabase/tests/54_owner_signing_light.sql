@@ -1,6 +1,6 @@
--- 51: owner signing without rendering on the page (documents found by content key), signed copies as background jobs,
+-- 54: owner signing without rendering on the page (documents found by content key), signed copies as background jobs,
 -- and the first and last month invoice only by an Admin's choice (0075). Fixtures start with "sl".
-select test.suite('51 owner signing light, first and last month choice');
+select test.suite('54 owner signing light, first and last month choice');
 grant usage on schema test to service_role;
 create table test.sl (k text primary key, v jsonb);
 create function test.slv(p text) returns jsonb language sql stable as $$ select v from test.sl where k = p $$;

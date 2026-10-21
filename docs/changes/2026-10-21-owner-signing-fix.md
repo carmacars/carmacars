@@ -1,6 +1,6 @@
 # Owner signing that never crashes; the first and last month invoice only by choice (October 21, 2026; migration 0075)
 
-Migration `supabase/migrations/0075_owner_signing_light.sql`, tests `supabase/tests/51_owner_signing_light.sql`,
+Migration `supabase/migrations/0075_owner_signing_light.sql`, tests `supabase/tests/54_owner_signing_light.sql`,
 `web/src/server/signing/content.test.ts`, end to end `web/tests/e2e/owner-signing.spec.ts` (3 tests, 375 and 1440). No
 earlier migration was edited; the functions it changes are wrapped (renamed with the suffix `_pre0075`) or replaced with
 the same signature.
@@ -44,14 +44,33 @@ owner sees the documents at once and the Sign button within a second or two.
 | Renter: the agreement opened when an offer is accepted, or the first time a staff-added rental's sign page opens; an amendment opened on submit | Action or first page view (one document) | Unchanged (one smaller PDF per request) |
 | Admin: investment and staff agreements prepared, partner agreement download, data sheets, witnessed forms, invoices and statements under /files | Admin action or download | Unchanged (rendered on demand; invoices and statements are stored once final) |
 
-## 3. Measurements (local, the owner's own facts; the PDF code is the Worker's)
+## 3. Measurements (local; the PDF code is the Worker's)
 
-| | Before | After |
+The renderer alone, in Node, with the owner's own facts (`process.cpuUsage`, heap growth; three runs each, cold):
+
+| | Before (page renders both agreements) | After (page computes both content keys) |
 | --- | --- | --- |
-| /owner/sign page work beyond the database calls | Two PDFs: 929 to 1,035 ms CPU, 22 to 28 MB heap | Two content keys: 21 to 29 ms CPU, 0.5 MB heap |
-| One prepare request | n/a (everything in the page) | Enrollment Agreement 809 to 903 ms CPU, 19 to 22 MB heap (cold, module loading included); Title-Holding 593 to 641 ms CPU, 17 MB |
-| Sign submit | The signatures plus two signed PDFs (about the same CPU as the page) | The signatures and two queue rows; the PDFs in the jobs |
-| End to end (local server, 375 and 1440) | n/a | Documents readable in 0.4 to 0.6 s after the tap; Sign button ready after the preparation; Sign to success screen in 0.8 to 1.1 s; signed copies attached within seconds |
+| CPU | 929 to 1,035 ms | 21 to 29 ms |
+| Heap | 22 to 28 MB | 0.5 MB |
+| One document in its own prepare request | n/a | Enrollment Agreement 809 to 903 ms, 19 to 22 MB; Title-Holding 593 to 641 ms, 17 MB |
+
+Server CPU per request on the built site (`next start`, the server process's CPU time read from /proc around each
+request; a fresh individual owner with one car, so three documents: the two agreements and Form A; two runs, warm):
+
+| Request | After | Before (the same work, all in that request) |
+| --- | --- | --- |
+| GET /owner/sign, documents not open yet | 140 to 230 ms | Page plus three PDFs rendered and opened: about 0.5 to 1.4 s (the page plus the three prepare rows below; up to 0.9 s more on a cold start) |
+| POST /api/sign/prepare, Enrollment Agreement | 230 to 320 ms (920 ms the first time after a start) | In the page request |
+| POST /api/sign/prepare, Title-Holding and Lease Agreement | 130 to 150 ms | In the page request |
+| POST /api/sign/prepare, Form A | 20 to 30 ms | In the page request |
+| POST /api/sign/prepare, already open | 10 to 20 ms | Every page view rendered again |
+| GET /owner/sign, documents open | 120 to 200 ms | Every page view rendered again |
+| Sign (the server action) | 240 to 550 ms, the success page in 2.1 to 2.5 s | Plus the three signed copies (the job row below) in the same request |
+| POST /api/jobs/pdf (two signed copies) | 470 to 840 ms, in its own request; all three copies attached 3 to 4.6 s after Sign | n/a |
+
+End to end at 375 and 1440 (local, `owner-signing.spec.ts`): the documents readable 0.3 to 0.6 s after "Check and sign";
+the Sign button ready 2.4 to 2.6 s after it for a fresh owner (three documents prepared), at once when they are open;
+Sign to the success screen in 0.5 to 1.5 s.
 
 ## 4. The first and last month invoice: only by an Admin's choice
 
@@ -62,7 +81,7 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 | Signing | Never makes or issues an invoice (0075 wraps `owner_sign_agreements`; tested) |
 | The choice | Each car carries the Admin's choice (`vehicle_onboardings.first_last_choice`): the amount (exact; default 2 x the Insurance Fee) and Send invoice now, Draft only, Already paid (method, date, reference) or No invoice |
 | Where it is set | Approve (the "First and last month" choice now has No invoice), "Add a car for an owner" (0067's `staff_add_owner_car`), and the owner's Terms tab (each car: the choice, its invoice, or "not decided") |
-| No choice | Nothing is invoiced; Admin > Today shows "Decide the first and last month invoice for (car)" until it is decided |
+| No choice | Nothing is invoiced; a task "Decide the first and last month invoice for (car)" opens, and Admin > Today shows "First and last month invoices to decide" with the count and a link to the owner's Terms tab, until it is decided (Today also shows "Signed copies that could not be made") |
 | No invoice | The car moves past "upfront paid" once signed (nothing to wait for) |
 | The owner page's Issue | Now "Apply the choices made": it only makes the invoice a choice asks for (for example after that invoice was voided); a car without a choice gets the to-do |
 | The invoice screens | The Admin's explicit Issue stays as it is |
@@ -73,7 +92,7 @@ The owner, October 21, 2026: CarmaCars must never issue the "first and last mont
 
 | Suite | Result |
 | --- | --- |
-| Database, full (`scripts/test.sh`) | 4,538 passed, 0 failed; new suite 51 (35 assertions): approve without a choice, the bulk path, the to-do, opening by content key (one per request, idempotent, other users see nothing), signing records the signature against the opened SHA-256 for a corporation and makes no invoice, the jobs (enqueue, claim, retry, already attached, failure task, the email held and released, attachments), each choice (send, draft, paid with its reference, none, from the Terms tab, after a void), privileges. Suites 11, 16 and 28 now choose the first and last month invoice before the owner page's Issue; 03 lists `pdf_jobs` with the work lists |
+| Database, full (`scripts/test.sh`) | 4,538 passed, 0 failed; new suite 54 (36 assertions): approve without a choice, the bulk path, the to-do, opening by content key (one per request, idempotent, other users see nothing), signing records the signature against the opened SHA-256 for a corporation and makes no invoice, the jobs (enqueue, claim, retry, already attached, failure task, the email held and released, attachments), each choice (send, draft, paid with its reference, none, from the Terms tab, after a void), privileges. Suites 11, 16 and 28 now choose the first and last month invoice before the owner page's Issue; 03 lists `pdf_jobs` with the work lists |
 | Unit | `content.test.ts`: the content key is deterministic, changes with every input, carries the renderer version; prepare targets accept only known documents |
 | End to end | `owner-signing.spec.ts` at 375 and 1440: an individual owner, a corporation owner whose car staff added (No invoice), an owner with custom terms (and a failed preparation with Try again). Updated: `owner.spec.ts`, `guides-manual.spec.ts`, `legal-admin-redesign.spec.ts`, `supply-rentals.spec.ts`, `debit.spec.ts`, `portal.spec.ts`, `ops.spec.ts` (they wait for the background copies, and choose the first and last month invoice) |
 
