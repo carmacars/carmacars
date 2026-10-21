@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow } from './helpers';
 import { signQuo } from '../../src/features/phone/webhook';
 import { SAMPLES } from '../../src/features/phone/samples';
 
@@ -27,6 +27,7 @@ async function check(page: Page, where: string) {
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
 const isPhone = () => test.info().project.name.includes('phone') || (test.info().project.use.viewport?.width ?? 1440) < 600;
+const shown = (n: string) => `${n.slice(2, 5)}-${n.slice(5, 8)}-${n.slice(8)}`;
 const number = () => `+1416${String(2000000 + Math.floor(Math.random() * 7999999)).slice(0, 7)}`;
 
 async function mkUser(sql: Sql, role: 'admin' | 'va', fn?: 'cs') {
@@ -39,10 +40,7 @@ async function mkUser(sql: Sql, role: 'admin' | 'va', fn?: 'cs') {
 }
 async function signIn(page: Page, email: string, expectPath: string) {
   await page.goto('/sign-in', { waitUntil: 'networkidle' });
-  const b = page.getByRole('button', { name: 'Necessary only' }).first();
-  if (await b.isVisible().catch(() => false)) await b.click();
-  const ok = page.getByRole('button', { name: 'OK' }).first();
-  if (await ok.isVisible().catch(() => false)) await ok.click();
+  await acceptCookies(page);
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -53,9 +51,12 @@ async function ctx(browser: Browser) {
   return c.newPage();
 }
 /** A delivery as Quo sends it: the documentation's payload with our numbers, signed with the local webhook secret. */
-async function deliver(page: Page, sample: unknown, patch: (b: Record<string, any>) => void): Promise<number> {
-  const body = JSON.parse(JSON.stringify(sample)) as Record<string, any>;
+type Delivery = { id: string; data: { resource: Record<string, unknown>; context: Record<string, unknown> } };
+async function deliver(page: Page, sample: unknown, patch: (b: Delivery) => void): Promise<number> {
+  const body = JSON.parse(JSON.stringify(sample)) as Delivery;
   body.id = `EV${randomUUID()}`;
+  const now = new Date().toISOString();
+  for (const k of ['createdAt', 'updatedAt', 'answeredAt', 'completedAt']) if (k in body.data.resource) body.data.resource[k] = now;
   patch(body);
   const raw = JSON.stringify(body);
   const r = await page.request.post('/api/webhooks/quo', { data: raw, headers: { 'content-type': 'application/json', ...(await signQuo(raw, SECRET, `msg_${randomUUID()}`)) } });
@@ -64,14 +65,29 @@ async function deliver(page: Page, sample: unknown, patch: (b: Record<string, an
 
 test.describe.configure({ mode: 'serial' });
 
-// a seeded renter with a booking, a number of their own for this width
+// a renter of this test's own with a mobile of their own, and a past booking of theirs (a copy of a seeded booking
+// moved to dates no other booking uses), so the two widths never share a renter or a number
 async function renterWithBooking(sql: Sql) {
-  const [r] = await sql<Array<{ renter_id: string; booking_number: string; legal_name: string }>>`
-    select b.renter_id, b.booking_number, r.legal_name from bookings b join renters r on r.id = b.renter_id
-     where b.status in ('confirmed', 'on_rent', 'requested', 'offered', 'pending_payment') order by b.created_at limit 1 offset ${isPhone() ? 0 : 1}`;
   const mobile = number();
-  await sql`update renters set mobile = ${mobile}, sms_opt_out_at = null where id = ${r!.renter_id}`;
-  return { ...r!, mobile };
+  const t = tag();
+  const legal_name = `Phoebe Phone ${t}`;
+  const [r] = await sql<Array<{ id: string }>>`insert into renters (legal_name, date_of_birth, mobile, email, identity_status)
+    values (${legal_name}, '1990-05-05', ${mobile}, ${`phoebe.${t}@example.test`}, 'verified') returning id`;
+  const year = 2024 - Math.floor(Math.random() * 20);
+  const booking_number = `PH-${t.toUpperCase()}`;
+  const dd = 1 + Math.floor(Math.random() * 25);
+  const pickup = `${year}-0${1 + Math.floor(Math.random() * 9)}-${String(dd).padStart(2, '0')} 14:00+00`;
+  const ret = new Date(new Date(pickup.replace(' ', 'T').replace('+00', 'Z')).getTime() + 2 * 86_400_000).toISOString();
+  const cols = (await sql<Array<{ c: string }>>`select column_name as c from information_schema.columns
+     where table_schema = 'public' and table_name = 'bookings' and is_generated = 'NEVER' order by ordinal_position`).map((x) => `"${x.c}"`).join(', ');
+  const patch = { booking_number, agreement_number: null, renter_id: r!.id, status: 'closed', renews_booking_id: null, pickup_at: pickup, return_at: ret,
+    original_return_at: ret, booked_at: pickup, checked_in_at: null, handed_over_at: null };
+  await sql.unsafe(`insert into bookings (${cols}) select ${cols} from jsonb_populate_record(null::bookings,
+      (select to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()) || $j$${JSON.stringify(patch)}$j$::jsonb
+        || jsonb_build_object('billable_days', public.calc_billable_days('${pickup}'::timestamptz, '${ret}'::timestamptz),
+             'km_allowance_total', b.km_allowance_per_day * public.calc_billable_days('${pickup}'::timestamptz, '${ret}'::timestamptz))
+        from bookings b where b.status = 'confirmed' limit 1))`);
+  return { renter_id: r!.id, booking_number, legal_name, mobile };
 }
 
 test('Texts and calls: customer service reads a renter\'s text, takes a suggestion, sends it; an unknown caller becomes a lead', async ({ browser }) => {
@@ -96,10 +112,10 @@ test('Texts and calls: customer service reads a renter\'s text, takes a suggesti
   await page.waitForURL(/view=phone/);
   const inbox = page.getByTestId('phone-inbox');
   await expect(inbox).toBeVisible();
-  await inbox.getByTestId('phone-item').filter({ hasText: r.legal_name }).first().click();
+  await inbox.getByTestId('phone-item').filter({ hasText: shown(r.mobile) }).first().click();
   const thread = page.getByTestId('phone-thread');
   await expect(thread.getByText('Can I pick up an hour early?')).toBeVisible();
-  await expect(page.getByText(r.booking_number).first()).toBeVisible();
+  await expect(thread.getByText(`booking ${r.booking_number}`).first()).toBeVisible();
   await check(page, 'va texts and calls');
   await thread.getByTestId('phone-suggest').click();
   const box = thread.getByLabel(/^Text to/);
@@ -112,7 +128,7 @@ test('Texts and calls: customer service reads a renter\'s text, takes a suggesti
 
   // Unknown callers: the missed call, then Create lead
   await page.getByTestId('phone-unknown-tab').click();
-  await inbox.getByTestId('phone-item').filter({ hasText: stranger.slice(2, 5) }).first().click();
+  await inbox.getByTestId('phone-item').filter({ hasText: shown(stranger) }).first().click();
   await expect(thread.getByTestId('phone-call').filter({ hasText: 'Missed call' }).first()).toBeVisible();
   await page.getByTestId('phone-link').getByLabel('Name').fill('Walt Weekend');
   await page.getByTestId('phone-link').getByRole('button', { name: 'Create lead' }).click();
@@ -133,17 +149,20 @@ test('Admin: the booking\'s History tab and the renter page show the calls and t
   const callId = `AC${tag()}`;
   expect(await deliver(page, SAMPLES.callCompleted, (b) => { b.data.resource.id = callId; b.data.context.participants = { workspace: [ours], external: [r.mobile], resolution: 'available' }; })).toBe(200);
   expect(await deliver(page, SAMPLES.callSummary, (b) => { b.data.resource.callId = callId; b.data.resource.summary = ['Renter asked to move the pickup by an hour.']; b.data.context.participants = { workspace: [ours], external: [r.mobile], resolution: 'available' }; })).toBe(200);
+  // the booking the text was attached to (the renter's current one)
+  const [att] = await sql<Array<{ booking_number: string }>>`select b.booking_number from phone_activity a join bookings b on b.id = a.booking_id where a.body = 'Running ten minutes late' and a.renter_id = ${r.renter_id} order by a.created_at desc limit 1`;
+  expect(att?.booking_number, 'the text is kept with a booking of the renter').toBeTruthy();
   const admin = await mkUser(sql, 'admin');
   await signIn(page, admin.email, '/admin');
-  await page.goto(`/admin/bookings/${encodeURIComponent(r.booking_number)}?tab=history`, { waitUntil: 'networkidle' });
+  await page.goto(`/admin/bookings/${encodeURIComponent(att!.booking_number)}?tab=history`, { waitUntil: 'networkidle' });
   const card = page.getByTestId('booking-calls');
-  await expect(card.getByText('Running ten minutes late')).toBeVisible();
+  await expect(card.getByText('Running ten minutes late').first()).toBeVisible();
   await expect(card.getByTestId('call-summary').filter({ hasText: 'Renter asked to move the pickup by an hour.' })).toBeVisible();
   // the line does not record calls: no transcript or recording section on a call without them
   await expect(card.getByRole('button', { name: 'Transcript' })).toHaveCount(0);
   await check(page, 'admin booking history');
   await page.goto(`/admin/renters/${r.renter_id}`, { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('renter-calls').getByText('Running ten minutes late')).toBeVisible();
+  await expect(page.getByTestId('renter-calls').getByText('Running ten minutes late').first()).toBeVisible();
   await check(page, 'admin renter page');
   await page.goto('/admin/chat?view=phone', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('phone-inbox')).toBeVisible();

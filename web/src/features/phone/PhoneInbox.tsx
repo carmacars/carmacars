@@ -35,7 +35,7 @@ export function PhoneInbox({ initial, portal, openId }: { initial: PhoneInboxDat
         <nav className="lc-list" aria-label="Phone conversations">
           <div className="ad-chip-row" role="group" aria-label="Which numbers">
             <button type="button" className={`btn btn--sm ${view === 'all' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'all'} onClick={() => pick('all')}>All</button>
-            <button type="button" className={`btn btn--sm ${view === 'unknown' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'unknown'} onClick={() => pick('unknown')} data-testid="phone-unknown-tab">Unknown callers ({inbox.unknown})</button>
+            <button type="button" className={`btn btn--sm ${view === 'unknown' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'unknown'} onClick={() => pick('unknown')} data-testid="phone-unknown-tab">Unknown callers<span> ({inbox.unknown})</span></button>
           </div>
           {!inbox.threads.length ? <p className="small muted">{view === 'unknown' ? 'Every number is matched to someone.' : 'No calls or texts yet. They appear here as they come in.'}</p> : (
             <ul>{inbox.threads.map((c) => (

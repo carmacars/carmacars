@@ -60,7 +60,7 @@ values (test.id('chat:qp'), md5('qp-chat') || md5('qp-chat2'), 'LC-QP1', 'closed
 insert into visitor_sessions (id, visitor_id, consent, current_path, page_views) values (test.id('session:qp'), test.id('visitor:qp'), 'analytics', '/cars', 3);
 select test.eq('a chat visitor who gave this phone: a lead side match, with their browser for Live visitors',
   (select format('%s %s %s', m ->> 'kind', m ->> 'chat_id' = test.id('chat:qp')::text, m ->> 'visitor_id' = test.id('visitor:qp')::text) from (select app.phone_match('4165550106') m) x), 'lead t t');
-select test.eq('an unknown number', app.phone_match('+14165550199') ->> 'kind', 'unknown');
+select test.eq('an unknown number', app.phone_match('+17055550199') ->> 'kind', 'unknown');
 
 -- ================================================================ 3. texts in
 select test.qmsg('AC-qp-1', '+14165550101', 'Hi, can I pick up an hour early?');
@@ -81,10 +81,10 @@ update program_settings set phone_record_texts = true;
 
 -- ================================================================ 4. the missed call (task on, text off by default)
 -- nobody holds Finance? qp_cs holds customer service: the task goes to the customer service queue; nobody on shift: unassigned
-select test.qmissed('AC-qp-m1', '+14165550199');
+select test.qmissed('AC-qp-m1', '+17055550199');
 select test.eq('a missed call from an unknown number: a task to customer service, no text (the text-back is off by default)',
-  (select format('%s %s %s', t.queue, t.assigned_to is null, t.priority) from tasks t where t.dedupe_key = 'phone_missed:' || (select id from test.qthread('+14165550199'))) || ' '
-  || (select count(*) from phone_outbox where to_number = '+14165550199'), 'cs t high 0');
+  (select format('%s %s %s', t.queue, t.assigned_to is null, t.priority) from tasks t where t.dedupe_key = 'phone_missed:' || (select id from test.qthread('+17055550199'))) || ' '
+  || (select count(*) from phone_outbox where to_number = '+17055550199'), 'cs t high 0');
 select test.eq('the call is marked missed and shows in Unknown callers', (select format('%s %s', a.missed, t.match_kind) from phone_activity a join phone_threads t on t.id = a.thread_id where a.quo_id = 'AC-qp-m1'), 't unknown');
 -- the person on duty: customer service with the inbox open
 insert into chat_staff_prefs (user_id, last_seen_at) values (test.id('qp_cs'), now()) on conflict (user_id) do update set last_seen_at = now();
@@ -106,10 +106,13 @@ select test.eq('the same call reported twice (call.completed after call.missed) 
 select test.eq('a staff member calling in gets no text and no task',
   jsonb_array_length(test.qmissed('AC-qp-m5', '+14165550104') -> 'send') || ' ' || (select count(*) from tasks where task_type = 'phone_missed_call' and renter_id is null and title like '%Qp Cs%'), '0 0');
 -- the Admins when nobody holds the function
+create temp table qp_fin as select user_id, is_active from staff_profiles where va_function = 'finance' or 'finance' = any (cover_functions);
+update staff_profiles set is_active = false where user_id in (select user_id from qp_fin);
 update program_settings set phone_missed_call_queue = 'finance';
-select test.qmissed('AC-qp-m6', '+14165550188');
-select test.eq('nobody holds the function (finance): the Admins get the task', (select queue from tasks where dedupe_key = 'phone_missed:' || (select id from test.qthread('+14165550188'))), 'admin');
+select test.qmissed('AC-qp-m6', '+17055550188');
+select test.eq('nobody holds the function (finance): the Admins get the task', (select queue from tasks where dedupe_key = 'phone_missed:' || (select id from test.qthread('+17055550188'))), 'admin');
 update program_settings set phone_missed_call_queue = 'cs';
+update staff_profiles p set is_active = f.is_active from qp_fin f where f.user_id = p.user_id;
 -- the sent text is recorded
 select app.server_phone_sent(jsonb_build_object('id', (select id from phone_outbox where dedupe_key = 'missed:' || (select id from phone_activity where quo_id = 'AC-qp-m4')), 'ok', true, 'quo_id', 'AC-qp-out-1'));
 select test.eq('a sent text: outbox sent, an outgoing text on the thread', (select o.status from phone_outbox o where o.quo_message_id = 'AC-qp-out-1') || ' '
@@ -139,7 +142,7 @@ select test.qev(jsonb_build_object('event_id', 'ev-s1', 'type', 'call.summary.co
   'summary', '["Owner asked about the October statement."]'::jsonb, 'next_steps', '["Send the corrected statement."]'::jsonb));
 select test.eq('Quo''s summary comes first on the timeline', (select x -> 'items' -> 0 ->> 'summary' || ' / ' || (x -> 'items' -> 0 ->> 'summary_by') from (select app.phone_timeline(test.id('qp_admin'), jsonb_build_object('owner_id', test.id('owner:qp_olga'))) x) y),
   'Owner asked about the October statement. / quo');
-select test.qev(jsonb_build_object('event_id', 'ev-v1', 'type', 'call.voicemail.completed', 'quo_id', 'AC-qp-m1', 'call_id', 'AC-qp-m1', 'their_number', '+14165550199',
+select test.qev(jsonb_build_object('event_id', 'ev-v1', 'type', 'call.voicemail.completed', 'quo_id', 'AC-qp-m1', 'call_id', 'AC-qp-m1', 'their_number', '+17055550199',
   'voicemail_text', 'Call me back about a weekend rental', 'voicemail_url', 'https://recordings.example.com/v.mp3'));
 select test.eq('a voicemail lands on its missed call', (select voicemail_text from phone_activity where quo_id = 'AC-qp-m1'), 'Call me back about a weekend rental');
 
@@ -194,8 +197,8 @@ select test.throws('staff cannot text a number that opted out', format($$select 
   test.id('qp_cs'), (select id from test.qthread('+14165550101'))), 'opted out');
 select test.qmsg('AC-qp-start', '+14165550101', 'START');
 select test.eq('START allows texts again', (select (opted_out_at is null)::text from test.qthread('+14165550101')) || ' ' || (select (sms_opt_out_at is null)::text from renters where id = test.id('renter:qp_rita')), 'true true');
-select test.qev(jsonb_build_object('event_id', 'ev-landline', 'type', 'message.failed', 'quo_id', 'AC-qp-fail', 'direction', 'out', 'their_number', '+14165550188', 'status', 'failed', 'error_code', '30006'));
-select test.eq('the carrier says landline or unreachable (30006): no more texts to it', (select opt_out_source from test.qthread('+14165550188')), 'carrier');
+select test.qev(jsonb_build_object('event_id', 'ev-landline', 'type', 'message.failed', 'quo_id', 'AC-qp-fail', 'direction', 'out', 'their_number', '+17055550188', 'status', 'failed', 'error_code', '30006'));
+select test.eq('the carrier says landline or unreachable (30006): no more texts to it', (select opt_out_source from test.qthread('+17055550188')), 'carrier');
 
 -- ================================================================ 8. staff: reads, reply, link, lead, permissions
 select test.eq('the inbox through the door (customer service): threads and Unknown callers',
@@ -218,14 +221,14 @@ select test.throws('an empty reply is refused', format($$select app.phone_staff_
 select app.phone_staff_do(test.id('qp_cs'), 'phone_read', jsonb_build_object('id', id)) from test.qthread('+14165550101');
 select test.eq('read: unread back to 0', (select unread from test.qthread('+14165550101')), 0);
 -- an unknown caller: create a lead, or link to a renter
-select app.phone_staff_do(test.id('qp_cs'), 'phone_create_lead', jsonb_build_object('id', (select id from test.qthread('+14165550199')), 'name', 'Walt Weekend'));
+select app.phone_staff_do(test.id('qp_cs'), 'phone_create_lead', jsonb_build_object('id', (select id from test.qthread('+17055550199')), 'name', 'Walt Weekend'));
 select test.eq('Create lead: a phone lead with the number, the thread and its calls follow it',
   (select format('%s %s %s %s', l.kind, l.phone, t.match_kind, (select count(*) from phone_activity a where a.thread_id = t.id and a.lead_id = l.id) > 0)
-     from test.qthread('+14165550199') t join leads l on l.id = t.lead_id), 'phone +14165550199 lead t');
-select app.phone_staff_do(test.id('qp_cs'), 'phone_link', jsonb_build_object('id', (select id from test.qthread('+14165550188')), 'renter_id', test.id('renter:qp_ron')));
+     from test.qthread('+17055550199') t join leads l on l.id = t.lead_id), 'phone +17055550199 lead t');
+select app.phone_staff_do(test.id('qp_cs'), 'phone_link', jsonb_build_object('id', (select id from test.qthread('+17055550188')), 'renter_id', test.id('renter:qp_ron')));
 select test.eq('Link to a renter: the thread, its calls and the audit log',
-  (select format('%s %s %s', t.match_kind, t.manual, (select count(*) from phone_activity a where a.thread_id = t.id and a.renter_id = test.id('renter:qp_ron')) > 0) from test.qthread('+14165550188') t)
-  || ' ' || (select count(*) from audit_log where action = 'phone_link' and entity_id = (select id::text from test.qthread('+14165550188'))), 'renter t t 1');
+  (select format('%s %s %s', t.match_kind, t.manual, (select count(*) from phone_activity a where a.thread_id = t.id and a.renter_id = test.id('renter:qp_ron')) > 0) from test.qthread('+17055550188') t)
+  || ' ' || (select count(*) from audit_log where action = 'phone_link' and entity_id = (select id::text from test.qthread('+17055550188'))), 'renter t t 1');
 select test.eq('the renter''s timeline and the renter search', (select jsonb_array_length(app.phone_timeline(test.id('qp_admin'), jsonb_build_object('renter_id', test.id('renter:qp_ron'))) -> 'items') > 0)::text
   || ' ' || (app.phone_renter_search(test.id('qp_cs'), '{"q": "Qp Ron"}') -> 0 ->> 'id' = test.id('renter:qp_ron')::text), 'true true');
 select test.eq('the booking''s timeline holds the renter''s calls and texts', (select jsonb_array_length(app.phone_timeline(test.id('qp_cs'), jsonb_build_object('booking_id', test.id('booking:QP-1'))) -> 'items') >= 3), true);
@@ -242,12 +245,12 @@ select app.phone_staff_do(test.id('qp_cs'), 'phone_opt_out', jsonb_build_object(
 select test.eq('opt out by staff', (select opt_out_source from test.qthread('+14165550106')), 'staff');
 
 -- ================================================================ 9. retention and the privacy policy
-insert into phone_threads (number, last_at) values ('+14165550177', now() - interval '13 months');
-insert into phone_activity (thread_id, kind, direction, body, started_at) select id, 'text', 'in', 'old', now() - interval '13 months' from phone_threads where number = '+14165550177';
+insert into phone_threads (number, last_at) values ('+17055550177', now() - interval '13 months');
+insert into phone_activity (thread_id, kind, direction, body, started_at) select id, 'text', 'in', 'old', now() - interval '13 months' from phone_threads where number = '+17055550177';
 update phone_activity set started_at = now() - interval '13 months' where quo_id = 'AC-qp-1';
 select app.job_phone_housekeeping();
 select test.eq('after 12 months: an unknown number''s texts and thread are deleted; a renter''s text is kept with the rental records',
-  (select count(*) from phone_threads where number = '+14165550177') || ' ' || (select count(*) from phone_activity where quo_id = 'AC-qp-1'), '0 1');
+  (select count(*) from phone_threads where number = '+17055550177') || ' ' || (select count(*) from phone_activity where quo_id = 'AC-qp-1'), '0 1');
 select test.ok('the privacy policy names calls and texts, their retention, and section 10',
   (select body like '%Calls and texts with our phone number:%' and body like '%| Calls and texts with our phone number, with their recordings%'
           and body like '%Calls and texts to and from our phone number go through our business phone provider%' from site_content_blocks where block_key = 'legal.privacy')
