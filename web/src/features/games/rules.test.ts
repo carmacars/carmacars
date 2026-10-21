@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPage, addSeen, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
+import { addPage, addSeen, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
 // Discount games (migrations 0069 and 0076): when a game may show (first, again after a close, in the request-to-book
@@ -105,7 +105,7 @@ describe('again after a close', () => {
 });
 
 describe('the round of five games', () => {
-  it('each game once before one repeats, and never the same twice in a row', () => {
+  it('each of the six games once before one repeats, and never the same twice in a row', () => {
     let seen: GameKind[] = [];
     const order: GameKind[] = [];
     for (let i = 0; i < 12; i++) {
@@ -115,11 +115,11 @@ describe('the round of five games', () => {
       order.push(g);
       seen = addSeen(seen, g);
     }
-    assert.equal(new Set(order.slice(0, 5)).size, 5);
+    assert.equal(new Set(order.slice(0, 6)).size, 6);
   });
   it('a full round starts again with the last one shown', () => {
-    assert.deepEqual(addSeen(['wheel', 'scratch', 'blackjack', 'cups'], 'plinko'), ['plinko']);
-    assert.deepEqual(unseen(['plinko'], GAMES), ['wheel', 'scratch', 'blackjack', 'cups']);
+    assert.deepEqual(addSeen(['wheel', 'scratch', 'blackjack', 'cups', 'plinko'], 'pack'), ['pack']);
+    assert.deepEqual(unseen(['pack'], GAMES), ['wheel', 'scratch', 'blackjack', 'cups', 'plinko']);
   });
   it('games turned off are not waited for', () => {
     const on: GameKind[] = ['wheel', 'cups'];
@@ -207,6 +207,79 @@ describe('every game lands on the drawn prize', () => {
     assert.equal(s.length, 7);
     for (let i = 1; i < s.length; i++) assert.notDeepEqual(s[i], s[i - 1]);
   });
+});
+
+const PRIZES7: PrizeWord[] = [...PRIZES, { key: 'pct25', short: '25%', label: '25% off' }, { key: 'amt100', short: '$100', label: '$100 off' }, { key: 'day1', short: 'FREE', label: '1 free day' }];
+describe('bigger prizes with low odds (0076)', () => {
+  it('the wheel shows all seven prizes, the common one on most slices', () => {
+    const s = wheelSlices(PRIZES7);
+    assert.equal(s.length, 12);
+    for (const p of PRIZES7) assert.ok(s.some((x) => x.key === p.key), p.key);
+    assert.ok(s.filter((x) => x.key === 'pct5').length >= 5);
+    for (const p of PRIZES7) for (let i = 0; i < 200; i++) {
+      const { degrees } = wheelStop(s, p.key, rand);
+      assert.equal(s[Math.floor(((360 - (degrees % 360)) % 360) / 30)]!.key, p.key);
+    }
+  });
+  it('Plinko: the rarest in the middle, every prize has a slot, every path lands on its prize', () => {
+    const slots = plinkoSlots(PRIZES7);
+    assert.equal(slots.length, 9);
+    assert.equal(slots[4]!.key, 'day1');
+    assert.deepEqual([slots[3]!.key, slots[5]!.key], ['amt100', 'pct25']);
+    for (const p of PRIZES7) assert.ok(slots.some((x) => x.key === p.key), p.key);
+    assert.equal(slots[0]!.key, 'pct5');
+    for (const p of PRIZES7) for (let i = 0; i < 300; i++) { const { slot } = plinkoPath(slots, p.key, rand); assert.equal(slots[slot]!.key, p.key); }
+  });
+  const TABLE: PrizeRow[] = [
+    { key: 'pct5', percent_bps: 500, weight: 69 }, { key: 'pct10', percent_bps: 1000, weight: 25 }, { key: 'pct15', percent_bps: 1500, weight: 4 },
+    { key: 'amt50', amount_cents: 5000, min_days: 3, weight: 1 }, { key: 'pct25', percent_bps: 2500, max_cents: 15000, weight: 0.6 },
+    { key: 'amt100', amount_cents: 10000, min_days: 4, weight: 0.3 }, { key: 'day1', free_days: 1, min_days: 3, max_cents: 15000, weight: 0.1 }];
+  const at = (k: string, charge: number, days: number) => prizeCost(TABLE.find((p) => p.key === k)!, { charge_cents: charge, days }, 7500);
+  it('caps: $75 for a percentage without its own, $150 for 25% off and the free day', () => {
+    assert.equal(at('pct15', 100_000, 5), 7500);
+    assert.equal(at('pct10', 40_000, 4), 4000);
+    assert.equal(at('pct25', 100_000, 5), 15_000);
+    assert.equal(at('pct25', 40_000, 4), 10_000);
+    assert.equal(at('day1', 100_000, 4), 15_000);
+    assert.equal(at('day1', 40_000, 4), 10_000);
+  });
+  it('minimum days: $50 from 3 days, $100 from 4, the free day from 3; an amount is never more than the charge', () => {
+    assert.equal(at('amt50', 30_000, 2), 0);
+    assert.equal(at('amt50', 30_000, 3), 5000);
+    assert.equal(at('amt100', 30_000, 3), 0);
+    assert.equal(at('amt100', 30_000, 4), 10_000);
+    assert.equal(at('day1', 20_000, 2), 0);
+    assert.equal(at('amt100', 8000, 4), 8000);
+  });
+  it('the expected cost of a claimed code is each prize on the average booking by its chance', () => {
+    const basis = { charge_cents: 40_000, days: 4 };
+    const want = 0.69 * 2000 + 0.25 * 4000 + 0.04 * 6000 + 0.01 * 5000 + 0.006 * 10_000 + 0.003 * 10_000 + 0.001 * 10_000;
+    assert.ok(Math.abs(expectedCost(TABLE, basis, 7500) - want) < 0.01);
+    assert.equal(expectedCost([], basis, 7500), 0);
+    assert.equal(expectedCost(TABLE, { charge_cents: 0, days: 0 }, 7500), 0);
+  });
+});
+
+describe('the card pack (0076)', () => {
+  it('five cards, CarmaCars pictures first, the prize last, no picture twice', () => {
+    for (let i = 0; i < 50; i++) {
+      const c = packCards(rand);
+      assert.equal(c.length, 5);
+      assert.deepEqual(c[4], { kind: 'prize' });
+      const titles = c.slice(0, 4).map((x) => (x.kind === 'art' ? x.title : ''));
+      assert.ok(titles.every(Boolean));
+      assert.equal(new Set(titles).size, 4);
+    }
+  });
+  it('the strip tears by the share of the pack dragged across, either way, and opens past the line', () => {
+    assert.equal(tearProgress(10, 10, 200), 0);
+    assert.equal(tearProgress(10, 110, 200), 0.5);
+    assert.equal(tearProgress(200, 50, 200), 0.75);
+    assert.equal(tearProgress(0, 500, 200), 1);
+    assert.equal(tearProgress(0, 50, 0), 0);
+    assert.ok(tearProgress(0, 130, 200) >= TORN);
+  });
+  it('the pack is in the round of games', () => assert.ok(GAMES.includes('pack') && GAMES.length === 6));
 });
 
 describe('the claim form', () => {

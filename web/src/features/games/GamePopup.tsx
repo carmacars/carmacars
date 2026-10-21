@@ -19,13 +19,13 @@ export interface GamePopupProps {
   trigger: Trigger | 'booking'; path: string; seen: GameKind[]; onDone: (how: 'closed' | 'claimed' | 'failed') => void; slim?: boolean;
   context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
 }
-export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
+export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
   context?: 'site' | 'booking'; account?: { first: string | null; email: string } }
 export interface GameProps { prize: Play['prize']; prizes: PrizeWord[]; reduced: boolean; onReveal: () => void }
 
 const LOAD: Record<GameKind, () => Promise<{ default: ComponentType<GameProps> }>> = {
   wheel: () => import('./games/Wheel'), scratch: () => import('./games/Scratch'), blackjack: () => import('./games/Blackjack'),
-  cups: () => import('./games/Cups'), plinko: () => import('./games/Plinko')
+  cups: () => import('./games/Cups'), plinko: () => import('./games/Plinko'), pack: () => import('./games/Pack')
 };
 /** The five games' code, fetched ahead (idle time) so a game opens at once. */
 export function preloadGames() { for (const f of Object.values(LOAD)) void f().catch(() => undefined); }
@@ -34,8 +34,19 @@ const GAMES: Record<GameKind, { title: string; pitch: string; C: ComponentType<G
   scratch: { title: 'Scratch to win', pitch: 'Scratch the card. Every card wins a discount.', C: lazy(LOAD.scratch) },
   blackjack: { title: 'Beat the dealer', pitch: 'One quick hand of blackjack. Win or lose, you get a discount.', C: lazy(LOAD.blackjack) },
   cups: { title: 'Find the ball', pitch: 'Watch the cups, then pick one. Every cup hides a discount.', C: lazy(LOAD.cups) },
-  plinko: { title: 'Drop to win', pitch: 'Drop the disc. Every slot is a discount.', C: lazy(LOAD.plinko) }
+  plinko: { title: 'Drop to win', pitch: 'Drop the disc. Every slot is a discount.', C: lazy(LOAD.plinko) },
+  pack: { title: 'Rip the pack', pitch: 'Tear open the CarmaCars pack. The last card is your discount.', C: lazy(LOAD.pack) }
 };
+const COLOURS = ['#D0111B', '#000000', '#ffffff', '#ff6a70', '#ffd23f', '#6ec6ff'];
+/** A rare prize: a burst of confetti over the card (never with reduced motion). */
+function Confetti() {
+  return (
+    <span className="ccg-confetti" aria-hidden="true">
+      {Array.from({ length: 36 }, (_, i) => <i key={i} style={{ ['--x' as string]: `${(i * 37) % 100}%`, ['--c' as string]: COLOURS[i % COLOURS.length],
+        ['--d' as string]: `${(i % 9) * 70}ms`, ['--rot' as string]: `${(i % 2 ? 1 : -1) * (180 + (i * 53) % 360)}deg` }} />)}
+    </span>
+  );
+}
 const device = () => (matchMedia('(max-width: 599px)').matches ? 'phone' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop');
 
 async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<Play> {
@@ -154,6 +165,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         </div>
         <button type="button" className="ccg-x" onClick={close} aria-label={booking ? 'Close the game and go on with the booking' : 'Close the game'} data-testid="game-close">×</button>
       </header>
+      {stage === 'won' && play.prize.rare && !reduced && <Confetti />}
       <div className="ccg-body">
         {stage === 'ready' && <>
           <p className="ccg-pitch" id={`${id}-d`}>{g.pitch}</p>
@@ -165,7 +177,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
           <Suspense fallback={<div className="ccg-stage" aria-busy="true" />}><g.C prize={play.prize} prizes={play.prizes} reduced={reduced} onReveal={revealed} /></Suspense>
         </>}
         {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim">
-          <p className="ccg-prize" id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
+          {play.prize.rare && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
+          <p className={`ccg-prize${play.prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {/free day/.test(play.prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>
             <input className="input" id={`${id}-first`} name="first" autoComplete="given-name" value={form.first} onChange={(e) => setForm({ ...form, first: e.target.value })}
               aria-invalid={err('first') ? true : undefined} aria-describedby={err('first') ? `${id}-first-e` : undefined} /></label>

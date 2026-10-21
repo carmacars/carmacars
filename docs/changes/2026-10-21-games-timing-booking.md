@@ -9,10 +9,11 @@ The owner's requests about the discount games of 0069:
 1. "The discount popups aren't showing up fast enough."
 2. "When they get closed out, they should show up again later on but with a different popup that hasn't showed up yet."
 3. "Also they should show up when making a booking."
+4. Later the same day: a sixth game, a card pack rip, and bigger prizes with low odds (sections 6 and 7).
 
-Unchanged on purpose: the prize table and its odds (5% off 70, 10% off 25, 15% off 4, $50 off a rental of 3 days or
-more 1), the $75 cap per percentage code, single-use codes good for 7 days, one claim per person, email, phone and
-device, never with another code, the rate limits, and every rule of 0069 about who may never see a game on the site.
+Unchanged on purpose: the draw in the database before the game starts, the $75 cap for a percentage prize without a
+cap of its own, single-use codes good for 7 days, one claim per person, email, phone and device, never with another
+code, the rate limits, and every rule of 0069 about who may never see a game on the site.
 
 ## 1. Sooner
 
@@ -79,7 +80,49 @@ any context it is sent and keeps the site's rules.
   the games are shown to visitors of the Site and offered in the booking request form, and the browser remembers which
   games were seen. Last updated October 21, 2026.
 
-## 6. Tests
+## 6. The card pack, a sixth game
+
+A sealed CarmaCars foil pack (red, black and white, the CarmaCars wordmark; no real trading card design or brand).
+The visitor tears the strip along the top: drag across it (mouse or touch), tap it (each tap tears a third) or press
+**Tear it open** (keyboard). Five cards fan out and turn one by one: four CarmaCars picture cards ("City run",
+"Road trip") and, last, the prize the database drew. A rare prize turns as a holographic card. With reduced motion the
+pack opens and every card shows at once. It is its own small file, fetched in idle time with the others; the stage
+keeps its height, so nothing moves. It is in the round of games (one not seen yet first) and in Settings > Discount
+games with a weight of 1 (the live weights gain `"pack": 1` where they were still the defaults of 0069).
+
+## 7. Bigger prizes with low odds
+
+| Prize | Chance (in 100) | Minimum rental | Cap |
+| --- | --- | --- | --- |
+| 5% off | 69 (was 70) | | $75 (the games' cap) |
+| 10% off | 25 | | $75 |
+| 15% off | 4 | | $75 |
+| $50 off | 1 | 3 days | its amount |
+| 25% off | 0.6 | | $150 (its own) |
+| $100 off | 0.3 | 4 days | its amount |
+| One free day | 0.1 | 3 days | $150 (its own) |
+
+- The prize table (Program settings, `game_prizes`) takes per prize `min_days` and `max_cents` (its own cap) and a
+  third kind, `free_days` (1 to 7, with a minimum longer than the free days). The database checks the table
+  (`app.game_prizes_ok`). The live table moves to this one only where it is still the table of 0069.
+- The code carries the prize: `promo_codes.free_days` (new; a code is exactly one of a percentage, an amount or free
+  days), `min_rental_days` and `max_discount_cents`. `app.promo_discount_cents(code, base, days)` applies them every
+  time the database prices a booking (the quote and the booking's lines, an extension, a calendar change, which now
+  pass the booking's length): nothing on a shorter booking than the minimum, never above the cap or the charge. A free
+  day is the booking's average day of the net rental charge.
+- Rare prizes (a chance of 1 in 100 or less: $50, 25%, $100, the free day) get confetti over the card (not with
+  reduced motion), a holographic prize line and "A rare prize", in every game; the card pack turns a holographic card.
+- The short terms list every prize and keep "The chances differ", with the caps: "Prizes: 5%, 10%, 15% or 25% off, or
+  $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals. The chances differ: most
+  players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150)."
+  The terms of use (section 14) and the privacy policy do not list prizes or odds, so they are unchanged by this.
+- The code email and its reminder name the prize and what it applies to from the code itself (free days included).
+- Admin > Settings > Discount games: each prize with its kind (percent, dollars, free days), minimum days, cap and
+  chance, what it takes off the average booking, and **Expected cost per claimed code** under the table, worked out
+  live as the table is edited. The average booking is the net rental charge and length of the confirmed bookings of
+  the last 180 days (with fewer than 5, the cars' average daily rate for 4 days), from the games' report.
+
+## 8. Tests
 
 - `51_games_timing_booking.sql`: the new settings and defaults, the checks on them, the odds and cap unchanged; five
   shows give five games, the sixth is not the fifth, one prize for all; the server's memory; a game at weight 0 never
@@ -96,4 +139,12 @@ any context it is sent and keeps the site's rules.
   phone search landing's small bar; closed, a different game after 2 more car pages with the same prize, a third, then
   none; the booking card plays, the code goes on the booking and the price changes, and the request is sent with the
   $50 off; closing the game leaves the booking as it was (no code, the same price); a signed-in renter sees no game on
-  the site and is offered it in the booking form; the earlier tests of 0069.
+  the site and is offered it in the booking form; the card pack (dragged on a computer, tapped on a phone) among the
+  games; a rare prize (the free day in the pack: holographic card, confetti, the code with its minimum and cap); Admin
+  shows seven prizes, the pack's weight and the expected cost; the earlier tests of 0069.
+- 0076, later the same day: in `51_games_timing_booking.sql` six games in six shows, the chances adding up to 100,
+  20,000 draws within about four standard deviations of every prize's chance, the table's checks, the words, caps and
+  minimum days through `app.promo_discount_cents`, one kind per code, every pricing function passing the length, a
+  rare prize claimed (the code and its email), the report's average booking; in `48_discount_games.sql` the new table,
+  weights, draw boundaries and terms; in `rules.test.ts` the wheel and Plinko with seven prizes, caps, minimum days and
+  the expected cost, the pack's cards and tearing.

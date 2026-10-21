@@ -109,7 +109,18 @@ const GAMES_PLAYED = [
     await p.getByTestId('game-cup-2').click();
     await expect(p.getByText(/You found/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible();
   } },
-  { game: 'plinko', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It landed on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } }
+  { game: 'plinko', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It landed on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } },
+  // 0076: the card pack, torn by dragging across the top strip (a computer) or by tapping it (a phone)
+  { game: 'pack', play: async (p: Page) => {
+    const strip = p.getByRole('button', { name: 'Tear the strip along the top of the pack' });
+    if (isPhone()) { await strip.click(); await strip.click(); }
+    else {
+      const b = (await strip.boundingBox())!;
+      await p.mouse.move(b.x + 4, b.y + b.height / 2); await p.mouse.down();
+      await p.mouse.move(b.x + b.width - 4, b.y + b.height / 2, { steps: 14 }); await p.mouse.up();
+    }
+    await expect(p.getByText(/The last card/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 });
+  } }
 ];
 const PLAY: Record<string, (p: Page) => Promise<void>> = Object.fromEntries(GAMES_PLAYED.map((g) => [g.game, g.play]));
 
@@ -138,6 +149,28 @@ for (const g of GAMES_PLAYED) {
     await sql.end();
   });
 }
+
+test('a rare prize: the card pack turns a holographic card, and confetti over the card (0076)', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const sql = db();
+  const { page } = await visitor(browser, sql, 'pack', { key: 'day1', free_days: 1, min_days: 3, max_cents: 15000, weight: 0.1 });
+  await browseUntilGame(page);
+  await expect(page.getByTestId('game')).toHaveAttribute('data-game', 'pack');
+  await page.getByTestId('game-play').click();
+  await page.getByTestId('game-action').click();
+  await expect(page.locator('.ccg-pcard.is-prize.is-holo')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'You won 1 free day' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('game-rare')).toBeVisible();
+  await expect(page.locator('.ccg-confetti i').first()).toBeAttached();
+  await axe(page, 'rare won');
+  const email = `game.rare.${test.info().project.name}.${Date.now()}.${tag()}@example.test`;
+  const code = await claim(page, sql, email, '1 free day');
+  const pc = await sql`select free_days, min_rental_days, max_discount_cents::int cap, percent_bps, amount_cents from promo_codes where code = ${code}`;
+  expect(pc[0]).toMatchObject({ free_days: 1, min_rental_days: 3, cap: 15000, percent_bps: null, amount_cents: null });
+  await expect(page.getByTestId('game-done')).toContainText('one day of the rental charge');
+  await page.context().close();
+  await sql.end();
+});
 
 test('the first game without a car page: after 15 seconds on the site (0076)', async ({ browser }) => {
   test.setTimeout(90_000);
@@ -224,7 +257,9 @@ async function toAddons(page: Page, slug: string, days: number, email: string) {
   await page.goto(`/book/${slug}?from=${from}&to=${to}&tf=10:00&tt=10:00`, { waitUntil: 'networkidle' });
   const b = page.getByRole('button', { name: 'Necessary only' }).first();
   if (await b.isVisible().catch(() => false)) await b.click();
-  await expect(page.locator('.estimate__lines')).toBeVisible({ timeout: 15_000 });
+  // the estimate (folded away on a phone): its total is in the summary line
+  await expect(page.locator('.estimate__lines')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('.req__sum summary b.num')).toHaveText(/^\$[\d,]+\.\d\d$/, { timeout: 15_000 });
   await page.getByRole('button', { name: 'Continue to driver details' }).click();
   await page.locator('#rq-first').fill('Gia');
   await page.locator('#rq-last').fill('Player');
@@ -407,6 +442,10 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.goto('/admin/settings/discount-games', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('game-rules')).toBeVisible();
   await expect(page.getByTestId('game-settings').locator('input').first()).toHaveValue('5');
+  // 0076: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
+  await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(7);
+  await expect(page.getByLabel('Card pack')).toHaveValue('1');
+  await expect(page.getByTestId('game-expected-cost')).toContainText(/Expected cost per claimed code: \$\d+\.\d\d/);
   await noOverflow(page);
   await c.close();
   await sql.end();
