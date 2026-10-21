@@ -139,3 +139,21 @@ Live on October 21, before: 23,258 rows written by the audit trigger with 152 MB
   generation in KV and D1, an unreadable generation, scanners, the cron question), `postgrest.test.ts` (the run-time
   retry).
 - Offline: `scripts/backup/prune-reports.test.sh`.
+
+## 7. Follow-up: cars changed in the database alone (deploy run 39668969555)
+
+The SEO audit and the crawl of the deploy run found `/cars/2022-toyota-corolla-grey: HTTP 308` and
+`/cars/2023-honda-civic-4d19: HTTP 404`. The CI suite serves the app with `scripts/serve.mjs` (`next start`), so neither
+the Worker entry's edge copy nor OpenNext was involved: the links came from Next.js's own page cache of the fleet page
+(the audit collects car pages from the sitemap, which is read live, and from the links on `/cars`). End-to-end fixtures
+put cars on and off the site with SQL (and 0070 publishes cars by itself in the database); when any app action rebuilt
+`/cars` in between, the fleet page kept linking a car that was gone. The same happens on the live site for up to an hour.
+
+Now the fleet's signature (the slug and model page of every car `public.fleet` returns; `src/lib/edge/fleet-sig.ts`)
+is watched: the Worker's cron tick reads it through PostgREST every five minutes and, when it differs from the last one
+kept in the tag store (`carmacars/fleet-sig`), calls `/api/jobs/public-rebuild`, which rebuilds every page under the
+root layout and the sitemaps (on Cloudflare this also retires the edge copies). `scripts/serve.mjs` does the same every
+10 seconds (`PUBLIC_REBUILD_TICK_MS`), so the end-to-end suite and the audits see what production sees. A publish,
+an unpublish, a deletion or a slug change made by the app still rebuilds the pages at once, as before. No migration.
+Tests: `web/src/lib/edge/page-cache.test.ts` (the signature and where it is kept), `web/tests/e2e/fleet-fresh.spec.ts`
+(a car published and taken off with SQL alone appears on and leaves the fleet page, home and the cars sitemap).

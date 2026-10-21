@@ -42,7 +42,7 @@ def build():
         f'Press {B("Open the job")} to start.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
     ], shot=S('field/01-today-phone', 0, 595, 390, 1480, pins=[(1, 30, 720), (2, 300, 795), (3, 350, 885), (4, 345, 975), (5, 300, 1067)]))
-    g.tip('Need help on a job? Call CarmaCars at 289-321-5991. The link is at the bottom of My jobs.')
+    g.tip('Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.')
 
     g.task('Open a job')
     g.steps([
@@ -152,7 +152,7 @@ def build():
         'Write the Details: where, when and what you see.',
         f'Press {B("Take a photo")} for each photo, then {B("Send the report")}.',
     ], shot=S('field/03-report-phone', 0, 595, 390, 1500, pins=[(1, 360, 820), (2, 360, 895), (3, 360, 1340), (4, 360, 1480)]))
-    g.warn('In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 289-321-5991 before you send the report.')
+    g.warn('In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 289-312-5991 before you send the report.')
 
     g.task('Add a rental for a renter you found', 'Your home address must be in your profile first: until it is, the page asks for it.')
     g.steps([

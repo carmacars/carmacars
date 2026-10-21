@@ -407,16 +407,16 @@ reset role;
 -- 12. Site settings defaults and reply-to aliases
 -- =====================================================================================
 set role anon;
-select test.eq('12 the public settings: email, phone shown as 289-321-5991, hours, reply promise, listing promise, featured at random, street address shown once entered',
+select test.eq('12 the public settings: email, phone shown as 289-312-5991, hours, reply promise, listing promise, featured at random, street address shown once entered',
   (select (s ->> 'public_email') || '/' || (s ->> 'owners_email') || '/' || (s ->> 'phone_display') || '/' || (s ->> 'whatsapp_display') || '/' || (s ->> 'roadside_phone_display')
           || '/' || (s ->> 'opening_hours_text') || '/' || (s ->> 'reply_wording') || '/' || (s ->> 'listing_time_promise') || '/' || (s ->> 'featured_mode')
      from public.site_settings_public() s),
-  'contact@carmacars.ca/owners@carmacars.ca/289-321-5991/289-321-5991/289-321-5991/Open 24 hours/within 2 hours/1 business day/random');
+  'contact@carmacars.ca/owners@carmacars.ca/289-312-5991/289-312-5991/289-312-5991/Open 24 hours/within 2 hours/1 business day/random');
 reset role;
 select test.eq('12 the street address is shown publicly once entered', (select show_street_address from site_settings), true);
-select test.eq('12 as the migration left them (later files edit some): +12893215991 for phone, WhatsApp and roadside; Instagram and TikTok profile addresses; airport delivery offered',
-  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and after ->> 'phone' = '+12893215991' and after ->> 'whatsapp' = '+12893215991'
-     and after ->> 'roadside_phone' = '+12893215991' and after -> 'social_links' ->> 'instagram' = 'https://instagram.com/carmacars.ca'
+select test.eq('12 as the migration left them (later files edit some): +12893125991 for phone, WhatsApp and roadside; Instagram and TikTok profile addresses; airport delivery offered',
+  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and after ->> 'phone' = '+12893125991' and after ->> 'whatsapp' = '+12893125991'
+     and after ->> 'roadside_phone' = '+12893125991' and after -> 'social_links' ->> 'instagram' = 'https://instagram.com/carmacars.ca'
      and after -> 'social_links' ->> 'tiktok' = 'https://tiktok.com/@carmacars.ca' and (after ->> 'airport_delivery')::boolean), true);
 set role anon;
 select test.eq('12 the public settings never carry the legal company name or the numbered corporation',

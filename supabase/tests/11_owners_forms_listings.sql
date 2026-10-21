@@ -129,7 +129,7 @@ select test.eq('A an Admin edits the settings and the content from the portal',
 select test.throws('A nobody deletes settings from a browser session', $$delete from site_settings$$, 'permission denied');
 select test.logout();
 select test.eq('A every change is in the audit log with the row before and after (the version history)',
-  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' = '+12893215991' and after ->> 'phone' = '416-555-0142'), true);
+  (select count(*) > 0 from audit_log where entity_table = 'site_settings' and action = 'UPDATE' and before ->> 'phone' = '+12893125991' and after ->> 'phone' = '416-555-0142'), true);
 select test.eq('A the editor is recorded on the row', (select updated_by from site_settings), test.id('ofl_admin'));
 
 set role anon;
@@ -274,7 +274,16 @@ update vehicle_schedules set signed_at = now() where vehicle_id in (test.ofl_v(1
 update owner_agreements set status = 'signed' where owner_id = ((select r from ofl_app) ->> 'owner_id')::uuid;
 update vehicle_onboardings set status = 'documents_sent' where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
 update vehicle_onboardings set status = 'documents_signed' where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
-create temp table ofl_inv as select * from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_fin'));
+-- 0077: the first and last month invoice is never issued by itself; signing and 0022's path make nothing
+select test.eq('D signing and the automatic path issue nothing without an Admin''s choice (0077)',
+  (select count(*) from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_fin')))
+  + (select count(*) from owner_invoices where vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3)) and kind = 'upfront'), 0::bigint);
+-- the Admin chose "Send invoice now" for each car (the amount: 2 x the Insurance Fee); the owner page's path applies it
+update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents
+  from vehicle_schedules s where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and ob.vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3));
+select app.admin_issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_admin'));
+create temp table ofl_inv as select i.vehicle_id, i.id as invoice_id, i.invoice_number, i.fees_cents, i.hst_cents, i.total_cents
+  from owner_invoices i where i.vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3)) and i.kind = 'upfront';
 grant all on ofl_inv to authenticated, anon;
 select test.eq('D upfront invoices: first and last month''s Insurance Fee, HST 13%; registry costs and the Install Fee (0029) are not on them',
   (select string_agg(fees_cents || '+' || hst_cents || '=' || total_cents, ' ' order by fees_cents desc) from ofl_inv),
@@ -283,7 +292,7 @@ select test.eq('D each invoice has its two lines and is issued; Finance gets a c
   (select count(*) from owner_invoice_lines l join ofl_inv i on i.invoice_id = l.owner_invoice_id) || '/'
   || (select string_agg(distinct status, ',') from owner_invoices where id in (select invoice_id from ofl_inv)) || '/'
   || (select count(*) from tasks where task_type = 'collect_upfront' and related_id in (select invoice_id from ofl_inv)), '6/issued/3');
-select test.eq('D a second run issues nothing more', (select count(*) from app.issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid)), 0::bigint);
+select test.eq('D a second run issues nothing more', jsonb_array_length(app.admin_issue_upfront_invoices(((select r from ofl_app) ->> 'owner_id')::uuid, test.id('ofl_admin'))), 0);
 select test.throws('D a signed schedule cannot be changed through the onboarding terms', format('select app.set_vehicle_terms(%L, %L)', test.ofl_v(1), test.id('ofl_admin')), 'Terms are fixed');
 
 -- ------------------------------------------------------------------ E. government forms: pre-fill and data sheets

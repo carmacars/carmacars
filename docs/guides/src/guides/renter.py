@@ -267,7 +267,7 @@ def build():
         'Write to us about a booking at the bottom of its page: type in Your message and press Send.',
         'Tolls and tickets are yours to pay, including Highway 407 ETR. If one reaches us, we pay it and charge the amount '
         'plus our fee to your Card on File, and email you a copy of the notice.',
-        f'Running late? Ask to extend before your return time, or call us at 289-321-5991.',
+        f'Running late? Ask to extend before your return time, or call us at 289-312-5991.',
     ])
 
     # ---------------------------------------------------------------- 6

@@ -52,7 +52,7 @@ select test.eq('a run that could not start with no good run since is reported (o
   case when pg_temp.jobs_detail() = 'no-cron' or coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'reported');
 do $$ begin if to_regclass('cron.job_run_details') is not null then execute 'delete from cron.job_run_details where runid = 900001'; end if; end $$;
 
--- the phone number moved to 289-321-5991 everywhere it is set (other suites change the site number, so check that
+-- the phone number moved to 289-312-5991 everywhere it is set (other suites change the site number, so check that
 -- nothing still holds the old one)
 select test.eq('no site setting keeps 647-575-3377',
   (select count(*)::text from site_settings where concat_ws(' ', phone, phone_display, whatsapp, whatsapp_display, roadside_phone, roadside_phone_display) ~ '6475753377|647-575-3377'), '0');

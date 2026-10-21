@@ -8,7 +8,8 @@ import { PackageSignForm } from '@/features/signing/PackageSignForm';
 import { signOwnerPackage } from '@/server/actions/signing';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import { requireOwner } from '@/server/owner/data';
-import { openPartnerAgreement, partnerFacts } from '@/server/sign-requests';
+import { findOpen, partnerFacts, partnerSpec } from '@/server/signing/prepare';
+import { PrepareDocs } from '@/features/signing/PrepareDocs';
 import { viewAs } from '@/server/view-as';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +37,9 @@ export default async function PartnerAgreementPage() {
     );
   }
   const viewing = !!(await viewAs());
-  const open = viewing ? null : await openPartnerAgreement(user.id);
+  // no PDF is made on this page (0077): the open request with the same content, or the browser prepares it
+  const spec = await partnerSpec(user.id, facts);
+  const open = viewing ? null : (await findOpen(user.id, [spec])).get(spec.key) ?? null;
   return (
     <>
       <Back href="/owner">Home</Back>
@@ -48,7 +51,7 @@ export default async function PartnerAgreementPage() {
           <PackageSignForm docs={[{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }]} signerName={facts.partner.signer_name} fixNameHref="/owner/profile"
             consent="By pressing Sign you sign the partner agreement electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment."
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title: PARTNER_AGREEMENT_TITLE }], next: '/owner/partner-agreement' })} testId="portal-sign-form" /></section>
-          : <p className="small muted">Read only.</p>}
+          : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
         <p className="small muted">Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
       </div>
     </>

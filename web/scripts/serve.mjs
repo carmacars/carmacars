@@ -7,7 +7,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,3 +98,24 @@ http.createServer((req, res) => {
   up.on('error', () => { res.writeHead(502); res.end('Starting'); });
   req.pipe(up);
 }).listen(PORT, () => console.log(`serve: http://localhost:${PORT} (next on ${INNER})`));
+
+// What the Worker's cron tick does on Cloudflare (custom-worker.ts, src/lib/edge/fleet-sig.ts): a car put on or taken
+// off the site in the database alone rebuilds the fleet page, home, the model pages and the sitemaps. Here every few
+// seconds (PUBLIC_REBUILD_TICK_MS, 0 turns it off); the route rebuilds only when the fleet's signature changed.
+const fileEnv = {};
+for (const f of ['.env', '.env.production', '.env.local']) {
+  try { for (const m of fs.readFileSync(path.join(WEB, f), 'utf8').matchAll(/^([A-Z0-9_]+)=([^#\n]*)/gm)) fileEnv[m[1]] = m[2].trim(); } catch { /* not there */ }
+}
+const envOf = (k) => process.env[k] ?? fileEnv[k];
+const TICK = Number(process.env.PUBLIC_REBUILD_TICK_MS ?? 10_000);
+const secret = envOf('LINK_SIGNING_KEY') || (envOf('APP_ENV') === 'production' ? '' : envOf('LOCAL_AUTH_SECRET') || 'local-only-link-signing-key-not-for-production');
+if (TICK > 0 && secret) {
+  const token = createHmac('sha256', secret).update('carmacars-listing-worker-v1').digest('hex');
+  const tick = () => {
+    const r = http.request({ host: '127.0.0.1', port: INNER, method: 'POST', path: '/api/jobs/public-rebuild',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' } }, (res) => res.resume());
+    r.on('error', () => {});
+    r.end('{"check":true}');
+  };
+  setInterval(tick, TICK).unref();
+}

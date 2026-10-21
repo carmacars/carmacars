@@ -102,31 +102,35 @@ function store(env: EnvLike): { kv?: KvLike; d1?: D1Like } {
   return {};
 }
 
-/** The last on-demand rebuild of a public page (ms), 0 when none is known, null when it cannot be read. */
-export async function readGeneration(env: EnvLike): Promise<number | null> {
+/** A number kept in the tag store (KV, else D1): 0 when none is kept, null when it cannot be read. */
+export async function readNumber(env: EnvLike, key: string): Promise<number | null> {
   const s = store(env);
   try {
-    if (s.kv) return Number((await s.kv.get(EDGE_GEN_KEY, { cacheTtl: 30 })) ?? 0) || 0;
+    if (s.kv) return Number((await s.kv.get(key, { cacheTtl: 30 })) ?? 0) || 0;
     if (s.d1) {
-      const row = await s.d1.prepare('SELECT v FROM edge_generation WHERE k = ?').bind(EDGE_GEN_KEY).first<{ v: number }>();
+      const row = await s.d1.prepare('SELECT v FROM edge_generation WHERE k = ?').bind(key).first<{ v: number }>();
       return Number(row?.v ?? 0) || 0;
     }
     return 0; // no tag store: the pages are served as built and never rebuilt on demand
   } catch (e) {
-    // D1 before the first bump has no table yet: nothing was rebuilt
+    // D1 before the first write has no table yet
     if (s.d1 && /no such table/i.test(String(e))) return 0;
     return null;
   }
 }
 
-export async function bumpGeneration(env: EnvLike, now = Date.now()): Promise<void> {
+export async function writeNumber(env: EnvLike, key: string, v: number): Promise<void> {
   const s = store(env);
-  if (s.kv) { await s.kv.put(EDGE_GEN_KEY, String(now)); return; }
+  if (s.kv) { await s.kv.put(key, String(v)); return; }
   if (s.d1) {
     await s.d1.prepare('CREATE TABLE IF NOT EXISTS edge_generation (k TEXT PRIMARY KEY, v INTEGER NOT NULL)').run();
-    await s.d1.prepare('INSERT INTO edge_generation (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind(EDGE_GEN_KEY, now).run();
+    await s.d1.prepare('INSERT INTO edge_generation (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind(key, v).run();
   }
 }
+
+/** The last on-demand rebuild of a public page (ms), 0 when none is known, null when it cannot be read. */
+export const readGeneration = (env: EnvLike) => readNumber(env, EDGE_GEN_KEY);
+export const bumpGeneration = (env: EnvLike, now = Date.now()) => writeNumber(env, EDGE_GEN_KEY, now);
 
 // ------------------------------------------------------------------ read and keep
 interface CacheLike { match(key: string): Promise<Response | undefined>; put(key: string, r: Response): Promise<void> }

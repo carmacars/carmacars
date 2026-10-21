@@ -10,7 +10,7 @@ import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import { encryptField, PAYOUT_KEY_VERSION } from '@/server/crypto';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
-import { attachOwnerSignedCopies, openOwnerPacket, type SignedResult } from '@/server/owner/agreements';
+import { queueOwnerSignedCopies, openOwnerPacket, type SignedResult } from '@/server/owner/agreements';
 import { finishDebitSetup, invoiceFacts, invoiceIdFor, invoiceIntent, publishableKey, settleInvoiceIntent, startDebitSetup, type InvoiceSettle, type StartedDebitSetup, type StartedInvoicePayment } from '@/server/owner/payment';
 
 // Every owner action: a server action run for the signed-in user. The database checks again that
@@ -168,7 +168,7 @@ export async function signOwnerAgreements(input: OwnerSignInput): Promise<R> {
         documents: input.docs.map((d) => ({ key: d.key, sha256: d.sha }))
       }
     }, SR)) as unknown as SignedResult;
-    try { await attachOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy', e); }
+    try { await queueOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy job', e); }
     revalidatePath('/owner'); revalidatePath('/owner/documents');
     target = '/owner?signed=1';
   } catch (e) { return fail(dbMessage(e)); }

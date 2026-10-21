@@ -20,4 +20,4 @@ Everything else on the website, in the emails and in the database is confirmed (
 
 ## Please confirm the phone number
 
-The number given for the phone, WhatsApp and the 24-hour roadside and incident line is **289-321-5991**, and that is what the site and every email now show. Your other business number is **647-573-3377**. They differ by one digit (575 and 573). Please confirm 289-321-5991 is correct, or send the right one.
+The number given for the phone, WhatsApp and the 24-hour roadside and incident line is **289-312-5991**, and that is what the site and every email now show. Your other business number is **647-573-3377**. They differ by one digit (575 and 573). Please confirm 289-312-5991 is correct, or send the right one.
