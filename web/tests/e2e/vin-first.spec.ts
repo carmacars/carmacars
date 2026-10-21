@@ -65,7 +65,6 @@ const startRate = async (sql: Sql, cls: string, make: string, model: string) => 
   return r!.c as number;
 };
 
-test.describe.configure({ mode: 'serial' });
 
 test('Admin > Add a car from the VIN alone: one summary line, the class and the rate from it, the colour in one tap; the copy is written right after', async ({ browser }) => {
   test.setTimeout(1_500_000);
