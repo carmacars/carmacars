@@ -124,6 +124,8 @@ select test.eq('image: replacing a screenshot changes every draft that shows it 
 
 -- ================================================================ 2. payments recorded by hand
 select public.admin_set_vehicle_terms(test.gmv(k), test.id('gm_admin'), '{}') from (values ('v1'), ('v2')) x(k);
+update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents
+  from vehicle_schedules s where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and ob.vehicle_id in (test.gmv('v1'), test.gmv('v2'));
 select public.admin_issue_upfront_invoices(test.gmv('app'), test.id('gm_admin'));
 insert into test.gm select 'inv1', id from owner_invoices where vehicle_id = test.gmv('v1') and kind = 'upfront';
 insert into test.gm select 'inv2', id from owner_invoices where vehicle_id = test.gmv('v2') and kind = 'upfront';

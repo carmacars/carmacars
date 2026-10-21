@@ -65,6 +65,10 @@ select test.eq('terms: the government forms were pre-filled for the method',
 select test.eq('admin: the application list shows the owner with three vehicles',
   (select (x ->> 'vehicles') from jsonb_array_elements(public.admin_owner_applications(test.id('o16_admin'))) x where (x ->> 'owner_id')::uuid = test.opv('app')), '3');
 select test.throws('admin: the list is for Admins', $$select public.admin_owner_applications(test.id('o16_cs'))$$, 'Only an Admin');
+-- 0075: the owner page's Issue follows the Admin's choice per car; without one it makes nothing
+select test.eq('invoices: without a choice the owner page''s Issue makes nothing (0075)', jsonb_array_length(public.admin_issue_upfront_invoices(test.opv('app'), test.id('o16_admin'))), 0);
+update vehicle_onboardings ob set first_last_choice = 'send', first_last_choice_cents = 2 * s.insurance_fee_cents
+  from vehicle_schedules s where s.vehicle_id = ob.vehicle_id and s.superseded_by is null and ob.vehicle_id in (test.opv('v1'), test.opv('v2'), test.opv('v3'));
 select test.eq('invoices: an Admin issues the three upfront invoices before signing: first and last month''s Insurance Fee $400 x 2 + HST, no Install Fee',
   (select string_agg(x ->> 'total_cents', ',') from jsonb_array_elements(public.admin_issue_upfront_invoices(test.opv('app'), test.id('o16_admin'))) x),
   (select string_agg((2 * ins + 2 * public.calc_hst(ins, 1300))::text, ',') from test.op_ins, generate_series(1, 3)));

@@ -24,10 +24,19 @@ alter table documents add column if not exists content_key text check (content_k
 comment on column documents.content_key is 'SHA-256 of what the unsigned PDF is made from (text blocks, title, footer, date, renderer version), 0075: the sign page finds the open request for the same content without rendering the PDF again';
 create index if not exists documents_content_key on documents (content_key) where content_key is not null;
 
+-- The owner a signed-in person signs for (0022's app.portal_owner_id), or null for anyone else.
+create or replace function app.portal_owner_or_null(p_by uuid) returns uuid
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  return app.portal_owner_id(p_by);
+exception when others then
+  return null;
+end $$;
+
 -- The open requests for these content keys, for the signed-in owner (or partner) only.
 create or replace function app.open_by_content(p_by uuid, p_keys text[]) returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  with me as (select app.portal_owner_id(p_by) as owner_id)
+  with me as (select app.portal_owner_or_null(p_by) as owner_id)
   select coalesce(jsonb_agg(x), '[]'::jsonb) from (
     select distinct on (d.content_key) d.content_key, d.sha256, d.storage_path, r.id as signature_request_id, sr.id as sign_request_id
       from documents d join signature_requests r on r.document_id = d.id
@@ -46,7 +55,7 @@ begin
   if coalesce(p_key, '') !~ '^[0-9a-f]{64}$' then raise exception 'A content key is a SHA-256' using errcode = '22023'; end if;
   update documents set content_key = p_key
    where storage_bucket = 'agreements' and storage_path = p_path and content_key is distinct from p_key
-     and (owner_id = app.portal_owner_id(p_by) or uploaded_by = p_by);
+     and (owner_id = app.portal_owner_or_null(p_by) or uploaded_by = p_by);
   get diagnostics n = row_count;
   return n;
 end $$;
@@ -531,7 +540,7 @@ begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where (n.nspname = 'app' and (p.proname like '%\_pre0075' or p.proname = any (array[
-              'open_by_content', 'document_content_key', 'pdf_jobs_enqueue', 'pdf_job_already_done', 'pdf_jobs_claim', 'pdf_job_after', 'pdf_job_done',
+              'portal_owner_or_null', 'open_by_content', 'document_content_key', 'pdf_jobs_enqueue', 'pdf_job_already_done', 'pdf_jobs_claim', 'pdf_job_after', 'pdf_job_done',
               'pdf_job_fail', 'outbox_owner', 'outbox_wait_signed_copies', 'outbox_attachments', 'first_last_state', 'first_last_todo', 'first_last_choose',
               'vehicle_onboarding_before_status', 'application_approve', 'admin_issue_upfront_invoices', 'issue_upfront_invoices', 'owner_sign_agreements',
               'owner_terms_read', 'ops_0075', 'door'])))
