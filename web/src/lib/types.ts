@@ -24,6 +24,8 @@ export interface CarPage extends CarRow {
     pickup_delivery: string; requirements: string[]; faq: { question: string; answer: string }[] } | null;
   /** 0073: the copy fields a person wrote and locked (only those override the search text built from the car). */
   copy_locked?: string[];
+  /** 0075: what tells this car apart from another of the same year, make and model (colour, fleet number or a code); null when none. */
+  seo_mark?: string | null;
   reviews?: { count: number; average: number | null; min_for_rating: number;
     items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null }> };
 }
