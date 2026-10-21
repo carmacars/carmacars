@@ -226,3 +226,37 @@ test('an add-on bought after booking with no card on file is paid on its pay pag
     await expect(page.getByTestId('portal-addons-pay')).toHaveCount(0);
   } finally { await sql.end(); }
 });
+
+test('the car code: on the car page and the fleet cards, found by Admin search and an assistant\'s Find a car', async ({ page, browser }) => {
+  const sql = db();
+  try {
+    const [c] = await sql`select v.id, v.car_code, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and l.slug is not null order by v.is_sample, v.created_at limit 1`;
+    await page.goto(`/cars/${c!.slug as string}`, { waitUntil: 'networkidle' });
+    await acceptCookies(page);
+    await expect(page.getByTestId('car-code')).toContainText(c!.car_code as string);
+    await page.goto('/cars', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('car-card-code').first()).toContainText('Car code CC-');
+    await noOverflow(page);
+    const admin = await mkAdmin(sql);
+    await signIn(page, admin.email, '/admin');
+    await page.goto(`/admin/search?q=${encodeURIComponent((c!.car_code as string).toLowerCase())}`, { waitUntil: 'networkidle' });
+    await expect(page.locator(`a[href="/admin/vehicles/${c!.id as string}"]`).first()).toBeVisible();
+    // an assistant (fleet)
+    const id = randomUUID(); const email = `va.af.${tag()}@example.test`;
+    await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
+    await sql`insert into users (id, email, full_name) values (${id}, ${email}, 'Val Fleet')`;
+    await sql`insert into user_roles (user_id, role) values (${id}, 'va')`;
+    await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'fleet')`;
+    const vp = await browser.newPage({ viewport: page.viewportSize() ?? undefined });
+    await vp.goto(`/sign-in?next=${encodeURIComponent('/va/cars')}`, { waitUntil: 'networkidle' });
+    await acceptCookies(vp);
+    await vp.locator('input[type="email"]').fill(email);
+    await vp.locator('input[type="password"]').fill(PW);
+    await vp.getByRole('button', { name: 'Sign in' }).click();
+    await vp.waitForURL((u) => u.pathname.startsWith('/va'), { timeout: 20_000 });
+    await vp.goto(`/va/cars?q=${encodeURIComponent((c!.car_code as string).replace('-', ' '))}`, { waitUntil: 'networkidle' });
+    await expect(vp.getByTestId('car-matches')).toContainText(c!.car_code as string);
+    await axe(vp, 'find a car');
+    await vp.close();
+  } finally { await sql.end(); }
+});

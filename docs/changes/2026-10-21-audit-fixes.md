@@ -135,11 +135,32 @@ price of $60.00):
 
 A car in two priced classes pays the higher (the lookup of 0025).
 
+## 10. The car code (the owner, October 21)
+
+Every car has a public car code, "CC-" and 4 characters (more only when needed to stay unique), derived from the car's
+id: stable, never the fleet number (which would show the fleet's size), from letters and digits that cannot be confused
+(no I, L, O, 0 or 1) and always with a letter, so it never reads as a booking number (CC-10057).
+
+| Where | What |
+| --- | --- |
+| Car page | "Car code CC-7F3A: quote it when you call or chat with us", under the price |
+| Fleet cards | "Car code CC-7F3A" on the card's year line (every list built from `app.public_listing_row`) |
+| Renter portal | Next to the car's name ("2021 KIA Forte (car code CC-7F3A)") on every booking page and the trips list |
+| Booking emails | `car_code`, and the car's name with its code, in the payload of every booking event |
+| Admin search | Finds the car by its code, typed any way (cc-7f3a, CC 7F3A, 7F3A); the car's line shows it |
+| Assistants | My work > Find a car (`/va/cars`, every function; `va_read` `find_car`): code, plate, VIN or name |
+| Add a rental | The car list shows each code; a box above Car chooses the car by its code or plate |
+| Live chat | Each car's code is in the assistant's facts; a code in the visitor's message is resolved before it answers (`carByCode`, `codesIn`; a booking number is never taken for a code) |
+| Staff assistant tools (branch assistant) | `public.server_vehicle_by_code(text)` (service role) and `app.vehicle_by_code(text)` resolve a code to the car |
+
+`vehicles.car_code` (unique), filled on insert by `app.vehicle_car_code()` from `app.car_code_make(id, length)`; every
+car, the samples too, got its code in 0079.
+
 ## Guides
 
-`renter/before-pickup`, `admin/fleet-and-listings`, `admin/partners-company-cars-and-rentals-added-by-hand`,
+`renter/find-a-car-and-send-a-request`, `renter/before-pickup`, `admin/getting-around-admin`, `admin/fleet-and-listings`, `admin/partners-company-cars-and-rentals-added-by-hand`,
 `admin/owners-and-onboarding`, `admin/owner-money`, `admin/add-ons`, `admin/quick-reference`, `va/finance`, `va/fleet`,
-`va/commissions`; and 0072's never published `va/add-a-rental-by-hand` and `field/report-rentals-referrals-and-profile`.
+`va/commissions`, `va/shared-tools`; and 0072's never published `va/add-a-rental-by-hand` and `field/report-rentals-referrals-and-profile`.
 
 ## Tests
 

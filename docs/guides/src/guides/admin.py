@@ -49,7 +49,7 @@ def build():
     g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
     g.task('Search', 'The search box sits at the top of the menu, on every page.')
     g.steps([
-        'Type a booking number (CC-1042), a plate, a VIN, or a name or email address.',
+        'Type a booking number (CC-1042), a car code (CC-7F3A, on every car page and fleet card), a plate, a VIN, or a name or email address.',
         f'Press {B("Search")} (or Enter). Results come in groups: bookings, cars, owners, partners and renters. Open one to go to its page.',
     ], shot=S('admin/32-search-desktop', 0, 0, 1440, 420, pins=[(1, 107, 190), (2, 1368, 197)]))
     g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box.')

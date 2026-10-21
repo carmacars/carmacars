@@ -431,6 +431,11 @@ def build():
         'Use the arrows, Today and the range to move around, or search by plate, booking or name.',
         f'Fleet and customer service can remove a cleaning block from its side panel ({B("Remove the block")}) when a car is ready sooner.',
     ], shot=S('va-cs/09-calendar-desktop', 210, 60, 1440, 860, pins=[(1, 950, 330), (2, 560, 200)]))
+    g.task('Find a car', f'{P("My work", "Find a car")}. A renter quotes the car code on the car\'s page (like CC-7F3A).')
+    g.steps([
+        'Type the car code, a plate, a VIN or the name. Each car shows its code, plate, status and its page on the site.',
+        'In Add a rental, type the car code or plate in the box above Car to choose it.',
+    ])
     g.task('Find a renter')
     g.steps([
         'Search by name, email, phone or booking number.',

@@ -190,3 +190,39 @@ select public.server_payment_intent_opened(jsonb_build_object('payment_id', 'pi_
 select test.eq('intents: a card form opened is on record once, counted each time', (select times_opened || '/' || amount_cents from payment_intents_opened where processor_payment_id = 'pi_af_open'), '2/33900');
 select test.ok('intents: not callable by signed-in users', not has_function_privilege('authenticated', 'public.server_payment_intent_opened(jsonb)', 'execute')
   and not has_function_privilege('anon', 'public.server_addons_paid_online(uuid, uuid, jsonb, bigint)', 'execute'));
+
+-- ================================================================ 7. the car code
+select test.ok('car code: every car has one, unique, CC- and at least 4 characters with a letter',
+  not exists (select 1 from vehicles where car_code is null or car_code !~ '^CC-[A-HJKMNP-Z2-9]{4,}$' or car_code !~ '^CC-.*[A-Z]')
+  and (select count(*) = count(distinct car_code) from vehicles));
+select test.eq('car code: stable (the same car, the same code)', (select car_code from vehicles where id = test.id('vehicle:AF1')), app.car_code_make(test.id('vehicle:AF1'), 4));
+select test.ok('car code: never the fleet number', not exists (select 1 from vehicles where car_code ilike '%' || coalesce(nullif(fleet_number, ''), '#none#') || '%'));
+-- a clash takes a longer code
+insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method, car_code)
+values (test.id('vehicle:AFX'), test.id('owner:af_owner'), 2020, 'Honda', 'Civic', 'AFX111', 'standard', 'onboarding', 'managed', 'transfer', app.car_code_make(test.id('vehicle:AFY'), 4));
+insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method)
+values (test.id('vehicle:AFY'), test.id('owner:af_owner'), 2020, 'Honda', 'Civic', 'AFY111', 'standard', 'onboarding', 'managed', 'transfer');
+select test.eq('car code: a clash takes one more character', length((select car_code from vehicles where id = test.id('vehicle:AFY'))), 8);
+select test.eq('car code: found however it is typed',
+  (select string_agg(coalesce(app.vehicle_by_code(x)::text, 'none'), ',') from unnest(array[
+     (select car_code from vehicles where id = test.id('vehicle:AF1')), lower((select car_code from vehicles where id = test.id('vehicle:AF1'))),
+     replace((select car_code from vehicles where id = test.id('vehicle:AF1')), '-', ' '), substr((select car_code from vehicles where id = test.id('vehicle:AF1')), 4), 'CC-10057']) x),
+  repeat(test.id('vehicle:AF1')::text || ',', 4) || 'none');
+select test.eq('car code: the server resolves it for the assistant tools',
+  public.server_vehicle_by_code((select car_code from vehicles where id = test.id('vehicle:AF1'))) ->> 'vehicle_id', test.id('vehicle:AF1')::text);
+select test.ok('car code: Admin search finds the car by it',
+  exists (select 1 from jsonb_array_elements(app.admin_search(test.id('af_admin'), (select car_code from vehicles where id = test.id('vehicle:AF1'))) -> 'groups') g,
+                jsonb_array_elements(g -> 'rows') r where g ->> 'key' = 'cars' and r ->> 'href' = '/admin/vehicles/' || test.id('vehicle:AF1')));
+select test.ok('car code: an assistant''s Find a car finds it',
+  (app.va_read(test.id('af_fin'), 'find_car', jsonb_build_object('q', (select car_code from vehicles where id = test.id('vehicle:AF1')))) -> 0 ->> 'vehicle_id') = test.id('vehicle:AF1')::text);
+select test.ok('car code: in the car pickers of a rental added by hand',
+  exists (select 1 from jsonb_array_elements(app.manual_rental_vehicles(test.id('af_admin'))) c where c ->> 'id' = test.id('vehicle:AF1')::text and c ->> 'car_code' like 'CC-%'));
+select test.ok('car code: on the public car and the live chat''s facts',
+  (app.public_listing_row(test.id('vehicle:AFC1')) ->> 'car_code') = (select car_code from vehicles where id = test.id('vehicle:AFC1'))
+  and exists (select 1 from jsonb_array_elements(app.server_chat_facts() -> 'fleet') c where c ->> 'code' like 'CC-%'));
+insert into app_events (code, entity, entity_id, payload) values ('renter_booking_confirmed', 'booking', test.id('booking:AF-3'), '{}');
+select test.ok('car code: booking emails name the car with its code',
+  (select (x ->> 'car_code') = (select car_code from vehicles where id = test.id('vehicle:AF1'))
+          and coalesce(x ->> 'vehicle_name', '(car code ' || (x ->> 'car_code') || ')') like '%(car code ' || (x ->> 'car_code') || ')'
+     from (select app.notification_payload('renter_booking_confirmed', e, jsonb_build_object('email', 'af_rita@example.test')) x
+             from app_events e where e.entity_id = test.id('booking:AF-3') and e.code = 'renter_booking_confirmed' order by e.id desc limit 1) q));

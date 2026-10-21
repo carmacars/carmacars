@@ -38,7 +38,7 @@ def build():
         f'Go to {U("carmacars.ca")} and press {B("Find a car")}.',
         'Add your pickup and return dates. The list then shows the cars that are free and what the whole trip costs.',
         'Narrow the list with Filters: type, seats, transmission and daily rate.',
-        'Open a car to see its photos, rates, what is included and its own calendar.',
+        'Open a car to see its photos, rates, what is included and its own calendar. Its car code (like CC-7F3A) is under the price: quote it when you call or chat with us, and we know the car at once.',
     ], shot=S('public/02-cars-desktop', 0, 0, 1440, 880,
               pins=[(1, 1240, 35), (2, 160, 500), (3, 30, 724), (4, 490, 770)]))
 

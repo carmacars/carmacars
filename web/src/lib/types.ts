@@ -11,6 +11,8 @@ export interface CarRow {
   class: string; classes: string[]; body_style: string | null; seats: number | null; transmission: string | null;
   doors: number | null; drivetrain: string | null; luggage: string | null; home_area: string | null;
   allows_18_to_20: boolean; is_featured: boolean; taking_requests: boolean; model_hub_path: string; is_sample?: boolean;
+  /** 0079: the public car code (CC-7F3A) a renter quotes to staff; never the fleet number. */
+  car_code?: string | null;
   daily_rate_cents: number; weekend_rate_cents: number; weekly_rate_cents: number; monthly_rate_cents: number;
   km_allowance_per_day: number; overage_cents_per_km: number; deposit_cents: number;
   delivery_fee_cents: number; pickup_fee_cents: number; cover: Photo | null; published_at: string | null; updated_at: string | null;
