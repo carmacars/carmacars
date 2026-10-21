@@ -102,6 +102,8 @@ select test.eq('the email cap never exceeds the included emails', (app.settings(
 update usage_services set included = 100 where service = 'resend_day';
 
 -- ================================================================ 5. the alert email: address, quiet hours, daily maximum, values
+delete from notification_outbox where code = 'staff_usage_alert';
+delete from notifications where code = 'staff_usage_alert';
 delete from app_events where code = 'staff_usage_alert';
 update usage_alerts set emailed_at = null, email_note = null where email_note is distinct from 'covered by the 100% alert';
 select test.eq('never at night: 3 am in Toronto sends nothing', app.usage_send_alerts(app.local_midnight(app.today()) + interval '3 hours'), 0);
