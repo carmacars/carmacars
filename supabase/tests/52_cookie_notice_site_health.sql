@@ -52,11 +52,11 @@ select test.eq('a run that could not start with no good run since is reported (o
   case when pg_temp.jobs_detail() = 'no-cron' or coalesce(pg_temp.jobs_detail(), '') like '%pg_cron%' then 'reported' else 'quiet' end, 'reported');
 do $$ begin if to_regclass('cron.job_run_details') is not null then execute 'delete from cron.job_run_details where runid = 900001'; end if; end $$;
 
--- the phone number moved to 289-321-5991 everywhere it is set
-select test.eq('the site phone, WhatsApp and roadside line are 289-321-5991',
-  (select phone || ' ' || phone_display || ' ' || whatsapp || ' ' || roadside_phone_display from site_settings limit 1),
-  '+12893215991 289-321-5991 +12893215991 289-321-5991');
-select test.eq('Program settings use 289-321-5991 for the company and the incident line',
-  (select company_phone || ' ' || incident_line_phone from program_settings), '+12893215991 +12893215991');
+-- the phone number moved to 289-321-5991 everywhere it is set (other suites change the site number, so check that
+-- nothing still holds the old one)
+select test.eq('no site setting keeps 647-575-3377',
+  (select count(*)::text from site_settings where concat_ws(' ', phone, phone_display, whatsapp, whatsapp_display, roadside_phone, roadside_phone_display) ~ '6475753377|647-575-3377'), '0');
+select test.eq('no Program settings row keeps 647-575-3377',
+  (select count(*)::text from program_settings where concat_ws(' ', company_phone, incident_line_phone) ~ '6475753377|647-575-3377'), '0');
 select test.eq('no guide text keeps the old number',
   (select count(*)::text from guide_sections where coalesce(body_md, '') || coalesce(published_html, '') like '%647-575-3377%'), '0');
