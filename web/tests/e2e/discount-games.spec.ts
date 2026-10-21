@@ -119,7 +119,7 @@ const GAMES_PLAYED = [
       await p.mouse.move(b.x + 4, b.y + b.height / 2); await p.mouse.down();
       await p.mouse.move(b.x + b.width - 4, b.y + b.height / 2, { steps: 14 }); await p.mouse.up();
     }
-    await expect(p.getByText(/The last card/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 });
+    await expect(p.locator('.ccg-live', { hasText: 'The last card:' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 });
   } }
 ];
 const PLAY: Record<string, (p: Page) => Promise<void>> = Object.fromEntries(GAMES_PLAYED.map((g) => [g.game, g.play]));
