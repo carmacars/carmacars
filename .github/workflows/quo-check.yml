@@ -1,0 +1,27 @@
+name: quo-check
+
+# The Quo phone line (migration 0085): checks that the repository secret QUO_API_KEY (the CarmaCars workspace's key)
+# works and lists the workspace's phone numbers (name and number only) and its webhooks (address, status, events).
+# Read only: it changes nothing in Quo. Logs are public: the key is a masked secret and is never printed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The key, the phone numbers and the webhooks
+        env:
+          QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
+        run: |
+          if [ -z "$QUO_API_KEY" ]; then echo "::error::The repository secret QUO_API_KEY is not set"; exit 1; fi
+          node --experimental-strip-types --no-warnings scripts/deploy/quo.mjs check | tee /tmp/quo.txt
+          echo "::notice title=quo::$(head -n 1 /tmp/quo.txt)"
