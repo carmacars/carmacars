@@ -1953,9 +1953,8 @@ update rate_cards rc set pickup_fee_cents = rc.delivery_fee_cents
  where v.id = rc.vehicle_id and not coalesce(v.is_sample, false) and rc.effective_to is null
    and coalesce(rc.pickup_fee_cents, 0) = 0 and coalesce(rc.delivery_fee_cents, 0) > 0;
 
--- 6b. The street address (1570 Midland Ave) will change: the public pages show only the mailing address until the
--- owner turns Settings > Site > Contact, "Show street address", back on.
-update site_settings set show_street_address = false where singleton;
+-- 6b. The street address stays public (the owner, October 21: keep showing 1570 Midland Ave until it changes); it has
+-- its postal code from section 1.
 
 -- 6c. Possible duplicates from the template copy: two real cars whose copy is the plain template (the same sentences
 -- for every car) were flagged at 61 to 63%. Template copy is no longer compared; the open copy flags it raised are
@@ -2117,3 +2116,177 @@ begin
   return query select v_tier, v_bps, public.calc_bps(p_total_paid_cents, v_bps),
                       p_total_paid_cents - public.calc_bps(p_total_paid_cents, v_bps);
 end $$;
+
+-- 6f. Add-ons bought after booking with no card on file: the renter pays them on their booking (a pay page, as for the
+-- booking itself). Until 0079 the line waited unpaid and Finance had to collect it by hand (the task stays as the
+-- reminder; paying online closes it).
+create or replace function app.unpaid_addons(p_booking uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select jsonb_build_object(
+    'items', coalesce(jsonb_agg(jsonb_build_object('booking_addon_id', ba.id, 'name', ba.name, 'amount_cents', li.amount_cents, 'hst_cents', li.hst_cents,
+                                                   'total_cents', li.amount_cents + li.hst_cents) order by li.created_at), '[]'::jsonb),
+    'total_cents', coalesce(sum(li.amount_cents + li.hst_cents), 0))
+    from booking_addons ba join booking_line_items li on li.id = ba.line_item_id
+   where ba.booking_id = p_booking and ba.after_booking and ba.status = 'confirmed' and ba.payment_id is null
+     and li.payment_id is null and li.voided_at is null
+$$;
+
+create or replace function app.my_unpaid_addons(p_booking uuid, p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  b bookings;
+begin
+  perform app.assert_booking_renter(p_booking, p_by);
+  select * into b from bookings where id = p_booking;
+  return app.unpaid_addons(p_booking) || jsonb_build_object('booking_id', b.id, 'booking_number', b.booking_number,
+    'renter_id', b.renter_id, 'legal_name', (select r.legal_name from renters r where r.id = b.renter_id),
+    'email', (select r.email from renters r where r.id = b.renter_id),
+    'customer_id', (select s.processor_customer_id from payment_methods pm join payment_method_secrets s on s.payment_method_id = pm.id
+                     where pm.renter_id = b.renter_id and s.processor_customer_id is not null order by pm.created_at desc limit 1));
+end $$;
+
+-- The card payment for the unpaid add-ons is recorded: one payment, its processor details, each line and add-on marked
+-- paid, the Finance task closed. A replay of the same payment returns the first result; another amount is refused (the
+-- caller refunds it).
+create or replace function app.addons_paid_online(p_booking uuid, p_by uuid, p_processor jsonb, p_amount_cents bigint) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  b bookings;
+  u jsonb;
+  v_pay uuid;
+begin
+  if p_by is not null then perform app.assert_booking_renter(p_booking, p_by); end if;
+  select * into b from bookings where id = p_booking for update;
+  if b.id is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
+  select d.payment_id into v_pay from payment_processor_details d
+   where d.processor = coalesce(nullif(p_processor ->> 'processor', ''), 'stripe') and d.processor_payment_id = p_processor ->> 'payment_id';
+  if v_pay is not null then return jsonb_build_object('ok', true, 'already', true, 'payment_id', v_pay); end if;
+  u := app.unpaid_addons(p_booking);
+  if (u ->> 'total_cents')::bigint <= 0 then
+    return jsonb_build_object('ok', false, 'reason', 'nothing_due', 'message', 'Nothing is waiting for payment on this booking.', 'action', 'refund_payment');
+  end if;
+  if p_amount_cents is distinct from (u ->> 'total_cents')::bigint then
+    return jsonb_build_object('ok', false, 'reason', 'amount_mismatch', 'message', 'The amount changed. Nothing was kept: reload the page.', 'action', 'refund_payment');
+  end if;
+  insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at, created_by)
+  values (b.id, b.renter_id, 'addon', 'charge', 'card', p_amount_cents, 'succeeded', now(), p_by)
+  returning id into v_pay;
+  insert into payment_processor_details (payment_id, processor, processor_payment_id, processor_charge_id, receipt_url)
+  values (v_pay, coalesce(nullif(p_processor ->> 'processor', ''), 'stripe'), p_processor ->> 'payment_id', p_processor ->> 'charge_id', p_processor ->> 'receipt_url');
+  update booking_line_items li set payment_id = v_pay
+    from booking_addons ba where ba.line_item_id = li.id and ba.id in (select (x ->> 'booking_addon_id')::uuid from jsonb_array_elements(u -> 'items') x);
+  update booking_addons set payment_id = v_pay where id in (select (x ->> 'booking_addon_id')::uuid from jsonb_array_elements(u -> 'items') x);
+  update tasks set status = 'done', completed_at = now(), completed_by = p_by, completion_note = 'Paid online by the renter'
+   where task_type = 'addon_payment' and related_table = 'booking_addons' and status in ('open', 'in_progress', 'waiting')
+     and related_id in (select (x ->> 'booking_addon_id')::uuid from jsonb_array_elements(u -> 'items') x);
+  perform app.log_booking_event(b.id, 'adjusted', b.status::text, b.status::text, null, 'Add-ons paid online', p_by, null,
+    jsonb_build_object('payment_id', v_pay, 'total_cents', p_amount_cents));
+  return jsonb_build_object('ok', true, 'payment_id', v_pay, 'total_cents', p_amount_cents);
+end $$;
+
+create or replace function public.server_my_unpaid_addons(p_booking uuid, p_by uuid) returns jsonb
+language sql security definer set search_path = public, app as $$ select app.my_unpaid_addons(p_booking, p_by) $$;
+create or replace function public.server_addons_paid_online(p_booking uuid, p_by uuid, p_processor jsonb, p_amount_cents bigint) returns jsonb
+language sql security definer set search_path = public, app as $$ select app.addons_paid_online(p_booking, p_by, p_processor, p_amount_cents) $$;
+
+-- 6g. Every card form opened is on record (the audit trail of 0028): the PaymentIntent made for it, before anything is
+-- paid. The payment itself is still written when the card is approved (the live order of the payment path is unchanged);
+-- this log only says that a form was opened, for which booking, purpose and amount, and by whom.
+create table if not exists payment_intents_opened (
+  id                    uuid primary key default gen_random_uuid(),
+  processor             text not null default 'stripe',
+  processor_payment_id  text not null,
+  purpose               text not null,
+  booking_id            uuid references bookings (id) on delete cascade,
+  owner_invoice_id      uuid,
+  amount_cents          bigint not null check (amount_cents >= 0),
+  opened_by             uuid references users (id),
+  opened_at             timestamptz not null default now(),
+  times_opened          integer not null default 1,
+  last_opened_at        timestamptz not null default now(),
+  unique (processor, processor_payment_id)
+);
+create index if not exists payment_intents_opened_booking_idx on payment_intents_opened (booking_id);
+comment on table payment_intents_opened is 'Each card form opened (0079): the PaymentIntent made for it before any payment. Paid or not: join payment_processor_details on processor_payment_id.';
+alter table payment_intents_opened enable row level security;
+create policy admin_all on payment_intents_opened for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create policy va_read on payment_intents_opened for select to authenticated using (app.va_has('finance', 'cs'));
+create trigger audit_payment_intents_opened after insert or update or delete on payment_intents_opened for each row execute function app.audit_row();
+
+create or replace function public.server_payment_intent_opened(p jsonb) returns void
+language sql security definer set search_path = public, app as $$
+  insert into payment_intents_opened (processor, processor_payment_id, purpose, booking_id, owner_invoice_id, amount_cents, opened_by)
+  values (coalesce(nullif(p ->> 'processor', ''), 'stripe'), p ->> 'payment_id', coalesce(nullif(p ->> 'purpose', ''), 'other'),
+          nullif(p ->> 'booking_id', '')::uuid, nullif(p ->> 'owner_invoice_id', '')::uuid, coalesce((p ->> 'amount_cents')::bigint, 0),
+          nullif(p ->> 'by', '')::uuid)
+  on conflict (processor, processor_payment_id) do update set times_opened = payment_intents_opened.times_opened + 1, last_opened_at = now()
+$$;
+
+do $$
+declare
+  f record;
+begin
+  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where (n.nspname = 'app' and p.proname in ('unpaid_addons', 'my_unpaid_addons', 'addons_paid_online', 'set_shareholder_car', 'copy_is_template'))
+               or (n.nspname = 'public' and p.proname in ('server_my_unpaid_addons', 'server_addons_paid_online', 'server_payment_intent_opened')) loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+    execute format('grant execute on function %s to service_role', f.sig);
+  end loop;
+end $$;
+
+-- 6h. A shareholder's own car never pays the first and last month or a tracker install: an invoice of those kinds is
+-- refused for it, from any screen or job (the monthly fees already skip it: billing case "shareholder", 0007).
+create or replace function app.owner_invoice_shareholder_guard() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.kind in ('upfront', 'tracker_install') and new.status <> 'void' and new.vehicle_id is not null
+     and exists (select 1 from vehicles v where v.id = new.vehicle_id and v.is_shareholder_owned) then
+    raise exception '% is a shareholder''s own car: it pays no first and last month, Insurance Fee, Tracker Fee or tracker install',
+      app.vehicle_name(new.vehicle_id) using errcode = '23514';
+  end if;
+  return new;
+end $$;
+drop trigger if exists owner_invoices_shareholder_guard on owner_invoices;
+create trigger owner_invoices_shareholder_guard before insert or update of kind, status, vehicle_id on owner_invoices
+  for each row execute function app.owner_invoice_shareholder_guard();
+revoke all on function app.owner_invoice_shareholder_guard() from public, anon, authenticated;
+
+-- The owner's answer of October 21, 2026: the 2022 Chevrolet Malibu LS is Mahad Hussain's own car, and Mahad is a
+-- shareholder: 90/10, no Insurance Fee or Tracker Fee, never a first and last month. Set through the same function as
+-- the Admin's switch, as the Admin (rent@carmacars.ca); only where that car and owner exist (the live database).
+do $$
+declare
+  v_admin uuid;
+begin
+  if exists (select 1 from vehicles where id = 'aa720579-8ee6-4aaf-9c5a-d0b3609889d8' and owner_id = '8f32cc8f-5211-4343-aeac-d291b82bad4c') then
+    select u.id into v_admin from users u join user_roles r on r.user_id = u.id
+     where r.role = 'admin' order by (lower(u.email) = 'rent@carmacars.ca') desc, u.created_at limit 1;
+    perform app.set_shareholder_car(v_admin, jsonb_build_object('vehicle', 'aa720579-8ee6-4aaf-9c5a-d0b3609889d8', 'on', true,
+      'reason', 'The owner, October 21, 2026: the Malibu is Mahad Hussain''s own car and Mahad is a shareholder'));
+  end if;
+end $$;
+
+-- 6i. Protection Plan prices for every class and age band (the owner, October 21: reasonable defaults, editable in
+-- Admin > Settings > Coverage prices). The economy 18 to 20 price had two rows ($60.00 and $25.00 a day, both from
+-- October 19); the one the lookup charged ($60.00, the higher) is kept and the other ends today. Each other class and
+-- age band gets a default only where none is set: a typical Ontario rental damage waiver for a driver 26 and over
+-- (about $25 to $50 a day by class, more for an exotic), times 1.4 for 21 to 25 and 2.4 for 18 to 20 (the economy
+-- 18 to 20 price of $60.00 is the anchor).
+update coverage_prices set effective_to = app.today()
+ where vehicle_id is null and class_code = 'economy' and age_band = '18_to_20' and effective_to is null and effective_from < app.today()
+   and id <> (select c.id from coverage_prices c where c.vehicle_id is null and c.class_code = 'economy' and c.age_band = '18_to_20' and c.effective_to is null
+               order by c.amount_cents desc, c.created_at limit 1);
+insert into coverage_prices (class_code, age_band, amount_cents, per_day, note)
+select x.class_code, x.age_band, x.amount_cents, true, 'Default of 0079 (a typical Ontario damage waiver by class and age); the owner adjusts it'
+  from (values
+    ('economy', '26_plus', 2500), ('economy', '21_to_25', 3500), ('economy', '18_to_20', 6000),
+    ('standard', '26_plus', 2800), ('standard', '21_to_25', 3900), ('standard', '18_to_20', 6700),
+    ('premium', '26_plus', 3500), ('premium', '21_to_25', 4900), ('premium', '18_to_20', 8400),
+    ('suv', '26_plus', 3500), ('suv', '21_to_25', 4900), ('suv', '18_to_20', 8400),
+    ('van', '26_plus', 3800), ('van', '21_to_25', 5300), ('van', '18_to_20', 9100),
+    ('pickup', '26_plus', 3800), ('pickup', '21_to_25', 5300), ('pickup', '18_to_20', 9100),
+    ('luxury', '26_plus', 5000), ('luxury', '21_to_25', 7000), ('luxury', '18_to_20', 12000),
+    ('exotic', '26_plus', 8000), ('exotic', '21_to_25', 11000), ('exotic', '18_to_20', 19000)) x(class_code, age_band, amount_cents)
+ where exists (select 1 from vehicle_classes k where k.code = x.class_code)
+   and not exists (select 1 from coverage_prices c where c.vehicle_id is null and c.class_code = x.class_code and c.age_band = x.age_band
+                     and (c.effective_to is null or c.effective_to > app.today()));

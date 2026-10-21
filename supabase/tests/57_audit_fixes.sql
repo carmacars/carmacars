@@ -117,10 +117,8 @@ select test.eq('pickup: an empty pickup fee is the delivery fee',
   (app.rate_card_check(test.id('vehicle:AFN'), jsonb_build_object('daily', 9000, 'delivery', 12000, 'deposit', 50000)) #>> '{values,pickup}'), '12000');
 select test.eq('pickup: a pickup fee typed as 0 stays not offered',
   (app.rate_card_check(test.id('vehicle:AFN'), jsonb_build_object('daily', 9000, 'delivery', 12000, 'pickup', 0, 'deposit', 50000)) #>> '{values,pickup}'), '0');
--- 6b. the street address is not shown publicly
-select test.eq('street address: hidden publicly until the owner turns it on', (select show_street_address from site_settings where singleton), false);
-select test.ok('street address: the public settings carry the mailing address only',
-  (public.site_facts() ->> 'street_address') is null);
+-- 6b. the street address stays public, with its postal code (the owner's answer)
+select test.eq('street address: still shown publicly', (select show_street_address from site_settings where singleton), true);
 -- 6c. template copy is never compared
 insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method)
 values (test.id('vehicle:AFC1'), test.id('owner:af_owner'), 2021, 'Volkswagen', 'Jetta', 'AFC111', 'standard', 'available', 'managed', 'transfer'),
@@ -146,6 +144,16 @@ select test.eq('shareholder: the car is a shareholder''s car and the owner a sha
 select test.ok('shareholder: in the audit log with the reason', exists (select 1 from audit_log where action = 'shareholder_car' and entity_id = test.id('vehicle:AF1')::text and after ->> 'reason' = 'The partner''s own car'));
 select test.eq('shareholder: through the Admin door', (public.door(test.id('af_admin'), null, 'admin_do', 'shareholder_car', jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', false)) ->> 'shareholder'), 'false');
 select test.eq('shareholder: turned off, the owner is no longer a shareholder', (select is_shareholder from owners where id = test.id('owner:af_owner')), false);
+-- 6h. a shareholder's own car never gets a first and last month
+select app.set_shareholder_car(test.id('af_admin'), jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', true, 'reason', 'test'));
+select test.throws('shareholder: no first and last month invoice for a shareholder''s car',
+  format($$insert into owner_invoices (owner_id, vehicle_id, kind, status, invoice_number, billing_date) values (%L, %L, 'upfront', 'draft', 'INV-AF-1', current_date)$$,
+         test.id('owner:af_owner'), test.id('vehicle:AF1')), 'shareholder');
+select app.set_shareholder_car(test.id('af_admin'), jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', false, 'reason', 'test'));
+-- 6i. Protection Plan prices for every class and age band
+select test.eq('coverage: one price for every class and age band', (select count(distinct (class_code, age_band)) from coverage_prices
+  where vehicle_id is null and effective_to is null and class_code in ('economy', 'standard', 'premium', 'suv', 'luxury', 'exotic', 'van', 'pickup')), 24::bigint);
+select test.eq('coverage: a standard car, a driver 26 and over', (app.coverage_term(test.id('vehicle:AFN'), '26_plus', app.today()) ->> 'amount_cents'), '2800');
 -- 6e. the cancellation tiers from Program settings, unchanged
 select test.eq('cancellation: the tiers as before',
   (select r1.refund_bps || '/' || r2.refund_bps || '/' || r3.refund_bps || '/' || r4.refund_bps
@@ -156,3 +164,30 @@ select test.eq('cancellation: the tiers as before',
 update program_settings set cancel_refund_48h_plus_bps = 8000;
 select test.eq('cancellation: an Admin''s new percentage applies', (public.calc_cancellation(now() - interval '5 days', now(), now() + interval '72 hours', false, 10000)).refund_cents, 8000::bigint);
 update program_settings set cancel_refund_48h_plus_bps = 7500;
+
+-- 6f. add-ons bought after booking with no card on file, paid online
+select test.mk_booking('AF-3', 'AF1', 'af_rita', to_char(now() + interval '20 days', 'YYYY-MM-DD 10:00'), to_char(now() + interval '23 days', 'YYYY-MM-DD 10:00'), 'confirmed', 30000);
+create temp table af_buy as select app.booking_addon_buy(test.id('booking:AF-3'), test.id('af_rita'), jsonb_build_object('code', 'umbrella')) f;
+select app.booking_addon_paid(((select f from af_buy) ->> 'booking_addon_id')::uuid, test.id('af_rita'), null, null);
+select test.eq('add-on pay: the unpaid add-on is due on the booking',
+  (app.my_unpaid_addons(test.id('booking:AF-3'), test.id('af_rita')) ->> 'total_cents')::bigint, ((select f from af_buy) ->> 'amount_cents')::bigint);
+select test.throws('add-on pay: only the renter reads it', format($$select app.my_unpaid_addons(%L, %L)$$, test.id('booking:AF-3'), test.id('af_fin')), 'renter');
+select test.eq('add-on pay: another amount is refused (and refunded by the caller)',
+  app.addons_paid_online(test.id('booking:AF-3'), test.id('af_rita'), '{"processor": "stripe", "payment_id": "pi_af_1"}', 1) ->> 'reason', 'amount_mismatch');
+select test.eq('add-on pay: the right amount is recorded',
+  app.addons_paid_online(test.id('booking:AF-3'), test.id('af_rita'), '{"processor": "stripe", "payment_id": "pi_af_1", "charge_id": "ch_af_1"}',
+                         ((select f from af_buy) ->> 'amount_cents')::bigint) ->> 'ok', 'true');
+select test.eq('add-on pay: nothing left to pay, the line and the add-on paid, the Finance task closed',
+  (app.unpaid_addons(test.id('booking:AF-3')) ->> 'total_cents') || '/' ||
+  (select (ba.payment_id is not null and li.payment_id = ba.payment_id)::text from booking_addons ba join booking_line_items li on li.id = ba.line_item_id
+    where ba.id = ((select f from af_buy) ->> 'booking_addon_id')::uuid) || '/' ||
+  (select string_agg(status, ',') from tasks where task_type = 'addon_payment' and related_id = ((select f from af_buy) ->> 'booking_addon_id')::uuid), '0/true/done');
+select test.eq('add-on pay: the same payment again is a replay',
+  app.addons_paid_online(test.id('booking:AF-3'), test.id('af_rita'), '{"processor": "stripe", "payment_id": "pi_af_1"}', 1) ->> 'already', 'true');
+
+-- 6g. the card forms opened
+select public.server_payment_intent_opened(jsonb_build_object('payment_id', 'pi_af_open', 'purpose', 'booking_total', 'booking_id', test.id('booking:AF-3'), 'amount_cents', 33900, 'by', test.id('af_rita')));
+select public.server_payment_intent_opened(jsonb_build_object('payment_id', 'pi_af_open', 'purpose', 'booking_total', 'booking_id', test.id('booking:AF-3'), 'amount_cents', 33900, 'by', test.id('af_rita')));
+select test.eq('intents: a card form opened is on record once, counted each time', (select times_opened || '/' || amount_cents from payment_intents_opened where processor_payment_id = 'pi_af_open'), '2/33900');
+select test.ok('intents: not callable by signed-in users', not has_function_privilege('authenticated', 'public.server_payment_intent_opened(jsonb)', 'execute')
+  and not has_function_privilege('anon', 'public.server_addons_paid_online(uuid, uuid, jsonb, bigint)', 'execute'));

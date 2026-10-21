@@ -406,7 +406,7 @@ select test.eq('12 the public settings: email, phone shown as 647-575-3377, hour
      from public.site_settings_public() s),
   'contact@carmacars.ca/owners@carmacars.ca/647-575-3377/647-575-3377/647-575-3377/Open 24 hours/within 2 hours/1 business day/random');
 reset role;
-select test.eq('12 the street address was shown publicly once entered; 0079 hides it again until the new street address is known', (select show_street_address from site_settings), false);
+select test.eq('12 the street address is shown publicly once entered', (select show_street_address from site_settings), true);
 select test.eq('12 as the migration left them (later files edit some): +16475753377 for phone, WhatsApp and roadside; Instagram and TikTok profile addresses; airport delivery offered',
   (select count(*) > 0 from audit_log where entity_table = 'site_settings' and after ->> 'phone' = '+16475753377' and after ->> 'whatsapp' = '+16475753377'
      and after ->> 'roadside_phone' = '+16475753377' and after -> 'social_links' ->> 'instagram' = 'https://instagram.com/carmacars.ca'

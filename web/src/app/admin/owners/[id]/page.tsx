@@ -5,6 +5,7 @@ import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, invoiceTitle, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
+import { ShareholderToggle } from '@/features/admin/ShareholderToggle';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
@@ -89,6 +90,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
                   <PendingTerms ownerId={o.id} vehicleId={v.vehicle_id} /></div>
               )}
               {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} management fee (Revenue Share), {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
+              <ShareholderToggle ownerId={o.id} vehicleId={v.vehicle_id} on={!!v.is_shareholder_owned} />
               {TERMS_OPEN.includes(v.onboarding.status) && !v.is_shareholder_owned && (
                 <details open={!v.schedule}><summary className="link">{v.schedule ? 'Change the terms' : 'Set the terms'}</summary>
                   <TermsForm ownerId={o.id} vehicleId={v.vehicle_id} standard={v.standard} mode={v.schedule?.management_mode ?? v.onboarding.proposed_management_mode ?? 'managed'}
