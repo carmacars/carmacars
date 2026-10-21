@@ -1,5 +1,5 @@
 // The five-minute cron tick (custom-worker.ts scheduled) asks the database first whether the listing pipeline or the
-// search job has anything to do (public.server_jobs_due, migration 0074): one small call from the Worker entry instead
+// search job has anything to do (public.server_jobs_due, migration 0076): one small call from the Worker entry instead
 // of loading the app (about a second of CPU on a fresh isolate) for a tick with nothing to do. Any doubt (no service
 // key, the function missing, an error) runs both, as before. No imports: it runs in the Worker entry and in Node.
 

@@ -11,6 +11,8 @@ import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
+import { FLEET_SIG_KEY, fleetSignature } from './src/lib/edge/fleet-sig';
+import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
 type Env = Record<string, unknown>;
 
@@ -112,11 +114,21 @@ const worker = {
     const auth = { authorization: `Bearer ${await workerToken(secret)}` };
     const run = (path: string) => ctx.waitUntil(handler.fetch(new Request(`${base.replace(/\/$/, '')}${path}`, { method: 'POST', headers: auth }), env, ctx)
       .then((r: Response) => r.text()).catch(() => undefined));
-    // only when the database has work for them (src/lib/edge/cron-gate.ts, 0074): an idle tick then never loads the app
+    // only when the database has work for them (src/lib/edge/cron-gate.ts, 0076): an idle tick then never loads the app
     const due = await jobsToRun(env);
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
     if (due.seo) run('/api/jobs/seo');
+    // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
+    // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
+    // (only with a tag store: pages served as built from the assets are never rebuilt)
+    if (env.NEXT_TAG_CACHE_KV || env.NEXT_TAG_CACHE_D1) ctx.waitUntil((async () => {
+      const [sig, seen] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY)]);
+      if (sig === null || seen === null || sig === seen) return;
+      const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/jobs/public-rebuild`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' }), env, ctx);
+      await r.text();
+      if (r.ok) await writeNumber(env, FLEET_SIG_KEY, sig);
+    })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
     // the retention purge of private files (0071), once an hour on the second tick

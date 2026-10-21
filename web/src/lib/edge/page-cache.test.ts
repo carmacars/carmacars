@@ -149,3 +149,32 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   assert.deepEqual(await jobsToRun({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }, f('{}')), { listing: true, seo: true, checked: false });
   assert.deepEqual(await jobsToRun({ ...env, DATA_BACKEND: 'local' }, f('{}')), { listing: true, seo: true, checked: false });
 });
+
+test('the fleet signature changes when a car is published, taken off, deleted or its slug or model page changes', async () => {
+  const { signatureOf, fleetSignature } = await import('./fleet-sig.ts');
+  const a = [{ slug: 'toyota-corolla', model_hub_path: '/rent/toyota-corolla' }, { slug: 'honda-civic', model_hub_path: '/rent/honda-civic' }];
+  const base = signatureOf(a);
+  assert.equal(signatureOf([...a].reverse()), base, 'order does not matter');
+  assert.notEqual(signatureOf([...a, { slug: '2022-toyota-corolla-grey', model_hub_path: '/rent/toyota-corolla' }]), base, 'published');
+  assert.notEqual(signatureOf(a.slice(1)), base, 'taken off or deleted');
+  assert.notEqual(signatureOf([{ ...a[0]!, slug: '2023-toyota-corolla-white' }, a[1]!]), base, 'slug changed');
+  assert.notEqual(signatureOf([{ ...a[0]!, model_hub_path: '/rent/toyota' }, a[1]!]), base, 'model page changed');
+  assert.notEqual(signatureOf([]), 0, 'never 0 (0 means none kept)');
+  const env = { DATA_BACKEND: 'supabase', NEXT_PUBLIC_SUPABASE_URL: 'https://p.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon' };
+  let called = '';
+  const f = (async (u: string | URL | Request, init?: RequestInit) => { called = `${String(u)} ${String(init?.body)}`; return new Response(JSON.stringify(a)); }) as typeof fetch;
+  assert.equal(await fleetSignature(env, f), base);
+  assert.equal(called, 'https://p.supabase.co/rest/v1/rpc/fleet {"p_filters":{}}');
+  assert.equal(await fleetSignature(env, (async () => new Response('x', { status: 503 })) as typeof fetch), null);
+  assert.equal(await fleetSignature({ ...env, DATA_BACKEND: 'local' }, f), null);
+});
+
+test('numbers in the tag store: the fleet signature beside the generation', async () => {
+  const { readNumber, writeNumber } = await import('./page-cache.ts');
+  const m = new Map<string, string>();
+  const env = { NEXT_TAG_CACHE_KV: { get: async (k: string) => m.get(k) ?? null, put: async (k: string, v: string) => { m.set(k, v); } } };
+  assert.equal(await readNumber(env, 'carmacars/fleet-sig'), 0);
+  await writeNumber(env, 'carmacars/fleet-sig', 123456);
+  assert.equal(await readNumber(env, 'carmacars/fleet-sig'), 123456);
+  assert.equal(await readNumber(env, EDGE_GEN_KEY), 0, 'the generation is a different key');
+});
