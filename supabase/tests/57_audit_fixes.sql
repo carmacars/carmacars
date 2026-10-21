@@ -110,3 +110,49 @@ select test.ok('doors: the helpers are not callable by signed-in users',
   and not has_function_privilege('anon', 'app.admin_do(uuid, text, jsonb)', 'execute'));
 select test.ok('doors: admin_do and va_do keep their privileges',
   has_function_privilege('service_role', 'app.admin_do(uuid, text, jsonb)', 'execute') and has_function_privilege('service_role', 'app.va_do(uuid, text, jsonb)', 'execute'));
+
+-- ================================================================ 6. the second audit
+-- 6a. the pickup fee follows the delivery fee when left empty
+select test.eq('pickup: an empty pickup fee is the delivery fee',
+  (app.rate_card_check(test.id('vehicle:AFN'), jsonb_build_object('daily', 9000, 'delivery', 12000, 'deposit', 50000)) #>> '{values,pickup}'), '12000');
+select test.eq('pickup: a pickup fee typed as 0 stays not offered',
+  (app.rate_card_check(test.id('vehicle:AFN'), jsonb_build_object('daily', 9000, 'delivery', 12000, 'pickup', 0, 'deposit', 50000)) #>> '{values,pickup}'), '0');
+-- 6b. the street address is not shown publicly
+select test.eq('street address: hidden publicly until the owner turns it on', (select show_street_address from site_settings where singleton), false);
+select test.ok('street address: the public settings carry the mailing address only',
+  (public.site_facts() ->> 'street_address') is null);
+-- 6c. template copy is never compared
+insert into vehicles (id, owner_id, year, make, model, plate, class, status, management_mode, onboarding_method)
+values (test.id('vehicle:AFC1'), test.id('owner:af_owner'), 2021, 'Volkswagen', 'Jetta', 'AFC111', 'standard', 'available', 'managed', 'transfer'),
+       (test.id('vehicle:AFC2'), test.id('owner:af_owner'), 2015, 'Cadillac', 'CTS', 'AFC222', 'standard', 'available', 'managed', 'transfer');
+update vehicle_listings set status = 'published', slug = 'afc-' || substr(vehicle_id::text, 1, 6), headline = 'A car to rent in Toronto with delivery',
+       description = 'This car is available to rent in Toronto. Collect it at our location or have it delivered. Send a request with your dates and we confirm the car and the price before you pay anything.'
+ where vehicle_id in (test.id('vehicle:AFC1'), test.id('vehicle:AFC2'));
+insert into car_copy (vehicle_id, facts, facts_hash, source) values (test.id('vehicle:AFC1'), '{}', 'x', 'template'), (test.id('vehicle:AFC2'), '{}', 'y', 'template')
+on conflict (vehicle_id) do update set source = 'template';
+select app.check_listing_similarity(test.id('vehicle:AFC1'), 'copy');
+select test.eq('similarity: two cars sharing only the template copy are not flagged',
+  (select count(*) from listing_similarity_flags where kind = 'copy' and test.id('vehicle:AFC1') in (vehicle_id, other_vehicle_id)), 0::bigint);
+update car_copy set source = 'ai' where vehicle_id in (test.id('vehicle:AFC1'), test.id('vehicle:AFC2'));
+select app.check_listing_similarity(test.id('vehicle:AFC1'), 'copy');
+select test.ok('similarity: copy written for each car is still compared',
+  exists (select 1 from listing_similarity_flags where kind = 'copy' and vehicle_id = test.id('vehicle:AFC1')));
+-- 6d. a shareholder's own car
+select test.throws('shareholder: an Admin only', format($$select app.set_shareholder_car(%L, %L)$$, test.id('af_fin'),
+  jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', true)), null);
+select app.set_shareholder_car(test.id('af_admin'), jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', true, 'reason', 'The partner''s own car'));
+select test.eq('shareholder: the car is a shareholder''s car and the owner a shareholder',
+  (select v.is_shareholder_owned::text || '/' || v.billing_case || '/' || o.is_shareholder from vehicles v join owners o on o.id = v.owner_id where v.id = test.id('vehicle:AF1')), 'true/shareholder/true');
+select test.ok('shareholder: in the audit log with the reason', exists (select 1 from audit_log where action = 'shareholder_car' and entity_id = test.id('vehicle:AF1')::text and after ->> 'reason' = 'The partner''s own car'));
+select test.eq('shareholder: through the Admin door', (public.door(test.id('af_admin'), null, 'admin_do', 'shareholder_car', jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', false)) ->> 'shareholder'), 'false');
+select test.eq('shareholder: turned off, the owner is no longer a shareholder', (select is_shareholder from owners where id = test.id('owner:af_owner')), false);
+-- 6e. the cancellation tiers from Program settings, unchanged
+select test.eq('cancellation: the tiers as before',
+  (select r1.refund_bps || '/' || r2.refund_bps || '/' || r3.refund_bps || '/' || r4.refund_bps
+     from public.calc_cancellation(now() - interval '2 hours', now(), now() + interval '72 hours', false, 10000) r1,
+          public.calc_cancellation(now() - interval '5 days', now(), now() + interval '72 hours', false, 10000) r2,
+          public.calc_cancellation(now() - interval '5 days', now(), now() + interval '30 hours', false, 10000) r3,
+          public.calc_cancellation(now() - interval '5 days', now(), now() + interval '3 hours', false, 10000) r4), '9500/7500/5000/0');
+update program_settings set cancel_refund_48h_plus_bps = 8000;
+select test.eq('cancellation: an Admin''s new percentage applies', (public.calc_cancellation(now() - interval '5 days', now(), now() + interval '72 hours', false, 10000)).refund_cents, 8000::bigint);
+update program_settings set cancel_refund_48h_plus_bps = 7500;

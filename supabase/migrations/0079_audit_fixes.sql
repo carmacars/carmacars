@@ -365,6 +365,7 @@ declare
   v_of text;
   v_out jsonb;
 begin
+  if p_action = 'shareholder_car' then return app.set_shareholder_car(p_admin, coalesce(p, '{}'::jsonb)); end if;
   if p_action <> 'request_refund' then return app.admin_do_pre0079(p_admin, p_action, p); end if;
   v_of := app.refund_of_check(p);
   v_out := app.admin_do_pre0079(p_admin, p_action, p);
@@ -1796,3 +1797,323 @@ Your home address must be in your profile first: until it is, the page asks for 
 ',
   '<p class="gd-p">Report anything that happens on the road, add a rental for a renter you found, share your referral link, and keep your details up to date.</p><section class="gd-task" id="report-rentals-referrals-and-profile-report-something" data-gd-task><h2 class="gd-h2">Report something</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Report</b> and choose the Car.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose What happened: <b class="gd-ui">New damage found</b>, <b class="gd-ui">Warning light</b>, <b class="gd-ui">Collision while I was driving</b>, <b class="gd-ui">Ticket or toll while I was driving</b>, <b class="gd-ui">Lost property found</b> or <b class="gd-ui">Something else</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Write the Details: where, when and what you see.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Take a photo</b> for each photo, then <b class="gd-ui">Send the report</b>.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/965"><img src="/guides/img/field-03-report-phone-2adac4d1.jpg" alt="" loading="lazy" decoding="async" width="390" height="965"><span class="gd-pin" style="left:92.3%;top:29.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:92.3%;top:37.3%" aria-hidden="true">2</span><span class="gd-pin" style="left:92.3%;top:83.4%" aria-hidden="true">3</span><span class="gd-pin" style="left:92.3%;top:97.9%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box gd-box--warn"><span class="gd-lbl">Watch out</span><div>In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 647-575-3377 before you send the report.</div></aside></section><section class="gd-task" id="report-rentals-referrals-and-profile-add-a-rental-for-a-renter-you-found" data-gd-task><h2 class="gd-h2">Add a rental for a renter you found</h2><p class="gd-p">Your home address must be in your profile first: until it is, the page asks for it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Add a rental</b>. Choose the car, the dates and the places, then type the renter&#39;s details. A renter already on file is found by their email. Car already out with the renter? Enter the pickup as when it left: it is recorded as on trip.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Check the calendar and the price</b>. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Choose <b class="gd-ui">Send a payment link</b> or <b class="gd-ui">Charge the saved card when the renter signs</b>. You never take payment yourself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Under Who found this client, choose <b class="gd-ui">I sourced this client</b> or <b class="gd-ui">Entered for CarmaCars</b>, then press <b class="gd-ui">Add the rental</b>.</div></li></ol></div></section><section class="gd-task" id="report-rentals-referrals-and-profile-commissions" data-gd-task><h2 class="gd-h2">Commissions</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">You earn 10% of the rental charge (before tax, after discounts, less refunds) of each rental you sourced: one you added and marked I sourced this client, or a booking made with your referral link.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">It is earned when the rental is completed and paid in full, then an Admin approves it and it is paid on your pay date. Your home address must be in your profile: until it is, a commission waits as not earned yet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">My sales</b> shows each commission: not earned yet, pending approval, approved, paid or reversed. A refund after payment comes off a later commission.</div></li></ol></div></section><section class="gd-task" id="report-rentals-referrals-and-profile-referrals-and-profile" data-gd-task><h2 class="gd-h2">Referrals and profile</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Referrals</b>: your own referral link. Press <b class="gd-ui">Copy the link</b>, or let someone scan its QR code. A booking made with it counts as a rental you sourced.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Profile</b>: <b class="gd-ui">Save my phone</b>, your home address (<b class="gd-ui">Change my home address</b>), <b class="gd-ui">Set up two-step sign-in</b>, <b class="gd-ui">Change my password</b> and <b class="gd-ui">Sign out</b>.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/905"><img src="/guides/img/field-04-profile-phone-56e58ae3.jpg" alt="" loading="lazy" decoding="async" width="390" height="905"><span class="gd-pin" style="left:93.6%;top:63.9%" aria-hidden="true">2</span></div></div></figure></div></section>');
 -- GUIDES 0079 END
+
+-- ================================================================ 6. the second audit (October 21, 2026): settings and money rules
+-- 6a. The pickup fee: the owner (October 5): delivery and pickup are each $75 to $200 one way. The rates form's check
+-- defaulted an empty pickup fee to $0 ("not offered"), so every real car had pickup 0 with delivery $75. An empty
+-- pickup fee is now the car's delivery fee, and the real cars' current rate cards with pickup 0 and a delivery fee get
+-- the delivery fee as their pickup fee. A pickup fee typed as 0 still means not offered.
+CREATE OR REPLACE FUNCTION app.rate_card_check(p_vehicle uuid, p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'app'
+AS $function$
+declare
+  p_ jsonb := coalesce(p, '{}'::jsonb);
+  dflt jsonb := app.rate_card_defaults(p_vehicle, p_);
+  cur rate_cards;
+  err jsonb := '{}'::jsonb;
+  warn text[] := '{}';
+  derived text[] := '{}';
+  k text;
+  raw text;
+  amt jsonb := '{}'::jsonb;
+  v_daily bigint; v_we bigint; v_wk bigint; v_m bigint;
+  v_mode text := coalesce(nullif(p_ ->> 'km_mode', ''), 'default');
+  v_km integer; v_over bigint; v_dep bigint; v_del bigint; v_pick bigint;
+  v_omin bigint := (dflt ->> 'overage_min_cents')::bigint;
+  v_omax bigint := (dflt ->> 'overage_max_cents')::bigint;
+  ex jsonb := '[]'::jsonb;
+  v_fri timestamptz;
+  v_mon timestamptz;
+  e record;
+  c record;
+  names constant jsonb := '{"daily": "Daily rate", "weekend": "Weekend rate", "weekly": "Weekly rate", "monthly": "Monthly rate",
+                            "km_per_day": "Kilometres included a day", "overage": "Extra kilometre rate", "deposit": "Deposit",
+                            "delivery": "Delivery fee", "pickup": "Pickup fee"}';
+begin
+  if p_vehicle is not null then
+    select * into cur from rate_cards r where r.vehicle_id = p_vehicle and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now());
+  end if;
+  -- read each amount: whole cents, never text
+  foreach k in array array['daily', 'weekend', 'weekly', 'monthly', 'km_per_day', 'overage', 'deposit', 'delivery', 'pickup'] loop
+    raw := nullif(btrim(coalesce(p_ ->> k, '')), '');
+    if raw is null then continue; end if;
+    if raw !~ '^-?\d{1,12}$' then
+      err := err || jsonb_build_object(k, case when k = 'km_per_day' then 'Enter a whole number of kilometres, like 200.' else 'Enter an amount in dollars, like 89 or 89.50.' end);
+    else
+      amt := amt || jsonb_build_object(k, raw::bigint);
+    end if;
+  end loop;
+
+  -- the rates
+  v_daily := (amt ->> 'daily')::bigint;
+  if v_daily is null and not err ? 'daily' then err := err || jsonb_build_object('daily', 'Enter the daily rate. It is needed to post the car.');
+  elsif v_daily <= 0 then err := err || jsonb_build_object('daily', 'The daily rate must be above zero.');
+  end if;
+  foreach k in array array['weekend', 'weekly', 'monthly'] loop
+    if (amt ->> k)::bigint <= 0 then err := err || jsonb_build_object(k, format('The %s must be above zero, or leave it empty.', lower(names ->> k))); end if;
+  end loop;
+  v_we := coalesce((amt ->> 'weekend')::bigint, v_daily);
+  v_wk := coalesce((amt ->> 'weekly')::bigint, v_daily * 6);
+  v_m := coalesce((amt ->> 'monthly')::bigint, v_daily * 22);
+  if not amt ? 'weekend' then derived := derived || 'weekend'::text; end if;
+  if not amt ? 'weekly' then derived := derived || 'weekly'::text; end if;
+  if not amt ? 'monthly' then derived := derived || 'monthly'::text; end if;
+  if v_daily > 0 and v_wk > 0 and v_wk > 7 * v_daily then warn := warn || 'The weekly rate is more than 7 days at the daily rate, so a 7-day rental costs more than 6 days.'::text; end if;
+  if v_wk > 0 and v_m > 0 and v_m < v_wk then warn := warn || 'The monthly rate is less than the weekly rate.'::text; end if;
+  if v_daily > 0 and v_wk > 0 and v_wk < v_daily then warn := warn || 'The weekly rate is less than one day at the daily rate.'::text; end if;
+
+  -- the kilometre terms
+  if v_mode not in ('default', 'custom') then err := err || jsonb_build_object('km_mode', 'Choose the defaults or custom kilometres.'); v_mode := 'default'; end if;
+  if v_mode = 'default' then
+    v_km := (dflt ->> 'km_per_day')::integer;
+    v_over := (dflt ->> 'overage_cents')::bigint;
+  else
+    v_km := coalesce((amt ->> 'km_per_day')::integer, (dflt ->> 'km_per_day')::integer);
+    v_over := coalesce((amt ->> 'overage')::bigint, (dflt ->> 'overage_cents')::bigint);
+    if (amt ->> 'km_per_day')::bigint < 1 or (amt ->> 'km_per_day')::bigint > 5000 then
+      err := err || jsonb_build_object('km_per_day', 'Enter the kilometres included a day, from 1 to 5,000.');
+    end if;
+    if (amt ->> 'overage')::bigint < 0 then err := err || jsonb_build_object('overage', 'The extra kilometre rate cannot be below $0.'); end if;
+  end if;
+  if v_over is null and not err ? 'overage' then
+    err := err || jsonb_build_object('overage', 'There is no default extra kilometre rate for this class: choose Custom and enter one, or set it in Fee defaults.');
+  elsif not err ? 'overage' and v_over is not null and (v_over < coalesce(v_omin, v_over) or v_over > coalesce(v_omax, v_over)) then
+    err := err || jsonb_build_object('overage', format('For a %s car the extra kilometre rate is %s to %s a km (Fee defaults).',
+                                                       dflt ->> 'class', app.rc_money(v_omin, true), app.rc_money(v_omax, true)));
+  end if;
+
+  -- deposit, delivery and pickup
+  v_dep := coalesce((amt ->> 'deposit')::bigint, cur.deposit_cents, (dflt ->> 'deposit_cents')::bigint);
+  v_del := coalesce((amt ->> 'delivery')::bigint, cur.delivery_fee_cents, 0);
+  -- each way (the owner: delivery and pickup are each $75 to $200 one way): an empty pickup fee is the delivery fee (0079)
+  v_pick := coalesce((amt ->> 'pickup')::bigint, cur.pickup_fee_cents, v_del);
+  if v_dep is null and not err ? 'deposit' then err := err || jsonb_build_object('deposit', 'Enter the deposit (there is no default for this class).'); end if;
+  foreach k in array array['deposit', 'delivery', 'pickup'] loop
+    if (amt ->> k)::bigint < 0 then err := err || jsonb_build_object(k, format('The %s cannot be below $0.', lower(names ->> k))); end if;
+  end loop;
+  for c in select fd.fee_type_code, fd.min_cents, fd.max_cents from fee_defaults fd
+            where fd.fee_type_code in ('delivery', 'pickup') and (fd.vehicle_class is null or fd.vehicle_class::text = dflt ->> 'class')
+              and (fd.min_cents is not null or fd.max_cents is not null)
+              and fd.effective_from <= app.today() and (fd.effective_to is null or fd.effective_to > app.today()) loop
+    k := c.fee_type_code;
+    if not err ? k and coalesce(case k when 'delivery' then v_del else v_pick end, 0) > 0
+       and (case k when 'delivery' then v_del else v_pick end < coalesce(c.min_cents, 0) or case k when 'delivery' then v_del else v_pick end > coalesce(c.max_cents, 9e15::bigint)) then
+      err := err || jsonb_build_object(k, format('The %s is outside the range in Fee defaults: %s to %s, or $0 when not offered.', lower(names ->> k), app.rc_money(c.min_cents), app.rc_money(c.max_cents)));
+    end if;
+  end loop;
+
+  -- examples, priced as bookings are (public.calc_rental_charge), when the rates can be used
+  if not (err ?| array['daily', 'weekend', 'weekly', 'monthly']) and v_daily > 0 then
+    v_fri := ((date_trunc('week', (now() at time zone 'America/Toronto')) + interval '4 days 10 hours') at time zone 'America/Toronto');
+    if v_fri < now() then v_fri := v_fri + interval '7 days'; end if;
+    v_mon := v_fri + interval '3 days';
+    for e in select * from (values
+        (1, 'friday_sunday', 'Friday 10 am to Sunday 10 am', v_fri, 2),
+        (2, 'monday_thursday', 'Monday 10 am to Thursday 10 am', v_mon, 3),
+        (3, 'friday_monday', 'Friday 10 am to Monday 10 am', v_fri, 3),
+        (4, 'week', '7 days', v_mon, 7),
+        (5, 'two_weeks', '14 days', v_mon, 14),
+        (6, 'month', '30 days', v_mon, 30)) x(n, code, label, pickup, days) order by n loop
+      select * into c from public.calc_rental_charge(e.pickup, e.days, v_daily, v_we, v_wk, v_m);
+      ex := ex || jsonb_build_object('code', e.code, 'label', e.label, 'days', e.days, 'rate_applied', c.rate_applied,
+        'daily_days', c.daily_days, 'weekend_days', c.weekend_days, 'cents', c.rental_charge_cents, 'km_included', v_km * e.days,
+        'text', format('%s: %s before tax%s, %s km included.', e.label, app.rc_money(c.rental_charge_cents),
+          case when c.rate_applied = 'daily' then
+                 case when c.rental_charge_cents < c.daily_days * v_daily + c.weekend_days * v_we then format(' (capped at the weekly rate; %s weekday and %s weekend days)', c.daily_days, c.weekend_days)
+                      when c.weekend_days = 0 then format(' (%s days at the daily rate)', c.daily_days)
+                      when c.daily_days = 0 then format(' (%s days at the weekend rate)', c.weekend_days)
+                      else format(' (%s at the weekend rate, %s at the daily rate)', c.weekend_days, c.daily_days) end
+               when c.rate_applied = 'weekly' then case when c.rental_charge_cents = v_m then ' (capped at the monthly rate)' else format(' (the weekly rate for %s days)', e.days) end
+               else ' (the monthly rate)' end,
+          to_char(v_km * e.days, 'FM999,999')));
+    end loop;
+  end if;
+
+  return jsonb_build_object(
+    'ok', err = '{}'::jsonb,
+    'errors', err,
+    'messages', (select coalesce(jsonb_agg(format('%s: %s', coalesce(names ->> x.key, x.key), x.value #>> '{}') order by x.key), '[]'::jsonb) from jsonb_each(err) x),
+    'warnings', to_jsonb(warn),
+    'derived', to_jsonb(derived),
+    'values', jsonb_build_object('daily', v_daily, 'weekend', v_we, 'weekly', v_wk, 'monthly', v_m, 'km_mode', v_mode,
+      'km_per_day', v_km, 'overage', v_over, 'deposit', v_dep, 'delivery', v_del, 'pickup', v_pick,
+      'km_uses_defaults', v_km = (dflt ->> 'km_per_day')::integer and v_over = (dflt ->> 'overage_cents')::bigint),
+    'defaults', dflt,
+    'examples', ex,
+    'km_text', case when v_km is not null and v_over is not null
+                    then format('%s km included a day, then %s for each extra km.', v_km, app.rc_money(v_over, true)) end);
+end $function$
+
+;
+update rate_cards rc set pickup_fee_cents = rc.delivery_fee_cents
+  from vehicles v
+ where v.id = rc.vehicle_id and not coalesce(v.is_sample, false) and rc.effective_to is null
+   and coalesce(rc.pickup_fee_cents, 0) = 0 and coalesce(rc.delivery_fee_cents, 0) > 0;
+
+-- 6b. The street address (1570 Midland Ave) will change: the public pages show only the mailing address until the
+-- owner turns Settings > Site > Contact, "Show street address", back on.
+update site_settings set show_street_address = false where singleton;
+
+-- 6c. Possible duplicates from the template copy: two real cars whose copy is the plain template (the same sentences
+-- for every car) were flagged at 61 to 63%. Template copy is no longer compared; the open copy flags it raised are
+-- removed with their Fleet tasks (no person decided them, so they are not marked cleared by anyone).
+create or replace function app.copy_is_template(p_vehicle uuid) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select exists (select 1 from car_copy c where c.vehicle_id = p_vehicle and c.source = 'template')
+$$;
+revoke all on function app.copy_is_template(uuid) from public, anon, authenticated;
+grant execute on function app.copy_is_template(uuid) to service_role;
+CREATE OR REPLACE FUNCTION app.check_listing_similarity(p_vehicle uuid, p_what text DEFAULT 'all'::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'app'
+AS $function$
+declare
+  v vehicles;
+  o record;
+  s program_settings := app.settings();
+  v_mine text[];
+  v_bps integer;
+  n integer;
+begin
+  if not s.listing_similarity_enabled then return 0; end if;
+  select * into v from vehicles where id = p_vehicle;
+  if v.id is null or v.status in ('exited', 'total_loss', 'declined') then return 0; end if;
+  if p_what in ('vehicle', 'all') then
+    for o in select x.* from vehicles x
+              where x.id <> v.id and x.status not in ('exited', 'total_loss', 'declined')
+                and (app.vin_near(x.vin, v.vin)
+                     or app.norm_plate(x.plate) = app.norm_plate(v.plate)
+                     or (x.year = v.year and lower(x.make) = lower(v.make) and lower(x.model) = lower(v.model)
+                         and lower(coalesce(x.colour, '')) = lower(coalesce(v.colour, '')) and coalesce(v.colour, '') <> '')) loop
+      if app.vin_near(o.vin, v.vin) then
+        perform app.similarity_flag(v.id, o.id, 'vin', 10000, true,
+          case when app.vin_distance(o.vin, v.vin) = 0 then format('Same VIN %s as %s', v.vin, app.vehicle_name(o.id))
+               else format('VIN %s is one character from %s (%s)', v.vin, o.vin, app.vehicle_name(o.id)) end);
+      end if;
+      if app.norm_plate(o.plate) = app.norm_plate(v.plate) then
+        perform app.similarity_flag(v.id, o.id, 'plate', 10000, true, format('Same plate %s as %s', app.norm_plate(v.plate), app.vehicle_name(o.id)));
+      end if;
+      if o.year = v.year and lower(o.make) = lower(v.make) and lower(o.model) = lower(v.model)
+         and lower(coalesce(o.colour, '')) = lower(coalesce(v.colour, '')) and coalesce(v.colour, '') <> '' then
+        perform app.similarity_flag(v.id, o.id, 'specs', 8000, false,
+          format('Same year, make, model and colour as %s, %s', app.vehicle_name(o.id),
+                 case when o.owner_id = v.owner_id then 'the same owner' else 'another owner' end));
+      end if;
+    end loop;
+  end if;
+  if p_what in ('photo', 'all') then
+    for o in select distinct x.vehicle_id as id
+               from vehicle_photos mine join vehicle_photos x on x.content_sha256 = mine.content_sha256 and x.vehicle_id <> mine.vehicle_id
+               join vehicle_listings l on l.vehicle_id = x.vehicle_id and l.status in ('published', 'paused')
+              where mine.vehicle_id = v.id and mine.replaced_at is null and mine.status <> 'rejected' and mine.content_sha256 is not null
+                and x.replaced_at is null and x.status <> 'rejected' loop
+      perform app.similarity_flag(v.id, o.id, 'photo', 10000, true, format('A listing photo is the same image as one of %s', app.vehicle_name(o.id)));
+    end loop;
+  end if;
+  -- the plain template copy (car_copy.source = 'template', 0061) is the same words for every car: comparing it flags
+  -- real cars that are not twins (0079). Only copy written for the car itself is compared.
+  if p_what in ('copy', 'all') and not app.copy_is_template(v.id) then
+    v_mine := app.copy_shingles(app.listing_copy(v.id));
+    if cardinality(v_mine) >= 5 then
+      -- twins (the same year, make and model) may share their copy: the canonical twin rule of 0022 handles them
+      for o in select l.vehicle_id as id, app.copy_shingles(concat_ws(' ', l.headline, l.description)) as sh
+                 from vehicle_listings l join vehicles x on x.id = l.vehicle_id
+                where l.vehicle_id <> v.id and l.status in ('published', 'paused')
+                  and (x.year, lower(x.make), lower(x.model)) is distinct from (v.year, lower(v.make), lower(v.model))
+                  and not app.copy_is_template(l.vehicle_id) loop
+        v_bps := app.jaccard_bps(v_mine, o.sh);
+        if v_bps >= s.listing_similarity_copy_bps then
+          perform app.similarity_flag(v.id, o.id, 'copy', v_bps, true,
+            format('The copy is %s%% the same as the listing of %s', round(v_bps / 100.0), app.vehicle_name(o.id)));
+        end if;
+      end loop;
+    end if;
+  end if;
+  select count(*) into n from listing_similarity_flags f where f.vehicle_id = v.id and f.status = 'open' and f.blocking;
+  return n;
+end $function$
+
+;
+create temp table _template_flags on commit drop as
+select f.id, f.vehicle_id from listing_similarity_flags f
+ where f.status = 'open' and f.kind = 'copy' and (app.copy_is_template(f.vehicle_id) or app.copy_is_template(f.other_vehicle_id));
+delete from listing_similarity_flags f using _template_flags t where f.id = t.id;
+update tasks t set status = 'cancelled', completed_at = now(),
+       completion_note = 'Not a duplicate: the two cars shared only the template copy (0079)'
+ where t.task_type = 'listing_similarity' and t.status in ('open', 'in_progress', 'waiting')
+   and (t.related_id in (select id from _template_flags)
+        or (t.vehicle_id in (select vehicle_id from _template_flags)
+            and not exists (select 1 from listing_similarity_flags f where f.vehicle_id = t.vehicle_id and f.status = 'open')));
+
+-- 6d. Shareholder cars (the owner, October 5): a shareholder's own car is split 90/10 and pays no Insurance Fee,
+-- Tracker Fee or upfront charges. Nothing set it on screen: an Admin now turns it on or off per car on the owner's page.
+-- Bookings already made keep the split they were made with. p: {vehicle, on, reason}
+create or replace function app.set_shareholder_car(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  v_on boolean := coalesce((p ->> 'on')::boolean, false);
+begin
+  perform app.admin_begin(p_by);
+  select * into v from vehicles where id = nullif(p ->> 'vehicle', '')::uuid for update;
+  if v.id is null then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  if v.owner_id is null then raise exception 'Only a program owner''s car can be a shareholder''s car' using errcode = '22023'; end if;
+  if v_on and v.management_mode <> 'managed' then
+    raise exception 'A shareholder''s car is a Managed car: change its management mode first' using errcode = '23514';
+  end if;
+  if v.is_shareholder_owned = v_on then return jsonb_build_object('vehicle_id', v.id, 'shareholder', v_on, 'changed', false); end if;
+  update vehicles set is_shareholder_owned = v_on where id = v.id;
+  update owners o set is_shareholder = exists (select 1 from vehicles x where x.owner_id = o.id and x.is_shareholder_owned and x.retired_at is null)
+   where o.id = v.owner_id;
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
+  values (p_by, 'shareholder_car', 'vehicles', v.id::text, jsonb_build_object('shareholder', not v_on),
+          jsonb_build_object('shareholder', v_on, 'reason', nullif(btrim(coalesce(p ->> 'reason', '')), '')));
+  return jsonb_build_object('vehicle_id', v.id, 'shareholder', v_on, 'changed', true,
+                            'company_share_bps', case when v_on then (app.settings()).shareholder_company_share_bps end);
+end $$;
+revoke all on function app.set_shareholder_car(uuid, jsonb) from public, anon, authenticated;
+grant execute on function app.set_shareholder_car(uuid, jsonb) to service_role;
+
+-- 6e. The cancellation refund tiers (the owner, October 5) as Program settings, with the same values: behaviour unchanged.
+alter table program_settings
+  add column if not exists cancel_refund_within_24h_of_booking_bps integer not null default 9500 check (cancel_refund_within_24h_of_booking_bps between 0 and 10000),
+  add column if not exists cancel_refund_48h_plus_bps integer not null default 7500 check (cancel_refund_48h_plus_bps between 0 and 10000),
+  add column if not exists cancel_refund_24_to_48h_bps integer not null default 5000 check (cancel_refund_24_to_48h_bps between 0 and 10000),
+  add column if not exists cancel_refund_under_24h_bps integer not null default 0 check (cancel_refund_under_24h_bps between 0 and 10000);
+comment on column program_settings.cancel_refund_within_24h_of_booking_bps is 'Refund when the renter cancels within 24 hours of booking and 48 hours or more before the start (0079; 95%)';
+comment on column program_settings.cancel_refund_48h_plus_bps is 'Refund when the renter cancels 48 hours or more before the start (0079; 75%)';
+comment on column program_settings.cancel_refund_24_to_48h_bps is 'Refund when the renter cancels 24 to 48 hours before the start (0079; 50%)';
+comment on column program_settings.cancel_refund_under_24h_bps is 'Refund when the renter cancels under 24 hours before the start or after it (0079; 0%)';
+
+create or replace function public.calc_cancellation(p_booked_at timestamp with time zone, p_received_at timestamp with time zone, p_start_at timestamp with time zone,
+    p_non_refundable boolean, p_total_paid_cents bigint, p_by_carmacars boolean default false)
+returns table(tier text, refund_bps integer, refund_cents bigint, retained_cents bigint)
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v_tier text;
+  v_bps integer;
+  v_notice interval := p_start_at - p_received_at;
+  -- the percentages in force on the booking's date (Program settings)
+  s program_settings := app.settings(app.local_date(coalesce(p_booked_at, p_received_at)));
+begin
+  if p_by_carmacars then
+    v_tier := 'carmacars_cancelled'; v_bps := 10000;
+  elsif p_non_refundable then
+    v_tier := 'non_refundable'; v_bps := 0;
+  elsif p_received_at - p_booked_at <= interval '24 hours' and v_notice >= interval '48 hours' then
+    v_tier := 'within_24h_of_booking'; v_bps := coalesce(s.cancel_refund_within_24h_of_booking_bps, 9500);
+  elsif v_notice >= interval '48 hours' then
+    v_tier := 'notice_48h_plus'; v_bps := coalesce(s.cancel_refund_48h_plus_bps, 7500);
+  elsif v_notice >= interval '24 hours' then
+    v_tier := 'notice_24_to_48h'; v_bps := coalesce(s.cancel_refund_24_to_48h_bps, 5000);
+  else
+    v_tier := 'under_24h_or_after_start'; v_bps := coalesce(s.cancel_refund_under_24h_bps, 0);
+  end if;
+  return query select v_tier, v_bps, public.calc_bps(p_total_paid_cents, v_bps),
+                      p_total_paid_cents - public.calc_bps(p_total_paid_cents, v_bps);
+end $$;
