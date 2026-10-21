@@ -32,6 +32,8 @@ select test.eq('approve without a first and last choice: no invoice, and Admin >
   || (select count(*) from tasks where task_type = 'first_last_decide' and vehicle_id = test.sl_car() and status = 'open' and queue = 'admin'
         and title = 'Decide the first and last month invoice for ' || app.vehicle_name(test.sl_car())), '0/1');
 select test.eq('the bulk path (owner page Issue) makes nothing without a choice', jsonb_array_length(public.admin_issue_upfront_invoices(test.sl_owner(), test.id('sl_admin'))), 0);
+select test.eq('Admin > Today lists the decision with a link to the owner''s Terms tab',
+  (select (i ->> 'count')::int > 0 and (i ->> 'href') like '/admin/owners/%?tab=terms' from jsonb_array_elements(app.admin_todo(test.id('sl_admin')) -> 'items') i where i ->> 'key' = 'first_last_decide'), true);
 select test.eq('the to-do is raised once', (select count(*) from tasks where task_type = 'first_last_decide' and vehicle_id = test.sl_car()), 1::bigint);
 
 -- ================================================================ 2. documents found by content key, no render on the page
