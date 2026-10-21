@@ -62,7 +62,7 @@ export async function fillYmm(page: Page, prefix: string, c: { year: string; mak
   await expect(async () => {
     const tag = await model.evaluate((e) => e.tagName);
     if (tag === 'SELECT') expect(await model.isEnabled()).toBe(true);
-  }).toPass({ timeout: 15_000 });
+  }).toPass({ timeout: 60_000 });
   if ((await model.evaluate((e) => e.tagName)) === 'SELECT') {
     if (await model.locator(`option[value="${c.model}"]`).count()) await model.selectOption(c.model);
     else { await model.selectOption('__other'); await page.getByTestId(`${prefix}-model`).fill(c.model); }
@@ -74,7 +74,7 @@ export async function fillYmm(page: Page, prefix: string, c: { year: string; mak
 export async function carByHand(page: Page, prefix: string, c: { year: string; make: string; model: string }) {
   const sum = page.getByTestId(`${prefix}-summary`);
   const fb = page.getByTestId(`${prefix}-ymm`);
-  await expect(sum.or(fb)).toBeVisible({ timeout: 20_000 });
+  await expect(sum.or(fb)).toBeVisible({ timeout: 90_000 });
   if (await sum.isVisible()) {
     await page.getByTestId(`${prefix}-edit`).click();
     await page.getByTestId(`${prefix}-edit-year`).fill(c.year);

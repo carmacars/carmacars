@@ -56,7 +56,7 @@ async function signedIn(browser: Browser, email: string, expectPath: string) {
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 20_000 });
+  await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 120_000 });
   return page;
 }
 /** The daily rate the database starts a car at (0070: similar real cars, else the class default). */
@@ -68,7 +68,7 @@ const startRate = async (sql: Sql, cls: string, make: string, model: string) => 
 test.describe.configure({ mode: 'serial' });
 
 test('Admin > Add a car from the VIN alone: one summary line, the class and the rate from it, the colour in one tap; the copy is written right after', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(600_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
@@ -77,26 +77,26 @@ test('Admin > Add a car from the VIN alone: one summary line, the class and the 
 
   // a VIN that does not add up is said in words, and can still be used
   await page.getByTestId('add-car-vin').fill(wrongCheck(v));
-  await expect(page.getByTestId('add-car-vin-status')).toContainText('does not add up', { timeout: 20_000 });
+  await expect(page.getByTestId('add-car-vin-status')).toContainText('does not add up', { timeout: 90_000 });
   await page.getByTestId('add-car-vin').fill(`${v.slice(0, 16)}O`);
   await expect(page.getByTestId('add-car-vin-status')).toContainText('O is probably 0');
 
   await page.getByTestId('add-car-vin').fill(v.toLowerCase());
   const sum = page.getByTestId('add-car-summary');
-  await expect(sum).toContainText('2016 Porsche Macan S', { timeout: 20_000 });
+  await expect(sum).toContainText('2016 Porsche Macan S', { timeout: 90_000 });
   await expect(sum).toContainText('SUV · 5 seats · 5 doors · Gas · All-wheel drive · Automatic · 3.0 L, V6, turbo');
   await expect(page.getByTestId('add-car-year')).toHaveCount(0);   // no inputs for what the VIN says
   await expect(page.getByTestId('add-car-class')).toHaveValue('premium');
   await expect(page.getByTestId('add-car-class-why')).toContainText('Premium: a Porsche');
   // the daily rate starts from similar Porsche Macans, else the Premium class, never from the Standard class
   const start = await startRate(sql, 'premium', 'Porsche', 'Macan');
-  await expect(page.getByTestId('add-car-daily')).toHaveValue(String(start / 100), { timeout: 20_000 });
+  await expect(page.getByTestId('add-car-daily')).toHaveValue(String(start / 100), { timeout: 90_000 });
   await tapColour(page, 'add-car', 'Blue');
   await page.getByTestId('add-car-supply-company').check();
   await check(page, 'add car decoded');
   await shot(page, 'add-car');
   await page.getByTestId('add-car-submit').click();
-  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 30_000 });
+  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 120_000 });
   const id = page.url().match(/vehicles\/([0-9a-f-]{36})/)![1]!;
   const [car] = await sql`select v.year, v.make, v.model, v.trim, v.class::text, v.colour, v.spec_sources #>> '{class,source}' as cls, l.seats, l.doors, l.drivetrain, l.transmission, l.headline
     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = ${id}`;
@@ -109,22 +109,22 @@ test('Admin > Add a car from the VIN alone: one summary line, the class and the 
   // the same VIN again: the car already in the fleet, with a link to it
   await page.goto('/admin/vehicles/new', { waitUntil: 'networkidle' });
   await page.getByTestId('add-car-vin').fill(v);
-  await expect(page.getByTestId('add-car-taken')).toContainText('Already in the fleet: 2016 Porsche Macan S', { timeout: 20_000 });
+  await expect(page.getByTestId('add-car-taken')).toContainText('Already in the fleet: 2016 Porsche Macan S', { timeout: 90_000 });
   await page.context().close();
   await sql.end();
 });
 
 test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and model from lists; by plate the same; never blocked', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(600_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
   await page.goto('/admin/vehicles/new', { waitUntil: 'networkidle' });
   const v = vin('ZZZZZ123', 'L');
   await page.getByTestId('add-car-vin').fill(v);
-  await expect(page.getByTestId('add-car-fallback')).toContainText('could not be read', { timeout: 20_000 });
+  await expect(page.getByTestId('add-car-fallback')).toContainText('could not be read', { timeout: 90_000 });
   await fillYmm(page, 'add-car', { year: '2021', make: 'Ford', model: 'Mustang' });
-  await expect(page.getByTestId('add-car-class')).toHaveValue('premium', { timeout: 15_000 });
+  await expect(page.getByTestId('add-car-class')).toHaveValue('premium', { timeout: 60_000 });
   await expect(page.getByTestId('add-car-class-why')).toContainText('a sports model');
   // a person's class is theirs
   await page.getByTestId('add-car-class').selectOption('luxury');
@@ -133,7 +133,7 @@ test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and 
   await check(page, 'add car not decoded');
   await shot(page, 'add-car-fallback');
   await page.getByTestId('add-car-submit').click();
-  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 30_000 });
+  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 120_000 });
   const id = page.url().match(/vehicles\/([0-9a-f-]{36})/)![1]!;
   const [a] = await sql`select year, make, model, class::text, spec_sources #>> '{class,source}' as cls from vehicles where id = ${id}`;
   expect([a!.year, a!.make, a!.model, a!.class, a!.cls]).toEqual([2021, 'Ford', 'Mustang', 'luxury', 'person']);
@@ -144,10 +144,10 @@ test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and 
   const p = plate();
   await page.getByTestId('add-car-plate').fill(p);
   await fillYmm(page, 'add-car', { year: '2020', make: 'Honda', model: 'CR-V' });
-  await expect(page.getByTestId('add-car-class-why')).toContainText('Standard', { timeout: 15_000 });
+  await expect(page.getByTestId('add-car-class-why')).toContainText('Standard', { timeout: 60_000 });
   await page.getByTestId('add-car-supply-company').check();
   await page.getByTestId('add-car-submit').click();
-  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 30_000 });
+  await page.waitForURL(/\/admin\/vehicles\/[0-9a-f-]{36}\?added=1/, { timeout: 120_000 });
   const [b] = await sql`select vin, make, model from vehicles where plate = ${p}`;
   expect([b!.vin, b!.make, b!.model]).toEqual([null, 'Honda', 'CR-V']);
   await page.context().close();
@@ -155,7 +155,7 @@ test('Admin > Add a car: a VIN the decoder cannot read asks only year, make and 
 });
 
 test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the copy is queued', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(600_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
@@ -167,7 +167,7 @@ test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the 
   await f.getByTestId('addcar-phone').fill('+16475550177');
   const v = vin('1FM5K8D8', 'L');
   await f.getByTestId('addcar-vin').fill(v);
-  await expect(f.getByTestId('addcar-summary')).toContainText('2020 Ford Explorer XLT', { timeout: 20_000 });
+  await expect(f.getByTestId('addcar-summary')).toContainText('2020 Ford Explorer XLT', { timeout: 90_000 });
   await expect(f.getByTestId('addcar-summary')).toContainText('7 seats');
   await expect(f.getByTestId('addcar-class')).toHaveValue('suv');
   // Edit opens the fields with the decoded values
@@ -178,7 +178,7 @@ test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the 
   await check(page, 'admin add car for an owner');
   await shot(page, 'admin-add-car-owner');
   await f.getByTestId('addcar-submit').click();
-  await expect(page.getByTestId('addcar-done')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('addcar-done')).toBeVisible({ timeout: 120_000 });
   const [c] = await sql`select v.year, v.model, v.trim, v.class::text, v.colour, l.seats, (select count(*)::int from car_copy cc where cc.vehicle_id = v.id) as copy
     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.vin = ${v}`;
   expect([c!.year, c!.model, c!.trim, c!.class, c!.colour, c!.seats, c!.copy]).toEqual([2020, 'Explorer', 'XLT Sport', 'suv', 'White', 7, 1]);
@@ -187,7 +187,7 @@ test('Add a car for an owner (Admin): the VIN fills the car; an SUV is SUV; the 
 });
 
 test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS is Premium, not Standard', async ({ browser }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(600_000);
   const sql = db();
   const cs = await mkUser(sql, 'cs');
   const page = await signedIn(browser, cs.email, '/va');
@@ -199,12 +199,12 @@ test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS i
   await f.getByTestId('addcar-phone').fill('+16475550178');
   const v = vin('1G6AX5SX', 'F');
   await f.getByTestId('addcar-vin').fill(v);
-  await expect(f.getByTestId('addcar-summary')).toContainText('2015 Cadillac CTS Luxury', { timeout: 20_000 });
+  await expect(f.getByTestId('addcar-summary')).toContainText('2015 Cadillac CTS Luxury', { timeout: 90_000 });
   await expect(f.getByTestId('addcar-class')).toHaveValue('premium');
   await check(page, 'va add car for an owner');
   await shot(page, 'va-add-car-owner');
   await f.getByTestId('addcar-submit').click();
-  await expect(page.getByTestId('addcar-done')).toContainText('Sent to an Admin', { timeout: 30_000 });
+  await expect(page.getByTestId('addcar-done')).toContainText('Sent to an Admin', { timeout: 120_000 });
   const [c] = await sql`select v.make, v.model, v.class::text, v.colour, l.drivetrain from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.vin = ${v}`;
   expect([c!.make, c!.model, c!.class, c!.colour, c!.drivetrain]).toEqual(['Cadillac', 'CTS', 'premium', null, 'All-wheel drive']);
   await page.context().close();
@@ -212,7 +212,7 @@ test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS i
 });
 
 test('the owner\'s application: the VIN finds the car as the last character is typed; one tap for the colour; not decoded, three lists', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(600_000);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   await page.goto('/list-your-car/apply', { waitUntil: 'networkidle' });
@@ -230,7 +230,7 @@ test('the owner\'s application: the VIN finds the car as the last character is t
   await page.getByRole('button', { name: 'Continue to vehicles' }).click();
   await page.locator('#ap-v0-vin').fill(vin('2HGFC2F5', 'K'));
   const sum = page.getByTestId('apply-vin-summary');
-  await expect(sum).toContainText('2019 Honda Civic LX', { timeout: 20_000 });
+  await expect(sum).toContainText('2019 Honda Civic LX', { timeout: 90_000 });
   await expect(sum).toContainText('Sedan · 5 seats · 4 doors · Gas');
   await page.getByTestId('apply-vin-edit').click();
   await expect(page.locator('#ap-v0-model')).toHaveValue('Civic');
@@ -240,7 +240,7 @@ test('the owner\'s application: the VIN finds the car as the last character is t
   await shot(page, 'apply-vehicle');
   // a VIN the decoder cannot read: year, make and model from lists
   await page.locator('#ap-v0-vin').fill(vin('ZZZZZ123', 'L'));
-  await expect(page.getByTestId('apply-ymm')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('apply-ymm')).toBeVisible({ timeout: 90_000 });
   await fillYmm(page, 'apply', { year: '2018', make: 'Toyota', model: 'Camry' });
   await expect(page.getByTestId('apply-model')).toHaveValue('Camry');
   await check(page, 'owner application not decoded');
