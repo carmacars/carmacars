@@ -224,7 +224,7 @@
 .gallery__track li { position: relative; }
 .car-top__example { margin-left: var(--s-2); }
 .car-top__example-note { color: inherit; opacity: 0.9; }
-.gallery__sample { position: absolute; left: var(--s-3); top: var(--s-3); padding: 4px 10px; background: rgba(0, 0, 0, 0.78); color: var(--white); font-size: var(--fs-xs); font-weight: 600; }
+.gallery__sample { position: absolute; left: var(--s-3); top: var(--s-3); padding: 2px 8px; background: rgba(0, 0, 0, 0.45); color: rgba(255, 255, 255, 0.82); font-size: var(--fs-xs); font-weight: 500; border-radius: 2px; }
 .gallery__ui .icon-btn { width: 40px; height: 40px; }
 .gallery__thumbs { display: none; }
 .car-top__info { padding: var(--s-4) var(--gutter) var(--s-7); display: grid; gap: var(--s-4); align-content: start; }

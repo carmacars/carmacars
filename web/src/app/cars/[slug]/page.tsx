@@ -42,13 +42,13 @@ export async function generateMetadata({ params }: Params) {
   // The listing's own SEO text when it is a usable length, else built from the car; the longest parts are
   // dropped first so the title stays near 60 characters and the description near 155.
   const fit = (max: number, ...tries: string[]) => tries.map((x) => fill(x, t).replace(/\s+/g, ' ').trim()).find((x) => x.length <= max) ?? fill(tries[tries.length - 1]!, t);
-  // the written copy (0061) first; then the listing's own search text; then one built from the car
-  const title = c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
-    : c.seo_title && c.seo_title.length >= 20 && c.seo_title.length <= 70 ? c.seo_title
+  // 0073: every car's search text is built the same way as the sample cars' (from the car and its price), unless a
+  // person wrote and locked it on the car copy
+  const locked = new Set(c.copy_locked ?? []);
+  const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
     : fit(65, `Rent a ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${name(c)} rental in {{city}} | {{brand}}`);
   const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
-  const description = c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
-    : c.seo_description && c.seo_description.length >= 70 && c.seo_description.length <= 170 ? c.seo_description
+  const description = locked.has('meta_description') && c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
     : fit(160, `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
       `Rent the ${c.year} ${name(c)} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
       `Rent the ${c.year} ${name(c)} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
@@ -62,6 +62,9 @@ export async function generateMetadata({ params }: Params) {
 
 type Opt = { title: string; body: string };
 const DRIVE: Record<string, string> = { 'All-wheel drive': 'AllWheelDriveConfiguration', 'Four-wheel drive': 'FourWheelDriveConfiguration', 'Front-wheel drive': 'FrontWheelDriveConfiguration', 'Rear-wheel drive': 'RearWheelDriveConfiguration' };
+// the VIN decoder's words ("FWD/Front-Wheel Drive") read as the sample cars' ("Front-wheel drive"); the database stores them so since 0073
+const driveOf = (d: string | null) => (!d ? null : /all.?wheel|awd/i.test(d) ? 'All-wheel drive' : /four.?wheel|4wd|4x4/i.test(d) ? 'Four-wheel drive'
+  : /front.?wheel|fwd/i.test(d) ? 'Front-wheel drive' : /rear.?wheel|rwd/i.test(d) ? 'Rear-wheel drive' : d);
 
 export default async function CarPage({ params }: Params) {
   const { slug } = await params;
@@ -81,7 +84,9 @@ export default async function CarPage({ params }: Params) {
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
     .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name(c), c.model_hub_path], [[c.year, name(c), c.trim].filter(Boolean).join(' ')]];
-  const copy = c.copy ?? null;
+  // 0073: real cars render exactly like the sample cars. The written copy feeds the listing's headline, blurb,
+  // features and questions (synced by the database); its other parts are not shown, as the samples have none.
+  const drive = driveOf(c.drivetrain);
   const rv = c.reviews ?? { count: 0, average: null, min_for_rating: 3, items: [] };
   // the landing pages this car belongs on (only those that may be indexed), for the links under the car
   const has = (k: string) => c.classes.includes(k);
@@ -98,7 +103,7 @@ export default async function CarPage({ params }: Params) {
     image: c.photos.slice(0, 5).map((g) => abs(g.path)), brand: { '@type': 'Brand', name: c.make }, manufacturer: { '@type': 'Organization', name: c.make },
     model: c.model, vehicleConfiguration: c.trim ?? undefined, vehicleModelDate: String(c.year), bodyType: c.body_style ?? undefined, color: c.colour ?? undefined,
     fuelType: FUEL_LABEL[c.fuel] ?? c.fuel, vehicleTransmission: c.transmission ?? undefined,
-    ...(c.drivetrain && DRIVE[c.drivetrain] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[c.drivetrain]}` } : {}),
+    ...(drive && DRIVE[drive] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[drive]}` } : {}),
     seatingCapacity: c.seats ?? undefined, numberOfDoors: c.doors ?? undefined, itemCondition: 'https://schema.org/UsedCondition',
     ...(rv.count >= rv.min_for_rating && rv.average !== null ? {
       // only this car's own reviews, collected on the site after a completed rental and shown in full on this page
@@ -125,12 +130,12 @@ export default async function CarPage({ params }: Params) {
           <Gallery name={name(c)} photos={c.photos} />
           <div className="car-top__info">
             <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
-            {copy?.h1 ? <h1 className="d2 car-top__name">{copy.h1}</h1> : <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>}
+            <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>
             <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `, ${c.colour}` : ''}. For rent in {s.city}.</p>
-            {(copy?.intro ?? c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
+            {(c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
             <dl className="keyspecs">
               <div><dt>Seats</dt><dd className="num">{c.seats}</dd></div>
-              <div><dt>Gearbox</dt><dd>{c.transmission === 'Automatic' ? 'Auto' : c.transmission}</dd></div>
+              <div><dt>Gearbox</dt><dd>{/^automatic/i.test(c.transmission ?? '') ? 'Auto' : c.transmission}</dd></div>
               <div><dt>{ev ? 'Power' : 'Fuel'}</dt><dd>{ev ? 'Electric' : c.fuel === 'gasoline' ? 'Gas' : FUEL_LABEL[c.fuel]}</dd></div>
               <div><dt>Km a day</dt><dd className="num">{c.km_allowance_per_day}</dd></div>
             </dl>
@@ -146,19 +151,11 @@ export default async function CarPage({ params }: Params) {
       </section>
 
       <nav className="car-nav" aria-label="On this page"><div className="wrap"><ul>
-        {[...(copy ? [['about', 'About']] : []), ['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
+        {[['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
       </ul></div></nav>
 
       <div className="wrap car-body">
         <div className="car-body__main">
-          {copy && (
-            <section id="about" className="car-sec" aria-labelledby="h-about">
-              <h2 className="d2" id="h-about">About this {c.model}</h2>
-              {copy.highlights.length > 0 && <><h3 className="d4">Highlights</h3><ul className="featlist">{copy.highlights.map((x) => <li key={x}>{x}</li>)}</ul></>}
-              {copy.good_for.length > 0 && <><h3 className="d4">Good for</h3><ul className="featlist">{copy.good_for.map((x) => <li key={x}>{x}</li>)}</ul></>}
-              {copy.included.length > 0 && <><h3 className="d4">What&apos;s included</h3><ul className="featlist">{copy.included.map((x) => <li key={x}>{x}</li>)}</ul></>}
-            </section>
-          )}
           <section id="rates" className="car-sec" aria-labelledby="h-rates">
             <h2 className="d2" id="h-rates">Rates</h2>
             <dl className="rates">
@@ -191,7 +188,7 @@ export default async function CarPage({ params }: Params) {
               </tbody></table>
               <table className="spec c-6"><caption className="vh">Driving</caption><tbody>
                 <tr><th scope="row">Transmission</th><td>{c.transmission}</td></tr>
-                {c.drivetrain && <tr><th scope="row">Drive</th><td>{c.drivetrain}</td></tr>}
+                {drive && <tr><th scope="row">Drive</th><td>{drive}</td></tr>}
                 <tr><th scope="row">{ev ? 'Power' : 'Fuel'}</th><td>{FUEL_LABEL[c.fuel]}</td></tr>
                 {consumption && <tr><th scope="row">{ev ? 'Range' : 'Consumption'}</th><td>{consumption}</td></tr>}
                 {bags && <tr><th scope="row">Luggage</th><td>{bags} large {bags === 1 ? 'bag' : 'bags'}</td></tr>}
@@ -212,7 +209,6 @@ export default async function CarPage({ params }: Params) {
 
           <section id="need" className="car-sec" aria-labelledby="h-need">
             <h2 className="d2" id="h-need">What you need</h2>
-            {copy && copy.requirements.length > 0 && <ul className="featlist">{copy.requirements.map((x) => <li key={x}>{x}</li>)}</ul>}
             <table className="spec"><tbody>
               <tr><th scope="row">Age</th><td>{F('{{minAge}} or older at pickup')}</td></tr>
               <tr><th scope="row">Licence</th><td>{F('Ontario {{licence}}, valid for the whole rental')}</td></tr>
@@ -233,7 +229,6 @@ export default async function CarPage({ params }: Params) {
 
           <section id="delivery" className="car-sec" aria-labelledby="h-del">
             <h2 className="d2" id="h-del">Pickup and delivery</h2>
-            {copy?.pickup_delivery && <p className="measure">{copy.pickup_delivery}</p>}
             <table className="spec"><tbody>
               <tr><th scope="row">Delivered to an address</th><td><span className="num">{money(c.delivery_fee_cents)}</span> plus distance from our location</td></tr>
               <tr><th scope="row">Picked up from you at the end</th><td><span className="num">{money(c.pickup_fee_cents)}</span> plus distance</td></tr>

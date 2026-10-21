@@ -29,7 +29,7 @@ export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl(g.path)} width={g.width ?? 1800} height={g.height ?? 1200} alt={g.alt} sizes="(min-width: 64rem) 62vw, 100vw"
               loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" />
-            {g.sample && <span className="gallery__sample" data-testid="sample-photo-caption">Sample photo. Photos of this car are coming soon.</span>}
+            {g.sample && <span className="gallery__sample" data-testid="sample-photo-caption">Representative photo</span>}
           </li>
         ))}
       </ul>
