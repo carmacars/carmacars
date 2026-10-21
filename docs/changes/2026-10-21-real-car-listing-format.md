@@ -16,7 +16,8 @@ address, and stand-in images drawn by the same studio system as the samples, wit
 | Key specs | Gearbox "Auto" | Gearbox "Continuously Variable Transmission (CVT)" | "Auto" for every automatic |
 | Spec table | Body "Sedan", Drive "Front-wheel drive" | Body "Sedan/Saloon", Drive "FWD/Front-Wheel Drive" | The samples' words, stored that way |
 | What you need | The table | An extra bullet list repeating the table | The table |
-| Pickup and delivery | The table | An extra paragraph naming "our location in Pickering" | The table |
+| Pickup and delivery | The table, with "Where the car is kept" | An extra paragraph naming "our location in Pickering", and "Where the car is kept: Pickering, Toronto" | The table without the storage row, for every car (a real owner's address area stays private) |
+| Questions | The common questions | The common ones, then four more from the copy repeating them ("How many kilometres are included?" twice) | The common ones, then only the car's own questions, never the same one twice; the plain copy adds only the seats question, and a car needs none of its own, like the samples |
 | Gallery | Eight studio shots, 1800 x 1200, black studio, model name lettered behind the car | One light grey picture of a generic sedan (1600 x 1067), a black "Sample photo. Photos of this car are coming soon." banner | Eight studio shots in the same style with "MALIBU" behind the car, a quiet "Representative photo" note |
 | Fleet card | Studio lead shot | The grey picture, "Sample photo" | The studio lead shot, "Representative photo" |
 | Search title and description | Built from the car and its price ("Rent a 2023 Toyota Camry in Toronto from $79 a day") | The car copy's own ("2022 Chevrolet Malibu Rental in Toronto", "...for a daily fee...") | Built the same way for every car; a person's locked text still wins |

@@ -55,7 +55,8 @@ test('a real car without photos looks like a sample car', async ({ page, request
     expect(real.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x))).toEqual(sample.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x)));
 
     await expect(page.locator('h1')).toHaveText('Chevrolet Malibu');
-    await expect(page.getByTestId('example-car-badge')).toHaveCount(0);
+    await expect(page.locator('.car-top').getByTestId('example-car-badge')).toHaveCount(0);
+    await expect(page.getByTestId('example-car-note')).toHaveCount(0);
     await expect(page.locator('.keyspecs')).toContainText('Auto');
     await expect(page.locator('#specs')).toContainText('Front-wheel drive');
     await expect(page.locator('#specs')).not.toContainText('Sedan/Saloon');
@@ -73,7 +74,8 @@ test('a real car without photos looks like a sample car', async ({ page, request
     await expect(page.getByTestId('sample-photo-caption').first()).toHaveText('Representative photo');
     const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
     expect(ld.join('')).toContain('FrontWheelDriveConfiguration');
-    expect(await page.title()).toMatch(/^Rent a 2022 Chevrolet Malibu in Toronto/);
+    // built from the car and its price, exactly as for the sample cars (the copy's own title is not used)
+    expect(await page.title()).toMatch(/2022 Chevrolet Malibu.* in Toronto.*\$\d+ a day \| CarmaCars$/);
 
     const svg = await request.get('/sample-photos/studio/sedan/black/lead/MALIBU.svg');
     expect(svg.status()).toBe(200);

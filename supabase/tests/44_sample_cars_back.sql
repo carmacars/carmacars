@@ -150,7 +150,7 @@ select test.ok('not public: an Admin reads it through the door', jsonb_typeof(ap
 -- ---------------------------------------------------------------- 6. a real car without photos shows sample photos (0054)
 set role anon;
 select test.eq('sample photo: the car page of a real car without photos shows a sample photo, marked',
-  (public.car_page('mercedes-c300-scpub') #>> '{photos,0,sample}') || '/' || (public.car_page('mercedes-c300-scpub') #>> '{photos,0,label}'), 'true/Sample photo');
+  (public.car_page('mercedes-c300-scpub') #>> '{photos,0,sample}') || '/' || (public.car_page('mercedes-c300-scpub') #>> '{photos,0,label}'), 'true/Front left');  -- 0073: the studio set, labelled by shot
 select test.eq('sample photo: the fleet card''s cover too', (select f #>> '{cover,sample}' from public.fleet() f where f ->> 'slug' = 'mercedes-c300-scpub'), 'true');
 reset role;
 
