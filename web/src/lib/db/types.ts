@@ -4289,6 +4289,8 @@ export type Database = {
           created_at: string;
           revealed_at: string | null;
           claimed_at: string | null;
+          context: string;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -4303,6 +4305,8 @@ export type Database = {
           created_at?: string;
           revealed_at?: string | null;
           claimed_at?: string | null;
+          context?: string;
+          user_id?: string | null;
         };
         Update: {
           id?: string;
@@ -4317,6 +4321,8 @@ export type Database = {
           created_at?: string;
           revealed_at?: string | null;
           claimed_at?: string | null;
+          context?: string;
+          user_id?: string | null;
         };
         Relationships: [];
       };
@@ -9214,6 +9220,10 @@ export type Database = {
           listing_default_daily_rate_cents: Json;
           coverage_proof_max_pages: number;
           coverage_reminder_hours: number[];
+          game_reshow_car_pages: number;
+          game_reshow_seconds: number;
+          game_max_per_visit: number;
+          game_booking_offer: boolean;
         };
         Insert: {
           id?: string;
@@ -9518,6 +9528,10 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          game_reshow_car_pages?: number;
+          game_reshow_seconds?: number;
+          game_max_per_visit?: number;
+          game_booking_offer?: boolean;
         };
         Update: {
           id?: string;
@@ -9822,6 +9836,10 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          game_reshow_car_pages?: number;
+          game_reshow_seconds?: number;
+          game_max_per_visit?: number;
+          game_booking_offer?: boolean;
         };
         Relationships: [];
       };
@@ -15653,6 +15671,7 @@ export type Database = {
       server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_game_claim: { Args: { p: Json; p_user?: string }; Returns: Json };
+      server_game_start: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_guide_auto_update: { Args: { p: Json }; Returns: Json };
       server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };
