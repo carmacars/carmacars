@@ -182,6 +182,13 @@ car, the samples too, got its code in 0079.
   illustrations, What it refunds, Review and check from a link, the add-on pay page.
 - `scripts/check-change-guides.mjs`.
 
+Results (CI on this branch, merged with main at 451c940 and later):
+- Database suite: every migration and every test, 0 failed (fast job, run 39687541012), with lint, typecheck, unit tests
+  (including `features/chat/carcode.test.ts`) and the generated types.
+- End to end, every spec at 375 and 1440 (run 39686226260): 294 passed; the failures were this change's refund test
+  (it now chooses its reason) and main's cookie notice test, which fails on main too (run 39686568037, e707523), as does
+  main's link check. This change's specs with owner terms, add-ons and rentals in progress: 28 passed (run 39693282266).
+
 ## Measurements
 
 Lighthouse (mobile, Lighthouse's default throttling, the CI build of this branch, run 39685568763):
