@@ -3,7 +3,6 @@ import '@/styles/tokens.css';
 import '@/styles/core.css';
 import '@/styles/pages.css';
 import '@/styles/app.css';
-import '@/styles/motion.css';
 import { inter, interDisplay } from './fonts';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
