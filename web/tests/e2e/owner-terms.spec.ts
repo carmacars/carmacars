@@ -107,7 +107,8 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   await expect(page.getByTestId('app-approved')).toBeVisible({ timeout: 30_000 });
   await expect.poll(async () => (await inv(sql, `true`, app.ownerId)).length, { timeout: 15_000 }).toBe(2);
   const rows = await inv(sql, `true`, app.ownerId);
-  expect(rows.map((r) => `${r.kind}:${r.status}:${r.total}`)).toEqual(['upfront:paid:81982', 'custom:issued:13950']);
+  // 0075: the first and last month invoice is made by the Admin's choice, after the other invoices of the step
+  expect(rows.map((r) => `${r.kind}:${r.status}:${r.total}`).sort()).toEqual(['custom:issued:13950', 'upfront:paid:81982']);
   const [s] = await sql`select s.insurance_fee_cents::int ins, s.revenue_share_bps share, s.first_last_cents::int fl from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where v.owner_id = ${app.ownerId} and s.superseded_by is null`;
   expect(`${s!.ins}/${s!.share}/${s!.fl}`).toBe('38000/3000/72550');
   const [m] = await sql`select method, reference from manual_payments m join owner_invoices i on i.id = m.owner_invoice_id where i.owner_id = ${app.ownerId}`;
@@ -124,7 +125,7 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   await op.goto('/owner/invoices', { waitUntil: 'networkidle' });
   await expect(op.locator('body')).toContainText('$819.82');
   await expect(op.locator('body')).toContainText('Registration fee');
-  await op.goto(`/owner/invoices/${rows[1]!.invoice_number}`, { waitUntil: 'networkidle' });
+  await op.goto(`/owner/invoices/${rows.find((r) => r.kind === 'custom')!.invoice_number}`, { waitUntil: 'networkidle' });
   await expect(op.getByTestId('invoice-lines')).toContainText('$123.45');
   await expect(op.getByTestId('invoice-total')).toHaveText('$139.50');
   await check(op, 'owner invoice');
