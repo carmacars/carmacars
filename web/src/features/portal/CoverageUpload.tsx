@@ -11,7 +11,7 @@ export function CoverageUpload({ number, option, status, reason }: { number: str
   );
   return (
     <div className="stack">
-      {option === 1 ? (<>{f('insurer_name', 'Insurer')}<div className="field-row">{f('policy_number', 'Policy number')}{f('policy_expiry', 'Policy expiry', { type: 'date' })}</div></>)
+      {option === 1 ? (<>{f('insurer_name', 'Insurer', { required: true })}<div className="field-row">{f('policy_number', 'Policy number', { required: true })}{f('policy_expiry', 'Policy expiry', { type: 'date', required: true })}</div></>)
         : (<div className="field-row">{f('card_issuer', 'Card issuer')}{f('card_last4', 'Last four digits', { inputMode: 'numeric', maxLength: 4 })}</div>)}
       <UploadCard number={number} kind="coverage_proof" driverId={null} status={status} reason={reason} details={{ ...d, coverage_option: String(option) }}
         title={option === 1 ? 'Policy page showing OPCF 27' : 'Card benefits certificate'}

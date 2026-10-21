@@ -5,6 +5,8 @@ import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageUpload } from '@/features/portal/CoverageUpload';
+import { CardCoverage } from '@/features/portal/CardCoverage';
+import { cardCoverageState } from '@/server/actions/portal';
 import { myBooking } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +22,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
   const cov = b.coverage_option;
+  const cc = cov === 2 ? await cardCoverageState(b.booking_number) : null;
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -47,7 +50,9 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
       <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
         {cov === 1 || cov === 2 ? (
-          <div className="pt-card"><p>{cov === 1 ? 'Option 1: your own auto policy with the OPCF 27 endorsement.' : 'Option 2: rental coverage on your credit card. It must be the card you paid with.'}</p>
+          <div className="pt-card"><p>{cov === 1 ? 'Option 1: your own auto policy with the OPCF 27 endorsement. Upload the policy page or your insurer\u2019s letter with the insurer, policy number and expiry; our team checks it before pickup.' : 'Option 2: rental coverage on your credit card. It must be the credit card you pay with.'}</p>
+            {cov === 2 && cc && <CardCoverage number={b.booking_number} s={cc} />}
+            {cov === 2 && <p className="small muted">Optional, and it helps: a photo or PDF of your card\u2019s benefits certificate.</p>}
             <CoverageUpload number={b.booking_number} option={cov} status={up('coverage_proof', null)?.status} reason={up('coverage_proof', null)?.reject_reason} /></div>
         ) : <div className="pt-card"><p>{cov === 3 ? 'You chose the CarmaCars Protection Plan. We send you its terms before pickup.' : 'Tell us how you will cover damage to the car: call or message us.'}</p></div>}
       </section>

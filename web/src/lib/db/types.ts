@@ -3083,6 +3083,11 @@ export type Database = {
           confirmed_at: string | null;
           rejection_reason: string | null;
           created_at: string;
+          renter_confirmed_at: string | null;
+          renter_confirmation_text: string | null;
+          card_funding: string | null;
+          payment_method_id: string | null;
+          auto_confirmed: boolean;
         };
         Insert: {
           id?: string;
@@ -3103,6 +3108,11 @@ export type Database = {
           confirmed_at?: string | null;
           rejection_reason?: string | null;
           created_at?: string;
+          renter_confirmed_at?: string | null;
+          renter_confirmation_text?: string | null;
+          card_funding?: string | null;
+          payment_method_id?: string | null;
+          auto_confirmed?: boolean;
         };
         Update: {
           id?: string;
@@ -3123,6 +3133,11 @@ export type Database = {
           confirmed_at?: string | null;
           rejection_reason?: string | null;
           created_at?: string;
+          renter_confirmed_at?: string | null;
+          renter_confirmation_text?: string | null;
+          card_funding?: string | null;
+          payment_method_id?: string | null;
+          auto_confirmed?: boolean;
         };
         Relationships: [];
       };
@@ -15532,6 +15547,8 @@ export type Database = {
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
       renter_cancel_booking: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
+      renter_coverage_card_confirm: { Args: { p_booking: string; p_by: string; p?: Json }; Returns: Json };
+      renter_coverage_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_decline_booking_change: { Args: { p_request: string; p_by: string; p_reason?: string }; Returns: undefined };
       renter_open_agreement: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
       renter_register_upload: { Args: { p_booking: string; p_by: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string; p_storage_bucket: string; p_driver?: string; p_details?: Json }; Returns: Json };

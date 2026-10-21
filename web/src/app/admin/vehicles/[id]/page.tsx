@@ -144,11 +144,12 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <div className="ad-actions">
               {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
               {!v.intake && <Act action="listing_start" payload={{ vehicle_id: id }} label="Start a listing" go="/admin/listings/{intake_id}" />}
-              {v.listing && v.listing.status !== 'published' && <Act action="listing_publish" payload={P} label="Publish" variant="primary" refresh={refresh} />}
+              {(!v.listing || v.listing.status !== 'published') && !v.retired_at && <Act action="listing_publish" payload={P} label="Publish" variant="primary" refresh={refresh} testId="vehicle-publish" />}
               {v.is_sample && <Act action="vehicle_sample" payload={{ ...P, is_sample: false }} label="Not a sample" confirm="This car is real: its page goes into search results and the sitemap." refresh={refresh} testId="vehicle-sample-clear" />}
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
             </div>
           </Card>
+          <ListingWarnings w={await door<{ warnings: Warn[]; gates: Warn[] }>(user.id, 'ops_read', 'vehicle_listing_warnings', { vehicle_id: id }).catch(() => null)} />
           <CarCopyPanel d={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: id }).catch(() => null)} slug={slug} />
         </div>
       )}
@@ -162,5 +163,20 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         </div>
       )}
     </>
+  );
+}
+
+// What is still open on the car (0070): nothing here keeps it off the site except the gates; the fleet policy waits
+// for the first handover.
+type Warn = { code: string; label: string; action: string; who: string; stage?: string };
+const STAGE: Record<string, string> = { handover: 'Before the first handover', paperwork: 'Paperwork, tracked', listing: 'Filled in by default' };
+function ListingWarnings({ w }: { w: { warnings: Warn[]; gates: Warn[] } | null }) {
+  if (!w || (!w.warnings.length && !w.gates.length)) return null;
+  return (
+    <Card title="Open items" testId="listing-warnings">
+      {w.gates.length > 0 && <><p className="pt-kicker">Keeps it off the site</p><ul className="small">{w.gates.map((g) => <li key={g.code}><b>{g.label}</b>: {g.action}</li>)}</ul></>}
+      {(['handover', 'paperwork', 'listing'] as const).map((st) => { const xs = w.warnings.filter((x) => x.stage === st); return xs.length ? (
+        <div key={st}><p className="pt-kicker">{STAGE[st]}</p><ul className="small">{xs.map((x) => <li key={x.code}><b>{x.label}</b>: {x.action}</li>)}</ul></div>) : null; })}
+    </Card>
   );
 }

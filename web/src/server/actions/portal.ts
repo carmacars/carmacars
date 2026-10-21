@@ -493,6 +493,27 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
   }
 }
 
+// ---------------------------------------------------------------- coverage option 2 (0070)
+export type CardCoverageState = { option: number | null; confirmed: boolean; wording: string; renter_confirmed: boolean;
+  paid_card: { brand: string | null; last4: string | null; credit: boolean | null } | null };
+
+export async function cardCoverageState(number: string): Promise<CardCoverageState | null> {
+  try {
+    const { userId, b } = await mine(number);
+    return (await rpc('renter_coverage_state', { p_booking: b.id, p_by: userId }, SR)) as unknown as CardCoverageState;
+  } catch { return null; }
+}
+
+/** The renter confirms the rental coverage of the credit card they pay with; confirmed at once once paid with a credit card. */
+export async function confirmCardCoverage(number: string, issuer: string): Promise<R<{ state: string }>> {
+  try {
+    const { userId, b } = await mine(number);
+    const r = (await rpc('renter_coverage_card_confirm', { p_booking: b.id, p_by: userId, p: { issuer: (issuer ?? '').trim().slice(0, 60) } }, SR)) as unknown as { state: string };
+    refresh(number);
+    return { ok: true, data: { state: r.state } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
 // ---------------------------------------------------------------- notifications and profile
 export async function markRead(ids: string[] | null): Promise<R> {
   try {

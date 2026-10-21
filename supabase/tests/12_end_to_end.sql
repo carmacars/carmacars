@@ -280,7 +280,10 @@ select app.schedule_listing_publish(test.id('e2_cs'), test.id('vehicle:E2T'), no
 create table test.e2_j5 as select app.job_publish_listings(now() + interval '30 minutes') as r;
 select test.eq('J publish-listings: nothing before the time',
   (select r from test.e2_j5) || '/' || (select status from vehicle_listings where vehicle_id = test.id('vehicle:E2L')), 'not_due/unpublished');
+-- (since 0070 only the basics block a listing: E2T is kept off by a missing model for this check)
+update vehicles set model = '' where id = test.id('vehicle:E2T');
 create table test.e2_j6 as select app.job_publish_listings(now() + interval '61 minutes') as r;
+update vehicles set model = 'C 300 E2T' where id = test.id('vehicle:E2T');
 select test.eq('J at the time the car is published in the scheduler''s name; a car that cannot be published keeps the reason and Fleet gets the task',
   (select r from test.e2_j6)
   || '/' || (select status || ':' || (published_by = test.id('e2_cs')) || ':' || coalesce(publish_at::text, 'cleared') from vehicle_listings where vehicle_id = test.id('vehicle:E2L'))

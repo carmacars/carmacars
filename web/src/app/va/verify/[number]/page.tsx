@@ -11,6 +11,8 @@ export const metadata = pageMeta({ title: 'Identity review', path: '/va', noinde
 
 type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
 type V = { booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed: boolean };
+  coverage?: { option: number | null; confirmed_at: string | null; fleet_policy: boolean; paid_card: { brand: string | null; last4: string | null; credit: boolean | null } | null;
+    proofs: Array<{ id: string; status: string; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null; card_funding: string | null; renter_confirmed_at: string | null; auto_confirmed: boolean; confirmed_at: string | null; rejection_reason: string | null; document: boolean }> };
   drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null }>; uploads: U[] };
 
 // Identity document review (05-va.md section 4.2). The database opens it only while customer service has
@@ -41,6 +43,14 @@ export default async function Verify({ params }: { params: Promise<{ number: str
         </Card>
       ))}
       <Card title={`Coverage${v.coverage_option ? `, option ${v.coverage_option}` : ''}`}>
+        {v.coverage && (() => { const c = v.coverage; const p = c.proofs[0]; return (
+          <div data-testid="coverage-detail"><Kv rows={[
+            ['Confirmed', c.confirmed_at ? `${d(c.confirmed_at)}${p?.auto_confirmed ? ', by the paid credit card and the renter\u2019s confirmation' : ''}` : 'Not yet'],
+            ...(c.option === 1 && p ? [['Insurer', p.insurer_name ?? ''], ['Policy number', p.policy_number ?? ''], ['Policy expiry', p.policy_expiry ?? '']] as Array<[string, string]> : []),
+            ...(c.option === 2 ? [['Card paid with', c.paid_card ? `${c.paid_card.brand ?? ''} ending ${c.paid_card.last4 ?? ''}, ${c.paid_card.credit ? 'credit card' : 'not a credit card'}` : 'Not paid yet'],
+                                  ['Renter confirmed the card\u2019s coverage', p?.renter_confirmed_at ? d(p.renter_confirmed_at) : 'Not yet'],
+                                  ['Benefits certificate', p?.document ? 'Uploaded' : 'Not uploaded (optional)']] as Array<[string, string]> : []),
+            ['Car on the fleet insurance policy', c.fleet_policy ? 'Yes' : 'Not yet: the car is not handed over before it is']]} /></div>); })()}
         {forDriver(null).map((u) => <div key={u.id}><p className="pt-kicker">{label(u.kind)} <Badge s={u.status === 'submitted' ? 'needs_review' : u.status} /></p>
           {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} /> : <p className="small muted">Decided.</p>}</div>)}
         {!forDriver(null).length && <p className="small muted">No proof of coverage uploaded yet.</p>}

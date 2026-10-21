@@ -155,14 +155,12 @@ select test.pd_work();
 create function test.pd_draft2() returns uuid language sql as $$ select id from listing_jobs where intake_id = test.pd_i2() and kind = 'draft_copy' $$;
 select test.eq('retry: a failed draft does not stop the listing',
   (select status from listing_jobs where id = test.pd_draft2()) || '/' || (select draft_failed from listing_intakes where id = test.pd_i2()), 'failed/true');
-create temp table pd_rt2 as select public.door(test.id('pd_admin'), null, 'ops_do', 'listing_job_retry', jsonb_build_object('job', test.pd_draft2())) r;
-select test.eq('retry: the failed draft is queued again with fresh attempts',
-  (select r ->> 'status' from pd_rt2)
-  || '/' || (select attempts || '/' || (select draft_failed from listing_intakes where id = test.pd_i2()) from listing_jobs where id = test.pd_draft2()), 'queued/0/false');
-select test.pd_work();
-select test.eq('retry: the second draft is stored', (select count(*) from listing_drafts where intake_id = test.pd_i2()), 1::bigint);
-select test.throws('retry: a step that is done is not retried',
-  format($$select public.door(%L, null, 'ops_do', 'listing_job_retry', jsonb_build_object('job', %L))$$, test.id('pd_admin'), test.pd_draft2()), 'This step is done');
+-- since 0070 the copy is not in the way: the Admin's listing is published with its copy left to the writer (0061),
+-- and a published listing's draft is not retried
+select test.eq('retry: the listing is published with its copy marked for the writer',
+  (select status || '/' || needs_rewrite from vehicle_listings where vehicle_id = (select vehicle_id from listing_intakes where id = test.pd_i2())), 'published/true');
+select test.throws('retry: a published listing''s draft is not retried',
+  format($$select public.door(%L, null, 'ops_do', 'listing_job_retry', jsonb_build_object('job', %L))$$, test.id('pd_admin'), test.pd_draft2()), 'This listing is published');
 
 -- ---------------------------------------------------------------- 5. intake to published
 create temp table pd_k as select app.start_listing_intake(test.id('pd_o'), jsonb_build_object('vehicle_id', test.id('vehicle:pdW'), 'colour', 'White')) r;

@@ -1,0 +1,40 @@
+/* ---------- motion layer ----------
+   Hover, press and focus feedback everywhere; page entry, scroll reveals, step changes and appearing panels only once
+   components/Effects.tsx sets html.motion (a person's browser, motion allowed; never automated browsers, so audits and
+   tests read settled pages). Only opacity and transform move: no layout shift. Nothing moves under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform var(--t-1) var(--ease), box-shadow var(--t-2) var(--ease); }
+  .btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+  .input, .select, textarea { transition: border-color var(--t-1), box-shadow var(--t-2) var(--ease), background-color var(--t-1); }
+  .check input, .option input { transition: transform var(--t-1) var(--ease); }
+  .check input:active, .option input:active { transform: scale(0.9); }
+  .car-card, .hub-card, .pt-card, .ad-card { transition: transform var(--t-2) var(--ease), box-shadow var(--t-2) var(--ease), border-color var(--t-1); }
+  @media (hover: hover) {
+    .car-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgb(0 0 0 / 0.1); }
+    .hub-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgb(0 0 0 / 0.08); }
+    a.pt-card:hover, .pt-card a:hover { text-decoration-color: currentColor; }
+  }
+  a { transition: color var(--t-1), text-decoration-color var(--t-1), opacity var(--t-1); }
+
+  /* a new page slides in softly (client navigations; the first load is left alone) */
+  html.motion.route-in #main { animation: mo-page-in var(--t-3) var(--ease) both; }
+  /* sections below the fold rise in once */
+  html.motion [data-reveal] { transition: opacity var(--t-3) var(--ease), transform var(--t-3) var(--ease); }
+  html.motion [data-reveal]:not(.is-in) { opacity: 0; transform: translateY(16px); }
+  /* the booking request's steps, panels and messages that appear */
+  html.motion .req__step:not([hidden]) { animation: mo-step-in var(--t-2) var(--ease) both; }
+  html.motion .alert, html.motion .pt-ok, html.motion .cal__panel, html.motion [role="dialog"] { animation: mo-fade-up var(--t-2) var(--ease) both; }
+  html.motion .skeleton { animation: mo-fade var(--t-2) var(--ease) both; }
+}
+@keyframes mo-page-in { from { opacity: 0.001; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes mo-step-in { from { opacity: 0.001; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes mo-fade-up { from { opacity: 0.001; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes mo-fade { from { opacity: 0.001; } to { opacity: 1; } }
+
+/* skeletons while a page loads (app/**/loading.tsx) */
+.sk-page { display: grid; gap: var(--s-5); padding-block: var(--s-6); }
+.sk-line { height: 1rem; }
+.sk-title { height: 2.4rem; width: min(28rem, 80%); }
+.sk-grid { display: grid; gap: var(--s-5); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.sk-card { display: grid; gap: var(--s-3); }
+.sk-media { aspect-ratio: 4 / 3; }
