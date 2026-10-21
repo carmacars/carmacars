@@ -142,11 +142,15 @@ begin
 end $$;
 
 -- ================================================================ 2. what a VIN tells us, in one call
+-- The decoder lists every trim a VIN may be when the VIN does not say ("S, Final Edition SE, SE"): no trim then.
+create or replace function app.decode_trim(p text) returns text
+language sql immutable as $$ select case when p ~ ',|\s/\s' then null else nullif(btrim(p), '') end $$;
+
 -- The decode on file in the listing's words (the specs as the sample cars show them, 0073).
 create or replace function app.vin_decode_json(d vin_decodes) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select case when d.id is null then null else jsonb_build_object(
-    'year', d.year, 'make', d.make, 'model', d.model, 'trim', nullif(btrim(d.trim), ''),
+    'year', d.year, 'make', d.make, 'model', d.model, 'trim', app.decode_trim(d.trim),
     'body', app.listing_norm_body(d.body_class), 'body_class', d.body_class, 'fuel', d.fuel,
     'drivetrain', app.listing_norm_drive(d.drivetrain), 'transmission', app.listing_norm_transmission(d.transmission),
     'doors', d.doors, 'seats', d.seats, 'engine', d.engine, 'decoded_at', d.decoded_at) end
@@ -182,7 +186,7 @@ begin
   if d.id is null then select * into f from vin_decodes z where z.vin = v_vin and not z.ok order by z.decoded_at desc limit 1; end if;
   select * into x from vehicles z where upper(z.vin) = v_vin order by z.retired_at nulls first limit 1;
   if d.id is not null then
-    h := app.vin_class_hint(jsonb_build_object('year', d.year, 'make', d.make, 'model', d.model, 'trim', d.trim, 'body', d.body_class));
+    h := app.vin_class_hint(jsonb_build_object('year', d.year, 'make', d.make, 'model', d.model, 'trim', app.decode_trim(d.trim), 'body', d.body_class));
   end if;
   return jsonb_build_object('vin', v_vin, 'valid', true, 'check_ok', app.vin_check_ok(v_vin),
     'decode', app.vin_decode_json(d),
@@ -215,8 +219,8 @@ begin
   if d.id is null then return v_out; end if;
   v_mark := jsonb_build_object('source', 'decoded', 'decode_id', d.id, 'at', now());
   v_src := coalesce(v.spec_sources, '{}'::jsonb);
-  if nullif(btrim(v.trim), '') is null and nullif(btrim(d.trim), '') is not null and coalesce(v_src #>> '{trim,source}', '') <> 'person' then
-    v.trim := d.trim; v_src := v_src || jsonb_build_object('trim', v_mark); v_out := v_out || 'trim'::text; end if;
+  if nullif(btrim(v.trim), '') is null and app.decode_trim(d.trim) is not null and coalesce(v_src #>> '{trim,source}', '') <> 'person' then
+    v.trim := app.decode_trim(d.trim); v_src := v_src || jsonb_build_object('trim', v_mark); v_out := v_out || 'trim'::text; end if;
   if nullif(btrim(v.body_type), '') is null and nullif(btrim(d.body_class), '') is not null and coalesce(v_src #>> '{body_type,source}', '') <> 'person' then
     v.body_type := d.body_class; v_src := v_src || jsonb_build_object('body_type', v_mark); v_out := v_out || 'body_type'::text; end if;
   -- the fuel: a car added without one got gasoline by default (no source); the decode knows better
@@ -506,10 +510,11 @@ create policy staff_read on vehicle_class_rules for select to authenticated usin
 create policy admin_all on vehicle_colour_reads for all to authenticated using (app.is_admin()) with check (app.is_admin());
 revoke all on vehicle_class_rules, vehicle_colour_reads from anon, authenticated;
 grant select on vehicle_class_rules to authenticated;
-grant insert, update, delete on vehicle_class_rules to authenticated;   -- admin_all decides who
+grant insert, update on vehicle_class_rules to authenticated;   -- admin_all decides who; a rule is turned off, never deleted
 grant select on vehicle_colour_reads to authenticated;
 grant all on vehicle_class_rules, vehicle_colour_reads to service_role;
 create trigger audit_vehicle_class_rules after insert or update or delete on vehicle_class_rules for each row execute function app.audit_row();
+create trigger audit_vehicle_colour_reads after insert or update or delete on vehicle_colour_reads for each row execute function app.audit_row();
 
 do $$
 declare
@@ -520,7 +525,7 @@ declare
 begin
   -- new functions: the service role only
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where (n.nspname = 'app' and p.proname = any (array['make_key', 'class_label', 'infer_vehicle_class', 'vin_decode_json', 'vin_class_hint', 'vin_facts', 'vin_fill_missing',
+            where (n.nspname = 'app' and p.proname = any (array['make_key', 'decode_trim', 'class_label', 'infer_vehicle_class', 'vin_decode_json', 'vin_class_hint', 'vin_facts', 'vin_fill_missing',
                      'vehicle_set_class', 'vehicle_infer_class', 'car_copy_queue', 'vehicle_after_add', 'vehicle_cover_image', 'colour_read_due', 'colour_read_record',
                      'vin_decode_due', 'vin_decoded_apply']))
                or (n.nspname = 'public' and p.proname = any (array['server_vin_facts', 'server_vin_class_hint', 'server_vin_decode_due', 'server_vin_decoded_apply',
