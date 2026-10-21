@@ -313,21 +313,27 @@ test('plates: an Admin covers a plate on a phone; the covered photo replaces the
     expect(clean(errors)).toEqual([]);
     await phone.context().close();
 
-    // publishing waits for the photos still to check, then goes
+    // since 0070 the plate check holds back each photo, not the listing: approving publishes the car at once, and the
+    // photos still to check stay private until their plates are checked
     const desk = await ctx(browser, false);
     await signIn(desk, admin.email, '/admin', `/admin/listings/${ik!.id}`);
     await desk.goto(`/admin/listings/${ik!.id}`, { waitUntil: 'networkidle' });
     await expect(desk.getByTestId('listing-review')).toContainText('licence plate not covered');
-    await desk.getByTestId('listing-approve').click();
-    await expect(desk.getByRole('alert').filter({ hasText: 'Cover the licence plate or mark it not visible' })).toBeVisible({ timeout: 15_000 });
-    await desk.getByTestId('plates-none-visible').click();
-    await desk.getByTestId('plates-none-visible-yes').click();
-    await expect(desk.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
     await check(desk, 'listing review plates 1440');
     await desk.getByTestId('listing-approve').click();
     await expect(desk.getByRole('status').filter({ hasText: 'Approved and published' })).toBeVisible({ timeout: 20_000 });
     const [l] = await sql`select status from vehicle_listings where vehicle_id = ${car}`;
     expect(l!.status).toBe('published');
+    const held = async () => (await sql`select count(*)::int n from vehicle_photos ph join listing_shot_types st on st.code = ph.shot_type
+                                         where ph.vehicle_id = ${car} and ph.replaced_at is null and ph.status = 'approved' and st.is_public and ph.plate_status = 'unchecked' and not ph.is_public`)[0]!.n as number;
+    expect(await held()).toBeGreaterThan(0);
+    expect((await sql`select count(*)::int n from vehicle_photos where vehicle_id = ${car} and replaced_at is null and plate_status = 'unchecked' and is_public`)[0]!.n).toBe(0);
+    await desk.goto(`/admin/listings/${ik!.id}`, { waitUntil: 'networkidle' });
+    await desk.getByTestId('plates-none-visible').click();
+    await desk.getByTestId('plates-none-visible-yes').click();
+    await expect(desk.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
+    // checked: each goes public by itself
+    expect(await held()).toBe(0);
     await sql`select app.unlist_listing(${car}::uuid, ${admin.id}::uuid, 'End to end test car', null)`;
     await desk.context().close();
   } finally { await sql.end(); }

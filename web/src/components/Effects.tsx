@@ -119,7 +119,8 @@ export function Effects() {
         if (done.has(el)) return; done.add(el);
         if (el.closest('dialog, .popover, .filters, .menu-panel, [hidden]')) return;
         const r = el.getBoundingClientRect();
-        if (r.top > h && r.height > 0) { el.classList.add('rv'); io.observe(el); }
+        // below the fold only, and never a card off to the side (a horizontal rail: it would wait for good)
+        if (r.top > h && r.height > 0 && r.left < (window.innerWidth || h) && r.right > 0) { el.classList.add('rv'); io.observe(el); }
       });
       document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
         if (done.has(el)) return; done.add(el);
@@ -139,7 +140,17 @@ export function Effects() {
     const mo = new MutationObserver(later);
     const main = document.getElementById('main');
     if (main) mo.observe(main, { childList: true, subtree: true });
-    return () => { io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); };
+    // a safety net: anything still waiting once it is above the bottom of the screen (a fast fling, a resize) shows
+    let sraf = 0;
+    const net = () => { if (sraf) return; sraf = requestAnimationFrame(() => {
+      sraf = 0; const h = vh();
+      document.querySelectorAll<HTMLElement>('.rv:not(.is-in)').forEach((el) => {
+        if (el.getBoundingClientRect().top < h) { io.unobserve(el); el.classList.add('is-in'); window.setTimeout(() => el.classList.remove('rv', 'is-in'), 1300); }
+      });
+    }); };
+    window.addEventListener('scroll', net, { passive: true });
+    window.addEventListener('resize', net, { passive: true });
+    return () => { io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(sraf); window.removeEventListener('scroll', net); window.removeEventListener('resize', net); };
   }, [path]);
 
   // ripple from the pointer on buttons

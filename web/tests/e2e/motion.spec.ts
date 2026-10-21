@@ -4,7 +4,7 @@ import { acceptCookies, noOverflow, watch } from './helpers';
 // The site's motion (src/styles/motion.css, src/components/Effects.tsx, docs/changes/2026-10-21-motion.md). Every
 // other test runs with prefers-reduced-motion (playwright.config.ts); these turn motion on and check that it never
 // shifts the layout, hides nothing for good, keeps links and steps working, and stays off under reduced motion.
-test.use({ reducedMotion: 'no-preference' });
+test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
 // layout shifts since the page started (the CLS entries without recent input)
 const watchShifts = (page: Page) => page.addInitScript(() => {
@@ -85,7 +85,7 @@ test('motion: the car page photo (the LCP) is never faded or moved at rest', asy
 });
 
 test.describe('reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' });
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
   test('nothing waits, nothing moves', async ({ page }) => {
     await page.goto('/');
     await acceptCookies(page);

@@ -339,9 +339,7 @@ declare
 begin
   select * into v from vehicles where id = p_vehicle;
   if v.id is null then return jsonb_build_array(jsonb_build_object('code', 'missing', 'label', 'Car not found', 'action', 'None', 'who', 'carmacars')); end if;
-  if coalesce(v.is_sample, false) then
-    g := g || jsonb_build_object('code', 'sample', 'label', 'An example car', 'action', 'Show sample cars (Admin > Cars > Sample cars) puts the example cars on the site', 'who', 'carmacars');
-  end if;
+  -- an example car publishes as any car (Show sample cars publishes them all; it is never published by itself)
   if v.retired_at is not null then
     g := g || jsonb_build_object('code', 'retired', 'label', 'Retired', 'action', 'Restore the car (the car > Retire or delete)', 'who', 'carmacars');
   end if;

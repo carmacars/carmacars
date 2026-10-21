@@ -9207,6 +9207,8 @@ export type Database = {
           game_dismiss_days: number;
           game_task_min_cars: number;
           game_reminder_hours: number;
+          listing_publish_new_cars_automatically: boolean;
+          listing_default_daily_rate_cents: Json;
           coverage_proof_max_pages: number;
           coverage_reminder_hours: number[];
         };
@@ -9509,6 +9511,8 @@ export type Database = {
           game_dismiss_days?: number;
           game_task_min_cars?: number;
           game_reminder_hours?: number;
+          listing_publish_new_cars_automatically?: boolean;
+          listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
         };
@@ -9811,6 +9815,8 @@ export type Database = {
           game_dismiss_days?: number;
           game_task_min_cars?: number;
           game_reminder_hours?: number;
+          listing_publish_new_cars_automatically?: boolean;
+          listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
         };
@@ -14102,7 +14108,7 @@ export type Database = {
           trim: string | null;
           colour: string | null;
           fuel: Database["public"]["Enums"]["fuel_type"];
-          vin: string;
+          vin: string | null;
           plate: string | null;
           odometer_km: number | null;
           class: Database["public"]["Enums"]["vehicle_class"];
@@ -14154,7 +14160,7 @@ export type Database = {
           trim?: string | null;
           colour?: string | null;
           fuel?: Database["public"]["Enums"]["fuel_type"];
-          vin: string;
+          vin?: string | null;
           plate?: string | null;
           odometer_km?: number | null;
           class?: Database["public"]["Enums"]["vehicle_class"];
@@ -14206,7 +14212,7 @@ export type Database = {
           trim?: string | null;
           colour?: string | null;
           fuel?: Database["public"]["Enums"]["fuel_type"];
-          vin?: string;
+          vin?: string | null;
           plate?: string | null;
           odometer_km?: number | null;
           class?: Database["public"]["Enums"]["vehicle_class"];

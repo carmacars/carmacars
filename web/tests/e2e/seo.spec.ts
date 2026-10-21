@@ -140,9 +140,14 @@ test('landing pages: live cars, prices and valid structured data; use pages noin
   await check(page, 'landing toronto');
   await page.screenshot({ path: `${SHOTS}/landing-toronto-${test.info().project.name}.png`, fullPage: true });
 
-  // a use page with fewer real matching cars than the setting: shown, but noindex and out of the sitemap
+  // a use page follows the database's rule: with fewer real matching cars than the setting it is shown but noindex (and
+  // out of the sitemap); other specs publish real cars (new cars are published automatically, 0070), so read the rule
+  const sql = db();
+  const [ix] = await sql`select app.seo_page_indexable(p) i from seo_pages p where p.slug = 'monthly'`;
+  await sql.end();
   await page.goto('/car-rental/monthly', { waitUntil: 'networkidle' });
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  if (ix!.i) await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+  else await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   await check(page, 'landing monthly');
   await page.goto('/car-rental', { waitUntil: 'networkidle' });
   await expect(page.locator('h1')).toHaveText('Car rental in Toronto and the GTA');

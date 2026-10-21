@@ -201,8 +201,12 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
     await card.locator('input[type="file"]').setInputFiles({ name: `${kind}.png`, mimeType: 'image/png', buffer: png });
     await expect(card.getByText('In review')).toBeVisible({ timeout: 15_000 });
   }
-  await page.locator('#pt-cov-card_issuer').fill('Example Bank');
-  await page.locator('#pt-cov-card_last4').fill('4242');
+  // coverage option 2 (0071): the card that paid, a credit card in the renter's name; the renter ticks its coverage
+  await expect(page.getByTestId('coverage-card')).toContainText('ending 4242');
+  await page.getByTestId('coverage-card-tick').check();
+  await page.getByTestId('coverage-card-confirm').click();
+  await expect(page.getByTestId('coverage-card-confirmed')).toBeVisible({ timeout: 15_000 });
+  // and adds the card's benefit document (optional)
   const proof = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
   await page.getByTestId('upload-coverage_proof').locator('input[type="file"]').setInputFiles({ name: 'benefits.pdf', mimeType: 'application/pdf', buffer: proof });
   await expect(page.getByTestId('upload-coverage_proof').getByText('In review')).toBeVisible({ timeout: 15_000 });

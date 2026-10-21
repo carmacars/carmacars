@@ -19,7 +19,7 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }]],
   // test mode: prefers-reduced-motion, so the site's motion (src/styles/motion.css) never moves under a test or axe;
   // tests/e2e/motion.spec.ts turns it on and checks it
-  use: { baseURL: base, trace: 'retain-on-failure', reducedMotion: 'reduce', launchOptions: { args: ['--no-proxy-server'] } },
+  use: { baseURL: base, trace: 'retain-on-failure', contextOptions: { reducedMotion: 'reduce' }, launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion'] } },
   projects: [
     { name: 'phone-375', use: { viewport: { width: 375, height: 812 }, isMobile: false, hasTouch: true } },
     { name: 'desktop-1440', use: { viewport: { width: 1440, height: 900 } } }

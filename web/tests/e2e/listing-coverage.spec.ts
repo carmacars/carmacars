@@ -3,10 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// Migration 0070 end to end: an Admin publishes a car that has only the basics (no rates, no listing details, no photos,
-// its onboarding open) from the car page, its open items listed with the fleet policy as a handover gate, and the car is
-// on the site; a renter with coverage option 2 confirms the rental coverage of the credit card they paid with and it
-// is confirmed at once.
+// Migrations 0070 and 0071 end to end: an Admin publishes a car that has only the basics (no rates, no listing details,
+// no photos, its onboarding open) with Publish now, its open items listed with the fleet policy as a handover item, and
+// the car is on the site; a renter with coverage option 2 who paid with a credit card in their name ticks the card's
+// coverage, which then waits for staff.
 const PW = 'correct horse battery';
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
@@ -53,7 +53,7 @@ test('an Admin publishes a car with only the basics; its paperwork and the fleet
   const items = page.getByTestId('listing-warnings');
   await expect(items).toContainText('Before the first handover');
   await expect(items).toContainText('Not on the fleet insurance policy yet');
-  await expect(items).toContainText('No rates yet');
+  await expect(page.getByTestId('listing-default-rates')).toBeVisible();
   await check(page, 'car page, open items');
   await page.getByTestId('vehicle-publish').click();
   await expect.poll(async () => (await sql`select status from vehicle_listings where vehicle_id = ${vid}`)[0]?.status, { timeout: 20_000 }).toBe('published');
@@ -70,7 +70,7 @@ test('an Admin publishes a car with only the basics; its paperwork and the fleet
   await sql.end();
 });
 
-test('coverage option 2: the renter confirms the coverage of the credit card they paid with; it is confirmed at once', async ({ page }) => {
+test('coverage option 2: the renter who paid with a credit card in their name confirms its coverage; staff check it before the handover', async ({ page }) => {
   test.setTimeout(120_000);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
@@ -92,23 +92,23 @@ test('coverage option 2: the renter confirms the coverage of the credit card the
     await t`set local session_replication_role = replica`;
     await t`update bookings set status = 'confirmed', coverage_option = 2 where id = ${b.booking_id}`;
   });
-  // paid with a credit card (the Card on File the payment saves)
-  const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit)
-                         select renter_id, 'visa', '4242', 'Casey Card', 12, 2031, true from bookings where id = ${b.booking_id} returning id`;
+  // paid with a credit card in the renter's name (the Card on File the payment saves)
+  const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit, funding)
+                         select b.renter_id, 'visa', '4242', r.legal_name, 12, 2031, true, 'credit' from bookings b join renters r on r.id = b.renter_id where b.id = ${b.booking_id} returning id`;
   await sql`update bookings set card_on_file_id = ${pm!.id} where id = ${b.booking_id}`;
 
   await signIn(page, r.email, '/account');
   await page.goto(`/account/bookings/${b.booking_number}/verify`, { waitUntil: 'networkidle' });
-  const form = page.getByTestId('card-coverage');
-  await expect(form).toContainText('ending 4242');
+  await expect(page.getByTestId('coverage-card')).toContainText('ending 4242');
   await check(page, 'coverage option 2');
-  await expect(page.getByTestId('card-coverage-submit')).toBeDisabled();
-  await page.getByTestId('card-coverage-agree').check();
-  await page.getByTestId('card-coverage-submit').click();
-  await expect(page.getByTestId('card-coverage-state')).toContainText('Confirmed', { timeout: 20_000 });
-  const [cp] = await sql`select status, auto_confirmed, card_funding from coverage_proofs where booking_id = ${b.booking_id}`;
-  expect(cp).toMatchObject({ status: 'confirmed', auto_confirmed: true, card_funding: 'credit' });
-  const [bk] = await sql`select coverage_confirmed_at is not null c from bookings where id = ${b.booking_id}`;
-  expect(bk!.c).toBe(true);
+  await expect(page.getByTestId('coverage-card-confirm')).toBeDisabled();
+  await page.getByTestId('coverage-card-tick').check();
+  await page.getByTestId('coverage-card-confirm').click();
+  await expect(page.getByTestId('coverage-card-confirmed')).toBeVisible({ timeout: 20_000 });
+  const [cp] = await sql`select status, card_funding, renter_confirmed_at is not null c from coverage_proofs where booking_id = ${b.booking_id} and coverage_option = 2 order by created_at desc limit 1`;
+  expect(cp).toMatchObject({ status: 'submitted', card_funding: 'credit', c: true });
+  // the handover still waits for staff
+  const [bk] = await sql`select coverage_confirmed_at is null w from bookings where id = ${b.booking_id}`;
+  expect(bk!.w).toBe(true);
   await sql.end();
 });
