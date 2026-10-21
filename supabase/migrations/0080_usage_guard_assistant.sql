@@ -944,7 +944,8 @@ begin
   -- an assistant's function travels with the action, as the screens send it
   insert into assistant_actions (user_id, portal, tool, call, name, args, summary)
   values (p_user, w ->> 'portal', p ->> 'tool', v_call, p ->> 'name',
-          (coalesce(p -> 'args', '{}'::jsonb) - '_va') || case when w ->> 'fn' is not null then jsonb_build_object('_va', w ->> 'fn') else '{}'::jsonb end,
+          (coalesce(p -> 'args', '{}'::jsonb) - '_va') || case when w ->> 'fn' is not null and (v_call = 'va_do' or p ->> 'name' = 'task_create')
+                                                               then jsonb_build_object('_va', w ->> 'fn') else '{}'::jsonb end,
           left(btrim(coalesce(p ->> 'summary', '')), 600))
   returning id into v_id;
   return jsonb_build_object('id', v_id, 'summary', left(btrim(coalesce(p ->> 'summary', '')), 600), 'status', 'proposed');
