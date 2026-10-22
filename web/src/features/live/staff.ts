@@ -6,6 +6,8 @@ export interface Visitor {
   city: string | null; region: string | null; device: string | null; referrer: string | null; utm_source: string | null; utm_campaign: string | null;
   started_at: string; last_seen_at: string; page_views: number; visit_number: number; current_path: string | null; current_page: string | null;
   car: string | null; vehicle_id: string | null; booking_number: string | null; cars_viewed: number; signals: Signal[]; chat: { id: string; number: string; status: string } | null;
+  /** What the visitor typed into a form (contact capture, 0090), sent or not. */
+  captured?: { name: string | null; email: string | null; phone: string | null; form: string; at: string; done: boolean; renter_id: string | null; email_confirmed: boolean | null } | null;
 }
 export interface VisitEvent { at: string; kind: string; path: string | null; page: string | null; car: string | null; booking_number: string | null; ms: number | null; pickup?: string | null; return?: string | null }
 export interface SessionDetail extends Visitor { events: VisitEvent[]; visits: number; visits_7d: number }

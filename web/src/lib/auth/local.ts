@@ -147,6 +147,31 @@ export function localAuth(): AuthAdapter {
       await this.requestPasswordReset(e, redirectTo);
       return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
     },
+    async openForCapture(userId, email) {
+      const e = email.trim().toLowerCase();
+      const found = await sql`select 1 from local_auth.users where id = ${userId} or email = ${e}`;
+      if (found.length) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      // as on Supabase: no usable password, the address not confirmed, no email sent
+      await sql`insert into local_auth.users (id, email, password_hash, email_confirmed_at) values (${userId}, ${e}, ${'invited$' + randomBytes(16).toString('hex')}, null)`;
+      return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
+    },
+    async claimForCapture(userId, email, password) {
+      const e = email.trim().toLowerCase();
+      const rows = await sql`update local_auth.users set password_hash = ${await hashPassword(password)}
+                              where id = ${userId} and email = ${e} and email_confirmed_at is null returning id`;
+      if (!rows[0]) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      await this.resendConfirmation(e, '');
+      return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
+    },
+    async continueLink(email, next) {
+      const e = email.trim().toLowerCase();
+      const rows = await sql`select id from local_auth.users where email = ${e}`;
+      if (!rows[0]) return { ok: false, message: 'We could not make the sign-in link.' };
+      const token = randomBytes(24).toString('base64url');
+      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at, kind) values (${hashToken(token)}, ${rows[0].id as string}, now() + interval '1 hour', 'signup')`;
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      return { ok: true, link: `${base}/auth/callback?token_hash=${token}&type=magiclink&next=${encodeURIComponent(next)}` };
+    },
     async accountLink(email, _fullName, next, userId) {
       const e = email.trim().toLowerCase();
       const found = await sql`select id, password_hash from local_auth.users where email = ${e}`;

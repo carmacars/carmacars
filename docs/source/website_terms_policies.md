@@ -78,6 +78,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
 | Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
+| Forms you start: the name, email and mobile number you type into our forms, saved as you type even if you do not send the form | To open an account in your name so you can continue your request, and to send you one email with a link to continue; never for offers without your consent |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 

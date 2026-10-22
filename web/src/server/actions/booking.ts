@@ -11,6 +11,7 @@ import { dobIso, migrateExtras, requestSchema, type RequestData } from '@/featur
 import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
+import { captureDone, pendingAddBooking } from '@/server/capture';
 
 // Request to book (docs/blueprint/02-booking-and-renter.md section 3). The server validates with the
 // same schema as the browser, checks Turnstile, measures any delivery distance itself, and calls
@@ -100,6 +101,10 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     }
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
     if (input.draftId) await rpc('submit_form_draft', { p_draft: input.draftId, p_result: { booking_number: String(res.booking_number) } }, { role: 'service_role' }).catch(() => undefined);
+    // contact capture (0090): the request is visible to this browser's unverified session (if it has one), and the
+    // contact saved as it was typed is done
+    if (!user) await pendingAddBooking(String(res.booking_number));
+    await captureDone('booking_request');
     return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true } };
   } catch (e) {
     return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'We could not send the request. Please try again or call us.' };

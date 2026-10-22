@@ -6,6 +6,7 @@ import { contactSchema } from './schemas';
 import { describedBy, Field } from './Field';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
+import { CaptureNote, useCapture } from '@/features/capture/useCapture';
 
 const TOPICS: [string, string][] = [['car', 'A car or a price'], ['booking', 'A booking I have made'], ['dates', 'Dates or availability'], ['owner', 'Listing my car'], ['billing', 'A charge or a statement'], ['other', 'Something else']];
 
@@ -14,12 +15,14 @@ export function ContactForm({ reply }: { reply: string }) {
   const topic = TOPICS.some(([k]) => k === sp.get('topic')) ? sp.get('topic')! : 'car';
   const car = sp.get('car');
   const { state, run, pending, errors, clear } = useForm(contactSchema, submitContact);
+  // contact capture (0090): the name, email and phone are saved as each becomes valid, even if the form is not sent
+  const cap = useCapture('contact');
   if (state?.ok) {
     return <div className="stack" tabIndex={-1} ref={(el) => el?.focus()}><p className="d3">Message sent.</p><p>{reply}, by email.</p><p><Link className="btn" href="/cars">Browse the fleet</Link></p></div>;
   }
   const e = errors;
   return (
-    <form className="stack-lg" onSubmit={run} noValidate aria-label="Send us a message">
+    <form className="stack-lg" onSubmit={run} noValidate aria-label="Send us a message" onBlur={(ev) => cap.onFormBlur(ev)}>
       <h2 className="d3">Send a message</h2>
       {state && !state.ok && state.code !== 'invalid' && <p className="alert alert--error" role="alert"><span>{state.message}</span></p>}
       <div className="field"><label className="label" htmlFor="ct-topic">What is it about?</label>
@@ -33,6 +36,7 @@ export function ContactForm({ reply }: { reply: string }) {
       <Field float id="ct-msg" label="Message" error={e.message}>
         <textarea className="textarea" placeholder=" " id="ct-msg" name="message" defaultValue={car ? `About the car: ${car}\n` : ''} aria-invalid={!!e.message || undefined} aria-describedby={describedBy('ct-msg', e.message)} onInput={() => clear('message')} />
       </Field>
+      <CaptureNote reply={cap.reply} />
       <Turnstile action="contact" />
       <button className="btn btn--primary btn--lg" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send message'}</button>
     </form>

@@ -107,6 +107,33 @@ export function supabaseAuth(): AuthAdapter {
       await gotrue('/recover', { email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => undefined);
       return { ok: true, user: { id: userId, email }, needsConfirmation: true };
     },
+    async openForCapture(userId, email, fullName) {
+      // no password, email_confirm false, and Supabase sends nothing for an account made this way
+      const r = await gotrue('/admin/users', { id: userId, email: email.trim().toLowerCase(), email_confirm: false, user_metadata: { full_name: fullName } }, { service: true });
+      if (!r.ok) return failure(r.err, 'We could not create the sign-in.');
+      return { ok: true, user: { id: userId, email }, needsConfirmation: true };
+    },
+    async claimForCapture(userId, email, password) {
+      const e = email.trim().toLowerCase();
+      const got = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, undefined, { service: true, method: 'GET' });
+      const u = got.data as { email?: string; email_confirmed_at?: string | null };
+      if (!got.ok || (u.email ?? '').toLowerCase() !== e || u.email_confirmed_at) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      const r = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, { password }, { service: true, method: 'PUT' });
+      if (!r.ok) return failure(r.err, 'We could not set the password.');
+      const { env } = await import('@/lib/env');
+      await gotrue('/resend', { type: 'signup', email: e }, { query: { redirect_to: `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/auth/callback` } }).catch(() => undefined);
+      return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
+    },
+    async continueLink(email, next) {
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      // a magic link of an existing account: verifying it signs in and confirms the address (as a recovery link does)
+      const r = await gotrue('/admin/generate_link', { type: 'magiclink', email: email.trim().toLowerCase() }, { service: true });
+      const d = r.data as { hashed_token?: string; properties?: { hashed_token?: string } };
+      const token = d.hashed_token ?? d.properties?.hashed_token;
+      if (!r.ok || !token) return { ok: false, message: 'We could not make the sign-in link.' };
+      return { ok: true, link: `${base}/auth/callback?token_hash=${encodeURIComponent(token)}&type=magiclink&next=${encodeURIComponent(next)}` };
+    },
     async accountLink(email, fullName, next, userId) {
       const e = email.trim().toLowerCase();
       const { env } = await import('@/lib/env');

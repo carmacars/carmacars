@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 170,
+  "count": 171,
   "emails": [
     {
       "code": "account_password_reset",
@@ -2432,6 +2432,92 @@
       ],
       "template_html": "templates/renter_comeback_1w.html",
       "template_text": "templates/renter_comeback_1w.txt"
+    },
+    {
+      "code": "renter_continue_request",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Contact capture (migration 0090): someone typed their email into a booking request, a contact form, the owner application, the discount game or the live chat. One email per account, ever. A new account opened for that address: sent by the capture job (every 15 minutes) capture_continue_minutes (30) after they stopped typing without sending the form, only within the hours set for booking recovery emails. An address that already has an account: sent at once, as the sign-in link the site says it sent. The button opens /continue, which signs the person in and confirms the email in one step and lands on their draft or request. Transactional: it is about the account opened in their name; never with offers.",
+      "timing": "Some minutes after a form was left unfinished (new account), or at once (an existing account)",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Continue your request",
+      "preheader": "One tap signs you in and confirms your email. The link works for {{link_expiry}}.",
+      "sample_subject": "Continue your request",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "continue_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/continue?t=9f2c41b7e0a84d6c8b3f5e1a2d7c9b04"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "60 minutes",
+          "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "new_account",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "started_what",
+          "type": "string",
+          "sample": "a booking request for the 2023 Mercedes-Benz C300"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_continue_request.html",
+      "template_text": "templates/renter_continue_request.txt"
     },
     {
       "code": "renter_coverage_needed",

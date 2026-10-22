@@ -10,6 +10,7 @@ import { rolesOf, VA_FN_COOKIE } from '@/server/door';
 import { landingFor, safeNext } from '@/server/portals';
 import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard';
 import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
+import { claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';
 
 // Sign-in is Supabase Auth (email and password, reset by email). A new account also gets its users
 // row and the renter role (public.register_account, 0027) with the same id as the sign-in account.
@@ -81,8 +82,19 @@ export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
   // email, the link to choose the password. Asked before the sign-up so Supabase never also sends a confirmation for a
   // sign-in that would be removed again (two emails, one dead link).
   const onFile = (await rpc('server_user_by_email', { p_email: p.data.email }, { role: 'service_role' }).catch(() => null)) as unknown as string | null;
+  // the account this browser opened when the address was typed into a form (0090): the password chosen here and the
+  // usual confirmation link, exactly as a new sign-up
+  if (onFile && await claimPendingAccount(onFile, p.data.email, p.data.password)) {
+    await rememberEmail(p.data.email);
+    return { ok: true, data: { confirm: true, email: p.data.email } };
+  }
   if (onFile && a.createForRecord) {
     const made = await a.createForRecord(onFile, p.data.email, p.data.name, passwordLinkTarget());
+    // an account opened when the address was typed into a form (0090): the link to choose the password (it confirms the email)
+    if (!made.ok && made.code === 'exists' && await passwordLinkForCaptured(onFile, p.data.email, passwordLinkTarget())) {
+      await rememberEmail(p.data.email);
+      return { ok: true, data: { confirm: true, onRecord: true, email: p.data.email } };
+    }
     if (!made.ok) return { ok: false, code: made.code === 'exists' ? 'exists' : 'email_on_record', message: made.code === 'exists'
       ? 'An account with this email already exists. Sign in, or use "Forgot password" to set a new password.'
       : 'We already have a booking request with this email. Contact us and we will link it to your account.' };

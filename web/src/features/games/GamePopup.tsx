@@ -6,6 +6,7 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, type GameKind, type PrizeWord, type Visit } from './rules';
 import { remember } from './GameGate';
+import { useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migration 0069): the game itself. A slide-in card on a computer and a bottom sheet on a phone, never
 // a full-screen block, always closable (the close button and Esc). The database has already drawn the prize; the game
@@ -29,6 +30,8 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
   const [play, setPlay] = useState<Play | null>(null);
   const [stage, setStage] = useState<'ready' | 'playing' | 'won' | 'claimed'>('ready');
   const [form, setForm] = useState({ first: '', email: '', phone: '', marketing: false });
+  // contact capture (0090): what is typed to claim the code is saved as each field becomes valid
+  const cap = useCapture('game');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState('');
   const [busy, setBusy] = useState(false);
@@ -127,7 +130,7 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
           <p className="vh" id={`${id}-d`}>{g.pitch}</p>
           <Suspense fallback={<div className="ccg-stage" aria-busy="true" />}><g.C prize={play.prize} prizes={play.prizes} reduced={reduced} onReveal={revealed} /></Suspense>
         </>}
-        {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim">
+        {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
           <p className="ccg-prize" id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> your rental{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. Tell us where to send your code.</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>
             <input className="input" id={`${id}-first`} name="first" autoComplete="given-name" value={form.first} onChange={(e) => setForm({ ...form, first: e.target.value })}

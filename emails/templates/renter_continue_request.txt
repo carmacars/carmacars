@@ -1,0 +1,34 @@
+CarmaCars  |  Your request
+
+========================================
+
+[Your request]
+Continue where you left off
+
+Hi {{first_name}}, you started {{started_what}} on carmacars.ca. One tap signs you in, confirms your email and opens it again.
+
+Continue your request:
+{{continue_url}}
+
+The link works for {{link_expiry}} on any device. No password needed.
+
+{{#if new_account}}
+We opened an account in your name with this email, so you can carry on from any device. Nothing is booked or charged until you approve an offer, sign and pay.
+{{/if}}
+
+If this was not you
+Ignore this email. Nobody can use the account without this link, and an account that is never confirmed closes by itself after 30 days.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -10,6 +10,7 @@ import { cleanVin, DRAFT_COOKIE, ownerErrors, planErrors, vehicleErrors, vehicle
 import { currentUser } from '@/server/portal/data';
 import { requestMeta } from '@/server/request';
 import { passwordLinkTarget, rememberEmail } from '@/server/auth-links';
+import { claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';
 
 // The owner application wizard (04-owner.md section 3; 08-forms.md section 3). Every step autosaves
 // to form_drafts: by account when signed in, otherwise by a device token kept in an httpOnly cookie.
@@ -106,11 +107,22 @@ export async function submitApplication(state: ApplyState, password: string, tur
       // that record and one email, the link to choose the password (opening it proves the address). Asked before any
       // sign-up, so Supabase never also sends a confirmation for a sign-in that would be removed again.
       const a = await auth();
-      const made = a.createForRecord ? await a.createForRecord(onFile, o.email.trim().toLowerCase(), name, passwordLinkTarget()) : null;
+      // the account this browser opened when the address was typed (0090): the password chosen here and the usual
+      // confirmation link, as a new sign-up
+      if (await claimPendingAccount(onFile, o.email.trim().toLowerCase(), password)) {
+        user = { id: onFile, email: o.email.trim().toLowerCase() };
+        confirmEmail = user.email;
+      }
+      const made = user ? { ok: true as const } : a.createForRecord ? await a.createForRecord(onFile, o.email.trim().toLowerCase(), name, passwordLinkTarget()) : null;
+      // an account opened when the address was typed (0090): nothing goes on it from here; the address gets the link to
+      // choose a password (it confirms the email), and the application is sent once signed in (the draft is kept)
+      if (made && !made.ok && made.code === 'exists' && await passwordLinkForCaptured(onFile, o.email.trim().toLowerCase(), passwordLinkTarget())) {
+        const m = 'You have an account: we sent you a sign-in link. Open it, then send the application (your answers are kept).';
+        return { ok: false, code: 'account', message: m, fieldErrors: { password: m } };
+      }
       if (made && !made.ok && made.code === 'exists') return { ok: false, code: 'account', message: 'An account with this email already exists. Sign in first, then apply.', fieldErrors: { password: 'An account with this email already exists. Sign in first, then apply.' } };
       if (!made?.ok) return fail('We already have a booking request with this email. Call us and we will finish your application.');
-      user = { id: onFile, email: o.email.trim().toLowerCase() };
-      onRecord = true;
+      if (!user) { user = { id: onFile, email: o.email.trim().toLowerCase() }; onRecord = true; }
     }
     if (!user) {
       const a = await auth();

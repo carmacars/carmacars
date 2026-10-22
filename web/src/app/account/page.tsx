@@ -3,7 +3,9 @@ import { pageMeta } from '@/features/seo/meta';
 import { getFleet } from '@/lib/site';
 import { awaitingSignature, group, nextStep, carName } from '@/features/portal/status';
 import { TripRow, StatusBadge } from '@/features/portal/Blocks';
-import { findBooking, myBookings, requireUser } from '@/server/portal/data';
+import { currentUser, findBooking, myBookings, requireUser } from '@/server/portal/data';
+import { redirect } from 'next/navigation';
+import { pendingToken } from '@/server/capture';
 import { rpc } from '@/lib/db/repo';
 import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
@@ -15,6 +17,8 @@ export const metadata = pageMeta({ title: 'Your trips', path: '/account', noinde
 
 // The portal's front door: the one next thing to do, then upcoming, current and past trips (section 7.1).
 export default async function Account({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  // a browser that started a request without a sign-in (0090) sees what it made there; everything else needs the sign-in
+  if (!(await currentUser()) && (await pendingToken())) redirect('/my-request');
   const user = await requireUser('/account');
   const [list, fleet, sp, links] = await Promise.all([myBookings(user), getFleet(), searchParams,
     // earlier requests attached when the address was confirmed, and trips as an additional driver (migration 0040)
