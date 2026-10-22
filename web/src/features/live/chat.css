@@ -10,6 +10,7 @@
 .ccw-bubble { max-width: min(320px, calc(100vw - 32px)); background: var(--white); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.18); }
 .ccw-bubble p { margin: 0 0 10px; font-size: var(--fs-sm); line-height: var(--lh-body); }
+.ccw-bubble__from { display: block; font-size: var(--fs-2xs); margin-bottom: 2px; }
 .ccw-bubble__btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .ccw-panel { width: 380px; max-width: calc(100vw - 32px); height: min(600px, calc(100vh - 96px)); display: flex; flex-direction: column; background: var(--white); color: var(--text);
   border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 40px rgb(0 0 0 / 0.25); overflow: hidden; }

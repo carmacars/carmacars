@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
 import { onBeaconReply, pageContext, sessionId, setChatOpen, visitorId, type BeaconReply } from './beacon';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
+import { greetingAllowed, greetingWait } from './greeting';
 
 // Live chat (migration 0060), the visitor's side: a button in the corner, loaded after the page. The CarmaCars
 // assistant answers first; "Talk to a person" (or anything it should not answer) brings a staff member, who can also
@@ -17,6 +18,30 @@ const KEY = 'cc_chat';
 const store = { get: () => { try { return localStorage.getItem(KEY); } catch { return null; } }, set: (t: string | null) => { try { if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY); } catch { /* private mode */ } } };
 const time = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
 const device = () => (matchMedia('(max-width: 599px)').matches ? 'phone' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop');
+
+// The greeting (0100): after chat_greeting_seconds on the site (45 by default, counted from the visit's first page in
+// this tab), a small preview on the chat button with a first message from CarmaCars, for the page it opens on (the car
+// on a car page, the service on a service page). Once a visit, never over a discount game (it waits for the game to
+// close; the games' watcher marks <html data-cc-game> and sends cc:game), never in the portals, booking or payment
+// pages (the database answers no greeting there). Automated browsers get it only when a test asks (cc_chat_greet_e2e).
+const GREET = 'cc_chat_greet';
+type GreetVisit = { start: number; done?: boolean; after?: number };
+const greetVisit = (): GreetVisit => {
+  try {
+    const g = JSON.parse(sessionStorage.getItem(GREET) ?? 'null') as GreetVisit | null;
+    if (g && typeof g.start === 'number') return g;
+    const n = { start: Date.now() };
+    sessionStorage.setItem(GREET, JSON.stringify(n));
+    return n;
+  } catch { return { start: Date.now() }; }
+};
+const greetSave = (g: Partial<GreetVisit>) => { try { sessionStorage.setItem(GREET, JSON.stringify({ ...greetVisit(), ...g })); } catch { /* private mode */ } };
+const greetDone = () => greetSave({ done: true });
+type Greeting = { after: number; text: string | null };
+const greetAutomated = () => { try { return navigator.webdriver && localStorage.getItem('cc_chat_greet_e2e') !== '1'; } catch { return navigator.webdriver; } };
+/** A test may shorten the wait in an automated browser (cc_chat_greet_e2e_after, seconds); a person's browser never reads it. */
+const greetAfter = (s: number) => { try { const v = navigator.webdriver ? Number(localStorage.getItem('cc_chat_greet_e2e_after')) : NaN; return v > 0 ? v : s; } catch { return s; } };
+const gameOnScreen = () => document.documentElement.hasAttribute('data-cc-game');
 
 async function post<T>(body: Record<string, unknown>): Promise<T> {
   const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' });
@@ -34,7 +59,9 @@ export function ChatWidget() {
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(0);
   const [cfg, setCfg] = useState<NonNullable<BeaconReply['cfg']>>({ chat: true, greet_after: 0, greet_text: '' });
-  const [bubble, setBubble] = useState<{ kind: 'greeting' | 'invite'; text: string; from?: string; token?: string } | null>(null);
+  const [bubble, setBubble] = useState<{ kind: 'greeting' | 'invite'; text: string; from?: string; token?: string; page?: string } | null>(null);
+  // a discount game is on screen: the greeting stays hidden until it closes (0100)
+  const [gameOpen, setGameOpen] = useState(false);
   const [error, setError] = useState('');
   const [banner, setBanner] = useState(true);
   const lastId = useRef(0);
@@ -81,11 +108,37 @@ export function ChatWidget() {
     return () => clearInterval(t);
   }, []);
 
-  // the greeting on a car page (Program settings; off by default)
   useEffect(() => {
-    if (!cfg.greet_after || conv || open || pageContext(path).kind !== 'car') return;
-    const t = setTimeout(() => setBubble((b) => b ?? { kind: 'greeting', text: cfg.greet_text }), cfg.greet_after * 1000);
-    return () => clearTimeout(t);
+    const f = () => setGameOpen(gameOnScreen());
+    f();
+    addEventListener('cc:game', f);
+    return () => removeEventListener('cc:game', f);
+  }, []);
+
+  // the greeting (0100), once a visit, for the page it opens on. When it opens comes from the database (asked once a
+  // visit, or from the beacon's reply when there is one); its words are asked for the page it opens on.
+  useEffect(() => {
+    if (!cfg.chat || conv || open || !greetingAllowed(path ?? '/') || greetAutomated()) return;
+    const g = greetVisit();
+    if (g.done) return;
+    const page = path ?? '/';
+    let live = true;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const plan = (after: number) => {
+      const wait = greetingWait({ after: greetAfter(after), start: g.start, now: Date.now(), done: g.done });
+      if (wait === null) return;
+      t = setTimeout(() => {
+        void browserRpc<Greeting>('chat_greeting', { p_page: page }).then((r) => {
+          if (!live || !r?.text) return;
+          greetDone();
+          setBubble((b) => b ?? { kind: 'greeting', text: r.text!, page });
+        }).catch(() => undefined);
+      }, wait);
+    };
+    const known = cfg.greet_after > 0 ? cfg.greet_after : g.after;
+    if (typeof known === 'number') plan(known);
+    else void browserRpc<Greeting>('chat_greeting', { p_page: page }).then((r) => { if (!live || !r) return; greetSave({ after: r.after }); plan(r.after); }).catch(() => undefined);
+    return () => { live = false; if (t) clearTimeout(t); };
   }, [cfg, conv, open, path]);
 
   // new messages: every 3 seconds while open, every 15 while folded away
@@ -100,11 +153,11 @@ export function ChatWidget() {
   useEffect(() => { if (open) requestAnimationFrame(() => input.current?.focus()); }, [open]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [msgs, typing, open]);
 
-  const start = async (opts: { greeting?: boolean; token?: string } = {}) => {
+  const start = async (opts: { greeting?: boolean; greetingPage?: string; token?: string } = {}) => {
     setError('');
     const ctx = pageContext(path);
     const r = await post<{ ok: boolean; error?: string; token: string; number: string; status: Conv['status']; has_contact: boolean; on_shift: boolean; messages: Msg[] }>({
-      action: 'open', vid: visitorId(), sid: sessionId(), page: path, slug: ctx.slug, greeting: opts.greeting, token: opts.token ?? conv?.token, device: device() });
+      action: 'open', vid: visitorId(), sid: sessionId(), page: path, slug: ctx.slug, greeting: opts.greeting, greeting_page: opts.greetingPage, token: opts.token ?? conv?.token, device: device() });
     if (!r.ok) { setError(r.error === 'limited' ? 'Too many chats from this browser. Try again later or call us.' : 'The chat is not available right now. Call or email us.'); return null; }
     store.set(r.token);
     const c: Conv = { token: r.token, number: r.number, status: r.status, has_contact: r.has_contact };
@@ -121,7 +174,7 @@ export function ChatWidget() {
     const b = bubble;
     setBubble(null);
     if (from === 'invite' && b?.token) { await start({ token: b.token }); return; }
-    if (!conv || conv.status === 'closed') await start({ greeting: from === 'greeting' });
+    if (!conv || conv.status === 'closed') await start({ greeting: from === 'greeting', greetingPage: from === 'greeting' ? b?.page : undefined });
   };
 
   const send = async (e?: React.FormEvent) => {
@@ -172,9 +225,9 @@ export function ChatWidget() {
 
   return (
     <div className="ccw" data-testid="chat-widget">
-      {bubble && !open && (
-        <div className="ccw-bubble" role="status" data-testid="chat-bubble">
-          <p>{bubble.kind === 'invite' && bubble.from ? <b>{bubble.from} from CarmaCars: </b> : null}{bubble.text}</p>
+      {bubble && !open && !(bubble.kind === 'greeting' && gameOpen) && (
+        <div className="ccw-bubble" role="status" data-testid="chat-bubble" data-kind={bubble.kind}>
+          <p>{bubble.kind === 'invite' && bubble.from ? <b>{bubble.from} from CarmaCars: </b> : bubble.kind === 'greeting' ? <b className="ccw-bubble__from">CarmaCars</b> : null}{bubble.text}</p>
           <div className="ccw-bubble__btns">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => void openChat(bubble.kind)}>Reply</button>
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => setBubble(null)}>No thanks</button>

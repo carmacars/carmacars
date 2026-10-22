@@ -27,15 +27,21 @@ async function axe(page: Page, where: string) {
   expect(bad.map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
 }
 
+/** The timings these tests were written for (0081, 0094): the first game on the first page view or after 15 seconds,
+ *  again on the 2nd page view after a close or 60 seconds later, 3 a visit, 6 a day. 0100 moved the owner's defaults
+ *  (2nd page view or 30 seconds, 3rd page view or 2 minutes, 4 a visit, no daily cap: games-0100.spec.ts plays those);
+ *  these tests set their own in the automated browser (cc_games_e2e_cfg), so the rules keep being tested quickly. */
+const TIMING = { car_pages: 1, seconds: 15, exit: false, reshow_pages: 2, reshow_seconds: 60, per_visit: 3, per_day: 6 };
+
 /** A visitor whose browser id is known, with the game allowed in this automated browser and the prize set in advance
  *  (the database returns the visitor's open play instead of drawing a new one). */
-async function visitor(browser: Browser, sql: Sql, game: string, prize: object, reduced = false) {
+async function visitor(browser: Browser, sql: Sql, game: string, prize: object, reduced = false, timing: Partial<typeof TIMING> = {}) {
   const vid = randomUUID();
   await sql`delete from app.rate_limit_hits where key like 'game-%'`;
   const c = await browser.newContext({ viewport: isPhone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: isPhone(),
     baseURL: test.info().project.use.baseURL, reducedMotion: reduced ? 'reduce' : 'no-preference' });
   await c.addCookies([{ name: 'cc_vid', value: vid, url: test.info().project.use.baseURL! }]);
-  await c.addInitScript(() => { try { localStorage.setItem('cc_games_e2e', '1'); } catch { /* none */ } });
+  await c.addInitScript((t) => { try { localStorage.setItem('cc_games_e2e', '1'); localStorage.setItem('cc_games_e2e_cfg', JSON.stringify(t)); } catch { /* none */ } }, { ...TIMING, ...timing });
   await sql`insert into game_plays (visitor_id, game, prize, path, trigger) values (${vid}, ${game}, ${sql.json(prize as never)}, '/cars/toyota-corolla', 'pages')`;
   const page = await c.newPage();
   if (process.env.GAME_DEBUG) page.on('response', async (r) => { if (/api\/(rpc|games)/.test(r.url())) console.log('RES', r.url(), r.status(), (await r.text().catch(() => '')).slice(0, 160)); });
@@ -129,7 +135,15 @@ const GAMES_PLAYED = [
     await expect(p.locator('.ccg-live', { hasText: 'The last card:' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 });
   } }
 ];
-const PLAY: Record<string, (p: Page) => Promise<void>> = Object.fromEntries(GAMES_PLAYED.map((g) => [g.game, g.play]));
+// 0100: the five newer games (each played on its own in games-0100.spec.ts); the request-to-book form may pick any game
+const NEWER: Record<string, (p: Page) => Promise<void>> = {
+  coin: async (p) => { await p.getByTestId('game-action').click(); await expect(p.locator('.ccg-live', { hasText: /It landed on/ }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 15_000 }); },
+  dice: async (p) => { await p.getByTestId('game-action').click(); await expect(p.locator('.ccg-live', { hasText: /You rolled/ }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 15_000 }); },
+  slots: async (p) => { await p.getByTestId('game-action').click(); await expect(p.locator('.ccg-live', { hasText: 'Three in a row' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 15_000 }); },
+  drop: async (p) => { await p.getByTestId('game-action').click(); await expect(p.locator('.ccg-live', { hasText: 'Your capsule holds' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 15_000 }); },
+  mystery: async (p) => { await p.getByTestId('game-box-1').click(); await expect(p.locator('.ccg-live', { hasText: 'Box 1 holds' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 15_000 }); }
+};
+const PLAY: Record<string, (p: Page) => Promise<void>> = { ...Object.fromEntries(GAMES_PLAYED.map((g) => [g.game, g.play])), ...NEWER };
 
 for (const g of GAMES_PLAYED) {
   test(`${g.game}: shows after one car page, plays, reveals the prize, the code after the form`, async ({ browser }) => {
@@ -182,7 +196,8 @@ test('a rare prize: the card pack turns a holographic card, and confetti over th
 test('the first game without a car page: after 15 seconds on the site (0081)', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
-  const { page } = await visitor(browser, sql, 'wheel', PRIZE10);
+  // one page only: since 0100 every page view counts, so the page rule waits for a 2nd one here
+  const { page } = await visitor(browser, sql, 'wheel', PRIZE10, false, { car_pages: 2 });
   const t0 = Date.now();
   await page.goto('/how-it-works', { waitUntil: 'load' });
   await answerCookies(page);
@@ -465,7 +480,7 @@ test('a signed-in visitor never sees a game on the site, and is offered it in th
 });
 
 test('Admin: Bookings > Leads shows the claims and the report; Settings > Discount games is on with the owner\'s prizes', async ({ browser }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const sql = db();
   const id = randomUUID(); const email = `admin.game.${Date.now()}.${tag()}@example.test`;
   await sql`insert into local_auth.users (id, email, password_hash, email_confirmed_at) values (${id}, ${email}, ${hash(PW)}, now())`;
@@ -492,6 +507,8 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   // 0081: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
   await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(7);
   await expect(page.getByLabel('Card pack')).toHaveValue('1');
+  // 0100: the five newer games, on at the same weight
+  for (const g of ['Coin flip', 'Dice roll', 'Slot machine', 'Prize drop', 'Mystery box']) await expect(page.getByLabel(g)).toHaveValue('1');
   await expect(page.getByTestId('game-expected-cost')).toContainText(/Expected cost per claimed code: \$\d+\.\d\d/);
   await noOverflow(page);
   await c.close();

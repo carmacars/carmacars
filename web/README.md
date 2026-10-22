@@ -250,7 +250,16 @@ Change record: `../docs/changes/2026-10-19-seo.md`.
 The free plan takes a Worker of at most 3 MB compressed. The upload is minified (`"minify": true` in `wrangler.jsonc`) and
 the server-only packages that were compiled into each route layer's chunks are resolved from `node_modules` instead
 (`serverExternalPackages` in `next.config.ts`: pdf-lib, zod, supabase-js and supabase/ssr, jose, aws4fetch, postgres), so
-the bundle holds one copy of each. To measure: `npx opennextjs-cloudflare build`, then
+the bundle holds one copy of each.
+
+Cloudflare also refuses a Worker over 64 MiB uncompressed (code 10027). With `experimental.inlineCss` every page's client
+reference manifest carries the full text of the stylesheets its layouts use, and OpenNext compiles every manifest into
+the Worker: release 4 came to 131 MiB, almost all of it the same 15 stylesheets repeated about 2,600 times.
+`scripts/worker-size.mjs patch` (part of `npm run cf:build`, which CI runs) adds a step to OpenNext's load-manifest
+plugin so each stylesheet text is written once and shared by every page (19 MiB); `check` stops the build when the
+server bundle is over 40 MiB. The patch stops the build if an OpenNext upgrade changes that plugin.
+
+To measure: `npm run cf:build`, then
 `npx wrangler deploy --dry-run --outdir /tmp/w` prints `Total Upload: ... / gzip: ...`;
 `.open-next/server-functions/default/handler.mjs.meta.json` (esbuild's metafile) shows what each input contributes.
 
@@ -304,7 +313,7 @@ tests/lint/                 link checker, copy lint, Lighthouse, role crawl, SEO
 | `npm start` | Production server with the Worker's headers (`scripts/serve.mjs`) |
 | `npm run lint` / `npm run typecheck` | ESLint (zero warnings allowed) / `tsc --noEmit` |
 | `npm run db:up`, `db:reset`, `db:down`, `db:types`, `seed` | Local stack |
-| `npm run cf:build` | `opennextjs-cloudflare build` |
+| `npm run cf:build` | `opennextjs-cloudflare build` with the Worker size step (`scripts/worker-size.mjs`, below) |
 | `npm run cf:preview` | Build and run the Worker locally in workerd (`wrangler dev`) |
 | `npm run cf:deploy` | Build and deploy to Cloudflare |
 | `npm run test:e2e` | Playwright (needs `npm run build` and the local stack) |
@@ -367,7 +376,7 @@ Every step is idempotent; a failing step puts its last output lines into the run
 4. Seed: `node scripts/seed.mjs --production` (content rows added, never overwritten; the 20 sample cars only while
    there is no listing, without sample bookings, their addresses suppressed); the stand-in photos into
    `carmacars-prod-vehicle-public` once.
-5. Build and deploy: public settings in `.env.production` (written by the job), `opennextjs-cloudflare build`, then
+5. Build and deploy: public settings in `.env.production` (written by the job), `npm run cf:build`, then
    `opennextjs-cloudflare deploy -- --secrets-file` with the Worker secrets.
 
 Files: `STORAGE_PROVIDER=r2-binding` uses the Worker's R2 bindings (no S3 keys). Private files go through

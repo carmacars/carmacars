@@ -3,7 +3,7 @@ import './offer.css';
 import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { visitorId } from '@/features/live/beacon';
-import { bookingIneligible } from './rules';
+import { bookingIneligible, savedWords } from './rules';
 import { automated, gameSettings, loadPopup, memory, remember } from './GameGate';
 import type { Claimed, GamePopupProps } from './GamePopup';
 
@@ -29,6 +29,8 @@ export function useBookingGame(a: BookingGameArgs): { card: (step: number) => Re
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'offer' | 'closed' | 'won'>('offer');
   const [code, setCode] = useState('');
+  // 0100: a prize this visitor already won and has not claimed: offered as saved, not as a game to play
+  const [saved, setSaved] = useState<string | null>(null);
   const [Popup, setPopup] = useState<ComponentType<GamePopupProps> | null>(null);
   const [open, setOpen] = useState(false);
   // the steps that started while the offer was ready (derived during render, so the card comes with its step)
@@ -48,9 +50,10 @@ export function useBookingGame(a: BookingGameArgs): { card: (step: number) => Re
         const cfg = await gameSettings();
         if (!live || bookingIneligible({ cfg, mem: memory(), path })) return;
         const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
-          body: JSON.stringify({ action: 'start', p: { vid: visitorId(), context: 'booking', dry: true } }) }).then((x) => x.json() as Promise<{ ok: boolean; reason?: string }>).catch(() => null);
+          body: JSON.stringify({ action: 'start', p: { vid: visitorId(), context: 'booking', dry: true } }) }).then((x) => x.json() as Promise<{ ok: boolean; reason?: string; saved?: string | null }>).catch(() => null);
         if (!live || !r) return;
         if (!r.ok) { if (r.reason === 'claimed') remember({ claimed: true, never: 'claimed' }); return; }
+        setSaved(r.saved ?? null);
         setReady(true);
         // the game's code in idle time, so it opens at once
         idle(() => { void loadPopup().catch(() => undefined); });
@@ -76,6 +79,13 @@ export function useBookingGame(a: BookingGameArgs): { card: (step: number) => Re
     if (state === 'won') return (
       <div className="ccg-offer" data-testid="booking-game-won">
         <p className="ccg-offer__text" role="status"><strong>Your game code {code} is on this booking</strong><span>{a.applied}</span></p>
+      </div>
+    );
+    if (saved) return (
+      <div className="ccg-offer" data-testid="booking-game" data-saved="true">
+        <p className="ccg-offer__text"><strong>{savedWords({ label: saved })}</strong><span>Put it on this booking: the discount comes off the rental charge.</span></p>
+        <button type="button" className="btn btn--primary btn--sm ccg-offer__go" onClick={play} data-testid="booking-game-play">Use it</button>
+        <button type="button" className="btn btn--quiet btn--sm ccg-offer__no" onClick={() => done('closed')} data-testid="booking-game-no">No thanks</button>
       </div>
     );
     return (

@@ -37,10 +37,10 @@ language sql as $$ select public.track_ingest(jsonb_build_object('sid', p_sid, '
 create or replace function test.sid(p text) returns text language sql immutable as $$ select md5('sid:' || p)::uuid::text $$;
 
 -- ================================================================ 1. consent and the beacon
-select test.eq('settings: on, 90 days, the owner''s thresholds, chat on, AI first, greeting off',
+select test.eq('settings: on, 90 days, the owner''s thresholds, chat on, AI first, the greeting after 45 seconds (0100; off before)',
   (select format('%s %s %s/%s %s %s %s %s %s', visitor_tracking_enabled, visitor_events_keep_days, visitor_spree_cars, visitor_spree_minutes, visitor_offer_no_answer_hours,
                  chat_enabled, chat_ai_enabled, chat_greeting_seconds, chat_ai_daily_neurons) from (select (app.settings()).*) s),
-  't 90 6/10 6 t t 0 6000');
+  't 90 6/10 6 t t 45 6000');
 select test.eq('without consent: an anonymous visitor is not recorded',
   test.beacon(test.sid('anon'), 'essential', '[{"k": "page_view", "path": "/cars/lv-car-1", "slug": "lv-car-1"}]') ->> 'kept', 'false');
 select test.eq('without consent: no session, no event', (select count(*) from visitor_sessions where id = test.sid('anon')::uuid), 0::bigint);

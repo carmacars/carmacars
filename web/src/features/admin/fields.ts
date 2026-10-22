@@ -41,7 +41,8 @@ const LABELS: Record<string, string> = {
   maint_tasks_enabled: 'Maintenance: a Fleet task per car with what is due', maint_digest_enabled: 'Maintenance: one line in the morning digest',
   maint_winter_addon_link: 'Offer the Winter tires add-on only on cars with a winter set (or no tire record yet)',
   chat_ai_total_daily_neurons: 'Live chat: stop the AI when all Workers AI use of the day reaches (neurons)', chat_ai_max_replies: 'Live chat: AI replies in one chat before a person takes it',
-  chat_greeting_seconds: 'Live chat: greet visitors on a car page after (seconds, 0 is off)', chat_greeting_text: 'Live chat: the greeting',
+  chat_greeting_seconds: 'Live chat: greet visitors after this many seconds on the site (0 is off)', chat_greeting_text: 'Live chat: the greeting',
+  chat_greeting_topic_text: 'Live chat: the greeting on a car or service page ({topic} becomes the car or the service)',
   chat_shift_minutes: 'Live chat: staff count as on shift when active within (minutes)', chat_keep_days: 'Live chat: keep chats of visitors who are not customers (days)',
   default_km_allowance_per_day: 'Kilometres included a day on a new rate card (the default)', stale_request_expire: 'Expire a booking request whose pickup time passed without an offer',
   stale_request_email_renter: 'Email the renter when their request expires that way',
@@ -50,11 +51,11 @@ const LABELS: Record<string, string> = {
   capture_link_hours: 'Forms: the "Continue your request" link works for (hours)', capture_close_days: 'Forms: close an account opened from a form and never confirmed after (days)',
   capture_rate_per_minute: 'Forms: saves one browser may make a minute', capture_followup_tasks: 'Forms: raise the To do "Unfinished request from <name>: follow up"',
   game_enabled: 'Discount games: show the game to visitors who browse (on by default)', game_max_discount_cents: 'Discount games: most a percentage code takes off one booking',
-  game_code_valid_days: 'Discount games: a code is good for (days)', game_trigger_car_pages: 'Discount games: first game after this many car pages (0 is off)',
-  game_trigger_seconds: 'Discount games: or after this many seconds on the site, whichever first (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers)',
+  game_code_valid_days: 'Discount games: a code is good for (days)', game_trigger_car_pages: 'Discount games: first game on this page view, any page (0 is off)',
+  game_trigger_seconds: 'Discount games: or after this many seconds on the site, whichever first (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers, off by default)',
   game_reshow_car_pages: 'Discount games: after a close, the next game on this page view after the close, any page (0 is off)',
-  game_reshow_seconds: 'Discount games: or this many seconds on the site after the close, whichever first (0 is off)',
-  game_max_per_visit: 'Discount games: most games shown in one visit', game_max_per_day: 'Discount games: most games shown in one day in one browser', game_booking_offer: 'Discount games: offer the game in the request-to-book form (signed-in renters too)',
+  game_reshow_seconds: 'Discount games: or this many seconds after the close, whichever first (0 is off)',
+  game_max_per_visit: 'Discount games: most games shown in one visit', game_max_per_day: 'Discount games: most games shown in one day in one browser (0: no daily cap)', game_booking_offer: 'Discount games: offer the game in the request-to-book form (signed-in renters too)',
   game_dismiss_days: 'Discount games: a visitor keeps the same prize for (days)', game_task_min_cars: 'Discount games: Sales task when the visitor viewed this many cars (0: every claim)',
   game_reminder_hours: 'Discount games: reminder email before an unused code expires (hours, 0 is off)',
   game_prizes: 'Discount games: prize table (edit it under Settings, Discount games)', game_weights: 'Discount games: games and their weights (edit it under Settings, Discount games)',
@@ -93,15 +94,15 @@ const HINTS: Record<string, string> = {
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',
   ai_vision_daily_neurons: 'Cloudflare gives 10,000 neurons a day free, shared with the listing copy. A scanned page uses about 100 to 300.',
   chat_ai_daily_neurons: 'One assistant reply uses about 100 to 250 neurons (a quote takes two model calls); a typical chat about 600. 6,000 a day is about 10 chats. When it is used up, chats wait for a person ("A person will reply shortly"). Cloudflare gives 10,000 neurons a day free, shared with the listing copy, the guides and the vision model.',
-  chat_greeting_seconds: 'Off (0) by default. When set, a small message bubble offers help on car pages; the visitor opens the chat only if they press Reply.',
+  chat_greeting_seconds: '45 by default. A small preview opens on the chat button with the greeting, once a visit, never over a discount game and never in the portals, booking or payment pages; the chat opens only if they press Reply, with the greeting as its first message.',
   visitor_events_keep_days: 'The privacy policy says 90 days. Change it only with the lawyer. The daily counts per car (no personal information) are kept.',
   default_km_allowance_per_day: 'Used when staff keep "Use the defaults" on a car\'s rates (200 by default). The extra kilometre rate comes from Fee defaults, Mileage overage, by class.',
   stale_request_email_renter: 'Off by default: the request expires with a note in the booking history only. On: the renter gets the "request declined" email saying the pickup time passed.',
   capture_enabled: 'Only what the person typed, never used for offers without consent. A brand-new email gets an account that works on that device only until its email is confirmed; an email that already has an account only gets a sign-in link. See the privacy policy row "Forms you start".',
   capture_close_days: 'Its unconfirmed sessions end and its sign-in without a password is removed; the lead is kept for follow-up.',
   game_max_discount_cents: 'Applies to percentage prizes only ($75 by default). A dollar prize is its own amount. Empty: no cap.',
-  game_trigger_car_pages: 'On the first page of a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. Never on booking, pay, sign or sign-in pages, never for someone signed in (they get it in the request-to-book form only).',
-  game_reshow_car_pages: 'Each time a game this visitor has not seen yet, all five before one repeats. Later visits start again. Never again after a claim.',
+  game_trigger_car_pages: 'Every page counts (2 by default, or 30 seconds). On the first page of a phone visit from a search engine it comes 15 seconds after its rule as a small slide-in. Never on booking, checkout, pay, sign or sign-in pages, never once a booking request is in progress, never for someone signed in (they get it in the request-to-book form only).',
+  game_reshow_car_pages: 'Each time a game this visitor has not seen yet, never the same one twice in a row. Later visits start again. Once a prize was won, a small "Your 5% off is saved" badge shows instead of games. Never again after a claim.',
   game_dismiss_days: 'Closing a game and seeing another never draws a new prize, so the chances stay as set. After this many days a new prize is drawn.',
   game_booking_offer: 'A card "Play for a discount on this booking" on the add-ons and review steps, for anyone who has not claimed a prize. A won code goes on that booking at once. Never for staff.',
   game_task_min_cars: 'A claim from a visitor who viewed this many different cars raises a Sales follow-up task ("Claimed 10% off, viewed 6 cars").',
@@ -119,7 +120,7 @@ const HINTS: Record<string, string> = {
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [1, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

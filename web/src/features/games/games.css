@@ -128,12 +128,85 @@
 .ccg-prize.ccg-holo { padding: 10px 12px; border-radius: 12px; border: 2px solid #000; }
 .ccg-rare { margin: 0; font-size: var(--fs-xs); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-600); }
 
+
+/* 0100: the coin flip */
+.ccg-coin { position: relative; width: 132px; height: 132px; margin-top: 24px; transform-style: preserve-3d; transition: transform 600ms ease-out; }
+.ccg-coin.is-tails { transform: rotateY(180deg); }
+.ccg-coin__face { position: absolute; inset: 0; border-radius: 50%; display: grid; place-content: center; text-align: center; backface-visibility: hidden;
+  font-family: var(--font-display); font-weight: 800; font-size: 2.4rem; line-height: 1; border: 6px solid #a30d15; box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.5), 0 8px 18px rgb(0 0 0 / 0.3); }
+.ccg-coin__face small { display: block; font-size: 0.8rem; font-weight: 700; margin-top: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.ccg-coin__heads { background: radial-gradient(circle at 35% 30%, #ff5a62, #D0111B 60%, #8f0a12); color: #fff; }
+.ccg-coin__tails { background: radial-gradient(circle at 35% 30%, #4a4a4a, #111 70%); color: #fff; transform: rotateY(180deg); }
+.ccg-coin.is-spinning { animation: ccg-flip 1.7s cubic-bezier(.3,.1,.3,1); }
+@keyframes ccg-flip { 0% { transform: translateY(0) rotateY(0); } 50% { transform: translateY(-70px) rotateY(1440deg); } 100% { transform: translateY(0) rotateY(2520deg); } }
+
+/* 0100: the dice */
+.ccg-dice { display: flex; gap: 22px; margin-top: 40px; }
+.ccg-die { width: 76px; height: 76px; border-radius: 14px; background: #fff; border: 3px solid #000; display: grid; grid-template-columns: repeat(3, 1fr); padding: 9px; gap: 3px;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.25); }
+.ccg-die i { border-radius: 50%; }
+.ccg-die i.is-on { background: var(--red-600); }
+.ccg-die.is-rolling { animation: ccg-tumble 330ms linear infinite; }
+.ccg-die.is-rolling + .ccg-die.is-rolling { animation-duration: 290ms; animation-direction: reverse; }
+@keyframes ccg-tumble { 0% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-18px) rotate(180deg); } 100% { transform: translateY(0) rotate(360deg); } }
+
+/* 0100: the slot machine */
+.ccg-slots { position: relative; display: flex; gap: 6px; padding: 10px; margin-top: 18px; border-radius: 16px; background: linear-gradient(180deg, #D0111B, #8f0a12);
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.3), inset 0 0 0 3px #000; }
+.ccg-reel { width: 82px; height: 132px; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: inset 0 10px 12px -8px rgb(0 0 0 / 0.5), inset 0 -10px 12px -8px rgb(0 0 0 / 0.5); }
+.ccg-reel__strip { list-style: none; margin: 0; padding: 0; transition-property: transform; transition-timing-function: cubic-bezier(.15,.7,.25,1.04); }
+.ccg-reel__strip li { height: 44px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: #000; }
+.ccg-reel__strip li.is-big { color: var(--red-600); }
+.ccg-slots__line { position: absolute; left: 6px; right: 6px; top: 50%; height: 46px; margin-top: -23px; border: 2px solid #000; border-radius: 6px; pointer-events: none; }
+
+/* 0100: the prize drop (a capsule machine) */
+.ccg-drop { position: relative; width: 170px; height: 250px; margin-top: 4px; }
+.ccg-drop__globe { position: absolute; left: 10px; top: 0; width: 150px; height: 120px; border-radius: 50% 50% 12px 12px; background: rgb(230 240 255 / 0.6);
+  border: 4px solid #000; overflow: hidden; }
+.ccg-drop__globe i { position: absolute; width: 32px; height: 32px; border-radius: 50%; left: calc(8px + var(--k) * 17px); bottom: calc(4px + (var(--k) * 23px) % 40px);
+  background: linear-gradient(180deg, #D0111B 50%, #fff 50%); border: 2px solid #000; }
+.ccg-drop__body { position: absolute; left: 22px; top: 112px; width: 126px; height: 110px; background: #D0111B; border: 4px solid #000; border-radius: 6px 6px 14px 14px; }
+.ccg-drop__handle { position: absolute; left: 14px; top: 18px; width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 4px solid #000; transition: transform 800ms ease-in-out; }
+.ccg-drop__handle::after { content: ''; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 7px; margin-left: -3.5px; background: #000; border-radius: 3px; }
+.ccg-drop.is-turning .ccg-drop__handle, .ccg-drop.is-dropped .ccg-drop__handle, .ccg-drop.is-open .ccg-drop__handle { transform: rotate(360deg); }
+.ccg-drop__chute { position: absolute; right: 12px; bottom: 10px; width: 46px; height: 42px; background: #000; border-radius: 8px; }
+.ccg-drop__capsule { position: absolute; left: 50%; top: 150px; width: 56px; height: 56px; margin-left: -28px; opacity: 0; display: grid; place-items: center; }
+.ccg-drop__top, .ccg-drop__bottom { position: absolute; left: 0; right: 0; height: 28px; border: 3px solid #000; transition: transform 500ms ease-out; }
+.ccg-drop__top { top: 0; border-radius: 28px 28px 0 0; background: var(--red-600); }
+.ccg-drop__bottom { bottom: 0; border-radius: 0 0 28px 28px; background: #fff; }
+.ccg-drop__prize { position: relative; z-index: 1; font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; color: var(--red-600); background: #fff; padding: 0 4px; border-radius: 4px; }
+.ccg-drop.is-dropped .ccg-drop__capsule, .ccg-drop.is-open .ccg-drop__capsule { opacity: 1; top: 194px; }
+.ccg-drop.is-open .ccg-drop__top { transform: translateY(-22px) rotate(-18deg); }
+.ccg-drop.is-open .ccg-drop__bottom { transform: translateY(14px); }
+@media (prefers-reduced-motion: no-preference) { .ccg-drop.is-dropped .ccg-drop__capsule { animation: ccg-capsule 1100ms cubic-bezier(.3,.8,.4,1); } }
+@keyframes ccg-capsule { 0% { top: 150px; opacity: 1; } 55% { top: 200px; } 75% { top: 182px; } 100% { top: 194px; } }
+
+/* 0100: the mystery boxes */
+.ccg-boxes { display: flex; gap: 12px; margin-top: 48px; }
+.ccg-box { position: relative; width: 88px; height: 96px; border: 0; padding: 0; background: none; cursor: pointer; }
+.ccg-box:disabled { cursor: default; }
+.ccg-box__base { position: absolute; left: 4px; right: 4px; bottom: 0; height: 66px; display: grid; place-items: center; background: var(--red-600); color: #fff; border: 3px solid #000;
+  border-radius: 4px 4px 8px 8px; font-family: var(--font-display); font-weight: 800; font-size: 1.6rem;
+  background-image: linear-gradient(90deg, transparent 42%, #000 42%, #000 58%, transparent 58%); }
+.ccg-box__lid { position: absolute; left: 0; right: 0; top: 18px; height: 20px; background: #000; border-radius: 4px; transition: transform 450ms cubic-bezier(.2,.8,.2,1); }
+.ccg-box.is-open .ccg-box__lid { transform: translateY(-26px) rotate(-14deg); }
+.ccg-box.is-open .ccg-box__base { background: #fff; color: var(--red-600); font-size: 1.15rem; }
+.ccg-box:not(:disabled):hover .ccg-box__lid { transform: translateY(-4px); }
+@media (prefers-reduced-motion: no-preference) { .ccg-box.is-shaking { animation: ccg-shake 180ms linear infinite; } }
+@keyframes ccg-shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+
+/* 0100: a prize already won in this browser, as a small badge (never a new win) */
+.ccg--saved { display: flex; align-items: center; gap: 8px; width: auto; max-width: 360px; padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--black); color: var(--white);
+  overflow: visible; }
+.ccg-saved__text { margin: 0; font-size: var(--fs-sm); font-weight: 700; }
+.ccg-saved__go { min-height: 44px; flex: 0 0 auto; }
+
 @media (max-width: 599px) {
-  .ccg--slim { left: 12px; right: 84px; bottom: 16px; width: auto; max-width: none; border-radius: 14px; padding-bottom: 8px; }
-  .ccg:not(.ccg--slim) { left: 0; right: 0; bottom: 0; width: 100%; max-width: none; max-height: 85dvh; border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .ccg--slim, .ccg--saved { left: 12px; right: 84px; bottom: 16px; width: auto; max-width: none; border-radius: 14px; padding-bottom: 8px; }
+  .ccg:not(.ccg--slim):not(.ccg--saved) { left: 0; right: 0; bottom: 0; width: 100%; max-width: none; max-height: 85dvh; border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom); }
   .ccg-stage { min-height: 260px; }
   .ccg-wheel { width: min(240px, 100%); }
 }
 @media (prefers-reduced-motion: no-preference) { .ccg { animation: ccg-in 260ms cubic-bezier(.2,.8,.2,1); } }
-@media (prefers-reduced-motion: reduce) { .ccg-cup, .ccg-cup__shape, .ccg-plinko__disc, .ccg-scratch canvas { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .ccg-cup, .ccg-cup__shape, .ccg-plinko__disc, .ccg-scratch canvas, .ccg-coin, .ccg-reel__strip, .ccg-drop__handle, .ccg-drop__top, .ccg-drop__bottom, .ccg-box__lid { transition: none !important; } }
 @keyframes ccg-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
