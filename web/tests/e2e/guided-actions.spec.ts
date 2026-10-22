@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, storeFixturePdf } from './helpers';
 
 // Migration 0078 end to end, at 375 and 1440: Admin > Today lists each piece of work as one line (what to do, why) whose
 // pop-up does it in place, pre-filled: Insurer confirmed (one car, several at once, and on the car's checklist), rates and
@@ -138,7 +138,10 @@ test('renter documents: the proof of coverage approved in the pop-up from Today,
                          order by random() limit 1`;
   test.skip(!b, 'no confirmed booking to use');
   await sql`update bookings set coverage_option = 1, coverage_confirmed_at = null where id = ${b!.id}`;
-  await sql`select app.register_verification_upload(${b!.id}, ${b!.user_id}, 'coverage_proof', null, ${`renters/ga/${tag()}.pdf`}, ${tag()}, 'application/pdf',
+  // a real file behind the row: the crawl opens every document link it finds
+  const key = `renters/ga/${tag()}.pdf`;
+  storeFixturePdf('documents', key);
+  await sql`select app.register_verification_upload(${b!.id}, ${b!.user_id}, 'coverage_proof', null, ${key}, ${tag()}, 'application/pdf',
               jsonb_build_object('coverage_option', 1, 'insurer_name', 'Maple Mutual', 'policy_number', 'MM-77', 'policy_expiry', (select app.local_date(return_at) + 60 from bookings where id = ${b!.id})))`;
   await signIn(page, a.email);
   await page.goto(`/admin/bookings/${b!.booking_number}?tab=overview`, { waitUntil: 'networkidle' });

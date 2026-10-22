@@ -526,3 +526,28 @@ end $$;
 revoke all on function app.car_name_case_backfill() from public, anon, authenticated;
 grant execute on function app.car_name_case_backfill() to service_role;
 select app.car_name_case_backfill();
+
+-- ================================================================ 8. Settings > Search reads the fleet once
+-- The overview counted each landing page's cars with its own read of the public fleet (25 reads); now that every car
+-- added goes on the site at once (section 2 and 0070), the page took a minute on a larger fleet. Same figures, one read.
+create or replace function app.seo_overview(p_admin uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v_fleet jsonb;
+begin
+  perform app.assert_admin(p_admin);
+  v_fleet := (select coalesce(jsonb_agg(r), '[]'::jsonb) from app.public_fleet('{}'::jsonb) r);
+  return jsonb_build_object(
+    'cars', (select coalesce(jsonb_agg(jsonb_build_object('vehicle_id', cc.vehicle_id, 'vehicle', app.vehicle_name(cc.vehicle_id), 'status', cc.status, 'source', cc.source,
+                     'h1', cc.copy ->> 'h1', 'locked', to_jsonb(cc.locked), 'problems', to_jsonb(cc.problems), 'last_error', cc.last_error,
+                     'published_at', cc.published_at, 'next_attempt_at', cc.next_attempt_at, 'up_to_date', cc.copy_facts_hash is not distinct from cc.facts_hash,
+                     'slug', (select l.slug from vehicle_listings l where l.vehicle_id = cc.vehicle_id)) order by app.vehicle_name(cc.vehicle_id)), '[]'::jsonb) from car_copy cc),
+    'pages', (select coalesce(jsonb_agg(to_jsonb(p) - 'facts_hash' - 'copy_facts_hash' || jsonb_build_object('path', app.seo_page_path(p.slug), 'indexable', app.seo_page_indexable(p))
+                     || app.seo_counts_of((select coalesce(jsonb_agg(c), '[]'::jsonb) from jsonb_array_elements(v_fleet) c where app.seo_match(c, p.match)))
+                     order by p.kind, p.sort_order), '[]'::jsonb) from seo_pages p),
+    'articles', (select coalesce(jsonb_agg(to_jsonb(a) || jsonb_build_object('path', '/guides/' || a.slug) order by a.sort_order), '[]'::jsonb) from articles a),
+    'indexnow', jsonb_build_object('waiting', (select count(*) from indexnow_queue where sent_at is null), 'sent_7d', (select count(*) from indexnow_queue where sent_at > now() - interval '7 days'),
+                                   'last', (select jsonb_build_object('at', max(sent_at), 'status', (select last_status from indexnow_queue where sent_at is not null order by sent_at desc limit 1)) from indexnow_queue)),
+    'neurons', app.seo_neurons_today(),
+    'min_real_cars', (app.settings()).seo_landing_min_real_cars);
+end $$;

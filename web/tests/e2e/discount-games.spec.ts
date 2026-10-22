@@ -280,7 +280,8 @@ test('the request-to-book form: the card plays, the code goes on this booking an
   const sql = db();
   const { page, vid } = await visitor(browser, sql, 'plinko', PRIZE50, true);
   const email = `game.bookcard.${test.info().project.name}.${Date.now()}@example.test`;
-  await toAddons(page, isPhone() ? 'toyota-corolla' : 'tesla-model-3', isPhone() ? 150 : 155, email);
+  // a retry asks for other dates: the first try's request may already hold these
+  await toAddons(page, isPhone() ? 'toyota-corolla' : 'tesla-model-3', (isPhone() ? 150 : 155) + 20 * test.info().retry, email);
   const card = page.getByTestId('booking-game');
   await expect(card).toBeVisible({ timeout: 15_000 });
   await expect(card).toContainText('Play for a discount on this booking');
