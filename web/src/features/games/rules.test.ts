@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPage, addSeen, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
+import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
 // Discount games (migrations 0069 and 0081): when a game may show (first, again after a close, in the request-to-book
 // form), the round of five games, and that every game lands on the prize the database drew.
-const CFG: GameCfg = { on: true, car_pages: 1, seconds: 15, exit: true, reshow_pages: 2, reshow_seconds: 180, per_visit: 3, booking: true };
+const CFG: GameCfg = { on: true, car_pages: 1, seconds: 15, exit: true, reshow_pages: 2, reshow_seconds: 60, per_visit: 3, per_day: 6, booking: true };
 const NOW = Date.parse('2026-10-21T15:00:00Z');
 const PRIZES: PrizeWord[] = [{ key: 'pct5', short: '5%', label: '5% off' }, { key: 'pct10', short: '10%', label: '10% off' }, { key: 'pct15', short: '15%', label: '15% off' }, { key: 'amt50', short: '$50', label: '$50 off' }];
 let seed = 7;
@@ -78,20 +78,28 @@ describe('a phone visit from a search engine (no interstitial on the landing pag
 describe('again after a close', () => {
   const after = (o: Partial<Visit> = {}) => closed(shown(visit({ cars: ['a'], ...o })), NOW);
   it('not while one is open', () => assert.equal(t(shown(visit({ cars: ['a', 'b', 'c'], start: 0 }))), null));
-  it('after 2 more car pages', () => {
+  it('on the 2nd page view after the close, any page (0094)', () => {
     let v = after();
     assert.equal(t(v), null);
-    v = addPage(v, '/cars/a'); // the same car again does not count
-    v = addPage(v, '/cars/b');
+    v = addPage(v, '/how-it-works');
     assert.equal(t(v), null);
-    v = addPage(v, '/cars/c');
+    v = addPage(v, '/faq');
     assert.deepEqual(t(v), { why: 'pages', slim: false });
   });
-  it('or 3 minutes after the close, whichever first', () => {
+  it('or 60 seconds after the close, whichever first (0094)', () => {
     const v = after();
-    assert.equal(t(v, { now: NOW + 179_999 }), null);
-    assert.deepEqual(t(v, { now: NOW + 180_000 }), { why: 'time', slim: false });
-    assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW + 60_000, phone: false }), 120_000);
+    assert.equal(t(v, { now: NOW + 59_999 }), null);
+    assert.deepEqual(t(v, { now: NOW + 60_000 }), { why: 'time', slim: false });
+    assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW + 20_000, phone: false }), 40_000);
+  });
+  it('at most 6 a day in this browser (0094), the first game too', () => {
+    assert.equal(trigger({ cfg: CFG, visit: visit({ cars: ['a'] }), now: NOW, phone: false, today: 6 }), null);
+    assert.deepEqual(trigger({ cfg: CFG, visit: visit({ cars: ['a'] }), now: NOW, phone: false, today: 5 }), { why: 'pages', slim: false });
+    assert.equal(nextCheck({ cfg: CFG, visit: after(), now: NOW, phone: false, today: 6 }), null);
+    const m = { day: gameDay(NOW), dayShows: 5 };
+    assert.equal(shownToday(m, NOW), 5);
+    assert.equal(shownToday(m, NOW + 2 * 86_400_000), 0);
+    assert.deepEqual(countShown(m, NOW), { day: gameDay(NOW), dayShows: 6 });
   });
   it('exit intent is for the first game only', () => assert.equal(t(after(), { exit: true }), null));
   it('at most 3 a visit, then not even by time', () => {
