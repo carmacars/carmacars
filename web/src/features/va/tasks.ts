@@ -25,6 +25,7 @@ export function taskHref(t: Task): string {
   if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/va/reconciliation';
   if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/va/money';
   if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/va/listings';
+  if (t.task_type === 'chauffeur_request') return '/va/chauffeur';
   if (t.task_type === 'listing_similarity') return '/va/similar-cars';
   if (t.task_type === 'owner_form_review') return '/va/owner-forms';
   if (t.task_type === 'account_link_review') return '/va/renters';
@@ -51,6 +52,7 @@ export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 've
   if (['first_last_decide', 'check_owner_document'].includes(t.task_type)) return t.owner_id ? `/admin/owners/${t.owner_id}${t.task_type === 'first_last_decide' ? '?tab=terms' : ''}` : '/admin/owner-forms';
   if (['live_rental_insurance', 'insurer_confirmation', 'list_vehicle', 'review_listing', 'book_registry', 'turo_expiry', 'safety_certificate_window', 'plate_renewal'].includes(t.task_type) && t.vehicle_id)
     return `/admin/vehicles/${t.vehicle_id}${['list_vehicle', 'review_listing', 'live_rental_insurance', 'insurer_confirmation'].includes(t.task_type) ? '?tab=listing' : ''}`;
+  if (t.task_type === 'chauffeur_request') return '/admin/chauffeur';
   if (t.task_type === 'listing_similarity') return '/admin/similar-cars';
   if (t.task_type === 'match_toll') return '/admin/tolls';
   if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/admin/reconciliation';

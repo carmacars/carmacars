@@ -89,16 +89,22 @@ function Tween({ cents }: { cents: number }) {
 
 export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, maxDays, labels, problem, coverageChosen }: {
   q: Quote | null; error: string; loading: boolean; from: string; to: string; tf: string; tt: string; hst: string; maxDays: number;
-  rates: { daily: number; weekend: number; weekly: number; monthly: number }; labels: LabelTokens; problem?: string; coverageChosen?: boolean;
+  rates: { daily: number; weekend: number; weekly: number; monthly: number; multi?: number | null }; labels: LabelTokens; problem?: string; coverageChosen?: boolean;
 }) {
   if (!from || !to) {
     return (
       <div className="estimate" aria-live="polite">
         <p className="estimate__empty">Pick your pickup and return dates to see the price for this car.</p>
         <table className="spec spec--num"><tbody>
+          {rates.multi ? <>
+            <tr><th scope="row">1 to 2 days, a day</th><td>{money(rates.daily)}</td></tr>
+            <tr><th scope="row">3 to 6 days, a day</th><td>{money(rates.multi)}</td></tr>
+            <tr><th scope="row">7 days or more, a day</th><td>{money(Math.round(rates.weekly / 7))}</td></tr>
+          </> : <>
           <tr><th scope="row">Daily</th><td>{money(rates.daily)}</td></tr>
           <tr><th scope="row">Weekend day (Fri, Sat)</th><td>{money(rates.weekend)}</td></tr>
           <tr><th scope="row">Weekly</th><td>{money(rates.weekly)}</td></tr>
+          </>}
           <tr><th scope="row">Monthly ({maxDays} days)</th><td>{money(rates.monthly)}</td></tr>
         </tbody></table>
       </div>

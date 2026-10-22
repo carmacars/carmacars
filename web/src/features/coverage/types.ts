@@ -8,7 +8,7 @@ export interface CardCheck {
 }
 export interface ProofPage { id: string; status: 'submitted' | 'approved' | 'rejected'; uploaded_at: string; mime_type: string | null; reject_reason?: string | null; bucket?: string; path?: string }
 export interface RenterCoverage {
-  option: 1 | 2 | 3 | null; option_label: string; confirmed: boolean; confirmed_at: string | null; booking_status: string;
+  option: 1 | 2 | 3 | 4 | null; option_label: string; confirmed: boolean; confirmed_at: string | null; booking_status: string;
   return_date: string; min_policy_expiry: string; pickup_at: string; vehicle_class: string | null; rental_days: number;
   can_change: boolean; protection_plan_line: boolean; protection_plan_requested: boolean; card: CardCheck; max_pages: number;
   proof: null | {
@@ -18,7 +18,7 @@ export interface RenterCoverage {
   };
 }
 export interface ReviewCoverage {
-  option: 1 | 2 | 3 | null; option_label: string; confirmed: boolean; return_date: string; vehicle_class: string | null; rental_days: number;
+  option: 1 | 2 | 3 | 4 | null; option_label: string; confirmed: boolean; return_date: string; vehicle_class: string | null; rental_days: number;
   booking_status: string; card: CardCheck; protection_plan_line: boolean;
   proof: null | {
     id: string; coverage_option: number; status: 'submitted' | 'confirmed' | 'rejected'; rejection_reason: string | null;

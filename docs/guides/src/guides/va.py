@@ -173,6 +173,27 @@ def build():
     ], head=['Button', 'When'])
 
     # ---------------------------------------------------------------- 3
+
+    g.chapter('Chauffeur requests',
+              'Customer service and Sales handle the chauffeur requests sent from carmacars.ca/chauffeur, and answer questions about the partner cars on the site.',
+              blurb='Quote and confirm a chauffeur request; partner cars with insurance included or no credit card needed.')
+    g.task('Quote a chauffeur request', 'A new request is a task in your queue: Chauffeur request CH-1001, with the vehicle, the date, the hours and the client\'s contact.')
+    g.steps([
+        f'Open {B("Chauffeur")} from the task (or the menu). Find the request by its number.',
+        'Check the vehicle and the driver with the partner for that date and time.',
+        f'To change the vehicle or the hours, press {B("Change")}. The quote is worked out again: 2 hours at the 2-hour rate, 3 hours or more at the 3+ hour rate for every hour, then HST.',
+        f'Send the quote line to the client by email or phone. Press {B("Quoted")} and write how you sent it.',
+        f'When the client agrees and the payment is arranged, press {B("Confirm")}. After the trip, press {B("Completed")}.',
+    ])
+    g.tip('The minimum is 2 hours. The rates on the site are guideline rates: the price is confirmed in the quote.')
+    g.task('Partner cars: insurance included, no credit card', f'Some partner cars say {B("Insurance included: no personal auto policy needed")} and {B("No credit card needed: debit accepted")} on their page.')
+    g.steps([
+        'On these cars the renter does not choose a coverage option: the booking shows "insurance included with the car", already confirmed. There is no proof to review.',
+        'The renter may pay with a debit card in their own name. A prepaid card is still refused.',
+        'The deposit, the licence and selfie checks and the ages are the same as on every car.',
+        'Partner cars without a confirmed model year say "Year confirmed when you book". An offer cannot be sent until an Admin confirms the year: ask an Admin.',
+    ])
+
     g.chapter('Finance',
               'You keep the money right: payments, deposits and refunds, toll notices, processor payouts and Turo trips.',
               blurb='Payments, deposits and refunds, tolls and tickets, reconciliation and Turo trips.')

@@ -44,7 +44,7 @@ export default async function HubPage({ params }: Params) {
   const abs = (p: string) => (/^https?:/.test(photoUrl(p)) ? photoUrl(p) : siteUrl() + photoUrl(p));
   return (
     <div className="p-hub">
-      <JsonLd graph={[breadcrumbLd(trail, h.path), { '@type': 'ItemList', name: `${h.make} ${h.model} for rent`, itemListElement: h.cars.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year} ${c.make} ${c.model}`, ...(c.cover ? { image: abs(c.cover.path) } : {}) })) }]} />
+      <JsonLd graph={[breadcrumbLd(trail, h.path), { '@type': 'ItemList', name: `${h.make} ${h.model} for rent`, itemListElement: h.cars.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}`, ...(c.cover ? { image: abs(c.cover.path) } : {}) })) }]} />
       <section className="page-head on-dark"><div className="wrap">
         <Crumbs trail={trail} />
         <h1 className="d1">Rent a {h.make} {h.model} in {s.city}</h1>

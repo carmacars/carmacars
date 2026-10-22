@@ -28,6 +28,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "chauffeur-requests",
+   "title": "Chauffeur requests",
+   "blurb": "Quote and confirm a chauffeur request; partner cars with insurance included or no credit card needed.",
+   "body_md": "Customer service and Sales handle the chauffeur requests sent from carmacars.ca/chauffeur, and answer questions about the partner cars on the site.\n\n## Quote a chauffeur request\n\nA new request is a task in your queue: Chauffeur request CH-1001, with the vehicle, the date, the hours and the client's contact.\n\n1. Open **Chauffeur** from the task (or the menu). Find the request by its number.\n2. Check the vehicle and the driver with the partner for that date and time.\n3. To change the vehicle or the hours, press **Change**. The quote is worked out again: 2 hours at the 2-hour rate, 3 hours or more at the 3+ hour rate for every hour, then HST.\n4. Send the quote line to the client by email or phone. Press **Quoted** and write how you sent it.\n5. When the client agrees and the payment is arranged, press **Confirm**. After the trip, press **Completed**.\n\n> Tip: The minimum is 2 hours. The rates on the site are guideline rates: the price is confirmed in the quote.\n\n## Partner cars: insurance included, no credit card\n\nSome partner cars say **Insurance included: no personal auto policy needed** and **No credit card needed: debit accepted** on their page.\n\n1. On these cars the renter does not choose a coverage option: the booking shows \"insurance included with the car\", already confirmed. There is no proof to review.\n2. The renter may pay with a debit card in their own name. A prepaid card is still refused.\n3. The deposit, the licence and selfie checks and the ages are the same as on every car.\n4. Partner cars without a confirmed model year say \"Year confirmed when you book\". An offer cannot be sent until an Admin confirms the year: ask an Admin.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "finance",
    "title": "Finance",
    "blurb": "Payments, deposits and refunds, tolls and tickets, reconciliation and Turo trips.",

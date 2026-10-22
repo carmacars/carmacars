@@ -23,7 +23,7 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
           </div>
           <nav aria-label="Rent"><h2>Rent</h2><ul>
             <li><Link prefetch={false} href="/cars">Fleet</Link></li><li><Link prefetch={false} href="/how-it-works">How it works</Link></li>
-            <li><Link prefetch={false} href="/requirements">Requirements and coverage</Link></li><li><Link prefetch={false} href="/delivery">Delivery</Link></li>
+            <li><Link prefetch={false} href="/requirements">Requirements and coverage</Link></li><li><Link prefetch={false} href="/delivery">Delivery</Link></li><li><Link prefetch={false} href="/chauffeur">Chauffeur service</Link></li>
             <li><Link prefetch={false} href="/book">Request to book</Link></li>
             {uses.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
             <li><Link prefetch={false} href="/guides">Guides</Link></li>

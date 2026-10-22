@@ -24,7 +24,8 @@ function loadStripe(key: string): Promise<StripeJs> {
 }
 const same = (a: string, b: string) => a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
 
-export function PayForm({ number, amountCents, depositCents, coverageOption = null }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null }) {
+export function PayForm({ number, amountCents, depositCents, coverageOption = null, debitOk = false }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null;
+  /** 0093: no credit card needed on this car: a debit card in the renter's name pays and holds the deposit */ debitOk?: boolean }) {
   const router = useRouter();
   const [p, setP] = useState<StartedPayment | null>(null);
   const [fatal, setFatal] = useState<{ code: string; message: string } | null>(null);
@@ -122,6 +123,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         <input className="input" id="pt-card-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="cc-name" aria-invalid={!!err('name') || undefined} aria-describedby="pt-card-name-hint pt-card-name-err" />
         <p className="hint" id="pt-card-name-hint">{coverageOption === 2
           ? 'You chose the rental coverage on your credit card: pay with that credit card, in the renter\'s name. Debit and prepaid cards do not qualify.'
+          : debitOk ? 'No credit card needed for this car: a credit or debit card in the renter\'s name. Prepaid cards are not accepted.'
           : 'The card must be a credit card in the renter\'s name.'}</p>
         <p className="error" role="alert" id="pt-card-name-err">{err('name') ?? ''}</p>
       </div>

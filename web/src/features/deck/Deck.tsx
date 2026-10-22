@@ -54,7 +54,7 @@ function FeatureSlide({ f, group }: { f: Feature; group: string }) {
       <div className="dk-feature__words">
         <p className="dk-kicker">{group}</p>
         <h2 className="dk-title">{f.title}</h2>
-        <div><p className="dk-feature__label">What it is</p><p>{f.what}</p></div>
+        <div><p className="dk-feature__label">What it is</p>{f.points?.length && f.shots?.length ? <ul className="dk-points">{f.points.map((x) => <li key={x}>{x}</li>)}</ul> : <p>{f.what}</p>}</div>
         <div><p className="dk-feature__label">Why it matters</p><p>{f.why}</p></div>
       </div>
       {f.shots?.length ? (
@@ -174,15 +174,17 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
     <p className="dk-note">On every car, whatever its supply: delivery, add-ons, young driver and other renter fees, and coverage sold are CarmaCars&apos; own revenue.</p></div>
   </> });
 
-  // the five revenue lines (migration 0094): coverage is always "under our fleet policy", never insurance we sell
+  // the revenue lines (migrations 0094, 0095): coverage is always "under our fleet policy", never insurance we sell
   add({ title: 'How we make money', id: 'revenue-lines', node: <>
-    <Head kicker="Business model" title="How we make money" lead="Five lines of revenue, from cars we own to fleets we broker." />
+    <Head kicker="Business model" title="How we make money" lead="Seven lines of revenue, from cars we own to fleets we broker, detailing and body work." />
     <div className="dk-body"><ol className="dk-flow" data-testid="deck-revenue-lines">
       <li><b>Our own cars, rented directly</b><span>We keep the full rental income.</span></li>
       <li><b>Owners&apos; cars, fully managed</b><span>Coverage under our fleet policy, and we run every rental: a management fee{shareRange ? ` (${shareRange} of rental revenue)` : ''} and a revenue share.</span></li>
       <li><b>Coverage for owners who manage their own cars</b><span>Their cars get coverage under our fleet policy for a monthly fee.</span></li>
       <li><b>Turo management for owners</b><span>We run the owner&apos;s Turo listing and trips for a management fee.</span></li>
       <li><b>Brokering partner rental fleets</b><span>A commission on partner cars we rent out: a markup plus a cut of the partner&apos;s rates, including a chauffeur service.</span></li>
+      <li data-testid="deck-services"><b>Detailing</b><span>Interior and exterior, paint correction and ceramic coating, mobile detailing, window tint, PPF and wraps, priced per job. CarmaCars&apos; own revenue.</span></li>
+      <li><b>Body shop</b><span>Collision repair, dents and scratches, painting and windshield repair, priced per job. CarmaCars&apos; own revenue, and each job is a customer who may need a rental car while theirs is with us.</span></li>
     </ol>
     <p className="dk-note">CarmaCars&apos; figure: a {multText} multiplier on the money we invest in the fleet. Internal, not audited.</p></div>
   </> });
@@ -218,10 +220,6 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
           fee('fuel_service_fee') && `fuel service fee ${$(fee('fuel_service_fee'))} plus fuel`, fee('late_return_fee') && 'late returns by the hour', fee('lost_key_fee') && `lost key fee ${$(fee('lost_key_fee'))}`,
           fee('toll_admin_fee') && `${$(fee('toll_admin_fee'))} administration per toll invoice`, fee('ticket_admin_fee') && `${$(fee('ticket_admin_fee'))} administration per ticket`].filter(Boolean).join(', ')}.
         These are CarmaCars&apos; own revenue, never shared with the car&apos;s owner.</p></div>
-      <div className="dk-card" style={{ gridColumn: '1 / -1' }} data-testid="deck-services"><h3>Detailing and body shop</h3><p>
-        Detailing (interior and exterior, paint correction and ceramic coating, mobile detailing, window tint, PPF and wraps) and body work (collision repair,
-        dents and scratches, painting, windshield repair), priced per job. Both are CarmaCars&apos; own revenue, and each job is a customer who may need a rental car
-        while theirs is with us.</p></div>
     </div></div>
   </> });
 

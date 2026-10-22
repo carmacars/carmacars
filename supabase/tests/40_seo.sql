@@ -137,6 +137,8 @@ select test.eq('budget: past the day''s search neurons the job claims nothing to
 delete from provider_calls where purpose = 'seo_page' and units = 4000;
 
 -- ================================================================ 3. landing pages
+-- 0093: the partner fleet a migration imported is set aside, so these pages count this suite's cars only
+update vehicle_listings l set status = 'paused' from vehicles v where v.id = l.vehicle_id and v.partner_sheet_name is not null and l.status = 'published';
 insert into seo_pages (slug, kind, name, facts, match, copy) values
   ('se-place', 'location', 'Se Place', '{"highways": ["401"]}', '{}', '{"seo_title": "Car Rental in Se Place | CarmaCars", "meta_description": "x", "h1": "Car rental in Se Place", "intro": "Intro.", "sections": [], "faq": []}'),
   ('se-suv', 'use', 'Se SUV rental', '{}', '{"classes": ["suv"]}', '{"seo_title": "SUV Rental | CarmaCars", "meta_description": "x", "h1": "SUV rental", "intro": "Intro.", "sections": [], "faq": []}');
@@ -248,3 +250,6 @@ insert into review_request_decisions (booking_id, problems, status, decided_at, 
 select app.notify_google_reviews(test.at40('2031-08-09 10:00'));
 select test.eq('Google: once a person says yes, it is sent like any other', test.ev40('renter_google_review_request', test.id('booking:SE-2')), 1::bigint);
 update site_settings set google_place_id = null;
+
+-- 0093: the partner fleet back on the site for the suites after this one
+update vehicle_listings l set status = 'published' from vehicles v where v.id = l.vehicle_id and v.partner_sheet_name is not null and l.status = 'paused';

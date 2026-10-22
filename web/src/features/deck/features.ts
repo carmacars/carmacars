@@ -133,8 +133,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         points: ['Saved as each field becomes valid, even if the form is never sent', 'One email with a link to confirm and continue on any device', 'Unfinished forms show up as follow-ups for the team', 'Explained under every form, with a link to the privacy policy'] },
       { id: 'recovery', title: 'Booking recovery emails', what: 'A request left unfinished, an offer not answered or a payment not completed gets a timely reminder.',
         why: 'Bookings that would have been lost come back on their own.' },
-      { id: 'partners', title: 'Partner fleets and a marketplace partner', what: 'Partner rental companies list their cars with us and we broker them on commission. A marketplace partner also lists our cars under our policy.',
-        why: 'More cars to offer without buying them, and more renters without more ad spend.' }
+      { id: 'partners', title: 'Partner fleets and chauffeur service', what: 'Partner rental companies list their whole fleets on CarmaCars. A partner rental fleet\'s exotic and luxury cars are on the site with their own pages, and a chauffeur service books a driver and a luxury car or van by the hour.',
+        why: 'More cars and a new hourly service to sell without buying a single car, and every booking earns a markup plus a cut of the partner\'s rates.',
+        points: ['Partner rental companies list their fleets on CarmaCars, and we earn a markup plus a cut of their rates', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum'],
+        shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] }
     ]
   }
 ];

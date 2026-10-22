@@ -61,7 +61,7 @@ export default async function LandingPage({ params }: Params) {
   const reading = articles.filter((a) => (p.kind === 'location' ? ['airports', 'driving', 'trips'] : ['pricing', 'drivers', 'insurance', 'driving']).includes(a.topic ?? '')).slice(0, 3);
   const graph: object[] = [breadcrumbLd(trail, p.path), faqLd(faq),
     { '@type': 'ItemList', name: F(p.copy.h1), numberOfItems: p.cars.length,
-      itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year} ${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
+      itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
   if (p.kind === 'location') graph.push({ ...businessLd(s, siteUrl(), { areas: p.slug === 'toronto' ? bf.areas : [p.name.replace(/ \(.*\)$/, '')], price: bf.price }), '@id': `${siteUrl()}/#business` });
   return (
     <div className="p-landing" data-page="landing" data-indexable={p.indexable ? 'yes' : 'no'}>
