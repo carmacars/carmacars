@@ -256,6 +256,9 @@ type Named = { make: string; model?: string; year?: number; trim?: string; city?
 const nameOf = (o: Named) => [o.year, o.make, o.model, o.trim].filter(Boolean).join(' ');
 const nameNoMake = (o: Named) => [o.year, o.model, o.trim].filter(Boolean).join(' ');
 const low = (s?: string) => (s ?? '').toLowerCase();
+/** A term in the middle of a sentence: its phrase as stored, brands and acronyms keeping their capitals ("Uber Eats car
+ *  rental", "PPF"); without a stored phrase, the name with a lowercase first letter unless its first word is an acronym. */
+export const midTerm = (t: { name: string; phrase?: string }) => t.phrase?.trim() || (/^[A-Z0-9]{2,}\b/.test(t.name) ? t.name : t.name.charAt(0).toLowerCase() + t.name.slice(1));
 const an = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** A place's short name for a tight title: "Toronto Pearson Airport (YYZ)" is "Pearson (YYZ)". Every option keeps the
@@ -319,9 +322,9 @@ export function termTitleOptions(o: Named & { mode: TermMode; term: { slug: stri
   return [`${T}: ${c}${n}${where}${o.city ? '' : ' | {{brand}}'}`, `${T}: ${c}${n}${where}${tail && !o.city ? tail : ''}`, `${T}: ${c}${n}${sp}`, `${T}: ${c}${m}${sp}`,
     `${S}: ${c}${m}${sp}`, `${S}: ${c}${m}${o.city ? `, ${shortPlace(o.city)}` : ''}`].map((x) => cap(x));
 }
-export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
+export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string; phrase?: string }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
   const c = o.colour ? `${low(o.colour)} ` : '';
-  const n = `${c}${nameOf(o)}`, ph = low(o.term.name), where = o.city ? ` in ${o.city}` : '';
+  const n = `${c}${nameOf(o)}`, ph = midTerm(o.term), where = o.city ? ` in ${o.city}` : '';
   const facts = [o.body ? low(o.body) : '', o.length ? `${o.length} long` : '', o.use ?? ''].filter(Boolean).join(', ');
   if (o.mode === 'detailing') return [`${o.term.name} for ${an(n)} ${n}${where}${facts ? ` (${facts})` : ''}. Request a time, and rent a car from us while yours is detailed.`,
     `${o.term.name} for ${an(n)} ${n}${where}. Request a time, and rent a car while yours is detailed.`, `${o.term.name} for ${an(n)} ${n}${where}: request it, and rent a car meanwhile.`];

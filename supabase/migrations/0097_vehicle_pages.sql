@@ -1144,15 +1144,15 @@ $$;
 
 -- The search terms with a tree of their own: place_terms (0095) when it is here (active, not a synonym of another,
 -- "car-rental" being the /cars tree itself), else the default list. name: the phrase with a capital ("Car hire").
-create or replace function app.vpage_terms() returns table (slug text, name text, kind text, sort integer, lead text)
+create or replace function app.vpage_terms() returns table (slug text, name text, kind text, sort integer, lead text, phrase text)
 language plpgsql stable security definer set search_path = public, app as $$
 begin
   if app.vpage_has('place_terms') then
     return query execute $q$
-      select t.slug, app.vpage_term_name(t.phrase, t.title), t.vertical, t.sort_order, t.lead_kind
+      select t.slug, app.vpage_term_name(t.phrase, t.title), t.vertical, t.sort_order, t.lead_kind, btrim(t.phrase)
         from place_terms t where t.is_active and t.canonical_slug is null and t.slug <> 'car-rental' order by t.vertical, t.sort_order, t.slug $q$;
   else
-    return query select x.slug, x.name, x.kind, x.sort, x.lead from (values
+    return query select x.slug, x.name, x.kind, x.sort, x.lead, lower(left(x.name, 1)) || substr(x.name, 2) from (values
       ('car-hire', 'Car hire', 'rental', 20, null::text), ('cars-for-hire', 'Cars for hire', 'rental', 30, null), ('vehicle-rental', 'Vehicle rental', 'rental', 40, null),
       ('insurance-replacement', 'Insurance replacement rental', 'rental', 50, null),
       ('used', 'Used', 'sale', 110, 'buyer'), ('financing', 'Financing', 'sale', 120, 'finance'), ('leasing', 'Leasing', 'sale', 130, 'finance'), ('lease-takeover', 'Lease takeover', 'sale', 140, 'finance'),
@@ -1323,7 +1323,7 @@ language sql stable security definer set search_path = public, app as $$
     'settings', app.vpage_settings_json(app.settings()),
     'places', app.vpage_place_links(),
     'colours', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'hex', x.hex) order by x.sort), '[]'::jsonb) from vehicle_colours x),
-    'terms', (select coalesce(jsonb_agg(jsonb_build_object('slug', t.slug, 'name', t.name, 'kind', t.kind, 'lead', t.lead) order by t.kind, t.sort, t.slug), '[]'::jsonb) from app.vpage_terms() t))
+    'terms', (select coalesce(jsonb_agg(jsonb_build_object('slug', t.slug, 'name', t.name, 'kind', t.kind, 'lead', t.lead, 'phrase', t.phrase) order by t.kind, t.sort, t.slug), '[]'::jsonb) from app.vpage_terms() t))
 $$;
 
 -- One place, colour or place and colour page: the trim page's read, and the place (its parent; for a city,

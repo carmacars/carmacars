@@ -341,7 +341,7 @@ ticked.
 2. The investor deck (0083, merged from release 2): the feature "Search reach: a page for every car, place and need"
    is in `web/src/features/deck/features.ts` (group "Growth and marketing"), with the screenshot
    `web/public/deck/vehicle-pages.jpg` (the car hire page of a 2024 Toyota Corolla LE in Scarborough). It promises no
-   page count beyond "hundreds of trillions of combinations" and shows no fleet figures.
+   page count beyond "trillions of combinations" and shows no fleet figures.
 
 3. No header, menu or home page link goes to the vehicle pages (the owner's rule): crawlers reach them through the
    footer's Browse section (release 4), the sitemaps, IndexNow and the links between the pages themselves.

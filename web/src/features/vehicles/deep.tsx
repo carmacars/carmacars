@@ -20,7 +20,7 @@ export type Colour = { slug: string; name: string; hex: string };
 export type City = { slug: string; name: string; kind: string; parent: string | null; facts: Record<string, unknown>; landing: string | null; km: number | null;
   delivery: { fee_cents: number | null; km: number | null; airport_code?: string | null; airport_name?: string | null; per_km_cents?: number | null; min_cents?: number | null } | null;
   nearby: Array<{ slug: string; name: string; km: number | null }>; within: Array<{ slug: string; name: string }> };
-export type Term = { slug: string; name: string; kind: 'rental' | 'sale' | 'detailing' | 'bodyshop'; lead?: string | null };
+export type Term = { slug: string; name: string; kind: 'rental' | 'sale' | 'detailing' | 'bodyshop'; lead?: string | null; phrase?: string };
 export type Tiers = { settings: Record<string, unknown>; places: Array<{ slug: string; name: string; kind: string }>; colours: Colour[]; terms: Term[] };
 export type TierPage = Omit<TrimPage, 'level'> & { level: 'city' | 'colour' | 'city_colour'; trim_path: string; city: City | null; colour: Colour | null; tiers: Tiers; dims?: Dim[] };
 
