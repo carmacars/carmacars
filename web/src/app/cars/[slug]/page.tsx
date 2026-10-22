@@ -60,11 +60,12 @@ export async function generateMetadata({ params }: Params) {
   // colour or a short code) in both, so no two cars have the same title or description
   // 0093: a partner fleet has several trims of one model (C300, C43 AMG, C63 S AMG): its cars are named with the trim,
   // and the colour when another car shares it
-  const nm = c.guideline_rates ? `${name(c)}${c.trim ? ` ${c.trim}` : ''}${c.seo_mark && c.colour ? ` (${c.colour.toLowerCase()})` : ''}`
-    : `${name(c)}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
+  // 0104: the mark is the colour, else the car code, else a short word (app.listing_seo_mark), for partner cars too
+  const nm = `${name(c)}${c.guideline_rates && c.trim ? ` ${c.trim}` : ''}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
   const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
     : fit(65, `Rent a ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}}, ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}} | {{brand}}`);
-  const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
+  // 0104: the gearbox as stored, in its capitals ("Automatic (CVT)", "Automatic (dual-clutch)")
+  const spec = [c.seats ? `${c.seats} seats` : '', c.transmission ?? '', `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
   const description = locked.has('meta_description') && c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
     : fit(160, `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}${c.insurance_included ? ', insurance included' : ''}. Pickup or delivery, no payment to request.`,
       `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
@@ -152,7 +153,8 @@ export default async function CarPage({ params }: Params) {
           <Gallery name={name(c)} photos={c.photos} />
           <div className="car-top__info">
             <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
-            <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>
+            {/* 0104: a partner car's trim and every twin's mark, so no two cars share a heading */}
+            <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}{c.guideline_rates && c.trim ? ` ${c.trim}` : ''}{c.seo_mark ? ` (${c.seo_mark})` : ''}</h1>
             <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `${c.year || c.trim ? ', ' : ''}${c.colour}` : ''}{c.year || c.trim || c.colour ? '. ' : ''}For rent in {s.city}.{c.year_approximate ? ' Year confirmed when you book.' : ''}</p>
             {(c.insurance_included || c.no_credit_card) && (
               <ul className="car-top__perks" data-testid="car-perks">

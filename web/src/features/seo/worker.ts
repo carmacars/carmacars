@@ -25,8 +25,9 @@ export interface SeoDeps {
   /** {{token}} values for articles (the site's settings in words). */
   tokens(): Promise<Record<string, string>>;
   /** Sends a batch to IndexNow; null when sending is off (not production). */
-  indexNow?: ((key: string, paths: string[]) => Promise<{ status: number; error?: string }>) | null;
-  sent?(paths: string[], status: number, error?: string): Promise<unknown>;
+  indexNow?: ((key: string, paths: string[]) => Promise<{ status: number; error?: string; retryAfter?: number }>) | null;
+  /** The answer, for the queue: a 429 spends no attempt and pauses the queue (until retryAfter seconds, else tomorrow; 0104). */
+  sent?(paths: string[], status: number, error?: string, retryAfter?: number): Promise<unknown>;
   now?(): number;
 }
 export interface SeoSummary { cars: number; pages: number; articles: number; published: string[]; failed: string[]; indexnow: number; changed: string[]; errors: string[] }
@@ -71,7 +72,7 @@ export async function runSeoJob(d: SeoDeps, o: { limit?: number; deadlineMs?: nu
     const paths = c.indexnow.paths;
     try {
       const res = await d.indexNow(c.indexnow.key, paths);
-      await d.sent?.(paths, res.status, res.error);
+      await d.sent?.(paths, res.status, res.error, res.retryAfter);
       if (res.status >= 200 && res.status < 300) sum.indexnow = paths.length; else sum.errors.push(`indexnow ${res.status}: ${res.error ?? ''}`.trim());
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

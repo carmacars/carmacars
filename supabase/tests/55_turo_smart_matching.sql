@@ -48,7 +48,7 @@ select test.eq('every active real car is a candidate with no name on Turo; a sam
      when test.v88('t88sample')::text then 'sample' when test.v88('t88gone')::text then 'gone' end x from jsonb_array_elements(public.turo_match_keys() -> 'cars') c) y where x is not null),
   'a b');
 select test.eq('the keys carry trim, colour, what was learned and when the car is busy', (select format('%s %s %s %s', c ->> 'trim', c ->> 'colour', c -> 'identities', c -> 'busy')
-  from jsonb_array_elements(public.turo_match_keys() -> 'cars') c where c ->> 'vehicle_id' = test.v88('t88a')::text), 'SEL BLACK [] []');
+  from jsonb_array_elements(public.turo_match_keys() -> 'cars') c where c ->> 'vehicle_id' = test.v88('t88a')::text), 'SEL Black [] []');  -- 0104: a colour in capitals is stored in proper case
 -- a sample car linked by hand (an override) is a candidate again
 select test.do88('turo_link_save', jsonb_build_object('vehicle', test.v88('t88sample'), 'listing_name', 'Sample Corolla 2023'));
 select test.eq('a sample car someone linked by hand is a candidate', (select count(*) from jsonb_array_elements(public.turo_match_keys() -> 'cars') c
@@ -110,7 +110,7 @@ select test.eq('only the car is unclear: waits with the best guesses (unknown ca
   'review | Which car: matches 2 cars (2021 Volkswagen Jetta, 2021 Volkswagen Jetta) | 2 | Which car is this? Turo email: Omar booked your Volkswagen Jetta 2021');
 select test.eq('Calendar sync: the pop-up''s guesses, best first, with colour and the plate''s last 3', (select format('%s %s %s %s', r ->> 'pick', jsonb_array_length(r -> 'guesses'),
     (r -> 'guesses' -> 0 ->> 'vehicle_id') = test.v88('t88b')::text, (r -> 'guesses' -> 0 ->> 'colour') || '/' || length(r -> 'guesses' -> 0 ->> 'plate_end'))
-  from jsonb_array_elements(test.rd88() -> 'turo' -> 'review') r where r ->> 'id' = test.s55('r1') ->> 'id'), 'true 2 t BLACK/3');
+  from jsonb_array_elements(test.rd88() -> 'turo' -> 'review') r where r ->> 'id' = test.s55('r1') ->> 'id'), 'true 2 t Black/3');
 select test.eq('every candidate car is offered for "another car", and the no-marketing note is on the page', (select count(*) from jsonb_array_elements(test.rd88() -> 'turo' -> 'candidates') c
   where c ->> 'id' in (test.v88('t88a')::text, test.v88('t88b')::text)) || ' ' || (test.rd88() -> 'turo' ->> 'guest_note' like 'Turo guest:%'), '2 true');
 select test.eq('To do: "which car is this?" opens the pop-up', (select format('%s | %s | %s', i ->> 'label', i ->> 'button', i ->> 'href') from jsonb_array_elements(app.admin_todo(test.id('t88_admin')) -> 'items') i where i ->> 'key' = 'turo_emails'),

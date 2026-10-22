@@ -13,12 +13,13 @@ export async function POST(req: Request) {
   let d = want.length ^ got.length;
   for (let i = 0; i < want.length; i++) d |= want.charCodeAt(i) ^ (got.charCodeAt(i) || 0);
   if (d !== 0) return new NextResponse('Forbidden', { status: 403 });
+  // the next IndexNow batch of the vehicle pages (0097): one request of up to 10,000 addresses a run, sent even when the
+  // copy job fails (0104: the sweep had never run)
+  const sweep = () => runIndexNowSweep().catch((e) => ({ sent: 0, why: e instanceof Error ? e.message.slice(0, 120) : 'failed' }));
   try {
     const s = await runSeoJobNow({ limit: 2, deadlineMs: 25_000 });
-    // then the next IndexNow batch of the vehicle pages (0097): one request of up to 10,000 addresses a run
-    const sweep = await runIndexNowSweep().catch((e) => ({ sent: 0, why: e instanceof Error ? e.message.slice(0, 120) : 'failed' }));
-    return NextResponse.json({ ok: true, ...s, errors: s.errors.slice(0, 5), indexnow_sweep: sweep });
+    return NextResponse.json({ ok: true, ...s, errors: s.errors.slice(0, 5), indexnow_sweep: await sweep() });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'failed' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'failed', indexnow_sweep: await sweep() }, { status: 500 });
   }
 }

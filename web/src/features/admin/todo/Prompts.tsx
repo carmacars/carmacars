@@ -10,6 +10,7 @@ import { Pop } from './Pop';
 import { SpecsConfirm, TrimPick } from './CarFacts';
 import { TASK_PROMPTS } from './registry';
 import type { Prompt } from './types';
+import { groupPrompts } from './group';
 import './todo.css';
 
 // Admin > Today as a list of prompts (migration 0078): each line says what to do and why, and its button opens a small
@@ -121,11 +122,26 @@ export function Prompts({ prompts }: { prompts: Prompt[] }) {
   if (!prompts.length) return null;
   return (
     <ol className="gd-list" data-testid="todo-prompts">
-      {prompts.map((p) => (
-        <li key={p.key} className={`gd-item gd-item--p${p.priority}`} data-testid={`prompt-${p.key}`} data-kind={p.kind}>
-          <span className="gd-when">{WHEN[p.priority]}</span>
-          <span className="gd-text"><b className="gd-title">{p.title}</b>{p.why && <span className="gd-why">{p.why}</span>}</span>
-          <span className="gd-act"><Control p={p} /></span>
+      {groupPrompts(prompts).map((l) => 'one' in l ? (
+        <li key={l.key} className={`gd-item gd-item--p${l.one.priority}`} data-testid={`prompt-${l.key}`} data-kind={l.one.kind}>
+          <span className="gd-when">{WHEN[l.one.priority]}</span>
+          <span className="gd-text"><b className="gd-title">{l.one.title}</b>{l.one.why && <span className="gd-why">{l.one.why}</span>}</span>
+          <span className="gd-act"><Control p={l.one} /></span>
+        </li>) : (
+        <li key={l.key} className={`gd-item gd-item--p${l.priority}`} data-testid={`prompt-${l.key}`} data-kind={l.items[0]!.kind} data-count={l.items.length}>
+          <span className="gd-when">{WHEN[l.priority]}</span>
+          <span className="gd-text"><b className="gd-title">{l.title}</b>{l.items[0]!.why && <span className="gd-why">{l.items[0]!.why}</span>}</span>
+          <span className="gd-act">
+            <Pop label="Show the list" title={l.title} wide testId={`${l.key}-open`}>
+              <ol className="gd-list gd-list--inner">
+                {l.items.map((p) => (
+                  <li key={p.key} className="gd-item gd-item--inner" data-testid={`prompt-${p.key}`} data-kind={p.kind}>
+                    <span className="gd-text"><span className="gd-title">{p.title}</span>{p.why && <span className="gd-why">{p.why}</span>}</span>
+                    <span className="gd-act"><Control p={p} /></span>
+                  </li>))}
+              </ol>
+            </Pop>
+          </span>
         </li>))}
     </ol>
   );

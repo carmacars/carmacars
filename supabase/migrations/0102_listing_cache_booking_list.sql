@@ -191,14 +191,20 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- the one car of the request form: the fleet row's prices and options, with the handover places
+-- PL/pgSQL so the listing row is read once (0099): an SQL body let the planner inline the lateral row, one read per mention
 create or replace function app.booking_car(p_slug text) returns jsonb
-language sql stable security definer set search_path = public, app as $$
-  select r || jsonb_build_object('owner_location', coalesce((app.public_handover_places(l.vehicle_id) ->> 'owner_location')::boolean, false),
-                                 'name', app.listing_car_name(r), 'from_cents', app.listing_from_cents(r))
+language plpgsql stable security definer set search_path = public, app as $$
+declare v_id uuid; r jsonb;
+begin
+  select l.vehicle_id into v_id
     from vehicle_listings l join vehicles v on v.id = l.vehicle_id
-    cross join lateral (select app.public_listing_row(l.vehicle_id) r) x
-   where l.slug = lower(btrim(p_slug)) and l.status = 'published' and v.management_mode <> 'turo_only' and x.r is not null
-$$;
+   where l.slug = lower(btrim(p_slug)) and l.status = 'published' and v.management_mode <> 'turo_only';
+  if v_id is null then return null; end if;
+  r := app.public_listing_row(v_id);
+  if r is null then return null; end if;
+  return r || jsonb_build_object('owner_location', coalesce((app.public_handover_places(v_id) ->> 'owner_location')::boolean, false),
+                                 'name', app.listing_car_name(r), 'from_cents', app.listing_from_cents(r));
+end $$;
 
 create or replace function public.booking_cars() returns jsonb
 language sql stable set search_path = public, app as $$ select app.booking_cars() $$;

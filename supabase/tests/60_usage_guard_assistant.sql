@@ -94,6 +94,7 @@ select app.usage_put('workers_requests', app.today(), 'cloudflare', 12000000);
 select test.eq('website requests over the allowance: never paused', app.usage_refresh_service('workers_requests') ->> 'state', 'over');
 select test.eq('the estimated overage cost', (app.usage_state('workers_requests') ->> 'overage_usd')::numeric >= 0.6, true);
 select test.eq('its card says so', (app.usage_cards(test.id('ug_admin')) -> 'cards') @> '[{"service": "workers_requests", "level": 100}]', true);
+update usage_services set included = 524288000 where service = 'supabase_db';   -- the Free plan's 500 MB (0104: it follows Admin's database plan)
 select app.usage_put('supabase_db', app.today(), 'supabase', 450 * 1048576);
 select test.eq('the database at 86%: an alert, writes never blocked', app.usage_refresh_service('supabase_db') ->> 'state', 'warn');
 select test.eq('emails: held, never paid', (select pause_mode from usage_services where service = 'resend_day'), 'hold');

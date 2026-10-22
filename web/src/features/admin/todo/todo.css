@@ -6,7 +6,7 @@
 .gd-when { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--grey-600, #555); }
 .gd-item--p1 .gd-when { color: var(--red-600); }
 .gd-text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-.gd-title { font-weight: 600; overflow-wrap: anywhere; }
+.gd-title { font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
 .gd-why { font-size: 0.875rem; color: var(--grey-600, #555); overflow-wrap: anywhere; }
 .gd-act { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: flex-end; }
 @media (max-width: 40rem) {
@@ -23,3 +23,7 @@
 .gd-doc img { max-width: 100%; height: auto; }
 .gd-checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-2); }
 .gd-checklist li { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; justify-content: space-between; }
+/* 0104: a group's list in its pop-up: one row per car, the title and the button */
+.gd-list--inner { max-height: 70vh; overflow-y: auto; }
+.gd-item--inner { grid-template-columns: minmax(0, 1fr) auto; }
+.gd-item--inner .gd-title { font-weight: 400; }
