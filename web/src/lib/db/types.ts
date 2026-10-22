@@ -10501,6 +10501,7 @@ export type Database = {
           indexnow_daily_max: number;
           indexnow_batch: number;
           chat_greeting_topic_text: string;
+          visitor_heartbeat_seconds: number;
         };
         Insert: {
           id?: string;
@@ -10907,6 +10908,7 @@ export type Database = {
           indexnow_daily_max?: number;
           indexnow_batch?: number;
           chat_greeting_topic_text?: string;
+          visitor_heartbeat_seconds?: number;
         };
         Update: {
           id?: string;
@@ -11313,6 +11315,7 @@ export type Database = {
           indexnow_daily_max?: number;
           indexnow_batch?: number;
           chat_greeting_topic_text?: string;
+          visitor_heartbeat_seconds?: number;
         };
         Relationships: [];
       };
@@ -18810,6 +18813,7 @@ export type Database = {
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       submit_place_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      track_beat: { Args: { p: Json }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };

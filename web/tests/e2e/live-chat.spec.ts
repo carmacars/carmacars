@@ -95,9 +95,9 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   await row.getByRole('button', { name: 'Pages' }).click();
   await expect(row.locator('.lv-events')).toContainText('Opened a car');
   await check(staff, 'va live visitors');
-  // the visitor moves on: the Live page follows without a reload (it refreshes every 5 seconds)
+  // the visitor moves on: the Live page follows without a reload (it refreshes every 15 seconds since 0103)
   await viewAndBeacon(v, '/how-it-works');
-  await expect(row).toContainText('Now on How It Works', { timeout: 15_000 });
+  await expect(row).toContainText('Now on How It Works', { timeout: 30_000 });
   await sql.end();
 });
 

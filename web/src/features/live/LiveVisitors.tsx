@@ -6,13 +6,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ACTION_WORDS, agoWords, clock, EVENT_WORDS, GROUP_WORDS, liveDo, liveRead, STRENGTH_WORDS, type LiveCfg, type LiveData, type SessionDetail, type Signal, type Visitor } from './staff';
 
 // Admin > Today > Live visitors and the assistants' My work > Live visitors (migration 0060): who is on the site now,
-// what they look at, the buying signals, the most viewed cars; start a chat with a visitor. Refreshed every 5 seconds
-// (one small read; nothing stays open). 0086: each visit has a booking likelihood (0 to 100) with its top reasons, the
+// what they look at, the buying signals, the most viewed cars; start a chat with a visitor. Refreshed every 15 seconds
+// while the page is visible, and at once when it is shown again (one small read; nothing stays open; 0103: was 5
+// seconds, which cost the database more than it showed). 0086: each visit has a booking likelihood (0 to 100) with its top reasons, the
 // list is sorted by it, every signal says why and how strong it is, and the suggested action is one click: invite to
 // chat with the suggested message, send a discount code, assign to Sales, suggest a similar free car. A visitor who
 // turns hot raises an alert on this page (a desktop alert only when turned on in Live chat, never in the quiet hours).
 const BAND_WORDS = { hot: 'Hot', warm: 'Warm', cold: 'Cold' } as const;
 const SEEN_KEY = 'cc_hot_seen';
+const REFRESH_MS = 15_000;
 
 export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: 'admin' | 'va' }) {
   const [data, setData] = useState(initial);
@@ -26,8 +28,10 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
     try { setData(await liveRead<LiveData>('live_visitors')); setErr(''); } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
   }, []);
   useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5000);
-    return () => clearInterval(t);
+    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, REFRESH_MS);
+    const shown = () => { if (document.visibilityState === 'visible') void refresh(); };
+    document.addEventListener('visibilitychange', shown);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', shown); };
   }, [refresh]);
   const cfg: LiveCfg = data.cfg ?? { hot: 60, warm: 30, notify_hot: false, discount: { enabled: false, percent: 0, days: 0, can: false }, is_admin: false, quiet: false, me: null, alerts: false };
 
@@ -58,16 +62,19 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
   const chatHref = portal === 'admin' ? '/admin/chat' : '/va/chat';
   const known = data.now.filter((v) => v.known).length;
   const hotNow = data.now.filter((v) => v.band === 'hot').length;
+  const visitorsToday = data.today.visitors ?? data.today.sessions;
+  const untracked = data.today.untracked ?? 0;
   return (
     <div className="lv" data-testid="live-visitors">
       <div className="ad-tiles">
-        <div className="ad-tile"><span className="ad-tile__k">On the site now</span><b className="ad-tile__v" data-testid="live-count">{data.now.length}</b><span className="ad-tile__s">seen in the last {data.live_minutes} min</span></div>
+        <div className="ad-tile"><span className="ad-tile__k">Live now</span><b className="ad-tile__v" data-testid="live-count">{data.now.length}</b><span className="ad-tile__s">on the site in the last {data.live_minutes} min</span></div>
+        <div className="ad-tile"><span className="ad-tile__k">Visitors today</span><b className="ad-tile__v" data-testid="visitors-today">{visitorsToday}</b><span className="ad-tile__s">{data.today.sessions} visit{data.today.sessions === 1 ? '' : 's'}, {data.today.known} known, {data.today.hot ?? 0} hot</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Hot now</span><b className="ad-tile__v" data-testid="hot-count">{hotNow}</b><span className="ad-tile__s">likelihood {cfg.hot} or more</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Known customers now</span><b className="ad-tile__v">{known}</b></div>
-        <div className="ad-tile"><span className="ad-tile__k">Visits today</span><b className="ad-tile__v">{data.today.sessions}</b><span className="ad-tile__s">{data.today.known} known, {data.today.hot ?? 0} hot</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Chats today</span><b className="ad-tile__v">{data.today.chats}</b><Link prefetch={false} className="ad-tile__s link" href={chatHref}>Open Live chat</Link></div>
       </div>
-      {!data.tracking && <p className="pt-note" role="status">Live visitors is off in Program settings: nothing is recorded.</p>}
+      {!data.tracking ? <p className="pt-note" role="status" data-testid="live-untracked">Live visitors is off in Program settings: nothing is recorded, so nobody is counted here.</p>
+        : untracked > 0 && <p className="small muted" data-testid="live-untracked">Not counted: {untracked} visitor{untracked === 1 ? '' : 's'} today chose necessary cookies only, so their visits are not recorded. Visitors who have not answered the cookie banner (where we ask first) are not counted either.</p>}
       {err && <p className="pt-note" role="alert">{err}</p>}
       <div role="status" aria-live="polite">
         {alert && (

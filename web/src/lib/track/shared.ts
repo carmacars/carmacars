@@ -20,6 +20,8 @@ export function deviceOf(ua: string | null | undefined): 'phone' | 'tablet' | 'd
 export interface Beacon {
   sid: string; vid: string; consent: 'analytics' | 'essential'; device?: string; ref?: string; landing?: string;
   utm?: Record<string, string>; ad?: '1';
+  /** 0103: the last batch of the page (pagehide): the session ends after its events are stored. Not sent to the database. */
+  end?: '1';
   events: Array<{ k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> }>;
 }
 
@@ -43,6 +45,7 @@ export function cleanBeacon(raw: unknown, ua: string | null): Beacon | null {
     ref: str(b.ref, 120), landing: str(b.landing, 300), events: []
   };
   if (b.ad === '1' || b.ad === 1 || b.ad === true) out.ad = '1';
+  if (b.end === '1' || b.end === 1 || b.end === true) out.end = '1';
   if (b.utm && typeof b.utm === 'object') {
     out.utm = {};
     for (const k of ['source', 'medium', 'campaign', 'term', 'content']) { const v = str((b.utm as Record<string, unknown>)[k], 120); if (v) out.utm[k] = v; }
@@ -64,6 +67,37 @@ export function cleanBeacon(raw: unknown, ua: string | null): Beacon | null {
     });
   }
   return out;
+}
+
+/** 0103: the heartbeat of an open page, {beat: 1, sid, vid, path?, end?}: one cheap UPDATE of the session (app.track_beat),
+ *  no event and no signals. `end` (pagehide) marks the session ended. */
+export interface Beat { sid: string; vid: string; path?: string; end?: '1' }
+export function isBeat(raw: unknown): boolean {
+  return Boolean(raw && typeof raw === 'object' && ((raw as Record<string, unknown>).beat === 1 || (raw as Record<string, unknown>).beat === '1'));
+}
+export function cleanBeat(raw: unknown): Beat | null {
+  if (!isBeat(raw)) return null;
+  const b = raw as Record<string, unknown>;
+  if (typeof b.sid !== 'string' || !UUID.test(b.sid) || typeof b.vid !== 'string' || !UUID.test(b.vid)) return null;
+  const out: Beat = { sid: b.sid, vid: b.vid };
+  const path = str(b.path, 300);
+  if (path && path.startsWith('/')) out.path = path.split('?')[0];
+  if (b.end === '1' || b.end === 1 || b.end === true) out.end = '1';
+  return out;
+}
+
+/** 0103: how long /api/t waits for the database before it answers anyway. The call itself carries on in the
+ *  background (waitUntil), so a slow database costs the visitor nothing and never shows as a 502. */
+export const BEACON_WAIT_MS = 2_000;
+export const BEAT_WAIT_MS = 1_500;
+/** The background call gives up after this long (the Worker's waitUntil allows 30 seconds). */
+export const BEACON_GIVE_UP_MS = 10_000;
+/** The promise's value, or undefined when it takes longer than `ms` or fails. The promise is not cancelled. */
+export function within<T>(p: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(undefined), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, () => { clearTimeout(t); resolve(undefined); });
+  });
 }
 
 /** A short key for the rate limit only (a day's salt): the network address itself is never sent to the database. */

@@ -22,8 +22,10 @@ export interface SessionDetail extends Visitor { events: VisitEvent[]; visits: n
 export interface CarRow { vehicle_id: string; car: string; views_today: number; views_7d: number; viewers_7d: number; requests_7d: number; looking_now: number; quotes_7d?: number; compared?: { vehicle_id: string; car: string; sessions: number } | null }
 export interface LiveCfg { hot: number; warm: number; notify_hot: boolean; discount: { enabled: boolean; percent: number; days: number; can: boolean }; is_admin: boolean; quiet: boolean; me: string | null; alerts: boolean }
 export interface HotRow { id: string; who: string; score: number; hot_at: string; reasons: Reason[]; online: boolean; renter_id: string | null; acted: boolean }
-export interface LiveData { live_minutes: number; tracking: boolean; at: string; now: Visitor[]; signals: Signal[]; most_viewed: CarRow[]; today: { sessions: number; known: number; chats: number; hot?: number };
-  cfg?: LiveCfg; hot?: HotRow[] }
+export interface LiveData { live_minutes: number; tracking: boolean; at: string; now: Visitor[]; signals: Signal[]; most_viewed: CarRow[];
+  /** 0103: visitors (browsers) besides visits (sessions), and the browsers that chose necessary cookies only today */
+  today: { sessions: number; known: number; chats: number; hot?: number; visitors?: number; untracked?: number };
+  cfg?: LiveCfg; hot?: HotRow[]; beat_seconds?: number }
 export interface SignalRule { code: string; grp: string; label: string; explain: string; enabled: boolean; weight: number; t1: number | null; t2: number | null; t1_label: string | null; t2_label: string | null;
   param: string | null; param_label: string | null; action: SignalAction; message: string; scope: string; legacy: boolean; sort: number; updated_at: string }
 export interface SignalConfig { hot_score: number; warm_score: number; strong_weight: number; medium_weight: number; notify_hot: boolean; discount_enabled: boolean; discount_percent: number;
