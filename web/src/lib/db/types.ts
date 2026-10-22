@@ -18822,6 +18822,7 @@ export type Database = {
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_db_busy: { Args: never; Returns: Json };
       server_document_content_key: { Args: { p_by: string; p_path: string; p_key: string }; Returns: number };
       server_document_file: { Args: { p_document: string }; Returns: Json };
       server_documents_due_for_purge: { Args: { p_limit?: number }; Returns: Json };
@@ -18896,8 +18897,10 @@ export type Database = {
       server_phone_summary: { Args: { p: Json }; Returns: Json };
       server_places_budget: { Args: never; Returns: Json };
       server_places_import_apply: { Args: { p_import: number; p_region: string }; Returns: Json };
+      server_places_import_apply_chunk: { Args: { p_phase: string; p_after: number; p_limit?: number }; Returns: Json };
       server_places_import_begin: { Args: { p_regions: string[]; p_sources: string[]; p_run_url?: string }; Returns: number };
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
+      server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
