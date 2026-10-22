@@ -478,8 +478,8 @@ insert into place_terms (slug, vertical, phrase, title, match, served, landing_s
   ('car-rental-18-year-old', 'rental', 'car rental 18 year old', 'Car Rental at 18', '{"young": true}', 'yes', 'young-drivers', 'The cars listed here take drivers aged {{youngA}}, with an Ontario {{licence}} licence and a young driver fee for each day.', 270),
   ('car-rental-no-credit-card', 'rental', 'car rental no credit card', 'Car Rental With No Credit Card', '{"flags": ["no_credit_card"]}', 'yes', 'no-credit-card', 'Only the cars marked "no credit card needed" are listed: a debit card in your name pays and holds the deposit on those cars.', 280),
   ('car-rental-with-insurance-included', 'rental', 'car rental with insurance included', 'Car Rental With the Car''s Insurance', '{"flags": ["insurance_included"]}', 'yes', 'insurance-included', 'Only the cars whose owner''s insurance comes with the car are listed: you need no auto policy of your own for those cars.', 290),
-  ('chauffeur-service', 'rental', 'chauffeur service', 'Chauffeur Service', '{}', 'request', null, 'We do not offer a chauffeur service ourselves. Tell us the date and the trip, and we will tell you what we can arrange.', 300),
-  ('car-with-driver', 'rental', 'car with driver', 'Car With Driver', '{}', 'request', null, 'A car with a driver is not something we offer directly. Send us the details and we will reply with what is possible.', 310);
+  ('chauffeur-service', 'rental', 'chauffeur service', 'Chauffeur Service', '{}', 'request', null, 'We book a professional driver with a luxury car or van by the hour, two hours minimum (our chauffeur service). Send the date and the trip, and we reply with the vehicle and the price.', 300),
+  ('car-with-driver', 'rental', 'car with driver', 'Car With Driver', '{}', 'request', null, 'A car with a professional driver, booked by the hour through our chauffeur service. Send us the details and we reply with the vehicle and the price.', 310);
 update place_terms set lead_kind = 'place_request' where vertical = 'rental' and served = 'request';
 
 -- buying help: never a dealer, lender or leasing company; a request the team answers
