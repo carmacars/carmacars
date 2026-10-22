@@ -11,7 +11,8 @@ import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
-import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetSignature } from './src/lib/edge/fleet-sig';
+import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
+import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
 /** The deployment last rebuilt for (a number from the Worker's version id), in the tag store next to the fleet's signature. */
@@ -133,8 +134,10 @@ const worker = {
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
+    const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
     if (env.NEXT_TAG_CACHE_KV || env.NEXT_TAG_CACHE_D1) ctx.waitUntil((async () => {
-      const [sig, seen, pending, deploySeen] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY), readNumber(env, FLEET_SIG_CONFIRM_KEY), readNumber(env, DEPLOY_SEEN_KEY)]);
+      const [rows, seen, pending, deploySeen, warmed] = await Promise.all([fleetRows(env), readNumber(env, FLEET_SIG_KEY), readNumber(env, FLEET_SIG_CONFIRM_KEY), readNumber(env, DEPLOY_SEEN_KEY), readNumber(env, WARM_KEY)]);
+      const sig = rows ? signatureOf(rows) : null;
       if (sig === null || seen === null) return;
       // after a change the pages are rebuilt twice, five minutes apart, so a page regenerated while the change was
       // being written cannot keep a stale list (the second pass is the confirm)
@@ -143,15 +146,29 @@ const worker = {
       // build's style and script files, which are gone (the home page loaded without its styles on Oct 21)
       const deployed = deployNumber(deploymentOf(env));
       const newDeploy = deployed !== 0 && deploySeen !== deployed;
-      if (sig === seen && !confirming && !newDeploy) return;
-      const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/jobs/public-rebuild`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' }), env, ctx);
-      await r.text();
-      if (r.ok) { await writeNumber(env, FLEET_SIG_KEY, sig); await writeNumber(env, FLEET_SIG_CONFIRM_KEY, confirming ? 0 : sig); if (newDeploy) await writeNumber(env, DEPLOY_SEEN_KEY, deployed); }
+      let rebuiltForDeploy = !newDeploy;
+      if (sig !== seen || confirming || newDeploy) {
+        const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/jobs/public-rebuild`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' }), env, ctx);
+        await r.text();
+        if (r.ok) { await writeNumber(env, FLEET_SIG_KEY, sig); await writeNumber(env, FLEET_SIG_CONFIRM_KEY, confirming ? 0 : sig); if (newDeploy) { await writeNumber(env, DEPLOY_SEEN_KEY, deployed); rebuiltForDeploy = true; } }
+      }
+      // 0102: then the pages visitors open first are rendered once for this deploy (src/lib/edge/warm.ts): home, the fleet
+      // page and each car page, through the service binding (each its own invocation), a few at a time within a budget;
+      // the rest on the next ticks. Without it every car page was a cold render for its first visitor after a deploy.
+      if (!rebuiltForDeploy || !self || deployed === 0 || warmed === null) return;
+      const paths = warmPaths(rows!);
+      const start = warmDone(warmed, deployed);
+      if (start >= paths.length) return;
+      const origin = base.replace(/\/$/, '');
+      const done = await warmBatch(paths, start, async (path) => {
+        const res = await self.fetch(new Request(`${origin}${path}`, { headers: { 'user-agent': 'CarmaCars warm-up (cron)', accept: 'text/html' } }));
+        await res.arrayBuffer();
+      });
+      await writeNumber(env, WARM_KEY, warmValue(deployed, done));
     })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
     // signed copies waiting (0077): through the Worker's own service binding, so each run is its own invocation
-    const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
     const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
     if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
     // Turo emails waiting for their car, matched again after the fleet or what was learned changed (0088)

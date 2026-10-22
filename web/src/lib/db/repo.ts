@@ -91,7 +91,9 @@ export const BROWSER_FUNCTIONS = new Set<FnName>([
   // discount games (0069): the settings, a play and its reveal
   'game_cfg', 'game_start', 'game_reveal',
   // the chat's greeting for a page (0100)
-  'chat_greeting'
+  'chat_greeting',
+  // the request form's car when another one is chosen, and the real car for a sample car's dates (0102)
+  'booking_car', 'sample_car_match'
 ]);
 
 export type { Json };

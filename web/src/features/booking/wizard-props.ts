@@ -1,17 +1,28 @@
 import 'server-only';
+import { cache } from 'react';
 import { rpc } from '@/lib/db/repo';
-import { fill, getFacts, getFleet, getSettings, getTokens } from '@/lib/site';
+import { fill, getFacts, getSettings, getTokens } from '@/lib/site';
 import { consentTexts, rules } from '@/server/booking-data';
-import type { WizardProps } from './RequestWizard';
+import type { CarOption, WizardCar, WizardProps } from './RequestWizard';
+import { toWizardCar, type BookingCarRow } from './wizard-car';
+
+/** 0102: the car list of the form (id, slug, label, from price), one light call instead of the fleet's full rows */
+export async function bookingCars(): Promise<CarOption[]> {
+  const rows = ((await rpc('booking_cars', {})) ?? []) as unknown as { vehicle_id: string; slug: string; label: string; from_cents: number; year_confirmed: boolean; is_sample: boolean }[];
+  return rows.map((r) => ({ slug: r.slug, vehicleId: r.vehicle_id, label: r.label, from: r.from_cents, yearConfirmed: r.year_confirmed, isSample: r.is_sample }));
+}
+
+/** 0102: the one car the form opens on, with its prices, options and handover places; null when it is not on the site */
+export const bookingCar = cache(async (slug: string): Promise<WizardCar | null> => {
+  const r = (await rpc('booking_car', { p_slug: slug })) as unknown as BookingCarRow | null;
+  return r ? toWizardCar(r) : null;
+});
 
 export async function wizardProps(initialSlug: string | null): Promise<WizardProps> {
-  const [fleet, f, t, s, r, c] = await Promise.all([getFleet(), getFacts(), getTokens(), getSettings(), rules(), consentTexts()]);
-  // 0093: only a program owner's car can be collected at the owner's location; a partner's cars (many) are not asked
-  const places = await Promise.all(fleet.map((x) => (x.guideline_rates ? Promise.resolve(null) : rpc('handover_places', { p_vehicle: x.vehicle_id }) as unknown as Promise<{ owner_location: boolean } | null>)));
+  const [options, initialCar, f, t, s, r, c] = await Promise.all([bookingCars(), initialSlug ? bookingCar(initialSlug) : Promise.resolve(null), getFacts(), getTokens(), getSettings(), rules(), consentTexts()]);
   const pick = (k: string) => t[k] ?? '';
   return {
-    cars: fleet.map((x, i) => ({ slug: x.slug, vehicleId: x.vehicle_id, name: `${x.make} ${x.model}`, year: x.year, trim: x.trim, daily: x.daily_rate_cents, weekend: x.weekend_rate_cents, weekly: x.weekly_rate_cents, monthly: x.monthly_rate_cents, multi: x.multi_day_rate_cents ?? null, insuranceIncluded: !!x.insurance_included, noCreditCard: !!x.no_credit_card, delivery: x.delivery_fee_cents, pickup: x.pickup_fee_cents, ownerLocation: !!places[i]?.owner_location, allowsYoung: x.allows_18_to_20, cover: x.cover ? { path: x.cover.path, alt: x.cover.alt } : null })),
-    initialSlug, rules: r, airports: f.airports,
+    options, initialCar, initialSlug, rules: r, airports: f.airports,
     tokens: Object.fromEntries(['notice', 'turnaround', 'offerHours', 'hst', 'minAge', 'licence', 'addDrvPct', 'cEarly', 'c2', 'nonRef', 'winter', 'winterCap', 'baby', 'babyCap', 'maxDays', 'brand'].map((k) => [k, pick(k)])) as unknown as WizardProps['tokens'],
     marketingText: c.marketing.text, agreeLine: c.agreeLine(r.minAge), ourAddress: s.street_address ? fill(s.street_address, t) : null
   };

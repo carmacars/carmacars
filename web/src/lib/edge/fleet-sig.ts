@@ -18,8 +18,8 @@ export function signatureOf(rows: ReadonlyArray<{ slug?: unknown; model_hub_path
   return h || 1;
 }
 
-/** The fleet's signature read through PostgREST (public.fleet, as the fleet page reads it), or null when it cannot be read. */
-export async function fleetSignature(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<number | null> {
+/** The fleet's rows read through PostgREST (public.fleet, as the fleet page reads it), or null when they cannot be read. */
+export async function fleetRows(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<Array<{ slug?: unknown; model_hub_path?: unknown }> | null> {
   const url = env.NEXT_PUBLIC_SUPABASE_URL, key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (env.DATA_BACKEND !== 'supabase' || typeof url !== 'string' || typeof key !== 'string' || !url || !key) return null;
   try {
@@ -29,8 +29,14 @@ export async function fleetSignature(env: Record<string, unknown>, f: typeof fet
     });
     if (!r.ok) return null;
     const rows = (await r.json()) as unknown;
-    return Array.isArray(rows) ? signatureOf(rows as Array<{ slug?: unknown; model_hub_path?: unknown }>) : null;
+    return Array.isArray(rows) ? (rows as Array<{ slug?: unknown; model_hub_path?: unknown }>) : null;
   } catch {
     return null;
   }
+}
+
+/** The fleet's signature read through PostgREST, or null when it cannot be read. */
+export async function fleetSignature(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<number | null> {
+  const rows = await fleetRows(env, f);
+  return rows ? signatureOf(rows) : null;
 }

@@ -18492,6 +18492,8 @@ export type Database = {
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
+      booking_car: { Args: { p_slug: string }; Returns: Json };
+      booking_cars: { Args: never; Returns: Json };
       business_rating: { Args: never; Returns: Json };
       calc_billable_days: { Args: { p_pickup: string; p_return: string; p_tz?: string }; Returns: number };
       calc_booking_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_eligible: boolean; p_company_share_bps: number; p_kickback_bps?: number }; Returns: { kickback_cents: number; owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
@@ -18533,6 +18535,7 @@ export type Database = {
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
       driver_signing: { Args: { p_signer: string }; Returns: Json };
       effective_fee: { Args: { p_fee: string; p_vehicle: string; p_on?: string }; Returns: { amount_cents: number; cap_cents: number; percent_bps: number; source: string }[] };
+      enquiry_has_match: { Args: { p_reference: string }; Returns: boolean };
       featured_cars: { Args: { p_limit?: number }; Returns: Json[] };
       fleet: { Args: { p_filters?: Json }; Returns: Json[] };
       game_cfg: { Args: never; Returns: Json };
@@ -18628,6 +18631,7 @@ export type Database = {
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
+      sample_car_match: { Args: { p_vehicle: string; p_pickup: string; p_return: string }; Returns: Json };
       save_form_draft: { Args: { p_form_code: string; p_data: Json; p_step?: string; p_schema_version?: number; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string; p_device_label?: string }; Returns: Json };
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
       seo_links: { Args: never; Returns: Json };

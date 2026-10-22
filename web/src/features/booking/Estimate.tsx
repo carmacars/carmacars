@@ -26,14 +26,17 @@ function priceShown(q: Quote) {
 export function useQuote(input: QuoteInput | null) {
   const [res, setRes] = useState<{ key: string; q: Quote | null; error: string } | null>(null);
   const key = input ? JSON.stringify(input) : '';
+  const first = useRef(true);
   useEffect(() => {
     if (!input) return;
     let live = true;
+    // 0102: the first price of the page is asked at once; later changes wait for the typing to settle
     const t = setTimeout(() => {
       browserRpc<Quote>('quote_booking', { p_vehicle: input.vehicleId, p_pickup: torontoInstant(input.from, input.tf), p_return: torontoInstant(input.to, input.tt), p_options: input.options })
         .then((r) => { if (live) { setRes({ key, q: r, error: '' }); priceShown(r); } })
         .catch((e: Error) => { if (live) setRes({ key, q: null, error: e.message }); });
-    }, 300);
+    }, first.current ? 0 : 300);
+    first.current = false;
     return () => { live = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

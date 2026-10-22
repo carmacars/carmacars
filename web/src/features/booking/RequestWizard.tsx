@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar } from '@/features/calendar/Calendar';
 import { TimeSelect } from '@/features/calendar/TimeSelect';
@@ -9,6 +9,9 @@ import { useBlocks } from '@/features/car/CarBooking';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { FAKE_TOKEN, Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { publicEnv } from '@/lib/public-env';
+import { browserRpc } from '@/lib/browser-rpc';
+import { toWizardCar, type BookingCarRow, type WizardCarShape } from './wizard-car';
+import { SampleMatch } from './SampleMatch';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
@@ -24,11 +27,12 @@ import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, ty
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
 // idempotency key. No card and no payment at this step.
-export interface WizardCar { slug: string; vehicleId: string; name: string; year: number | null; trim: string | null; daily: number; weekend: number; weekly: number; monthly: number;
-  /** 0093: the 3+ day rate; insurance included; no credit card needed */
-  multi?: number | null; insuranceIncluded?: boolean; noCreditCard?: boolean; delivery: number; pickup: number; ownerLocation: boolean; allowsYoung: boolean; cover: { path: string; alt: string } | null }
+/** The car of the form (0102: public.booking_car, see wizard-car.ts). */
+export type WizardCar = WizardCarShape;
+/** One line of the car list (0102: public.booking_cars): "2021 Volkswagen Jetta SEL, black, from $60 a day". */
+export interface CarOption { slug: string; vehicleId: string; label: string; from: number; yearConfirmed: boolean; isSample: boolean }
 export interface WizardProps {
-  cars: WizardCar[]; initialSlug: string | null; rules: RequestRules; airports: { code: string; name: string; surcharge_cents: number | null }[];
+  options: CarOption[]; initialCar: WizardCar | null; initialSlug: string | null; rules: RequestRules; airports: { code: string; name: string; surcharge_cents: number | null }[];
   tokens: LabelTokens & Record<'notice' | 'turnaround' | 'offerHours' | 'hst' | 'minAge' | 'licence' | 'addDrvPct' | 'cEarly' | 'c2' | 'nonRef' | 'winter' | 'winterCap' | 'baby' | 'babyCap' | 'maxDays' | 'brand', string>;
   marketingText: string; agreeLine: string; ourAddress: string | null;
 }
@@ -43,11 +47,12 @@ type Store = { data: RequestData; step: number; token: string | null; draftId: s
 const readStore = (): Store | null => { try { return JSON.parse(localStorage.getItem(KEY) ?? 'null') as Store | null; } catch { return null; } };
 const writeStore = (s: Store) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 const newKey = () => `web-${crypto.randomUUID()}`;
+/** a car without an owner's location: a choice of "at the car owner's location" moves to ours */
+const noOwnerPlace = (x: RequestData): RequestData => ({ ...x, pickupAt: x.pickupAt === 'owner' ? 'ours' : x.pickupAt, returnAt: x.returnAt === 'owner' ? 'ours' : x.returnAt });
 const band = (age: number | null) => (age === null ? '26_plus' : age < 21 ? '18_to_20' : age < 26 ? '21_to_25' : '26_plus');
 
 export function RequestWizard(p: WizardProps) {
   const router = useRouter();
-  const sp = useSearchParams();
   const today = torontoToday();
   const [d, setD] = useState<RequestData>(() => ({ ...emptyRequest(), car: p.initialSlug ?? '' }));
   const [step, setStep] = useState(1);
@@ -75,6 +80,7 @@ export function RequestWizard(p: WizardProps) {
 
   // start: the link's car and dates win over a saved draft for a different car or dates
   useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
     const s = readStore();
     const linkCar = p.initialSlug; const linkFrom = sp.get('from');
     const fresh = (linkCar && s && s.data.car !== linkCar) || (validIso(linkFrom) && s && linkFrom !== s.data.from);
@@ -98,6 +104,8 @@ export function RequestWizard(p: WizardProps) {
     };
     if (s && !fresh) apply({ ...emptyRequest(), ...s.data }, s.step, true);
     else {
+      // 0102: the link's car and dates show at once (the price starts loading) while a draft from another device is looked up
+      setD((x) => { const next = migrateExtras({ ...x, ...fromLink }); if (next.from && next.from < today) { next.from = ''; next.to = ''; } return next; });
       // another device: a signed-in person's draft, or the token kept here
       loadRequestDraft(meta.current.token).then((r) => {
         if (r.ok && r.data && !fresh) { meta.current.draftId = r.data.draftId; apply({ ...emptyRequest(), ...r.data.data }, r.data.step, true); }
@@ -119,7 +127,21 @@ export function RequestWizard(p: WizardProps) {
     return () => clearTimeout(t);
   }, [d, step, relink]);
 
-  const car = p.cars.find((c) => c.slug === d.car) ?? null;
+  // 0102: the car's details come with the page for the car it opens on, and are read when another car is chosen
+  const [cars, setCars] = useState<Record<string, WizardCar>>(() => (p.initialCar ? { [p.initialCar.slug]: p.initialCar } : {}));
+  const car = cars[d.car] ?? null;
+  const option = p.options.find((c) => c.slug === d.car) ?? null;
+  useEffect(() => {
+    if (!d.car || cars[d.car] || !p.options.some((c) => c.slug === d.car)) return;
+    let live = true; const slug = d.car;
+    browserRpc<BookingCarRow | null>('booking_car', { p_slug: slug }).then((r) => {
+      if (!live || !r) return;
+      const c = toWizardCar(r);
+      setCars((m) => ({ ...m, [slug]: c }));
+      if (!c.ownerLocation) setD((x) => (x.car === slug ? noOwnerPlace(x) : x));
+    }).catch(() => undefined);
+    return () => { live = false; };
+  }, [d.car, cars, p.options]);
   const { blocks } = useBlocks(car?.vehicleId ?? null);
   const set = <K extends keyof RequestData>(k: K, v: RequestData[K]) => { setD((x) => ({ ...x, [k]: v })); setErrors((e) => { const n = { ...e }; delete n[k as string]; if (k === 'from' || k === 'to') delete n.dates; if (String(k).startsWith('dob')) delete n.dob; return n; }); };
 
@@ -146,7 +168,7 @@ export function RequestWizard(p: WizardProps) {
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   function validate(n: number): boolean {
-    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car, emailOptional, insuranceIncluded: !!car?.insuranceIncluded });
+    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car || !!option, emailOptional, insuranceIncluded: !!car?.insuranceIncluded });
     if (n === 1 && problem && !all.dates) all.dates = problem;
     const mine = Object.fromEntries(Object.entries(all).filter(([k]) => stepOfKey(k) === n));
     setErrors(mine);
@@ -295,9 +317,11 @@ export function RequestWizard(p: WizardProps) {
           <section data-step="1" className="req__step stack-lg" aria-labelledby="rs1" hidden={step !== 1}>
             <h2 className="d3" id="rs1" tabIndex={-1}>Your dates</h2>
             <div className={fieldCls('car')}><label className="label" htmlFor="rq-car">Car</label>
-              <select className="select" id="rq-car" value={d.car} onChange={(e) => { const c = p.cars.find((x) => x.slug === e.target.value); setD((x) => ({ ...x, car: e.target.value, pickupAt: !c?.ownerLocation && x.pickupAt === 'owner' ? 'ours' : x.pickupAt, returnAt: !c?.ownerLocation && x.returnAt === 'owner' ? 'ours' : x.returnAt })); setErrors((er) => { const n = { ...er }; delete n.car; return n; }); }} {...aria('car', 'rq-car')}>
-                <option value="">Choose a car</option>{p.cars.map((c) => <option key={c.slug} value={c.slug}>{c.name}, from {money(c.daily)} a day</option>)}
-              </select>{errEl('car', 'rq-car')}</div>
+              <select className="select" id="rq-car" data-testid="request-car" value={d.car} onChange={(e) => { const v = e.target.value; const c = cars[v]; setD((x) => (c && !c.ownerLocation ? noOwnerPlace({ ...x, car: v }) : { ...x, car: v })); setErrors((er) => { const n = { ...er }; delete n.car; return n; }); }} {...aria('car', 'rq-car', !!option && !option.yearConfirmed)}>
+                <option value="">Choose a car</option>{p.options.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+              </select>{option && !option.yearConfirmed && <p className="hint" id="rq-car-hint">Year confirmed when you book.</p>}{errEl('car', 'rq-car')}</div>
+            {car?.isSample && <SampleMatch vehicleId={car.vehicleId} name={[car.year, car.name].filter(Boolean).join(' ')} from={d.from} to={d.to} tf={d.tf} tt={d.tt}
+              onSwitch={(slug) => { setD((x) => (cars[slug] && !cars[slug]!.ownerLocation ? noOwnerPlace({ ...x, car: slug }) : { ...x, car: slug })); setErrors((er) => { const n = { ...er }; delete n.car; return n; }); }} />}
             <div className={fieldCls('dates')}>
               <span className="label">Pickup and return dates</span>
               <p className="hint">Tap the pickup date, then the return date. Hatched days are already booked. One booking covers up to {p.tokens.maxDays} days.</p>
@@ -426,7 +450,7 @@ export function RequestWizard(p: WizardProps) {
 
         <aside className="req__side" aria-label="Your request">
           <details className="req__sum" open={sumOpen} onToggle={(e) => setSumOpen((e.target as HTMLDetailsElement).open)}>
-            <summary><span className="d4">Your request</span><b className="num">{q && haveDates ? money(q.total_cents, { cents: true }) : car ? `From ${money(car.daily)} a day` : ''}</b></summary>
+            <summary><span className="d4">Your request</span><b className="num">{q && haveDates ? money(q.total_cents, { cents: true }) : car ? `From ${money(car.from)} a day` : option ? `From ${money(option.from)} a day` : ''}</b></summary>
             <div className="req__car">
               {car ? (
                 <>
@@ -434,7 +458,7 @@ export function RequestWizard(p: WizardProps) {
                   {car.cover && <img src={photoUrl(car.cover.path)} alt="" width={1800} height={1200} loading="lazy" />}
                   <div><b>{[car.year, car.name].filter(Boolean).join(' ')}</b><span className="small muted">{car.trim}</span></div>
                 </>
-              ) : <p className="muted">Choose a car to see the estimate.</p>}
+              ) : option ? <div><b>{option.label.replace(/, from \$[\d,.]+ a day$/, '')}</b></div> : <p className="muted">Choose a car to see the estimate.</p>}
             </div>
             {car && <Estimate q={q} error={qErr} loading={loading} from={haveDates ? d.from : ''} to={haveDates ? d.to : ''} tf={d.tf} tt={d.tt} hst={p.tokens.hst} maxDays={p.rules.maxDays}
               rates={{ daily: car.daily, weekend: car.weekend, weekly: car.weekly, monthly: car.monthly, multi: car.multi ?? null }} labels={p.tokens} problem={problem} coverageChosen={d.coverage === '3' && !car.insuranceIncluded} />}

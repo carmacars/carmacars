@@ -8,7 +8,10 @@ import { siteUrl } from '@/lib/site';
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
 export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/chauffeur', '/faq', '/contact', '/list-your-car', '/detailing', '/body-shop', '/place-data', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
-export const SITEMAPS = ['pages', 'cars', 'landing', 'guides'] as const;
+// 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
+// to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the
+// 47 model pages were in no sitemap. A page in both files is harmless.
+export const SITEMAPS = ['pages', 'cars', 'landing', 'guides', 'hubs'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -27,6 +30,7 @@ function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: s
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    case 'hubs': return all.filter((r) => r.kind === 'model_hub').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
   }
 }
 
@@ -55,6 +59,14 @@ async function siteEntries(): Promise<string[]> {
     const last = e.map((x) => x.lastmod).filter(Boolean).sort().pop();
     return `<sitemap><loc>${esc(`${siteUrl()}/sitemap-${name}.xml`)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
   }), ...places.slice(0, 49_000).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-places/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`)];
+}
+
+/** robots.txt (0102): every index file, then each child sitemap of the first index (the site's own files and the place
+ *  files, at most 1,000 lines), so a crawler reading robots.txt alone finds them too. */
+export async function robotsSitemaps(): Promise<string[]> {
+  const [site, n] = await Promise.all([siteEntries(), indexCount()]);
+  const children = site.map((x) => /<loc>([^<]+)<\/loc>/.exec(x)?.[1]?.replace(/&amp;/g, '&') ?? '').filter(Boolean).slice(0, 1000);
+  return [`${siteUrl()}/sitemap.xml`, ...Array.from({ length: n - 1 }, (_, i) => `${siteUrl()}/sitemap-index/${i + 2}.xml`), ...children];
 }
 
 /** How many index files there are (robots.txt names each). */
