@@ -40,7 +40,9 @@ test('/book/<car>: the form and its car summary come with the page; the price fo
   await page.goto(`/book/mercedes-benz-c300?from=${r.from}&to=${r.to}&tf=10:00&tt=10:00`);
   await acceptCookies(page);
   await expect(page.locator('#rq-car')).toHaveValue('mercedes-benz-c300');
-  await expect(page.locator('.req__side .estimate__lines')).toBeVisible({ timeout: 10_000 });
+  // on a phone the summary is folded under "Your request": its line shows the total once priced
+  if (isPhone()) await expect(page.locator('.req__sum summary .num')).toHaveText(/^\$[\d,]+\.\d\d$/, { timeout: 10_000 });
+  else await expect(page.locator('.req__side .estimate__lines')).toBeVisible({ timeout: 10_000 });
 });
 
 test('review step: the Edit links stay on one line at 375, 768, 1024 and 1440', async ({ page }) => {

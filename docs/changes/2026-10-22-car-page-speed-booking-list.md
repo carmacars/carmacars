@@ -53,7 +53,8 @@ Website:
   button (Switch to the {car} in the form, Book the {car} instead on the car page). With none free, the example car note
   stays. The enquiry received page says "We have a similar car for your dates; we'll confirm it within 2 hours" when the
   enquiry has a match.
-- Review step: the action column does not wrap (`white-space: nowrap`).
+- Review step: the action column does not wrap (`white-space: nowrap`). At 1024 px the header was 1 px wider than the
+  window (the full menu): its gaps are smaller from 64 to 80rem.
 - Worker cron (`custom-worker.ts`, `src/lib/edge/warm.ts`): after the post-deploy rebuild, the next ticks request home,
   `/cars` and each car page once through the Worker's service binding (each its own invocation and CPU limit), 4 at a
   time with a 150 ms pause per lane, 15 s per tick, at most 400 pages; progress is kept in the tag store
@@ -72,9 +73,9 @@ Sitemaps (Search Console found 57 pages from `/sitemap.xml`):
 
 | | Live before (API, from here) | Live before (database) | Local after (database, 82 published cars, 62 partner) |
 | --- | --- | --- | --- |
-| fleet | 0.5 to 1.0 s, one 500 at 3 s | 300 to 343 ms | 1.3 to 6 ms (was 190 ms locally) |
-| car_page | 0.25 to 3.0 s | 65 to 85 ms | 7 to 16 ms (was 18 to 40 ms) |
-| /book list | the fleet (141 KB) plus 10 handover_places | as fleet | booking_cars 3 ms (17 KB) |
+| fleet | 0.5 to 1.0 s, one 500 at 3 s | 300 to 343 ms | 1.3 to 7 ms (was 190 ms locally) |
+| car_page | 0.25 to 3.0 s | 65 to 85 ms | 7 to 33 ms, a new connection included (was 18 to 40 ms) |
+| /book list | the fleet (141 KB) plus 10 handover_places | as fleet | booking_cars 3 to 9 ms (17 KB); booking_car 3 to 7 ms |
 | quote_booking | 0.55 to 1.45 s | | 7 ms warm |
 
 ## 4. Checks
