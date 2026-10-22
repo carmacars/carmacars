@@ -7,7 +7,7 @@ import { TimeSelect } from '@/features/calendar/TimeSelect';
 import { timeProblem } from '@/features/calendar/availability';
 import { useBlocks } from '@/features/car/CarBooking';
 import { AddressInput } from '@/features/forms/AddressInput';
-import { FAKE_TOKEN, Turnstile } from '@/features/forms/Turnstile';
+import { FAKE_TOKEN, Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { publicEnv } from '@/lib/public-env';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
@@ -155,13 +155,19 @@ export function RequestWizard(p: WizardProps) {
     e.preventDefault(); setFailure('');
     for (let n = 1; n <= LAST; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
-    const token = form.current?.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? (publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
+    // a fresh security-check token just before sending (single use, 5 minutes: a long form or a second try outlives one)
+    const token = form.current ? await freshTurnstileToken(form.current) : (publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
+    if (!token) { setSending(false); setFailure('Our security check did not load in this browser (a content blocker or a privacy setting such as iCloud Private Relay can block it). Turn it off for carmacars.ca or try another browser; your request is kept.'); return; }
     // a request sent before the autosave's pause still closes its draft: the draft is saved first when it has no id yet
     if (!meta.current.draftId) {
       const sv = await saveRequestDraft({ data: d, step, token: meta.current.token }).catch(() => null);
       if (sv?.ok) { meta.current.token = sv.data.token; meta.current.draftId = sv.data.draftId; }
     }
-    const r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
+    let r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
+    if (r && !r.ok && r.code === 'turnstile' && form.current) {
+      const again = await freshTurnstileToken(form.current);
+      if (again) r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token: again, draftId: meta.current.draftId }).catch(() => null);
+    }
     setSending(false);
     if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }
     if (!r.ok) {

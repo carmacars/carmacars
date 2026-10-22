@@ -107,7 +107,7 @@ export async function submitApplication(state: ApplyState, password: string, tur
   if (!user && (password ?? '').length < 10) fe.password = 'Choose a password of at least 10 characters.';
   if (Object.keys(fe).length) return { ok: false, code: 'invalid', message: 'Some answers need a look. The first one is highlighted.', fieldErrors: fe };
   const meta = await requestMeta();
-  if (!(await verifyTurnstile(turnstileToken, meta.ip))) return fail('We could not confirm you are not a bot. Reload the page and try again.', 'turnstile');
+  if (!(await verifyTurnstile(turnstileToken, meta.ip))) return fail('Our security check did not go through. Press Submit again; if it keeps happening, try another browser. Your answers are kept.', 'turnstile');
   const name = [o.first_name, o.middle_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' ');
   const phoneDigits = o.phone.replace(/[^\d+]/g, '');
   const phone = phoneDigits.startsWith('+') ? phoneDigits : phoneDigits.length === 10 ? `+1${phoneDigits}` : `+${phoneDigits}`;

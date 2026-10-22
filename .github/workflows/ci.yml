@@ -163,8 +163,15 @@ jobs:
       - name: Link check and copy lint
         if: ${{ !cancelled() && inputs.e2e_grep == '' }}
         run: |
-          npm run check:links
-          npm run check:copy
+          # the local server rebuilds public pages on a 10 s tick, twice after a fleet change (the confirm pass):
+          # let the last e2e change settle before the pages are crawled
+          sleep 25
+          s=0
+          npm run -s check:links > /tmp/links.log 2>&1 || s=1; tail -n 40 /tmp/links.log
+          npm run -s check:copy > /tmp/copy.log 2>&1 || s=1; tail -n 40 /tmp/copy.log
+          echo "::notice title=links::$(grep -E '^linkcheck' /tmp/links.log | paste -sd ';' -)"
+          if [ $s -ne 0 ]; then echo "::error title=links and copy failed::$(grep -vE '^(linkcheck|copylint):' /tmp/links.log /tmp/copy.log | head -n 25 | cut -c1-300 | paste -sd ';' -)"; fi
+          exit $s
       - name: Crawl as every role
         if: ${{ !cancelled() && inputs.e2e_grep == '' }}
         run: |
