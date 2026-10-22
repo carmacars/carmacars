@@ -96,9 +96,9 @@ export function CarMaintenancePanel({ m, base, autoRecord = false }: { m: CarMai
     <div className="stack" id="maintenance" data-testid="car-maintenance">
       {m.handover_block && <p className="alert alert--error" role="alert" data-testid="maint-handover-block"><span className="alert__title">Handover is refused</span><span>{m.handover_block}. Renew it and record it here.</span></p>}
       <Card title="Service status" testId="maint-items" aside={<RecordService vehicleId={m.vehicle_id} car={m} autoOpen={autoRecord} testId="record-service" />}>
-        <p className="small" data-testid="maint-odometer">Odometer <b>{kmText(m.current_km) || 'unknown'}</b>{m.km_per_day ? <> · about <b>{Math.round(m.km_per_day.rate)} km a day</b>, {KMD_SOURCE[m.km_per_day.source]}</> : null}
+        <div className="small mt-odo" data-testid="maint-odometer">Odometer <b>{kmText(m.current_km) || 'unknown'}</b>{m.km_per_day ? <> · about <b>{Math.round(m.km_per_day.rate)} km a day</b>, {KMD_SOURCE[m.km_per_day.source]}</> : null}
           {' '}<Act ops action="maint_reading_add" payload={P} label="Add a reading" title="Odometer reading" refresh={refresh} testId="maint-reading-add" fields={[
-            { name: 'km', label: 'Odometer (km)', type: 'number', required: true, min: 1 }, { name: 'confirmed', label: 'Lower than the last reading: I checked it', type: 'bool' }]} done="Saved." /></p>
+            { name: 'km', label: 'Odometer (km)', type: 'number', required: true, min: 1 }, { name: 'confirmed', label: 'Lower than the last reading: I checked it', type: 'bool' }]} done="Saved." /></div>
         <Table<Item & Record<string, unknown>> testId="maint-item-table" rows={items as Array<Item & Record<string, unknown>>} rowKey={(r) => r.code} caption="Service items" cols={[
           { key: 'label', label: 'Item', render: (r) => <span>{r.label}{r.rule_source !== 'default' ? <span className="small muted"> ({r.rule_source === 'car' ? 'this car' : 'class'} interval)</span> : null}</span> },
           { key: 'status', label: 'Status', render: (r) => <span data-testid={`status-${r.code}`} data-status={r.status}><StatusBadge s={r.status} /></span> },

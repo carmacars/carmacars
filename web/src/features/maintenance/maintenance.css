@@ -29,3 +29,4 @@
 .mt-void { text-decoration: line-through; color: var(--text-2); }
 .mt-history { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .mt-history li { border-top: 1px solid var(--line, var(--grey-200)); padding-top: var(--s-2); }
+.mt-odo { margin: 0 0 var(--s-3); }
