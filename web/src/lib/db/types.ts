@@ -10471,6 +10471,7 @@ export type Database = {
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
           partner_markup_bps: number;
+          game_max_per_day: number;
           place_db_cap_mb: number;
           place_hubs_index: boolean;
           sale_hubs_index: boolean;
@@ -10875,6 +10876,7 @@ export type Database = {
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
           partner_markup_bps?: number;
+          game_max_per_day?: number;
           place_db_cap_mb?: number;
           place_hubs_index?: boolean;
           sale_hubs_index?: boolean;
@@ -11279,6 +11281,7 @@ export type Database = {
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
           partner_markup_bps?: number;
+          game_max_per_day?: number;
           place_db_cap_mb?: number;
           place_hubs_index?: boolean;
           sale_hubs_index?: boolean;
@@ -16877,6 +16880,7 @@ export type Database = {
           no_credit_card: boolean;
           year_approximate: boolean;
           partner_sheet_name: string | null;
+          trim_candidates: string[] | null;
           for_sale: boolean;
           asking_price_cents: number | null;
         };
@@ -16938,6 +16942,7 @@ export type Database = {
           no_credit_card?: boolean;
           year_approximate?: boolean;
           partner_sheet_name?: string | null;
+          trim_candidates?: string[] | null;
           for_sale?: boolean;
           asking_price_cents?: number | null;
         };
@@ -16999,6 +17004,7 @@ export type Database = {
           no_credit_card?: boolean;
           year_approximate?: boolean;
           partner_sheet_name?: string | null;
+          trim_candidates?: string[] | null;
           for_sale?: boolean;
           asking_price_cents?: number | null;
         };

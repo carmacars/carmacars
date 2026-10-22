@@ -2,7 +2,7 @@
 // and what the form sends.   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { COLOURS, carName, cleanVin, colourFromAnswer, colourName, detailLine, expectedCheckDigit, fuelOf, makeName, mapVpic, trimOf, vinCheckOk, vinMessage, vinState, yearChoices } from './vin.ts';
+import { COLOURS, carName, chooseGearbox, epaGearbox, gearboxOf, trimCandidates, cleanVin, colourFromAnswer, colourName, detailLine, expectedCheckDigit, fuelOf, makeName, mapVpic, trimOf, vinCheckOk, vinMessage, vinState, yearChoices } from './vin.ts';
 import { effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from './entry.ts';
 
 test('the check digit (position 9) of real VINs', () => {
@@ -116,4 +116,33 @@ test('no decode, or a plate: year, make and model are asked and sent, never more
   assert.equal(vinProblem({ ...emptyVin(), vin: 'WP1AB2' }), 'Enter the 17-character VIN, or add the car by its plate.');
   assert.equal(vinProblem({ ...emptyVin(), vin: 'WP1AB2A56GLB12345' }), 'Wait for the VIN to be looked up.');
   assert.equal(vinProblem({ ...emptyVin(), mode: 'plate', plate: '' }), 'Enter the plate.');
+});
+
+test('0094: a list of trims is no trim, and its candidates are kept in order', () => {
+  assert.equal(trimOf('FE or LXS'), '');
+  assert.deepEqual(trimCandidates('S, Final Edition SE, Final Edition SEL, SE'), ['S', 'Final Edition SE', 'Final Edition SEL', 'SE']);
+  assert.deepEqual(trimCandidates('S / SE / R-Line'), ['S', 'SE', 'R-Line']);
+  assert.deepEqual(trimCandidates('FE, LXS'), ['FE', 'LXS']);
+  assert.equal(trimCandidates('EX-L'), null);
+  assert.equal(trimCandidates('Sport'), null);
+  const m = mapVpic({ ModelYear: '2021', Make: 'KIA', Model: 'Forte', Trim: 'FE, LXS' });
+  assert.equal(m.trim, '');
+  assert.deepEqual(m.trim_candidates, ['FE', 'LXS']);
+});
+
+test('0094: the gearbox from EPA when one type covers every row; vPIC only when explicit; else none', () => {
+  assert.equal(gearboxOf('Manual/Standard'), 'Manual');
+  assert.equal(gearboxOf('Automated Manual Transmission (AMT)'), 'Automatic (dual-clutch)');
+  assert.equal(gearboxOf('Continuously Variable Transmission (CVT)'), 'Automatic (CVT)');
+  assert.equal(epaGearbox(['Auto (S6), 4 cyl, 2.0 L, Turbo', 'Auto (S6), 4 cyl, 1.4 L, Turbo']), 'Automatic');
+  assert.equal(epaGearbox(['Auto (AV-S7), 4 cyl, 2.0 L', 'Auto(AV), 4 cyl, 2.0 L']), 'Automatic (CVT)');
+  assert.equal(epaGearbox(['Auto (AM-S7), 6 cyl, 3.0 L, Turbo']), 'Automatic (dual-clutch)');
+  assert.equal(epaGearbox(['Auto (S6), 4 cyl', 'Man 6-spd, 4 cyl']), 'mixed');
+  assert.equal(epaGearbox([]), null);
+  // the Beetle: vPIC said Manual by default, EPA says automatic only
+  assert.deepEqual(chooseGearbox('Automatic', { style: 'Manual/Standard', speeds: '' }), { gearbox: 'Automatic', source: 'epa' });
+  assert.deepEqual(chooseGearbox('Automatic', { style: 'Manual/Standard', speeds: '6' }), { gearbox: null, source: 'none' });
+  assert.deepEqual(chooseGearbox('mixed', { style: 'Automatic', speeds: '6' }), { gearbox: null, source: 'none' });
+  assert.deepEqual(chooseGearbox(null, { style: 'Manual/Standard', speeds: '' }), { gearbox: null, source: 'none' });
+  assert.deepEqual(chooseGearbox(null, { style: 'Automatic', speeds: '8' }), { gearbox: 'Automatic', source: 'vpic_explicit' });
 });

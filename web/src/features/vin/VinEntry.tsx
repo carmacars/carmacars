@@ -169,6 +169,16 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
         <div className="vin-sum" data-testid={`${prefix}-summary`}>
           <p className="vin-sum__name"><b>{carName(c)}</b> <button type="button" className="link" onClick={() => setEditing(true)} data-testid={`${prefix}-edit`}>Edit</button></p>
           <p className="small muted vin-sum__line">{detailLine(c) || 'No further details in the VIN.'}</p>
+          {(d.trim_candidates?.length ?? 0) > 1 && (
+            <div className="field" role="group" aria-labelledby={`${uid}-trims`} data-testid={`${prefix}-trims`}>
+              <p className="label" id={`${uid}-trims`}>Which trim is it? The VIN fits {d.trim_candidates!.length}.</p>
+              <div className="row">{d.trim_candidates!.map((t) => (
+                <button key={t} type="button" className={`btn btn--sm ${value.edits.trim === t ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={value.edits.trim === t}
+                  onClick={() => set({ edits: { ...value.edits, trim: t } })} data-testid={`${prefix}-trim-pick`}>{t}</button>))}
+                <button type="button" className={`btn btn--sm ${value.edits.trim === '' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={value.edits.trim === ''}
+                  onClick={() => set({ edits: { ...value.edits, trim: '' } })}>Not sure</button></div>
+              <p className="hint">Not sure: the car is saved without a trim and Admin &gt; Today asks again.</p>
+            </div>)}
         </div>)}
       {d && editing && (
         <div className="stack" data-testid={`${prefix}-edit-fields`}>
