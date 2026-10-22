@@ -345,3 +345,7 @@ a.ad-tile:hover { border-color: var(--black); }
 .cs-trip__fields { display: grid; gap: var(--s-2); }
 @media (min-width: 48rem) { .cs-trip__fields { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); } }
 .cs-block { display: grid; gap: var(--s-1); min-width: 0; }
+/* Turo: "Which car is this?" (0088) */
+.cs-which__list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: var(--s-2); }
+.cs-which__car { width: 100%; min-height: 3rem; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; white-space: normal; height: auto; padding-block: var(--s-2); }
+.cs-which__other { display: grid; gap: var(--s-2); margin-top: var(--s-3); }

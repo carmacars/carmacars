@@ -68,7 +68,7 @@ select test.throws('an email feed cannot be changed as a calendar link', $$ sele
 insert into s42 values ('b', test.mail63('t63-booked', 'booked', jsonb_build_object('starts_at', test.at63('2031-04-10 10:00'), 'ends_at', test.at63('2031-04-12 10:00'))));
 select test.eq('booked: applied, with a short audit line', (test.s42('b') ->> 'status') || ' | ' || (test.s42('b') ->> 'audit'),
   'applied | Booked: Turo trip 48211907, 2023 Mercedes-Benz C 300 t63car, Thu, Apr 10 at 10:00 am to Sat, Apr 12 at 10:00 am (Ayesha)');
-select test.eq('an External booking block with the 2-hour turnaround, the trip number in the note, no guest name', test.blk63(), '04-10 08:00 04-12 12:00 Turo: Turo trip 48211907');
+select test.eq('an External booking block with the 2-hour turnaround, the trip number and the guest in the note (0088)', test.blk63(), '04-10 08:00 04-12 12:00 Turo: Turo trip 48211907 · Ayesha');
 select test.eq('availability respects it at once', app.vehicle_is_available(test.t63v(), test.at63('2031-04-12 11:00'), test.at63('2031-04-13 10:00')), false);
 select test.eq('only the first name is kept; the log has no excerpt for an email that was read', (select guest_first_name from turo_calendar_trips where trip_id = '48211907')
   || ' ' || (select (excerpt is null)::text || ' ' || status || ' ' || method from turo_inbound_emails where message_id = 't63-booked'), 'Ayesha true applied rules');
@@ -77,12 +77,12 @@ select test.eq('the export for Getaround shows the Turo trip as Booked; Turo''s 
   (select (app.calendar_export_ics(token, 'getaround', test.at63('2031-04-01 12:00')) ~ 'DTSTART:20310410T1200') || ' ' || (app.calendar_export_ics(token, 'turo', test.at63('2031-04-01 12:00')) ~ 'DTSTART:20310410T1200')
      from vehicle_calendar_exports where vehicle_id = test.t63v()), 'true false');
 select test.mail63('t63-changed', 'changed', jsonb_build_object('starts_at', test.at63('2031-04-11 12:00'), 'ends_at', test.at63('2031-04-13 10:00'), 'sent_at', test.at63('2031-04-02 09:00')));
-select test.eq('changed: the same block moves', test.blk63(), '04-11 10:00 04-13 12:00 Turo: Turo trip 48211907');
+select test.eq('changed: the same block moves', test.blk63(), '04-11 10:00 04-13 12:00 Turo: Turo trip 48211907 · Ayesha');
 select test.mail63('t63-extended', 'extended', jsonb_build_object('ends_at', test.at63('2031-04-16 10:00'), 'sent_at', test.at63('2031-04-03 09:00')));
-select test.eq('extended with only the new end: the start stays', test.blk63(), '04-11 10:00 04-16 12:00 Turo: Turo trip 48211907');
+select test.eq('extended with only the new end: the start stays', test.blk63(), '04-11 10:00 04-16 12:00 Turo: Turo trip 48211907 · Ayesha');
 select test.eq('an older email (sent before the last one applied) changes nothing', (test.mail63('t63-late', 'changed', jsonb_build_object('starts_at', test.at63('2031-04-10 10:00'),
   'ends_at', test.at63('2031-04-12 10:00'), 'sent_at', test.at63('2031-04-01 10:00'))) ->> 'reason') || ' | ' || test.blk63(),
-  'Older than the last email about this trip | 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907');
+  'Older than the last email about this trip | 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907 · Ayesha');
 
 -- a clash with a confirmed CarmaCars booking: the 0062 machinery (urgent task, email, To do)
 select test.mk_booking('T63-B1', 't63car', 't63_rita', '2031-05-10 10:00', '2031-05-12 10:00', 'confirmed');
@@ -93,7 +93,7 @@ select test.eq('a Turo trip over a confirmed booking: an urgent Fleet task and t
   'fleet urgent Double booking: 2023 Mercedes-Benz C 300 t63car on Turo and T63-B1 1');
 select test.mail63('t63-clash-cancel', 'cancelled', jsonb_build_object('trip_id', '48219999', 'vehicle_id', null, 'sent_at', test.at63('2031-04-05 09:00')));
 select test.eq('cancelled (no car needed): the block goes, the clash closes by itself', (select status from tasks where task_type = 'calendar_conflict' and booking_id = test.id('booking:T63-B1'))
-  || ' ' || (select status from turo_calendar_trips where trip_id = '48219999') || ' ' || test.blk63(), 'done cancelled 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907');
+  || ' ' || (select status from turo_calendar_trips where trip_id = '48219999') || ' ' || test.blk63(), 'done cancelled 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907 · Ayesha');
 select test.eq('a cancellation of a trip never seen frees nothing', test.mail63('t63-cancel-unknown', 'cancelled', jsonb_build_object('trip_id', '11112222')) ->> 'reason',
   'Turo trip 11112222 was not on the calendar: nothing to free');
 insert into s42 values ('rebook', test.mail63('t63-rebook', 'booked', jsonb_build_object('trip_id', '48219999',
@@ -109,14 +109,14 @@ select test.eq('not from Turo: ignored', test.mail63('t63-notturo', 'booked', js
 select test.eq('a trip request: nothing blocked until it is booked', test.mail63('t63-request', 'request') ->> 'reason',
   'A trip request waiting for your answer on Turo: nothing is blocked until it is booked');
 select test.eq('none of these blocked anything or made a trip', (select count(*) from turo_calendar_trips where trip_id = '55550001') || ' ' || test.blk63(),
-  '0 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907 | 06-01 08:00 06-02 12:00 Turo: Turo trip 48219999');
+  '0 04-11 10:00 04-16 12:00 Turo: Turo trip 48211907 · Ayesha | 06-01 08:00 06-02 12:00 Turo: Turo trip 48219999 · Ayesha');
 insert into s42 values ('r', test.mail63('t63-unclear', 'booked', jsonb_build_object('trip_id', '53007788', 'vehicle_id', null, 'missing', '["car"]'::jsonb,
   'vehicle_hint', 'Mercedes-Benz GLC', 'excerpt', 'Priya booked your Mercedes-Benz GLC. Trip start: Nov 6, 2026 10:00 AM. Call Priya at [phone].',
   'starts_at', test.at63('2031-08-06 10:00'), 'ends_at', test.at63('2031-08-08 10:00'))));
 select test.eq('a car that cannot be told apart: review, a Fleet task, the redacted excerpt kept for it', (test.s42('r') ->> 'status') || ' | ' || (test.s42('r') ->> 'reason')
   || ' | ' || (select queue || ' ' || title from tasks where task_type = 'turo_email_review' and related_id = (test.s42('r') ->> 'id')::uuid)
   || ' | ' || (select left(excerpt, 15) from turo_inbound_emails where id = (test.s42('r') ->> 'id')::uuid),
-  'review | Could not read: car | fleet Turo email to check: Ayesha booked a trip | Priya booked yo');
+  'review | Which car: no car matches the email | fleet Which car is this? Turo email: Ayesha booked a trip | Priya booked yo');
 select test.eq('Calendar sync lists it for review, To do counts it',
   (select count(*) from jsonb_array_elements(test.rd63() -> 'turo' -> 'review') x where x ->> 'id' = test.s42('r') ->> 'id') || ' '
   || (select i ->> 'count' from jsonb_array_elements(app.admin_todo(test.id('t63_admin')) -> 'items') i where i ->> 'key' = 'turo_emails'), '1 1');
@@ -125,7 +125,7 @@ insert into s42 values ('fix', test.fl63('turo_trip_add', jsonb_build_object('em
 select test.eq('resolved by adding the trip: the block, the email resolved, its excerpt gone, the task done', test.blk63('t63car2')
   || ' | ' || (select format('%s %s %s', status, excerpt is null, method) from turo_inbound_emails where id = (test.s42('r') ->> 'id')::uuid)
   || ' | ' || (select status from tasks where task_type = 'turo_email_review' and related_id = (test.s42('r') ->> 'id')::uuid),
-  '08-06 08:00 08-08 12:00 Turo: Turo trip 53007788 | resolved t staff | done');
+  '08-06 08:00 08-08 12:00 Turo: Turo trip 53007788 · Ayesha | resolved t staff | done');
 insert into s42 values ('r2', test.mail63('t63-unclear2', 'changed', jsonb_build_object('trip_id', null, 'missing', '["trip id"]'::jsonb)));
 select test.fl63('turo_review_dismiss', jsonb_build_object('id', test.s42('r2') ->> 'id'));
 select test.eq('dismissed: no task left, nothing waits', (select format('%s %s', status, excerpt is null) from turo_inbound_emails where id = (test.s42('r2') ->> 'id')::uuid)
@@ -138,7 +138,7 @@ select test.eq('a trip added by hand without a number gets one', (select trip_id
 select test.throws('the end must be after the start', $$ select test.fl63('turo_trip_add', jsonb_build_object('vehicle', test.t63v('t63car2'), 'starts_at', test.at63('2031-09-05 09:00'), 'ends_at', test.at63('2031-09-04 09:00'))) $$,
   'The end is not after the start');
 select test.fl63('turo_trip_cancel', jsonb_build_object('id', test.s42('m') ->> 'trip'));
-select test.eq('cancelled by hand: its block goes', test.blk63('t63car2'), '08-06 08:00 08-08 12:00 Turo: Turo trip 53007788');
+select test.eq('cancelled by hand: its block goes', test.blk63('t63car2'), '08-06 08:00 08-08 12:00 Turo: Turo trip 53007788 · Ayesha');
 select test.eq('the car''s Turo trips on Calendar sync, the Turo feed not listed as a calendar link',
   (select string_agg(t ->> 'trip_id' || ':' || (t ->> 'blocked') || ':' || coalesce(t ->> 'guest_first_name', '-'), ' ' order by t ->> 'starts_at') from jsonb_array_elements(test.car63() -> 'turo' -> 'trips') t)
   || ' | ' || jsonb_array_length(test.car63() -> 'feeds'), '48211907:true:Ayesha 48219999:true:Ayesha | 0');

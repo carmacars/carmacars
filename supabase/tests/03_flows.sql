@@ -393,6 +393,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- Turo by email (0063): the inbound log and the trips written by the email reader; every change by staff (the
                             -- listing, a trip added or cancelled, a review handled, Done on Turo) is written to audit_log by the functions
                             'turo_vehicle_links', 'turo_inbound_emails', 'turo_calendar_trips', 'turo_blocked_bookings',
+                            -- Turo smart matching (0088): what each car learned from Turo's emails (counted on every email); staff moving or
+                            -- forgetting one is written to audit_log by the functions
+                            'turo_identities',
                             -- discount games (0069): one row per game shown, no personal information (the claims are audited)
                             'game_plays',
                             -- 0074: the count of guide opens per person (app_events, the internal event queue, is listed above)

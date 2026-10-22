@@ -25,7 +25,9 @@ async function who() {
 
 export type CalendarAction = 'calendar_feed_add' | 'calendar_feed_save' | 'calendar_feed_remove' | 'calendar_export_rotate'
   // Turo by email (migration 0063)
-  | 'turo_link_save' | 'turo_link_remove' | 'turo_trip_add' | 'turo_trip_cancel' | 'turo_review_dismiss' | 'turo_confirmation_dismiss' | 'turo_block_done' | 'turo_unblock_done';
+  | 'turo_link_save' | 'turo_link_remove' | 'turo_trip_add' | 'turo_trip_cancel' | 'turo_review_dismiss' | 'turo_confirmation_dismiss' | 'turo_block_done' | 'turo_unblock_done'
+  // Turo smart matching (migration 0088): "Which car is this?" and forgetting a learned name or Turo car number
+  | 'turo_review_pick' | 'turo_identity_remove';
 export async function calendarAct<T = Record<string, unknown>>(action: CalendarAction, p: Record<string, unknown>): Promise<R<T>> {
   try {
     const { user, call, aal } = await who();

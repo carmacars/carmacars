@@ -15818,6 +15818,8 @@ export type Database = {
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };
+      turo_rematch_due: { Args: { p_limit?: number }; Returns: Json };
+      turo_rematch_result: { Args: { p: Json }; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };

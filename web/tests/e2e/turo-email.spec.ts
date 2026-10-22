@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { db, noOverflow } from './helpers';
 
-// Migration 0063 end to end, at 375 and 1440. Turo by email: an Admin marks a car as listed on Turo (the name Turo
-// gives it); a Turo "booked" email forwarded by Gmail (posted to /api/inbound/turo as the Worker's email handler does)
+// Migration 0063 end to end, at 375 and 1440 (0088: the typed name on Turo is an optional override; the sample cars
+// used here are candidates only with it). Turo by email: an Admin types a car's name on Turo; a Turo "booked" email forwarded by Gmail (posted to /api/inbound/turo as the Worker's email handler does)
 // blocks the car with the turnaround and lists the trip; a cancellation frees it; an email whose car cannot be told
 // apart waits in the review list and is resolved with "Add as a Turo trip"; Gmail's forwarding confirmation shows its
 // code to the Admin; a confirmed CarmaCars booking is listed under "Block on Turo" until ticked "Done on Turo".
@@ -96,10 +96,10 @@ test('Turo by email: the car on Turo, a booked email blocks it, a cancellation f
 
   // the car is on Turo: the name Turo gives it
   const tc = page.getByTestId(`turo-car-${car.id}`);
-  await tc.getByRole('button', { name: 'This car is on Turo' }).click();
+  await tc.getByRole('button', { name: 'Type its name on Turo (optional)' }).click();
   await tc.getByLabel('Name on Turo').fill(listing);
   await tc.getByRole('button', { name: 'Save' }).click();
-  await expect(row.getByTestId('cs-msg')).toContainText('Turo emails about this car now block it', { timeout: 15_000 });
+  await expect(row.getByTestId('cs-msg')).toContainText('Turo emails with this name now go to this car', { timeout: 15_000 });
   await expect(tc).toContainText(listing);
 
   // Done on Turo: our confirmed booking is listed to block on Turo
@@ -124,14 +124,14 @@ test('Turo by email: the car on Turo, a booked email blocks it, a cancellation f
   const turn = (await sql`select app.turnaround_minutes(${car.id}) m`)[0]!.m as number;
   expect(blk!.starts_at.getTime()).toBe(start.getTime() - turn * 60_000);
   expect(blk!.ends_at.getTime()).toBe(end.getTime() + turn * 60_000);
-  expect(blk!.note).toBe(`Turo: Turo trip ${trip}`);
+  expect(blk!.note).toBe(`Turo: Turo trip ${trip} · Ayesha K.`);
   const [av] = await sql`select public.vehicle_is_available(${car.id}, ${new Date(start.getTime() + 3_600_000).toISOString()}::timestamptz, ${new Date(end.getTime() - 3_600_000).toISOString()}::timestamptz) ok`;
   expect(av!.ok).toBe(false);
   // nothing of the email is kept but what was read
   const [log] = await sql`select excerpt, guest_first_name, status from turo_inbound_emails where message_id = ${`e2e-${trip}-b@mail.turo.com`}`;
   expect(`${log!.status} ${log!.guest_first_name} ${log!.excerpt}`).toBe('applied Ayesha null');
   await page.reload({ waitUntil: 'networkidle' });
-  await expect(tc.getByTestId('turo-trips')).toContainText(`Turo trip ${trip} (Ayesha)`);
+  await expect(tc.getByTestId('turo-trips')).toContainText(`Turo trip ${trip} (Ayesha K.)`);
 
   // the same trip cancelled: freed
   const cancelled = await forward(page, mail({ id: `e2e-${trip}-c`, subject: 'Ayesha cancelled their trip', body: `Ayesha cancelled their trip with your ${listing}. Reservation ID ${trip}.` }));
@@ -142,10 +142,10 @@ test('Turo by email: the car on Turo, a booked email blocks it, a cancellation f
   // an email whose car cannot be told apart: the review list, then "Add as a Turo trip"
   const trip2 = String(50_000_000 + Math.floor(Math.random() * 9_000_000));
   const unclear = await forward(page, mail({ id: `e2e-${trip2}-u`, subject: `Priya booked your Hyundai Ioniq (${trip2})`, body: `Priya booked your Hyundai Ioniq.\nTrip start: ${fmt(start)}\nTrip end: ${fmt(end)}\nReservation ID: ${trip2}\nCall Priya at 647-555-0123.\n` }));
-  expect(`${unclear.status} ${unclear.reason}`).toBe('review Could not read: car');
+  expect(`${unclear.status} ${unclear.reason}`).toBe('review Which car: no car of ours matches');
   await page.reload({ waitUntil: 'networkidle' });
   const review = page.getByTestId('turo-review-item').filter({ hasText: `Priya booked your Hyundai Ioniq (${trip2})` });
-  await expect(review).toContainText('Could not read: car');
+  await expect(review).toContainText('Which car: no car of ours matches');
   await expect(review).not.toContainText('647-555-0123');
   await review.getByRole('button', { name: 'Add as a Turo trip' }).click();
   await review.getByLabel('Car').selectOption(car.id);

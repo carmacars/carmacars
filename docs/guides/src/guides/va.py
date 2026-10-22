@@ -264,8 +264,9 @@ def build():
 
     g.task('Calendar sync with Turo and other platforms', f'{P("Cars", "Calendar sync")}: a car listed on Turo or Getaround must never be booked twice.')
     g.steps([
-        f'Turo has no calendar link: Turo\'s trip emails come in by themselves and block the car with the turnaround. For each car on Turo, press {B("This car is on Turo")}, type its name exactly as Turo\'s emails show it and press {B("Save")}.',
-        f'Under "Turo emails to check", an email the reader was not sure about: check the trip on Turo, then {B("Add as a Turo trip")} (choose the car, check the dates) or {B("Dismiss")}. A trip whose email did not come: {B("Add a Turo trip")} on the car.',
+        'Turo has no calendar link: Turo\'s trip emails come in by themselves, find their car by themselves (Turo car number, plate, VIN, year, make, model, trim, colour, what earlier emails taught) and block it with the turnaround. Nothing to set up per car.',
+        f'An email the reader cannot place waits as "Which car is this?": press {B("Which car is this?")} and press the right car (best guesses first). It is remembered for that car\'s next emails. If the dates or trip number are missing: {B("Add as a Turo trip")} (choose the car, check the dates) or {B("Dismiss")}. A trip whose email did not come: {B("Add a Turo trip")} on the car.',
+        'Each Turo trip shows the guest\'s name and phone when Turo\'s email includes them. Contact a Turo guest only about their trip, never with promotions.',
         f'Turo cannot read our calendar: under "Block on Turo", block each CarmaCars booking on the car\'s Turo calendar, then press {B("Done on Turo")}. Dates that changed or a booking cancelled here show the dates to free on Turo.',
         f'Getaround, Google Calendar or another platform with a calendar (iCal) link: open {B("Add a calendar link")}, choose the platform, paste it and press {B("Add the link")}. Copy the car\'s CarmaCars link for that platform with {B("Copy")} and paste it into the platform\'s calendar import.',
         'A double booking raises an urgent task for you and an email: move, swap or cancel one trip. A link that stops working raises a task after 3 failed reads: copy it from the platform again.',
