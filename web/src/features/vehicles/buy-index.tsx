@@ -6,14 +6,15 @@ import { rpc } from '@/lib/db/repo';
 import { fill, getTokens } from '@/lib/site';
 import '@/styles/vehicles.css';
 
+import 'server-only';
+
 // The /buy tree's start (migration 0097): every make, each with its models, years and trims for buyers.
-export const revalidate = 3600;
-export async function generateMetadata() {
+export async function buyIndexMeta() {
   const t = await getTokens();
   return seoMeta({ title: fill('Buying a car? Specs, recalls and a week-long test drive | {{brand}}', t), path: '/buy',
     description: fill('Every make, model, year and trim: EPA fuel use, dimensions, NHTSA recalls and complaints. Rent the car for a week before you buy it, from {{brand}} in {{city}}.', t) });
 }
-export default async function Buy() {
+export async function BuyIndex() {
   const makes = ((await rpc('vehicle_makes', {})) as unknown as Array<{ slug: string; name: string; models: number }> | null) ?? [];
   const trail: Trail = [['Home', '/'], ['Buy']];
   return (

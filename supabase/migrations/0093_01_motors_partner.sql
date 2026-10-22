@@ -491,25 +491,21 @@ select pg_temp.patch_fn('app.send_offer(uuid, uuid, text, timestamptz)'::regproc
 -- Computed once (plpgsql): a SQL wrapper that names its inner row twice runs it twice, and the row (photos, studio
 -- stand-ins) is the costly part of the fleet. This one does 0054's cover and 0079's car code itself on 0022's row, so
 -- the fleet costs one evaluation of the row per car instead of several (every page reads the fleet for its numbers).
-alter function app.public_listing_row(uuid) rename to public_listing_row_pre0093;
-create or replace function app.public_listing_row(p_vehicle uuid) returns jsonb
+-- The partner fields are added to 0022's row, the base of the listing row chain (0054's cover, 0079's car code, made
+-- PL/pgSQL by 0099 so each layer runs once). Wrapping the base, not the top, keeps them whichever of 0093 and 0099 runs
+-- first: 0099 replaces the top function and would drop a wrapper put there.
+alter function app.public_listing_row_0022(uuid) rename to public_listing_row_0022_pre0093;
+create or replace function app.public_listing_row_0022(p_vehicle uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  x jsonb := app.public_listing_row_0022(p_vehicle);
+  x jsonb := app.public_listing_row_0022_pre0093(p_vehicle);
   v vehicles;
   rc rate_cards;
 begin
   if x is null then return null; end if;
-  -- 0054's cover: the sample photos stand in for a car without a cover
-  if x -> 'cover' is null or x -> 'cover' = 'null'::jsonb then
-    x := x || jsonb_build_object('cover', app.vehicle_sample_photos(p_vehicle) -> 0, 'sample_photos', true);
-  else
-    x := x || jsonb_build_object('sample_photos', false);
-  end if;
   select * into v from vehicles where id = p_vehicle;
   select * into rc from rate_cards r where r.vehicle_id = p_vehicle and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now());
   return x || jsonb_build_object(
-    'car_code', v.car_code,
     'year', case when v.year_approximate then null else to_jsonb(v.year) end,
     'year_approximate', v.year_approximate,
     'insurance_included', v.insurance_included,
@@ -517,6 +513,29 @@ begin
     'guideline_rates', app.partner_rate_basis(v.id),
     'multi_day_rate_cents', rc.multi_day_rate_cents,
     'long_term_rate_cents', case when rc.multi_day_rate_cents is not null then round(rc.weekly_rate_cents / 7.0)::bigint end);
+end $$;
+
+-- the fleet: each car's public row worked out once (0022's SQL form mentioned the row three times; Postgres pulled the
+-- subquery up and ran app.public_listing_row for each mention, about 1 s for the 82 cars of the partner fleet)
+create or replace function app.public_fleet(p_filters jsonb default '{}'::jsonb) returns setof jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  return query
+  select q.r from (
+    select app.public_listing_row(l.vehicle_id) r, l.is_featured, l.first_published_at
+      from vehicle_listings l join vehicles v on v.id = l.vehicle_id
+     where l.status = 'published' and v.management_mode <> 'turo_only'
+       and (p_filters ->> 'class' is null or app.vehicle_in_classes(v.id, array[p_filters ->> 'class']))
+       and (jsonb_typeof(p_filters -> 'classes') is distinct from 'array'
+            or app.vehicle_in_classes(v.id, array(select jsonb_array_elements_text(p_filters -> 'classes'))))
+       and (p_filters ->> 'make' is null or app.slugify(v.make) = app.slugify(p_filters ->> 'make'))
+       and (p_filters ->> 'model' is null or app.slugify(v.model) = app.slugify(p_filters ->> 'model'))
+       and (p_filters ->> 'fuel' is null or v.fuel::text = p_filters ->> 'fuel')
+       and (p_filters ->> 'body_style' is null or lower(coalesce(l.body_style, v.body_type)) = lower(p_filters ->> 'body_style'))
+       and (not coalesce((p_filters ->> 'featured')::boolean, false) or l.is_featured)
+     offset 0) q
+   where q.r is not null
+   order by q.is_featured desc, (q.r ->> 'daily_rate_cents')::bigint nulls last, q.first_published_at;
 end $$;
 
 -- ================================================================ 7. the partner's rates in Admin
@@ -1386,7 +1405,7 @@ begin
      where n.nspname = 'app' and (p.proname like '%\_pre0093' or p.proname = any (array[
              'partner_renter_cents', 'partner_markup_bps', 'partner_rate_basis', 'partner_sheet_rental_cents', 'rate_cards_partner_multi',
              'bookings_partner_before', 'bookings_included_coverage_after', 'booking_card_ok', 'compute_booking_split', 'build_owner_statement',
-             'public_listing_row', 'partner_rates_apply', 'partner_pricing_save', 'partner_car_save', 'partner_car_row', 'partner_detail',
+             'public_listing_row_0022', 'partner_rates_apply', 'partner_pricing_save', 'partner_car_save', 'partner_car_row', 'partner_detail',
              'chauffeur_vehicle_row', 'chauffeur_quote', 'chauffeur_assert', 'chauffeur_requests_list', 'chauffeur_request_update', 'chauffeur_vehicle_save',
              'door', 'admin_todo', 'partner_fleet_import_0093', 'guide_release_0093']))
   loop
@@ -1404,7 +1423,7 @@ begin
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              join (values ('door_pre0093', 'door'), ('admin_todo_pre0093', 'admin_todo'), ('compute_booking_split_pre0093', 'compute_booking_split'),
-                          ('build_owner_statement_pre0093', 'build_owner_statement'), ('public_listing_row_pre0093', 'public_listing_row'),
+                          ('build_owner_statement_pre0093', 'build_owner_statement'), ('public_listing_row_0022_pre0093', 'public_listing_row_0022'),
                           ('partner_detail_pre0093', 'partner_detail')) m(old_name, new_name) on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;

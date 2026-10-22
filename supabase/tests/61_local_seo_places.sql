@@ -77,9 +77,18 @@ select test.eq('finish: the airport is the place of the landing page with its co
 select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 6144::bigint * 1048576);
 
 -- ================================================================ 4. terms
-select test.eq('terms: rental 31, buying help 14, detailing 27, body shop 20',
-  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms group by vertical) x), 'bodyshop=20,detailing=27,rental=31,sale=14');
+select test.eq('terms: rental 31 and 36 more (0098), buying help 14, detailing 27, body shop 20',
+  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms group by vertical) x), 'bodyshop=20,detailing=27,rental=67,sale=14');
 select test.ok('terms: buying help always takes a request, never "served"', not exists (select 1 from place_terms where vertical = 'sale' and served <> 'request'));
+select test.ok('terms (0098): every rideshare and delivery page says the companies named are not affiliated',
+  not exists (select 1 from place_terms where slug in ('uber-rental-car', 'lyft-rental-car', 'rideshare-car-rental', 'uber-eats-car-rental', 'doordash-car-rental',
+    'skipthedishes-car-rental', 'instacart-car-rental', 'hopp-car-rental', 'delivery-driver-car-rental', 'gig-driver-car-rental') and intent_note !~ 'not affiliated'));
+select test.ok('terms (0098): the driving record pages promise nothing: eligibility is confirmed when you book',
+  not exists (select 1 from place_terms where slug in ('dui-car-rental', 'car-rental-with-bad-driving-record', 'high-risk-driver-car-rental') and intent_note !~ 'confirmed when you book'));
+select test.eq('terms (0098): a debit card page lists the no credit card cars', (select match from place_terms where slug = 'debit-card-car-rental'), '{"flags": ["no_credit_card"]}'::jsonb);
+select test.ok('terms (0098): a landing page named is one 0095''s terms already use (the seed makes the pages)',
+  not exists (select 1 from place_terms t where t.sort_order >= 400 and t.landing_slug is not null
+                and not exists (select 1 from place_terms o where o.sort_order < 400 and o.landing_slug = t.landing_slug)));
 select test.ok('terms: no long dash in a seeded note', not exists (select 1 from place_terms where intent_note ~ ('[' || chr(8210) || chr(8211) || chr(8212) || chr(8213) || ']')));
 select test.eq('services: detailing 4, body shop 4, none priced', (select count(*) filter (where vertical = 'detailing') || '/' || count(*) filter (where vertical = 'bodyshop') || '/' || count(from_price_cents) from shop_services), '4/4/0');
 

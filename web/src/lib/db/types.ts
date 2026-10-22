@@ -14979,6 +14979,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_catalog_car_match: {
+        Row: {
+          vehicle_id: string;
+          src: string;
+          make_slug: string | null;
+          model_slug: string | null;
+          trim_slug: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          src: string;
+          make_slug?: string | null;
+          model_slug?: string | null;
+          trim_slug?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          src?: string;
+          make_slug?: string | null;
+          model_slug?: string | null;
+          trim_slug?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_catalog_import_requests: {
         Row: {
           id: number;
