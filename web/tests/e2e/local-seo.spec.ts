@@ -22,7 +22,7 @@ async function ld(page: Page): Promise<Array<Record<string, unknown>>> {
   return blocks.flatMap((b) => { const j = JSON.parse(b) as { '@graph'?: Array<Record<string, unknown>> }; return j['@graph'] ?? [j as Record<string, unknown>]; });
 }
 const types = (nodes: Array<Record<string, unknown>>) => nodes.flatMap((n) => ([] as unknown[]).concat(n['@type'] ?? []).map(String));
-const robots = (page: Page) => page.locator('meta[name="robots"]').getAttribute('content').catch(() => null);
+const robots = async (page: Page) => ((await page.locator('meta[name="robots"]').count()) ? page.locator('meta[name="robots"]').first().getAttribute('content') : null);
 
 test('home: "Car Rental Toronto" title, the h1 and first paragraph, one name, address and phone in the schema, footer and contact page', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' });
@@ -48,6 +48,9 @@ test('home: "Car Rental Toronto" title, the h1 and first paragraph, one name, ad
 
 test('intent landing pages: render with their facts, FAQPage, breadcrumbs; the flagged-car pages stay out of search without their cars', async ({ page }) => {
   test.setTimeout(300_000);
+  // the flagged-car pages (vehicles.no_credit_card and insurance_included of 0093) are in search only with enough such real cars
+  const sql = db();
+  const ix = Object.fromEntries((await sql<{ slug: string; ix: boolean; n: number }[]>`select slug, app.seo_page_indexable(p) ix, app.seo_real_count(p.match) n from seo_pages p where slug in ('no-credit-card', 'insurance-included')`).map((r) => [r.slug, r]));
   for (const slug of ['airport', 'under-25', 'young-drivers', 'monthly', 'weekend', 'car-delivery', 'luxury', 'exotic', 'economy', 'suv', 'minivan', 'convertible', 'no-credit-card', 'insurance-included', 'toronto']) {
     const res = await page.goto(`/car-rental/${slug}`, { waitUntil: 'networkidle' });
     expect(res?.status(), slug).toBe(200);
@@ -60,7 +63,13 @@ test('intent landing pages: render with their facts, FAQPage, breadcrumbs; the f
       const biz = (await ld(page)).find((n) => types([n]).includes('AutoRental')) as { areaServed: unknown[] };
       expect(biz.areaServed.length, 'Toronto serves every city landing page').toBeGreaterThan(3);
     }
-    if (slug === 'no-credit-card' || slug === 'insurance-included') expect(await robots(page), slug).toContain('noindex');
+    if (slug === 'no-credit-card' || slug === 'insurance-included') {
+      const r = ix[slug]!;
+      if (r.ix) {
+        expect(await robots(page) ?? '', slug).not.toContain('noindex');
+        expect(await page.locator('main a[href^="/cars/"]').count(), `${slug}: its ${r.n} cars are listed`).toBeGreaterThan(0);
+      } else expect(await robots(page), slug).toContain('noindex');
+    }
     await check(page, slug);
   }
 });
