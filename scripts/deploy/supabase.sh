@@ -17,6 +17,10 @@
 #   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
 #   scripts/deploy/supabase.sh stripe    the Stripe webhook endpoint (test or live, by the secret key) and its
 #                                        signing secret in the vault (deploy_stripe_webhook_secret)
+#   scripts/deploy/supabase.sh quo       the Quo phone line (0085): the key (repository secret QUO_API_KEY, kept in the
+#                                        vault as deploy_quo_api_key), our webhook for the CarmaCars number (Site settings,
+#                                        phone) and its signing secret in the vault (deploy_quo_webhook_secret); exports
+#                                        QUO_API_KEY and QUO_WEBHOOK_SECRET for the Worker. Never another Quo account.
 #
 # Needs SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF; APP_URL (default https://carmacars.ca).
 set -euo pipefail
@@ -372,6 +376,46 @@ stripe() {
   fi
   mask "$secret"
   export_env STRIPE_WEBHOOK_SECRET "$secret"
+}
+
+quo() {
+  # the key: the repository secret when set (then kept in the vault), otherwise the vault's copy
+  if [ -n "${QUO_API_KEY:-}" ]; then
+    mask "$QUO_API_KEY"
+    [ "$(vault_get deploy_quo_api_key)" = "$QUO_API_KEY" ] || vault_set deploy_quo_api_key "$QUO_API_KEY" "Quo API key of the CarmaCars workspace (the phone line, 0085)"
+  else
+    QUO_API_KEY=$(vault_get deploy_quo_api_key)
+  fi
+  if [ -z "$QUO_API_KEY" ]; then
+    notice "Phone line: no Quo key (repository secret QUO_API_KEY). Calls and texts are not recorded and no text is sent until it is set."
+    return 0
+  fi
+  mask "$QUO_API_KEY"
+  export_env QUO_API_KEY "$QUO_API_KEY"
+  local number secret have out res
+  number=$(sbq "select app.phone_our_number() as n" | jq -r '.[0].n // empty')
+  [ -n "$number" ] || { warn "Phone line: Site settings has no phone number; the Quo webhook was not set up"; return 0; }
+  secret=$(vault_get deploy_quo_webhook_secret)
+  have=no; [ -n "$secret" ] && have=yes
+  out=$(mktemp); chmod 600 "$out"
+  if ! res=$(cd "$ROOT" && QUO_API_KEY="$QUO_API_KEY" node --experimental-strip-types --no-warnings scripts/deploy/quo.mjs setup \
+        --url "$APP_URL/api/webhooks/quo" --number "$number" --have-key "$have" --out "$out" 2>&1); then
+    rm -f "$out"
+    warn "Phone line: the Quo webhook could not be set up: $res"
+    [ -n "$secret" ] && { mask "$secret"; export_env QUO_WEBHOOK_SECRET "$secret"; }
+    return 0
+  fi
+  if [ -s "$out" ]; then
+    secret=$(cat "$out"); mask "$secret"
+    vault_set deploy_quo_webhook_secret "$secret" "Signing secret of the Quo webhook $APP_URL/api/webhooks/quo"
+  fi
+  rm -f "$out"
+  mask "$secret"
+  export_env QUO_WEBHOOK_SECRET "$secret"
+  local pn wid action
+  pn=$(jq -r '.phone_number_id' <<<"$res"); wid=$(jq -r '.webhook_id' <<<"$res"); action=$(jq -r '.action' <<<"$res")
+  sbq "update quo_config set phone_number_id = '$(tr -cd 'A-Za-z0-9' <<<"$pn")', webhook_id = '$(tr -cd 'A-Za-z0-9' <<<"$wid")', checked_at = now()" > /dev/null
+  notice "Phone line: Quo inbox $(jq -r '.number_name // "?"' <<<"$res") ($pn) for $number; webhook $wid $action"
 }
 
 for step in "$@"; do "$step"; done

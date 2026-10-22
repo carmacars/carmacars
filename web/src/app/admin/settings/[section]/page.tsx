@@ -51,6 +51,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Discount games', (k) => k.startsWith('game_')],
+  ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

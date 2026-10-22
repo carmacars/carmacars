@@ -389,6 +389,22 @@ def build():
     ])
     g.tip('Prices: send a quote from New quote, never a price from memory. If you handled the chat, choose "I sourced this client" on the quote; nothing is credited by itself.')
 
+    # ---------------------------------------------------------------- the phone line (0085)
+    g.chapter('Texts and calls',
+              'Customer service and Sales answer texts to the CarmaCars number in the same place as live chat. Every call and text is kept with '
+              'the renter, owner or lead it belongs to.',
+              blurb='Reading and answering texts, suggestions, unknown callers and missed calls.')
+    g.task('Answer a text')
+    g.steps([
+        f'Open {P("My work", "Live chat")} and press {B("Texts and calls")}. Unread texts and missed calls are counted on each number.',
+        'Choose a number: calls and texts in order, and beside them who it is, with their bookings.',
+        f'Write the text and press {B("Send text")}. It goes from the CarmaCars number.',
+        f'{B("Suggest a reply")} writes a draft into the box. Read it and change it: it is never sent until you press Send text.',
+    ])
+    g.task('Unknown callers', f'Press {B("Unknown callers")}. Type the name if they told you and press {B("Create lead")}, or find the renter and press {B("Link to")} their name.')
+    g.task('Missed calls', 'A missed call gives you the task "Missed call from ..." when you have Live chat or Texts and calls open; otherwise it waits in the customer service queue. Call back with the Call button, or text, then mark the task done. Quo itself texts the caller back, so do not send the same message again.')
+    g.tip('A number that texted STOP gets no texts from us, booking texts included, until they text START. Prices go in a quote, never in a text from memory.')
+
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount game leads',
               'Visitors who are not signed in play a quick game on the site and win a promo code. To get it they give a first name, an email '

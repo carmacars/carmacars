@@ -739,6 +739,31 @@ def build():
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
 
+    # ---------------------------------------------------------------- the phone line (0085)
+    g.chapter('Texts and calls (the Quo phone line)',
+              'Every call and text on the CarmaCars number (Quo) is kept and matched to the person: staff, a renter and their booking, '
+              'an owner or a lead. Staff answer texts from the same inbox as live chat. It is on by default; Program settings switch each part.',
+              blurb='Texts and calls in the chat inbox, unknown callers, missed calls, booking texts, call summaries and the settings.')
+    g.task('The inbox')
+    g.steps([
+        f'Open {P("Bookings", "Live chat")} and press {B("Texts and calls")}. Each number shows who it is (Renter, Owner, Lead, Staff or Unknown caller), unread texts and missed calls.',
+        'Choose a number. Calls and texts are in order; a call shows its length, and Quo\'s summary or a one-line AI summary when there is one.',
+        f'Write a text and press {B("Send text")}: it goes from the CarmaCars number through Quo. {B("Suggest a reply")} puts an AI draft in the box; nothing is ever sent until you press Send text.',
+        'Beside the conversation: the renter with their bookings, the owner or the lead. A caller who gave the same phone in live chat or a discount game shows their visit on the site.',
+        f'{B("Stop texts")} stops every text to the number, booking texts included. A person who texts STOP is stopped the same way; START allows texts again.',
+    ])
+    g.task('Unknown callers', f'Press {B("Unknown callers")}. For a number nobody on file has, type the name if you know it and press {B("Create lead")}, or find the renter and press {B("Link to")} the name. The calls and texts so far follow the link. {B("Match automatically again")} undoes a link made by hand.')
+    g.task('Missed calls', 'A missed call raises the task "Missed call from ..." for the person on duty in customer service (whoever has Live chat or Texts and calls open), otherwise the customer service queue, and the Admins when nobody holds that function. In the quiet hours (11 pm to 7 am) the task is due at 7 am. One open task per number.')
+    g.tip('Quo itself texts back missed callers (its own auto-reply). The platform can do it instead (Program settings, "Missed call: text the caller back"), once per number in 12 hours: turn off Quo\'s own auto-reply first, or callers get two texts.')
+    g.task('Calls and texts on records', 'A booking\'s History tab, a renter\'s page and an owner\'s page have "Calls and texts": the texts, calls, missed calls, voicemails and summaries with that person. Calls are not recorded on the line for now, so there is no transcript or recording to show.')
+    g.task('Booking texts')
+    g.para('Renters with a mobile number get a short text beside some emails: the offer, the booking confirmed, a payment received, the pickup tomorrow, the return reminder and the payment link after they left the pay page. '
+           'The first one ends "Reply STOP to opt out." They are about the booking only, never marketing, and wait for the end of the quiet hours.')
+    g.task('The settings')
+    g.para('Program settings, "Phone and texts (Quo)": the line on or off, calls and texts kept, the missed-call text and its task, who calls back, AI suggestions and summaries with their daily neurons, '
+           'the visit of a caller, each booking text on or off with its wording ({first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}; short, no long dashes, naming CarmaCars), '
+           'and how long calls and texts of people who are not customers are kept (12 months).')
+
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount games and leads',
               'Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, '

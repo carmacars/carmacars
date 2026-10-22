@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
+import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import type { PhoneTimelineData } from '@/features/phone/client';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -58,6 +60,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const P = { booking: b.id };
   // the renter's visits on the site (0060), on the history tab
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
+  // calls and texts with the renter about this booking (0085)
+  const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
@@ -157,6 +161,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           </Card>
           <div className="stack">
             <Card title="Status history"><ol className="ad-timeline">{b.history.map((h, i) => <li key={i}><time>{t(h.at)}</time><span>{label(h.from)} to <b>{label(h.to)}</b> <span className="muted small">{String(h.by ?? '')}</span></span></li>)}</ol></Card>
+            <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
             <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/admin/chat" /></Card>
             <Card title="Emails sent"><Table rows={b.emails} empty="No emails." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to', label: 'To' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} /></Card>
           </div>

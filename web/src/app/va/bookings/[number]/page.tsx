@@ -14,6 +14,8 @@ import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatur
 import { QuickReply } from '@/features/va/QuickReply';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
+import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import type { PhoneTimelineData } from '@/features/phone/client';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/va', noindex: true, description: 'One booking, as the assistant works it.' });
@@ -42,6 +44,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const R = [base];
   // the renter's visits on the site (0060), on the history tab
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'va_read', 'visitor_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
+  // calls and texts with the renter (0085): customer service and Sales
+  const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
   const [km, replies, staff, messages] = await Promise.all([
     arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(() => ({ rows: [], count: 0 })) : Promise.resolve({ rows: [], count: 0 }),
     (fn === 'cs' || fn === 'sales') && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
@@ -142,7 +146,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {tab === 'history' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline"><ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol></Card>
-          <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/va/chat" /></Card>
+          <div className="stack">
+            {calls && <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/va/chat" /></Card>}
+            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/va/chat" /></Card>
+          </div>
         </div>
       )}
     </>

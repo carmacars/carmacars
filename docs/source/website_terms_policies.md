@@ -74,6 +74,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Tracker data: vehicle location, speed, distance, ignition status, tampering alerts and each remote disabling event. No sound or video | To manage the rental, measure distance, match tolls and tickets, enforce the Rental Agreement, handle claims and recover the vehicle |
 | Rental records: bookings, signed agreements, proof of coverage, condition report photos, incident reports, and toll and ticket records | To run the rental, prove the vehicle's condition, handle claims and collect what is owed |
 | Messages: emails, texts and portal messages with us | To serve you and keep a record |
+| Calls and texts with our phone number: your number, the time and length of each call, its recording, transcript and summary when it is recorded, and the content of texts | To answer you, keep a record with your booking and call you back |
 | Owner information: business and HST details, vehicle, ownership, lender and insurance documents, and banking details | To enrol vehicles, prepare registration forms, bill fees and pay payouts |
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
@@ -113,6 +114,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Rental, payment and owner records, including condition reports and messages | 7 years |
 | Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
+| Calls and texts with our phone number, with their recordings, transcripts and summaries | With your rental records if you are a customer; otherwise 12 months |
 | Discount game claims | 24 months after the code expires, unless you become a customer |
 | Marketing contact details | Until you unsubscribe |
 
@@ -141,6 +143,8 @@ Two things are recorded without the analytics choice, because they are part of t
 Discount games are shown to visitors of the Site, and offered in the booking request form. To decide when, your browser counts the pages and cars you view and the time on the Site, and remembers which games you have seen and whether you closed or played one. This stays on your device and is not sent to us unless you claim a prize. When you claim a prize, we keep your first name, email, mobile number if you give it, the code, the game and the pages and cars you viewed in that visit, so we can send the code and help you book. We send the code and one reminder before it expires. We send offers only if you tick the marketing box.
 
 Live chat is answered first by an automated assistant that uses our own information about cars, prices and policies, and then by our staff. The assistant does not make decisions about you; a person reviews anything it collects. Chat conversations are kept with your rental records if you are a customer, and otherwise for 12 months. If you give an email address in the chat, we can email you a copy of the conversation.
+
+Calls and texts to and from our phone number go through our business phone provider and are recorded: for a call, your number, the time and its length, and, when the call is recorded, the recording, a transcript and a short summary written by our provider or an automated tool; for a text, its content. We match your number to your booking or account so our staff see the conversation with your rental, and, if you gave the same number in live chat or a discount game, with your visit to the Site. If we miss your call, we text you once from the same number. Texts about your booking are not marketing; reply STOP to stop them. Calls and texts are kept with your rental records if you are a customer, and otherwise for 12 months.
 
 ### 11. Marketing messages
 

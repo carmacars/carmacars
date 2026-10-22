@@ -400,7 +400,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs',
                             -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
-                            'usage_readings', 'usage_alerts')
+                            'usage_readings', 'usage_alerts',
+                            -- the phone line (0085): calls, texts, the send queue and the webhook log (high volume, no money, pricing or
+                            -- status); staff links, leads made and opt-outs are written to audit_log by app.phone_staff_do
+                            'quo_config', 'phone_threads', 'phone_activity', 'phone_outbox', 'phone_webhook_log')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

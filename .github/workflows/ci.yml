@@ -13,8 +13,8 @@ name: ci
 #                        database values), then the deploy. full = true without deploy: the same checks, no deploy.
 #                        checks = false skips both (re-deploy of a commit that already passed).
 #
-# Deploy needs only the five repository secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
-# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID): everything else is read at deploy time from the Supabase project (its
+# Deploy needs the five repository secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID) and, for the phone line, QUO_API_KEY: everything else is read at deploy time from the Supabase project (its
 # keys, and the deploy_* secrets in its vault). See scripts/deploy/ and web/README.md, "Deploy". A failing step puts
 # its last output lines into the run's annotations.
 on:
@@ -215,6 +215,8 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # the Quo phone line (0085): the CarmaCars workspace's key; kept in the vault too (deploy_quo_api_key)
+      QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
       DEPLOY_ENV: ${{ inputs.environment }}
       PAGE_CACHE: ${{ inputs.page_cache || 'auto' }}
       APP_URL: https://carmacars.ca
@@ -242,6 +244,10 @@ jobs:
         run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns images
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender, owner debit, calendar sync
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox debit calsync
+      - name: The Quo phone line (the key, our webhook for the CarmaCars number and its signing secret; never another account)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: $RUN "Quo" scripts/deploy/supabase.sh quo
       - name: Seed (content rows and the user guides, only where missing; the sample cars while the site has none)
         working-directory: web
         run: $RUN "Seed" node scripts/seed.mjs --production
@@ -286,6 +292,7 @@ jobs:
             echo "VIN_DECODER=vpic"
             echo "LLM_PROVIDER=workers-ai"
             echo "PHOTO_PROVIDER=cloudflare"
+            echo "QUO_PROVIDER=quo"
           } > .env.production
           $RUN "Worker build" npx opennextjs-cloudflare build
       - name: Deploy the Worker (with its secrets)
@@ -299,7 +306,9 @@ jobs:
                   NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
                  + (if env.SUPABASE_JWT_SECRET then {SUPABASE_JWT_SECRET: env.SUPABASE_JWT_SECRET} else {} end)
                  + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)
-                 + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)' > "$f"
+                 + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)
+                 + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
+                 + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)' > "$f"
           if [ "$DEPLOY_ENV" = staging ]; then
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --env staging --secrets-file "$f"
           else
