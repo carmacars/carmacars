@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { money, pct } from '@/lib/format';
 import { AddressInput } from '@/features/forms/AddressInput';
-import { Turnstile, FAKE_TOKEN } from '@/features/forms/Turnstile';
-import { publicEnv } from '@/lib/public-env';
+import { Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
@@ -151,8 +150,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     setProblem(null);
     if (!signedIn && password.length < 10) { setErrs({ password: 'Choose a password of at least 10 characters.' }); focusFirstError(); return; }
     setBusy(true);
-    const token = new FormData(e.currentTarget).get('cf-turnstile-response');
-    const r = await submitApplication(s, password, typeof token === 'string' ? token : publicEnv.turnstileMode !== 'cloudflare' ? FAKE_TOKEN : null);
+    const form = e.currentTarget;
+    let token = await freshTurnstileToken(form);
+    if (!token) { setBusy(false); setProblem('Our security check did not load in this browser (a content blocker or a privacy setting such as iCloud Private Relay can block it). Turn it off for carmacars.ca or try another browser; your answers are kept.'); return; }
+    let r = await submitApplication(s, password, token);
+    // a token refused (expired or already used): one more try with a new one, without asking the owner to reload
+    if (!r.ok && r.code === 'turnstile') { token = await freshTurnstileToken(form); if (token) r = await submitApplication(s, password, token); }
     setBusy(false);
     if (r.ok) { setDone(r.data); requestAnimationFrame(() => top.current?.focus()); return; }
     setProblem(r.message);

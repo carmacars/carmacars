@@ -15,7 +15,8 @@ export async function verifyTurnstile(token: string | undefined | null, ip?: str
   if (ip) body.set('remoteip', ip);
   try {
     const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
-    const j = (await r.json()) as { success?: boolean };
+    const j = (await r.json()) as { success?: boolean; 'error-codes'?: string[] };
+    if (j.success !== true) console.warn('turnstile refused', (j['error-codes'] ?? []).join(','));
     return j.success === true;
   } catch {
     return false;
