@@ -14,6 +14,8 @@ import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
 import { formatPhone } from '@/features/auth/phone';
+import { ChannelChoice } from '@/features/portal/NotifyChannel';
+import { CHANNEL_LABEL, type Channel } from '@/features/phone/alerts';
 import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
@@ -70,6 +72,12 @@ export function RequestWizard(p: WizardProps) {
     setD((x) => ({ ...x, phone: x.phone || (account.phone ? formatPhone(account.phone) : ''), email: x.email || (account.email ?? '') }));
   }, [account, step]);
   const emailOptional = !!account?.signedIn && !account.email;
+  // 0096: the channel shown chosen until the person picks one (a verified phone: Both, or Text with no email)
+  const defChannel: Channel = account?.signedIn && account.phone ? (account.email ? 'both' : 'text') : 'email';
+  const channel: Channel = d.notifyChannel || defChannel;
+  const channelHint = channel === 'email' ? undefined : account?.signedIn && account.phone
+    ? `We text ${formatPhone(account.phone)}. Signed documents and receipts are still emailed.`
+    : 'Texts go to a mobile number you verify: sign in with your phone number after you send this. Until then we email you.';
 
   // start: the link's car and dates win over a saved draft for a different car or dates
   useEffect(() => {
@@ -255,7 +263,7 @@ export function RequestWizard(p: WizardProps) {
     ['Car', car ? `${car.year} ${car.name}` : '', 1],
     ['Pickup', d.from ? `${longDate(d.from)}, ${clock(d.tf)}, ${placeText(d.pickupAt, d.pickupAddress.label, d.pickupAirport, 'delivered to')}` : '', 1],
     ['Return', d.to ? `${longDate(d.to)}, ${clock(d.tt)}, ${placeText(d.returnAt, d.returnAddress.label || d.pickupAddress.label, d.returnAirport, 'we pick it up from')}` : '', 1],
-    ['Driver', `${d.first} ${d.last}${age !== null ? `, ${age} at pickup` : ''}`, 2], ['Contact', `${d.email}, ${d.phone}`, 2],
+    ['Driver', `${d.first} ${d.last}${age !== null ? `, ${age} at pickup` : ''}`, 2], ['Contact', `${d.email}, ${d.phone}`, 2], ['Messages', CHANNEL_LABEL[channel], 2],
     ['Additional drivers', d.drivers.length ? d.drivers.map((x) => `${x.first} ${x.last}`).join(', ') : 'None', 2],
     ['Licence', d.licClass === 'other' ? `Other (${d.licIssuer}), for review` : d.licClass ? `Ontario class ${d.licClass}` : '', 3], ['Coverage', covText[d.coverage] ?? '', 3],
     ['Booking type', d.bookingType === 'non_refundable' ? `Non-refundable, ${p.tokens.nonRef} off the rental charge` : 'Standard, refund by cancellation tier', 3],
@@ -320,6 +328,7 @@ export function RequestWizard(p: WizardProps) {
             </div>
             <CaptureNote reply={cap.reply} />
             <SavedAsYouType />
+            <ChannelChoice name="rq-channel" value={channel} onChange={(c) => set('notifyChannel', c)} hint={channelHint} testId="rq-channel" />
             {renderDob({ prefix: 'rq-dob', y: d.dobY, m: d.dobM, dd: d.dobD, k: 'dob', onChange: (part, v) => set(part, v) })}
             <p className="hint">Drivers must be {p.tokens.minAge} or older at pickup. Age sets the young driver fee.</p>
             <div className={fieldCls('drivers')}>

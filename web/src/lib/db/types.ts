@@ -5950,6 +5950,7 @@ export type Database = {
           status: string;
           created_at: string;
           updated_at: string;
+          notify_channel: string | null;
         };
         Insert: {
           id?: string;
@@ -5966,6 +5967,7 @@ export type Database = {
           status?: string;
           created_at?: string;
           updated_at?: string;
+          notify_channel?: string | null;
         };
         Update: {
           id?: string;
@@ -5982,6 +5984,7 @@ export type Database = {
           status?: string;
           created_at?: string;
           updated_at?: string;
+          notify_channel?: string | null;
         };
         Relationships: [];
       };
@@ -6724,6 +6727,8 @@ export type Database = {
           is_enabled: boolean;
           emitted_by: string | null;
           updated_at: string;
+          always_email: boolean;
+          no_text: boolean;
         };
         Insert: {
           code: string;
@@ -6752,6 +6757,8 @@ export type Database = {
           is_enabled?: boolean;
           emitted_by?: string | null;
           updated_at?: string;
+          always_email?: boolean;
+          no_text?: boolean;
         };
         Update: {
           code?: string;
@@ -6780,6 +6787,8 @@ export type Database = {
           is_enabled?: boolean;
           emitted_by?: string | null;
           updated_at?: string;
+          always_email?: boolean;
+          no_text?: boolean;
         };
         Relationships: [];
       };
@@ -6831,6 +6840,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           reply_to: string | null;
+          channel: string | null;
+          sms_planned: boolean;
         };
         Insert: {
           id?: string;
@@ -6864,6 +6875,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           reply_to?: string | null;
+          channel?: string | null;
+          sms_planned?: boolean;
         };
         Update: {
           id?: string;
@@ -6897,6 +6910,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           reply_to?: string | null;
+          channel?: string | null;
+          sms_planned?: boolean;
         };
         Relationships: [];
       };
@@ -8389,6 +8404,7 @@ export type Database = {
           auto_debit_paused_by: string | null;
           is_test: boolean;
           kind: string;
+          notify_channel: string | null;
         };
         Insert: {
           id?: string;
@@ -8432,6 +8448,7 @@ export type Database = {
           auto_debit_paused_by?: string | null;
           is_test?: boolean;
           kind?: string;
+          notify_channel?: string | null;
         };
         Update: {
           id?: string;
@@ -8475,6 +8492,7 @@ export type Database = {
           auto_debit_paused_by?: string | null;
           is_test?: boolean;
           kind?: string;
+          notify_channel?: string | null;
         };
         Relationships: [];
       };
@@ -9365,6 +9383,8 @@ export type Database = {
           dedupe_key: string | null;
           created_at: string;
           updated_at: string;
+          user_id: string | null;
+          urgent: boolean;
         };
         Insert: {
           id?: string;
@@ -9388,6 +9408,8 @@ export type Database = {
           dedupe_key?: string | null;
           created_at?: string;
           updated_at?: string;
+          user_id?: string | null;
+          urgent?: boolean;
         };
         Update: {
           id?: string;
@@ -9411,6 +9433,8 @@ export type Database = {
           dedupe_key?: string | null;
           created_at?: string;
           updated_at?: string;
+          user_id?: string | null;
+          urgent?: boolean;
         };
         Relationships: [];
       };
@@ -9442,6 +9466,7 @@ export type Database = {
           quo_conversation_id: string | null;
           created_at: string;
           updated_at: string;
+          opted_in_at: string | null;
         };
         Insert: {
           id?: string;
@@ -9470,6 +9495,7 @@ export type Database = {
           quo_conversation_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          opted_in_at?: string | null;
         };
         Update: {
           id?: string;
@@ -9498,6 +9524,7 @@ export type Database = {
           quo_conversation_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          opted_in_at?: string | null;
         };
         Relationships: [];
       };
@@ -9954,6 +9981,14 @@ export type Database = {
           signin_phone_hourly_per_ip: number;
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
+          sms_alerts_enabled: boolean;
+          sms_default_with_phone: string;
+          sms_default_phone_only: string;
+          sms_quiet_hours: boolean;
+          sms_quiet_from_hour: number;
+          sms_quiet_until_hour: number;
+          sms_stop_line: boolean;
+          sms_generic_text: string;
         };
         Insert: {
           id?: string;
@@ -10329,6 +10364,14 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          sms_alerts_enabled?: boolean;
+          sms_default_with_phone?: string;
+          sms_default_phone_only?: string;
+          sms_quiet_hours?: boolean;
+          sms_quiet_from_hour?: number;
+          sms_quiet_until_hour?: number;
+          sms_stop_line?: boolean;
+          sms_generic_text?: string;
         };
         Update: {
           id?: string;
@@ -10704,6 +10747,14 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          sms_alerts_enabled?: boolean;
+          sms_default_with_phone?: string;
+          sms_default_phone_only?: string;
+          sms_quiet_hours?: boolean;
+          sms_quiet_from_hour?: number;
+          sms_quiet_until_hour?: number;
+          sms_stop_line?: boolean;
+          sms_generic_text?: string;
         };
         Relationships: [];
       };
@@ -11317,6 +11368,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           sms_opt_out_at: string | null;
+          notify_channel: string | null;
         };
         Insert: {
           id?: string;
@@ -11339,6 +11391,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           sms_opt_out_at?: string | null;
+          notify_channel?: string | null;
         };
         Update: {
           id?: string;
@@ -11361,6 +11414,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           sms_opt_out_at?: string | null;
+          notify_channel?: string | null;
         };
         Relationships: [];
       };
@@ -12324,6 +12378,63 @@ export type Database = {
           business_categories?: string[];
           business_description?: string | null;
           business_listings?: Json;
+        };
+        Relationships: [];
+      };
+      sms_opt_out_log: {
+        Row: {
+          id: number;
+          number: string;
+          action: string;
+          source: string | null;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          number: string;
+          action: string;
+          source?: string | null;
+          at?: string;
+        };
+        Update: {
+          id?: number;
+          number?: string;
+          action?: string;
+          source?: string | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
+      sms_templates: {
+        Row: {
+          code: string;
+          label: string;
+          body: string;
+          enabled: boolean;
+          urgent: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          code: string;
+          label: string;
+          body: string;
+          enabled?: boolean;
+          urgent?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          code?: string;
+          label?: string;
+          body?: string;
+          enabled?: boolean;
+          urgent?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };
@@ -14167,6 +14278,9 @@ export type Database = {
           email_verified_at: string | null;
           phone_verified_at: string | null;
           preferred_sign_in: string;
+          notify_channel: string | null;
+          notify_channel_at: string | null;
+          notify_channel_by: string | null;
         };
         Insert: {
           id?: string;
@@ -14183,6 +14297,9 @@ export type Database = {
           email_verified_at?: string | null;
           phone_verified_at?: string | null;
           preferred_sign_in?: string;
+          notify_channel?: string | null;
+          notify_channel_at?: string | null;
+          notify_channel_by?: string | null;
         };
         Update: {
           id?: string;
@@ -14199,6 +14316,9 @@ export type Database = {
           email_verified_at?: string | null;
           phone_verified_at?: string | null;
           preferred_sign_in?: string;
+          notify_channel?: string | null;
+          notify_channel_at?: string | null;
+          notify_channel_by?: string | null;
         };
         Relationships: [];
       };
@@ -17667,6 +17787,7 @@ export type Database = {
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_notify_channel: { Args: { p_user: string }; Returns: Json };
       server_my_sign_in: { Args: { p_user: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -17709,6 +17830,7 @@ export type Database = {
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
       server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
@@ -17716,6 +17838,7 @@ export type Database = {
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
       server_seo_snapshots: { Args: never; Returns: number };
+      server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };

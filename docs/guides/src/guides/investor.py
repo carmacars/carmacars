@@ -88,6 +88,7 @@ def build():
     ])
     g.tip('Our investor emails are servicing notices about your existing investment. They are not an offer or a solicitation. '
           'CarmaCars gives no tax advice.')
+    g.task('Texts or email', f'On {B("Profile and notices")}, under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}. Texts need a phone you verified with a code and link to the page. Statements are always emailed. Reply STOP to any text to stop them.')
 
     # ---------------------------------------------------------------- the investor deck (0083)
     g.chapter('The investor deck',

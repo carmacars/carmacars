@@ -318,6 +318,15 @@ def build():
           'An account made by phone has no email yet: you can send requests, accept offers and sign, and the pay page asks for your email '
           'before your first payment, for the receipts. A booking request you sent earlier with the same mobile number is added to your account once the code is checked.')
 
+    g.task('Texts or email: how we reach you', 'Choose Email, Text or Both. Texts are short, come from the CarmaCars number and link to the page.')
+    g.steps([
+        f'Open {B("Profile")}. Under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}. It is saved at once.',
+        'Texts go to the phone you verified with a code (Sign-in, above). Until you verify one, we email you.',
+        'Signed agreements, statements and receipts are always emailed when we have your email. On Text you also get a text with a link to view or download them.',
+        'No texts from 9 pm to 8 am, except urgent ones such as a late return. Reply STOP to any text to stop texts; text START to turn them back on.',
+    ])
+    g.tip('You can also choose in the booking request (How should we reach you?) and when you sign up with your phone number, where Text is chosen for you.')
+
     g.reference(
         nav_rows=[('Trips', 'Your next step first, then current, upcoming and past trips'),
                   ('Documents', 'Agreements, receipts, statements, uploads'),

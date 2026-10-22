@@ -179,6 +179,8 @@ def build():
         f'Next time, the sign-in page opens on your phone number: press {B("Text me a code")} and enter the code. Two-step sign-in still asks for your authenticator code.',
     ])
 
+    g.task('Texts or email', f'On {B("Profile")}, under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")} for the messages we send you. Texts need the phone you verified above.')
+
     g.reference(
         nav_rows=[('My jobs', 'Today and Tomorrow, in order; Vehicle moves'),
                   ('A job', 'Open in maps, Acknowledge, Start'),

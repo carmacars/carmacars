@@ -412,7 +412,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily',
                             -- contact capture (0090): what is typed into forms, saved on every blur (no money, pricing or status); the
                             -- account it opens is a users row (audited), confirmation and closing are on capture_accounts and in users
-                            'contact_captures', 'capture_accounts', 'capture_sessions', 'capture_session_items')
+                            'contact_captures', 'capture_accounts', 'capture_sessions', 'capture_session_items',
+                            -- text alerts (0096): the text templates (an Admin's edit is written to audit_log by app.sms_template_save) and
+                            -- the STOP and START log (itself a log)
+                            'sms_templates', 'sms_opt_out_log')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

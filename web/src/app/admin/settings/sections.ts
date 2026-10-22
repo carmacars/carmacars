@@ -16,6 +16,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],
   ['usage', 'Usage', 'What the plans include (AI, website, images, emails, database, storage), what is used, and paid usage'],
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],
+  ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs and the text of each notification'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
   ['insurers', 'Insurers', 'Insurance companies billed for bookings'],

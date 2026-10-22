@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ReachCard } from '@/features/admin/ReachCard';
+import type { Reach } from '@/features/phone/alerts';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -21,12 +23,14 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
   const [requests, paper, countersign] = await Promise.all([door<SignRequestRow[]>(user.id, 'ops_read', 'sign_requests', { investor: id }).catch(() => [] as SignRequestRow[]),
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { investor: id }).catch(() => [] as PaperRow[]),
     door<CountersignRow[]>(user.id, 'ops_read', 'investment_countersign_state', { investor_id: id }).catch(() => [] as CountersignRow[])]);
+  const reach = await door<Reach>(user.id, 'admin_read', 'notify_reach', { investor_id: id }).catch(() => null);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const here = [`/admin/investors/${id}`];
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/investors">Investors</Link>} title={<>{String(i.legal_name)} <Badge s={String(i.status)} /></>} />
     <div className="ad-cols ad-cols--2">
       <Card title="Record"><Kv rows={[['Type', String(i.investor_type ?? '')], ['Email', String(i.email ?? '')], ['Phone', String(i.phone ?? '')], ['Address', String(i.address ?? '')], ['Tax resident in Canada', i.tax_resident_canada ? 'Yes' : 'No'], ['Identity verified', t(i.identification_verified_at)]]} /></Card>
+      <ReachCard reach={reach} who={{ investor_id: id }} />
       <Card title="Investments"><Table rows={i.investments} empty="None." cols={[{ key: 'investment_date', label: 'Date', render: (r) => d(r.investment_date) }, { key: 'principal_cents', label: 'Principal', num: true, render: (r) => $(r.principal_cents) }, { key: 'yearly_bps', label: 'Yearly', num: true, render: (r) => `${Number(r.yearly_bps) / 100}%` }, { key: 'lockup_end_date', label: 'Lock-up ends', render: (r) => d(r.lockup_end_date) }, { key: 'status', label: 'Status' }]} /></Card>
       <Card title="Returns"><Table rows={i.returns} empty="None." cols={[{ key: 'return_month', label: 'Month', render: (r) => monthOf(String(r.return_month)) }, { key: 'return_cents', label: 'Return', num: true, render: (r) => $(r.return_cents) }, { key: 'disposition', label: 'Paid or reinvested' }, { key: 'status', label: 'Status' }, { key: 'pdf', label: 'Statement', render: (r) => <a className="link" href={`/files/investor_statement/${String(r.id)}`}>PDF</a> }]} />
         <p className="small">Yearly summaries: {[...new Set(i.returns.map((r) => String(r.return_month).slice(0, 4)))].map((y) => <a key={y} className="link" href={`/files/investor_year/${id}:${y}`} data-testid="investor-year">{y} </a>)}</p></Card>
