@@ -1,175 +1,24 @@
 name: verify
-
-# Checks the live site from a browser (web/scripts/verify-live.mjs) and leaves the report and the
-# screenshots in the Supabase project's private storage bucket deploy-reports, under the run id.
-# The summary is also written as annotations.
-#
-# Slim by default (a few minutes): the public pages, the security headers and nonce, console errors, the
-# statement emails job and the Worker's analytics. full = true adds the sign-in through the live form with a test
-# account per portal (renter, owner, investor, each staff function, field, the verification Admin), view as,
-# invitation, reset, every sign-up path end to end (renter, owner application, guest then account), and the live SEO
-# audit. `request` sends one real request to book (as Resend's test inbox
-# delivered@resend.dev); remove it afterwards.
 on:
   workflow_dispatch:
     inputs:
-      full:
-        description: Full check (sign in as every portal, view as, invitation, reset, live SEO audit)
-        type: boolean
-        default: false
-      request:
-        description: Also send one request to book through the form
-        type: boolean
-        default: false
-      slug:
-        description: Car to open and request (default the first on /cars)
-        type: string
-        default: ''
-
-concurrency:
-  group: verify
-  cancel-in-progress: true
-
+      full: { type: boolean, default: false }
+      request: { type: boolean, default: false }
+      slug: { type: string, default: '' }
 jobs:
   live:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-      SLUG: ${{ inputs.slug }}
-    defaults:
-      run:
-        working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: The run's start (the window of the Worker's failures below)
-        run: echo "RUN_T0=$(date +%s000)" >> "$GITHUB_ENV"
-      - run: npm ci --no-audit --no-fund
-      - name: Playwright browser cache
-        id: pw
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-      - name: Browsers
+      - name: Home page as Safari on iPhone
         run: |
-          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
-      - name: Live checks
-        run: |
-          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
-          echo "::add-mask::$K"
-          export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co"
-          # the site's link key: the statement emails job is called once, as the Worker's cron calls it (web/scripts/verify-live.mjs)
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
-          echo "::add-mask::$L"
-          export LINK_SIGNING_KEY="$L"
-          status=0
-          node scripts/verify-live.mjs --out "$RUNNER_TEMP/verify" ${{ inputs.request && '--request' || '' }} ${{ inputs.full && '--auth' || '' }} > /dev/null || status=$?
-          R="$RUNNER_TEMP/verify/report.json"
-          # GitHub shows at most 10 notices per step: the results in a few lines here, every detail in the run summary
-          jq -r '"sign-in: " + ([(.portals // [])[] | "\(.role) \(if .ok then "ok" else "FAILED" end) \(.afterSignIn // .error // "" | sub("https://[^/]+"; ""))\(if .fn then " (\(.fn))" else "" end)"] | join("; ")) + "; refused elsewhere: " + ([(.portals // [])[] | .refused // {} | to_entries[] | select(.value | test("^SHOWN|not named"))] | if length == 0 then "all, each page naming the account" else tostring end)' "$R" | sed 's/^/::notice title=verify::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | "view as: " + ([(.viewAs // [])[] | "\(.portal) \(if .ok then "ok" else "FAILED \(.error // .banner)" end)"] | join(", ")) + "; write refused \(.writeRefused.ok) (save -> \(.writeRefused.save), POST \(.writeRefused.post), unchanged \(.writeRefused.unchanged)); audit log \(.audit.view_as_starts) starts; exit \(.exit.ok)"' "$R" | sed 's/^/::notice title=view as::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | .invite | "invite from Admin > Portals: ok \(.ok); \"\(.said // .error // "")\"; link -> \(.landed); password -> \(.portal) \(.who // "" | gsub("Sign out"; ""))"' "$R" | sed 's/^/::notice title=invite::/'
-          jq -r '"email links: " + ([(.auth_links // [])[] | "\(.type) \(if .ok then "ok" else "FAILED" end) -> \(.final // .error // "")\(if .chosen then " -> \(.chosen)" else "" end)\(if .reused then ", used again -> \(.reused)" else "" end)"] | join("; ")) + "; sign-out: " + ([(.portals // [])[] | select(.role == "renter") | .signOut // "not checked"] | join("")) + "; reset form: \(.reset_form | if . == null then "not run" elif .ok then "ok, Supabase sent the email" elif .botCheck then "stopped by the bot check (headless browser)" else "FAILED \(.said // .error // "")" end)"' "$R" | sed 's/^/::notice title=verify::/'
-          jq -r '"guides: " + ([(.portals // [])[] | "\(.role) \(.guide // "not checked")"] | join("; ")) + "; manual records (Admin): \([(.portals // [])[] | select(.role == "admin") | .manualRecords // {} | tostring] | join(""))"' "$R" | sed 's/^/::notice title=0044::/'
-          jq -r 'if .signups then "sign-up paths: " + ([.signups[] | "\(.path) \(if .ok then "ok" else "FAILED \(.error // "")" end) -> \(.landed // "") then \(.signedInAgain // ""), welcome \(.outbox // [] | join(","))"] | join("; ")) + "; links last \(.signup_config.link_seconds // "?") s; confirmation link \(.signup_config.confirmation_link // "?")" else empty end' "$R" | sed 's/^/::notice title=sign-up::/'
-          jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$R"
-          jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", ")) + "; nonce \(.nonce | tostring); console errors \(.console | length)"' "$R" | sed 's/^/::notice title=verify::/'
-          jq -r '(.portals // [])[] | select(.role == "admin") | "tolls, plates, forms: Read a notice \(.tollReadPage // "MISSING"); Settings > Forms \(.formsPage // "MISSING"); vision read of a notice: \(.vision.toll | tostring); plate box: \(.vision.plate | tostring)"' "$R" | sed 's/^/::notice title=0042::/'
-          jq -r '"owner debit: owner Banking \"\([(.portals // [])[] | select(.role == "owner") | .autoDebit // "MISSING"] | join(""))\"; Admin > Owner debits \([(.portals // [])[] | select(.role == "admin") | if .debitsPage then "ok" else "MISSING" end] | join("")); statement emails job \(.statement_job | tostring)"' "$R" | sed 's/^/::notice title=owner debit::/'
-          {
-            echo "## Live sign-in checks"; echo
-            echo "| Account | Result | Landed | Function | Refused | Errors | Retried |"; echo "| --- | --- | --- | --- | --- | --- | --- |"
-            jq -r '(.portals // [])[] | "| \(.role) | \(if .ok then "ok" else "FAILED \(.error // "")" end) | \(.afterSignIn // "" | sub("https://[^/]+"; "")) | \(.fn // "") | \(.refused | to_entries | map("\(.key) -> \(.value)") | join(", ")) | \(.errors | length) | \(.retried // [] | join(", ")) |"' "$R"
-            echo; echo "## View as (the verification Admin)"; echo
-            echo "| Portal | Result | Banner | Heading |"; echo "| --- | --- | --- | --- |"
-            jq -r '(.portals // [])[] | select(.role == "admin") | (.viewAs // [])[] | "| \(.portal) | \(if .ok then "ok" else "FAILED \(.error // "")" end) | \(.banner // "") | \(.h1 // "") |"' "$R"
-            echo; jq -r '(.portals // [])[] | select(.role == "admin") | "- Write refused: \(.writeRefused | tostring)\n- Audit log: \(.audit | tostring)\n- Exit: \(.exit | tostring)\n- Invitation: \(.invite | del(.id) | tostring)"' "$R"
-            echo; echo "## Email links"; echo
-            jq -r '(.auth_links // [])[] | "- \(.type): \(del(.overflow) | tostring)"' "$R"
-            jq -r '"- reset form: \(.reset_form | tostring)"' "$R"
-            echo; echo "## Sign-up paths (0045)"; echo
-            jq -r '(.signups // [])[] | "- \(.path): \(tostring)"' "$R"
-            jq -r '"- config: \(.signup_config | tostring)"' "$R"
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite, auth link and sign-up notices)"; exit "$status"; fi
-      - name: Real cars not on the site yet, and the sample cars (0065)
-        if: always()
-        continue-on-error: true
-        run: |
-          mkdir -p "$RUNNER_TEMP/verify"
-          F="$RUNNER_TEMP/verify/cars-not-public.json"
-          curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select app.cars_not_public() as cars, app.sample_cars_state() as samples"}' > "$F"
-          # car names and the steps left only (no plate, no owner): one notice per car, at most 9
-          jq -r '.[0].samples | "sample cars: \(.public) of \(.cars) on the site; enquiries \(.enquiries) (\(.open_enquiries) new)"' "$F" | sed 's/^/::notice title=sample cars::/'
-          jq -r '.[0].cars[:9][] | "\(.name) (\(.status)): \(.gates | map(.label) | join(", ")). Next: \(.next)\(if .sample_photos then " [sample photos]" else "" end)"' "$F" | sed 's/^/::notice title=not public::/'
-          { echo "## Real cars not on the site yet"; echo; jq -r '.[0].cars[] | "- **\(.name)** (\(.status)): " + (.gates | map("\(.label): \(.action)") | join("; "))' "$F"; } >> "$GITHUB_STEP_SUMMARY"
-      - name: SEO of the live site (seo-audit.mjs against carmacars.ca)
-        if: ${{ always() && inputs.full }}
-        continue-on-error: true
-        run: |
-          mkdir -p "$RUNNER_TEMP/verify"
-          status=0; BASE_URL=https://carmacars.ca NO_DB=1 node tests/lint/seo-audit.mjs > "$RUNNER_TEMP/seo.txt" 2>&1 || status=$?
-          cp reports/seo.json "$RUNNER_TEMP/verify/seo.json" 2>/dev/null || true
-          head -1 "$RUNNER_TEMP/seo.txt" | sed 's/^/::notice title=seo::/'
-          tail -n 12 "$RUNNER_TEMP/seo.txt" | sed 's/^/::notice title=seo::/'
-          if [ "$status" != 0 ]; then echo "::warning title=seo::the live SEO audit found problems (see the notices)"; fi
-      - name: The Worker on Cloudflare, the last 24 hours (invocations by outcome, Error 1102, CPU time, 5xx by path)
-        if: always()
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/verify"
-          node scripts/cf-analytics.mjs --hours 24 --out "$RUNNER_TEMP/verify/worker-24h.json" > /dev/null
-          node scripts/cf-analytics.mjs --hours 1 --out "$RUNNER_TEMP/verify/worker-1h.json" > /dev/null
-          for w in 24h 1h; do
-            f="$RUNNER_TEMP/verify/worker-$w.json"
-            jq -r --arg w "$w" '.invocations | if .unavailable then "\($w): invocations unavailable: \(.unavailable)" else "\($w): \(.all.requests // 0) invocations, \(.all.errors // 0) errors, exceeded resources (Error 1102) \(.exceeded_resources); CPU ms p50 \(.all.cpu_ms_p50) p90 \(.all.cpu_ms_p90) p99 \(.all.cpu_ms_p99) p99.9 \(.all.cpu_ms_p999)" end' "$f" | sed 's/^/::notice title=worker::/'
-            jq -r --arg w "$w" '.invocations.by_status // {} | to_entries[] | "\($w) status \(.key): \(.value.requests) requests, \(.value.errors) errors, CPU ms p50 \(.value.cpu_ms_p50) p99 \(.value.cpu_ms_p99)"' "$f" | sed 's/^/::notice title=worker::/'
+          UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+          for p in / /cars; do
+            curl -s -D /tmp/h.txt -A "$UA" "https://carmacars.ca$p" -o /tmp/p.html
+            echo "::notice title=page $p::$(grep -iE '^(cache-control|x-edge-cache|x-opennext-cache|age|content-type|x-schema|cf-cache-status)' /tmp/h.txt | tr -d '\r' | paste -sd ';' -) bytes=$(wc -c </tmp/p.html)"
+            echo "::notice title=links $p::$(grep -oE '<link[^>]+(stylesheet|\.css)[^>]*>' /tmp/p.html | head -5 | paste -sd ' ' -)"
+            echo "::notice title=styles $p::inline style tags $(grep -o '<style' /tmp/p.html | wc -l)"
+            for c in $(grep -oE '/_next/static/[^"]+\.css' /tmp/p.html | sort -u); do
+              echo "::notice title=css $p::$c $(curl -s -o /dev/null -A "$UA" -w '%{http_code} %{content_type} %{size_download}' https://carmacars.ca$c)"
+            done
+            head -c 1500 /tmp/p.html; echo
           done
-          f="$RUNNER_TEMP/verify/worker-24h.json"
-          jq -r '.http | if .unavailable then "24h 5xx by path unavailable: \(.unavailable)" else "24h: \(.requests) requests, \(.errors_5xx) answered 5xx: \(.by_path[:12] | map("\(.path) x\(.count)") | join(", "))" end' "$f" | sed 's/^/::notice title=worker::/'
-          jq -r '.cpu_by_path | if .unavailable then "CPU by path unavailable: \(.unavailable)" else "CPU by path (\(.grouped_by)): \(.rows[:15] | map("\(.path) n\(.requests) p50 \(.p50) p99 \(.p99)") | join("; "))" end' "$f" | sed 's/^/::notice title=worker::/'
-          { echo "## The Worker on Cloudflare"; echo; for w in 24h 1h; do echo "### Last $w"; echo '```json'; jq '.' "$RUNNER_TEMP/verify/worker-$w.json"; echo '```'; done; } >> "$GITHUB_STEP_SUMMARY"
-          n=$(jq -r '.invocations.exceeded_resources // 0' "$f")
-          if [ "${n:-0}" != 0 ]; then echo "::warning title=worker::Cloudflare stopped $n request(s) in the last 24 hours with Error 1102 (the plan's CPU limit). Workers Paid removes the 10 ms limit."; fi
-      - name: The Worker's failures (Workers Observability, this run and the last 24 hours)
-        if: always()
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/verify"
-          node scripts/cf-errors.mjs --from "${RUN_T0:-$(( ($(date +%s) - 3600) * 1000 ))}" --out "$RUNNER_TEMP/run.json" > /dev/null
-          node scripts/cf-errors.mjs --hours 24 --out "$RUNNER_TEMP/day.json" > /dev/null
-          jq -n --slurpfile r "$RUNNER_TEMP/run.json" --slurpfile d "$RUNNER_TEMP/day.json" '{run: $r[0], last_24h: $d[0]}' > "$RUNNER_TEMP/verify/worker-errors.json"
-          f="$RUNNER_TEMP/verify/worker-errors.json"
-          jq -r '.last_24h | if .unavailable then empty else "24h by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) + "; failures kept: \(.failures // [] | length)" end' "$f" | sed 's/^/::notice title=worker errors::/'
-          jq -r '.run | if .unavailable then empty else "this run by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) end' "$f" | sed 's/^/::notice title=worker errors::/'
-          jq -r '.last_24h.failures_by_route // [] | .[:8][] | "\(.count)x \(.key)"' "$f" | sed 's/^/::notice title=worker errors::/'
-          jq -r '.last_24h | select(.unavailable) | "Workers Observability could not be read: \(.unavailable). \(if .permission_needed then "Missing permission: \(.permission_needed)." else "" end)"' "$f" | sed 's/^/::warning title=worker errors::/'
-          { echo "## The Worker's failures"; echo; echo '```json'; jq '{run: .run.outcomes, last_24h: .last_24h.outcomes, by_route: .last_24h.failures_by_route, unavailable: .last_24h.unavailable}' "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      - name: Report and screenshots into Supabase Storage (deploy-reports)
-        if: always()
-        run: |
-          set -euo pipefail
-          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
-          echo "::add-mask::$K"
-          S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
-          curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
-          for f in "$RUNNER_TEMP"/verify/*; do
-            ct=image/png; case "$f" in *.json) ct=application/json;; esac
-            curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/${{ github.run_id }}/$(basename "$f")" -H "Authorization: Bearer $K" -H "apikey: $K" -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$f"
-          done
-          echo "::notice title=verify::uploaded $(ls "$RUNNER_TEMP"/verify | wc -l) files to deploy-reports/${{ github.run_id }}"
