@@ -39,6 +39,7 @@ export const SCHEMAS = {
     sourced_by_me: z.boolean().default(false), note: text(2, 300).optional()
   }).strict().refine((a) => a.payment !== 'other_way' || !!a.method, { message: 'how the rental was paid', path: ['method'] }),
   publish_car: z.object({ car: text(2, 80) }).strict(),
+  mark_insured: z.object({ car: text(2, 80), on: date.optional(), reference: text(2, 200).optional() }).strict(),
   set_rates: z.object({ car: text(2, 80), daily: dollars, weekend: dollars.optional(), weekly: dollars.optional(), monthly: dollars.optional() }).strict(),
   send_payment_link: z.object({ booking: text(3, 30).optional(), invoice: text(3, 30).optional() }).strict()
     .refine((a) => !!a.invoice !== !!a.booking, { message: 'name the booking or the owner invoice (one of them)' }),
@@ -52,7 +53,7 @@ export type Args<T extends ToolName> = z.infer<(typeof SCHEMAS)[T]>;
 export interface ToolDef { name: ToolName; change: boolean; about: string; args: string }
 export const TOOLS: Record<ToolName, ToolDef> = {
   today: { name: 'today', change: false, about: 'What needs doing today (To do, my tasks, pickups and returns)', args: '{}' },
-  find: { name: 'find', change: false, about: 'Find a booking, renter, owner, car, owner invoice or toll notice', args: '{"kind": "booking|renter|owner|car|invoice|toll", "q": "words, a number or a plate"}' },
+  find: { name: 'find', change: false, about: 'Find a booking, renter, owner, car, owner invoice or toll notice', args: '{"kind": "booking|renter|owner|car|invoice|toll", "q": "words, a number, a plate or a car code (CC-7F3A)"}' },
   availability: { name: 'availability', change: false, about: 'Which cars are free for dates, or whether one car is', args: '{"pickup_date": "YYYY-MM-DD", "return_date": "YYYY-MM-DD", "car"?: "name or plate"}' },
   who_has_car: { name: 'who_has_car', change: false, about: 'Who has a car right now and when it is due back', args: '{"car": "name or plate"}' },
   owner_balance: { name: 'owner_balance', change: false, about: 'An owner\'s open invoices and what they owe', args: '{"owner": "name"}' },
@@ -60,6 +61,7 @@ export const TOOLS: Record<ToolName, ToolDef> = {
   record_payment: { name: 'record_payment', change: true, about: 'Record a payment received another way (e-Transfer, cheque, cash, bank transfer)', args: '{"invoice"?: "INV-...", "booking"?: "number", "amount"?: dollars (empty: the balance), "method": "e_transfer|cheque|cash|bank_transfer|other", "reference"?: "number", "received_on": "YYYY-MM-DD", "note"?: "text"}' },
   add_rental: { name: 'add_rental', change: true, about: 'Add a rental by hand (phone, counter, already underway)', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth"?, "licence_number"?, "payment": "link|other_way", "method"?, "reference"?, "amount"?, "sourced_by_me"?: true|false}' },
   publish_car: { name: 'publish_car', change: true, about: 'Publish a car on the website', args: '{"car": "name or plate"}' },
+  mark_insured: { name: 'mark_insured', change: true, about: 'Mark a car insured: the insurer confirmed in writing that it is on the fleet policy', args: '{"car": "name, plate or car code", "on"?: "YYYY-MM-DD, the date of the insurer\'s email (empty: today)", "reference"?: "the email\'s subject"}' },
   set_rates: { name: 'set_rates', change: true, about: 'Set a car\'s rates in dollars (weekend, weekly, monthly optional)', args: '{"car": "name or plate", "daily": dollars, "weekend"?, "weekly"?, "monthly"?}' },
   send_payment_link: { name: 'send_payment_link', change: true, about: 'Send the payment link again: a booking\'s offer (sign and pay) or an owner invoice', args: '{"booking"?: "number", "invoice"?: "INV-..."}' },
   confirm_toll: { name: 'confirm_toll', change: true, about: 'Confirm the suggested match of a toll or ticket notice', args: '{"toll": "notice number"}' },
@@ -74,7 +76,7 @@ export function toolsFor(w: Who): ToolName[] {
   const common: ToolName[] = ['today', 'find', 'create_task', 'draft_message'];
   switch (w.fn) {
     case 'finance': return [...common, 'owner_balance', 'record_payment', 'send_payment_link', 'confirm_toll'];
-    case 'fleet': return [...common, 'availability', 'who_has_car', 'publish_car', 'set_rates', 'add_rental'];
+    case 'fleet': return [...common, 'availability', 'who_has_car', 'publish_car', 'mark_insured', 'set_rates', 'add_rental'];
     case 'cs': return [...common, 'availability', 'who_has_car', 'add_rental', 'record_payment', 'send_payment_link', 'publish_car'];
     case 'sales': return [...common, 'availability', 'add_rental', 'send_payment_link'];
     default: return common;
@@ -131,6 +133,8 @@ export function summary(name: ToolName, a: Record<string, unknown>, k: Record<st
     case 'add_rental':
       return `Add a rental of the ${k.car ?? String(a.car)} for ${String(a.renter_name)}, ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}, ${a.payment === 'other_way' ? `paid by ${METHOD_WORDS[a.method as (typeof METHODS)[number]] ?? 'another way'}${a.amount ? ` (${money(Number(a.amount))})` : ''}` : 'with a payment link emailed to the renter'}${k.phase === 'in_progress' ? ' (already underway: recorded on trip)' : ''}?`;
     case 'publish_car': return `Publish the ${k.car ?? String(a.car)} on the website now?`;
+    case 'mark_insured':
+      return `Mark the ${k.car ?? String(a.car)} insured: the insurer confirmed in writing on ${shortDate(String(a.on ?? k.today ?? ''))} that it is on the fleet policy${a.reference ? ` (${String(a.reference)})` : ''}?`;
     case 'set_rates':
       return `Set the rates of the ${k.car ?? String(a.car)}: ${money(Number(a.daily))} a day${a.weekend ? `, ${money(Number(a.weekend))} a weekend day` : ''}${a.weekly ? `, ${money(Number(a.weekly))} a week` : ''}${a.monthly ? `, ${money(Number(a.monthly))} a month` : ''}?`;
     case 'send_payment_link':

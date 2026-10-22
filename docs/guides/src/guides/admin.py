@@ -1000,6 +1000,8 @@ def build():
         'Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.',
         'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
     ])
+    g.para('When the insurer\'s email arrives, say so: "The insurer confirmed CC-7F3A on 2026-10-20". The card marks the car insured as To do\'s Insurer confirmed does, '
+           'from the date of the email. A car is found by its name, its plate or its car code (CC- and four characters, on the car page and in the chat).')
     g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
     g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
 

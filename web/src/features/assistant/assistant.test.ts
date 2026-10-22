@@ -134,6 +134,17 @@ describe('the flow', () => {
     assert.equal(r.out[0]!.type, 'proposal');
     assert.deepEqual(proposed[0]!.args, { vehicle: 'v1', daily: '8900', weekend: '', weekly: '', monthly: '', km_mode: 'default' });
   });
+  it('Mark a car insured: a car code finds the car; the card goes through the same door as Insurer confirmed (release 2)', async () => {
+    const m = stub({ action: 'tool', tool: 'mark_insured', args: { car: 'cc-7f3a', on: '2026-10-20', reference: 'Fleet policy additions' } });
+    const rows = [{ ...ROWS.car![0]!, car_code: 'CC-7F3A' }, { ...ROWS.car![1]!, car_code: 'CC-9B2C' }];
+    const { d, proposed } = deps(m, { find: async (k) => (k === 'car' ? rows : []) });
+    const r = await ask(d, { text: 'the insurer confirmed cc-7f3a on Oct 20' });
+    assert.equal(r.out[0]!.type, 'proposal');
+    assert.equal(proposed[0]!.name, 'insurer_confirm');
+    assert.deepEqual(proposed[0]!.args, { vehicle_id: 'v1', on: '2026-10-20', note: 'Fleet policy additions' });
+    assert.match((r.out[0] as { summary: string }).summary, /insured: the insurer confirmed in writing on Oct 20/);
+    assert.ok(toolsFor({ portal: 'va', fn: 'fleet' }).includes('mark_insured') && !toolsFor({ portal: 'field' }).includes('mark_insured'));
+  });
   it('missing details: it asks for them in words', async () => {
     const m = stub({ action: 'tool', tool: 'record_payment', args: { invoice: 'INV-1053', method: 'e_transfer', received_on: '2026-10-15' } });
     const r = await ask(deps(m).d, { text: 'record the e-transfer on INV-1053' });

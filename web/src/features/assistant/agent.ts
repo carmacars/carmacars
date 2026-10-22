@@ -64,7 +64,7 @@ export function systemPrompt(who: Who, today: string, tools: ToolName[]): string
     `You are the CarmaCars staff assistant, helping ${role}. Today is ${today} (Toronto). Answer in one or two short sentences.`,
     'Use a tool for facts: never invent bookings, cars, people, amounts or dates. Changes are only proposed: the staff member confirms a card before anything runs.',
     'If a detail is missing or more than one thing matches, ask (action "ask") and list the choices in "options".',
-    'Amounts are in dollars. Dates YYYY-MM-DD; times HH:MM, 24 hours, Toronto. Marking a car insured is done on the car\'s page, not here.',
+    'Amounts are in dollars. Dates YYYY-MM-DD; times HH:MM, 24 hours, Toronto. A car is marked insured only when the insurer confirmed it in writing.',
     'Tools:',
     ...tools.map((t) => `- ${t}: ${TOOLS[t].about}. args ${TOOLS[t].args}`),
     'Answer with one JSON object: {"action": "reply" | "tool" | "ask", "reply": "text", "tool": "name", "args": {...}, "question": "text", "options": ["..."]}.'
@@ -96,7 +96,8 @@ async function one(d: Deps, kind: Parameters<Deps['find']>[0], q: string, what: 
   return { out: { type: 'question', text: `More than one ${what} matches "${q}". Which one?`, options: rows.slice(0, 6).map(label) } };
 }
 const carLabel = (r: FindRow) => `${String(r.name ?? r.car)}${r.plate ? ` (${String(r.plate)})` : ''}${r.sample ? ' (example car)' : ''}`;
-const carExact = (q: string) => (r: FindRow) => norm(String(r.plate ?? '')) === norm(q) || norm(String(r.fleet_number ?? '')) === norm(q) || norm(String(r.name ?? '')) === norm(q);
+const carExact = (q: string) => (r: FindRow) => norm(String(r.plate ?? '')) === norm(q) || norm(String(r.fleet_number ?? '')) === norm(q) || norm(String(r.name ?? '')) === norm(q)
+  || (!!r.car_code && [norm(q), `CC${norm(q)}`].includes(norm(String(r.car_code))));
 
 /** A local "YYYY-MM-DD HH:MM" as an instant. */
 export const instant = (s: string) => torontoInstant(s.slice(0, 10), s.slice(11, 16));
@@ -112,7 +113,7 @@ async function read(d: Deps, tool: ToolName, a: Record<string, unknown>): Promis
         booking: (r) => ({ title: `${String(r.booking_number)} · ${String(r.status).replace(/_/g, ' ')}`, sub: [r.renter, r.car, `${when(r.pickup_at)} to ${when(r.return_at)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/bookings/${String(r.booking_number)}` }),
         renter: (r) => ({ title: String(r.name), sub: [r.email, r.mobile, `${String(r.bookings)} bookings`].filter(Boolean).join(' · '), href: d.who.portal === 'admin' ? `/admin/renters?q=${encodeURIComponent(String(r.email ?? r.name))}` : undefined }),
         owner: (r) => ({ title: String(r.name), sub: [r.status, r.email, r.phone, `${String(r.cars)} cars`].filter(Boolean).join(' · '), href: d.who.portal === 'admin' ? `/admin/owners/${String(r.id)}` : undefined }),
-        car: (r) => ({ title: `${String(r.name)}${r.sample ? ' (example car)' : ''}`, sub: [r.plate && `plate ${String(r.plate)}`, String(r.status).replace(/_/g, ' '), r.listing && `listing ${String(r.listing)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/vehicles/${String(r.id)}` }),
+        car: (r) => ({ title: `${String(r.name)}${r.sample ? ' (example car)' : ''}`, sub: [r.plate && `plate ${String(r.plate)}`, r.car_code && String(r.car_code), String(r.status).replace(/_/g, ' '), r.listing && `listing ${String(r.listing)}`].filter(Boolean).join(' · '), href: d.who.portal === 'field' ? undefined : `${b}/vehicles/${String(r.id)}` }),
         invoice: (r) => ({ title: `${String(r.invoice_number)} · ${String(r.owner)}`, sub: `${String(r.status).replace(/_/g, ' ')} · total ${money(r.total_cents)} · balance ${money(r.balance_cents)}${r.due_on ? ` · due ${String(r.due_on)}` : ''}`, href: d.who.portal === 'admin' ? `/admin/invoices/${String(r.invoice_number)}` : undefined }),
         toll: (r) => ({ title: `${String(r.notice_number ?? 'Notice')} · ${String(r.authority ?? r.kind)}`, sub: `plate ${String(r.plate ?? '')} · ${when(r.occurred_at)} · ${money(r.amount_cents)}${r.booking_number ? ` · suggested: ${String(r.booking_number)}` : ' · no suggested match'}` })
       };
@@ -165,11 +166,13 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
       return { name: 'manual_payment_record', summary: summary(tool, a, k), args: { invoice: a.invoice ?? null, booking: a.booking ?? null, method: a.method, reference: a.reference ?? null,
         received_on: a.received_on, amount_cents: cents(a.amount as number | undefined) ?? null, note: a.note ?? null } };
     }
-    case 'publish_car': case 'set_rates': case 'add_rental': {
+    case 'publish_car': case 'set_rates': case 'add_rental': case 'mark_insured': {
       const p = await one(d, 'car', String(a.car), 'car', carLabel, carExact(String(a.car)));
       if ('out' in p) return p;
       k.car = String(p.row.name);
       if (tool === 'publish_car') return { name: 'listing_publish_now', summary: summary(tool, a, k), args: { vehicle_id: p.row.id } };
+      // the insurer's written confirmation, as To do's Insurer confirmed (app.confirm_fleet_policy, 0078)
+      if (tool === 'mark_insured') { k.today = d.today; return { name: 'insurer_confirm', summary: summary(tool, a, k), args: { vehicle_id: p.row.id, on: a.on ?? d.today, note: a.reference ?? null } }; }
       if (tool === 'set_rates') {
         const c = (v: unknown) => (v === undefined ? '' : String(cents(Number(v))));
         return { name: 'rate_card_save', summary: summary(tool, a, k), args: { vehicle: p.row.id, daily: c(a.daily), weekend: c(a.weekend), weekly: c(a.weekly), monthly: c(a.monthly), km_mode: 'default' } };

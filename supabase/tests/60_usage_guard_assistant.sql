@@ -129,6 +129,11 @@ select test.eq('the usage page: every service with its history', jsonb_array_len
 
 -- ================================================================ 7. the assistant: reads within the person's portal and function
 select test.eq('an Admin finds a car', (app.assistant_find(test.id('ug_admin'), '{"portal": "admin", "kind": "car", "q": "ugcar1"}') -> 'rows' -> 0 ->> 'plate'), 'UGCAR1');
+-- release 2: the car code (0079) finds the car, and Mark a car insured (0078) is one of the assistant's actions
+select test.eq('an Admin finds a car by its car code', (app.assistant_find(test.id('ug_admin'), jsonb_build_object('portal', 'admin', 'kind', 'car', 'q',
+  (select lower(car_code) from vehicles where plate = 'UGCAR1'))) -> 'rows' -> 0 ->> 'plate'), 'UGCAR1');
+select test.eq('Mark a car insured goes through the same door as Insurer confirmed', app.assistant_action_door('mark_insured', 'va', 'insurer_confirm'), 'ops_do');
+select test.eq('field staff do not mark cars insured', app.assistant_action_door('mark_insured', 'field', 'insurer_confirm'), null::text);
 select test.throws('an assistant cannot use the Admin''s assistant', $$select app.assistant_find(test.id('ug_fin'), '{"portal": "admin", "kind": "car", "q": "x"}')$$, 'Only an Admin');
 select test.throws('field staff see bookings through their jobs only', $$select app.assistant_find(test.id('ug_field'), '{"portal": "field", "kind": "booking", "q": "x"}')$$, 'through their jobs');
 select test.throws('invoices and owner balances are Finance work', $$select app.assistant_find(test.id('ug_fleet'), '{"portal": "va", "kind": "invoice", "q": "INV"}')$$, 'Finance work');

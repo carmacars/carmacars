@@ -144,7 +144,18 @@ select test.ok('shareholder: in the audit log with the reason', exists (select 1
 select test.eq('shareholder: through the Admin door', (public.door(test.id('af_admin'), null, 'admin_do', 'shareholder_car', jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', false)) ->> 'shareholder'), 'false');
 select test.eq('shareholder: turned off, the owner is no longer a shareholder', (select is_shareholder from owners where id = test.id('owner:af_owner')), false);
 -- 6h. a shareholder's own car never gets a first and last month
+-- (release 2, with guided actions 0078 and signing light 0077: as for Mahad, the shareholder raises no first and last month
+-- question and no "Enter the terms agreed" line on To do)
+select test.ok('shareholder (before): the owner on the standard grid has the terms line on To do',
+  exists (select 1 from jsonb_array_elements(app.todo_prompts(test.id('af_admin')) -> 'prompts') p where p ->> 'key' = 'terms:' || test.id('owner:af_owner')));
+select app.raise_task(p_type => 'first_last_decide', p_queue => 'admin', p_title => 'Decide the first and last month invoice (test)',
+  p_owner => test.id('owner:af_owner'), p_vehicle => test.id('vehicle:AF1'), p_dedupe => 'first_last_decide:' || test.id('vehicle:AF1'));
 select app.set_shareholder_car(test.id('af_admin'), jsonb_build_object('vehicle', test.id('vehicle:AF1'), 'on', true, 'reason', 'test'));
+select test.eq('shareholder: the first and last month question is closed', (select count(*) from tasks where task_type = 'first_last_decide' and vehicle_id = test.id('vehicle:AF1') and status = 'open'), 0::bigint);
+select test.ok('shareholder: no terms, first and last month or decide line on To do for the shareholder',
+  not exists (select 1 from jsonb_array_elements(app.todo_prompts(test.id('af_admin')) -> 'prompts') p
+               where p ->> 'key' in ('terms:' || test.id('owner:af_owner'), 'first_last_paid:' || test.id('owner:af_owner'))
+                  or (p ->> 'task_type' = 'first_last_decide' and p ->> 'vehicle_id' = test.id('vehicle:AF1')::text)));
 select test.throws('shareholder: no first and last month invoice for a shareholder''s car',
   format($$insert into owner_invoices (owner_id, vehicle_id, kind, status, invoice_number, billing_date) values (%L, %L, 'upfront', 'draft', 'INV-AF-1', current_date)$$,
          test.id('owner:af_owner'), test.id('vehicle:AF1')), 'shareholder');

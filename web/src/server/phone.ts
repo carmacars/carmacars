@@ -54,12 +54,23 @@ const SUMMARY_SCHEMA = { type: 'object', properties: { summary: { type: 'string'
 const DRAFT_SCHEMA = { type: 'object', properties: { reply: { type: 'string' } }, required: ['reply'] };
 const clean = (s: string, max: number) => s.replace(/\s+/g, ' ').replace(/\u2014/g, ',').replace(/\u2013/g, '-').trim().slice(0, max);
 
+/** The usage guard (0080): Workers AI is paused for the day once its included allowance is used (or all AI use of the day
+ *  reached the cap). The phone line's own budget (phone_ai_daily_neurons) still applies on top. A guard that cannot be
+ *  read does not stop the phone line. */
+async function workersAiPaused(): Promise<boolean> {
+  try {
+    const g = (await rpc('server_usage_gate', { p_service: 'workers_ai' }, SR)) as unknown as { paused?: boolean; used?: number | string; all_cap?: number | string };
+    return g.paused === true || (g.all_cap !== undefined && g.used !== undefined && Number(g.used) >= Number(g.all_cap));
+  } catch { return false; }
+}
+
 /** The five-minute job: booking texts that are due, and the AI one-liners of calls Quo did not summarise. */
 export async function runPhoneJob(): Promise<Record<string, unknown>> {
   if (!phoneLine().ready) return { ok: true, skipped: 'QUO_API_KEY is not set' };
   const due = (await rpc('server_phone_due', { p_limit: 20 }, SR)) as unknown as { texts: Send[]; summaries: Array<{ id: string; transcript: PhoneEvent['transcript'] | null }>; ai: Budget; from: string | null };
   const sent = await sendTexts(due.texts, due.from);
   let summaries = 0;
+  if (due.summaries.length && due.ai.ok && due.ai.summaries && await workersAiPaused()) due.ai.ok = false;
   for (const s of due.summaries) {
     const text = transcriptText(s.transcript);
     if (!text || !due.ai.ok || !due.ai.summaries) { await rpc('server_phone_summary', { p: { id: s.id, summary: '', ok: false, neurons: 0, error: !text ? 'no transcript' : 'AI allowance used or off' } as unknown as Json }, SR); continue; }
@@ -91,7 +102,7 @@ export async function staffReply(d: Door, id: string, body: string): Promise<{ o
 /** A suggested reply (never sent): from the conversation, the booking and the site's facts. */
 export async function staffDraft(d: Door, id: string): Promise<{ ok: boolean; draft?: string; error?: string }> {
   const c = (await d('va_do', 'phone_draft', { id })) as { ai: Budget; who: string; booking: Record<string, unknown> | null; site: Record<string, unknown>; messages: Array<Record<string, unknown>> };
-  if (!c.ai.ok) return { ok: false, error: 'The AI allowance for today is used. Write the reply yourself.' };
+  if (!c.ai.ok || await workersAiPaused()) return { ok: false, error: 'The AI allowance for today is used. Write the reply yourself.' };
   const t0 = Date.now();
   const gen = await textGenerator(c.ai.model, 20_000);
   const r = await gen.generate<{ reply: string }>({ task: 'phone_draft', maxOutputTokens: 160, temperature: 0.3, schema: DRAFT_SCHEMA,

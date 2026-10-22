@@ -865,16 +865,18 @@ begin
        order by o.created_at desc limit 6) s;
   elsif v_kind = 'car' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_rows from (
-      select jsonb_build_object('id', v.id, 'name', app.vehicle_name(v.id), 'plate', v.plate, 'status', v.status, 'fleet_number', v.fleet_number, 'sample', coalesce(v.is_sample, false),
+      select jsonb_build_object('id', v.id, 'name', app.vehicle_name(v.id), 'plate', v.plate, 'car_code', v.car_code, 'status', v.status, 'fleet_number', v.fleet_number, 'sample', coalesce(v.is_sample, false),
                'slug', (select l2.slug from vehicle_listings l2 where l2.vehicle_id = v.id), 'listing', (select l2.status from vehicle_listings l2 where l2.vehicle_id = v.id)) x
         from vehicles v
        where v.status not in ('exited', 'declined')
          and (q = '' or lower(concat_ws(' ', v.year::text, v.make, v.model, v.trim, v.colour)) like l or lower(coalesce(v.fleet_number, '')) like l
-              or (n <> '' and (upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%' or upper(coalesce(v.vin, '')) like '%' || n || '%')))
-       order by coalesce(v.is_sample, false), v.make, v.model limit 6) s;
+              or (n <> '' and (upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%' or upper(coalesce(v.vin, '')) like '%' || n || '%'))
+              -- the car code (0079: CC-7F3A, as a renter reads it from the car page or the chat)
+              or v.id = app.vehicle_by_code(q))
+       order by v.id is distinct from app.vehicle_by_code(q), coalesce(v.is_sample, false), v.make, v.model limit 6) s;
   elsif v_kind = 'car_now' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_rows from (
-      select jsonb_build_object('car', app.vehicle_name(v.id), 'vehicle_id', v.id, 'plate', v.plate, 'car_status', v.status,
+      select jsonb_build_object('car', app.vehicle_name(v.id), 'vehicle_id', v.id, 'plate', v.plate, 'car_code', v.car_code, 'car_status', v.status,
                'booking_number', b.booking_number, 'renter', case when b.id is null then null when v_full then r.legal_name else split_part(btrim(coalesce(r.legal_name, '')), ' ', 1) end,
                'renter_mobile', case when v_full then r.mobile end, 'since', b.pickup_at, 'due_back', b.return_at,
                'late', b.id is not null and b.return_at < now()) x
@@ -883,7 +885,8 @@ begin
         left join renters r on r.id = b.renter_id
        where v.status not in ('exited', 'declined')
          and (lower(concat_ws(' ', v.year::text, v.make, v.model, v.colour)) like l or lower(coalesce(v.fleet_number, '')) like l
-              or (n <> '' and upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%'))
+              or (n <> '' and upper(regexp_replace(coalesce(v.plate, ''), '[^A-Za-z0-9]', '', 'g')) like '%' || n || '%')
+              or v.id = app.vehicle_by_code(q))
        order by v.make, v.model limit 6) s;
   elsif v_kind = 'invoice' then
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_rows from (
@@ -922,6 +925,8 @@ language sql immutable as $$
     when p_tool = 'record_payment' and p_name = 'manual_payment_record' then 'ops_do'
     when p_tool = 'add_rental' and p_name = 'manual_rental_create' then 'ops_do'
     when p_tool = 'set_rates' and p_name = 'rate_card_save' then 'ops_do'
+    -- Mark a car insured (guided actions, 0078): the insurer's written confirmation, as To do's Insurer confirmed (Admin or fleet)
+    when p_tool = 'mark_insured' and p_name = 'insurer_confirm' and p_portal in ('admin', 'va') then 'ops_do'
     when p_tool = 'create_task' and p_name = 'task_create' and p_portal in ('admin', 'va') then 'ops_do'
     when p_tool = 'send_payment_link' and p_name = 'owner_invoice_resend' and p_portal in ('admin', 'va') then 'ops_do'
     when p_tool in ('publish_car', 'send_payment_link', 'confirm_toll') and p_portal in ('admin', 'va')
@@ -3127,11 +3132,13 @@ Press **Assistant** at the top of the menu, or press Ctrl and / together (Cmd an
 3. Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.
 4. Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.
 
+When the insurer''s email arrives, say so: "The insurer confirmed CC-7F3A on 2026-10-20". The card marks the car insured as To do''s Insurer confirmed does, from the date of the email. A car is found by its name, its plate or its car code (CC- and four characters, on the car page and in the chat).
+
 Messages: ask it to draft a message to a renter or an owner. It writes the text; press **Copy**, open the conversation and send it yourself.
 
 > Tip: When the day''s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.
 ',
-  '<p class="gd-p">The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.</p><section class="gd-task" id="assistant-open-it" data-gd-task><h2 class="gd-h2">Open it</h2><p class="gd-p">Press <b class="gd-ui">Assistant</b> at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Type a question or what you want done, in your own words, and press Enter. Examples: &quot;What needs doing today?&quot;, &quot;Who has the Tesla?&quot;, &quot;Is the Corolla free from 2026-11-02 to 2026-11-04?&quot;, &quot;Find booking R-000123&quot;.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Answers come as cards with links: open one to go straight to the screen.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.</div></li></ol></div></section><section class="gd-task" id="assistant-changes-a-card-to-confirm" data-gd-task><h2 class="gd-h2">Changes: a card to confirm</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Ask for a change, for example &quot;Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345&quot;.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The assistant shows a card: &quot;Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?&quot;. Read it, then press <b class="gd-ui">Confirm</b> or <b class="gd-ui">Cancel</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Every change is in the audit log under your name, marked &quot;via assistant&quot;. A card older than 30 minutes no longer runs: ask again.</div></li></ol></div><p class="gd-p">Messages: ask it to draft a message to a renter or an owner. It writes the text; press <b class="gd-ui">Copy</b>, open the conversation and send it yourself.</p><aside class="gd-box"><span class="gd-lbl">Tip</span><div>When the day&#39;s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.</div></aside></section>');
+  '<p class="gd-p">The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.</p><section class="gd-task" id="assistant-open-it" data-gd-task><h2 class="gd-h2">Open it</h2><p class="gd-p">Press <b class="gd-ui">Assistant</b> at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Type a question or what you want done, in your own words, and press Enter. Examples: &quot;What needs doing today?&quot;, &quot;Who has the Tesla?&quot;, &quot;Is the Corolla free from 2026-11-02 to 2026-11-04?&quot;, &quot;Find booking R-000123&quot;.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Answers come as cards with links: open one to go straight to the screen.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.</div></li></ol></div></section><section class="gd-task" id="assistant-changes-a-card-to-confirm" data-gd-task><h2 class="gd-h2">Changes: a card to confirm</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Ask for a change, for example &quot;Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345&quot;.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The assistant shows a card: &quot;Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?&quot;. Read it, then press <b class="gd-ui">Confirm</b> or <b class="gd-ui">Cancel</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Every change is in the audit log under your name, marked &quot;via assistant&quot;. A card older than 30 minutes no longer runs: ask again.</div></li></ol></div><p class="gd-p">When the insurer&#39;s email arrives, say so: &quot;The insurer confirmed CC-7F3A on 2026-10-20&quot;. The card marks the car insured as To do&#39;s Insurer confirmed does, from the date of the email. A car is found by its name, its plate or its car code (CC- and four characters, on the car page and in the chat).</p><p class="gd-p">Messages: ask it to draft a message to a renter or an owner. It writes the text; press <b class="gd-ui">Copy</b>, open the conversation and send it yourself.</p><aside class="gd-box"><span class="gd-lbl">Tip</span><div>When the day&#39;s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.</div></aside></section>');
 select app.guide_release_section('admin', 'usage-and-paid-usage', 'chapter', 'assistant', null, 'Usage and paid usage', 'Included allowances, the 80% and used-up alerts, allowing paid usage, what pauses and what never does.',
   'The plans CarmaCars runs on include a free allowance: AI, the website, image transformations, emails, the database and storage. When an allowance runs out, AI and photo features pause with a short message until it resets, and you are asked before anything is paid.
 
