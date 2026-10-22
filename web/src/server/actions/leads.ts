@@ -27,7 +27,7 @@ export async function submitContact(_: unknown, fd: FormData): Promise<ActionRes
   const parsed = contactSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   const v = parsed.data;
-  return submit('contact', { name: v.name, email: v.email, phone: v.phone || null, message: v.message, payload: { topic: TOPICS[v.topic], booking_number: v.ref || null } }, fd.get('cf-turnstile-response'));
+  return submit('contact', { name: v.name, email: v.email || null, phone: v.phone || null, message: v.message, payload: { topic: TOPICS[v.topic], booking_number: v.ref || null } }, fd.get('cf-turnstile-response'));
 }
 
 export async function submitOwnerApplication(_: unknown, fd: FormData): Promise<ActionResult<{ leadId: string }>> {

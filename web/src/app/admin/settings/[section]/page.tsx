@@ -55,6 +55,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
+  ['Sign-in by phone', (k) => k.startsWith('signin_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

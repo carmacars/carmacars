@@ -68,6 +68,9 @@ const LABELS: Record<string, string> = {
   phone_sms_pickup_tomorrow: 'Booking text: pickup tomorrow', phone_sms_pickup_tomorrow_text: 'Booking text: pickup tomorrow, the text',
   phone_sms_return_reminder: 'Booking text: return reminder', phone_sms_return_reminder_text: 'Booking text: return reminder, the text',
   phone_sms_payment_link: 'Booking text: payment link', phone_sms_payment_link_text: 'Booking text: payment link, the text',
+  signin_phone_enabled: 'Sign-in by phone: people may sign in and verify a phone with a texted code', signin_phone_us_allowed: 'Sign-in by phone: also US numbers',
+  signin_phone_hourly_per_number: 'Sign-in by phone: codes per number an hour', signin_phone_hourly_per_ip: 'Sign-in by phone: codes per connection (IP) an hour',
+  signin_confirm_required: 'Accepting an offer, signing and paying need a confirmed account', signin_confirm_by_phone: 'A phone verified with a code confirms the account (like a confirmed email)',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -107,10 +110,13 @@ const HINTS: Record<string, string> = {
   phone_sms_return_reminder_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_payment_link_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.',
   phone_keep_months: 'Calls and texts of renters and owners stay with the rental records. The privacy policy says 12 months for the others.',
   phone_ai_daily_neurons: 'A draft or a summary uses about 50 to 100 neurons. Also stopped when all Workers AI use of the day reaches the Live chat cap.',
+  signin_phone_us_allowed: 'Off until the CarmaCars Quo number is registered for US texting (A2P 10DLC, in Quo: Settings, Trust center). Without it US carriers block the codes. Canadian numbers always get codes.',
+  signin_phone_enabled: 'Codes come by text from the CarmaCars number (Quo), 6 digits, valid 5 minutes. Off: the phone choice disappears from the sign-in pages; email sign-in is unchanged.',
+  signin_confirm_by_phone: 'Off: only a confirmed email counts. An email is still needed before the first payment (for the receipts); the pay page asks for it.',
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

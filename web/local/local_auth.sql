@@ -42,3 +42,24 @@ create table if not exists local_auth.factors (
   verified_at timestamptz,
   created_at  timestamptz not null default now()
 );
+
+-- Phone sign-in (0091), as Supabase Auth's phone provider does it: an account may have a phone instead of an email;
+-- codes (6 digits, 5 minutes) are kept as hashes and "texted" through the site's SMS sender (the fake Quo line) and
+-- written to the mailbox (to_phone) so the tests read them like the emails.
+alter table local_auth.users alter column email drop not null;
+alter table local_auth.users add column if not exists phone text unique;
+alter table local_auth.users add column if not exists phone_confirmed_at timestamptz;
+alter table local_auth.mailbox alter column to_email drop not null;
+alter table local_auth.mailbox add column if not exists to_phone text;
+create table if not exists local_auth.otps (
+  id         bigserial primary key,
+  phone      text not null,
+  user_id    uuid references local_auth.users (id) on delete cascade,
+  kind       text not null check (kind in ('sms', 'phone_change')),
+  code_hash  text not null,
+  attempts   integer not null default 0,
+  expires_at timestamptz not null,
+  used_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists otps_phone_idx on local_auth.otps (phone, created_at desc);

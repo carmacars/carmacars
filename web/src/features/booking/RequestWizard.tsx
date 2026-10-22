@@ -12,7 +12,8 @@ import { publicEnv } from '@/lib/public-env';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
-import { loadRequestDraft, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
+import { loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
+import { formatPhone } from '@/features/auth/phone';
 import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
@@ -59,6 +60,16 @@ export function RequestWizard(p: WizardProps) {
   // contact capture (0090): the name, email and phone are saved as each becomes valid, with this draft
   const cap = useCapture('booking_request', () => ({ ref: meta.current.draftId, draftToken: meta.current.token }));
   const { relink } = cap;
+  // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
+  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null } | null>(null);
+  useEffect(() => {
+    requestAccount().then((r) => { if (r.ok) setAccount(r.data); }).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (!account?.signedIn || !ready.current) return;
+    setD((x) => ({ ...x, phone: x.phone || (account.phone ? formatPhone(account.phone) : ''), email: x.email || (account.email ?? '') }));
+  }, [account, step]);
+  const emailOptional = !!account?.signedIn && !account.email;
 
   // start: the link's car and dates win over a saved draft for a different car or dates
   useEffect(() => {
@@ -133,7 +144,7 @@ export function RequestWizard(p: WizardProps) {
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   function validate(n: number): boolean {
-    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car });
+    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car, emailOptional });
     if (n === 1 && problem && !all.dates) all.dates = problem;
     const mine = Object.fromEntries(Object.entries(all).filter(([k]) => stepOfKey(k) === n));
     setErrors(mine);
@@ -304,7 +315,7 @@ export function RequestWizard(p: WizardProps) {
               <div className={fieldCls('last')}><label className="label" htmlFor="rq-last">Last name</label><input className="input" id="rq-last" autoComplete="family-name" value={d.last} onChange={(e) => set('last', e.target.value)} {...aria('last', 'rq-last')} />{errEl('last', 'rq-last')}</div>
             </div>
             <div className="field-row">
-              <div className={fieldCls('email')}><label className="label" htmlFor="rq-email">Email</label><input className="input" id="rq-email" type="email" autoComplete="email" value={d.email} onChange={(e) => set('email', e.target.value)} {...aria('email', 'rq-email', true)} /><p className="hint" id="rq-email-hint">We send the confirmed price here.</p>{errEl('email', 'rq-email')}</div>
+              <div className={fieldCls('email')}><label className="label" htmlFor="rq-email">Email{emailOptional && <> <span className="opt">optional</span></>}</label><input className="input" id="rq-email" type="email" autoComplete="email" value={d.email} onChange={(e) => set('email', e.target.value)} {...aria('email', 'rq-email', true)} /><p className="hint" id="rq-email-hint">{emailOptional ? 'We send the confirmed price here. You can also add it before you pay.' : 'We send the confirmed price here.'}</p>{errEl('email', 'rq-email')}</div>
               <div className={fieldCls('phone')}><label className="label" htmlFor="rq-phone">Mobile number</label><input className="input" id="rq-phone" type="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} {...aria('phone', 'rq-phone', true)} /><p className="hint" id="rq-phone-hint">For questions about this request only.</p>{errEl('phone', 'rq-phone')}</div>
             </div>
             <CaptureNote reply={cap.reply} />

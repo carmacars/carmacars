@@ -21,6 +21,13 @@
 #                                        vault as deploy_quo_api_key), our webhook for the CarmaCars number (Site settings,
 #                                        phone) and its signing secret in the vault (deploy_quo_webhook_secret); exports
 #                                        QUO_API_KEY and QUO_WEBHOOK_SECRET for the Worker. Never another Quo account.
+#   scripts/deploy/supabase.sh smshook   sign-in by phone (0091): the Send SMS hook's signing secret in the vault
+#                                        (deploy_auth_sms_hook_secret, made once) exported as AUTH_SMS_HOOK_SECRET for the
+#                                        Worker. Changes nothing in Supabase Auth.
+#   scripts/deploy/supabase.sh phoneauth sign-in by phone (0091), production only, after the Worker is deployed: the phone
+#                                        provider with 6-digit codes valid 5 minutes, the SMS text, and the Send SMS hook
+#                                        to $APP_URL/api/webhooks/auth-sms with that secret (Management API, config/auth).
+#                                        Only the settings that differ are sent.
 #
 # Needs SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF; APP_URL (default https://carmacars.ca).
 set -euo pipefail
@@ -416,6 +423,48 @@ quo() {
   pn=$(jq -r '.phone_number_id' <<<"$res"); wid=$(jq -r '.webhook_id' <<<"$res"); action=$(jq -r '.action' <<<"$res")
   sbq "update quo_config set phone_number_id = '$(tr -cd 'A-Za-z0-9' <<<"$pn")', webhook_id = '$(tr -cd 'A-Za-z0-9' <<<"$wid")', checked_at = now()" > /dev/null
   notice "Phone line: Quo inbox $(jq -r '.number_name // "?"' <<<"$res") ($pn) for $number; webhook $wid $action"
+}
+
+# ---------------------------------------------------------------- sign-in by phone (migration 0091)
+# The Standard Webhooks secret Supabase signs each Send SMS hook call with ("v1,whsec_<base64 of 32 random bytes>").
+smshook() {
+  local secret
+  secret=$(vault_get deploy_auth_sms_hook_secret)
+  if [ -z "$secret" ]; then
+    secret="v1,whsec_$(openssl rand -base64 32 | tr -d '\n')"
+    vault_set deploy_auth_sms_hook_secret "$secret" "Signing secret of Supabase Auth's Send SMS hook ($APP_URL/api/webhooks/auth-sms)"
+    notice "Sign-in by phone: a new Send SMS hook secret is in the vault (deploy_auth_sms_hook_secret)"
+  fi
+  mask "$secret"; mask "${secret#v1,}"
+  export_env AUTH_SMS_HOOK_SECRET "$secret"
+}
+
+# The SMS text, as web/src/features/auth/sms-hook.ts SMS_TEMPLATE says it (the hook texts it; Supabase keeps it too).
+SMS_TEMPLATE="CarmaCars code: {{ .Code }}. It expires in 5 minutes. Don't share it."
+phoneauth() {
+  if [ "${DEPLOY_ENV:-production}" != production ]; then log "phoneauth: production only (DEPLOY_ENV=$DEPLOY_ENV); nothing changed"; return 0; fi
+  : "${AUTH_SMS_HOOK_SECRET:=$(vault_get deploy_auth_sms_hook_secret)}"
+  [ -n "$AUTH_SMS_HOOK_SECRET" ] || die "No Send SMS hook secret (run the smshook step before the Worker deploy)"
+  mask "$AUTH_SMS_HOOK_SECRET"; mask "${AUTH_SMS_HOOK_SECRET#v1,}"
+  local uri="$APP_URL/api/webhooks/auth-sms" code cfg want diff
+  # the hook must be live (and refuse an unsigned call) before Supabase is told to use it
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$uri" -H 'content-type: application/json' --data '{}' || true)
+  if [ "$code" != 401 ]; then
+    warn "Sign-in by phone: $uri answered $code to an unsigned call (expected 401); the phone provider was not switched on"
+    return 0
+  fi
+  cfg=$(sbapi GET "/config/auth")
+  want=$(jq -n --arg uri "$uri" --arg sec "$AUTH_SMS_HOOK_SECRET" --arg tpl "$SMS_TEMPLATE" '{
+    external_phone_enabled: true, sms_autoconfirm: false, sms_otp_length: 6, sms_otp_exp: 300, sms_max_frequency: 60, sms_template: $tpl,
+    hook_send_sms_enabled: true, hook_send_sms_uri: $uri, hook_send_sms_secrets: $sec }')
+  # only what differs (a secret Supabase does not show back is sent again: the same value, so nothing changes)
+  diff=$(jq -n --argjson c "$cfg" --argjson w "$want" '[$w | to_entries[] | select($c[.key] != .value)] | from_entries')
+  if [ "$diff" = "{}" ]; then log "phoneauth: already configured"; return 0; fi
+  sbapi PATCH "/config/auth" "$diff" > /dev/null
+  cfg=$(sbapi GET "/config/auth")
+  jq -e --arg uri "$uri" '.external_phone_enabled == true and .hook_send_sms_enabled == true and .hook_send_sms_uri == $uri and .sms_otp_length == 6 and .sms_otp_exp == 300' <<<"$cfg" > /dev/null \
+    || die "Sign-in by phone: Supabase Auth did not keep the phone settings"
+  notice "Sign-in by phone: phone provider on (6-digit codes, 5 minutes), Send SMS hook $uri; changed: $(jq -r 'keys - ["hook_send_sms_secrets"] | join(", ")' <<<"$diff")$(jq -r 'if has("hook_send_sms_secrets") then ", hook secret" else "" end' <<<"$diff")"
 }
 
 for step in "$@"; do "$step"; done

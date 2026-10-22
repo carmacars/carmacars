@@ -172,6 +172,12 @@ def build():
         f'{B("Referrals")}: your own referral link. Press {B("Copy the link")}, or let someone scan its QR code. A booking made with it counts as a rental you sourced.',
         f'{B("Profile")}: {B("Save my phone")}, your home address ({B("Change my home address")}), {B("Set up two-step sign-in")}, {B("Change my password")} and {B("Sign out")}.',
     ], shot=S('field/04-profile-phone', 0, 595, 390, 1440, pins=[(2, 365, 1113)]))
+    g.task('Sign in with your phone number', 'Quicker on a phone than a password: a 6-digit code by text.')
+    g.steps([
+        f'On {B("Profile")}, under Sign-in, press {B("Add and verify my phone number")}, enter your mobile number and press {B("Text me a code")}.',
+        f'Type the code from the text (it usually fills itself in) and press {B("Verify")}. Choose {B("My phone number (a code by text)")} under Sign in with.',
+        f'Next time, the sign-in page opens on your phone number: press {B("Text me a code")} and enter the code. Two-step sign-in still asks for your authenticator code.',
+    ])
 
     g.reference(
         nav_rows=[('My jobs', 'Today and Tomorrow, in order; Vehicle moves'),

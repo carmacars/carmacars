@@ -150,6 +150,8 @@ Live chat is answered first by an automated assistant that uses our own informat
 
 Calls and texts to and from our phone number go through our business phone provider and are recorded: for a call, your number, the time and its length, and, when the call is recorded, the recording, a transcript and a short summary written by our provider or an automated tool; for a text, its content. We match your number to your booking or account so our staff see the conversation with your rental, and, if you gave the same number in live chat or a discount game, with your visit to the Site. If we miss your call, we text you once from the same number. Texts about your booking are not marketing; reply STOP to stop them. Calls and texts are kept with your rental records if you are a customer, and otherwise for 12 months.
 
+If you sign in or verify your phone number with us, we text a one-time sign-in code to the phone number you give.
+
 ### 11. Marketing messages
 
 We send promotional emails and texts only if you opted in, or where Canada's anti-spam law otherwise allows. Every message identifies us and lets you unsubscribe. We act on an unsubscribe within 10 business days. Messages about your booking, payments or safety are not marketing and are always sent.

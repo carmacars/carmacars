@@ -49,7 +49,7 @@ export const dobIso = (y: string, m: string, d: string) => `${y.padStart(4, '0')
 const isEmail = (v: string) => email.safeParse(v).success;
 
 /** Checks the whole request; `issues` maps a field key (or dates, dob, drivers.N.x) to a message. */
-export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: boolean }): Record<string, string> {
+export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: boolean; emailOptional?: boolean }): Record<string, string> {
   const e: Record<string, string> = {};
   const set = (k: string, m: string) => { if (!(k in e)) e[k] = m; };
   // step 1
@@ -69,7 +69,8 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
   // step 2
   if (v.first.length < 1 || v.first.length > 60) set('first', 'Enter your first name as it appears on your licence.');
   if (v.last.length < 1 || v.last.length > 60) set('last', 'Enter your last name as it appears on your licence.');
-  if (!isEmail(v.email)) set('email', v.email ? 'Enter an email address like name@example.com.' : 'Enter your email so we can send the price.');
+  // signed in by phone without an email yet (0091): the email may wait until the pay page asks for it
+  if (!(ctx.emailOptional && !v.email) && !isEmail(v.email)) set('email', v.email ? 'Enter an email address like name@example.com.' : 'Enter your email so we can send the price.');
   if (!phone.safeParse(v.phone).success) set('phone', v.phone ? 'Enter a phone number with area code.' : 'Enter a mobile number we can reach you on.');
   const ref = /^\d{4}-\d{2}-\d{2}$/.test(v.from) ? v.from : ctx.todayIso;
   const age = ageOn(v.dobY, v.dobM, v.dobD, ref);
@@ -109,7 +110,7 @@ export function migrateExtras(v: RequestData): RequestData {
 }
 
 /** The zod schema the browser and the server both run: structure from requestShape, rules above. */
-export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean }) {
+export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean; emailOptional?: boolean }) {
   return requestShape.superRefine((v, c) => {
     for (const [k, message] of Object.entries(checkRequest(v, r, { ...ctx, knownCar: ctx.knownCar(v.car) }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
   });

@@ -19,6 +19,7 @@ def build():
             f'Invited by us? Open the invitation email within 24 hours, choose a password and press {B("Save the new password")}.',
             f'Next time, go to {U("carmacars.ca/sign-in")}, enter your Email and Password and press {B("Sign in")}.',
             f'Forgot your password? Press {B("Forgot your password?")} on the sign-in page and follow the email.',
+            f'Rather use your phone? Press {B("Use my phone number instead")} on the sign-in page, enter your mobile number and the 6-digit code we text you. Add and verify your number first under {B("Profile")}, Sign-in, so it opens your owner portal.',
         ],
         shot=S('public/09-sign-in-phone', 0, 595, 390, 1180, pins=[(3, 372, 1041)]),
         note='Email links work for 24 hours, once. If a link has expired, the page it opens has '

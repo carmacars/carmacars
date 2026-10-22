@@ -19,6 +19,7 @@ import { consentTexts } from '@/server/booking-data';
 import { changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
 import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
 import { driverLinkUrl } from '@/server/portal/driver-links';
+import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 
 // Every renter action: a server action (POST with a same-origin check by Next.js), run for the
 // signed-in user, re-checking that the booking is theirs (public.my_booking under row-level security)
@@ -42,6 +43,8 @@ export async function approveOffer(number: string, version: number): Promise<R> 
   try {
     const { userId, b } = await mine(number);
     if (b.status !== 'offered' || b.current_offer_version !== version) return fail('This offer was updated. Review the new version.', 'stale');
+    // a confirmed account (a confirmed email, or a phone verified with a code; 0091)
+    if (!(await accountGate(userId, 'accept')).ok) return fail(GATE_MESSAGE, 'unconfirmed');
     await rpc('renter_approve_offer', { p_booking: b.id, p_version: version, p_by: userId }, SR);
     await openAgreement(b.id, userId);
     refresh(number);
@@ -144,6 +147,7 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
   let target = '';
   try {
     const { userId, b } = await mine(number);
+    if (!(await accountGate(userId, 'sign')).ok) return fail(GATE_MESSAGE, 'unconfirmed');
     const { all, need, ticked } = await signatureArgs(input, userId);
     if (!need.every((c) => ticked.has(c))) return { ok: false, code: 'invalid', message: 'Tick all four statements to sign.', fieldErrors: { consents: 'Tick all four statements.' } };
     if (!b.agreement || b.agreement.status !== 'open') return fail('There is no agreement waiting for your signature. Reload the page.');
@@ -231,7 +235,10 @@ export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string;
 
 export async function startPayment(number: string): Promise<R<StartedPayment>> {
   try {
-    const { b } = await mine(number);
+    const { userId, b } = await mine(number);
+    // a confirmed account, and an email for the receipts (an account made by phone gives it on the pay page; 0091)
+    const gate = await accountGate(userId, 'pay');
+    if (!gate.ok) return fail(gate.reason === 'email_needed' ? 'Add your email for the receipts first.' : GATE_MESSAGE, gate.reason ?? 'unconfirmed');
     // a rental added while already underway with a payment link (0074) is paid here too, on trip
     if (b.status !== 'pending_payment' && !b.link_due) return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
     const f = await paymentFacts(b.id);
