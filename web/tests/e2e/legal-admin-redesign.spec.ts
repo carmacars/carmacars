@@ -243,7 +243,7 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
     await expect(page.locator('body')).toContainText('The most specific photo wins');
     await check(page, 'sample photos settings');
     await page.goto('/admin', { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('todo-samples')).toBeVisible();
+    await expect(page.getByTestId(`prompt-photos:${id}`)).toBeVisible(); // each real car showing sample photos is a To do prompt (0078)
     // a real photo approved: the sample is gone, nothing else to do
     for (const ph of await sql`select id from vehicle_photos where vehicle_id = ${src!.id} and status = 'approved' and is_public`) await cloneRow(sql, 'vehicle_photos', ph.id as string, { id: randomUUID(), vehicle_id: id });
     // (the public page is rebuilt when staff approve the photos in the listing review; the data and staff screens change at once)

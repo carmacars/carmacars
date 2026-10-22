@@ -3604,7 +3604,6 @@ export type Database = {
           claim_id: string | null;
           investor_id: string | null;
           staff_user_id: string | null;
-          content_key: string | null;
         };
         Insert: {
           id?: string;
@@ -3630,7 +3629,6 @@ export type Database = {
           claim_id?: string | null;
           investor_id?: string | null;
           staff_user_id?: string | null;
-          content_key?: string | null;
         };
         Update: {
           id?: string;
@@ -3656,7 +3654,6 @@ export type Database = {
           claim_id?: string | null;
           investor_id?: string | null;
           staff_user_id?: string | null;
-          content_key?: string | null;
         };
         Relationships: [];
       };
@@ -8781,60 +8778,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      pdf_jobs: {
-        Row: {
-          id: string;
-          kind: string;
-          ref: string;
-          owner_id: string | null;
-          user_id: string | null;
-          payload: Json;
-          status: string;
-          attempts: number;
-          max_attempts: number;
-          next_attempt_at: string;
-          locked_at: string | null;
-          locked_by: string | null;
-          last_error: string | null;
-          created_at: string;
-          done_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          kind: string;
-          ref: string;
-          owner_id?: string | null;
-          user_id?: string | null;
-          payload?: Json;
-          status?: string;
-          attempts?: number;
-          max_attempts?: number;
-          next_attempt_at?: string;
-          locked_at?: string | null;
-          locked_by?: string | null;
-          last_error?: string | null;
-          created_at?: string;
-          done_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          kind?: string;
-          ref?: string;
-          owner_id?: string | null;
-          user_id?: string | null;
-          payload?: Json;
-          status?: string;
-          attempts?: number;
-          max_attempts?: number;
-          next_attempt_at?: string;
-          locked_at?: string | null;
-          locked_by?: string | null;
-          last_error?: string | null;
-          created_at?: string;
-          done_at?: string | null;
-        };
-        Relationships: [];
-      };
       pdf_templates: {
         Row: {
           id: string;
@@ -11796,6 +11739,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      todo_dismissals: {
+        Row: {
+          key: string;
+          dismissed_by: string | null;
+          dismissed_at: string;
+          note: string | null;
+        };
+        Insert: {
+          key: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+          note?: string | null;
+        };
+        Update: {
+          key?: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
       toll_import_batches: {
         Row: {
           id: string;
@@ -13571,11 +13535,9 @@ export type Database = {
           terms_approved_by: string | null;
           terms_approved_at: string | null;
           checklist_marks: Json;
-          first_last_choice: string | null;
-          first_last_choice_cents: number | null;
-          first_last_choice_payment: Json | null;
-          first_last_choice_by: string | null;
-          first_last_choice_at: string | null;
+          insured_before_paperwork_from: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by: string | null;
+          insurer_confirmation_note: string | null;
         };
         Insert: {
           id?: string;
@@ -13632,11 +13594,9 @@ export type Database = {
           terms_approved_by?: string | null;
           terms_approved_at?: string | null;
           checklist_marks?: Json;
-          first_last_choice?: string | null;
-          first_last_choice_cents?: number | null;
-          first_last_choice_payment?: Json | null;
-          first_last_choice_by?: string | null;
-          first_last_choice_at?: string | null;
+          insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by?: string | null;
+          insurer_confirmation_note?: string | null;
         };
         Update: {
           id?: string;
@@ -13693,11 +13653,9 @@ export type Database = {
           terms_approved_by?: string | null;
           terms_approved_at?: string | null;
           checklist_marks?: Json;
-          first_last_choice?: string | null;
-          first_last_choice_cents?: number | null;
-          first_last_choice_payment?: Json | null;
-          first_last_choice_by?: string | null;
-          first_last_choice_at?: string | null;
+          insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
+          insurer_confirmed_by?: string | null;
+          insurer_confirmation_note?: string | null;
         };
         Relationships: [];
       };
@@ -15714,7 +15672,6 @@ export type Database = {
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
-      server_document_content_key: { Args: { p_by: string; p_path: string; p_key: string }; Returns: number };
       server_document_file: { Args: { p_document: string }; Returns: Json };
       server_documents_due_for_purge: { Args: { p_limit?: number }; Returns: Json };
       server_draft_resume_link: { Args: { p_draft: string; p_email: string; p_user?: string; p_token?: string }; Returns: string };
@@ -15747,7 +15704,6 @@ export type Database = {
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
-      server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_application_task: { Args: { p_by: string }; Returns: Json };
@@ -15768,11 +15724,6 @@ export type Database = {
       server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
       server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
-      server_pdf_job_done: { Args: { p_job: string }; Returns: undefined };
-      server_pdf_job_fail: { Args: { p_job: string; p_error: string }; Returns: undefined };
-      server_pdf_jobs_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
-      server_pdf_jobs_enqueue: { Args: { p: Json }; Returns: number };
-      server_pdf_jobs_pending: { Args: { p_owner: string }; Returns: number };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };

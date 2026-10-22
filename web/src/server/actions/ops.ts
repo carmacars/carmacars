@@ -46,8 +46,8 @@ export async function opsAct<T = Record<string, unknown>>(action: string, p: Rec
       ? (await issueRefund(user.id, aal, String(p.id ?? ''))) as unknown as T
       : await door<T>(user.id, 'ops_do', action, p, aal);
     for (const x of refresh) revalidatePath(x);
-    // Publish now (0070) puts a car on the public pages
-    if (action === 'listing_publish_now') revalidatePath('/', 'layout');
+    // Publish now (0070), and with its rates from Admin > Today (0078), puts a car on the public pages
+    if (action === 'listing_publish_now' || action === 'todo_publish') revalidatePath('/', 'layout');
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

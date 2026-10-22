@@ -3,6 +3,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
 import { BookingLink, Card, PageHead, t } from '@/features/admin/ui';
+import { Prompts } from '@/features/admin/todo/Prompts';
+import type { Todo } from '@/features/admin/todo/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -15,30 +17,30 @@ interface Health {
   recent: Array<{ label: string; opened_at: string; resolved_at: string; detail: string | null }>;
 }
 
-interface Todo {
-  items: Array<{ key: string; label: string; button: string; href: string; count: number }>;
-  pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string; ready: boolean }>;
-  returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }>;
-  late: number;
-}
-
-// The home page (the owner's request of October 16, 2026): one list of what needs you, most urgent first, each with
-// its count and one button to deal with it; then today's pickups and returns. Everything else is one tap away in the
+// The home page (the owner's request of October 16, 2026): one list of what needs you, most urgent first. Each piece of
+// work is a prompt that says what to do and why, with a pop-up that does it in place (0078); then the counts with one
+// button each; then today's pickups and returns. Everything else is one tap away in the
 // menu (the money, fleet and queue figures are under Today > Overview).
 export default async function AdminToDo() {
   const { user } = await page('/admin');
   const d = await door<Todo>(user.id, 'ops_read', 'admin_todo');
   const h = await door<Health>(user.id, 'admin_read', 'site_health').catch(() => null);
-  const open = d.items.filter((i) => i.count > 0);
-  const clear = d.items.filter((i) => i.count === 0);
+  // the guided prompts (0078): each piece of work on its own line with its pop-up; the counts below are what has no
+  // prompt of its own (a count whose records each have a prompt is not repeated)
+  const prompts = d.prompts ?? [];
+  const covered = new Set(['applications', 'requests', 'changes', 'plates', 'samples', 'first_last_decide', 'signed_copy_failed']);
+  const rest = d.items.filter((i) => !covered.has(i.key));
+  const open = rest.filter((i) => i.count > 0);
+  const clear = rest.filter((i) => i.count === 0);
   const time = (iso: string) => t(iso).split(', ').pop();
   return (
     <>
-      <PageHead title="To do" kicker={open.length ? `${open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now'}>
+      <PageHead title="To do" kicker={prompts.length + open.length ? `${prompts.length + open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now'}>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link>
       </PageHead>
       <section className="pt-card ad-card" aria-labelledby="todo-h" data-testid="todo-list">
         <h2 className="vh" id="todo-h">To do, most urgent first</h2>
+        <Prompts prompts={prompts} />
         {open.length ? (
           <ol className="todo">{open.map((i) => (
             <li key={i.key} className="todo__item" data-testid={`todo-${i.key}`}>
@@ -47,7 +49,7 @@ export default async function AdminToDo() {
               <Link prefetch={false} className="btn btn--primary btn--sm" href={i.href}>{i.button}</Link>
             </li>))}
           </ol>
-        ) : <p className="ad-empty" data-testid="todo-empty">All clear. New requests, applications and anything that needs you will show up here.</p>}
+        ) : prompts.length ? null : <p className="ad-empty" data-testid="todo-empty">All clear. New requests, applications and anything that needs you will show up here.</p>}
         {clear.length > 0 && <details className="todo__clear"><summary className="small muted">{clear.length} more with nothing waiting</summary>
           <ul className="small muted">{clear.map((i) => <li key={i.key}><Link prefetch={false} className="link" href={i.href}>{i.label}</Link>: none</li>)}</ul></details>}
       </section>
