@@ -85,6 +85,9 @@ a third as often.
 
 ## Guides
 
+- `admin/live-visitors-and-live-chat`
+- `va/live-visitors-and-live-chat`
+
 Admin and VA guides, chapter "Live visitors and live chat": "Live now" and "Visitors today", the 5-minute window and the
 45-second heartbeat, the 15-second refresh, the line about necessary cookies, and where the two settings are
 (`docs/guides/src/guides/admin.py`, `va.py`, exported to `docs/guides/content/*.json`, published by the migration). The
