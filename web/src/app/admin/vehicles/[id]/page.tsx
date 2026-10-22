@@ -17,6 +17,7 @@ import { RateCardForm } from '@/features/rates/RateCardForm';
 import { door } from '@/server/door';
 import { adminOwners } from '@/server/admin/data';
 import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
+import { autoCardFields, autoSource } from '@/features/supply/auto-defaults';
 import '@/features/admin/todo/todo.css';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,12 @@ type V = R & { id: string; name: string; plate: string | null; vin: string; stat
   fee_types: Array<{ code: string; label: string; unit: string; default: { amount_cents: number | null; percent_bps: number | null; source: string } | null }>;
   coverage_prices: R[]; schedule: R | null; terms: R | null; documents: R[]; tracker: { device: R; status: R | null } | null; bookings: R[]; transitions: string[]; intake: R | null;
   supply_type: string; supply_label: string; partner: { id: string; business_name: string; partner_number: string; commission_bps: number | null } | null; commission_bps: number | null;
-  commission_effective_bps: number | null; retired_at: string | null; retired_reason: string | null; delete_blockers: string[]; bookings_ahead: number };
+  commission_effective_bps: number | null; retired_at: string | null; retired_reason: string | null; delete_blockers: string[]; bookings_ahead: number; auto_defaults?: R };
+
+// "Set automatically" next to a value that came from the defaults (0087), with where it came from, until a person changes it
+function Auto({ source, id }: { source: string | null; id: string }) {
+  return source ? <> <span className="small muted" title={source} data-testid={`auto-${id}`}>(Set automatically)</span></> : null;
+}
 
 // One vehicle (03-admin.md section 8.2).
 export default async function Vehicle({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
@@ -68,8 +74,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Identity and status">
-            <Kv rows={[['VIN', v.vin], ['Plate', v.plate ?? ''], ['Class', v.class ?? ''], ['Classes on the site', v.classes.join(', ')], ['Colour', v.colour ?? ''], ['Odometer', v.odometer_km ? `${v.odometer_km.toLocaleString('en-CA')} km` : ''],
-              ['Mode', label(v.management_mode)], ['Enrolled', d(v.enrollment_date)], ['Exit date', d(v.exit_date)], ['Drivers 18 to 20', v.allows_18_to_20 ? 'Allowed' : 'Not allowed'], ['Bookings', v.bookings_enabled ? 'Open' : 'Closed']]} />
+            <Kv rows={[['Fleet number', <span key="fn">{v.fleet_number ?? ''}<Auto id="fleet_number" source={autoSource(v.auto_defaults, 'fleet_number', v.fleet_number)} /></span>],
+              ['VIN', v.vin], ['Plate', v.plate ?? ''], ['Class', v.class ?? ''], ['Classes on the site', v.classes.join(', ')], ['Colour', v.colour ?? ''], ['Odometer', v.odometer_km ? `${v.odometer_km.toLocaleString('en-CA')} km` : ''],
+              ['Mode', label(v.management_mode)], ['Enrolled', d(v.enrollment_date)], ['Exit date', d(v.exit_date)], ['Drivers 18 to 20', <span key="yd">{v.allows_18_to_20 ? 'Allowed' : 'Not allowed'}<Auto id="allows_18_to_20" source={autoSource(v.auto_defaults, 'allows_18_to_20', v.allows_18_to_20)} /></span>], ['Bookings', v.bookings_enabled ? 'Open' : 'Closed']]} />
             <div className="ad-actions">
               {ls?.can_insure && <InsurerConfirm vehicleId={id} name={v.name} refresh={refresh} label="Insurer confirmed" testId="vehicle-insurer-confirm" />}
               {v.transitions.length > 0 && <Act action="vehicle_status" payload={P} label="Change status" fields={[{ name: 'status', label: 'New status', type: 'select', required: true, options: v.transitions.map((s) => [s, label(s)]) }]} refresh={refresh} />}
@@ -84,7 +91,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled }]} />
           </Card>
           <Card title="Who supplies the car" testId="vehicle-supply">
-            {sp.added && <p className="alert alert--ok" role="status"><span>Car added. Its rates are on the Rates tab (set them there if you did not type them). Start its listing when it is ready.</span></p>}
+            {sp.added && <p className="alert alert--ok" role="status"><span>Car added, with its fleet number and standard settings. Values set automatically are marked on the Overview and the Rates tab: review them.</span></p>}
             <Kv rows={[['Supplied by', <span key="s" data-testid="vehicle-supply-label">{v.supply_label}</span>], ...(v.supply_type === 'partner' ? [['Partner', supplier] as [string, React.ReactNode],
               ['Commission', `${(v.commission_effective_bps ?? 0) / 100}%${v.commission_bps == null ? ' (the partner\'s)' : ' (this car\'s own)'}`] as [string, React.ReactNode]] : []),
               ['Revenue to CarmaCars', v.supply_type === 'company' ? '100%: no owner, no owner statement, fees or payouts' : v.supply_type === 'partner' ? 'The commission; the partner gets the rest' : 'The management fee (Revenue Share) in the owner\'s schedule']]} />
@@ -118,6 +125,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         <div className="stack">
           <Card title="Rates from now" testId="rate-card">
             <p className="small muted">Rates, kilometres and deposit save together. A new rate card starts at the time you choose; bookings already made keep their rates. The public car page updates when you save.</p>
+            {autoCardFields(v.rate_card).length > 0 && (
+              <div className="small" data-testid="rate-card-auto"><b>Set automatically</b> from the defaults for this car (review them, then save to make them yours):
+                <ul>{autoCardFields(v.rate_card).map((f) => <li key={f.key} data-testid={`auto-rate-${f.key}`}>{f.label}: {f.source}</li>)}</ul></div>)}
             <RateCardForm vehicleId={id} card={v.rate_card} refresh={refresh} />
           </Card>
           <Card title="Rate history"><Table rows={v.rate_history} cols={[{ key: 'effective_from', label: 'From', render: (r) => t(r.effective_from) }, { key: 'effective_to', label: 'To', render: (r) => t(r.effective_to) },

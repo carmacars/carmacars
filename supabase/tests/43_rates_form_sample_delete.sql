@@ -8,6 +8,8 @@
 -- the picker's tag, no rates (a price typed with its reason), the fleet policy confirmation by an Admin, clashes.
 -- Fixtures start with "rf".
 select test.suite('43 rates form, sample delete, rentals before listing');
+-- 0087: this suite adds cars without rates on purpose: the rate card from the defaults is off here and back on at the end (suite 58 tests it)
+update program_settings set car_defaults_rates_on_add = false;
 
 select test.mk_user('rf_admin', 'admin');
 select test.mk_user('rf_fleet', 'va', 'fleet');
@@ -230,3 +232,4 @@ insert into s43 select 'r2', test.rf('manual_rental_create', jsonb_build_object(
   'return_at', date_trunc('hour', now()) + interval '4 days', 'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:rf_ron'), 'payment', jsonb_build_object('mode', 'link'),
   'rental_charge_cents', 9000, 'price_reason', 'Walk-in, rate sheet not set yet', 'sales_choice', 'sourced'), 'rf_cs');
 select test.eq('C an assistant adds a rental for a company car whose listing is not finished, with a payment link', (select status::text from bookings where id = (test.s43('r2') ->> 'booking_id')::uuid) in ('requested', 'offered', 'pending_payment'), true);
+update program_settings set car_defaults_rates_on_add = true;

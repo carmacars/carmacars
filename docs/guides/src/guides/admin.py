@@ -408,6 +408,9 @@ def build():
         f'The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car\'s Rates tab. Press {B("Add the car")}.',
     ])
     g.tip('The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car\'s listing; a field you change is kept.')
+    g.tip('Every car gets a fleet number and its standard settings the moment it is added: a complete rate card (the daily rate you typed or the suggested one, '
+          'weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. '
+          'Each value set this way says (Set automatically) on the car\'s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.', label='Good to know')
     g.tip('A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
