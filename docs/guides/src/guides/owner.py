@@ -33,7 +33,7 @@ def build():
     g.steps([
         f'Go to {U("carmacars.ca/list-your-car")} and press {B("Apply to list your car")}.',
         f'About you: individual or corporation, your address, licence and date of birth. Press {B("Continue to vehicles")}.',
-        f'For each car, type the VIN and press {B("Look up")}. Use {B("Add another vehicle")} for more cars.',
+        f'For each car, type the VIN: your car is found as you type the last character (Edit if anything is wrong), then tap its colour and answer the rest. Use {B("Add another vehicle")} for more cars.',
         f'Read how it will work, press {B("Continue")}, then {B("Review")}.',
         f'Press {B("Submit application")}, then {B("Go to your owner portal")}.',
     ], shot=S('public/13-list-your-car-desktop', 0, 0, 1440, 800, pins=[(1, 290, 599)]))

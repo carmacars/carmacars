@@ -187,6 +187,7 @@ select test.ok('B with the setting on, the renter gets the request declined emai
 update program_settings set stale_request_email_renter = false;
 
 -- ================================================================ C. Add a rental before the listing is finished
+-- (0082: every new car gets its draft listing at once, with the decoded details and its copy queued)
 insert into s43 select 'unl', app.vehicle_add(test.id('rf_admin'), jsonb_build_object('supply_type', 'program_owner', 'owner_id', test.id('owner:rf_olive'), 'vin', '1RFUNLXSTED000001',
   'plate', 'RFU001', 'year', 2024, 'make', 'Kia', 'model', 'Sportage', 'class', 'suv', 'title_status', 'owned_outright', 'management_mode', 'managed', 'onboarding_method', 'transfer'));
 create or replace function test.unl() returns uuid language sql stable as $$ select (test.s43('unl') ->> 'vehicle_id')::uuid $$;

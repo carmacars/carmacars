@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createHmac, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, tapColour, watch } from './helpers';
 
 // One confirmation email per sign-up (migration 0045, docs/changes/2026-10-16-one-confirmation-email.md), for every
 // path that makes an account: the create-account form, the owner application (with and without an invitation link),
@@ -129,9 +129,8 @@ for (const variant of ['plain', 'invitation'] as const) {
     await page.getByRole('button', { name: 'Continue to vehicles' }).click();
     const id = (k: string) => `#ap-v0-${k}`;
     await page.locator(id('vin')).fill(vin('2T1'));
-    await page.getByRole('button', { name: 'Look up' }).click();
-    await expect(page.locator(id('make'))).not.toHaveValue('');
-    await page.locator(id('colour')).fill('White');
+    await expect(page.getByTestId('apply-vin-summary')).toBeVisible({ timeout: 20_000 });
+    await tapColour(page, 'apply', 'White');
     await page.locator(id('plate')).fill(`SU${String(Date.now()).slice(-5)}`);
     await page.locator(id('odo')).fill('20000');
     await page.locator(id('ins')).fill('Intact');
