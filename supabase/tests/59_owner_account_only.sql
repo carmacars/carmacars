@@ -1,4 +1,4 @@
--- 59: an owner account without a car (migration 0088). The account-only application (the owner record, no per-car
+-- 59: an owner account without a car (migration 0087, section 6). The account-only application (the owner record, no per-car
 -- intake task, one light follow-up task for the Admin), the inbox showing it as "Account only: no car yet", a second
 -- press, refused without the flag, and the owner's first car later: an ordinary application, the follow-up closed and
 -- the account-only row gone from the inbox. Fixtures start with "nc".

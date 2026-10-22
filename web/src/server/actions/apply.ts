@@ -97,7 +97,7 @@ export interface SubmitResult { applicationNumber: string; vehicles: number; dec
 export async function submitApplication(state: ApplyState, password: string, turnstileToken: string | null): Promise<R<SubmitResult>> {
   const o = state.owner;
   const fe: Record<string, string> = { ...ownerErrors(o) };
-  // "I'll add my car later" (0088): the owner account and record with no car; otherwise at least one car
+  // "I'll add my car later" (0087): the owner account and record with no car; otherwise at least one car
   const accountOnly = !state.vehicles.length && !!state.later;
   if (!state.vehicles.length && !accountOnly) return fail('Add at least one vehicle, or choose "I\'ll add my car later".');
   state.vehicles.forEach((v, i) => { for (const [k, m] of Object.entries({ ...vehicleErrors(v, o.owner_type), ...planErrors(v) })) fe[`v${i}.${k}`] = m; });

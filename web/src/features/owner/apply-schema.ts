@@ -19,7 +19,7 @@ export interface ApplyOwner {
   email: string; phone: string; hst_number: string; licence_number: string; date_of_birth: string; referred_by: string;
 }
 export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number;
-  /** "I'll add my car later" (0088): the account and the owner record now, the first car from the owner portal */
+  /** "I'll add my car later" (0087): the account and the owner record now, the first car from the owner portal */
   later?: boolean }
 
 export const blankVehicle = (key: string): ApplyVehicle => ({

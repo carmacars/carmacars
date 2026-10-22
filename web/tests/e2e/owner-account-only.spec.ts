@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch } from './helpers';
 
-// An owner account without a car (migration 0088), at 375 and 1440: the application with "I'll add my car later"
+// An owner account without a car (migration 0087), at 375 and 1440: the application with "I'll add my car later"
 // opens the account and the owner record with no car (an "Account only: no car yet" application, one follow-up task for
 // the Admin, no per-car intake), the owner portal asks for the first car, the Admin sees it in Applications; then the
 // owner adds the first car from the portal (VIN-first): an ordinary application, the follow-up closed.
