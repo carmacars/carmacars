@@ -11,7 +11,8 @@ import { expectedCost, prizeCost, type PrizeRow } from './rules';
 export type Prize = PrizeRow;
 type Kind = 'percent' | 'amount' | 'days';
 type Row = { kind: Kind; value: string; min_days: string; cap: string; weight: string };
-const GAMES: Array<[string, string]> = [['wheel', 'Spin the wheel'], ['scratch', 'Scratch to reveal'], ['blackjack', 'Quick blackjack'], ['cups', 'Cup shuffle'], ['plinko', 'Plinko'], ['pack', 'Card pack']];
+const GAMES: Array<[string, string]> = [['wheel', 'Spin the wheel'], ['scratch', 'Scratch to reveal'], ['blackjack', 'Quick blackjack'], ['cups', 'Cup shuffle'], ['plinko', 'Plinko'], ['pack', 'Card pack'],
+  ['coin', 'Coin flip'], ['dice', 'Dice roll'], ['slots', 'Slot machine'], ['drop', 'Prize drop'], ['mystery', 'Mystery box']];
 const num = (v: string) => /^\d+(\.\d+)?$/.test(v.trim());
 const dollars = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export interface CostBasis { source: 'bookings' | 'rates'; bookings: number; charge_cents: number; days: number }

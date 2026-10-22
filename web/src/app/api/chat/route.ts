@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
 const H = { 'cache-control': 'no-store' };
 const UUID = /^[0-9a-f-]{36}$/;
-type Body = { action?: string; token?: string; body?: string; sid?: string; vid?: string; page?: string; slug?: string; greeting?: boolean; device?: string;
+type Body = { action?: string; token?: string; body?: string; sid?: string; vid?: string; page?: string; slug?: string; greeting?: boolean; greeting_page?: string; device?: string;
   name?: string; email?: string; phone?: string; transcript?: boolean; after?: number };
 const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : undefined);
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       case 'open': {
         if (!b.vid || !UUID.test(b.vid)) return NextResponse.json({ ok: false, error: 'bad ids' }, { status: 400, headers: H });
         const user = await currentUser().catch(() => null);
-        const p = { vid: b.vid, sid: b.sid && UUID.test(b.sid) ? b.sid : null, page: str(b.page, 300), slug: str(b.slug, 120), token, greeting: b.greeting ? 'true' : 'false',
+        const p = { vid: b.vid, sid: b.sid && UUID.test(b.sid) ? b.sid : null, page: str(b.page, 300), slug: str(b.slug, 120), token, greeting: b.greeting ? 'true' : 'false', greeting_page: b.greeting ? str(b.greeting_page, 300) : undefined,
           device: str(b.device, 10), city: req.headers.get('cf-ipcity'), region: req.headers.get('cf-region-code'), country: req.headers.get('cf-ipcountry') };
         return NextResponse.json(await rpc('server_chat_open', { p: p as unknown as Json, p_user: user?.id }, SR), { headers: H });
       }
