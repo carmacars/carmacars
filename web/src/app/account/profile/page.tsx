@@ -2,6 +2,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { Dl } from '@/features/portal/Blocks';
 import { ProfileForm } from '@/features/portal/ProfileForm';
 import { myProfile, requireUser } from '@/server/portal/data';
+import { SignInSettings } from '@/features/portal/SignInSettings';
+import { signInState } from '@/server/sign-in-settings';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/account/profile', noindex: true, description: 'Your contact details, drivers and Card on File.' });
@@ -10,7 +12,7 @@ const STATUS: Record<string, string> = { verified: 'Verified', pending: 'In revi
 
 export default async function ProfilePage() {
   const user = await requireUser('/account/profile');
-  const p = await myProfile(user);
+  const [p, si] = await Promise.all([myProfile(user), signInState(user.id)]);
   const r = p.renter;
   return (
     <>
@@ -18,9 +20,10 @@ export default async function ProfilePage() {
       <div className="pt-split">
         <div className="stack-lg">
           <section className="pt-card" aria-labelledby="pt-me"><h2 className="d4" id="pt-me">You</h2>
-            <Dl rows={[['Legal name', r?.legal_name ?? p.user?.full_name ?? ''], ['Email', p.user?.email ?? user.email], ['Identity', r ? STATUS[r.identity_status] ?? r.identity_status : '']]} />
+            <Dl rows={[['Legal name', r?.legal_name ?? p.user?.full_name ?? ''], ['Email', p.user?.email ?? user.email ?? ''], ['Identity', r ? STATUS[r.identity_status] ?? r.identity_status : '']]} />
             <p className="small muted">Your legal name is locked once you are verified. To change it or your email, call or message us.</p>
           </section>
+          {si && <SignInSettings state={si} />}
           <section className="pt-card" aria-labelledby="pt-contact"><h2 className="d4" id="pt-contact">Contact details</h2>
             {r ? <ProfileForm initial={{ mobile: r.mobile ?? p.user?.phone ?? '', address_line1: r.address_line1 ?? '', address_line2: r.address_line2 ?? '', city: r.city ?? '', province: r.province ?? '', postal_code: r.postal_code ?? '', country: r.country ?? 'Canada' }} />
               : <p className="muted">Your contact details are saved with your first booking request.</p>}

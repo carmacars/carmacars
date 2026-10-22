@@ -47,7 +47,10 @@ const schema = z.object({
   QUO_API_KEY: z.string().optional(),
   QUO_API_BASE: z.string().url().optional(),
   /** The signing secret of our Quo webhook (whsec_...), made by the deploy (scripts/deploy/quo.mjs) and kept in the vault. */
-  QUO_WEBHOOK_SECRET: z.string().optional()
+  QUO_WEBHOOK_SECRET: z.string().optional(),
+  /** Sign-in by phone (migration 0091): the Standard Webhooks secret ("v1,whsec_...") of Supabase Auth's Send SMS hook,
+   *  made by the deploy (scripts/deploy/supabase.sh smshook) and kept in the vault. Locally the stand-in's fixed secret. */
+  AUTH_SMS_HOOK_SECRET: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

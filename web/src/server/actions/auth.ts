@@ -1,14 +1,13 @@
 'use server';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { fieldErrors, newPasswordSchema, resetSchema, signInSchema, signUpSchema, type ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
-import { rolesOf, VA_FN_COOKIE } from '@/server/door';
+import { rolesOf } from '@/server/door';
 import { landingFor, safeNext } from '@/server/portals';
-import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard';
+import { afterSignIn, clearSessionCookies, rememberSignIn } from '@/server/after-sign-in';
 import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
 
 // Sign-in is Supabase Auth (email and password, reset by email). A new account also gets its users
@@ -16,17 +15,7 @@ import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links
 
 const base = siteBase;
 
-/** After the password: the second step when the person enrolled one (or must, as staff with the switch on),
- *  then the page asked for, or their portal (the "Choose a portal" page when they have several). */
-async function afterPassword(userId: string, next: string | null): Promise<string> {
-  const a = await auth();
-  const roles = await rolesOf(userId);
-  const home = next ?? landingFor(roles);
-  const factors = (await a.mfaFactors().catch(() => [])).filter((f) => f.verified);
-  if (factors.length) return `/two-step?next=${encodeURIComponent(home)}`;
-  if (roles.staff && roles.two_step_required) return `/two-step/setup?next=${encodeURIComponent(home)}`;
-  return home;
-}
+const afterPassword = afterSignIn;
 
 export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   const p = signInSchema.safeParse(Object.fromEntries(fd));
@@ -35,6 +24,7 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   if (!r.ok) return { ok: false, code: r.code ?? 'auth', message: r.message };
   // a view-as left from an earlier session never carries over to a new sign-in
   await clearSessionCookies(false);
+  await rememberSignIn('email');
   // the sign-in service lets only confirmed addresses sign in: earlier requests with it are attached (migration 0040)
   await rpc('server_account_email_verified', { p_user: r.user.id, p_email: r.user.email }, { role: 'service_role' }).catch(() => undefined);
   redirect(await afterPassword(r.user.id, safeNext(fd.get('next'))));
@@ -107,14 +97,6 @@ export async function signUp(_: unknown, fd: FormData): Promise<ActionResult> {
   if (!reg.ok) return { ok: false, code: 'email_on_record', message: reg.message ?? 'We could not finish creating the account. Contact us.' };
   if (r.needsConfirmation) { await rememberEmail(p.data.email); return { ok: true, data: { confirm: true, email: p.data.email } }; }
   redirect('/account?welcome=1');
-}
-
-/** The cookies that belong to one session in a browser: a view-as and the assistant's chosen function. */
-async function clearSessionCookies(all: boolean) {
-  try {
-    const jar = await cookies();
-    for (const n of [VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE, ...(all ? [VA_FN_COOKIE] : [])]) if (jar.get(n)) jar.delete(n);
-  } catch { /* read-only context */ }
 }
 
 export async function signOut(): Promise<void> {

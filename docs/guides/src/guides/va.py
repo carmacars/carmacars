@@ -20,6 +20,7 @@ def build():
             f'At the top of the page, fill in your Home address and Postal code and press {B("Save my home address")}. You need it before you add a rental or earn a commission. Change it later under {B("Profile")}, at the top of the menu.',
             f'Next time, sign in at {U("carmacars.ca/sign-in")} with your Email and Password, then {B("Sign in")}.',
             f'Link expired? Press {B("Send me a new link")} on the page it opens, or ask an Admin for a password link.',
+            f'Sign in with your phone: on {B("Profile")}, press {B("Add and verify my phone number")} and enter the 6-digit code we text you. Then press {B("Use my phone number instead")} on the sign-in page. Two-step sign-in still asks for your authenticator code.',
         ],
         shot=S('public/09-sign-in-phone', 0, 595, 390, 1180, pins=[(3, 372, 1041)]),
         note=f'Recommended: open your profile and press {B("Set up two-step sign-in")}. Scan the code with your authenticator app, '

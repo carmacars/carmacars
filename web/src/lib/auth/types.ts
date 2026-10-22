@@ -1,7 +1,10 @@
-export interface SessionUser { id: string; email: string }
+export interface SessionUser { id: string; email: string; phone?: string | null }
 export type AuthResult = { ok: true; user: SessionUser; needsConfirmation?: boolean } | { ok: false; message: string; code?: AuthFailure };
 /** Why a sign-in or an invitation failed, where the page says more than the message (never "no such account"). */
 export type AuthFailure = 'credentials' | 'unconfirmed' | 'rate_limited' | 'exists' | 'inactive';
+
+/** Asking for a texted code (0091). Never says whether the number has an account. */
+export type PhoneCodeResult = { ok: true } | { ok: false; code: 'rate_limited' | 'send_failed' | 'refused'; message: string };
 
 export interface AuthAdapter {
   currentUser(): Promise<SessionUser | null>;
@@ -31,6 +34,18 @@ export interface AuthAdapter {
   confirmEmail?(tokenHash: string): Promise<AuthResult>;
   /** Server only: removes a sign-in account (one this request created and could not finish). */
   deleteAccount?(userId: string): Promise<void>;
+  /** Sign-in by phone (0091): the sign-in service texts a 6-digit code (through our SMS hook). The account of that
+   *  number is made at its first verified code, so the answer is the same whether or not it exists. */
+  sendPhoneCode(phone: string): Promise<PhoneCodeResult>;
+  /** Checks the code; on success the session is the number's account (new when the number had none). */
+  verifyPhoneCode(phone: string, code: string): Promise<AuthResult>;
+  /** Signed in: texts a code to a number to add to this account. A number of another account gets no text and the
+   *  same answer (the code then never matches). */
+  startPhoneChange(phone: string): Promise<PhoneCodeResult>;
+  /** Signed in: checks that code; the number is then this account's (it can sign in with it). */
+  verifyPhoneChange(phone: string, code: string): Promise<AuthResult>;
+  /** Signed in, an account made by phone: its email (for receipts and email sign-in); a link to confirm it is emailed. */
+  setEmail(email: string): Promise<{ ok: true } | { ok: false; code?: AuthFailure; message: string }>;
   /** Two-step sign-in (TOTP): the signed-in user's verified authenticator factors. */
   mfaFactors(): Promise<Array<{ id: string; verified: boolean }>>;
   /** Starts enrolment: a new factor with its secret and otpauth link (and a QR code image on Supabase). */

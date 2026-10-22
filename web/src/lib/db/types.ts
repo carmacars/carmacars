@@ -9593,6 +9593,12 @@ export type Database = {
           phone_sms_return_reminder_text: string;
           phone_sms_payment_link: boolean;
           phone_sms_payment_link_text: string;
+          signin_phone_enabled: boolean;
+          signin_phone_us_allowed: boolean;
+          signin_phone_hourly_per_number: number;
+          signin_phone_hourly_per_ip: number;
+          signin_confirm_required: boolean;
+          signin_confirm_by_phone: boolean;
         };
         Insert: {
           id?: string;
@@ -9925,6 +9931,12 @@ export type Database = {
           phone_sms_return_reminder_text?: string;
           phone_sms_payment_link?: boolean;
           phone_sms_payment_link_text?: string;
+          signin_phone_enabled?: boolean;
+          signin_phone_us_allowed?: boolean;
+          signin_phone_hourly_per_number?: number;
+          signin_phone_hourly_per_ip?: number;
+          signin_confirm_required?: boolean;
+          signin_confirm_by_phone?: boolean;
         };
         Update: {
           id?: string;
@@ -10257,6 +10269,12 @@ export type Database = {
           phone_sms_return_reminder_text?: string;
           phone_sms_payment_link?: boolean;
           phone_sms_payment_link_text?: string;
+          signin_phone_enabled?: boolean;
+          signin_phone_us_allowed?: boolean;
+          signin_phone_hourly_per_number?: number;
+          signin_phone_hourly_per_ip?: number;
+          signin_confirm_required?: boolean;
+          signin_confirm_by_phone?: boolean;
         };
         Relationships: [];
       };
@@ -13314,7 +13332,7 @@ export type Database = {
       users: {
         Row: {
           id: string;
-          email: string;
+          email: string | null;
           phone: string | null;
           full_name: string;
           status: string;
@@ -13325,10 +13343,12 @@ export type Database = {
           created_at: string;
           updated_at: string;
           email_verified_at: string | null;
+          phone_verified_at: string | null;
+          preferred_sign_in: string;
         };
         Insert: {
           id?: string;
-          email: string;
+          email?: string | null;
           phone?: string | null;
           full_name: string;
           status?: string;
@@ -13339,10 +13359,12 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           email_verified_at?: string | null;
+          phone_verified_at?: string | null;
+          preferred_sign_in?: string;
         };
         Update: {
           id?: string;
-          email?: string;
+          email?: string | null;
           phone?: string | null;
           full_name?: string;
           status?: string;
@@ -13353,6 +13375,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           email_verified_at?: string | null;
+          phone_verified_at?: string | null;
+          preferred_sign_in?: string;
         };
         Relationships: [];
       };
@@ -16096,12 +16120,18 @@ export type Database = {
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
+      server_account_gate: { Args: { p_user: string; p_step: string }; Returns: Json };
+      server_account_set_email: { Args: { p_user: string; p_email: string }; Returns: Json };
+      server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
+      server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
       server_attach_owner_signed_copy: { Args: { p_request: string; p_path: string; p_sha256: string }; Returns: string };
       server_attach_signed_amendment: { Args: { p_amendment: string; p_storage_path: string; p_sha256: string }; Returns: string };
+      server_auth_sms: { Args: { p: Json }; Returns: Json };
+      server_auth_sms_result: { Args: { p: Json }; Returns: Json };
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
@@ -16149,6 +16179,7 @@ export type Database = {
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_sign_in: { Args: { p_user: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
@@ -16182,6 +16213,7 @@ export type Database = {
       server_phone_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_event: { Args: { p: Json }; Returns: Json };
       server_phone_sent: { Args: { p: Json }; Returns: Json };
+      server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
@@ -16196,6 +16228,7 @@ export type Database = {
       server_seo_snapshots: { Args: never; Returns: number };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
+      server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
@@ -16216,6 +16249,7 @@ export type Database = {
       set_notification_preference: { Args: { p_code: string; p_email: boolean; p_in_app: boolean }; Returns: undefined };
       sign_request_facts: { Args: { p_by: string; p_id: string }; Returns: Json };
       sign_request_sign: { Args: { p_by: string; p_id: string; p: Json }; Returns: Json };
+      signin_phone_rules: { Args: never; Returns: Json };
       site_content: { Args: { p_page?: string }; Returns: Json };
       site_facts: { Args: never; Returns: Json };
       site_file: { Args: { p_name: string }; Returns: string };

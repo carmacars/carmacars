@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
 import { SignUpForm } from '@/features/forms/AuthForms';
 import { seoMeta } from '@/features/seo/meta';
@@ -15,7 +16,7 @@ export default async function CreateAccount() {
       <AuthShell side="One sign-in for renters, owners and staff." sideText="Renters see bookings, agreements and statements. Owners see their cars, calendar and payouts.">
         <h1 className="d2">Create an account</h1>
         <AuthTabs current="new" />
-        <SignUpForm minAge={t.minAge!} />
+        <Suspense fallback={null}><SignUpForm minAge={t.minAge!} /></Suspense>
         <p className="small muted">You do not need an account to <Link className="link" href="/cars">request a car</Link>.</p>
       </AuthShell>
     </div>
