@@ -1,7 +1,7 @@
 // Contact capture (migration 0090): which typed values are worth saving, the same rules as the database's
 // app.capture_clean_* (a name of 2 to 120 characters, an email address, a phone number of 10 to 15 digits). Pure, so the
 // browser, the server and the unit tests share it.
-export const CAPTURE_FORMS = ['booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game'] as const;
+export const CAPTURE_FORMS = ['booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game', 'signup'] as const;
 export type CaptureForm = (typeof CAPTURE_FORMS)[number];
 export interface CaptureFields { name?: string; email?: string; phone?: string }
 export interface CaptureReply {

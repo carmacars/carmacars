@@ -47,7 +47,9 @@ export function useCapture(form: CaptureForm, ctx?: () => { ref?: string | null;
     const name = Array.isArray(names.name) ? names.name.map(get).filter(Boolean).join(' ') : get(names.name);
     capture({ name, email: get(names.email), phone: get(names.phone) });
   }, [capture]);
-  return { capture, relink, onFormBlur, reply };
+  /** The form is being sent: a save still waiting is dropped (the form's own action handles the account). */
+  const cancel = useCallback(() => { window.clearTimeout(timer.current); }, []);
+  return { capture, relink, onFormBlur, cancel, reply };
 }
 
 /** The line under the form after a save ("You have an account: we sent you a sign-in link."). */

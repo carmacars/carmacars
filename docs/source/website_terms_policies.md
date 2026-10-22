@@ -78,7 +78,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
 | Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
-| Forms you start: the name, email and mobile number you type into our forms, saved as you type even if you do not send the form | To open an account in your name so you can continue your request, and to send you one email with a link to continue; never for offers without your consent |
+| Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; never for offers without your consent. Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 
@@ -115,6 +115,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
 | Discount game claims | 24 months after the code expires, unless you become a customer |
+| Contact details typed into a form you did not send | 24 months after you last typed them, unless you become a customer. An account opened for you that you do not confirm stops working after 30 days |
 | Marketing contact details | Until you unsubscribe |
 
 We keep information longer only while a claim, dispute, unpaid amount or legal duty requires it. We then delete or anonymise it.

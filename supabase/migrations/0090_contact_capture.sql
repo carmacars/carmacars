@@ -93,7 +93,7 @@ comment on table capture_session_items is 'Contact capture (0090): what one unve
 create table contact_captures (
   id          uuid primary key default gen_random_uuid(),
   visitor_id  uuid not null,
-  form        text not null check (form in ('booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game')),
+  form        text not null check (form in ('booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game', 'signup')),
   ref         text not null default '',                       -- the draft, chat or game play the capture belongs to
   draft_id    uuid references form_drafts (id) on delete set null,
   chat_id     uuid references chat_conversations (id) on delete set null,
@@ -207,7 +207,7 @@ create or replace function app.capture_form_label(p_form text) returns text
 language sql immutable as $$
   select case p_form when 'booking_request' then 'booking request' when 'owner_application' then 'owner application'
                      when 'contact' then 'contact form' when 'owner_lead' then 'List your car form' when 'chat' then 'live chat'
-                     when 'game' then 'discount game' else p_form end
+                     when 'game' then 'discount game' when 'signup' then 'sign-up form' else p_form end
 $$;
 
 -- Where the "Continue your request" link lands.
@@ -265,6 +265,7 @@ begin
     when 'owner_lead' then 'a question about listing your car'
     when 'contact' then 'a message to us'
     when 'game' then 'claiming a discount code'
+    when 'signup' then 'creating your account'
     else 'a conversation with us' end;
   v_event := app.emit_event('renter_continue_request', 'user', p_user,
     jsonb_build_object('user_id', p_user, 'capture_id', p_capture, '_immediate', true,
@@ -312,7 +313,7 @@ begin
   if not ps.capture_enabled then return jsonb_build_object('ok', false, 'error', 'off'); end if;
   begin v_vis := (p ->> 'visitor_id')::uuid; exception when others then v_vis := null; end;
   if v_vis is null then return jsonb_build_object('ok', false, 'error', 'visitor'); end if;
-  if v_form is null or v_form not in ('booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game') then
+  if v_form is null or v_form not in ('booking_request', 'owner_application', 'contact', 'owner_lead', 'chat', 'game', 'signup') then
     return jsonb_build_object('ok', false, 'error', 'form');
   end if;
   -- rate limits: the browser, and the network address key (the same limiter as app.public_rate_check)
@@ -419,6 +420,11 @@ begin
     insert into capture_accounts (user_id, opened_by_capture, brand_new, opened_form, visitor_id) values (u.id, true, true, v_form, v_vis);
     v_new := true; v_make := true;
     v_state := 'new';
+  elsif v_form = 'signup' then
+    -- the sign-up form answers an existing address itself when it is sent (the "account exists" message or the link to
+    -- choose a password): the capture and its lead only; nothing opened, changed or sent, never a session
+    update contact_captures set user_id = u.id, state = 'existing' where id = c.id;
+    return jsonb_build_object('ok', true, 'saved', true, 'capture_id', c.id, 'state', 'existing', 'link_sent', false, 'link_sent_before', false);
   else
     -- an address with an account or any record: linked, never a session; the sign-in link goes once
     if u.id is null then
@@ -712,6 +718,35 @@ begin
     v_closed := v_closed + 1;
   end loop;
   delete from capture_sessions where revoked_at < p_now - interval '30 days';
+
+  -- 5. kept 24 months after the last thing typed, unless the person became a customer (a booking): the privacy policy.
+  -- The capture, its lead (the chat keeps its own lead and retention) and an account the form opened that was never
+  -- confirmed and holds nothing else.
+  for c in select ca.user_id from capture_accounts ca
+            where ca.opened_by_capture and ca.confirmed_at is null and ca.closed_at is not null
+              and not exists (select 1 from contact_captures x where x.user_id = ca.user_id and x.last_at >= p_now - interval '24 months')
+              and not exists (select 1 from bookings b join renters r on r.id = b.renter_id where r.user_id = ca.user_id)
+              and not exists (select 1 from owners o where o.user_id = ca.user_id) loop
+    begin
+      delete from tasks t using contact_captures x where t.id = x.task_id and t.task_type = 'capture_follow_up' and x.user_id = c.user_id;
+      delete from leads l using contact_captures x where x.lead_id = l.id and x.user_id = c.user_id and x.form <> 'chat' and l.source = 'unfinished_form';
+      delete from contact_captures where user_id = c.user_id;
+      -- the account and what hangs off it (its emails and events; it never had a booking, an owner record or a
+      -- confirmed sign-in), found from the foreign keys as a car delete does
+      perform app.purge_rows('public.renters'::regclass, format('user_id = %L', c.user_id));
+      perform app.purge_rows('public.users'::regclass, format('id = %L', c.user_id));
+    exception when others then
+      null;  -- something else holds the account (a record made since): it stays, with the rental records' retention
+    end;
+  end loop;
+  delete from tasks t using contact_captures x
+   where t.id = x.task_id and t.task_type = 'capture_follow_up' and x.last_at < p_now - interval '24 months'
+     and not exists (select 1 from bookings b join renters r on r.id = b.renter_id where r.user_id = x.user_id);
+  delete from leads l using contact_captures x
+   where x.lead_id = l.id and x.form <> 'chat' and l.source = 'unfinished_form' and x.last_at < p_now - interval '24 months'
+     and not exists (select 1 from bookings b join renters r on r.id = b.renter_id where r.user_id = x.user_id);
+  delete from contact_captures x where x.last_at < p_now - interval '24 months'
+     and not exists (select 1 from bookings b join renters r on r.id = b.renter_id where r.user_id = x.user_id);
   return format('emails %s, to-dos %s, closed %s, done %s', v_sent, v_tasks, v_closed, v_done);
 end $$;
 
@@ -918,8 +953,12 @@ update site_content_blocks
    set body = replace(body,
      '| Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |',
      '| Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
-| Forms you start: the name, email and mobile number you type into our forms, saved as you type even if you do not send the form | To open an account in your name so you can continue your request, and to send you one email with a link to continue; never for offers without your consent |')
+| Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; never for offers without your consent. Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |')
  where block_key = 'legal.privacy' and body like '%| Discount games: your first name%' and body not like '%| Forms you start:%';
+update site_content_blocks
+   set body = replace(body, '| Discount game claims | 24 months after the code expires, unless you become a customer |', '| Discount game claims | 24 months after the code expires, unless you become a customer |
+| Contact details typed into a form you did not send | 24 months after you last typed them, unless you become a customer. An account opened for you that you do not confirm stops working after 30 days |')
+ where block_key = 'legal.privacy' and body like '%| Discount game claims | 24 months after the code expires, unless you become a customer |%' and body not like '%| Contact details typed into a form you did not send |%';
 update site_content_blocks set data = data || jsonb_build_object('last_updated', 'October 21, 2026')
  where block_key = 'legal.meta' and (data ->> 'last_updated') in ('October 8, 2026', 'October 16, 2026', 'October 19, 2026', 'October 20, 2026');
 
@@ -1344,12 +1383,12 @@ select app.guide_release_0090('admin', 'discount-games-and-leads', 'chapter', 'l
 
 **Bookings** > **Leads**, the card "Typed into forms" at the top.
 
-1. When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.
+1. When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.
 2. Each line: when, the name (and "On the site now"), email and phone, the form, and Sent or Not sent. "Email not confirmed" means the account was opened from the form and the person has not opened the link we emailed them yet.
 3. After 30 minutes without sending, To do shows "Unfinished request from Maya Chen: follow up" (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.
 4. Only what they typed is saved, and never used for offers without their consent.
 
-> Good to know: A new email gets an account at once (no password, email not confirmed) and one email "Continue your request" 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays.
+> Good to know: A new email gets an account at once (no password, email not confirmed) and one email "Continue your request" 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. It is on by default; the times and the To do are in **Settings** > **Program**, the card "Forms left unfinished".
 
 ## Settings
 
@@ -1358,7 +1397,7 @@ select app.guide_release_0090('admin', 'discount-games-and-leads', 'chapter', 'l
 - On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).
 - Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game''s weight (0 turns it off). Press **Save prizes and games**. Codes already sent keep their value.
 ',
-  '<p class="gd-p">Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number is optional), so you get a lead. It is on by default; nothing needs setting up.</p><section class="gd-task" id="discount-games-and-leads-what-the-visitor-sees" data-gd-task><h2 class="gd-h2">What the visitor sees</h2><ul class="gd-ul"><li>After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.</li><li>Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.</li><li>Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.</li><li>The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.</li><li>On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.</li></ul></section><section class="gd-task" id="discount-games-and-leads-leads" data-gd-task><h2 class="gd-h2">Leads</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each claim: when, the name (and &quot;on the site now&quot;), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Call</b> or <b class="gd-ui">Email</b>, then <b class="gd-ui">Contacted</b> (it is yours). <b class="gd-ui">Close</b> with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A visitor who viewed 3 cars or more also gets a Sales task, for example &quot;Claimed 10% off, viewed 6 cars: Maya&quot;. It closes when the code goes on a request.</div></li></ol></div></section><section class="gd-task" id="discount-games-and-leads-contact-details-typed-into-forms" data-gd-task><h2 class="gd-h2">Contact details typed into forms</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>, the card &quot;Typed into forms&quot; at the top.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each line: when, the name (and &quot;On the site now&quot;), email and phone, the form, and Sent or Not sent. &quot;Email not confirmed&quot; means the account was opened from the form and the person has not opened the link we emailed them yet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">After 30 minutes without sending, To do shows &quot;Unfinished request from Maya Chen: follow up&quot; (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Only what they typed is saved, and never used for offers without their consent.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A new email gets an account at once (no password, email not confirmed) and one email &quot;Continue your request&quot; 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays.</div></aside></section><section class="gd-task" id="discount-games-and-leads-settings" data-gd-task><h2 class="gd-h2">Settings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Discount games</b>.</p><ul class="gd-ul"><li>On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).</li><li>Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game&#39;s weight (0 turns it off). Press <b class="gd-ui">Save prizes and games</b>. Codes already sent keep their value.</li></ul></section>');
+  '<p class="gd-p">Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number is optional), so you get a lead. It is on by default; nothing needs setting up.</p><section class="gd-task" id="discount-games-and-leads-what-the-visitor-sees" data-gd-task><h2 class="gd-h2">What the visitor sees</h2><ul class="gd-ul"><li>After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.</li><li>Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.</li><li>Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.</li><li>The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.</li><li>On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.</li></ul></section><section class="gd-task" id="discount-games-and-leads-leads" data-gd-task><h2 class="gd-h2">Leads</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each claim: when, the name (and &quot;on the site now&quot;), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Call</b> or <b class="gd-ui">Email</b>, then <b class="gd-ui">Contacted</b> (it is yours). <b class="gd-ui">Close</b> with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A visitor who viewed 3 cars or more also gets a Sales task, for example &quot;Claimed 10% off, viewed 6 cars: Maya&quot;. It closes when the code goes on a request.</div></li></ol></div></section><section class="gd-task" id="discount-games-and-leads-contact-details-typed-into-forms" data-gd-task><h2 class="gd-h2">Contact details typed into forms</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>, the card &quot;Typed into forms&quot; at the top.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each line: when, the name (and &quot;On the site now&quot;), email and phone, the form, and Sent or Not sent. &quot;Email not confirmed&quot; means the account was opened from the form and the person has not opened the link we emailed them yet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">After 30 minutes without sending, To do shows &quot;Unfinished request from Maya Chen: follow up&quot; (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Only what they typed is saved, and never used for offers without their consent.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A new email gets an account at once (no password, email not confirmed) and one email &quot;Continue your request&quot; 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. It is on by default; the times and the To do are in <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, the card &quot;Forms left unfinished&quot;.</div></aside></section><section class="gd-task" id="discount-games-and-leads-settings" data-gd-task><h2 class="gd-h2">Settings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Discount games</b>.</p><ul class="gd-ul"><li>On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).</li><li>Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game&#39;s weight (0 turns it off). Press <b class="gd-ui">Save prizes and games</b>. Codes already sent keep their value.</li></ul></section>');
 select app.guide_release_0090('va', 'discount-game-leads', 'chapter', 'live-visitors-and-live-chat', 'Visitors who are not signed in play a quick game on the site and win a promo code. To get it they give a first name, an email and sometimes a mobile number. Customer service and Sales follow them up.
 
 ## Game leads

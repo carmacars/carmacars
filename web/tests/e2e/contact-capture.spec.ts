@@ -5,7 +5,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 // lead and opens an account (no password, email not confirmed) with an unverified session bound to this browser; the
 // "Continue your request" link, opened on another device, signs in, confirms the email and opens the draft, and ends the
 // first browser's unverified session; an address that already has an account gets only "You have an account: we sent
-// you a sign-in link" and no session.
+// you a sign-in link" and no session. The sign-up form: the same capture; it answers an existing address itself when sent.
 
 function futureRange(offsetDays: number) {
   const d = new Date(); d.setUTCDate(d.getUTCDate() + offsetDays);
@@ -132,5 +132,43 @@ test('an address that already has an account: "we sent you a sign-in link", no s
   await page.locator('#ct-email').focus();
   await expect(page.getByTestId('capture-note')).toContainText('You have an account');
   expect((await sql`select count(*)::int n from app_events where code = 'renter_continue_request' and entity_id = ${id}`)[0]!.n).toBe(1);
+  await sql.end();
+});
+
+test('the sign-up form: a new address left half way is saved with this browser\'s account; finishing it sets the password and closes the capture; an existing address gets nothing until sent', async ({ page }, info) => {
+  { const s0 = db(); await s0`delete from app.rate_limit_hits`; await s0.end(); }
+  const sql = db();
+  const email = `capture.signup.${info.project.name}.${Date.now()}@example.test`;
+  await page.goto('/create-account');
+  await acceptCookies(page);
+  await page.locator('#su-name').fill('Sidney Signup');
+  await page.locator('#su-email').fill(email);
+  await page.locator('#su-pass').focus();
+  await expect.poll(async () => (await sql`select state from contact_captures where email = ${email} and form = 'signup'`)[0]?.state, { timeout: 15_000 }).toBe('new');
+  await expect.poll(async () => (await page.context().cookies()).some((c) => c.name === 'cc-pending' && c.httpOnly)).toBe(true);
+  await noOverflow(page);
+  await page.locator('#su-pass').fill('correct horse battery');
+  await page.locator('input[name="agree"]').check();
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.locator('.alert--ok')).toContainText('Confirm your CarmaCars account');
+  const r = await sql`select c.done_at is not null as done, l.status, a.password_hash not like 'invited$%' as has_password, a.email_confirmed_at is null as unconfirmed
+                        from contact_captures c join leads l on l.id = c.lead_id join local_auth.users a on a.id = c.user_id where c.email = ${email}`;
+  expect(r[0]).toEqual({ done: true, status: 'closed', has_password: true, unconfirmed: true });
+
+  // an address that already has an account, typed into the sign-up form of another browser: saved, no session, no email
+  const known = `capture.signup.known.${info.project.name}.${Date.now()}@example.test`;
+  const id = crypto.randomUUID();
+  await sql`insert into users (id, email, full_name, email_verified_at) values (${id}, ${known}, 'Known Signup', now())`;
+  await sql`insert into user_roles (user_id, role) values (${id}, 'renter')`;
+  await page.context().clearCookies();
+  await page.goto('/create-account');
+  await acceptCookies(page);
+  await page.locator('#su-name').fill('Someone Else');
+  await page.locator('#su-email').fill(known);
+  await page.locator('#su-pass').focus();
+  await expect.poll(async () => (await sql`select state from contact_captures where email = ${known} and form = 'signup'`)[0]?.state, { timeout: 15_000 }).toBe('existing');
+  expect((await page.context().cookies()).some((c) => c.name === 'cc-pending')).toBe(false);
+  expect((await sql`select count(*)::int n from app_events where code = 'renter_continue_request' and entity_id = ${id}`)[0]!.n).toBe(0);
+  expect((await sql`select full_name from users where id = ${id}`)[0]!.full_name).toBe('Known Signup');
   await sql.end();
 });

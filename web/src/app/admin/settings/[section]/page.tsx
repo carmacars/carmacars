@@ -50,6 +50,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
+  ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Staff, privacy and housekeeping', () => true]
 ];

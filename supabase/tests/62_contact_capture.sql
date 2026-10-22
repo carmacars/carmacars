@@ -190,6 +190,12 @@ select test.eq('contact given in the chat: captured, done, the chat linked to th
   (select c.state || '|' || (c.done_at is not null)::text || '|' || (ch.user_id = c.user_id)::text from contact_captures c join chat_conversations ch on ch.id = c.chat_id
     where c.chat_id = test.id('cap-chat')) || '|' || (select count(*) from capture_sessions s join users u on u.id = s.user_id where u.email = 'chad.capture@example.test'), 'new|true|true|0');
 
+select test.cap_do('signup', jsonb_build_object('visitor_id', test.id('cap-vis-j'), 'form', 'signup', 'name', 'Sign Sam', 'email', 'sam.capture@example.test', 'browser', true));
+select test.eq('the sign-up form left unfinished: captured, a brand-new account and this browser''s session',
+  (test.capv('signup') ->> 'state') || '|' || (length(test.capv('signup') ->> 'session_token') = 64)::text || '|' || app.capture_form_label('signup'), 'new|true|sign-up form');
+select test.eq('the sign-up sent closes its capture', public.server_capture_done(jsonb_build_object('visitor_id', test.id('cap-vis-j'), 'form', 'signup')), 1);
+select test.eq('and its lead', (select l.status from leads l join contact_captures c on c.lead_id = l.id where c.visitor_id = test.id('cap-vis-j')), 'closed');
+
 -- ================================================================ 11. never confirmed: the sign-in closes after 30 days, the lead stays
 update capture_accounts set opened_at = now() - interval '31 days' where user_id = (test.capv('fixed') ->> 'user_id')::uuid;
 insert into auth.users values ((test.capv('fixed') ->> 'user_id')::uuid, 'typo.person@example.test', null, null);
@@ -201,8 +207,16 @@ select test.eq('not confirmed in 30 days: sessions revoked, link stopped, sign-i
 select test.eq('its sign-in account without a password, never used, is removed', (select count(*) from auth.users where email = 'typo.person@example.test'), 0::bigint);
 drop table auth.users;
 select test.eq('a closed account opens no session', public.server_capture_session_read(test.capv('fixed') ->> 'session_token', test.id('cap-vis-g')) ->> 'ok', 'false');
+update contact_captures set last_at = now() - interval '25 months' where user_id = (test.capv('fixed') ->> 'user_id')::uuid or email = 'typo.person@example.test';
+select app.job_capture();
+select test.eq('24 months after the last thing typed, not a customer: the capture, its lead and the unconfirmed account are gone',
+  (select count(*) from contact_captures where email = 'typo.person@example.test') || '|' || (select count(*) from leads where email = 'typo.person@example.test')
+  || '|' || (select count(*) from users where email = 'typo.person@example.test'), '0|0|0');
+select test.eq('captures typed more recently are kept', (select count(*) from contact_captures where user_id = (test.capv('new') ->> 'user_id')::uuid) > 0, true);
 
 -- ================================================================ 12. privileges
+select test.eq('the privacy policy has the row for forms you start and its retention', coalesce((select (body like '%| Forms you start:%' and body like '%| Contact details typed into a form you did not send | 24 months%')::text
+  from site_content_blocks where block_key = 'legal.privacy' and body like '%| Discount games:%'), 'true'), 'true');
 select test.ok('the server calls are the service role''s only', not has_function_privilege('anon', 'public.server_capture_contact(jsonb)', 'execute')
   and not has_function_privilege('authenticated', 'public.server_capture_contact(jsonb)', 'execute') and has_function_privilege('service_role', 'public.server_capture_contact(jsonb)', 'execute'));
 select test.ok('the tables are not readable by visitors', not has_table_privilege('anon', 'contact_captures', 'select') and not has_table_privilege('authenticated', 'capture_sessions', 'select'));

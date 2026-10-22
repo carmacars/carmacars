@@ -697,13 +697,14 @@ def build():
     ])
     g.task('Contact details typed into forms', f'{P("Bookings", "Leads")}, the card "Typed into forms" at the top.')
     g.steps([
-        'When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.',
+        'When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.',
         'Each line: when, the name (and "On the site now"), email and phone, the form, and Sent or Not sent. "Email not confirmed" means the account was opened from the form and the person has not opened the link we emailed them yet.',
         'After 30 minutes without sending, To do shows "Unfinished request from Maya Chen: follow up" (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.',
         'Only what they typed is saved, and never used for offers without their consent.',
     ])
     g.tip('A new email gets an account at once (no password, email not confirmed) and one email "Continue your request" 30 minutes later, between 9:00 and 21:00. '
-          'Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays.', label='Good to know')
+          'Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. '
+          f'It is on by default; the times and the To do are in {P("Settings", "Program")}, the card "Forms left unfinished".', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
         'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
