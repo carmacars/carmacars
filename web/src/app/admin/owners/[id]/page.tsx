@@ -10,6 +10,8 @@ import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
+import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import type { PhoneTimelineData } from '@/features/phone/client';
 import Link from 'next/link';
 import { Cosigners, type CosignerRow } from '@/features/admin/LegalActions';
 import { door } from '@/server/door';
@@ -60,6 +62,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
   const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
+  const calls = await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { owner_id: id }).catch(() => null);
   const [checklist, paper, manual] = await Promise.all([
     door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
@@ -137,6 +140,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>
             <Table rows={witnessed} testId="owner-witnessed" empty="No witnessed form is needed yet." cols={[{ key: 'title', label: 'Form', render: (r) => <>{String(r.title)}{r.vehicle_name ? <><br /><span className="small">{String(r.vehicle_name)}</span></> : null}</> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'reject_reason', label: 'Note', className: 'wrap' }, { key: 'uploaded_at', label: 'Uploaded', render: (r) => at(r.uploaded_at) }]} /></Card>
+          <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
             {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>

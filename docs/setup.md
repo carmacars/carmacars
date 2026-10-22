@@ -113,6 +113,7 @@ Listed with comments in `.env.example`. Variables starting `NEXT_PUBLIC_` reach 
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Storage module: uploads and signed links; the backup job | **Yes** |
 | `RESEND_API_KEY` | Messaging module | **Yes** |
 | `EMAIL_FROM`, `EMAIL_REPLY_TO` | Messaging module | No |
+| `QUO_API_KEY`, `QUO_WEBHOOK_SECRET` | The phone line (0085): texts sent from the CarmaCars Quo number; the webhook of calls and texts. The CarmaCars Quo workspace only | **Yes** |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public forms in the browser | No |
 | `TURNSTILE_SECRET_KEY` | Server check of public forms | **Yes** |
 | `TRACKER_API_URL` | Tracker module | No |
@@ -139,6 +140,7 @@ Create two GitHub environments, `staging` and `production`, and add these secret
 | `R2_SECRET_ACCESS_KEY` | The same token | The Worker; the backup job |
 | `RESEND_API_KEY` | Resend, API Keys | The Worker; Edge Functions |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget | The Worker |
+| `QUO_API_KEY` | Quo (the CarmaCars workspace, never the Almash one), Settings, API. `gh secret set QUO_API_KEY` | The deploy (kept in the vault as `deploy_quo_api_key`, given to the Worker); `quo-check.yml`. The deploy creates the webhook and keeps its signing secret in the vault (`deploy_quo_webhook_secret`, the Worker's `QUO_WEBHOOK_SECRET`) |
 | `TRACKER_API_KEY` | The tracker provider | The Worker; Edge Functions |
 | `TRACKER_WEBHOOK_SECRET` | The tracker provider | The `tracker-webhook` function |
 | `PHOTO_PIPELINE_KEY` | The photo pipeline | The Worker |

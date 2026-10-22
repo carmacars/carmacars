@@ -38,6 +38,19 @@ const LABELS: Record<string, string> = {
   game_dismiss_days: 'Discount games: after a visitor closes it, wait (days)', game_task_min_cars: 'Discount games: Sales task when the visitor viewed this many cars (0: every claim)',
   game_reminder_hours: 'Discount games: reminder email before an unused code expires (hours, 0 is off)',
   game_prizes: 'Discount games: prize table (edit it under Settings, Discount games)', game_weights: 'Discount games: games and their weights (edit it under Settings, Discount games)',
+  phone_enabled: 'Phone and texts: record calls and texts on the CarmaCars number (Quo)', phone_record_calls: 'Phone and texts: keep calls', phone_record_texts: 'Phone and texts: keep texts',
+  phone_missed_call_text_enabled: 'Missed call: text the caller back from the CarmaCars number', phone_missed_call_text: 'Missed call: the text',
+  phone_missed_call_text_hours: 'Missed call: at most one text per number in (hours)', phone_missed_call_task: 'Missed call: a task to call back',
+  phone_missed_call_queue: 'Missed call: who calls back (cs, sales, fleet, finance or admin)', phone_ai_drafts: 'Texts: Suggest a reply with AI (never sent by itself)',
+  phone_ai_summaries: 'Calls: a one-line AI summary when Quo gives none', phone_ai_daily_neurons: 'Phone and texts: AI neurons a day',
+  phone_link_visitors: 'Show the site visit of a caller who gave the same phone in live chat or a game', phone_keep_months: 'Keep calls and texts of people who are not customers (months)',
+  phone_sms_booking: 'Booking texts beside the emails', phone_sms_quiet_hours: 'Booking texts: wait for the end of the quiet hours (Site check)',
+  phone_sms_stop_line: 'Booking texts: add "Reply STOP to opt out." to the first one', phone_sms_offer_sent: 'Booking text: offer sent', phone_sms_offer_sent_text: 'Booking text: offer sent, the text',
+  phone_sms_payment_confirmed: 'Booking text: payment received, booking confirmed', phone_sms_payment_confirmed_text: 'Booking text: booking confirmed, the text',
+  phone_sms_payment_received: 'Booking text: other payments received', phone_sms_payment_received_text: 'Booking text: payment received, the text',
+  phone_sms_pickup_tomorrow: 'Booking text: pickup tomorrow', phone_sms_pickup_tomorrow_text: 'Booking text: pickup tomorrow, the text',
+  phone_sms_return_reminder: 'Booking text: return reminder', phone_sms_return_reminder_text: 'Booking text: return reminder, the text',
+  phone_sms_payment_link: 'Booking text: payment link', phone_sms_payment_link_text: 'Booking text: payment link, the text',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -64,10 +77,18 @@ const HINTS: Record<string, string> = {
   game_max_discount_cents: 'Applies to percentage prizes only ($75 by default). A dollar prize is its own amount. Empty: no cap.',
   game_trigger_car_pages: 'Never on the first page of a visit from a search engine on a phone, never on booking, pay, sign or sign-in pages, never for someone signed in.',
   game_task_min_cars: 'A claim from a visitor who viewed this many different cars raises a Sales follow-up task ("Claimed 10% off, viewed 6 cars").',
+  phone_missed_call_text_enabled: 'Off by default: Quo\'s own missed-call auto-reply is used. Turn off Quo\'s own missed-call auto-reply first, or callers get two texts. The task to call back is separate (below).',
+  phone_missed_call_text: 'Sent once per number in the hours below, never to staff or to a number that texted STOP. Short (160 characters is one text), no long dashes, and name CarmaCars.',
+  phone_missed_call_queue: 'The task goes to whoever of that function has Live chat or Texts and calls open (on shift); otherwise to the function\'s queue; with nobody in that function, to the Admins. In the site check\'s quiet hours it is due when they end.',
+  phone_sms_booking: 'One text for each of these emails: offer sent, booking confirmed, payment receipt, pickup reminder (24 hours before), return reminder (24 hours before), and the payment link after the renter left the pay page. Only to renters with a mobile number who did not opt out (STOP). Transactional only: never marketing.',
+  phone_sms_offer_sent_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_payment_confirmed_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_payment_received_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_pickup_tomorrow_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.',
+  phone_sms_return_reminder_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_payment_link_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.',
+  phone_keep_months: 'Calls and texts of renters and owners stay with the rental records. The privacy policy says 12 months for the others.',
+  phone_ai_daily_neurons: 'A draft or a summary uses about 50 to 100 neurons. Also stopped when all Workers AI use of the day reaches the Live chat cap.',
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { owner_debit_notice_days: [10, 30], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

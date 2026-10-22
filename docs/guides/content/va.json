@@ -70,6 +70,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "texts-and-calls",
+   "title": "Texts and calls",
+   "blurb": "Reading and answering texts, suggestions, unknown callers and missed calls.",
+   "body_md": "Customer service and Sales answer texts to the CarmaCars number in the same place as live chat. Every call and text is kept with the renter, owner or lead it belongs to.\n\n## Answer a text\n\n1. Open **My work** > **Live chat** and press **Texts and calls**. Unread texts and missed calls are counted on each number.\n2. Choose a number: calls and texts in order, and beside them who it is, with their bookings.\n3. Write the text and press **Send text**. It goes from the CarmaCars number.\n4. **Suggest a reply** writes a draft into the box. Read it and change it: it is never sent until you press Send text.\n\n## Unknown callers\n\nPress **Unknown callers**. Type the name if they told you and press **Create lead**, or find the renter and press **Link to** their name.\n\n## Missed calls\n\nA missed call gives you the task \"Missed call from ...\" when you have Live chat or Texts and calls open; otherwise it waits in the customer service queue. Call back with the Call button, or text, then mark the task done. Quo itself texts the caller back, so do not send the same message again.\n\n> Tip: A number that texted STOP gets no texts from us, booking texts included, until they text START. Prices go in a quote, never in a text from memory.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "discount-game-leads",
    "title": "Discount game leads",
    "blurb": "Game leads to call or email, the code they won, whether it is used, and the Sales task.",

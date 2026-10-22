@@ -166,6 +166,15 @@ export function fakeText(): TextGenerator {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
         return { ok: true, data: fakeChatStep(req.prompt) as T, model: 'fake-chat-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 60, neurons: 0 } };
       }
+      // the phone line (0085): a reply draft and a call's one-line summary, built from the prompt's own words
+      if (req.task === 'phone_draft' || req.task === 'phone_summary') {
+        if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
+        const name = /<who>([^<]*)<\/who>/.exec(req.prompt)?.[1]?.trim().split(' ')[0];
+        const data = req.task === 'phone_draft'
+          ? { reply: `Hi${name && name !== 'the' ? ` ${name}` : ''}, thanks for your message. How can we help with your booking? CarmaCars` }
+          : { summary: `Caller asked about ${/pric/i.test(req.prompt) ? 'pricing' : 'a booking'}.` };
+        return { ok: true, data: data as T, model: 'fake-phone-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 40, neurons: 0 } };
+      }
       // the search copy (0061): built from the facts in the prompt, so it passes the same checks as a real answer
       if (req.task === 'car_copy' || req.task === 'seo_page' || req.task === 'article') {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
