@@ -253,6 +253,12 @@ try {
     const blocks = await seedContent(tx);
     const seo = await seedSeo(tx);
     if (contentOnly) return { blocks, seo };
+    // 0093, the local stack only: the partner fleet's AI copy waits (its plain copy stands), so the end-to-end tests'
+    // own cars are written first by the local writer; in production the 62 cars are written in turn as usual
+    if (!production) {
+      await tx`update car_copy c set next_attempt_at = now() + interval '30 days' from vehicles v
+                where v.id = c.vehicle_id and v.partner_sheet_name is not null and c.status = 'pending'`;
+    }
     // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
     const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;
     if (already[0].n > 0) return { blocks, seo, sample: 'skipped: cars exist' };

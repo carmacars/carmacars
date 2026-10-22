@@ -29,7 +29,7 @@ test('a real car without photos looks like a sample car', async ({ page, request
   const vid = randomUUID(); const admin = randomUUID(); const v = vin();
   await sql`insert into users (id, email, full_name) values (${admin}, ${`admin.realfmt.${Date.now()}@example.test`}, 'Rae Admin')`;
   await sql`insert into user_roles (user_id, role) values (${admin}, 'admin')`;
-  const [o] = await sql`select id from owners order by created_at limit 1`;
+  const [o] = await sql`select id from owners where kind = 'program' order by created_at limit 1`;
   await sql`insert into vin_decodes (vin, provider, ok, raw, year, make, model, trim, body_class, fuel, drivetrain, transmission, doors, seats)
             values (${v}, 'vpic', true, ${sql.json({ BodyClass: 'Sedan/Saloon', DriveType: 'FWD/Front-Wheel Drive', Turbo: 'Yes', KeylessIgnition: 'Standard', RearVisibilitySystem: 'Standard', BlindSpotMon: 'Optional' })},
                     2022, 'Chevrolet', 'Malibu', 'LS (1LS)', 'Sedan/Saloon', 'gasoline', 'FWD/Front-Wheel Drive', 'Continuously Variable Transmission (CVT)', 4, 5)`;
