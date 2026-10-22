@@ -267,13 +267,21 @@ test('legal: a rental added with the saved card is charged only when the renter 
   const [rid] = await sql`select id from renters where user_id = ${renter.id}`;
   const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit) values (${rid!.id}, 'visa', '4242', ${renter.name}, 12, 2031, true) returning id`;
   await sql`insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id) values (${pm!.id}, 'stripe', 'cus_fake_lr', 'pm_fake_lr')`;
-  // a car that takes a rental now: published, on the fleet policy, bookings on, with rates and no maintenance block (the
-  // newest car of the run may be one another test just added, still waiting for its insurer or its rates)
-  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and v.retired_at is null and v.bookings_enabled and (not v.is_sample or v.sample_bookable)
-      and app.vehicle_on_policy(v.id) and app.maint_booking_block(v.id) is null
+  // a real car of its own that takes a rental now (a manual rental never takes a sample car, and the newest car of a run
+  // may be one another test just added, still waiting for its insurer or its rates): a copy of a seeded car on the fleet
+  // policy, its listing and rates, as a CarmaCars-owned car (an owner's car needs its signed terms first), retired again at the end
+  const [src] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+    where l.status = 'published' and v.retired_at is null and v.bookings_enabled and app.vehicle_on_policy(v.id)
       and exists (select 1 from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now()))
-    order by v.sample_bookable desc, v.created_at desc limit 1`;
+    order by v.is_sample desc, v.created_at limit 1`;
+  const carId = randomUUID();
+  const [co] = await sql`select app.company_owner_id() id`;
+  await cloneRow(sql, 'vehicles', src!.id as string, { id: carId, vin: vin(), plate: plate(), fleet_number: null, car_code: null, is_sample: false, sample_bookable: false,
+    supply_type: 'company', owner_id: co!.id, partner_id: null });
+  const [srcList] = await sql`select id from vehicle_listings where vehicle_id = ${src!.id}`;
+  await cloneRow(sql, 'vehicle_listings', srcList!.id as string, { id: randomUUID(), vehicle_id: carId, slug: `lr-card-${tag()}`, canonical_vehicle_id: null });
+  for (const rc of await sql`select id from rate_cards where vehicle_id = ${src!.id} and (effective_to is null or effective_to > now())`) await cloneRow(sql, 'rate_cards', rc.id as string, { id: randomUUID(), vehicle_id: carId });
+  const car = { id: carId };
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
@@ -341,6 +349,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
   expect(text).toContain(`Added by ${admin.name}`);
   expect(text).not.toMatch(new RegExp(`carmacars: ${admin.name}`, 'i'));
   await rp.context().close(); await page.context().close();
+  await sql`update vehicles set retired_at = now(), retired_reason = 'e2e: the saved-card rental car' where id = ${carId}`.catch(() => undefined);
   await sql.end();
 });
 
