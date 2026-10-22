@@ -488,22 +488,36 @@ select pg_temp.patch_fn('app.send_offer(uuid, uuid, text, timestamptz)'::regproc
 
 -- The public row of a car (fleet, car page, model pages, the chat's facts): the 3+ day and 7+ day rates, the two
 -- flags, the year left out when approximate, and whether the rates are a partner's guideline rates.
+-- Computed once (plpgsql): a SQL wrapper that names its inner row twice runs it twice, and the row (photos, studio
+-- stand-ins) is the costly part of the fleet. This one does 0054's cover and 0079's car code itself on 0022's row, so
+-- the fleet costs one evaluation of the row per car instead of several (every page reads the fleet for its numbers).
 alter function app.public_listing_row(uuid) rename to public_listing_row_pre0093;
 create or replace function app.public_listing_row(p_vehicle uuid) returns jsonb
-language sql stable security definer set search_path = public, app as $$
-  select case when x is null then null else
-    x || jsonb_build_object(
-      'year', case when v.year_approximate then null else to_jsonb(v.year) end,
-      'year_approximate', v.year_approximate,
-      'insurance_included', v.insurance_included,
-      'no_credit_card', v.no_credit_card,
-      'guideline_rates', app.partner_rate_basis(v.id),
-      'multi_day_rate_cents', rc.multi_day_rate_cents,
-      'long_term_rate_cents', case when rc.multi_day_rate_cents is not null then round(rc.weekly_rate_cents / 7.0)::bigint end) end
-    from (select app.public_listing_row_pre0093(p_vehicle) as x) q
-    join vehicles v on v.id = p_vehicle
-    left join rate_cards rc on rc.vehicle_id = v.id and rc.effective_from <= now() and (rc.effective_to is null or rc.effective_to > now())
-$$;
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  x jsonb := app.public_listing_row_0022(p_vehicle);
+  v vehicles;
+  rc rate_cards;
+begin
+  if x is null then return null; end if;
+  -- 0054's cover: the sample photos stand in for a car without a cover
+  if x -> 'cover' is null or x -> 'cover' = 'null'::jsonb then
+    x := x || jsonb_build_object('cover', app.vehicle_sample_photos(p_vehicle) -> 0, 'sample_photos', true);
+  else
+    x := x || jsonb_build_object('sample_photos', false);
+  end if;
+  select * into v from vehicles where id = p_vehicle;
+  select * into rc from rate_cards r where r.vehicle_id = p_vehicle and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now());
+  return x || jsonb_build_object(
+    'car_code', v.car_code,
+    'year', case when v.year_approximate then null else to_jsonb(v.year) end,
+    'year_approximate', v.year_approximate,
+    'insurance_included', v.insurance_included,
+    'no_credit_card', v.no_credit_card,
+    'guideline_rates', app.partner_rate_basis(v.id),
+    'multi_day_rate_cents', rc.multi_day_rate_cents,
+    'long_term_rate_cents', case when rc.multi_day_rate_cents is not null then round(rc.weekly_rate_cents / 7.0)::bigint end);
+end $$;
 
 -- ================================================================ 7. the partner's rates in Admin
 -- The renter's rate card from a car's sheet rates and markup: the 1-2 day rate is the daily and weekend rate, the 3+
