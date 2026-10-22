@@ -807,15 +807,20 @@ declare
   d text;
   v text[];
   k text;
+  e text;
 begin
   select pg_get_constraintdef(oid) into d from pg_constraint where conrelid = 'leads'::regclass and conname = 'leads_kind_check';
-  select array_agg(m[1]) into v from regexp_matches(coalesce(d, ''), '''([a-z_]+)''', 'g') m;
-  if v is null then v := array['owner_program', 'contact', 'insurer', 'launch_notice', 'other']; end if;
+  -- the list as written by 0088 (kind = ANY (ARRAY['a'::text, ...])) or by 0093 (kind = ANY ('{a,b}'::text[])): the
+  -- expression inside ANY (...) is evaluated, so every kind already allowed is kept whichever form it is in
+  e := substring(coalesce(d, '') from 'ANY \((.*)\)\)\)$');
+  if e is not null then execute format('select array(select unnest(%s)::text)', e) into v; end if;
+  if v is null or cardinality(v) = 0 then raise exception 'leads_kind_check: cannot read the allowed kinds from %', d; end if;
   foreach k in array array['buyer', 'finance', 'place_request', 'detailing', 'bodyshop'] loop
     if not k = any (v) then v := v || k; end if;
   end loop;
   execute 'alter table leads drop constraint if exists leads_kind_check';
-  execute format('alter table leads add constraint leads_kind_check check (kind = any (%L::text[]))', v);
+  -- written as ARRAY['a', ...], the form 0088 wrote and the later migrations read
+  execute format('alter table leads add constraint leads_kind_check check (kind = any (array[%s]))', (select string_agg(quote_literal(x), ', ') from unnest(v) x));
 end $$;
 
 insert into task_rules (task_type, queue, title, priority, due_kind, due_amount, description) values

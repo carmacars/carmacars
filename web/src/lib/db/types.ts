@@ -10425,6 +10425,7 @@ export type Database = {
           signin_phone_hourly_per_ip: number;
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
+          partner_markup_bps: number;
           place_db_cap_mb: number;
           place_hubs_index: boolean;
           sale_hubs_index: boolean;
@@ -10434,7 +10435,6 @@ export type Database = {
           place_delivery_reach_km: number;
           place_sitemap_file_urls: number;
           sale_disclaimer: string;
-          partner_markup_bps: number;
         };
         Insert: {
           id?: string;
@@ -10810,6 +10810,7 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          partner_markup_bps?: number;
           place_db_cap_mb?: number;
           place_hubs_index?: boolean;
           sale_hubs_index?: boolean;
@@ -10819,7 +10820,6 @@ export type Database = {
           place_delivery_reach_km?: number;
           place_sitemap_file_urls?: number;
           sale_disclaimer?: string;
-          partner_markup_bps?: number;
         };
         Update: {
           id?: string;
@@ -11195,6 +11195,7 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          partner_markup_bps?: number;
           place_db_cap_mb?: number;
           place_hubs_index?: boolean;
           sale_hubs_index?: boolean;
@@ -11204,7 +11205,6 @@ export type Database = {
           place_delivery_reach_km?: number;
           place_sitemap_file_urls?: number;
           sale_disclaimer?: string;
-          partner_markup_bps?: number;
         };
         Relationships: [];
       };
@@ -12171,39 +12171,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      shop_services: {
-        Row: {
-          code: string;
-          vertical: string;
-          name: string;
-          description: string;
-          from_price_cents: number | null;
-          sort_order: number;
-          is_active: boolean;
-          updated_at: string;
-        };
-        Insert: {
-          code: string;
-          vertical: string;
-          name: string;
-          description: string;
-          from_price_cents?: number | null;
-          sort_order?: number;
-          is_active?: boolean;
-          updated_at?: string;
-        };
-        Update: {
-          code?: string;
-          vertical?: string;
-          name?: string;
-          description?: string;
-          from_price_cents?: number | null;
-          sort_order?: number;
-          is_active?: boolean;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       service_item_rules: {
         Row: {
           id: string;
@@ -12303,6 +12270,39 @@ export type Database = {
           help?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      shop_services: {
+        Row: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents: number | null;
+          sort_order: number;
+          is_active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          vertical?: string;
+          name?: string;
+          description?: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };
