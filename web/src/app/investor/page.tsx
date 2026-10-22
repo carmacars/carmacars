@@ -20,10 +20,17 @@ const month = (s: string) => new Intl.DateTimeFormat('en-CA', { month: 'long', y
 export default async function InvestorHome() {
   const { user } = await requireInvestor('/investor');
   const h = await door<Home>(user.id, 'investor_read', 'home');
+  const deck = await door<{ visible: boolean }>(user.id, 'investor_read', 'deck_visible').then((r) => r.visible).catch(() => false);
   const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="stack">
       <header><p className="pt-kicker">{h.agreement ? `Agreement ${h.agreement.agreement_number}` : 'Investor'}</p><h1 className="d2" data-testid="investor-name">{h.investor.legal_name}</h1></header>
+      {deck && <Link href="/investor/deck" prefetch={false} className="pt-card on-dark" data-testid="deck-promo" style={{ display: 'grid', gap: 'var(--s-2)', textDecoration: 'none', background: 'var(--black)', color: 'var(--white)', borderColor: 'var(--black)' }}>
+        <span className="pt-kicker" style={{ color: 'var(--red-400)' }}>New</span>
+        <span className="d3">The CarmaCars investor deck</span>
+        <span className="small">What we built, how CarmaCars makes money, how your Return builds month by month, and a calculator for your own numbers.</span>
+        <span className="btn btn--primary btn--sm" style={{ justifySelf: 'start' }}>Open the deck</span>
+      </Link>}
       {h.redemptions.map((r, i) => <p key={i} className="pt-note"><b>Redemption notice:</b> {c(r.amount_cents)} on {day(r.redemption_date)} (notice of {day(r.notice_date)}).</p>)}
       {h.held.map((r, i) => <p key={i} className="pt-note"><b>Return on hold:</b> {month(r.return_month)}, {c(r.return_cents)}. {r.hold_reason ?? ''}</p>)}
       {h.investments.map((x) => (
