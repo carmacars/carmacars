@@ -406,7 +406,7 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- lists an Admin edits, trim lines and the popular list, are audited)
                             'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',
                             -- the colour pages' fixed list and the IndexNow sweep's cursor (0097): no money, pricing or status
-                            'vehicle_colours', 'indexnow_sweep',
+                            'vehicle_colours', 'indexnow_sweep', 'vehicle_catalog_car_match',
                             -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
                             'usage_readings', 'usage_alerts',
                             -- the phone line (0085): calls, texts, the send queue and the webhook log (high volume, no money, pricing or

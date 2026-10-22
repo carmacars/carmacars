@@ -258,7 +258,9 @@ export async function TwinView(tw: Twin) {
   const ld = 'model' in p ? productLd({ name: full, make: o.make, model: o.model!, year: o.year, trim: o.trim, path, image: img, description: lead, inv: p.inventory, offers: mode === 'rental',
     fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: 'vclass' in p ? p.vclass : null, extra: { ...vehicleProps(sp, dims, null, o.colour ?? null), ...(mode === 'sale' && offers.length ? { offers } : {}) } }) : null;
   const rentPath = p.path;
-  const rentReplacement = tiers.terms.some((x2) => x2.slug === 'insurance-replacement') ? `/t/insurance-replacement${p.path.slice(5)}` : p.path;
+  // the renting term for an insurance replacement rental (place_terms: insurance-replacement-rental; the default list: insurance-replacement)
+  const ir = tiers.terms.find((x2) => x2.kind === 'rental' && /^insurance-replacement/.test(x2.slug));
+  const rentReplacement = ir ? `/t/${ir.slug}${p.path.slice(5)}` : p.path;
   const kindForm = mode === 'sale' ? (finance ? 'finance' : 'buyer') : mode === 'detailing' ? 'detailing' : 'bodyshop';
   const drows = dimRows(dims);
   return (

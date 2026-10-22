@@ -157,7 +157,7 @@ test('under the rules a trim page with no car is noindex with its year as canoni
     expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021$/);
     expect(await (await request.get('/sitemap-vehicles/volkswagen-trims.xml')).text()).not.toContain(`${url}<`);
     // our real 2021 Jetta Execline is published: the page flips to indexed and joins its sitemap
-    const [o] = await sql`select id from owners order by created_at limit 1`;
+    const [o] = await sql`select id from owners where kind = 'program' order by created_at limit 1`;
     await sql`insert into vehicles (id, owner_id, year, make, model, trim, colour, plate, class, status, management_mode, onboarding_method, body_type)
               values (${car}, ${o!.id}, 2021, 'Volkswagen', 'Jetta', 'Execline', 'White', ${'VP' + randomBytes(2).toString('hex').toUpperCase()}, 'standard', 'available', 'managed', 'transfer', 'Sedan')`;
     await sql`select app.ensure_listing(${car})`;
@@ -305,8 +305,8 @@ test('"Find me this car" makes a buyer lead for Sales with a To do line', async 
 });
 
 const TERMS: Array<[string, string, RegExp, string]> = [
-  ['renting search', '/t/car-hire/volkswagen/jetta/2020/sportline/mississauga', /^2020 Volkswagen Jetta Sportline car hire in Mississauga$/, 'vp-inventory'],
-  ['financing', '/t/financing/volkswagen/jetta/2020/sportline/oakville', /^2020 Volkswagen Jetta Sportline financing in Oakville$/, 'finance-disclaimer'],
+  ['renting search', '/t/car-hire/volkswagen/jetta/2020/sportline/mississauga', /^Car hire: 2020 Volkswagen Jetta Sportline in Mississauga$/, 'vp-inventory'],
+  ['financing', '/t/car-financing/volkswagen/jetta/2020/sportline/oakville', /^Car financing: 2020 Volkswagen Jetta Sportline in Oakville$/, 'finance-disclaimer'],
   ['detailing', '/t/ceramic-coating/volkswagen/jetta/2020/sportline/mississauga/black', /^Ceramic coating for a black 2020 Volkswagen Jetta Sportline in Mississauga$/, 'svc-rent-first'],
   ['body shop', '/t/bumper-repair/volkswagen/jetta/2020/sportline/scarborough', /^Bumper repair for a 2020 Volkswagen Jetta Sportline in Scarborough$/, 'svc-rent-first']
 ];
@@ -324,7 +324,7 @@ for (const [kind, url, h1, block] of TERMS) {
     const ld = (await page.locator('script[type="application/ld+json"]').allInnerTexts()).join(' ');
     expect(ld).not.toMatch(/"Offer"/);
     if (kind === 'financing') await expect(page.getByTestId('finance-disclaimer')).toContainText('not a lender');
-    if (kind === 'body shop') await expect(page.getByTestId('svc-rent-first').getByRole('link', { name: 'See cars to rent' })).toHaveAttribute('href', '/t/insurance-replacement/volkswagen/jetta/2020/sportline/scarborough');
+    if (kind === 'body shop') await expect(page.getByTestId('svc-rent-first').getByRole('link', { name: 'See cars to rent' })).toHaveAttribute('href', '/t/insurance-replacement-rental/volkswagen/jetta/2020/sportline/scarborough');
     if (kind !== 'renting search') await expect(page.getByTestId('lead-form')).toBeVisible();
     await check(page, url);
   });

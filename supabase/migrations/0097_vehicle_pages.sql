@@ -120,6 +120,8 @@ begin
                  (row_number() over (order by p.sort nulls last, t.year desc, t.make_slug, t.model_slug, t.rank, t.slug))::integer rn
             from vehicle_catalog_trims t left join vehicle_catalog_popular p on p.make_slug = t.make_slug and p.model_slug = t.model_slug) r
    where (t.make_slug, t.model_slug, t.year, t.slug) = (r.make_slug, r.model_slug, r.year, r.slug) and t.ord is distinct from r.rn;
+  -- the catalog changed: every car's catalog page again (vehicle_catalog_car_match, below)
+  perform app.vpage_car_match_refresh(null);
 end
 $$;
 
@@ -542,6 +544,48 @@ begin
   return query select v_make, v_model, v_trim, true;
 end $$;
 
+-- Each car's catalog page, kept per car (matching a car to the catalog reads the models and trims: a few ms a car, so
+-- not on every page): written when a car's make, model, year or trim changes and after every build of the trims; a
+-- car whose row is missing or out of date (src) is matched on the spot.
+create table vehicle_catalog_car_match (
+  vehicle_id uuid primary key references vehicles (id) on delete cascade,
+  src        text not null,
+  make_slug  text,
+  model_slug text,
+  trim_slug  text,
+  updated_at timestamptz not null default now()
+);
+comment on table vehicle_catalog_car_match is 'Each car''s vehicle catalog page (0097), kept so the vehicle pages do not match every car on every request; src is the make, model, year and trim it was matched from.';
+alter table vehicle_catalog_car_match enable row level security;
+create policy admin_all on vehicle_catalog_car_match for all to authenticated using (app.is_admin()) with check (app.is_admin());
+
+create or replace function app.vpage_car_src(v vehicles) returns text
+language sql immutable as $$ select concat_ws('|', v.make, v.model, v.year, v.trim) $$;
+
+create or replace function app.vpage_car_match_refresh(p_vehicle uuid) returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare n integer;
+begin
+  insert into vehicle_catalog_car_match (vehicle_id, src, make_slug, model_slug, trim_slug, updated_at)
+  select v.id, app.vpage_car_src(v), m.make_slug, m.model_slug, m.trim_slug, now()
+    from vehicles v cross join lateral app.vehicle_catalog_match(v.make, v.model, v.year, v.trim) m
+   where (p_vehicle is null or v.id = p_vehicle) and v.make is not null and v.model is not null
+  on conflict (vehicle_id) do update set src = excluded.src, make_slug = excluded.make_slug, model_slug = excluded.model_slug,
+    trim_slug = excluded.trim_slug, updated_at = now();
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+create or replace function app.vpage_car_match_trigger() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  perform app.vpage_car_match_refresh(new.id);
+  return null;
+end $$;
+drop trigger if exists vehicles_catalog_match on vehicles;
+create trigger vehicles_catalog_match after insert or update of make, model, year, trim on vehicles
+  for each row execute function app.vpage_car_match_trigger();
+
 -- The cars on the site (as the fleet page lists them) with their catalog page, body group and daily rate.
 create or replace function app.vpage_cars() returns table (vehicle_id uuid, is_sample boolean, make_slug text, model_slug text, year integer, trim_slug text,
   body_group text, premium boolean, daily_rate_cents bigint, first_published_at timestamptz, content_updated_at timestamptz)
@@ -551,7 +595,12 @@ language sql stable security definer set search_path = public, app as $$
                               coalesce(l.body_style, v.body_type)),
          app.vpage_premium(m.make_slug), rc.daily_rate_cents, l.first_published_at, l.content_updated_at
     from vehicle_listings l join vehicles v on v.id = l.vehicle_id
-    cross join lateral app.vehicle_catalog_match(v.make, v.model, v.year, v.trim) m
+    cross join lateral (
+      (select c.make_slug, c.model_slug, c.trim_slug from vehicle_catalog_car_match c where c.vehicle_id = v.id and c.src = app.vpage_car_src(v))
+      union all
+      (select x.make_slug, x.model_slug, x.trim_slug from app.vehicle_catalog_match(v.make, v.model, v.year, v.trim) x
+        where not exists (select 1 from vehicle_catalog_car_match c where c.vehicle_id = v.id and c.src = app.vpage_car_src(v)))
+      limit 1) m
     left join lateral (select r.daily_rate_cents from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now())
                         order by r.effective_from desc limit 1) rc on true
    where l.status = 'published' and v.management_mode <> 'turo_only' and l.slug is not null
@@ -1751,6 +1800,10 @@ grant execute on function public.server_indexnow_claim(integer), public.server_i
 revoke all on vehicle_colours, indexnow_sweep from anon, authenticated;
 grant select on vehicle_colours to authenticated;
 grant all on vehicle_colours, indexnow_sweep to service_role;
+revoke all on vehicle_catalog_car_match from anon, authenticated;
+grant all on vehicle_catalog_car_match to service_role;
+revoke all on function app.vpage_car_match_refresh(uuid), app.vpage_car_match_trigger() from public, anon, authenticated;
+grant execute on function app.vpage_car_match_refresh(uuid) to service_role;
 select app.vehicle_catalog_number_trims();
 
 -- ================================================================ the guides (Admin: Vehicle pages; customer service: A request from a vehicle page)
