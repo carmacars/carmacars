@@ -78,6 +78,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Owner information: business and HST details, vehicle, ownership, lender and insurance documents, and banking details | To enrol vehicles, prepare registration forms, bill fees and pay payouts |
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
+| Trips booked through another platform (such as Turo): the name, and the phone or email if the platform gives them to us, of the guest who booked one of our cars there | To manage that trip with the guest, never for marketing |
 | Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
@@ -116,6 +117,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
 | Calls and texts with our phone number, with their recordings, transcripts and summaries | With your rental records if you are a customer; otherwise 12 months |
 | Discount game claims | 24 months after the code expires, unless you become a customer |
+| Details of guests who booked through another platform | 24 months after their last trip |
 | Marketing contact details | Until you unsubscribe |
 
 We keep information longer only while a claim, dispute, unpaid amount or legal duty requires it. We then delete or anonymise it.

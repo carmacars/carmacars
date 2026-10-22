@@ -141,6 +141,8 @@ const worker = {
     const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
     const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
     if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
+    // Turo emails waiting for their car, matched again after the fleet or what was learned changed (0088)
+    if (due.turo) run('/api/jobs/turo-rematch');
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
     // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick

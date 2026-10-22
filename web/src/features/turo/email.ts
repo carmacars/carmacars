@@ -1,22 +1,27 @@
-// Turo sync by email (migration 0063). Turo has no calendar link, but it emails the host for every trip booked,
-// changed, extended or cancelled. rent@carmacars.ca forwards those emails (one Gmail filter) to the inbound address
-// (trips@in.carmacars.ca, Cloudflare Email Routing on a subdomain, so the root domain's Google Workspace mail is
-// untouched); the Worker's email handler posts the raw message to /api/inbound/turo, which reads it with this file.
+// Turo sync by email (migrations 0063, 0088). Turo has no calendar link, but it emails the host for every trip booked,
+// changed, extended or cancelled. rent@carmacars.ca hands those emails to /api/inbound/turo (a Gmail Apps Script, or the
+// Worker's email handler for trips@in.carmacars.ca), which reads them with this file.
 //
-// No imports, so the unit tests run it directly (email.test.ts) and the Worker carries no MIME library:
-//   parseMime        the parts of the message: headers, the text (plain, or HTML turned into text)
+// Imports only match.ts (no imports itself), so the unit tests run it directly and the Worker carries no MIME library:
+//   parseMime        the parts of the message: headers, the text (plain, or HTML turned into text) and the HTML
 //   gmailConfirmation Gmail's "forwarding confirmation" email (its code and link, shown in Admin)
-//   parseTuroEmail   the rules: kind, trip id, start, end, guest first name, and which car (matchVehicle)
+//   parseTuroEmail   the rules: kind, trip id, start, end, the guest (name, phone, email as shown), and which car
+//                    (match.ts: scored on every active real car, no setup per car; identities learned from earlier emails)
 //   redact           the short excerpt kept for an email someone must look at (no addresses, phones or links)
 // Nothing here stores anything; the caller keeps only the parsed fields and a short audit line.
+import { guestOf as guestDetails, matchCar, signalsOf, type MatchCar, type MatchResult, type MatchTrip, type Scored } from './match.ts';
+export type { MatchCar, MatchTrip, Scored } from './match.ts';
 
 export type TuroKind = 'booked' | 'changed' | 'extended' | 'cancelled' | 'request' | 'other';
-export interface Mime { headers: Record<string, string>; subject: string; from: string; messageId: string; date: Date | null; text: string }
-export interface MatchCar { vehicle_id: string; name: string; listing_name: string | null; turo_vehicle_id: string | null; plate: string | null; vin: string | null;
-  make: string | null; model: string | null; year: number | null }
+export interface Mime { headers: Record<string, string>; subject: string; from: string; messageId: string; date: Date | null; text: string; html: string }
 export interface TuroParsed {
   kind: TuroKind; fromTuro: boolean; tripId: string | null; start: string | null; end: string | null; guestFirstName: string | null;
-  vehicleId: string | null; vehicleHint: string | null; vehicleWhy: string | null; missing: string[]; sentAt: string | null
+  guestName: string | null; guestPhone: string | null; guestEmail: string | null; guestPhoneMasked: boolean;
+  vehicleId: string | null; vehicleHint: string | null; vehicleWhy: string | null; missing: string[]; sentAt: string | null;
+  /** what the email says about the car, for learning: Turo car ids, the car's name as Turo writes it */
+  turoCarIds: string[]; carName: string | null; carNames: string[]; colours: string[];
+  /** the best guesses (for the model and the "Which car is this?" pop-up) and how the car was found */
+  candidates: Scored[]; matchHow: MatchResult['how'] | 'ai' | null
 }
 
 // ---------------------------------------------------------------- MIME
@@ -114,9 +119,10 @@ export function parseMime(raw: string): Mime {
   const html = ps.filter((p) => p.type === 'text/html').map((p) => htmlToText(p.text)).join('\n').trim();
   // the HTML part usually holds the most (Turo's plain part can be a short version); keep the longer one
   const text = (html.length > plain.length * 1.2 ? html : plain || html).replace(/\r\n/g, '\n');
+  const rawHtml = ps.filter((p) => p.type === 'text/html').map((p) => p.text).join('\n').slice(0, 400_000);
   const d = headers.date ? new Date(headers.date) : null;
   return { headers, subject: decodeWords(headers.subject ?? '').replace(/\s+/g, ' ').trim(), from: decodeWords(headers.from ?? ''),
-    messageId: (headers['message-id'] ?? '').replace(/[<>\s]/g, '').slice(0, 300), date: d && !Number.isNaN(d.getTime()) ? d : null, text };
+    messageId: (headers['message-id'] ?? '').replace(/[<>\s]/g, '').slice(0, 300), date: d && !Number.isNaN(d.getTime()) ? d : null, text, html: rawHtml };
 }
 
 export const addressOf = (v: string) => lower(/<([^>]+)>/.exec(v)?.[1] ?? v).trim();
@@ -267,40 +273,14 @@ export function datesOf(kind: TuroKind, text: string, emailDate: Date): { start:
   return { start: start?.at ?? null, end: end?.at ?? null };
 }
 
-// ---------------------------------------------------------------- which car
-const norm = (s: string) => lower(s).replace(/[^a-z0-9]+/g, ' ').trim();
-const compact = (s: string) => lower(s).replace(/[^a-z0-9]+/g, '');
+// ---------------------------------------------------------------- which car (match.ts)
+const makesOf = (cars: MatchCar[]) => [...new Set(cars.flatMap((c) => (c.make ? [c.make, c.make.split(/[\s-]/)[0]!] : [])))].filter((x) => x.length >= 2);
 
-export function matchVehicle(subject: string, text: string, cars: MatchCar[]): { vehicleId: string | null; hint: string | null; why: string | null } {
-  const all = `${subject}\n${text}`;
-  const n = ` ${norm(all)} `;
-  const c = compact(all);
-  // a car's page on Turo: /ca/en/suv-rental/canada/toronto-on/mercedes-benz/glc-class/2711093, /car-rental/..., /vehicles/2711093
-  const turoIds = new Set([...all.matchAll(/turo\.com\/[^\s"'<>]*?(?:-rental\/[^\s"'<>]*?|\/vehicles?|\/listings?)\/(\d{5,12})\b/gi)].map((m) => m[1]!));
-  const scored: Array<{ car: MatchCar; score: number; why: string }> = [];
-  for (const car of cars) {
-    let score = 0, why = '';
-    const hit = (s: number, w: string) => { if (s > score) { score = s; why = w; } };
-    if (car.turo_vehicle_id && turoIds.has(car.turo_vehicle_id)) hit(100, `Turo car ${car.turo_vehicle_id}`);
-    if (car.vin && car.vin.length >= 11 && c.includes(compact(car.vin))) hit(95, 'VIN');
-    if (car.plate && compact(car.plate).length >= 4 && new RegExp(`(^|[^a-z0-9])${compact(car.plate).split('').join('[ -]?')}([^a-z0-9]|$)`, 'i').test(all)) hit(90, `plate ${car.plate}`);
-    if (car.listing_name && norm(car.listing_name).length >= 4 && n.includes(` ${norm(car.listing_name)} `)) hit(80 + Math.min(9, norm(car.listing_name).length / 10), `Turo listing name "${car.listing_name}"`);
-    if (car.make && car.model) {
-      const mk = norm(car.make), md = norm(car.model);
-      // the model's first real word ("glc" of GLC 300, "300" of C 300): two GLCs then tie, and the email goes to review
-      const key = md.split(' ').find((w) => w.length > 1);
-      const hasModel = !!key && n.includes(` ${key}`);
-      if (n.includes(` ${mk.split(' ')[0]}`) && hasModel) hit(car.year && n.includes(` ${car.year} `) ? 50 : 40, `${car.year ?? ''} ${car.make} ${car.model}`.trim());
-    }
-    if (score) scored.push({ car, score, why });
-  }
-  scored.sort((a, b) => b.score - a.score);
-  const top = scored[0];
-  if (!top) return { vehicleId: null, hint: vehicleText(subject, text), why: null };
-  const tied = scored.filter((s) => s.score === top.score);
-  if (tied.length > 1) return { vehicleId: null, hint: vehicleText(subject, text) ?? top.why, why: `matches ${tied.length} cars (${tied.map((t) => t.car.name).join(', ')})` };
-  // make and model alone are a guess only when the email names no other car
-  return { vehicleId: top.car.vehicle_id, hint: top.car.name, why: top.why };
+/** Which car: scored on every candidate (match.ts). Kept for callers that pass only text (the model's answer). */
+export function matchVehicle(subject: string, text: string, cars: MatchCar[], trips: MatchTrip[] = [], html = '', ctx: { tripId?: string | null; guest?: string | null; start?: string | null; end?: string | null } = {}) {
+  const sig = signalsOf(subject, text, html, { tripId: ctx.tripId ?? null, guest: ctx.guest ?? null, start: ctx.start ?? null, end: ctx.end ?? null, makes: makesOf(cars) });
+  const r = matchCar(sig, subject, text, cars, trips);
+  return { vehicleId: r.vehicleId, hint: r.vehicleId ? r.hint : sig.carName ?? vehicleText(subject, text) ?? r.candidates[0]?.name ?? null, why: r.why, result: r, signals: sig };
 }
 
 /** What the email calls the car (for the review list), e.g. "Mercedes-Benz GLC 2021". */
@@ -317,7 +297,7 @@ export function isFromTuro(m: Mime): boolean {
   return /(?:^|\n)\s*(?:\*?From:?\*?)\s*[^\n]*@([a-z0-9-]+\.)*turo\.com/i.test(m.text.slice(0, 4000));
 }
 
-export function parseTuroEmail(m: Mime, cars: MatchCar[], now = new Date()): TuroParsed {
+export function parseTuroEmail(m: Mime, cars: MatchCar[], now = new Date(), trips: MatchTrip[] = []): TuroParsed {
   // a hand-forwarded email: read the forwarded message, not the forwarding lines
   const fwd = /-{3,} ?Forwarded message ?-{3,}|Begin forwarded message:/i.exec(m.text);
   const text = fwd ? m.text.slice(fwd.index) : m.text;
@@ -326,15 +306,20 @@ export function parseTuroEmail(m: Mime, cars: MatchCar[], now = new Date()): Tur
   const kind = classify(subject, text);
   const tripId = tripIdOf(text) ?? tripIdOf(subject);
   const { start, end } = kind === 'cancelled' || kind === 'other' ? { start: null, end: null } : datesOf(kind, text, emailDate);
-  const v = matchVehicle(subject, text, cars);
+  const guestFirstName = guestOf(subject, text);
+  const fwdHtml = fwd ? '' : m.html;
+  const v = matchVehicle(subject, text, cars, trips, fwdHtml, { tripId, guest: guestFirstName, start: start?.toISOString() ?? null, end: end?.toISOString() ?? null });
+  const g = guestDetails(subject, text, guestFirstName);
   const missing: string[] = [];
   if (kind === 'booked' || kind === 'changed') { if (!start) missing.push('start'); if (!end) missing.push('end'); }
   if (kind === 'extended' && !end) missing.push('end');
   if (['booked', 'changed', 'extended', 'cancelled'].includes(kind) && !tripId) missing.push('trip id');
   if (['booked', 'changed', 'extended'].includes(kind) && !v.vehicleId) missing.push('car');
   return { kind, fromTuro: isFromTuro(m), tripId, start: start?.toISOString() ?? null, end: end?.toISOString() ?? null,
-    guestFirstName: guestOf(subject, text), vehicleId: v.vehicleId, vehicleHint: v.hint, vehicleWhy: v.why, missing,
-    sentAt: m.date?.toISOString() ?? null };
+    guestFirstName, guestName: g.name, guestPhone: g.phone, guestEmail: g.email, guestPhoneMasked: g.phoneMasked,
+    vehicleId: v.vehicleId, vehicleHint: v.hint, vehicleWhy: v.why, missing,
+    sentAt: m.date?.toISOString() ?? null, turoCarIds: v.signals.turoCarIds, carName: v.signals.carName, carNames: v.signals.carNames, colours: v.signals.colours,
+    candidates: v.result.candidates, matchHow: v.result.how };
 }
 
 /** A short excerpt for an email someone must look at: no email addresses, phone numbers, links or long numbers other
@@ -376,8 +361,11 @@ export function mergeAi(p: TuroParsed, a: AiAnswer, m: Mime, cars: MatchCar[]): 
   if (!out.tripId && a.trip_id && /^\d{5,12}$/.test(a.trip_id) && m.text.includes(a.trip_id)) out.tripId = a.trip_id;
   if (!out.guestFirstName && a.guest_first_name && /^[A-Za-z'-]{2,30}$/.test(a.guest_first_name) && !NOT_NAMES.has(lower(a.guest_first_name)) && m.text.includes(a.guest_first_name)) out.guestFirstName = a.guest_first_name;
   if (!out.vehicleId && a.car) {
+    // the model's reading of the car counts only when it names one car clearly, and one of the short list if there is one
     const v = matchVehicle(a.car, '', cars);
-    if (v.vehicleId) { out.vehicleId = v.vehicleId; out.vehicleHint = v.hint; out.vehicleWhy = `${v.why} (read by the assistant)`; }
+    if (v.vehicleId && (!p.candidates.length || p.candidates.some((c) => c.vehicle_id === v.vehicleId))) {
+      out.vehicleId = v.vehicleId; out.vehicleHint = v.hint; out.vehicleWhy = `${v.why} (read by the assistant)`; out.matchHow = 'ai';
+    }
   }
   if (out.start && out.end && new Date(out.end) <= new Date(out.start)) out.end = null;
   if (out.kind === 'booked' || out.kind === 'changed') { if (!out.start) out.missing.push('start'); if (!out.end) out.missing.push('end'); }

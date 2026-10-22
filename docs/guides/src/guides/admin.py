@@ -240,27 +240,36 @@ def build():
               'A car rented on Turo, Getaround or another site must never be booked twice. Turo has no calendar link, so '
               'Turo works by email: Turo\'s trip emails block the car here, and you block our bookings on Turo by hand. '
               'Getaround, Google Calendar and other sites work through calendar links (iCal), both ways.',
-              blurb='Turo by email (the Gmail filter, the car\'s name on Turo, emails to check, Done on Turo), calendar links for other platforms, clashes.')
+              blurb='Turo by email (set up once, cars found by themselves, "Which car is this?", the guest, Done on Turo), calendar links for other platforms, clashes.')
     g.task('Set up Turo by email (once)', 'Turo emails rent@carmacars.ca for every trip booked, changed, extended or cancelled. One Gmail filter forwards those emails to trips@in.carmacars.ca, and each one blocks the car here within a minute.')
     g.steps([
         'In Gmail (rent@carmacars.ca): Settings, See all settings, Forwarding and POP/IMAP. Press Add a forwarding address and type trips@in.carmacars.ca.',
         f'Gmail sends a confirmation code to that address. Open {P("Cars", "Calendar sync")}: the code shows under "Turo by email" (and To do shows "Gmail forwarding to confirm"). Type it in Gmail and press Verify. Leave forwarding itself off: only the filter forwards.',
         'In Gmail, in the search box, show the search options. From: turo.com. Press Create filter, tick Forward it to: trips@in.carmacars.ca, and press Create filter.',
-        f'On Calendar sync, for each car on Turo, press {B("This car is on Turo")}, type its name exactly as Turo\'s emails show it (for example Mercedes-Benz GLC 2021) and press {B("Save")}. The Turo car number (the number at the end of its Turo page address) is optional; the plate and VIN are matched too.',
+        'Nothing to set up per car. Every active car (not the sample cars) is matched by itself: see the next task.',
+    ])
+    g.task('How Turo emails find their car (automatic)', 'Each Turo email is matched to one of our cars by itself. You never type a car\'s name on Turo.')
+    g.bullets([
+        'The reader looks at the Turo car number in the email\'s links and pictures, the VIN, the plate, the year, make and model (C-Class finds a C 300, Model3 a Model 3, 3 Series a 330i), trim and colour words, the trip already on a car, and whether a car is already busy at those dates.',
+        'A clear winner is applied at once. When two cars are close (two black 2021 Jettas), the assistant picks between them only if the email tells them apart; otherwise the email waits as "Which car is this?".',
+        'Every match teaches the car what Turo calls it (its Turo car number and the name in Turo\'s emails), so the next email for that car matches at once. Each car on Calendar sync shows what it learned; press Forget next to one that is wrong.',
+        f'Rarely needed: {B("Type its name on Turo (optional)")} on a car whose Turo name the reader cannot place. The Turo car number there is optional too.',
     ])
     g.task('Turo trips on the calendar')
     g.steps([
         'A trip booked on Turo becomes an "External booking" block on the car, with the turnaround before and after it. The car cannot be requested, offered or booked here for those times.',
         'A changed or extended trip moves its block; a cancelled trip frees the car. An older email never undoes a newer one.',
-        'Each car lists its Turo trips: the dates, the Turo trip number and the guest\'s first name. Press Cancelled if Turo cancelled a trip and its email did not come.',
+        'Each car lists its Turo trips: the dates, the Turo trip number, the guest\'s name as Turo shows it and their phone when the email includes it (press Call). The car\'s calendar block shows them too. Press Cancelled if Turo cancelled a trip and its email did not come.',
         f'{B("Add a Turo trip")}: the trip start and end (Toronto time), and the Turo trip number if you have it. Use it for a trip whose email did not come.',
-        'Only what the email says is kept: the car, the dates, the trip number and the guest\'s first name. The email itself is never stored.',
+        'Only what the email says is kept: the car, the dates, the trip number, and the guest\'s name, phone and email when Turo shows them (a hidden or masked number is never taken). The email itself is never stored.',
+        'Each guest gets one contact record (source Turo), so a Turo guest who calls our line or writes in Live chat is recognised by their phone. Contact them only about their trip: never add them to a marketing list or send promotions (Canada\'s anti-spam law and Turo\'s rules on taking guests off the platform). Nothing is sent to them by itself.',
     ])
-    g.task('Turo emails to check', 'When the reader is not sure (which car, the dates or the trip number), the email waits under "Turo emails to check", with a Fleet task and a line on To do.')
+    g.task('Which car is this? (Turo emails to check)', 'Only an email the reader cannot be sure about waits under "Turo emails to check", with a Fleet task and a line on To do.')
     g.steps([
-        'Read what was found and the short excerpt (no email addresses, phone numbers or links). Check the trip on Turo.',
-        f'Press {B("Add as a Turo trip")}, choose the car, check the dates and press {B("Add this trip")}. The email is checked and the task closes.',
-        f'Not a trip (a request, a message)? Press {B("Dismiss")}.',
+        f'To do shows "Turo emails: which car is this?". Press {B("Choose the car")}, or {B("Which car is this?")} on the email in Calendar sync.',
+        'The pop-up shows what Turo calls the car and the trip, then our best guesses first (with colour and the plate\'s last 3). Press the right car. Not among them? Choose it under Another car and press This car.',
+        'The trip is added and blocks the car, the task closes, and the car remembers what Turo called it: the next email for it matches by itself. Other emails waiting with the same Turo car number are matched at once.',
+        f'Something else is missing (the dates or the trip number)? Check the trip on Turo, press {B("Add as a Turo trip")}, choose the car, check the dates and press {B("Add this trip")}. Not a trip (a request, a message)? Press {B("Dismiss")}.',
     ])
     g.task('Block our bookings on Turo (Done on Turo)', 'Turo cannot read our calendar. Each car on Turo lists, under "Block on Turo", the CarmaCars bookings not yet blocked there.')
     g.steps([
