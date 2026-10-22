@@ -1,0 +1,9 @@
+/* Discount games (0081): the offer inside the request-to-book form. Loaded with the form, so the card is drawn with
+   its step (nothing moves when it appears). */
+.ccg-offer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border: 2px dashed var(--red-600); border-radius: 14px; background: #fff5f5; }
+.ccg-offer__text { flex: 1 1 220px; margin: 0; display: grid; gap: 2px; }
+.ccg-offer__text strong { font-size: var(--fs-body); }
+.ccg-offer__text span { font-size: var(--fs-sm); color: var(--grey-700, #555); }
+.ccg-offer__go { flex: 0 0 auto; min-height: 44px; }
+.ccg-offer__no { flex: 0 0 auto; min-height: 44px; }
+

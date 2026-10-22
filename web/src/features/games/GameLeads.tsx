@@ -10,7 +10,7 @@ export interface GameReport { days: number; plays: number; revealed: number; cla
   redemption_rate_bps: number; revenue_cents: number; discount_cents: number; by_game: Array<{ game: string; plays: number; claims: number; bookings: number }>;
   by_prize: Array<{ prize: string; claims: number; bookings: number }> }
 export interface GameLeadsData { rows: R[]; report: GameReport }
-const GAME: Record<string, string> = { wheel: 'Spin the wheel', scratch: 'Scratch to reveal', blackjack: 'Quick blackjack', cups: 'Cup shuffle', plinko: 'Plinko' };
+const GAME: Record<string, string> = { wheel: 'Spin the wheel', scratch: 'Scratch to reveal', blackjack: 'Quick blackjack', cups: 'Cup shuffle', plinko: 'Plinko', pack: 'Card pack' };
 const STATUS: Record<string, string> = { unused: 'Not used yet', on_request: 'On a request', used: 'Used (booked)', expired: 'Expired' };
 const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 1 : 0)}%`;
 

@@ -3,11 +3,15 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { db, noOverflow } from './helpers';
 
-// Migration 0069 end to end, at 375 and 1440: each of the five games shows after two car pages to a visitor who is not
-// signed in, plays (the wheel turns, the card is scratched, a hand is played, the cups shuffle, the disc drops) and
-// reveals the prize the database drew; the unlock form gives the code (and the email is queued); the code fills in the
-// request form, takes the discount and goes on the booking request; a signed-in visitor never sees a game; the
-// Admin's Leads page and Settings > Discount games show the claim. The card is checked with axe and for overflow.
+// Migrations 0069 and 0081 end to end, at 375 and 1440: each of the five games shows after one car page to a visitor
+// who is not signed in, plays (the wheel turns, the card is scratched, a hand is played, the cups shuffle, the disc
+// drops) and reveals the prize the database drew; the unlock form gives the code (and the email is queued); the code
+// fills in the request form, takes the discount and goes on the booking request; a signed-in visitor never sees a game
+// on the site; the Admin's Leads page and Settings > Discount games show the claim. 0081: the first game after 15
+// seconds without a car page; on a phone visit from a search engine the small slide-in 15 seconds later; closed, a
+// different game after 2 more car pages; the request-to-book form's card applies the code to that booking and the
+// price changes; closing it leaves the booking as it was; a signed-in renter is offered it there. The card is checked
+// with axe and for overflow.
 const PW = 'correct horse battery';
 type Sql = ReturnType<typeof db>;
 const tag = () => randomBytes(3).toString('hex');
@@ -38,16 +42,33 @@ async function visitor(browser: Browser, sql: Sql, game: string, prize: object, 
   return { page, vid };
 }
 
-/** Two car pages: the game slides in (after the cookie banner is answered). */
-async function browseUntilGame(page: Page) {
-  await page.goto('/cars/toyota-corolla', { waitUntil: 'load' });
+async function answerCookies(page: Page) {
   const b = page.getByRole('button', { name: 'Necessary only' }).first();
   await b.waitFor({ state: 'visible', timeout: 15_000 });
   await b.click();
   await page.waitForFunction(() => document.cookie.includes('cc_cookie_choice='));
+}
+
+/** One car page (0081): the game slides in once the cookie banner is answered, never over it. */
+async function browseUntilGame(page: Page) {
+  await page.goto('/cars/toyota-corolla', { waitUntil: 'load' });
+  await page.waitForTimeout(1500);
   await expect(page.getByTestId('game')).toHaveCount(0);
-  await page.goto('/cars/tesla-model-3', { waitUntil: 'load' });
+  await answerCookies(page);
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+}
+
+/** A car page, once the watcher (loaded when the page is idle) has counted it. */
+async function carPage(page: Page, slug: string) {
+  await page.goto(`/cars/${slug}`, { waitUntil: 'load' });
+  await page.waitForFunction((s) => (sessionStorage.getItem('cc_game_visit') ?? '').includes(`"${s}"`), slug, { timeout: 15_000 });
+}
+
+/** Plays whichever game is on screen to its prize. */
+async function playAny(page: Page) {
+  const game = (await page.getByTestId('game').getAttribute('data-game'))!;
+  await page.getByTestId('game-play').click();
+  await PLAY[game]!(page);
 }
 
 async function claim(page: Page, sql: Sql, email: string, label: string) {
@@ -69,7 +90,7 @@ async function claim(page: Page, sql: Sql, email: string, label: string) {
 
 test.describe.configure({ mode: 'serial' });
 
-for (const g of [
+const GAMES_PLAYED = [
   { game: 'wheel', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It stopped on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } },
   { game: 'scratch', play: async (p: Page) => {
     if (isPhone()) { await p.getByTestId('game-action').click(); return; }
@@ -88,9 +109,23 @@ for (const g of [
     await p.getByTestId('game-cup-2').click();
     await expect(p.getByText(/You found/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible();
   } },
-  { game: 'plinko', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It landed on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } }
-]) {
-  test(`${g.game}: shows after two car pages, plays, reveals the prize, the code after the form`, async ({ browser }) => {
+  { game: 'plinko', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/It landed on/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 }); } },
+  // 0081: the card pack, torn by dragging across the top strip (a computer) or by tapping it (a phone)
+  { game: 'pack', play: async (p: Page) => {
+    const strip = p.getByRole('button', { name: 'Tear the strip along the top of the pack' });
+    if (isPhone()) { await strip.click(); await strip.click(); }
+    else {
+      const b = (await strip.boundingBox())!;
+      await p.mouse.move(b.x + 4, b.y + b.height / 2); await p.mouse.down();
+      await p.mouse.move(b.x + b.width - 4, b.y + b.height / 2, { steps: 14 }); await p.mouse.up();
+    }
+    await expect(p.locator('.ccg-live', { hasText: 'The last card:' }).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 30_000 });
+  } }
+];
+const PLAY: Record<string, (p: Page) => Promise<void>> = Object.fromEntries(GAMES_PLAYED.map((g) => [g.game, g.play]));
+
+for (const g of GAMES_PLAYED) {
+  test(`${g.game}: shows after one car page, plays, reveals the prize, the code after the form`, async ({ browser }) => {
     test.setTimeout(90_000);
     const sql = db();
     const { page } = await visitor(browser, sql, g.game, PRIZE10, g.game === 'cups' && isPhone());
@@ -115,17 +150,198 @@ for (const g of [
   });
 }
 
-test('closing it: Esc closes, and it stays away (14 days)', async ({ browser }) => {
+test('a rare prize: the card pack turns a holographic card, and confetti over the card (0081)', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const sql = db();
+  const { page } = await visitor(browser, sql, 'pack', { key: 'day1', free_days: 1, min_days: 3, max_cents: 15000, weight: 0.1 });
+  await browseUntilGame(page);
+  await expect(page.getByTestId('game')).toHaveAttribute('data-game', 'pack');
+  await page.getByTestId('game-play').click();
+  await page.getByTestId('game-action').click();
+  await expect(page.locator('.ccg-pcard.is-prize.is-holo')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'You won 1 free day' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('game-rare')).toBeVisible();
+  await expect(page.locator('.ccg-confetti i').first()).toBeAttached();
+  await axe(page, 'rare won');
+  const email = `game.rare.${test.info().project.name}.${Date.now()}.${tag()}@example.test`;
+  const code = await claim(page, sql, email, '1 free day');
+  const pc = await sql`select free_days, min_rental_days, max_discount_cents::int cap, percent_bps, amount_cents from promo_codes where code = ${code}`;
+  expect(pc[0]).toMatchObject({ free_days: 1, min_rental_days: 3, cap: 15000, percent_bps: null, amount_cents: null });
+  await expect(page.getByTestId('game-done')).toContainText('one day of the rental charge');
+  await page.context().close();
+  await sql.end();
+});
+
+test('the first game without a car page: after 15 seconds on the site (0081)', async ({ browser }) => {
+  test.setTimeout(90_000);
   const sql = db();
   const { page } = await visitor(browser, sql, 'wheel', PRIZE10);
+  const t0 = Date.now();
+  await page.goto('/how-it-works', { waitUntil: 'load' });
+  await answerCookies(page);
+  await page.waitForTimeout(Math.max(0, 9000 - (Date.now() - t0)));
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 20_000 });
+  expect(Date.now() - t0).toBeGreaterThanOrEqual(14_000);
+  await expect(page.getByTestId('game')).not.toHaveAttribute('data-slim', 'true');
+  await page.context().close();
+  await sql.end();
+});
+
+test('a phone visit from a search engine: nothing on the landing page at first, then the small slide-in (0081)', async ({ browser }) => {
+  test.setTimeout(90_000);
+  test.skip(!isPhone(), 'phones only: a computer gets the usual card');
+  const sql = db();
+  const { page } = await visitor(browser, sql, 'wheel', PRIZE10);
+  await page.goto('/cars/toyota-corolla', { waitUntil: 'load', referer: 'https://www.google.com/' });
+  await answerCookies(page);
+  const t0 = Date.now();
+  await page.waitForTimeout(6000);
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  const slim = page.getByTestId('game');
+  await expect(slim).toBeVisible({ timeout: 25_000 });
+  await expect(slim).toHaveAttribute('data-slim', 'true');
+  // it covers a small strip only, and leaves the chat button free
+  const box = (await slim.boundingBox())!;
+  expect(box.height).toBeLessThan(100);
+  expect(box.x + box.width).toBeLessThanOrEqual(375 - 70);
+  expect(Date.now() - t0).toBeGreaterThan(6000);
+  await noOverflow(page);
+  await page.getByTestId('game-open').click();
+  await expect(page.getByTestId('game-play')).toBeVisible();
+  await axe(page, 'slim opened');
+  await page.context().close();
+  await sql.end();
+});
+
+test('closed: a different game comes back after 2 more car pages, with the same prize (0081)', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const sql = db();
+  const { page, vid } = await visitor(browser, sql, 'wheel', PRIZE10);
   await browseUntilGame(page);
+  await expect(page.getByTestId('game')).toHaveAttribute('data-game', 'wheel');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('game')).toHaveCount(0);
-  await page.goto('/cars/kia-forte', { waitUntil: 'load' });
-  await page.goto('/cars/hyundai-elantra', { waitUntil: 'load' });
+  // one more car page is not enough
+  await carPage(page, 'kia-forte');
   await page.waitForTimeout(1500);
   await expect(page.getByTestId('game')).toHaveCount(0);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cc_game') ?? '{}').dismissedAt > 0)).toBe(true);
+  await carPage(page, 'hyundai-elantra');
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+  const second = await page.getByTestId('game').getAttribute('data-game');
+  expect(second).not.toBe('wheel');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cc_game') ?? '{}').seen)).toEqual(['wheel', second]);
+  const plays = await sql`select game, prize ->> 'key' as k from game_plays where visitor_id = ${vid} order by created_at`;
+  expect(plays.map((r) => `${r.game} ${r.k}`)).toEqual(['wheel pct10', `${second} pct10`]);
+  await axe(page, 'second game');
+  // closed again: the third and last of this visit comes after 2 more car pages, then no more
+  await page.getByTestId('game-close').click();
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  for (const c of ['mercedes-benz-a220', 'tesla-model-3']) await carPage(page, c);
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+  const third = await page.getByTestId('game').getAttribute('data-game');
+  expect(['wheel', second]).not.toContain(third);
+  await page.getByTestId('game-close').click();
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  for (const c of ['mercedes-benz-c300', 'toyota-camry', 'honda-civic']) await carPage(page, c);
+  await page.waitForTimeout(2500);
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await page.context().close();
+  await sql.end();
+});
+
+/** The request form to the add-ons step for a 4-day trip. */
+async function toAddons(page: Page, slug: string, days: number, email: string) {
+  const d = new Date(Date.now() + days * 86_400_000); const from = d.toISOString().slice(0, 10);
+  d.setUTCDate(d.getUTCDate() + 4); const to = d.toISOString().slice(0, 10);
+  await page.goto(`/book/${slug}?from=${from}&to=${to}&tf=10:00&tt=10:00`, { waitUntil: 'networkidle' });
+  const b = page.getByRole('button', { name: 'Necessary only' }).first();
+  if (await b.isVisible().catch(() => false)) await b.click();
+  // the estimate (folded away on a phone): its total is in the summary line
+  await expect(page.locator('.estimate__lines')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('.req__sum summary b.num')).toHaveText(/^\$[\d,]+\.\d\d$/, { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Continue to driver details' }).click();
+  await page.locator('#rq-first').fill('Gia');
+  await page.locator('#rq-last').fill('Player');
+  await page.locator('#rq-email').fill(email);
+  await page.locator('#rq-phone').fill(`647-555-${String(Math.floor(1000 + Math.random() * 8999))}`);
+  await page.locator('#rq-dobm').selectOption('4');
+  await page.locator('#rq-dobd').fill('9');
+  await page.locator('#rq-doby').fill('1990');
+  await page.getByRole('button', { name: 'Continue to licence' }).click();
+  await page.locator('label', { hasText: 'Ontario G2' }).click();
+  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
+}
+const total = async (page: Page) => (await page.locator('.req__sum summary b.num').innerText()).trim();
+
+test('the request-to-book form: the card plays, the code goes on this booking and the price drops (0081)', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const sql = db();
+  const { page, vid } = await visitor(browser, sql, 'plinko', PRIZE50, true);
+  const email = `game.bookcard.${test.info().project.name}.${Date.now()}@example.test`;
+  await toAddons(page, isPhone() ? 'toyota-corolla' : 'tesla-model-3', isPhone() ? 150 : 155, email);
+  const card = page.getByTestId('booking-game');
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card).toContainText('Play for a discount on this booking');
+  await noOverflow(page);
+  const before = await total(page);
+  await card.getByTestId('booking-game-play').click();
+  await expect(page.getByTestId('game')).toHaveAttribute('data-context', 'booking');
+  await axe(page, 'booking start');
+  await playAny(page);
+  await expect(page.getByRole('heading', { name: 'You won $50 off' })).toBeVisible({ timeout: 15_000 });
+  // filled from the form: one press
+  await expect(page.getByTestId('game').getByLabel('Email', { exact: true })).toHaveValue(email);
+  await page.getByTestId('game-get-code').click();
+  await expect(page.getByTestId('game-code')).toHaveText(/^WIN-[A-Z2-9]{4}-[A-Z2-9]{4}$/, { timeout: 30_000 });
+  const code = (await page.getByTestId('game-code').innerText()).trim();
+  await expect(page.getByTestId('game-applied')).toHaveText(`Code ${code} applied: $50.00 off the rental charge.`, { timeout: 15_000 });
+  await axe(page, 'booking applied');
+  await page.getByTestId('game-continue').click();
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await expect(page.getByTestId('booking-game-won')).toContainText(code);
+  await expect.poll(() => total(page), { timeout: 15_000 }).not.toBe(before);
+  await expect(page.locator('.estimate__lines')).toContainText('Promo code');
+  const play = await sql`select context, game from game_plays where visitor_id = ${vid} order by created_at desc limit 1`;
+  expect(play[0]!.context).toBe('booking');
+  expect(play[0]!.game).not.toBe('plinko'); // a game this visitor had not seen
+  await page.getByRole('button', { name: 'Review request' }).click();
+  await expect(page.getByTestId('promo-code')).toHaveValue(code);
+  await expect(page.getByTestId('promo-status')).toHaveText(`Code ${code} applied: $50.00 off the rental charge.`);
+  await page.locator('input[name="agree"]').check();
+  await page.getByRole('button', { name: 'Send request' }).click();
+  await page.waitForURL(/\/book\/sent\//, { timeout: 30_000 });
+  const number = decodeURIComponent(page.url().split('/').pop()!);
+  const b = await sql`select b.promo_discount_cents::int disc, pc.code from bookings b join promo_codes pc on pc.id = b.promo_code_id where b.booking_number = ${number}`;
+  expect(b[0]).toMatchObject({ disc: 5000, code });
+  await page.context().close();
+  await sql.end();
+});
+
+test('the request-to-book form: closing the game leaves the booking as it was (0081)', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const sql = db();
+  const { page } = await visitor(browser, sql, 'cups', PRIZE10, true);
+  const email = `game.bookclose.${test.info().project.name}.${Date.now()}@example.test`;
+  await toAddons(page, isPhone() ? 'kia-forte' : 'hyundai-elantra', isPhone() ? 160 : 165, email);
+  await expect(page.getByTestId('booking-game')).toBeVisible({ timeout: 15_000 });
+  const before = await total(page);
+  await page.getByTestId('booking-game-play').click();
+  await expect(page.getByTestId('game')).toBeVisible();
+  await page.getByTestId('game-close').click();
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await expect(page.getByTestId('booking-game')).toHaveCount(0);
+  expect(await total(page)).toBe(before);
+  await page.getByRole('button', { name: 'Review request' }).click();
+  await expect(page.getByTestId('booking-game')).toHaveCount(0);
+  await expect(page.getByTestId('promo-code')).toHaveValue('');
+  await page.locator('input[name="agree"]').check();
+  await page.getByRole('button', { name: 'Send request' }).click();
+  await page.waitForURL(/\/book\/sent\//, { timeout: 30_000 });
+  const number = decodeURIComponent(page.url().split('/').pop()!);
+  const b = await sql`select promo_code_id from bookings where booking_number = ${number}`;
+  expect(b[0]!.promo_code_id).toBeNull();
   await page.context().close();
   await sql.end();
 });
@@ -172,7 +388,7 @@ test('the code fills in the request form, takes $50 off a 4-day request and goes
   await sql.end();
 });
 
-test('a signed-in visitor never sees a game', async ({ browser }) => {
+test('a signed-in visitor never sees a game on the site, and is offered it in the request-to-book form', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const id = randomUUID(); const email = `game.signed.${Date.now()}.${tag()}@example.test`;
@@ -190,6 +406,13 @@ test('a signed-in visitor never sees a game', async ({ browser }) => {
   for (const s of ['toyota-corolla', 'tesla-model-3', 'kia-forte']) await page.goto(`/cars/${s}`, { waitUntil: 'load' });
   await page.waitForTimeout(3000);
   await expect(page.getByTestId('game')).toHaveCount(0);
+  // 0081: the request-to-book form is the one place a signed-in renter is offered the game, with their account's email
+  await toAddons(page, 'mercedes-benz-c300', isPhone() ? 175 : 180, email);
+  await expect(page.getByTestId('booking-game')).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('booking-game-play').click();
+  await expect(page.getByTestId('game')).toHaveAttribute('data-context', 'booking');
+  await page.getByTestId('game-close').click();
+  await expect(page.getByTestId('booking-game')).toHaveCount(0);
   await page.context().close();
   await sql.end();
 });
@@ -219,6 +442,10 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.goto('/admin/settings/discount-games', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('game-rules')).toBeVisible();
   await expect(page.getByTestId('game-settings').locator('input').first()).toHaveValue('5');
+  // 0081: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
+  await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(7);
+  await expect(page.getByLabel('Card pack')).toHaveValue('1');
+  await expect(page.getByTestId('game-expected-cost')).toContainText(/Expected cost per claimed code: \$\d+\.\d\d/);
   await noOverflow(page);
   await c.close();
   await sql.end();
