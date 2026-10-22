@@ -32,7 +32,11 @@ export async function generateMetadata({ params }: Params) {
   const h = await load((await params).hub);
   const t = await getTokens();
   // a model page of sample cars only (vehicles.is_sample, 0035) stays out of search until a real car joins it
-  return seoMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path, noindex: h.indexable === false,
+  // a long name (Land Rover Range Rover Sport) drops "a day", then the city, to keep the title within 70 characters
+  const titles = [`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, `Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} | {{brand}}`,
+    `Rent a ${h.make} ${h.model} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`];
+  const title = titles.map((x) => fill(x, t)).find((x) => x.length <= 70) ?? fill(titles[2]!, t);
+  return seoMeta({ title, path: h.path, noindex: h.indexable === false,
     description: fill(`${h.make} ${h.model} for rent in {{city}} from ${money(h.min_daily_rate_cents)} a day. Pickup or delivery, drivers {{minAge}} and up, request to book with no payment up front.`, t) });
 }
 

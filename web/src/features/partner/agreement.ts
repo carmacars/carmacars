@@ -13,7 +13,7 @@ export interface PartnerFacts {
   commission_bps: number;
   insurance: { company: string | null; policy: string | null; expiry: string | null };
   payout_day: number;
-  cars: Array<{ name: string; plate: string | null; vin: string; commission_bps: number }>;
+  cars: Array<{ name: string; plate: string | null; vin: string | null; commission_bps: number }>;
   company: { brand: string; legal_name: string; address: string; phone: string; email: string };
 }
 
@@ -77,7 +77,7 @@ export function partnerAgreementBlocks(f: PartnerFacts, sig?: { partner?: Signat
     { t: 'title', text: PARTNER_AGREEMENT_TITLE },
     ...body,
     { t: 'h2', text: 'The cars' },
-    { t: 'table', head: ['Car', 'Plate', 'VIN', 'Commission'], rows: f.cars.length ? f.cars.map((c) => [c.name, c.plate ?? '', c.vin, pct(c.commission_bps)]) : [['Cars added later in writing', '', '', pct(f.commission_bps)]] },
+    { t: 'table', head: ['Car', 'Plate', 'VIN', 'Commission'], rows: f.cars.length ? f.cars.map((c) => [c.name, c.plate ?? '', c.vin ?? '', pct(c.commission_bps)]) : [['Cars added later in writing', '', '', pct(f.commission_bps)]] },
     { t: 'table', kv: true, head: ['', ''], rows: [['Partner', `${f.partner.legal_name || f.partner.business_name}${f.partner.address ? `, ${f.partner.address}` : ''}`], ['Contact', [f.partner.email, f.partner.phone].filter(Boolean).join(', ')], ['CarmaCars', `${company}, ${f.company.address}`]] },
     { t: 'signatures', rows: [sig?.partner ?? blank(`Partner${f.partner.signer_title ? ` (${f.partner.signer_title})` : ''}`, f.partner.signer_name), sig?.carmacars ?? blank('CarmaCars', company)] }
   ];

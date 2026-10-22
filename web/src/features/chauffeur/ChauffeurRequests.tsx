@@ -35,7 +35,7 @@ export function ChauffeurRequests({ data, base, status }: { data: ChauffeurData;
           { key: 'vehicle', label: 'Vehicle and trip', render: (r) => <>{r.vehicle}<br /><span className="small muted">{r.pickup_address}{r.dropoff_address ? ` to ${r.dropoff_address}` : ''}, {r.passengers} passengers{r.occasion ? `, ${r.occasion}` : ''}</span>{r.notes && <><br /><span className="small">{r.notes}</span></>}</> },
           { key: 'name', label: 'Client', render: (r) => <>{r.name}<br /><span className="small">{[r.email, r.phone].filter(Boolean).join(', ')}</span></> },
           { key: 'total_cents', label: 'Quote', num: true, render: (r) => <span title={r.line}>{$(r.renter_cents)} + HST {$(r.hst_cents)} = <b>{$(r.total_cents)}</b><br /><span className="small muted">{r.line}</span></span> },
-          { key: 'partner_payout_cents', label: 'Partner, CarmaCars', num: true, render: (r) => <span className="small">Sheet {$(r.sheet_cents)}, partner {$(r.partner_payout_cents)}<br />CarmaCars keeps {$(r.carmacars_keep_cents)} ({r.cut_bps / 100}% cut plus markup)</span> },
+          { key: 'partner_payout_cents', label: 'Payout and keep', num: true, render: (r) => <span className="small">Sheet {$(r.sheet_cents)}, partner {$(r.partner_payout_cents)}<br />CarmaCars keeps {$(r.carmacars_keep_cents)} ({r.cut_bps / 100}% cut plus markup)</span> },
           { key: 'id', label: '', render: (r) => (
             <div className="ad-actions">
               {r.status === 'new' && <Act ops action="chauffeur_request_update" payload={{ id: r.id, status: 'quoted' }} label="Quoted" testId={`ch-quote-${r.reference}`} refresh={refresh}
