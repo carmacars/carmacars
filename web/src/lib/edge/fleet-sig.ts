@@ -7,6 +7,8 @@
 // scripts/serve.mjs locally. No imports: it runs in the Worker entry and in Node.
 
 export const FLEET_SIG_KEY = 'carmacars/fleet-sig';
+/** The fleet signature waiting for its second rebuild (the confirm, custom-worker.ts); 0 when none. */
+export const FLEET_SIG_CONFIRM_KEY = 'carmacars/fleet-sig-confirm';
 
 /** A 32-bit FNV-1a hash of the fleet's cars (slug and model page), order-free; never 0 (0 means "none kept"). */
 export function signatureOf(rows: ReadonlyArray<{ slug?: unknown; model_hub_path?: unknown }>): number {

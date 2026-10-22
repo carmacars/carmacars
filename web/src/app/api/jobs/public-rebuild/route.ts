@@ -13,6 +13,7 @@ import { signatureOf } from '@/lib/edge/fleet-sig';
 export const dynamic = 'force-dynamic';
 
 let last: number | null = null;
+let confirm = false;
 
 export async function POST(req: Request) {
   const want = await workerToken();
@@ -23,9 +24,12 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as { check?: boolean };
     const sig = signatureOf(((await rpc('fleet', { p_filters: {} })) ?? []) as unknown as Array<{ slug?: string; model_hub_path?: string }>);
-    if (body.check && last !== null && sig === last) return NextResponse.json({ ok: true, rebuilt: false, sig });
+    // a page regenerated while the change was being written can keep the old list: after a change, the next check
+    // rebuilds once more (the confirm), so no stale link survives
+    if (body.check && last !== null && sig === last && !confirm) return NextResponse.json({ ok: true, rebuilt: false, sig });
     revalidatePath('/', 'layout');
     revalidatePath('/sitemap.xml');
+    confirm = body.check ? (sig !== last) : false;
     last = sig;
     return NextResponse.json({ ok: true, rebuilt: true, sig });
   } catch (e) {

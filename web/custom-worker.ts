@@ -11,7 +11,7 @@ import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
-import { FLEET_SIG_KEY, fleetSignature } from './src/lib/edge/fleet-sig';
+import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetSignature } from './src/lib/edge/fleet-sig';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
 type Env = Record<string, unknown>;
@@ -125,11 +125,15 @@ const worker = {
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
     if (env.NEXT_TAG_CACHE_KV || env.NEXT_TAG_CACHE_D1) ctx.waitUntil((async () => {
-      const [sig, seen] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY)]);
-      if (sig === null || seen === null || sig === seen) return;
+      const [sig, seen, pending] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY), readNumber(env, FLEET_SIG_CONFIRM_KEY)]);
+      if (sig === null || seen === null) return;
+      // after a change the pages are rebuilt twice, five minutes apart, so a page regenerated while the change was
+      // being written cannot keep a stale list (the second pass is the confirm)
+      const confirming = sig === seen && pending === sig;
+      if (sig === seen && !confirming) return;
       const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/jobs/public-rebuild`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' }), env, ctx);
       await r.text();
-      if (r.ok) await writeNumber(env, FLEET_SIG_KEY, sig);
+      if (r.ok) { await writeNumber(env, FLEET_SIG_KEY, sig); await writeNumber(env, FLEET_SIG_CONFIRM_KEY, confirming ? 0 : sig); }
     })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
