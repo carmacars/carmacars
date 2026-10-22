@@ -731,7 +731,7 @@ language sql stable security definer set search_path = public, app as $$
     'sheet_name', c.sheet_name, 'sheet_2h_cents', c.sheet_2h_cents, 'sheet_3plus_cents', c.sheet_3plus_cents, 'markup_bps', c.markup_bps, 'cut_bps', c.cut_bps,
     'markup_effective_bps', m.mk, 'cut_effective_bps', m.cut,
     'rate_2h_cents', app.partner_renter_cents(c.sheet_2h_cents, m.mk), 'rate_3plus_cents', app.partner_renter_cents(c.sheet_3plus_cents, m.mk),
-    'rentals', coalesce((select jsonb_agg(jsonb_build_object('vehicle_id', v.id, 'name', app.vehicle_name(v.id), 'path', case when l.status = 'published' then '/cars/' || l.slug end) order by v.partner_sheet_name)
+    'rentals', coalesce((select jsonb_agg(jsonb_build_object('vehicle_id', v.id, 'name', app.vehicle_name(v.id) || coalesce(', ' || lower(nullif(v.colour, '')), ''), 'path', case when l.status = 'published' then '/cars/' || l.slug end) order by v.partner_sheet_name)
                           from vehicles v left join vehicle_listings l on l.vehicle_id = v.id where v.id = any (c.rental_vehicle_ids) and v.retired_at is null), '[]'::jsonb))
     from (select coalesce(c.markup_bps, p.markup_bps, (app.settings()).partner_markup_bps) as mk,
                  coalesce(c.cut_bps, p.commission_bps, (app.settings()).partner_commission_bps) as cut

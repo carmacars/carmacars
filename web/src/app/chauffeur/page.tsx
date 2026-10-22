@@ -48,7 +48,7 @@ export default async function Chauffeur() {
             {c.vehicles.map((v) => (
               <li key={v.id} className="ch-card" data-testid={`chauffeur-${v.slug}`}>
                 <h3 className="d4">{v.name}</h3>
-                <p className="small muted">Up to {v.passengers} passengers{v.kind === 'chauffeur_only' ? ', chauffeur only' : ', also for rent'}</p>
+                <p className="small muted">Up to {v.passengers} passengers{v.kind === 'chauffeur_rental' && v.rentals.some((r) => r.path) ? ', also for rent' : ', with a chauffeur'}</p>
                 <table className="spec spec--num"><tbody>
                   <tr><th scope="row">2 hours</th><td><span className="num">{money(v.rate_2h_cents)}</span> an hour</td></tr>
                   <tr><th scope="row">3 hours or more</th><td><span className="num">{money(v.rate_3plus_cents)}</span> an hour</td></tr>
