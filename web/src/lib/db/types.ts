@@ -9271,6 +9271,15 @@ export type Database = {
           listing_default_daily_rate_cents: Json;
           coverage_proof_max_pages: number;
           coverage_reminder_hours: number[];
+          vpage_index_mode: string;
+          vpage_model_min_years: number;
+          vpage_popular_from_year: number;
+          vpage_year_min_cars: number;
+          vpage_trim_min_cars: number;
+          vpage_gas_cents_per_litre: number;
+          vpage_premium_extra_cents: number;
+          vpage_electricity_cents_per_kwh: number;
+          vpage_import_every_days: number;
         };
         Insert: {
           id?: string;
@@ -9575,6 +9584,15 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          vpage_index_mode?: string;
+          vpage_model_min_years?: number;
+          vpage_popular_from_year?: number;
+          vpage_year_min_cars?: number;
+          vpage_trim_min_cars?: number;
+          vpage_gas_cents_per_litre?: number;
+          vpage_premium_extra_cents?: number;
+          vpage_electricity_cents_per_kwh?: number;
+          vpage_import_every_days?: number;
         };
         Update: {
           id?: string;
@@ -9879,6 +9897,15 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          vpage_index_mode?: string;
+          vpage_model_min_years?: number;
+          vpage_popular_from_year?: number;
+          vpage_year_min_cars?: number;
+          vpage_trim_min_cars?: number;
+          vpage_gas_cents_per_litre?: number;
+          vpage_premium_extra_cents?: number;
+          vpage_electricity_cents_per_kwh?: number;
+          vpage_import_every_days?: number;
         };
         Relationships: [];
       };
@@ -13080,6 +13107,300 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_catalog_import_requests: {
+        Row: {
+          id: number;
+          requested_by: string | null;
+          requested_at: string;
+          import_id: string | null;
+        };
+        Insert: {
+          id?: number;
+          requested_by?: string | null;
+          requested_at?: string;
+          import_id?: string | null;
+        };
+        Update: {
+          id?: number;
+          requested_by?: string | null;
+          requested_at?: string;
+          import_id?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_imports: {
+        Row: {
+          id: string;
+          started_at: string;
+          finished_at: string | null;
+          status: string;
+          meta: Json;
+          counts: Json | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          status?: string;
+          meta?: Json;
+          counts?: Json | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          status?: string;
+          meta?: Json;
+          counts?: Json | null;
+          error?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_makes: {
+        Row: {
+          slug: string;
+          name: string;
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_models: {
+        Row: {
+          make_slug: string;
+          slug: string;
+          name: string;
+          key: string;
+          aliases: string[];
+          vclass: string | null;
+          sources: string[];
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          slug: string;
+          name: string;
+          key: string;
+          aliases?: string[];
+          vclass?: string | null;
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          slug?: string;
+          name?: string;
+          key?: string;
+          aliases?: string[];
+          vclass?: string | null;
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_popular: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          sort: number;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          sort?: number;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          sort?: number;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_popular_removed: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          removed_by: string | null;
+          removed_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          removed_by?: string | null;
+          removed_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          removed_by?: string | null;
+          removed_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_trim_lines: {
+        Row: {
+          id: number;
+          make_slug: string;
+          model_slug: string;
+          from_year: number;
+          to_year: number;
+          trims: string[];
+          source: string;
+          sort: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          make_slug: string;
+          model_slug: string;
+          from_year: number;
+          to_year: number;
+          trims: string[];
+          source?: string;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          make_slug?: string;
+          model_slug?: string;
+          from_year?: number;
+          to_year?: number;
+          trims?: string[];
+          source?: string;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_trims: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          slug: string;
+          name: string;
+          rank: number;
+          variant_ids: number[];
+          source: string;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          slug: string;
+          name: string;
+          rank: number;
+          variant_ids?: number[];
+          source: string;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          year?: number;
+          slug?: string;
+          name?: string;
+          rank?: number;
+          variant_ids?: number[];
+          source?: string;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_years: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          vclass: string | null;
+          variants: Json;
+          powertrains: number;
+          l100_min: number | null;
+          l100_max: number | null;
+          kwh100_min: number | null;
+          ev_range_max: number | null;
+          fuels: string[];
+          drives: string[];
+          sources: string[];
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          vclass?: string | null;
+          variants?: Json;
+          powertrains?: number;
+          l100_min?: number | null;
+          l100_max?: number | null;
+          kwh100_min?: number | null;
+          ev_range_max?: number | null;
+          fuels?: string[];
+          drives?: string[];
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          year?: number;
+          vclass?: string | null;
+          variants?: Json;
+          powertrains?: number;
+          l100_min?: number | null;
+          l100_max?: number | null;
+          kwh100_min?: number | null;
+          ev_range_max?: number | null;
+          fuels?: string[];
+          drives?: string[];
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_class_links: {
         Row: {
           vehicle_id: string;
@@ -15819,8 +16140,15 @@ export type Database = {
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
+      vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
+      vehicle_make_page: { Args: { p_make: string }; Returns: Json };
+      vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
+      vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
+      vehicle_sitemap_files: { Args: never; Returns: Json };
+      vehicle_trim_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
+      vehicle_year_page: { Args: { p_make: string; p_model: string; p_year: number }; Returns: Json };
     };
     Enums: {
       app_role: "admin" | "va" | "field" | "owner" | "renter";

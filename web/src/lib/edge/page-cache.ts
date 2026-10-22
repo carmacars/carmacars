@@ -33,7 +33,7 @@ const MIN_TTL_S = 10;
 /** First path segments that are never kept: signed-in portals, the API, files and the signing links. */
 const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'investor', 'api', 'auth', 'two-step', 'choose-portal', 'sign', 'sign-document',
   'd', 'files', 'r', 'guide-pdf', 'unsubscribe', 'link-expired', 'read-only', 'update-password', 'media', '_next', 'cdn-cgi']);
-const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt)$/;
+const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml)$/;
 
 export interface EdgeRequestLike { method: string; url: string; headers: { get(name: string): string | null } }
 

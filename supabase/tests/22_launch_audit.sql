@@ -28,9 +28,9 @@ select test.ok('sample: a sample car is still on the fleet page (it takes reques
   exists (select 1 from public.fleet() f where f ->> 'slug' = 'toyota-corolla-la1'));
 select test.ok('sample: the sample car is not in the sitemap', not exists (select 1 from public.sitemap_rows() where path = '/cars/toyota-corolla-la1'));
 select test.ok('sample: the real car is in the sitemap', exists (select 1 from public.sitemap_rows() where path = '/cars/toyota-corolla-la2'));
-select test.ok('sample: a model page with one real car stays in the sitemap', exists (select 1 from public.sitemap_rows() where path = '/rent/toyota-corolla-la'));
+select test.ok('sample: a model page with one real car stays in the sitemap', exists (select 1 from public.sitemap_rows() where path = '/cars/toyota/corolla-la'));
 select test.eq('sample: and is indexable', public.model_hub('toyota-corolla-la') ->> 'indexable', 'true');
-select test.ok('sample: a model page of samples only is left out of the sitemap', not exists (select 1 from public.sitemap_rows() where path = '/rent/honda-civic-la'));
+select test.ok('sample: a model page of samples only is left out of the sitemap', not exists (select 1 from public.sitemap_rows() where path = '/cars/honda/civic-la'));
 select test.eq('sample: and is not indexable', public.model_hub('honda-civic-la') ->> 'indexable', 'false');
 reset role;
 
@@ -42,7 +42,7 @@ select test.eq('sample: an Admin clears the flag',
   public.admin_do(test.id('la_admin'), 'vehicle_sample', jsonb_build_object('vehicle', test.id('vehicle:LA3'), 'is_sample', false)) ->> 'is_sample', 'false');
 reset role;
 select test.ok('sample: the car is now in the sitemap', exists (select 1 from public.sitemap_rows() where path = '/cars/honda-civic-la3'));
-select test.ok('sample: with its model page', exists (select 1 from public.sitemap_rows() where path = '/rent/honda-civic-la'));
+select test.ok('sample: with its model page', exists (select 1 from public.sitemap_rows() where path = '/cars/honda/civic-la'));
 select test.ok('sample: the change is in the audit log',
   exists (select 1 from audit_log where action = 'set_sample_car' and entity_id = test.id('vehicle:LA3')::text and after ->> 'is_sample' = 'false'));
 select test.mk_user('la_va', 'va', 'fleet');

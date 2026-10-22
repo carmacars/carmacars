@@ -721,6 +721,16 @@ def build():
         'Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).',
         f'Open {B("Edit")} on a page or a guide to change its text. Edited fields are locked. {B("Write again")} asks for a new version; on a guide, the brief says what it must cover.',
     ])
+    g.task('Vehicle pages', f'{P("Settings", "Vehicle pages")}. A page for every make, model, model year and Canadian trim, at carmacars.ca/cars/make/model/year/trim, with our cars below it.')
+    g.steps([
+        'Pages: how many make, model, year and trim pages there are and how many are in search. Every page is in search by default; nothing needs setting up.',
+        'Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.',
+        'Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings > Leads.',
+        f'Settings: {B("Index every page")} (the default) or {B("Only pages that pass the rules")}: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).',
+        f'Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. {B("Add trims for another model")} adds a model that has none.',
+        f'Catalog import: the last import and its counts. {B("Import now")} asks for a new one; it runs at the next daily check, at 07:17 UTC.',
+    ])
+    g.tip('A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car\'s trim to one Canadian name to put it on the trim page.', label='Good to know')
     g.task('Search engines and business listings', f'{P("Settings", "All settings")}, then Site settings.')
     g.steps([
         'Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.',

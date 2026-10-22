@@ -15,6 +15,8 @@ import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
 import type { CarPage as Car } from '@/lib/types';
+import { makePage, type MakePage } from '@/features/vehicles/data';
+import { MakeView, makeMeta } from '@/features/vehicles/views';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -24,9 +26,11 @@ export const dynamicParams = true;
 export async function generateStaticParams() { return []; }
 
 type Params = { params: Promise<{ slug: string }> };
-async function load(slug: string): Promise<Car> {
+// /cars/<slug> is a car of the fleet, or else a make's vehicle page (/cars/toyota, migration 0092): a car's address
+// always carries its model, so it is never a make's.
+async function loadAny(slug: string): Promise<Car | MakePage> {
   const page = (await rpc('car_page', { p_slug: slug })) as unknown as (Car & { redirect?: string; status_code?: number }) | null;
-  if (!page) notFound();
+  if (!page) { const mk = await makePage(slug); if (mk) return mk; notFound(); }
   if (page.redirect) {
     // listing_redirects (docs/blueprint/14-seo.md section 11): 301 to the hub or twin; 410 shows the not-found page.
     if (page.status_code === 301) permanentRedirect(page.redirect);
@@ -34,10 +38,13 @@ async function load(slug: string): Promise<Car> {
   }
   return page;
 }
+const isMake = (x: Car | MakePage): x is MakePage => (x as MakePage).level === 'make';
 const name = (c: Car) => `${c.make} ${c.model}`;
 
 export async function generateMetadata({ params }: Params) {
-  const c = await load((await params).slug);
+  const x = await loadAny((await params).slug);
+  if (isMake(x)) return makeMeta(x);
+  const c = x;
   const t = await getTokens();
   // The listing's own SEO text when it is a usable length, else built from the car; the longest parts are
   // dropped first so the title stays near 60 characters and the description near 155.
@@ -71,7 +78,9 @@ const driveOf = (d: string | null) => (!d ? null : /all.?wheel|awd/i.test(d) ? '
 
 export default async function CarPage({ params }: Params) {
   const { slug } = await params;
-  const c = await load(slug);
+  const x = await loadAny(slug);
+  if (isMake(x)) return <MakeView p={x} />;
+  const c = x;
   const [s, f, t, fleet, classes, cover, places, terms, links] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), listItems<Opt>('home.coverage_options'),
     rpc('handover_places', { p_vehicle: c.vehicle_id }) as unknown as Promise<{ owner_location: boolean; area: string | null } | null>,

@@ -27,7 +27,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'settings', label: 'Settings', links: [
     { href: '/admin/settings', label: 'All settings', key: 's' }, { href: '/admin/settings/site', label: 'Site' }, { href: '/admin/settings/program', label: 'Program' },
     { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' }, { href: '/admin/settings/email', label: 'Emails' },
-    { href: '/admin/messages', label: 'Email log' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' }, { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/audit', label: 'Audit log' }] }
+    { href: '/admin/messages', label: 'Email log' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 
 /** Every page the navigation reaches (kept for the crawl and the guide's quick reference). */

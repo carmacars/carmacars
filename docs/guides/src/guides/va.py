@@ -109,6 +109,14 @@ def build():
     ])
     g.tip('Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.')
 
+    g.task('A request from a vehicle page', 'Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.')
+    g.steps([
+        'The request arrives as an enquiry with the car named in the message ("About the car: 2023 Toyota RAV4 XLE") and an Enquiry task in To do.',
+        f'If we have that car, or one close to it, free for their dates, make a {B("New quote")} for it. If not, suggest the nearest car of the same kind and price.',
+        'Reply by email or phone, then mark the task done.',
+    ])
+    g.tip('The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.')
+
     g.task('New quote for a caller')
     g.steps([
         f'Open {B("New quote")}. Choose the Car, the Pickup and Return (at least 2 hours from now).',

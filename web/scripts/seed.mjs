@@ -247,6 +247,16 @@ async function seedSample(tx) {
   return { cars: n, bookings: bookingNo, shiftDays };
 }
 
+// The vehicle catalog fixture (0092), local and staging only: a small real subset of the EPA catalog with the Canadian
+// trims (web/scripts/catalog/import.mjs --sql-out), so the vehicle pages work without the catalog workflow. Production
+// gets the whole catalog from that workflow.
+async function seedCatalog(tx) {
+  const have = await tx`select count(*)::int as n from vehicle_catalog_makes`;
+  if (have[0].n > 0) return 'skipped: catalog exists';
+  await tx.unsafe(fs.readFileSync(path.join(ROOT, 'supabase/seed/vehicle_catalog_fixture.sql'), 'utf8'));
+  return (await tx`select count(*)::int as n from vehicle_catalog_years`)[0].n + ' model years';
+}
+
 try {
   const result = await sql.begin(async (tx) => {
     await tx`select set_config('app.request_id', 'seed', true)`;
@@ -254,8 +264,9 @@ try {
     const seo = await seedSeo(tx);
     if (contentOnly) return { blocks, seo };
     const already = await tx`select count(*)::int as n from vehicle_listings`;
-    if (already[0].n > 0) return { blocks, seo, sample: 'skipped: cars exist' };
-    return { blocks, seo, ...(await seedSample(tx)) };
+    const catalog = production ? 'production: the catalog workflow' : await seedCatalog(tx);
+    if (already[0].n > 0) return { blocks, seo, catalog, sample: 'skipped: cars exist' };
+    return { blocks, seo, catalog, ...(await seedSample(tx)) };
   });
   if (!contentOnly && !production) copyPhotos();
   console.log('seed:', JSON.stringify(result));

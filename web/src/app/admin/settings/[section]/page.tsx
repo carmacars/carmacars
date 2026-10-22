@@ -19,6 +19,7 @@ import { GameSettings, type Prize } from '@/features/games/GameSettings';
 import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
+import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -50,6 +51,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
+  ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
@@ -134,6 +136,8 @@ export default async function Section({ params }: { params: Promise<{ section: s
       </Card>
     </>);
   }
+  case 'vehicle-pages':
+    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} /></>);
   case 'search': {
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };

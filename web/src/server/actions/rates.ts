@@ -26,7 +26,7 @@ export async function rateSave(p: Record<string, unknown>, refresh: string[] = [
   try {
     const { user, aal } = await me();
     const data = await door<{ id: string }>(user.id, 'ops_do', 'rate_card_save', p, aal);
-    for (const x of ['/cars/[slug]', '/rent/[hub]']) revalidatePath(x, 'page');
+    for (const x of ['/cars/[slug]', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]']) revalidatePath(x, 'page');
     revalidatePath('/cars'); revalidatePath('/', 'layout');
     for (const x of refresh) revalidatePath(x);
     return { ok: true, data };

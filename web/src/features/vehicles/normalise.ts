@@ -18,7 +18,7 @@ export const CANADA_MAKES: Record<string, string> = {
 /** Words in an EPA model name that say the drive, the body or the cab, not the model or the trim. */
 const GENERIC = new Set(['2wd', '4wd', 'awd', 'fwd', 'rwd', '4x4', '4x2', '4matic', '4matic+', 'xdrive', 'sdrive', 'quattro', '4motion', 'sh-awd', 'all4', 'e-four',
   'pickup', 'cab', 'chassis', 'sedan', 'coupe', 'convertible', 'cabriolet', 'roadster', 'hatchback', 'wagon', 'van', 'cargo', 'passenger', 'suv', 'crossover',
-  'ffv', 'doors', '2dr', '4dr', '5dr', '3dr', 'door']);
+  'ffv', 'doors', '2dr', '4dr', '5dr', '3dr', 'door', 'shawd', 'efour']);
 
 export type Variant = {
   id: number; epa_model: string; special: string[]; displ: number | null; cyl: number | null; turbo: boolean; super: boolean;
@@ -65,11 +65,21 @@ export function fuelOf(r: Record<string, string>): string {
   return 'gasoline';
 }
 
-/** The words of an EPA model name beyond its base model, less drive and body words: "Jetta GLI" gives ["gli"]. */
+/** The words of an EPA model name beyond its base model, less drive and body words, each as one compact token:
+ *  "Jetta GLI" gives ["gli"]. Words EPA joins with "/" are alternatives ("Camry Hybrid SE/XLE/XSE" gives
+ *  ["hybrid", "se|xle|xse"]): a trim names one of them. */
 export function specialTokens(epaModel: string, baseModel: string): string[] {
-  const m = slugify(epaModel), b = slugify(baseModel);
-  const rest = b && (m === b || m.startsWith(b + '-')) ? m.slice(b.length) : (b && modelKey(epaModel).startsWith(modelKey(baseModel)) ? '' : m);
-  return rest.split('-').filter((t) => t && !GENERIC.has(t) && !/^\d{1,2}(wd|dr)$/.test(t));
+  const words = epaModel.trim().split(/\s+/).filter(Boolean);
+  const want = modelKey(baseModel);
+  let rest = words;
+  let acc = '';
+  for (let i = 0; i < words.length && want; i++) {
+    acc += modelKey(words[i]);
+    if (acc === want) { rest = words.slice(i + 1); break; }
+    if (!want.startsWith(acc)) break;
+  }
+  return rest.map((w) => w.split('/').map((x) => modelKey(x)).filter((x) => x && !GENERIC.has(x) && !/^\d{1,2}(wd|dr)$/.test(x)))
+    .filter((alts) => alts.length).map((alts) => [...new Set(alts)].join('|'));
 }
 
 /** One EPA row as a powertrain, or null when it is outside the years or makes the site covers. */

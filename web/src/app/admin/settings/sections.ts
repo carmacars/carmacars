@@ -11,6 +11,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['forms', 'Forms', 'The official ServiceOntario PDFs and what goes in each field'],
   ['discount-games', 'Discount games', 'The giveaway game for visitors: on or off, games, prizes and chances, code rules, when it shows, and its report'],
+  ['vehicle-pages', 'Vehicle pages', 'A page for every make, model, year and Canadian trim: indexing, fuel prices, popular models, trim names, the catalog import'],
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],

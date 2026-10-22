@@ -7,7 +7,7 @@ import * as chromeLauncher from 'chrome-launcher';
 
 const base = process.env.BASE_URL || 'http://localhost:3000';
 const chromePath = process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-const pages = (process.env.PAGES || '/,/cars,/cars/mercedes-benz-c300,/car-rental/toronto,/guides/407-etr-tolls-in-a-rental-car,/rent/toyota-corolla').split(',');
+const pages = (process.env.PAGES || '/,/cars,/cars/mercedes-benz-c300,/car-rental/toronto,/guides/407-etr-tolls-in-a-rental-car,/cars/volkswagen/jetta/2020/sportline').split(',');
 const chrome = await chromeLauncher.launch({ chromePath, chromeFlags: ['--headless=new', '--no-sandbox', '--no-proxy-server', '--disable-gpu'] });
 const out = {};
 try {

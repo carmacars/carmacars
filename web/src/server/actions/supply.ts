@@ -17,7 +17,7 @@ async function me() {
   if (!user) throw new Error('Sign in first.');
   return { user, aal: await sessionAal() };
 }
-const PUBLIC = ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'];
+const PUBLIC = ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'];
 function rebuild(paths: string[]) {
   for (const p of paths) {
     if (p.includes('[')) revalidatePath(p, 'page');

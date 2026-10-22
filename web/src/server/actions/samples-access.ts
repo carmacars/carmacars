@@ -9,7 +9,7 @@ import { door, sessionAal } from '@/server/door';
 // Admin > Settings > Sample photos and Admin access (migration 0054). The database checks every call again.
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
-const PUBLIC = ['/cars', '/cars/[slug]', '/', '/rent/[hub]'];
+const PUBLIC = ['/cars', '/cars/[slug]', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'];
 
 async function putPublic(key: string, bytes: Uint8Array, type: string) {
   const { storage } = await import('@/integrations/storage');
