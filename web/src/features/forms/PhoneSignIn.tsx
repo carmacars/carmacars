@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { requestPhoneCode, savePhoneName, verifyPhoneCode } from '@/server/actions/phone-auth';
 import { cleanCode } from '@/features/auth/phone';
 import { describedBy, Field } from './Field';
-import { Turnstile } from './Turnstile';
+import { Turnstile, freshTurnstileToken } from './Turnstile';
 
 // Sign-in by phone (migration 0091): the number, then the 6-digit code from the text (autofilled on phones:
 // autocomplete one-time-code, numeric keypad), then, for a new account without a name on file, the name. Every answer
@@ -60,7 +60,9 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
       if (name.trim().length < 2) { setErr({ field: 'name', message: 'Enter your name.' }); return; }
       if (!agree) { setErr({ field: 'agree', message: 'Tick this box to create an account.' }); return; }
     }
-    const token = (form.current?.querySelector('input[name="cf-turnstile-response"]') as HTMLInputElement | null)?.value ?? null;
+    // a fresh token for each request: a token is single use, so "Send a new code" needs its own
+    const token = form.current ? await freshTurnstileToken(form.current) : null;
+    if (!token) { setErr({ message: 'Our security check did not load in this browser (a content blocker or a privacy setting can block it). Turn it off for carmacars.ca or try another browser, or sign in with your email.' }); return; }
     const r = await requestPhoneCode({ phone, purpose: 'sign_in', turnstile: token });
     if (!r.ok) { setErr({ field: r.fieldErrors?.phone ? 'phone' : undefined, message: r.message }); return; }
     setSentTo(r.data); setCode(''); setStep('code'); restart();
@@ -86,6 +88,8 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
     <form ref={form} className="stack-lg" noValidate aria-label={signUp ? 'Create an account with your phone number' : 'Sign in with your phone number'} data-testid="phone-signin"
       onSubmit={(e) => { e.preventDefault(); if (step === 'phone') ask(); else if (step === 'code') check(); else saveName(); }}>
       {err && !err.field && <p className="alert alert--error" role="alert"><span>{err.message}</span></p>}
+      {/* kept mounted on the code step too, so "Send a new code" gets a token of its own */}
+      <Turnstile action="phone_code" />
       {step === 'phone' && <>
         {signUp && <Field id={`${idPrefix}-name`} label="Full name" error={fieldErr('name')}><input className="input" id={`${idPrefix}-name`} name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!fieldErr('name') || undefined} aria-describedby={describedBy(`${idPrefix}-name`, fieldErr('name'))} /></Field>}
         <PhoneNumberInput id={`${idPrefix}-phone`} value={phone} onChange={setPhone} error={fieldErr('phone')} />
@@ -93,7 +97,6 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
           <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} aria-invalid={!!fieldErr('agree') || undefined} aria-describedby={fieldErr('agree') ? `${idPrefix}-agree-err` : undefined} /><span className="small">I am {minAge ?? '21'} or older and agree to the <Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
           <p className="error" role="alert" id={`${idPrefix}-agree-err`}>{fieldErr('agree') ?? ''}</p>
         </div>}
-        <Turnstile action="phone_code" />
         <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending} data-testid="phone-send">{pending ? 'Sending the code' : 'Text me a code'}</button>
         <p className="small muted">We text the code from the CarmaCars number. Message and data rates may apply.</p>
       </>}
