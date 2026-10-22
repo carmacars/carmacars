@@ -154,8 +154,10 @@ test('Live chat: the assistant quotes from the pricing function, a person takes 
   await expect(v.getByTestId('chat-log')).toContainText('The CarmaCars assistant is back to help', { timeout: 15_000 });
   await thread.getByRole('button', { name: 'Close' }).click();
   await expect(v.getByRole('button', { name: 'Start a new chat' })).toBeVisible({ timeout: 15_000 });
-  const [c] = await sql`select status, first_human_reply_at is not null as replied, ai_replies from chat_conversations order by created_at desc limit 1`;
-  expect(c).toMatchObject({ status: 'closed', replied: true });
+  // this visitor's conversation (another test may start one meanwhile), once the close is stored
+  await expect.poll(async () => (await sql`select status, first_human_reply_at is not null as replied from chat_conversations
+      where exists (select 1 from chat_messages m where m.conversation_id = chat_conversations.id and m.body like ${'%' + from + '%'}) order by created_at desc limit 1`)[0], { timeout: 15_000 })
+    .toMatchObject({ status: 'closed', replied: true });
   await sql.end();
 });
 
