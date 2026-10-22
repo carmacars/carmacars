@@ -11,7 +11,7 @@ export { WITNESSED_FORMS_VERSION };
 export interface WitnessedFacts {
   code: 'C' | 'D1';
   owner: { legal_name: string; owner_type: string; address: string };
-  vehicles: Array<{ name: string; vin: string; plate: string | null; finance_party: string | null; finance_account: string | null; permission: string | null; title_status: string | null }>;
+  vehicles: Array<{ name: string | null; vin: string | null; plate: string | null; finance_party: string | null; finance_account: string | null; permission: string | null; title_status: string | null }>;
   title_agreement: string | null;
   company: { brand: string; legal_name: string; address: string; phone: string; email: string; logo_key?: string | null };
 }
@@ -34,6 +34,9 @@ export function screenFormCBlocks(f: WitnessedFacts, sig?: { owner?: SignatureRo
   ];
 }
 
+// A car added before its VIN is known (VIN-first entry allows a draft without one): a blank to fill in by hand, never a crash
+const NO_VIN = 'VIN not given yet';
+
 export function witnessedBlocks(f: WitnessedFacts): Block[] {
   const company = f.company.legal_name || f.company.brand;
   const src = (f.code === 'C' ? FORM_C : FORM_D)
@@ -44,11 +47,11 @@ export function witnessedBlocks(f: WitnessedFacts): Block[] {
   if (f.code === 'C') {
     // the vehicle row of the form, one per financed or leased car
     blocks = blocks.map((b) => b.t === 'table' && b.head[0] === 'Vehicle'
-      ? { ...b, rows: f.vehicles.map((v) => [v.name + (v.plate ? `, plate ${v.plate}` : ''), v.vin, [v.finance_party, v.finance_account].filter(Boolean).join(', account ') || 'Not given',
+      ? { ...b, rows: f.vehicles.map((v) => [(v.name ?? 'Vehicle') + (v.plate ? `, plate ${v.plate}` : ''), v.vin ?? NO_VIN, [v.finance_party, v.finance_account].filter(Boolean).join(', account ') || 'Not given',
           v.permission === 'attached' ? '[x] Attached  [ ] Not obtained' : v.permission === 'not_obtained' ? '[ ] Attached  [x] Not obtained' : '[ ] Attached  [ ] Not obtained']) }
       : b);
   } else {
-    blocks.splice(1, 0, { t: 'table', head: ['Vehicle', 'VIN', 'Plate'], rows: f.vehicles.length ? f.vehicles.map((v) => [v.name, v.vin, v.plate ?? 'Not registered yet']) : [['Every Vehicle in the Title Schedule', '', '']] });
+    blocks.splice(1, 0, { t: 'table', head: ['Vehicle', 'VIN', 'Plate'], rows: f.vehicles.length ? f.vehicles.map((v) => [v.name ?? 'Vehicle', v.vin ?? NO_VIN, v.plate ?? 'Not registered yet']) : [['Every Vehicle in the Title Schedule', '', '']] });
   }
   // the signature tables: each spot to sign marked (the owner's and the witnesses'; CarmaCars signs Part 2 itself), and
   // the person's printed name under each signature
