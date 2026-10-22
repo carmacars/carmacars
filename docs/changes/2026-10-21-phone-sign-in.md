@@ -137,6 +137,15 @@ them up through the guides workflow after the deploy.
   signing in with it on another device, a phone sign-in for a number on an earlier booking request (attached only after
   the code; an email added later). axe, overflow and the copy rules on each screen.
 
+## Fixes found on the way (CI full suite)
+
+- Phone sign-in takes a fresh security-check token for each code request, and the check stays mounted on the code step,
+  so "Send a new code" is not refused (a token is single use). Uses the explicit rendering of `Turnstile.tsx` from main.
+- Texts and calls, Sales: bookings Sales cannot open (not requested or offered) are listed without a link (the crawl
+  found a 404).
+- Car page: the "On this page" bar links "Dates and price" only when the car takes requests (a car closed to bookings
+  linked a missing `#dates`).
+
 ## What still needs the owner
 
 - Register the Quo number for A2P 10DLC (US texting) if US renters should sign in by phone, then turn on
