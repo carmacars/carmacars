@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/db/repo';
-import { jobAuthorized } from '@/server/job-auth';
+import { jobAuthorized, turoGmailAuthorized } from '@/server/job-auth';
 import { AI_SCHEMA, AI_SYSTEM, aiPrompt, gmailConfirmation, mergeAi, parseMime, parseTuroEmail, plainAddress, redact, type AiAnswer, type MatchCar } from '@/features/turo/email';
 
 // Turo by email (migration 0063). The Worker's email handler (custom-worker.ts, Cloudflare Email Routing for
 // trips@in.carmacars.ca) posts each raw message here with the jobs' bearer token and the envelope sender. The email is
 // read in memory (web/src/features/turo/email.ts: rules first, Workers AI only for what the rules missed) and only the
-// parsed fields go to the database (app.turo_email_receive). The message itself is never stored.
+// parsed fields go to the database (app.turo_email_receive). The message itself is never stored. The same route takes
+// Turo emails from an Apps Script in rent@'s Gmail (scripts/turo-gmail.gs) with its own token (turoGmailAuthorized),
+// which opens this route only.
 export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
 const MAX = 1_000_000;
@@ -14,7 +16,7 @@ const MAX = 1_000_000;
 interface Keys { enabled: boolean; forwarders: string; ai_ok: boolean; cars: MatchCar[] }
 
 export async function POST(req: Request) {
-  if (!(await jobAuthorized(req))) return new NextResponse('Forbidden', { status: 403 });
+  if (!(await jobAuthorized(req)) && !(await turoGmailAuthorized(req))) return new NextResponse('Forbidden', { status: 403 });
   const raw = await req.text();
   if (!raw || raw.length > MAX) return NextResponse.json({ ok: false, error: 'empty or too large' }, { status: 413 });
   const m = parseMime(raw);
