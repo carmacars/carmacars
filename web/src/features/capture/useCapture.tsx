@@ -62,3 +62,15 @@ export function CaptureNote({ reply, next }: { reply: CaptureReply | null; next?
     </p>
   );
 }
+
+/** The text under every form contact capture covers (migration 0094): what is typed is saved as it is typed. */
+export const SAVED_AS_YOU_TYPE = 'Saved as you type so you can pick up where you left off.';
+
+/** The short, muted line under each form contact capture covers (migration 0094; the consent made explicit). */
+export function SavedAsYouType({ className = 'xs muted', newTab }: { className?: string; newTab?: boolean }) {
+  return (
+    <p className={`capture-saved ${className}`} data-testid="capture-saved">
+      {SAVED_AS_YOU_TYPE} <Link prefetch={false} className="link" href="/privacy" target={newTab ? '_blank' : undefined}>Privacy policy</Link>
+    </p>
+  );
+}

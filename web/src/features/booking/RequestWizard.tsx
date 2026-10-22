@@ -18,7 +18,7 @@ import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
-import { CaptureNote, useCapture } from '@/features/capture/useCapture';
+import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
@@ -319,6 +319,7 @@ export function RequestWizard(p: WizardProps) {
               <div className={fieldCls('phone')}><label className="label" htmlFor="rq-phone">Mobile number</label><input className="input" id="rq-phone" type="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} {...aria('phone', 'rq-phone', true)} /><p className="hint" id="rq-phone-hint">For questions about this request only.</p>{errEl('phone', 'rq-phone')}</div>
             </div>
             <CaptureNote reply={cap.reply} />
+            <SavedAsYouType />
             {renderDob({ prefix: 'rq-dob', y: d.dobY, m: d.dobM, dd: d.dobD, k: 'dob', onChange: (part, v) => set(part, v) })}
             <p className="hint">Drivers must be {p.tokens.minAge} or older at pickup. Age sets the young driver fee.</p>
             <div className={fieldCls('drivers')}>

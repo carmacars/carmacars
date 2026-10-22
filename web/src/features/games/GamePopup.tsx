@@ -6,7 +6,7 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
 import { remember, rememberSeen } from './GameGate';
-import { useCapture } from '@/features/capture/useCapture';
+import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
 // phone, never a full-screen block, always closable (the close button and Esc). On the first page of a phone visit
@@ -200,6 +200,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
             <span>{play.consent}</span></label>}
           <button type="submit" className="btn btn--primary ccg-play" disabled={busy} data-testid="game-get-code">{busy ? 'Sending...' : booking ? 'Apply my discount' : 'Get my code'}</button>
           {failure && <p className="ccg-err" role="alert">{failure}</p>}
+          <SavedAsYouType className="ccg-fine" newTab={!!booking} />
           <p className="ccg-fine">We email the code either way. {play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link> and <Link className="link" href="/privacy" target={booking ? '_blank' : undefined}>Privacy</Link>.</p>
         </form>}
         {stage === 'claimed' && claimed && <div className="ccg-done" data-testid="game-done">

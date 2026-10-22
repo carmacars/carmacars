@@ -8,7 +8,7 @@ import { Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
 import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
-import { CaptureNote, useCapture } from '@/features/capture/useCapture';
+import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
@@ -279,6 +279,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <Field id="ap-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" {...aria('ap-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" /></Field>
           </div>
           <CaptureNote reply={cap.reply} next="/list-your-car/apply" />
+          <SavedAsYouType />
           {o.owner_type === 'individual' && (
             <div className="field-row">
               <Field id="ap-lic" label="Driver's licence number" err={errs.licence_number} hint="It goes on the registry forms. Never saved in a draft: enter it again if you come back later."><input className="input" {...aria('ap-lic', errs.licence_number, 'hint')} value={o.licence_number} onChange={(e) => { setOwner({ licence_number: e.target.value.toUpperCase() }); clearErr('licence_number'); }} placeholder="A1234-12345-12345" autoComplete="off" /></Field>

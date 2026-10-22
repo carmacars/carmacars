@@ -107,6 +107,7 @@ def build():
     g.task('Carry on later')
     g.bullets([
         'Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.',
+        'Every form that saves as you type says so under it: "Saved as you type so you can pick up where you left off.", with a link to the privacy policy.',
         f'On the same phone or computer, open {U("carmacars.ca/account")} (or the request page again) to carry on, no password needed.',
         'We send you one email, "Continue your request". One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.',
         'Already have an account? The form says "You have an account: we sent you a sign-in link".',

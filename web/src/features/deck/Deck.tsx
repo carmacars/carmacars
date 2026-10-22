@@ -64,6 +64,8 @@ function FeatureSlide({ f, group }: { f: Feature; group: string }) {
             <img src={s.src} alt={s.alt} loading="lazy" decoding="async" />
           </figure>)}
         </div>
+      ) : f.points?.length ? (
+        <div className="dk-card dk-points"><h3>How it works</h3><ul className="dk-list">{f.points.map((x) => <li key={x}>{x}</li>)}</ul></div>
       ) : <div className="dk-noshot">Runs in the background: nothing to click.</div>}
     </div>
   );
@@ -170,6 +172,19 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
       <div className="dk-card"><h3>A marketplace partner</h3><p>A marketplace partner lists our cars under our policy, bringing renters we do not pay to find.</p></div>
     </div>
     <p className="dk-note">On every car, whatever its supply: delivery, add-ons, young driver and other renter fees, and coverage sold are CarmaCars&apos; own revenue.</p></div>
+  </> });
+
+  // the five revenue lines (migration 0094): coverage is always "under our fleet policy", never insurance we sell
+  add({ title: 'How we make money', id: 'revenue-lines', node: <>
+    <Head kicker="Business model" title="How we make money" lead="Five lines of revenue, from cars we own to fleets we broker." />
+    <div className="dk-body"><ol className="dk-flow" data-testid="deck-revenue-lines">
+      <li><b>Our own cars, rented directly</b><span>We keep the full rental income.</span></li>
+      <li><b>Owners&apos; cars, fully managed</b><span>Coverage under our fleet policy, and we run every rental: a management fee{shareRange ? ` (${shareRange} of rental revenue)` : ''} and a revenue share.</span></li>
+      <li><b>Coverage for owners who manage their own cars</b><span>Their cars get coverage under our fleet policy for a monthly fee.</span></li>
+      <li><b>Turo management for owners</b><span>We run the owner&apos;s Turo listing and trips for a management fee.</span></li>
+      <li><b>Brokering partner rental fleets</b><span>A commission on partner cars we rent out: a markup plus a cut of the partner&apos;s rates, including a chauffeur service.</span></li>
+    </ol>
+    <p className="dk-note">CarmaCars&apos; figure: a {multText} multiplier on the money we invest in the fleet. Internal, not audited.</p></div>
   </> });
 
   add({ title: 'The owner program fees', node: <>

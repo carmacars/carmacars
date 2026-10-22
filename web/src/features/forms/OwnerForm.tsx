@@ -7,7 +7,7 @@ import { describedBy, Field } from './Field';
 import { ownerSchema } from './schemas';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
-import { CaptureNote, useCapture } from '@/features/capture/useCapture';
+import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 export function OwnerForm({ ownersEmail, ownerReply }: { ownersEmail?: string; ownerReply: string }) {
   const [addr, setAddr] = useState<AddressValue>({ label: '', placeId: '' });
@@ -51,6 +51,7 @@ export function OwnerForm({ ownersEmail, ownerReply }: { ownersEmail?: string; o
         <div className="seg"><label><input type="radio" name="mode" value="managed" defaultChecked />Managed</label><label><input type="radio" name="mode" value="self" />Self-managed</label><label><input type="radio" name="mode" value="turo" />Turo only</label></div>
       </fieldset>
       <CaptureNote reply={cap.reply} />
+      <SavedAsYouType />
       <Turnstile action="owner_application" />
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send application'}</button>
       <p className="xs muted">We use these details to reply to you about your car. See the <Link className="link" href="/privacy">Privacy policy</Link>.{ownersEmail && <> Questions first? Email <a className="link" href={`mailto:${ownersEmail}`}>{ownersEmail}</a>.</>}</p>

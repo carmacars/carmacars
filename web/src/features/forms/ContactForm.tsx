@@ -6,7 +6,7 @@ import { contactSchema } from './schemas';
 import { describedBy, Field } from './Field';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
-import { CaptureNote, useCapture } from '@/features/capture/useCapture';
+import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 const TOPICS: [string, string][] = [['car', 'A car or a price'], ['booking', 'A booking I have made'], ['dates', 'Dates or availability'], ['owner', 'Listing my car'], ['billing', 'A charge or a statement'], ['other', 'Something else']];
 
@@ -37,6 +37,7 @@ export function ContactForm({ reply }: { reply: string }) {
         <textarea className="textarea" placeholder=" " id="ct-msg" name="message" defaultValue={car ? `About the car: ${car}\n` : ''} aria-invalid={!!e.message || undefined} aria-describedby={describedBy('ct-msg', e.message)} onInput={() => clear('message')} />
       </Field>
       <CaptureNote reply={cap.reply} />
+      <SavedAsYouType />
       <Turnstile action="contact" />
       <button className="btn btn--primary btn--lg" type="submit" disabled={pending}>{pending ? 'Sending' : 'Send message'}</button>
     </form>

@@ -8,7 +8,7 @@ import { newPasswordSchema, resetSchema, signInSchema, signUpSchema } from './sc
 import { describedBy, Field } from './Field';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
-import { useCapture } from '@/features/capture/useCapture';
+import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { PhoneSignInForm } from './PhoneSignIn';
 
 /** The sign-in this device used last (cc-signin, set at sign-in and from the profile page), or ?method=phone. */
@@ -96,6 +96,7 @@ function EmailSignUpForm({ minAge, onUsePhone }: { minAge: string; onUsePhone: (
       </div>
       <Turnstile action="sign_up" />
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Creating your account' : 'Create account'}</button>
+      <SavedAsYouType />
       <p className="small"><button type="button" className="link" onClick={onUsePhone} data-testid="use-phone">Sign up with my phone number instead</button></p>
     </form>
   );
