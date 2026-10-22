@@ -1,12 +1,15 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
+const noop = () => () => {};
 
 // The deck's frame: the slide counter, previous and next, a jump list, keyboard (arrows, Page Up and Down, Home, End)
 // and swipe (left and right) navigation, and Download PDF (the browser's print to PDF, one slide per landscape page).
 export function DeckFrame({ titles, children }: { titles: string[]; children: React.ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   const [cur, setCur] = useState(0);
-  const [ready, setReady] = useState(false);
+  // true once on the client (the controls need the page), false in the server render
+  const ready = useSyncExternalStore(noop, () => true, () => false);
   const slides = useCallback(() => Array.from(root.current?.querySelectorAll<HTMLElement>('.dk-slide') ?? []), []);
   // the slide under the reading line (40% down the window), read from the page at the moment of a key or a button
   const here = useCallback(() => {
@@ -26,7 +29,6 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
 
   useEffect(() => {
     document.documentElement.classList.add('dk-on');
-    setReady(true);
     return () => document.documentElement.classList.remove('dk-on');
   }, []);
 
