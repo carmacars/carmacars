@@ -94,6 +94,10 @@ const shape = (u) => {
   const qs = [...u.searchParams.entries()].map(([k, v]) => (k === 'tab' || k === 'section' ? `${k}=${v}` : k)).sort().join('&');
   return segs.join('/') + (qs ? '?' + qs : '');
 };
+// The families of generated pages: every vehicle level and variant (make, model, year, trim, place, colour, /buy, each
+// term) and every place page; a shape of one of them stands for thousands of addresses of the same template.
+const family = (sh) => (/^\/(cars\/:|buy\/|t\/|car-rental\/:|detailing\/:|body-shop\/:)/.test(sh) ? sh : null);
+const LINK_PER_FAMILY = Number(arg('--links-per-family', '2'));
 // Never followed: sign-out, and links that act once (a resume or referral link is requested, not rendered).
 const SKIP_RENDER = /^\/(api\/|files\/|d\/|r\/|list-your-car\/apply\/resume|auth\/callback|admin\/reports\/export|admin\/documents\/|account\/documents\/[^/]+$|owner\/documents\/(forms\/)?[^/]+$|investor\/statements\/year\/|field\/manifest)/;
 const PRIVATE = /^\/(account|owner|investor|admin|va|field|two-step|sign\/|unsubscribe)/;
@@ -199,7 +203,7 @@ async function crawlRole(browser, role) {
   else await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 
   const queue = [HOME[role], ...PORTALS.filter((p) => p !== HOME[role])];
-  const seen = new Set(); const shapes = new Map(); const checked = new Map();
+  const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map();
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
     const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
@@ -250,6 +254,10 @@ async function crawlRole(browser, role) {
       const t = new URL(h, page.url());
       if (t.origin !== BASE) continue;
       const p = t.pathname + t.search;
+      // the vehicle and place pages (0095, 0097) link to hundreds of their variants: of each family (one shape) only
+      // the first LINK_PER_FAMILY links are requested; the link check and the SEO audit cover the rest by sampling
+      const fam = family(shape(t));
+      if (fam && !checked.has(p)) { const k = familyLinks.get(fam) ?? 0; if (k >= LINK_PER_FAMILY) continue; familyLinks.set(fam, k + 1); }
       const st = await status(p);
       if (st.status >= 400) bad(role, href, `link ${p} answers ${st.status}`);
       else if (!seen.has(p)) queue.push(p);
