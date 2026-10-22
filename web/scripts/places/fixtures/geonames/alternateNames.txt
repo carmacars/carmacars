@@ -1,0 +1,3 @@
+1	9900201	iata	YYZ						
+2	9900202	iata	YTZ						
+3	9900301	iata	BUF						

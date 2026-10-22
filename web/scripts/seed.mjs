@@ -105,12 +105,15 @@ async function seedSeo(tx) {
   const has = await tx`select to_regclass('public.seo_pages') is not null as ok`;
   if (!has[0].ok) return 'skipped: no 0061';
   const seo = JSON.parse(fs.readFileSync(path.join(WEB, 'scripts/content/seo-content.json'), 'utf8'));
+  const hasMinReal = await tx`select exists (select 1 from information_schema.columns where table_name = 'seo_pages' and column_name = 'min_real_cars') as ok`;
   for (const p of seo.pages) {
     await tx`insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source, status)
              values (${p.slug}, ${p.kind === 'use' ? 'use' : 'location'}, ${p.name}, ${p.sort_order}, ${tx.json(p.facts)}, ${tx.json(p.match)}, ${tx.json(p.copy)}, 'seed', 'published')
              on conflict (slug) do update set name = excluded.name, sort_order = excluded.sort_order, facts = excluded.facts, match = excluded.match,
                copy = excluded.copy, copy_facts_hash = null, status = 'published'
-             where seo_pages.source = 'seed' and cardinality(seo_pages.locked) = 0 and (seo_pages.copy, seo_pages.facts, seo_pages.match) is distinct from (excluded.copy, excluded.facts, excluded.match)`;
+             where seo_pages.source = 'seed' and cardinality(seo_pages.locked) = 0 and (seo_pages.copy, seo_pages.facts, seo_pages.match, seo_pages.name) is distinct from (excluded.copy, excluded.facts, excluded.match, excluded.name)`;
+    // the real cars a page needs before it is indexed, when it has its own threshold (0095)
+    if (hasMinReal[0].ok) await tx`update seo_pages set min_real_cars = ${p.min_real_cars ?? null} where slug = ${p.slug} and min_real_cars is distinct from ${p.min_real_cars ?? null}`;
   }
   // the seed's copy was written from these facts
   await tx`update seo_pages set copy_facts_hash = facts_hash, status = 'published' where source = 'seed' and copy_facts_hash is null`;

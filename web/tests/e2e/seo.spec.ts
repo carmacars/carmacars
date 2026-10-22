@@ -218,7 +218,8 @@ test('admin: Settings > Search lists the car copy, landing pages and guides; Sit
   await check(page, 'settings search');
   await page.goto('/admin/settings/site', { waitUntil: 'networkidle' });
   const bl = page.getByTestId('business-listings');
-  await expect(bl).toContainText('2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2');
+  // one name, address and phone (0095): the business address is the street address the site shows
+  await expect(bl).toContainText('1570 Midland Ave');
   await bl.getByTestId('listing-bing').getByRole('checkbox').check();
   await expect(bl.locator('.alert--ok')).toContainText('Bing Places', { timeout: 20_000 });
   const done = (await sql<{ done: boolean }[]>`select (business_listings -> 'bing' ->> 'done')::boolean done from site_settings`)[0]?.done;

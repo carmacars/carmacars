@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
+import { napAddress } from '@/features/seo/business';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
@@ -27,16 +28,24 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
             {uses.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
             <li><Link prefetch={false} href="/guides">Guides</Link></li>
           </ul></nav>
+          <nav aria-label="Services"><h2>Services</h2><ul>
+            <li><Link prefetch={false} href="/car-rental/toronto">Car rental in Toronto</Link></li>
+            <li><Link prefetch={false} href="/car-rental/airport">Airport car rental</Link></li>
+            <li><Link prefetch={false} href="/car-rental/insurance-replacement">Insurance replacement rental</Link></li>
+            <li><Link prefetch={false} href="/detailing">Car detailing</Link></li>
+            <li><Link prefetch={false} href="/body-shop">Auto body shop</Link></li>
+          </ul></nav>
           {places.length > 0 && <nav aria-label="Locations"><h2>Locations</h2><ul>
             {places.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
             <li><Link prefetch={false} href="/car-rental">All areas</Link></li>
+            <li><Link prefetch={false} href="/car-rental/ontario">Car rental across Ontario</Link></li>
           </ul></nav>}
           <div className="footer-contact"><h2>Talk to us</h2><ul>
             {s.phone && <li><a href={`tel:${s.phone}`}>{s.phone_display}</a><span>Phone and 24-hour roadside line</span></li>}
             {s.whatsapp && <li><a href={waLink(s.whatsapp)} rel="noopener">WhatsApp</a></li>}
             {s.public_email && <li><a href={`mailto:${s.public_email}`}>{s.public_email}</a></li>}
             <li><span>{[s.opening_hours_text, reply].filter(Boolean).join('. ')}.</span></li>
-            {s.street_address && <li><span>{s.street_address}</span></li>}
+            {napAddress(s).street && <li><span data-testid="footer-address">{napAddress(s).line}</span></li>}
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>
             <li><Link prefetch={false} href="/list-your-car">List your car</Link></li><li><Link prefetch={false} href="/faq">FAQ</Link></li>

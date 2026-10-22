@@ -9384,6 +9384,246 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_imports: {
+        Row: {
+          id: number;
+          regions: string[];
+          sources: string[];
+          started_at: string;
+          finished_at: string | null;
+          counts: Json;
+          run_url: string | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: number;
+          regions: string[];
+          sources?: string[];
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json;
+          run_url?: string | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: number;
+          regions?: string[];
+          sources?: string[];
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json;
+          run_url?: string | null;
+          error?: string | null;
+        };
+        Relationships: [];
+      };
+      place_regions: {
+        Row: {
+          id: number;
+          code: string;
+          country: string;
+          name: string;
+          is_enabled: boolean;
+          sort_order: number;
+          loaded_at: string | null;
+          places: number;
+          skipped: string | null;
+        };
+        Insert: {
+          id?: number;
+          code: string;
+          country: string;
+          name: string;
+          is_enabled?: boolean;
+          sort_order?: number;
+          loaded_at?: string | null;
+          places?: number;
+          skipped?: string | null;
+        };
+        Update: {
+          id?: number;
+          code?: string;
+          country?: string;
+          name?: string;
+          is_enabled?: boolean;
+          sort_order?: number;
+          loaded_at?: string | null;
+          places?: number;
+          skipped?: string | null;
+        };
+        Relationships: [];
+      };
+      place_terms: {
+        Row: {
+          slug: string;
+          vertical: string;
+          phrase: string;
+          title: string;
+          canonical_slug: string | null;
+          match: Json;
+          served: string;
+          landing_slug: string | null;
+          service_code: string | null;
+          lead_kind: string | null;
+          intent_note: string;
+          faq: Json;
+          sort_order: number;
+          is_active: boolean;
+          cars_snapshot: Json | null;
+          snapshot_stamp: string | null;
+          cars_changed_at: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          vertical: string;
+          phrase: string;
+          title: string;
+          canonical_slug?: string | null;
+          match?: Json;
+          served?: string;
+          landing_slug?: string | null;
+          service_code?: string | null;
+          lead_kind?: string | null;
+          intent_note?: string;
+          faq?: Json;
+          sort_order?: number;
+          is_active?: boolean;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          cars_changed_at?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          vertical?: string;
+          phrase?: string;
+          title?: string;
+          canonical_slug?: string | null;
+          match?: Json;
+          served?: string;
+          landing_slug?: string | null;
+          service_code?: string | null;
+          lead_kind?: string | null;
+          intent_note?: string;
+          faq?: Json;
+          sort_order?: number;
+          is_active?: boolean;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          cars_changed_at?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      places: {
+        Row: {
+          id: number;
+          parent_id: number | null;
+          kind: number;
+          region_id: number | null;
+          flags: number;
+          lat: number | null;
+          lng: number | null;
+          population: number | null;
+          src_id: number | null;
+          updated_on: string;
+          slug: string;
+          name: string;
+          country: string;
+          iata: string | null;
+          landing_slug: string | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: number;
+          parent_id?: number | null;
+          kind: number;
+          region_id?: number | null;
+          flags?: number;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          src_id?: number | null;
+          updated_on?: string;
+          slug: string;
+          name: string;
+          country: string;
+          iata?: string | null;
+          landing_slug?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: number;
+          parent_id?: number | null;
+          kind?: number;
+          region_id?: number | null;
+          flags?: number;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          src_id?: number | null;
+          updated_on?: string;
+          slug?: string;
+          name?: string;
+          country?: string;
+          iata?: string | null;
+          landing_slug?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      places_staging: {
+        Row: {
+          src_id: number;
+          kind: number;
+          flags: number;
+          region_code: string | null;
+          country: string;
+          lat: number | null;
+          lng: number | null;
+          population: number | null;
+          parent_src_id: number | null;
+          slug: string;
+          name: string;
+          iata: string | null;
+        };
+        Insert: {
+          src_id: number;
+          kind: number;
+          flags?: number;
+          region_code?: string | null;
+          country: string;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          parent_src_id?: number | null;
+          slug: string;
+          name: string;
+          iata?: string | null;
+        };
+        Update: {
+          src_id?: number;
+          kind?: number;
+          flags?: number;
+          region_code?: string | null;
+          country?: string;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          parent_src_id?: number | null;
+          slug?: string;
+          name?: string;
+          iata?: string | null;
+        };
+        Relationships: [];
+      };
       program_settings: {
         Row: {
           id: string;
@@ -9734,6 +9974,15 @@ export type Database = {
           fleet_number_first: number;
           young_driver_classes: string[];
           car_defaults_rates_on_add: boolean;
+          place_db_cap_mb: number;
+          place_hubs_index: boolean;
+          sale_hubs_index: boolean;
+          detailing_hubs_index: boolean;
+          bodyshop_hubs_index: boolean;
+          place_quality_gate: boolean;
+          place_delivery_reach_km: number;
+          place_sitemap_file_urls: number;
+          sale_disclaimer: string;
         };
         Insert: {
           id?: string;
@@ -10084,6 +10333,15 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          place_db_cap_mb?: number;
+          place_hubs_index?: boolean;
+          sale_hubs_index?: boolean;
+          detailing_hubs_index?: boolean;
+          bodyshop_hubs_index?: boolean;
+          place_quality_gate?: boolean;
+          place_delivery_reach_km?: number;
+          place_sitemap_file_urls?: number;
+          sale_disclaimer?: string;
         };
         Update: {
           id?: string;
@@ -10434,6 +10692,15 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          place_db_cap_mb?: number;
+          place_hubs_index?: boolean;
+          sale_hubs_index?: boolean;
+          detailing_hubs_index?: boolean;
+          bodyshop_hubs_index?: boolean;
+          place_quality_gate?: boolean;
+          place_delivery_reach_km?: number;
+          place_sitemap_file_urls?: number;
+          sale_disclaimer?: string;
         };
         Relationships: [];
       };
@@ -11326,6 +11593,8 @@ export type Database = {
           snapshot_stamp: string | null;
           snapshot_at: string | null;
           cars_changed_at: string | null;
+          min_real_cars: number | null;
+          was_indexable: boolean | null;
         };
         Insert: {
           slug: string;
@@ -11357,6 +11626,8 @@ export type Database = {
           snapshot_stamp?: string | null;
           snapshot_at?: string | null;
           cars_changed_at?: string | null;
+          min_real_cars?: number | null;
+          was_indexable?: boolean | null;
         };
         Update: {
           slug?: string;
@@ -11388,6 +11659,41 @@ export type Database = {
           snapshot_stamp?: string | null;
           snapshot_at?: string | null;
           cars_changed_at?: string | null;
+          min_real_cars?: number | null;
+          was_indexable?: boolean | null;
+        };
+        Relationships: [];
+      };
+      shop_services: {
+        Row: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents: number | null;
+          sort_order: number;
+          is_active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          vertical?: string;
+          name?: string;
+          description?: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -16782,6 +17088,7 @@ export type Database = {
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
+      business_rating: { Args: never; Returns: Json };
       calc_billable_days: { Args: { p_pickup: string; p_return: string; p_tz?: string }; Returns: number };
       calc_booking_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_eligible: boolean; p_company_share_bps: number; p_kickback_bps?: number }; Returns: { kickback_cents: number; owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
       calc_bps: { Args: { amount_cents: number; bps: number }; Returns: number };
@@ -16880,6 +17187,12 @@ export type Database = {
       partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
+      place_hub: { Args: { p_vertical: string; p_term: string; p_place: string }; Returns: Json };
+      place_roots: { Args: never; Returns: Json };
+      place_sitemap: { Args: { p_vertical: string; p_term: string; p_page: number }; Returns: Json };
+      place_sitemap_files: { Args: never; Returns: Json };
+      place_terms_public: { Args: never; Returns: Json };
+      places_known: { Args: { p_slugs: string[] }; Returns: string[] };
       public_reviews: { Args: { p_vehicle?: string; p_limit?: number; p_offset?: number }; Returns: { review_id: string; vehicle_id: string; vehicle_label: string; rating: number; title: string; body: string; reviewer_first_name: string; review_month: string; staff_reply: string }[] };
       public_vehicle_calendar: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: { unavailable_from: string; unavailable_to: string; first_date: string; last_date: string }[] };
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
@@ -17008,6 +17321,11 @@ export type Database = {
       server_phone_event: { Args: { p: Json }; Returns: Json };
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
+      server_places_budget: { Args: never; Returns: Json };
+      server_places_import_apply: { Args: { p_import: number; p_region: string }; Returns: Json };
+      server_places_import_begin: { Args: { p_regions: string[]; p_sources: string[]; p_run_url?: string }; Returns: number };
+      server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
+      server_places_stage_clear: { Args: never; Returns: undefined };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
@@ -17048,6 +17366,7 @@ export type Database = {
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
       server_witnessed_form_facts: { Args: { p_by: string; p_code: string; p_vehicle?: string }; Returns: Json };
       set_notification_preference: { Args: { p_code: string; p_email: boolean; p_in_app: boolean }; Returns: undefined };
+      shop_services_public: { Args: { p_vertical: string }; Returns: Json };
       sign_request_facts: { Args: { p_by: string; p_id: string }; Returns: Json };
       sign_request_sign: { Args: { p_by: string; p_id: string; p: Json }; Returns: Json };
       site_content: { Args: { p_page?: string }; Returns: Json };
@@ -17059,6 +17378,7 @@ export type Database = {
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      submit_place_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };

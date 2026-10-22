@@ -1,0 +1,4 @@
+5128638	New York	New York		43.00035	-75.4999	A	ADM1	US		NY				19274244		0	America/Toronto	2026-10-01
+5116195	Erie County	Erie County		42.75824	-78.77966	A	ADM2	US		NY	029			0		0	America/Toronto	2026-10-01
+5110629	Buffalo	Buffalo		42.88645	-78.87837	P	PPLA2	US		NY	029			278349		0	America/Toronto	2026-10-01
+9900301	Buffalo Niagara International Airport	Buffalo Niagara International Airport		42.94052	-78.73217	S	AIRP	US		NY	029			0		0	America/Toronto	2026-10-01

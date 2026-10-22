@@ -19,6 +19,7 @@ import { GameSettings, type CostBasis, type Prize } from '@/features/games/GameS
 import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
+import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -138,7 +139,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
   case 'search': {
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
-    const o = await door<Ov>(user.id, 'admin_read', 'seo_overview');
+    const [o, po] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null)]);
     return (<>{head}
       <p className="small muted">The car pages, the landing pages and the guides are written by Workers AI from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
       <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
@@ -163,6 +164,11 @@ export default async function Section({ params }: { params: Promise<{ section: s
           { key: 'content_updated_at', label: 'Updated', render: (r) => t(r.content_updated_at) }]} />
         {o.articles.map((a) => <details key={a.slug}><summary className="link">Edit {a.title}</summary><ArticleEditor a={a} /></details>)}
       </Card>
+      {po && <>
+        <Card title="Place pages" testId="seo-places"><PlaceSettings o={po} /></Card>
+        <Card title="Regions and places" testId="seo-regions"><PlaceRegions o={po} /></Card>
+        <Card title={`Terms and services (${po.terms.length} terms)`} testId="seo-terms"><PlaceTerms o={po} /></Card>
+      </>}
     </>);
   }
   case 'discount-games': {

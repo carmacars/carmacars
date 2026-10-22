@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
 import { CtaBand } from '@/components/Blocks';
+import { RentMore } from '@/features/seo/RentMore';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
@@ -53,6 +54,7 @@ export default async function HubPage({ params }: Params) {
         <ul className="fleet-grid fleet-grid--3">{h.cars.map((c) => <li key={c.slug}><CarCard c={c} labels={labels} tag="h2" /></li>)}</ul>
         <p className="small"><Link className="link link--go" href="/cars">See every car</Link></p>
       </div></section>
+      <RentMore city={s.city} />
       <CtaBand h="Not the one?" p="Every car in the fleet shows its own dates and prices." />
     </div>
   );
