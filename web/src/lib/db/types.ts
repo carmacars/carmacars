@@ -1254,6 +1254,9 @@ export type Database = {
           segment_ends_at: string | null;
           staff_commission_cents: number;
           staff_commission_adjusted_cents: number;
+          partner_rate_basis: boolean;
+          partner_sheet_cents: number | null;
+          partner_markup_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -1290,6 +1293,9 @@ export type Database = {
           segment_ends_at?: string | null;
           staff_commission_cents?: number;
           staff_commission_adjusted_cents?: number;
+          partner_rate_basis?: boolean;
+          partner_sheet_cents?: number | null;
+          partner_markup_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -1326,6 +1332,9 @@ export type Database = {
           segment_ends_at?: string | null;
           staff_commission_cents?: number;
           staff_commission_adjusted_cents?: number;
+          partner_rate_basis?: boolean;
+          partner_sheet_cents?: number | null;
+          partner_markup_cents?: number;
         };
         Relationships: [];
       };
@@ -1563,6 +1572,10 @@ export type Database = {
           price_reviewed_at: string | null;
           price_reviewed_by: string | null;
           price_review_note: string | null;
+          multi_day_rate_cents: number | null;
+          partner_sheet_rental_cents: number | null;
+          partner_cut_bps: number | null;
+          partner_markup_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -1698,6 +1711,10 @@ export type Database = {
           price_reviewed_at?: string | null;
           price_reviewed_by?: string | null;
           price_review_note?: string | null;
+          multi_day_rate_cents?: number | null;
+          partner_sheet_rental_cents?: number | null;
+          partner_cut_bps?: number | null;
+          partner_markup_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -1833,6 +1850,10 @@ export type Database = {
           price_reviewed_at?: string | null;
           price_reviewed_by?: string | null;
           price_review_note?: string | null;
+          multi_day_rate_cents?: number | null;
+          partner_sheet_rental_cents?: number | null;
+          partner_cut_bps?: number | null;
+          partner_markup_bps?: number | null;
         };
         Relationships: [];
       };
@@ -2235,6 +2256,171 @@ export type Database = {
           email_when_waiting?: boolean;
           desktop_alerts?: boolean;
           last_seen_at?: string | null;
+        };
+        Relationships: [];
+      };
+      chauffeur_requests: {
+        Row: {
+          id: string;
+          reference: string;
+          lead_id: string | null;
+          chauffeur_vehicle_id: string;
+          service_date: string;
+          start_time: string;
+          hours: number;
+          pickup_address: string;
+          dropoff_address: string | null;
+          passengers: number;
+          occasion: string | null;
+          notes: string | null;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          status: string;
+          rate_cents: number;
+          renter_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          sheet_cents: number;
+          cut_bps: number;
+          markup_bps: number;
+          partner_payout_cents: number;
+          carmacars_keep_cents: number;
+          quote_note: string | null;
+          staff_note: string | null;
+          request_key: string | null;
+          handled_by: string | null;
+          quoted_at: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reference?: string;
+          lead_id?: string | null;
+          chauffeur_vehicle_id: string;
+          service_date: string;
+          start_time: string;
+          hours: number;
+          pickup_address: string;
+          dropoff_address?: string | null;
+          passengers: number;
+          occasion?: string | null;
+          notes?: string | null;
+          name: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: string;
+          rate_cents: number;
+          renter_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          sheet_cents: number;
+          cut_bps: number;
+          markup_bps: number;
+          partner_payout_cents: number;
+          carmacars_keep_cents: number;
+          quote_note?: string | null;
+          staff_note?: string | null;
+          request_key?: string | null;
+          handled_by?: string | null;
+          quoted_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          reference?: string;
+          lead_id?: string | null;
+          chauffeur_vehicle_id?: string;
+          service_date?: string;
+          start_time?: string;
+          hours?: number;
+          pickup_address?: string;
+          dropoff_address?: string | null;
+          passengers?: number;
+          occasion?: string | null;
+          notes?: string | null;
+          name?: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: string;
+          rate_cents?: number;
+          renter_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          sheet_cents?: number;
+          cut_bps?: number;
+          markup_bps?: number;
+          partner_payout_cents?: number;
+          carmacars_keep_cents?: number;
+          quote_note?: string | null;
+          staff_note?: string | null;
+          request_key?: string | null;
+          handled_by?: string | null;
+          quoted_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      chauffeur_vehicles: {
+        Row: {
+          id: string;
+          partner_id: string | null;
+          sheet_name: string | null;
+          name: string;
+          slug: string;
+          kind: string;
+          passengers: number;
+          rental_vehicle_ids: string[];
+          sheet_2h_cents: number;
+          sheet_3plus_cents: number;
+          markup_bps: number | null;
+          cut_bps: number | null;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_id?: string | null;
+          sheet_name?: string | null;
+          name: string;
+          slug: string;
+          kind: string;
+          passengers: number;
+          rental_vehicle_ids?: string[];
+          sheet_2h_cents: number;
+          sheet_3plus_cents: number;
+          markup_bps?: number | null;
+          cut_bps?: number | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string | null;
+          sheet_name?: string | null;
+          name?: string;
+          slug?: string;
+          kind?: string;
+          passengers?: number;
+          rental_vehicle_ids?: string[];
+          sheet_2h_cents?: number;
+          sheet_3plus_cents?: number;
+          markup_bps?: number | null;
+          cut_bps?: number | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -7892,6 +8078,8 @@ export type Database = {
           amount_cents: number;
           owner_credit_id: string | null;
           staff_commission_cents: number;
+          partner_sheet_cents: number | null;
+          partner_cut_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -7921,6 +8109,8 @@ export type Database = {
           amount_cents: number;
           owner_credit_id?: string | null;
           staff_commission_cents?: number;
+          partner_sheet_cents?: number | null;
+          partner_cut_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -7950,6 +8140,8 @@ export type Database = {
           amount_cents?: number;
           owner_credit_id?: string | null;
           staff_commission_cents?: number;
+          partner_sheet_cents?: number | null;
+          partner_cut_bps?: number | null;
         };
         Relationships: [];
       };
@@ -8355,6 +8547,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      partner_rates: {
+        Row: {
+          vehicle_id: string;
+          base_cents: number;
+          multi_day_cents: number;
+          long_term_cents: number;
+          source: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          base_cents: number;
+          multi_day_cents: number;
+          long_term_cents: number;
+          source?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          base_cents?: number;
+          multi_day_cents?: number;
+          long_term_cents?: number;
+          source?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       partners: {
         Row: {
           id: string;
@@ -8386,6 +8611,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          markup_bps: number | null;
+          payout_basis: string;
         };
         Insert: {
           id?: string;
@@ -8417,6 +8644,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          markup_bps?: number | null;
+          payout_basis?: string;
         };
         Update: {
           id?: string;
@@ -8448,6 +8677,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          markup_bps?: number | null;
+          payout_basis?: string;
         };
         Relationships: [];
       };
@@ -9734,6 +9965,7 @@ export type Database = {
           fleet_number_first: number;
           young_driver_classes: string[];
           car_defaults_rates_on_add: boolean;
+          partner_markup_bps: number;
         };
         Insert: {
           id?: string;
@@ -10084,6 +10316,7 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          partner_markup_bps?: number;
         };
         Update: {
           id?: string;
@@ -10434,6 +10667,7 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          partner_markup_bps?: number;
         };
         Relationships: [];
       };
@@ -10667,6 +10901,7 @@ export type Database = {
           created_at: string;
           km_uses_defaults: boolean;
           auto_defaults: Json;
+          multi_day_rate_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -10687,6 +10922,7 @@ export type Database = {
           created_at?: string;
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
+          multi_day_rate_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -10707,6 +10943,7 @@ export type Database = {
           created_at?: string;
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
+          multi_day_rate_cents?: number | null;
         };
         Relationships: [];
       };
@@ -15219,6 +15456,11 @@ export type Database = {
           sample_bookable: boolean;
           car_code: string | null;
           auto_defaults: Json;
+          partner_markup_bps: number | null;
+          insurance_included: boolean;
+          no_credit_card: boolean;
+          year_approximate: boolean;
+          partner_sheet_name: string | null;
         };
         Insert: {
           id?: string;
@@ -15273,6 +15515,11 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          partner_markup_bps?: number | null;
+          insurance_included?: boolean;
+          no_credit_card?: boolean;
+          year_approximate?: boolean;
+          partner_sheet_name?: string | null;
         };
         Update: {
           id?: string;
@@ -15327,6 +15574,11 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          partner_markup_bps?: number | null;
+          insurance_included?: boolean;
+          no_credit_card?: boolean;
+          year_approximate?: boolean;
+          partner_sheet_name?: string | null;
         };
         Relationships: [];
       };
@@ -16805,7 +17057,7 @@ export type Database = {
       calc_payment_retry_at: { Args: { p_first_declined_at: string; p_retries_done: number }; Returns: string };
       calc_prorated_fee: { Args: { p_monthly_cents: number; p_days_active: number; p_days_in_month: number }; Returns: number };
       calc_refund_bps: { Args: { p_booked_at: string; p_received_at: string; p_start_at: string; p_non_refundable?: boolean; p_by_carmacars?: boolean }; Returns: number };
-      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
+      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz: string; p_multi: number }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] } | { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
       calc_retransfer_payer: { Args: { p_months_on_fleet_policy: number; p_owner_default?: boolean; p_insurer_declined?: boolean; p_owner_failed_to_disclose?: boolean; p_free_after_months?: number }; Returns: string };
       calc_round: { Args: { n: number }; Returns: number };
       calc_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_cents: number; p_company_share_bps: number }; Returns: { owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
@@ -16814,6 +17066,7 @@ export type Database = {
       car_page: { Args: { p_slug: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };
+      chauffeur_services: { Args: never; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
       delivery_origin: { Args: never; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
@@ -17057,6 +17310,7 @@ export type Database = {
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
+      submit_chauffeur_request: { Args: { p: Json; p_ip?: string }; Returns: Json };
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
@@ -17067,6 +17321,7 @@ export type Database = {
       vehicle_classes: { Args: never; Returns: Json };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
+      vehicle_takes_debit: { Args: { p_vehicle: string }; Returns: boolean };
     };
     Enums: {
       app_role: "admin" | "va" | "field" | "owner" | "renter";

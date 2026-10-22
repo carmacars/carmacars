@@ -253,7 +253,8 @@ try {
     const blocks = await seedContent(tx);
     const seo = await seedSeo(tx);
     if (contentOnly) return { blocks, seo };
-    const already = await tx`select count(*)::int as n from vehicle_listings`;
+    // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
+    const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;
     if (already[0].n > 0) return { blocks, seo, sample: 'skipped: cars exist' };
     return { blocks, seo, ...(await seedSample(tx)) };
   });

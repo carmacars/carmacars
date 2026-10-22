@@ -66,8 +66,9 @@ select test.eq('facts: a VIN the decoder could not read says so, with no class',
   from (select app.vin_facts('ZZZZZ12370A123456') f) x), true);
 select test.eq('facts: a list of trims is no trim', coalesce(app.decode_trim('S, Final Edition SE, SE'), '-') || '/' || coalesce(app.decode_trim('S / SE / R-Line'), '-') || '/' || app.decode_trim('LS (1LS)'), '-/-/LS (1LS)');
 select test.eq('facts: the class hint for year, make and model typed by hand', app.vin_class_hint('{"year": 2015, "make": "Cadillac", "model": "CTS"}') #>> '{class,class}', 'premium');
+-- (similar cars, else the class default: 0093's partner fleet gives the Luxury class similar cars)
 select test.eq('facts: a class chosen by hand sets the rate', (app.vin_class_hint('{"year": 2015, "make": "Cadillac", "model": "CTS", "class": "luxury"}') #>> '{rates,daily_cents}')::bigint,
-  coalesce(((app.settings()).listing_default_daily_rate_cents ->> 'luxury')::bigint, 18900));
+  (app.listing_default_daily(null, '{"class": "luxury", "make": "Cadillac", "model": "CTS"}') ->> 'daily_cents')::bigint);
 
 -- ================================================================ 3. Add a car (Admin): a company car from the VIN alone
 create temp table vf_add as select app.vehicle_add(test.id('vf_admin'), jsonb_build_object('supply_type', 'company', 'vin', 'WP1AB2A56GLB12345',

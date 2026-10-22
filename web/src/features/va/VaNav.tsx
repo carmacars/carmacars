@@ -13,12 +13,12 @@ const SALES_WORK = LIVE_WORK;
 const SELL: NavGroup = { key: 'sell', label: 'Rentals', links: [{ href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }] };
 export const VA_GROUPS: Record<Fn, NavGroup[]> = {
   cs: [LIVE_WORK,
-    { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests', key: 'r' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
+    { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests', key: 'r' }, { href: '/va/chauffeur', label: 'Chauffeur' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
     { key: 'renters', label: 'Renters', links: [{ href: '/va/messages', label: 'Messages' }, { href: '/va/renters', label: 'Find a renter' }] },
     { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owners and enquiries' }, { href: '/va/owners/add-car', label: 'Add a car for an owner' }, { href: '/va/owner-forms', label: 'Owner forms' }] }],
   sales: [SALES_WORK,
-    { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
+    { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/chauffeur', label: 'Chauffeur' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owner leads' }] }],
   finance: [WORK,
     { key: 'money', label: 'Money', links: [{ href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }] },

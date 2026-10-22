@@ -136,6 +136,8 @@ select test.eq('budget: past the day''s search neurons the job claims nothing to
 delete from provider_calls where purpose = 'seo_page' and units = 4000;
 
 -- ================================================================ 3. landing pages
+-- 0093: the partner fleet a migration imported is set aside, so these pages count this suite's cars only
+update vehicle_listings l set status = 'unpublished' from vehicles v where v.id = l.vehicle_id and v.partner_sheet_name is not null;
 insert into seo_pages (slug, kind, name, facts, match, copy) values
   ('se-place', 'location', 'Se Place', '{"highways": ["401"]}', '{}', '{"seo_title": "Car Rental in Se Place | CarmaCars", "meta_description": "x", "h1": "Car rental in Se Place", "intro": "Intro.", "sections": [], "faq": []}'),
   ('se-suv', 'use', 'Se SUV rental', '{}', '{"classes": ["suv"]}', '{"seo_title": "SUV Rental | CarmaCars", "meta_description": "x", "h1": "SUV rental", "intro": "Intro.", "sections": [], "faq": []}');

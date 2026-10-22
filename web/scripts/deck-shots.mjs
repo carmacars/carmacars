@@ -66,6 +66,16 @@ try {
     await add.evaluate((e) => e.scrollIntoView({ block: 'center' }));
   }
   await save(page, 'addons.jpg');
+  // partner fleets and the chauffeur service (0093): a partner car's page (the badges and the tiered rates), the
+  // chauffeur page. The partner is never named on the slide.
+  const pcar = (await sql`select l.slug from vehicle_listings l join vehicles v on v.id = l.vehicle_id where l.status = 'published' and v.insurance_included and v.partner_sheet_name is not null order by v.class desc, l.slug limit 1`)[0]?.slug;
+  if (pcar) {
+    await page.goto(`${BASE}/cars/${pcar}`, { waitUntil: 'networkidle' });
+    await save(page, 'partner-car.jpg');
+  }
+  await page.goto(`${BASE}/chauffeur`, { waitUntil: 'networkidle' });
+  await page.locator('[data-testid="chauffeur-vehicles"]').evaluate((e) => e.scrollIntoView({ block: 'start' })).catch(() => {});
+  await save(page, 'chauffeur.jpg');
   // a fresh visitor: the chat button shows once the cookie notice is answered
   const v = await newPage();
   await v.goto(`${BASE}/`, { waitUntil: 'networkidle' });

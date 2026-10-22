@@ -22,7 +22,9 @@ import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, ty
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
 // idempotency key. No card and no payment at this step.
-export interface WizardCar { slug: string; vehicleId: string; name: string; year: number; trim: string | null; daily: number; weekend: number; weekly: number; monthly: number; delivery: number; pickup: number; ownerLocation: boolean; allowsYoung: boolean; cover: { path: string; alt: string } | null }
+export interface WizardCar { slug: string; vehicleId: string; name: string; year: number | null; trim: string | null; daily: number; weekend: number; weekly: number; monthly: number;
+  /** 0093: the 3+ day rate; insurance included; no credit card needed */
+  multi?: number | null; insuranceIncluded?: boolean; noCreditCard?: boolean; delivery: number; pickup: number; ownerLocation: boolean; allowsYoung: boolean; cover: { path: string; alt: string } | null }
 export interface WizardProps {
   cars: WizardCar[]; initialSlug: string | null; rules: RequestRules; airports: { code: string; name: string; surcharge_cents: number | null }[];
   tokens: LabelTokens & Record<'notice' | 'turnaround' | 'offerHours' | 'hst' | 'minAge' | 'licence' | 'addDrvPct' | 'cEarly' | 'c2' | 'nonRef' | 'winter' | 'winterCap' | 'baby' | 'babyCap' | 'maxDays' | 'brand', string>;
@@ -129,7 +131,7 @@ export function RequestWizard(p: WizardProps) {
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   function validate(n: number): boolean {
-    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car });
+    const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car, insuranceIncluded: !!car?.insuranceIncluded });
     if (n === 1 && problem && !all.dates) all.dates = problem;
     const mine = Object.fromEntries(Object.entries(all).filter(([k]) => stepOfKey(k) === n));
     setErrors(mine);
@@ -175,7 +177,7 @@ export function RequestWizard(p: WizardProps) {
       setFailure(r.message); return;
     }
     try {
-      sessionStorage.setItem('cc.lastRequest', JSON.stringify({ number: r.data.bookingNumber, car: car ? `${car.year} ${car.name}` : '', from: d.from, to: d.to, tf: d.tf, tt: d.tt, deliver: far(d.pickupAt), total: q?.total_cents ?? r.data.totalCents, deposit: q?.deposit_cents ?? r.data.depositCents, days: q?.billable_days ?? null, email: d.email, first: d.first, coverage: d.coverage }));
+      sessionStorage.setItem('cc.lastRequest', JSON.stringify({ number: r.data.bookingNumber, car: car ? [car.year, car.name].filter(Boolean).join(' ') : '', from: d.from, to: d.to, tf: d.tf, tt: d.tt, deliver: far(d.pickupAt), total: q?.total_cents ?? r.data.totalCents, deposit: q?.deposit_cents ?? r.data.depositCents, days: q?.billable_days ?? null, email: d.email, first: d.first, coverage: d.coverage }));
       localStorage.removeItem(KEY);
     } catch { /* ignore */ }
     router.push(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`);
@@ -237,12 +239,13 @@ export function RequestWizard(p: WizardProps) {
   );
 
   const reviewRows: [string, string, number][] = [
-    ['Car', car ? `${car.year} ${car.name}` : '', 1],
+    ['Car', car ? [car.year, car.name].filter(Boolean).join(' ') : '', 1],
     ['Pickup', d.from ? `${longDate(d.from)}, ${clock(d.tf)}, ${placeText(d.pickupAt, d.pickupAddress.label, d.pickupAirport, 'delivered to')}` : '', 1],
     ['Return', d.to ? `${longDate(d.to)}, ${clock(d.tt)}, ${placeText(d.returnAt, d.returnAddress.label || d.pickupAddress.label, d.returnAirport, 'we pick it up from')}` : '', 1],
     ['Driver', `${d.first} ${d.last}${age !== null ? `, ${age} at pickup` : ''}`, 2], ['Contact', `${d.email}, ${d.phone}`, 2],
     ['Additional drivers', d.drivers.length ? d.drivers.map((x) => `${x.first} ${x.last}`).join(', ') : 'None', 2],
-    ['Licence', d.licClass === 'other' ? `Other (${d.licIssuer}), for review` : d.licClass ? `Ontario class ${d.licClass}` : '', 3], ['Coverage', covText[d.coverage] ?? '', 3],
+    ['Licence', d.licClass === 'other' ? `Other (${d.licIssuer}), for review` : d.licClass ? `Ontario class ${d.licClass}` : '', 3], ['Coverage', car?.insuranceIncluded ? 'Insurance included with the car' : covText[d.coverage] ?? '', 3],
+    ...(car?.noCreditCard ? [['Card', 'No credit card needed: a credit or debit card in your name', 3] as [string, string, number]] : []),
     ['Booking type', d.bookingType === 'non_refundable' ? `Non-refundable, ${p.tokens.nonRef} off the rental charge` : 'Standard, refund by cancellation tier', 3],
     ['Add-ons', d.addons.filter((c) => c.quantity > 0).map((c) => { const o = addonOptions.find((x) => x.code === c.code); const n = o?.name ?? c.code.replace(/_/g, ' ');
       return `${c.quantity > 1 ? `${c.quantity} x ` : ''}${n}${c.hours ? `, ${c.hours} hours` : ''}`; }).join(', ') || 'None', 4]
@@ -344,6 +347,10 @@ export function RequestWizard(p: WizardProps) {
             {d.licClass === 'other' && (
               <div className={fieldCls('licIssuer')}><label className="label" htmlFor="rq-issuer">Where was it issued?</label><input className="input" id="rq-issuer" value={d.licIssuer} onChange={(e) => set('licIssuer', e.target.value)} placeholder="Quebec, New York, United Kingdom" {...aria('licIssuer', 'rq-issuer')} />{errEl('licIssuer', 'rq-issuer')}</div>
             )}
+            {car?.insuranceIncluded ? (
+              <div className="alert alert--ok" data-testid="coverage-included-step"><span className="alert__title">Insurance included</span>
+                <span>This car comes with its insurance: no personal auto policy, OPCF 27 or credit card coverage needed.{car.noCreditCard ? ' No credit card needed either: a debit card in your name is accepted.' : ''}</span></div>
+            ) : (
             <fieldset className={fieldCls('coverage')}><legend className="label">How will the car be covered?</legend>
               <p className="hint">Liability coverage is included. This is about damage to the car. You can change your choice any time before pickup.</p>
               <div className="stack">
@@ -354,6 +361,7 @@ export function RequestWizard(p: WizardProps) {
                 ))}
               </div><p className="error" role="alert">{err('coverage') ?? ''}</p>
             </fieldset>
+            )}
             <fieldset className="field"><legend className="label">Booking type</legend>
               <div className="stack">
                 <label className="option"><input type="radio" name="bookingType" value="standard" checked={d.bookingType === 'standard'} onChange={() => set('bookingType', 'standard')} /><span className="option__title">Standard</span><span className="option__body">Cancel {p.tokens.cEarly} hours or more before pickup for {p.tokens.c2} back. <Link className="link" href="/cancellation-policy">All tiers</Link>.</span></label>
@@ -407,12 +415,12 @@ export function RequestWizard(p: WizardProps) {
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {car.cover && <img src={photoUrl(car.cover.path)} alt="" width={1800} height={1200} loading="lazy" />}
-                  <div><b>{car.year} {car.name}</b><span className="small muted">{car.trim}</span></div>
+                  <div><b>{[car.year, car.name].filter(Boolean).join(' ')}</b><span className="small muted">{car.trim}</span></div>
                 </>
               ) : <p className="muted">Choose a car to see the estimate.</p>}
             </div>
             {car && <Estimate q={q} error={qErr} loading={loading} from={haveDates ? d.from : ''} to={haveDates ? d.to : ''} tf={d.tf} tt={d.tt} hst={p.tokens.hst} maxDays={p.rules.maxDays}
-              rates={{ daily: car.daily, weekend: car.weekend, weekly: car.weekly, monthly: car.monthly }} labels={p.tokens} problem={problem} coverageChosen={d.coverage === '3'} />}
+              rates={{ daily: car.daily, weekend: car.weekend, weekly: car.weekly, monthly: car.monthly, multi: car.multi ?? null }} labels={p.tokens} problem={problem} coverageChosen={d.coverage === '3' && !car.insuranceIncluded} />}
           </details>
         </aside>
       </div>

@@ -367,8 +367,11 @@ select test.eq('investor: nothing of the rental business',
 select test.logout();
 
 -- ------------------------------------------------------------------ ANONYMOUS (the public site)
+-- 0093: the partner fleet a migration imported is published too
+create function test.pf0093() returns bigint language sql stable security definer set search_path = public as $$ select count(*) from vehicles where partner_sheet_name is not null $$;
+grant execute on function test.pf0093() to anon;
 set role anon;
-select test.eq('anon: can read the published listing', test.visible('select * from public_vehicle_listings'), 1::bigint);
+select test.eq('anon: can read the published listing', test.visible('select * from public_vehicle_listings'), 1::bigint + test.pf0093());
 select test.eq('anon: the listing carries no VIN, plate or owner',
   (select count(*) from information_schema.columns where table_name = 'public_vehicle_listings' and column_name in ('vin', 'plate', 'owner_id', 'fleet_number')), 0::bigint);
 select test.eq('anon: no privilege at all on vehicles, renters, bookings or users',

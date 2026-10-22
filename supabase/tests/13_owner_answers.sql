@@ -214,7 +214,7 @@ select test.eq('4 the search accepts any of several classes',
     where slug like 'ba-%'), 'ba-ba2,ba-ba3');
 set role anon;
 select test.eq('4 the public fleet filters by any of several classes, and the car page lists them',
-  (select string_agg(r ->> 'slug', ',' order by r ->> 'slug') from public.fleet('{"classes": ["convertible", "van"]}') r)
+  (select string_agg(r ->> 'slug', ',' order by r ->> 'slug') from public.fleet('{"classes": ["convertible", "van"]}') r where r ->> 'slug' like 'ba-%')
   || ' ' || (select (public.car_page('ba-ba2') -> 'classes')::text), 'ba-ba2,ba-ba3 ["premium", "convertible", "sedan"]');
 select test.eq('4 the public class list', (select jsonb_array_length(public.vehicle_classes())), 11);
 reset role;

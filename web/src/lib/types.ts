@@ -7,7 +7,8 @@ export interface Photo { path: string; variants?: { width: number; path: string;
 
 export interface CarRow {
   vehicle_id: string; slug: string; path: string; canonical_path: string; headline: string | null;
-  year: number; make: string; model: string; trim: string | null; colour: string | null; fuel: string;
+  /** null when the year is not confirmed yet (0093: a partner's car; the page says "Year confirmed when you book") */
+  year: number | null; make: string; model: string; trim: string | null; colour: string | null; fuel: string;
   class: string; classes: string[]; body_style: string | null; seats: number | null; transmission: string | null;
   doors: number | null; drivetrain: string | null; luggage: string | null; home_area: string | null;
   allows_18_to_20: boolean; is_featured: boolean; taking_requests: boolean; model_hub_path: string; is_sample?: boolean;
@@ -16,6 +17,12 @@ export interface CarRow {
   daily_rate_cents: number; weekend_rate_cents: number; weekly_rate_cents: number; monthly_rate_cents: number;
   km_allowance_per_day: number; overage_cents_per_km: number; deposit_cents: number;
   delivery_fee_cents: number; pickup_fee_cents: number; cover: Photo | null; published_at: string | null; updated_at: string | null;
+  /** 0093: the 3+ day rate and the 7+ day rate a day (a car priced in tiers), else null */
+  multi_day_rate_cents?: number | null; long_term_rate_cents?: number | null;
+  /** 0093: "Insurance included: no personal auto policy needed" and "No credit card needed: debit accepted" */
+  insurance_included?: boolean; no_credit_card?: boolean;
+  /** 0093: the model year is not confirmed yet; guideline rates (a partner's, confirmed after review) */
+  year_approximate?: boolean; guideline_rates?: boolean;
 }
 
 export interface CarPage extends CarRow {

@@ -54,7 +54,7 @@ function FeatureSlide({ f, group }: { f: Feature; group: string }) {
       <div className="dk-feature__words">
         <p className="dk-kicker">{group}</p>
         <h2 className="dk-title">{f.title}</h2>
-        <div><p className="dk-feature__label">What it is</p><p>{f.what}</p></div>
+        <div><p className="dk-feature__label">What it is</p>{f.points?.length ? <ul className="dk-points">{f.points.map((x) => <li key={x}>{x}</li>)}</ul> : <p>{f.what}</p>}</div>
         <div><p className="dk-feature__label">Why it matters</p><p>{f.why}</p></div>
       </div>
       {f.shots?.length ? (

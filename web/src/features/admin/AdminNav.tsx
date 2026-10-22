@@ -7,7 +7,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
     { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }] },
   { key: 'bookings', label: 'Bookings', links: [
-    { href: '/admin/requests', label: 'Requests', key: 'r' }, { href: '/admin/chat', label: 'Live chat' }, { href: '/admin/leads', label: 'Leads' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
+    { href: '/admin/requests', label: 'Requests', key: 'r' }, { href: '/admin/chat', label: 'Live chat' }, { href: '/admin/leads', label: 'Leads' }, { href: '/admin/chauffeur', label: 'Chauffeur' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
     { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/damages', label: 'Damage' }, { href: '/admin/incidents', label: 'Incidents and claims' },
     { href: '/admin/reviews', label: 'Reviews' }] },
   { key: 'cars', label: 'Cars', links: [

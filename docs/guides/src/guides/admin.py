@@ -432,6 +432,21 @@ def build():
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
     ])
 
+    g.task('A partner fleet on its own rates', 'Some partners send a price sheet of their own rates instead of sharing what the renter pays. '
+           '01 Motors works this way: its whole fleet is on the site, and staff manage its cars (it has no portal sign-in yet; add its email on the partner page and invite it later).')
+    g.steps([
+        f'{P("Owners and partners", "Partners")} > the partner. {B("Pricing")} shows how it is paid: the renter pays the partner\'s sheet rate plus the markup (10% unless you set another), rounded to the nearest dollar; '
+        f'CarmaCars keeps the markup plus its cut (20% of the sheet rate); the partner is owed the rest of its sheet rate. Press {B("Edit pricing")} to change the markup, the cut or the basis for every car at once.',
+        f'{B("Cars")} lists each car with its sheet rates a day (1 to 2 days, 3 or more, 7 or more) and the renter\'s rates. Press {B("Edit")} on a car to change a negotiated rate, give that car its own markup or cut, '
+        f'mark it {B("Insurance included")} or {B("No credit card needed")}, or confirm its model year. The renter\'s rates change at once.',
+        'The site shows these cars with their tiers (1 to 2 days, 3 to 6 days, 7 days or more) and "Guideline rates; final price confirmed after review". A car with insurance included needs no coverage choice from the renter '
+        '(coverage option 4, confirmed by itself); a car with no credit card needed takes a debit card for the payment and the deposit. The deposit, the licence and identity checks and the ages stay the same.',
+        'The price sheet has no years, VINs or plates. Until you confirm the year, the site leaves it out and says "Year confirmed when you book"; an offer waits until the year is confirmed (Edit on the car, Model year). '
+        'Add the plate and the VIN on the car\'s page before its first handover.',
+        f'Real photos: open the car (its name in Cars), {B("Photos")}, and add them. Once approved they replace the eight studio stand-ins.',
+    ])
+    g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
+
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
     g.steps([
         'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
@@ -474,6 +489,29 @@ def build():
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
+    g.chapter('Chauffeur service',
+              'Visitors book a driver and a luxury car or van by the hour on carmacars.ca/chauffeur. The vehicles come from a partner\'s chauffeur price guide, each with a rate for 2 hours and a rate for 3 hours or more.',
+              blurb='Chauffeur requests: quote, confirm and close them; the vehicles and their hourly rates.')
+    g.flow([('Request', 'The visitor sends the date, hours and addresses'), ('Quote', 'You check with the partner and send the quote'),
+            ('Confirm', 'The client agrees and pays'), ('Done', 'Mark it completed after the trip')])
+    g.task('The requests', f'{P("Bookings", "Chauffeur")}. Each request has its number (CH-1001 and up), the vehicle, the date and start time, the hours, the pickup and drop-off addresses, the passengers, the occasion and the notes.')
+    g.steps([
+        f'The {B("Quote")} column is the price for the client: the hours at the 2-hour rate (exactly 2 hours) or the 3+ hour rate (3 hours or more), before HST, then HST and the total. The line under it is the quote line to send.',
+        f'{B("Partner, CarmaCars")} shows the partner\'s sheet amount, what the partner is owed (the sheet amount less the cut) and what CarmaCars keeps (the markup plus the cut).',
+        f'Check the vehicle and the driver with the partner for that time. To change the vehicle or the hours, press {B("Change")}: the quote is worked out again.',
+        f'Send the quote line by email or phone, then press {B("Quoted")} and say how you sent it. The task in the queue is done.',
+        f'When the client agrees, take the payment (a payment link, or at pickup), press {B("Confirm")} and note how it is paid.',
+        f'After the trip press {B("Completed")}. {B("Decline")} or {B("Cancel")} closes a request with the reason.',
+    ])
+    g.tip(f'To do has a line {B("Chauffeur requests to quote")} while any request is new, and the card Chauffeur today lists the confirmed trips of the day.')
+    g.task('The vehicles and their rates', f'{P("Owners and partners", "Partners")} > the partner, card Chauffeur vehicles.')
+    g.steps([
+        'Each vehicle shows the partner\'s rates an hour and the client\'s (the markup added, rounded to the nearest dollar).',
+        f'Press {B("Edit")} to change a rate, give it its own markup or cut, change the passengers, or take it off the site.',
+        'A vehicle the partner also rents (chauffeur / rental) links to its car pages on the public page.',
+    ])
+    g.tip('Booking requests for cars, offers and payments do not cover chauffeur trips: a chauffeur request is a quote that you send and confirm here.', label='Good to know')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Owners and onboarding',

@@ -14,7 +14,7 @@ import { addonsPayload, type AddonChoice } from '@/features/addons/model';
 
 export interface CarBookingProps {
   vehicleId: string; slug: string; name: string; deliveryFee: number; pickupFee: number;
-  rates: { daily: number; weekend: number; weekly: number; monthly: number };
+  rates: { daily: number; weekend: number; weekly: number; monthly: number; multi?: number | null };
   maxDays: number; noticeMinutes: number; tokens: LabelTokens & { notice: string; turnaround: string; offerHours: string; hst: string; fullAge: string; youngA: string; youngB: string };
   allowsYoung: boolean;
 }

@@ -6,6 +6,7 @@ import { bookingPath, carName } from '@/features/portal/status';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { PayForm } from '@/features/portal/PayForm';
 import { myBooking } from '@/server/portal/data';
+import { rpc } from '@/lib/db/repo';
 import { PUSH_BACK } from '@/server/portal/payment';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
   if (!live && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)) redirect(bookingPath(b.booking_number));
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
   if ((b.status === 'pending_payment' || live) && !b.agreement?.renter_signed_at) redirect(bookingPath(b.booking_number, 'sign'));
+  // 0093: a car marked "no credit card needed" takes a debit card
+  const debitOk = (await rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, { role: 'service_role' }).catch(() => false)) === true;
   const pushedBack = b.status === 'requested' && b.offers[b.offers.length - 1]?.status === 'withdrawn';
   return (
     <>
@@ -37,7 +40,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
       ) : (
         <div className="pt-split">
           <section className="pt-card" aria-labelledby="pt-pay"><h2 className="d4" id="pt-pay">Card</h2>
-            <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} />
+            <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
           </section>
           <aside className="pt-split__aside pt-first">
             <section className="pt-card" aria-labelledby="pt-sum"><h2 className="d4" id="pt-sum">What you pay now</h2>

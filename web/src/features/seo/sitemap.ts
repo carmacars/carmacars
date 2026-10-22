@@ -6,7 +6,7 @@ import { siteUrl } from '@/lib/site';
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/list-your-car', '/terms', '/privacy', '/cancellation-policy'];
+export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/chauffeur', '/faq', '/contact', '/list-your-car', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 export const SITEMAPS = ['pages', 'cars', 'landing', 'guides'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
