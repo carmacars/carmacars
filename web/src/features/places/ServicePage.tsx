@@ -4,7 +4,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { getSettings, replyText, siteUrl } from '@/lib/site';
-import { getPlaceRoots, getShopServices, hubPath } from './data';
+import { getPlaceRoots, getShopServices, hubPath, placesKnown } from './data';
 import { PlaceLeadForm } from './PlaceLeadForm';
 import '@/styles/seo.css';
 
@@ -29,7 +29,9 @@ export async function serviceMeta(v: 'detailing' | 'bodyshop') {
 }
 
 export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
-  const [d, roots, s] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings()]);
+  const [d, roots, s, known] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings(), placesKnown(['toronto']).catch(() => [] as string[])]);
+  // the place pages for Toronto only once the places are loaded (an empty places table has none)
+  const home = known.includes('toronto') ? 'toronto' : null;
   const c = COPY[v];
   const trail: Trail = [['Home', '/'], [c.label]];
   const vert = v === 'bodyshop' ? 'bodyshop' : 'detailing';
@@ -54,7 +56,7 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
         <ul className="hub-grid">{d.services.map((x) => (
           <li key={x.code}><div className="hub-card"><h3>{x.name}</h3><p>{x.description}</p>
             <p>{x.from_price_cents ? <>From <span className="num">{money(x.from_price_cents)}</span></> : 'Price on request'}</p>
-            {x.terms.length > 0 && <p>{x.terms.slice(0, 4).map((t, i) => <span key={t.slug}>{i > 0 ? ', ' : ''}<Link prefetch={false} className="link" href={hubPath(vert, t.slug, 'toronto')}>{t.title} in Toronto</Link></span>)}</p>}
+            {home && x.terms.length > 0 && <p>{x.terms.slice(0, 4).map((t, i) => <span key={t.slug}>{i > 0 ? ', ' : ''}<Link prefetch={false} className="link" href={hubPath(vert, t.slug, home)}>{t.title} in Toronto</Link></span>)}</p>}
           </div></li>))}</ul>
       </div></section>
       <div className="wrap landing__body">
@@ -64,7 +66,7 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
         <section className="car-sec landing__links" aria-labelledby="h-where">
           <h2 className="d2" id="h-where">Where we work</h2>
           <div className="landing__cols">
-            <nav aria-label="Services in Toronto"><ul className="linklist">{d.services.flatMap((x) => x.terms).slice(0, 12).map((t) => <li key={t.slug}><Link prefetch={false} className="link" href={hubPath(vert, t.slug, 'toronto')}>{t.title} in Toronto</Link></li>)}</ul></nav>
+            {home && <nav aria-label="Services in Toronto"><ul className="linklist">{d.services.flatMap((x) => x.terms).slice(0, 12).map((t) => <li key={t.slug}><Link prefetch={false} className="link" href={hubPath(vert, t.slug, home)}>{t.title} in Toronto</Link></li>)}</ul></nav>}
             {roots.cities.length > 0 && <nav aria-label="Places near Toronto"><ul className="linklist">{roots.cities.slice(0, 12).map((p) => <li key={p.slug}><Link prefetch={false} className="link" href={hubPath(vert, c.terms[0], p.slug)}>{c.label} in {p.name}</Link></li>)}</ul></nav>}
           </div>
         </section>
