@@ -174,11 +174,15 @@ export default async function CarPage({ params }: Params) {
           </section>
 
           {c.taking_requests && (
-            <Suspense fallback={<section id="dates" className="car-sec"><h2 className="d2">Dates and price</h2><div className="skeleton sk-img" /></section>}>
+            // the anchor of "Check dates and price" and "Change dates" stays in the page whether the booking box has
+            // streamed in or not
+            <div id="dates">
+            <Suspense fallback={<section className="car-sec"><h2 className="d2">Dates and price</h2><div className="skeleton sk-img" /></section>}>
               <CarBooking vehicleId={c.vehicle_id} slug={c.slug} name={name(c)} deliveryFee={c.delivery_fee_cents} pickupFee={c.pickup_fee_cents}
                 rates={{ daily: c.daily_rate_cents, weekend: c.weekend_rate_cents, weekly: c.weekly_rate_cents, monthly: c.monthly_rate_cents }}
                 maxDays={f.max_rental_days} noticeMinutes={f.booking_min_notice_minutes} tokens={tokens} allowsYoung={c.allows_18_to_20} />
             </Suspense>
+            </div>
           )}
 
           <section id="specs" className="car-sec" aria-labelledby="h-specs">

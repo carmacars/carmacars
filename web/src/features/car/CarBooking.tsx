@@ -91,7 +91,7 @@ export function CarBooking(p: CarBookingProps) {
   }, [href, q, ready]);
 
   return (
-    <section id="dates" className="car-sec" aria-labelledby="h-dates">
+    <section className="car-sec" aria-labelledby="h-dates">
       <h2 className="d2" id="h-dates">Dates and price</h2>
       {clashNote && <p className="alert alert--warn"><span className="alert__title">Those dates are taken</span><span>{clashNote}</span></p>}
       {failed && <p className="alert alert--warn"><span className="alert__title">Live availability is not loading</span><span>You can still send a request and we will confirm.</span></p>}

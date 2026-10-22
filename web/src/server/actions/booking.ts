@@ -35,7 +35,7 @@ export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: num
 
 export async function submitBookingRequest(input: SubmitInput): Promise<SubmitResult> {
   const meta = await requestMeta();
-  if (!(await verifyTurnstile(input.token, meta.ip))) return { ok: false, code: 'turnstile', message: 'We could not confirm you are not a bot. Reload the page and try again.' };
+  if (!(await verifyTurnstile(input.token, meta.ip))) return { ok: false, code: 'turnstile', message: 'Our security check did not go through. Press Send again; if it keeps happening, try another browser. Your request is kept.' };
   if (!/^[A-Za-z0-9-]{8,100}$/.test(input.requestKey ?? '')) return { ok: false, code: 'invalid', message: 'Reload the page and try again.' };
   const [r, fleet, f, consent, signedIn] = await Promise.all([rules(), getFleet(), getFacts(), consentTexts(), (async () => (await auth()).currentUser())()]);
   // an account made by phone may send a request before it has an email (asked on the pay page; 0091)
