@@ -17596,11 +17596,11 @@ export type Database = {
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
-      server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_account_gate: { Args: { p_user: string; p_step: string }; Returns: Json };
       server_account_set_email: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
+      server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
