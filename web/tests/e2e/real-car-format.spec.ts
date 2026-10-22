@@ -80,7 +80,11 @@ test('a real car without photos looks like a sample car', async ({ page, request
     const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
     expect(ld.join('')).toContain('FrontWheelDriveConfiguration');
     // built from the car and its price, exactly as for the sample cars (the copy's own title is not used)
-    expect(await page.title()).toMatch(/2022 Chevrolet Malibu.* in Toronto.*\$\d+ a day \| CarmaCars$/);
+    // (when the other width's Malibu is on the site at the same time, both carry their colour, 0074, and the price is
+    // the part dropped to keep the title near 60 characters)
+    const title = await page.title();
+    expect(title).toMatch(/^(Rent a )?2022 Chevrolet Malibu.* in Toronto.*\| CarmaCars$/);
+    if (!title.includes('(')) expect(title).toMatch(/\$\d+ a day \| CarmaCars$/);
 
     const svg = await request.get('/sample-photos/studio/sedan/black/lead/MALIBU.svg');
     expect(svg.status()).toBe(200);
