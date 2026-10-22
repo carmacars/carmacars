@@ -31,7 +31,15 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
   const read = async (url: string) => { const f = issued.get(url); return f ? s.get(f.bucket, f.path) : null; };
   const worker = `web-${crypto.randomUUID().slice(0, 8)}`;
   return runListingWorker({
-    claim: async (n) => (await rpc('server_listing_claim', { p_worker: worker, p_limit: n }, SR)) as unknown as Claim,
+    claim: async (n) => {
+      const c = (await rpc('server_listing_claim', { p_worker: worker, p_limit: n }, SR)) as unknown as Claim;
+      // the usage guard (0080): photos keep their original while the month's included transformations are used
+      if (c.jobs.some((j) => j.kind === 'process_photo' || j.kind === 'resize')) {
+        try { c.budget = { ...c.budget, images_paused: ((await rpc('server_usage_gate', { p_service: 'images' }, SR)) as unknown as { ok: boolean }).ok === false }; }
+        catch { /* the guard cannot be read: the photo budget of 0032 still applies */ }
+      }
+      return c;
+    },
     report: (id, r) => rpc('server_listing_result', { p_job: id, p: r as unknown as Json }, SR),
     decodeVin: async (vin) => {
       const a = await decodeVin(vin);

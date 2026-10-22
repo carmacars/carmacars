@@ -5,6 +5,7 @@ import { door } from '@/server/door';
 import { BookingLink, Card, PageHead, t } from '@/features/admin/ui';
 import { Prompts } from '@/features/admin/todo/Prompts';
 import type { Todo } from '@/features/admin/todo/types';
+import { UsageCards } from '@/features/usage/UsageCards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -38,6 +39,7 @@ export default async function AdminToDo() {
       <PageHead title="To do" kicker={prompts.length + open.length ? `${prompts.length + open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now'}>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link>
       </PageHead>
+      <UsageCards userId={user.id} />
       <section className="pt-card ad-card" aria-labelledby="todo-h" data-testid="todo-list">
         <h2 className="vh" id="todo-h">To do, most urgent first</h2>
         <Prompts prompts={prompts} />

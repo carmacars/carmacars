@@ -430,6 +430,28 @@ def build():
     ])
     g.para('Add-on revenue is CarmaCars\' own. It is never in a commission: your commission stays on the rental charge.')
 
+    # ---------------------------------------------------------------- the assistant (0080)
+    g.chapter('Assistant',
+              'The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the '
+              'screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.',
+              blurb='Ask about today, bookings, cars and money; confirm the changes it prepares.')
+    g.task('Open it', f'Press {B("Assistant")} at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.')
+    g.steps([
+        'Type a question or what you want done, in your own words, and press Enter. Examples: "What needs doing today?", "Who has the Tesla?", '
+        '"Is the Corolla free from 2026-11-02 to 2026-11-04?", "Find booking R-000123".',
+        'Answers come as cards with links: open one to go straight to the screen.',
+        'If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.',
+    ])
+    g.task('Changes: a card to confirm')
+    g.steps([
+        'Ask for a change, for example "Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345".',
+        f'The assistant shows a card: "Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?". Read it, then press {B("Confirm")} or {B("Cancel")}.',
+        'Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.',
+        'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
+    ])
+    g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
+    g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
+
     # ---------------------------------------------------------------- shared
     g.chapter('Shared tools',
               'Every function has the calendar and Find a renter. Use them to answer questions fast.',

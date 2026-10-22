@@ -911,6 +911,47 @@ def build():
         'Removing a paid add-on after booking creates a refund for it, waiting for approval.',
     ])
 
+    # ---------------------------------------------------------------- the assistant (0080)
+    g.chapter('Assistant',
+              'The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the '
+              'screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.',
+              blurb='Ask about today, bookings, cars and money; confirm the changes it prepares.')
+    g.task('Open it', f'Press {B("Assistant")} at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.')
+    g.steps([
+        'Type a question or what you want done, in your own words, and press Enter. Examples: "What needs doing today?", "Who has the Tesla?", '
+        '"Is the Corolla free from 2026-11-02 to 2026-11-04?", "Find booking R-000123".',
+        'Answers come as cards with links: open one to go straight to the screen.',
+        'If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.',
+    ])
+    g.task('Changes: a card to confirm')
+    g.steps([
+        'Ask for a change, for example "Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345".',
+        f'The assistant shows a card: "Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?". Read it, then press {B("Confirm")} or {B("Cancel")}.',
+        'Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.',
+        'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
+    ])
+    g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
+    g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
+
+    # ---------------------------------------------------------------- usage (0080)
+    g.chapter('Usage and paid usage',
+              'The plans CarmaCars runs on include a free allowance: AI, the website, image transformations, emails, the database and storage. '
+              'When an allowance runs out, AI and photo features pause with a short message until it resets, and you are asked before anything is paid.',
+              blurb='Included allowances, the 80% and used-up alerts, allowing paid usage, what pauses and what never does.')
+    g.task('The alerts', f'At 80% of an allowance you get one quiet card on {B("To do")} and one email to the alert address. When it is used up, a second card and email.')
+    g.steps([
+        f'A used-up AI or image allowance shows "Included ... used up for today: Allow paid usage". Press {B("Allow paid usage")} to see what continuing costs at the current rates.',
+        'Choose until the end of today or this month, type the most it may cost (for example $1), and press the Allow button. Or press Keep paused.',
+        'Nobody answering keeps it paused: nothing is charged. Live chat goes to a person, AI copy waits with the template text, Turo emails are read by the rules, photos keep their original background, the assistant rests.',
+        'The website and the portals are never paused (that would stop bookings): their card shows the estimated cost, usually cents.',
+    ])
+    g.task('Settings > Usage', f'Open {B("Settings")}, then {B("Usage")}: every service, used against included, when it resets, paid usage and the last 30 days.')
+    g.steps([
+        f'Press {B("Change the allowance")} after a plan change (for example a Supabase or Resend upgrade).',
+        f'Supabase egress is not readable automatically: press {B("Enter a figure")} with the number from the Supabase dashboard.',
+        'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',
+    ])
+
     # ---------------------------------------------------------------- email
     g.chapter('Email, backups and site health',
               'Keep an eye on email use against the daily limit, the nightly backup and the occasional error page.',

@@ -398,7 +398,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- 0074: the count of guide opens per person (app_events, the internal event queue, is listed above)
                             'guide_reads',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
-                            'pdf_jobs')
+                            'pdf_jobs',
+                            -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
+                            'usage_readings', 'usage_alerts')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

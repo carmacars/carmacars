@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>170 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>66</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>17</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>171 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>66</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (66)</h2>
 <div class="grid">
@@ -699,7 +699,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (17)</h2>
+<h2 id="staff_admin">Staff: admin (18)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
@@ -796,6 +796,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Statements-draft job on the 5th at 06:00: the draft owner statements for last month are built and an approval task is raised. One email to both admins. A reminder is sent on the 8th at 09:00 if the run is still not approved.</div>
 <div class="ln"><a href="../dist/staff_statements_ready_for_approval.html">HTML</a><a href="../dist/staff_statements_ready_for_approval.txt">Text</a><a href="../shots/staff_statements_ready_for_approval.desktop.png">Desktop</a><a href="../shots/staff_statements_ready_for_approval.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_usage_alert.html"><img loading="lazy" src="../shots/staff_usage_alert.desktop.png" alt="Screenshot of staff_usage_alert"></a><div class="b">
+<div class="code">staff_usage_alert</div><div class="sub">Included Workers AI used up for today</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Usage guard (every hour, from the database): a metered service (Workers AI, Worker requests and CPU, image transformations, Resend emails, the Supabase database, file storage and egress, R2 storage, the Claude assistant) reached 80% of its included allowance for the period, or used all of it. Sent to the alert address in Program settings (uptime_alert_email), once per service, level and period, never from uptime_quiet_from_hour to uptime_quiet_until_hour (it waits for the morning). The same alert shows on Admin &gt; To do.</div>
+<div class="ln"><a href="../dist/staff_usage_alert.html">HTML</a><a href="../dist/staff_usage_alert.txt">Text</a><a href="../shots/staff_usage_alert.desktop.png">Desktop</a><a href="../shots/staff_usage_alert.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_weekly_summary.html"><img loading="lazy" src="../shots/staff_weekly_summary.desktop.png" alt="Screenshot of staff_weekly_summary"></a><div class="b">
 <div class="code">staff_weekly_summary</div><div class="sub">Week of Oct 19 to 25: 14 bookings, $9,842.10 collected</div>

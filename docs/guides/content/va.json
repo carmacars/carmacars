@@ -84,6 +84,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "assistant",
+   "title": "Assistant",
+   "blurb": "Ask about today, bookings, cars and money; confirm the changes it prepares.",
+   "body_md": "The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.\n\n## Open it\n\nPress **Assistant** at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.\n\n1. Type a question or what you want done, in your own words, and press Enter. Examples: \"What needs doing today?\", \"Who has the Tesla?\", \"Is the Corolla free from 2026-11-02 to 2026-11-04?\", \"Find booking R-000123\".\n2. Answers come as cards with links: open one to go straight to the screen.\n3. If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.\n\n## Changes: a card to confirm\n\n1. Ask for a change, for example \"Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345\".\n2. The assistant shows a card: \"Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?\". Read it, then press **Confirm** or **Cancel**.\n3. Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.\n4. Every change is in the audit log under your name, marked \"via assistant\". A card older than 30 minutes no longer runs: ask again.\n\nMessages: ask it to draft a message to a renter or an owner. It writes the text; press **Copy**, open the conversation and send it yourself.\n\n> Tip: When the day's included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.\n"
+  },
+  {
+   "kind": "chapter",
    "slug": "shared-tools",
    "title": "Shared tools",
    "blurb": "The calendar and Find a renter.",

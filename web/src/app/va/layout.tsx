@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { viewAs } from '@/server/view-as';
 import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
@@ -37,7 +38,7 @@ export default async function VaLayout({ children }: { children: React.ReactNode
         {roles?.va ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">{FN_LABEL[roles.va]} · <b data-testid="account-email">{roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><Link prefetch={false} className="link" href="/va/profile" data-testid="va-profile-link">Profile</Link><GuideLink portal="va" /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links"><Link prefetch={false} className="link" href="/va/profile" data-testid="va-profile-link">Profile</Link>{!viewing && <AssistantPanel portal="va" />}<GuideLink portal="va" /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {(roles.va_functions?.length ?? 0) > 1 && !viewing && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
