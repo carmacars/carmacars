@@ -1,0 +1,74 @@
+{
+ "volkswagen": {
+  "0": [
+   "Jetta",
+   "Jetta Wagon",
+   "Jetta SportWagen",
+   "Jetta GLI"
+  ]
+ },
+ "toyota": {
+  "0": [
+   "RAV4",
+   "RAV4 Prime (PHEV)"
+  ]
+ },
+ "honda": {
+  "0": [
+   "CR-V"
+  ]
+ },
+ "chevrolet": {
+  "0": [
+   "Malibu",
+   "Malibu Classic",
+   "Malibu Limited"
+  ]
+ },
+ "kia": {
+  "0": [
+   "Forte",
+   "Forte Koup"
+  ]
+ },
+ "tesla": {
+  "0": [
+   "Model 3"
+  ]
+ },
+ "ford": {
+  "0": [
+   "Mustang",
+   "Mustang Mach-E",
+   "Mustang GTD"
+  ]
+ },
+ "mercedes-benz": {
+  "0": [
+   "C-Class"
+  ]
+ },
+ "cadillac": {
+  "0": [
+   "CTS"
+  ]
+ },
+ "porsche": {
+  "0": [
+   "Macan"
+  ]
+ },
+ "mazda": {
+  "0": [
+   "MX-5"
+  ]
+ },
+ "hyundai": {
+  "0": [
+   "Elantra",
+   "Elantra Touring",
+   "Elantra GT",
+   "Elantra N"
+  ]
+ }
+}

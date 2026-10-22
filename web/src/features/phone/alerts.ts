@@ -17,7 +17,7 @@ export interface Reach {
   user_id: string | null; chosen: Channel | null; default: Channel; wanted: Channel; channel: Channel;
   email: string | null; phone: string | null; country: string | null; textable: boolean; why_not: WhyNot | null; opted_out_at: string | null;
   our_number?: string | null; quiet_from?: number; quiet_until?: number; quiet?: boolean; enabled?: boolean;
-  log?: Array<{ action: 'stop' | 'start'; source: string | null; at: string }>; texts_30d?: number;
+  log?: Array<{ action: 'stop' | 'start'; source: string | null; at: string; confirmation?: string | null }>; texts_30d?: number;
 }
 
 export const isChannel = (v: unknown): v is Channel => v === 'email' || v === 'text' || v === 'both';
@@ -78,5 +78,11 @@ export const SMS_SAMPLE: Record<string, string> = {
   final_deadline: 'Tue, Oct 27 at 2:00 pm', verify_by: 'Thu, Oct 22 at 6:00 pm', hours_left: '6 hours', statement_month: 'October 2026',
   payout_amount: '$2,140.55', invoice_number: 'INV-2026-0142', invoice_total: '$545.00', due_date: 'Nov 1, 2026', debit_total: '$545.00',
   debit_date: 'Nov 1, 2026', return_amount: '$812.50', eta_minutes: '40', subject: 'Your CarmaCars owner account is ready',
+  accept_by: 'Thu, Oct 22 at 6:00 pm', charge_type: 'Toll', charge_total: '$18.40', renter_name: 'Maya Patel', notice_type: 'Parking ticket',
+  notice_type_lower: 'parking ticket', notice_number: 'PT-55120', notice_amount: '$75.00', notice_date: 'Oct 20, 2026', discount_percent: '10',
+  discount_code: 'BACK10', discount_expires: 'Nov 30, 2026', prize_label: '10% off', chat_number: 'CH-2041', application_number: 'APP-0311',
+  visit_date: 'Mon, Oct 26', visit_time: '11:00 am', owner_name: 'Omar Haddad', balance: '$545.00', arrears_amount: '$545.00', payee_name: 'CarmaCars',
+  support_phone: '(647) 555-0100', effective_date: 'Dec 1, 2026', document_type: 'Insurance slip', form_title: 'Form D, limited power of attorney',
+  incident_date: 'Oct 20, 2026', incident_number: 'INC-0042', incident_status: 'with the body shop', exit_date: 'Dec 31, 2026',
   link: 'https://carmacars.ca/account/bookings/CC-10482/offer'
 };

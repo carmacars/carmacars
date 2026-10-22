@@ -149,7 +149,8 @@ jobs:
           cp .env.example .env.local
           bash scripts/local-db.sh up
       - name: Worker build (runs next build)
-        run: ../.github/ci-run.sh "Worker build" npx opennextjs-cloudflare build
+        # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
+        run: ../.github/ci-run.sh "Worker build" npm run -s cf:build
       - name: Server
         run: |
           (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
@@ -301,7 +302,8 @@ jobs:
             echo "PHOTO_PROVIDER=cloudflare"
             echo "QUO_PROVIDER=quo"
           } > .env.production
-          $RUN "Worker build" npx opennextjs-cloudflare build
+          # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
+          $RUN "Worker build" npm run -s cf:build
       - name: Deploy the Worker (with its secrets)
         working-directory: web
         run: |

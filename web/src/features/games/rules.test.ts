@@ -1,11 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { coinFlip, dieFace, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, slotStops, slotStrip, SAVED_DAYS } from './rules.ts';
 import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
-// Discount games (migrations 0069 and 0081): when a game may show (first, again after a close, in the request-to-book
-// form), the round of five games, and that every game lands on the prize the database drew.
-const CFG: GameCfg = { on: true, car_pages: 1, seconds: 15, exit: true, reshow_pages: 2, reshow_seconds: 60, per_visit: 3, per_day: 6, booking: true };
+// Discount games (migrations 0069, 0081, 0094 and 0100): when a game may show (first, again after a close, in the
+// request-to-book form), the rotation, and that every game lands on the prize the database drew. CFG: the owner's
+// defaults of 0100 (2nd page view or 30 seconds; after a close the 3rd page view or 2 minutes; 4 a visit; no daily cap).
+const CFG: GameCfg = { on: true, car_pages: 2, seconds: 30, exit: false, reshow_pages: 3, reshow_seconds: 120, per_visit: 4, per_day: 0, booking: true };
 const NOW = Date.parse('2026-10-21T15:00:00Z');
 const PRIZES: PrizeWord[] = [{ key: 'pct5', short: '5%', label: '5% off' }, { key: 'pct10', short: '10%', label: '10% off' }, { key: 'pct15', short: '15%', label: '15% off' }, { key: 'amt50', short: '$50', label: '$50 off' }];
 let seed = 7;
@@ -23,10 +25,10 @@ describe('who may see a game on the site', () => {
   it('no more 14-day wait after closing (0081): a close long ago or just now does not stop it', () => {
     assert.equal(ineligible({ ...base, mem: { dismissedAt: NOW - 1000 } }), null);
   });
-  it('at most 3 shows a visit', () => {
-    assert.equal(ineligible({ ...base, visit: visit({ shows: 2 }) }), null);
-    assert.equal(ineligible({ ...base, visit: visit({ shows: 3 }) }), 'visit_cap');
-    assert.equal(ineligible({ ...base, cfg: { ...CFG, per_visit: 5 }, visit: visit({ shows: 3 }) }), null);
+  it('at most 4 shows a visit (0100)', () => {
+    assert.equal(ineligible({ ...base, visit: visit({ shows: 3 }) }), null);
+    assert.equal(ineligible({ ...base, visit: visit({ shows: 4 }) }), 'visit_cap');
+    assert.equal(ineligible({ ...base, cfg: { ...CFG, per_visit: 5 }, visit: visit({ shows: 4 }) }), null);
   });
   it('never on booking, pay, sign, sign-in or portal pages', () => {
     for (const p of ['/book/tesla-model-3', '/book/sent/CC-1', '/account', '/account/bookings/CC-1/pay', '/owner', '/sign-in', '/sign/driver/x', '/admin', '/va/live', '/field', '/investor', '/list-your-car/apply', '/sign-document/x', '/create-account', '/reset-password'])
@@ -35,105 +37,165 @@ describe('who may see a game on the site', () => {
   });
 });
 
-describe('the first game of a visit', () => {
-  it('after 1 car page', () => {
+describe('the first game of a visit (0100: the 2nd page view or 30 seconds, whichever first)', () => {
+  it('on the 2nd page view, any page', () => {
     let v = visit({ pages: 0 });
     v = addPage(v, '/');
     assert.equal(t(v), null);
-    v = addPage(v, '/cars/a');
+    v = addPage(v, '/faq');
     assert.deepEqual(t(v), { why: 'pages', slim: false });
   });
-  it('or after 15 seconds on the site, whichever first', () => {
-    assert.equal(t(visit({ start: NOW - 14_999 })), null);
-    assert.deepEqual(t(visit({ start: NOW - 15_000 })), { why: 'time', slim: false });
+  it('car pages count as pages, no more', () => {
+    let v = visit({ pages: 0 });
+    v = addPage(v, '/cars/a');
+    assert.equal(t(v), null);
   });
-  it('or on exit intent, on a computer only', () => {
-    assert.deepEqual(t(visit(), { exit: true }), { why: 'exit', slim: false });
-    assert.equal(t(visit(), { exit: true, phone: true }), null);
-    assert.equal(t(visit(), { exit: true, cfg: { ...CFG, exit: false } }), null);
+  it('or after 30 seconds on the site, whichever first', () => {
+    assert.equal(t(visit({ start: NOW - 29_999 })), null);
+    assert.deepEqual(t(visit({ start: NOW - 30_000 })), { why: 'time', slim: false });
   });
-  it('a setting at 0 turns its rule off', () => assert.equal(t(visit({ start: 0, cars: ['a', 'b', 'c'] }), { cfg: { ...CFG, car_pages: 0, seconds: 0 } }), null));
-  it('the timer looks again when the 15 seconds are up', () => {
-    assert.equal(nextCheck({ cfg: CFG, visit: visit({ start: NOW - 5000 }), now: NOW, phone: false }), 10_000);
+  it('exit intent is off by default; on, it is for computers only', () => {
+    assert.equal(t(visit(), { exit: true }), null);
+    const on = { ...CFG, exit: true };
+    assert.deepEqual(t(visit(), { exit: true, cfg: on }), { why: 'exit', slim: false });
+    assert.equal(t(visit(), { exit: true, phone: true, cfg: on }), null);
+  });
+  it('a setting at 0 turns its rule off', () => assert.equal(t(visit({ start: 0, pages: 9 }), { cfg: { ...CFG, car_pages: 0, seconds: 0 } }), null));
+  it('the timer looks again when the 30 seconds are up', () => {
+    assert.equal(nextCheck({ cfg: CFG, visit: visit({ start: NOW - 5000 }), now: NOW, phone: false }), 25_000);
     assert.equal(nextCheck({ cfg: { ...CFG, seconds: 0 }, visit: visit(), now: NOW, phone: false }), null);
   });
 });
 
 describe('a phone visit from a search engine (no interstitial on the landing page)', () => {
   const land = (o: Partial<Visit> = {}) => visit({ fromSearch: true, pages: 1, ...o });
-  it('not at once on the first page, even a car page', () => {
-    assert.equal(t(land({ start: NOW, cars: ['a'] }), { phone: true }), null);
-    assert.equal(t(land({ start: NOW - 20_000 }), { phone: true }), null);
+  it('not at once on the first page', () => {
+    assert.equal(t(land({ start: NOW }), { phone: true }), null);
+    assert.equal(t(land({ start: NOW - 30_000 }), { phone: true }), null);
   });
   it('15 seconds after its rule, as the small slide-in', () => {
-    assert.equal(t(land({ start: NOW - SEARCH_LANDING_DELAY + 1, cars: ['a'] }), { phone: true }), null);
-    assert.deepEqual(t(land({ start: NOW - SEARCH_LANDING_DELAY, cars: ['a'] }), { phone: true }), { why: 'pages', slim: true });
-    assert.deepEqual(t(land({ start: NOW - 15_000 - SEARCH_LANDING_DELAY }), { phone: true }), { why: 'time', slim: true });
-    assert.equal(nextCheck({ cfg: CFG, visit: land({ start: NOW }), now: NOW, phone: true }), 15_000 + SEARCH_LANDING_DELAY);
+    assert.equal(t(land({ start: NOW - 30_000 - SEARCH_LANDING_DELAY + 1 }), { phone: true }), null);
+    assert.deepEqual(t(land({ start: NOW - 30_000 - SEARCH_LANDING_DELAY }), { phone: true }), { why: 'time', slim: true });
+    assert.equal(nextCheck({ cfg: CFG, visit: land({ start: NOW }), now: NOW, phone: true }), 30_000 + SEARCH_LANDING_DELAY);
   });
-  it('or on the second page, as the usual card', () => assert.deepEqual(t(land({ pages: 2, cars: ['a'] }), { phone: true }), { why: 'pages', slim: false }));
-  it('a computer from a search engine is not held back', () => assert.deepEqual(t(land({ cars: ['a'] })), { why: 'pages', slim: false }));
+  it('or on the second page, as the usual card', () => assert.deepEqual(t(land({ pages: 2 }), { phone: true }), { why: 'pages', slim: false }));
 });
 
-describe('again after a close', () => {
-  const after = (o: Partial<Visit> = {}) => closed(shown(visit({ cars: ['a'], ...o })), NOW);
-  it('not while one is open', () => assert.equal(t(shown(visit({ cars: ['a', 'b', 'c'], start: 0 }))), null));
-  it('on the 2nd page view after the close, any page (0094)', () => {
+describe('again after a close (0100: the 3rd page view after the close or 2 minutes, whichever first)', () => {
+  const after = (o: Partial<Visit> = {}) => closed(shown(visit({ pages: 2, ...o })), NOW);
+  it('not while one is open', () => assert.equal(t(shown(visit({ pages: 9, start: 0 }))), null));
+  it('on the 3rd page view after the close, any page', () => {
     let v = after();
     assert.equal(t(v), null);
     v = addPage(v, '/how-it-works');
-    assert.equal(t(v), null);
     v = addPage(v, '/faq');
+    assert.equal(t(v), null);
+    v = addPage(v, '/cars');
     assert.deepEqual(t(v), { why: 'pages', slim: false });
+    assert.equal(reshowDue(CFG, v, NOW), 'pages');
   });
-  it('or 60 seconds after the close, whichever first (0094)', () => {
+  it('or 2 minutes after the close, whichever first', () => {
     const v = after();
-    assert.equal(t(v, { now: NOW + 59_999 }), null);
-    assert.deepEqual(t(v, { now: NOW + 60_000 }), { why: 'time', slim: false });
-    assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW + 20_000, phone: false }), 40_000);
+    assert.equal(t(v, { now: NOW + 119_999 }), null);
+    assert.deepEqual(t(v, { now: NOW + 120_000 }), { why: 'time', slim: false });
+    assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW + 20_000, phone: false }), 100_000);
   });
-  it('at most 6 a day in this browser (0094), the first game too', () => {
-    assert.equal(trigger({ cfg: CFG, visit: visit({ cars: ['a'] }), now: NOW, phone: false, today: 6 }), null);
-    assert.deepEqual(trigger({ cfg: CFG, visit: visit({ cars: ['a'] }), now: NOW, phone: false, today: 5 }), { why: 'pages', slim: false });
-    assert.equal(nextCheck({ cfg: CFG, visit: after(), now: NOW, phone: false, today: 6 }), null);
+  it('both rules at 0: no game again in this visit', () => {
+    const off = { ...CFG, reshow_pages: 0, reshow_seconds: 0 };
+    let v = after();
+    for (let i = 0; i < 9; i++) v = addPage(v, '/faq');
+    assert.equal(t(v, { now: NOW + 3_600_000, cfg: off }), null);
+    assert.equal(nextCheck({ cfg: off, visit: v, now: NOW, phone: false }), null);
+  });
+  it('no daily cap by default (0 or empty); a cap when set, the first game too', () => {
+    assert.deepEqual(trigger({ cfg: CFG, visit: visit({ pages: 2 }), now: NOW, phone: false, today: 40 }), { why: 'pages', slim: false });
+    assert.deepEqual(trigger({ cfg: { ...CFG, per_day: null }, visit: visit({ pages: 2 }), now: NOW, phone: false, today: 40 }), { why: 'pages', slim: false });
+    const capped = { ...CFG, per_day: 6 };
+    assert.equal(trigger({ cfg: capped, visit: visit({ pages: 2 }), now: NOW, phone: false, today: 6 }), null);
+    assert.deepEqual(trigger({ cfg: capped, visit: visit({ pages: 2 }), now: NOW, phone: false, today: 5 }), { why: 'pages', slim: false });
+    assert.equal(nextCheck({ cfg: capped, visit: after(), now: NOW, phone: false, today: 6 }), null);
     const m = { day: gameDay(NOW), dayShows: 5 };
     assert.equal(shownToday(m, NOW), 5);
     assert.equal(shownToday(m, NOW + 2 * 86_400_000), 0);
     assert.deepEqual(countShown(m, NOW), { day: gameDay(NOW), dayShows: 6 });
   });
-  it('exit intent is for the first game only', () => assert.equal(t(after(), { exit: true }), null));
-  it('at most 3 a visit, then not even by time', () => {
-    let v = visit({ cars: ['a'] });
-    for (let i = 0; i < 3; i++) v = closed(shown(v), NOW);
-    assert.equal(v.shows, 3);
+  it('exit intent is for the first game only', () => assert.equal(t(after(), { exit: true, cfg: { ...CFG, exit: true } }), null));
+  it('at most 4 a visit, then not even by time or pages', () => {
+    let v = visit({ pages: 2 });
+    for (let i = 0; i < 4; i++) v = closed(shown(v), NOW);
+    assert.equal(v.shows, 4);
+    for (let i = 0; i < 5; i++) v = addPage(v, '/faq');
     assert.equal(t(v, { now: NOW + 3_600_000 }), null);
     assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW, phone: false }), null);
+    assert.equal(ineligible({ cfg: CFG, mem: {}, signedIn: false, path: '/', visit: v }), 'visit_cap');
   });
-  it('a later visit starts again (a new visit has no shows)', () => assert.deepEqual(t(visit({ cars: ['a'] })), { why: 'pages', slim: false }));
+  it('a later visit starts again (a new visit has no shows)', () => assert.deepEqual(t(visit({ pages: 2 })), { why: 'pages', slim: false }));
 });
 
-describe('the round of five games', () => {
-  it('each of the six games once before one repeats, and never the same twice in a row', () => {
+describe('a booking request in progress, and a prize already won (0100)', () => {
+  const base = { cfg: CFG, mem: {}, signedIn: false, path: '/cars' };
+  it('no game while a booking request is in progress in this browser', () => {
+    assert.equal(ineligible({ ...base, busy: true }), 'in_progress');
+    assert.equal(requestInProgress({ mem: {}, draft: null, now: NOW }), false);
+    // the form only opened (step 1, nothing saved): not yet
+    assert.equal(requestInProgress({ mem: {}, draft: { step: 1, token: null, draftId: null, at: NOW }, now: NOW }), false);
+    assert.equal(requestInProgress({ mem: {}, draft: { step: 2, at: NOW - 1000 }, now: NOW }), true);
+    assert.equal(requestInProgress({ mem: {}, draft: { step: 1, draftId: 'd1', at: NOW }, now: NOW }), true);
+    assert.equal(requestInProgress({ mem: { requested: NOW - 86_400_000 }, draft: null, now: NOW }), true);
+    // an old draft no longer counts
+    assert.equal(requestInProgress({ mem: {}, draft: { step: 3, at: NOW - 31 * 86_400_000 }, now: NOW }), false);
+  });
+  it('never on checkout or payment pages; the request-to-book form keeps its own game', () => {
+    for (const p of ['/checkout', '/checkout/x', '/pay/abc', '/payment', '/account/bookings/CC-1/pay', '/my-request/x', '/continue/x', '/book/sent/CC-1']) assert.equal(excludedPath(p), true, p);
+    assert.equal(bookingPath('/book/tesla-model-3'), true);
+    assert.equal(bookingPath('/book/tesla-model-3/pay'), false);
+  });
+  it('a prize won here is saved, never a new game or a new win', () => {
+    const won = { label: '5% off', short: '5%', at: NOW - 1000 };
+    assert.equal(ineligible({ ...base, mem: { won } }), 'saved');
+    assert.deepEqual(savedPrize({ won }, NOW), won);
+    assert.equal(savedWords(won), 'Your 5% off is saved');
+    // claimed, or older than the days a prize is kept: no badge
+    assert.equal(savedPrize({ won, claimed: true }, NOW), null);
+    assert.equal(savedPrize({ won }, NOW + SAVED_DAYS * 86_400_000), null);
+    assert.equal(ineligible({ ...base, mem: { won: { ...won, at: NOW - SAVED_DAYS * 86_400_000 - 1 } }, now: NOW }), null);
+  });
+});
+
+describe('the rotation (0100: eleven games, never the same twice in a row)', () => {
+  it('every game once before one repeats, and never the same twice in a row', () => {
     let seen: GameKind[] = [];
     const order: GameKind[] = [];
-    for (let i = 0; i < 12; i++) {
-      const left = unseen(seen, GAMES, order[order.length - 1]);
-      const g = left[Math.floor(rand() * left.length)]!;
+    for (let i = 0; i < 40; i++) {
+      const g = nextGame({ seen, last: order[order.length - 1], r: rand })!;
       if (order.length) assert.notEqual(g, order[order.length - 1]);
       order.push(g);
       seen = addSeen(seen, g);
     }
-    assert.equal(new Set(order.slice(0, 6)).size, 6);
+    assert.equal(new Set(order.slice(0, GAMES.length)).size, GAMES.length);
   });
-  it('a full round starts again with the last one shown', () => {
-    assert.deepEqual(addSeen(['wheel', 'scratch', 'blackjack', 'cups', 'plinko'], 'pack'), ['pack']);
-    assert.deepEqual(unseen(['pack'], GAMES), ['wheel', 'scratch', 'blackjack', 'cups', 'plinko']);
+  it('a full round starts again, never with the last one shown', () => {
+    const all = GAMES.slice(0, -1);
+    assert.deepEqual(addSeen(all, 'mystery'), ['mystery']);
+    assert.deepEqual(unseen(['mystery'], GAMES), GAMES.filter((g) => g !== 'mystery'));
+    // the browser lost its round: still not the last game
+    assert.ok(!unseen([], GAMES, 'coin').includes('coin'));
+    assert.ok(!unseen(GAMES, GAMES, 'dice').includes('dice'));
   });
-  it('games turned off are not waited for', () => {
+  it('games turned off are not waited for; one game on repeats (nothing else to show)', () => {
     const on: GameKind[] = ['wheel', 'cups'];
     assert.deepEqual(addSeen(['wheel'], 'cups', on), ['cups']);
     assert.deepEqual(unseen(['wheel', 'cups'], on, 'cups'), ['wheel']);
     assert.deepEqual(unseen(['scratch'], on), ['wheel', 'cups']);
+    assert.deepEqual(unseen(['wheel'], ['wheel'], 'wheel'), ['wheel']);
+    assert.equal(nextGame({ last: 'slots', weights: { slots: 1, dice: 0 }, r: rand }), 'slots');
+  });
+  it('weights: a game at 0 never comes, the others by their weight', () => {
+    const n: Record<string, number> = {};
+    for (let i = 0; i < 2000; i++) { const g = nextGame({ weights: { coin: 3, dice: 1, slots: 0 }, r: rand })!; n[g] = (n[g] ?? 0) + 1; }
+    assert.equal(n.slots, undefined);
+    assert.ok(n.coin! > n.dice! * 2 && n.coin! < n.dice! * 4, JSON.stringify(n));
+    assert.equal(nextGame({ weights: {}, r: rand }), null);
   });
 });
 
@@ -287,7 +349,7 @@ describe('the card pack (0081)', () => {
     assert.equal(tearProgress(0, 50, 0), 0);
     assert.ok(tearProgress(0, 130, 200) >= TORN);
   });
-  it('the pack is in the round of games', () => assert.ok(GAMES.includes('pack') && GAMES.length === 6));
+  it('the pack is in the round of games', () => assert.ok(GAMES.includes('pack') && GAMES.length === 11));
 });
 
 describe('the claim form', () => {
@@ -296,5 +358,25 @@ describe('the claim form', () => {
     assert.deepEqual(Object.keys(claimProblems({ first: '', email: 'x', phone: '12' })).sort(), ['email', 'first', 'phone']);
     assert.deepEqual(claimProblems({ first: 'Maya', email: 'maya@example.com', phone: '(647) 555-0101' }), {});
     assert.deepEqual(claimProblems({ first: 'Maya', email: 'maya@example.com', phone: '+44 20 7946 0958' }), {});
+  });
+});
+
+describe('the five games of 0100 land on the drawn prize', () => {
+  const P: PrizeWord[] = [...PRIZES, { key: 'day1', short: 'FREE', label: '1 free day' }];
+  it('the slot machine: every prize on the reels, three of the drawn prize on the line', () => {
+    const strip = slotStrip(P);
+    for (const p of P) assert.ok(strip.some((s) => s.key === p.key), p.key);
+    for (const p of P) for (let i = 0; i < 20; i++) {
+      const stops = slotStops(strip, p.key, rand);
+      assert.equal(stops.length, 3);
+      for (const x of stops) assert.equal(strip[x]!.key, p.key);
+    }
+  });
+  it('the dice and the coin are fair and only for show', () => {
+    const faces = new Set<number>(); const sides = new Set<string>();
+    for (let i = 0; i < 500; i++) { const f = dieFace(rand); assert.ok(f >= 1 && f <= 6); faces.add(f); sides.add(coinFlip(rand)); }
+    assert.equal(faces.size, 6);
+    assert.deepEqual([...sides].sort(), ['heads', 'tails']);
+    assert.equal(dieFace(() => 0.9999999), 6);
   });
 });

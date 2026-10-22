@@ -178,3 +178,30 @@ test('numbers in the tag store: the fleet signature beside the generation', asyn
   assert.equal(await readNumber(env, 'carmacars/fleet-sig'), 123456);
   assert.equal(await readNumber(env, EDGE_GEN_KEY), 0, 'the generation is a different key');
 });
+
+test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours whatever Next.js says, public for crawlers', async () => {
+  const { PROGRAMMATIC, PROGRAMMATIC_TTL_S } = await import('./page-cache.ts');
+  const h = (o: Record<string, string>) => new Headers(o);
+  for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
+    assert.ok(PROGRAMMATIC.test(p), p);
+  for (const p of ['/cars', '/cars/porsche-911', '/buy', '/t/car-hire', '/admin/x']) assert.ok(!PROGRAMMATIC.test(p), p);
+  assert.equal(edgeTtl('/cars/volkswagen/jetta/2020', 200, h({ 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate' })), PROGRAMMATIC_TTL_S);
+  assert.equal(edgeTtl('/buy/volkswagen', 200, h({ 'cache-control': 'private, no-store', 'set-cookie': 'a=1' })), 0);
+  assert.equal(edgeTtl('/t/car-hire/volkswagen', 404, h({})), 0);
+});
+
+test('place pages (0095): rendered on demand, kept in the edge copy only, a short public browser cache', async () => {
+  const html = (x: Record<string, string> = {}) => new Headers({ 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate', ...x });
+  for (const p of ['/car-rental/port-credit-mississauga-on', '/car-rental/suv-rental/gta', '/buy/used-cars/buffalo-ny', '/detailing/ceramic-coating/toronto', '/body-shop/collision-repair/oakville']) {
+    assert.equal(edgeTtl(p, 200, html()), 21600, p);
+  }
+  assert.equal(edgeTtl('/car-rental/suv-rental/gta', 404, html()), 0);
+  assert.equal(edgeTtl('/car-rental/suv-rental/gta', 200, html({ 'set-cookie': 'a=b' })), 0);
+  assert.equal(edgeTtl('/cars/x', 200, html()), 0, 'other dynamic pages are not kept');
+  const puts: Array<[string, Response]> = [];
+  const res = edgeKeep('k', '/car-rental/suv-rental/gta', new Response('<html></html>', { headers: html() }), { cache: async () => ({ match: async () => undefined, put: async (k: string, r: Response) => { puts.push([k, r]); } }), env: {}, waitUntil: (p) => { void p; } });
+  assert.equal(res.headers.get('cache-control'), 'public, max-age=300');
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(puts.length, 1);
+  assert.equal(puts[0]![1].headers.get('cache-control'), 'public, max-age=21600');
+});

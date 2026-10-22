@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
+import { napAddress } from '@/features/seo/business';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
@@ -36,7 +37,7 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
             {s.whatsapp && <li><a href={waLink(s.whatsapp)} rel="noopener">WhatsApp</a></li>}
             {s.public_email && <li><a href={`mailto:${s.public_email}`}>{s.public_email}</a></li>}
             <li><span>{[s.opening_hours_text, reply].filter(Boolean).join('. ')}.</span></li>
-            {s.street_address && <li><span>{s.street_address}</span></li>}
+            {napAddress(s).street && <li><span data-testid="footer-address">{napAddress(s).line}</span></li>}
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>
             <li><Link prefetch={false} href="/list-your-car">List your car</Link></li><li><Link prefetch={false} href="/faq">FAQ</Link></li>
@@ -49,6 +50,15 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
             <li><CookiePrefsButton /></li>
           </ul></nav>
         </div>
+        {/* Browse (owner, October 22, 2026): the one quiet way into the place and service pages; they link on among themselves */}
+        <nav aria-label="Browse" className="footer-browse"><h2>Browse</h2><ul>
+          <li><Link prefetch={false} href="/car-rental/toronto">Car rental in {s.city}</Link></li>
+          <li><Link prefetch={false} href="/car-rental/gta">Car rental across the GTA</Link></li>
+          <li><Link prefetch={false} href="/car-rental">All rental areas and terms</Link></li>
+          <li><Link prefetch={false} href="/detailing">Car detailing</Link></li>
+          <li><Link prefetch={false} href="/body-shop">Auto body shop</Link></li>
+          <li><Link prefetch={false} href="/buy/cars-for-sale/toronto">Buying a car</Link></li>
+        </ul></nav>
         <div className="footer-legal">
           <span>{s.brand_name}. {s.service_area}, Canada.</span>
           <span>Prices in Canadian dollars, before HST unless stated.</span>

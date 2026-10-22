@@ -16,15 +16,17 @@ const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e
 
 // what the public site shows, by action: the pages to rebuild after the change
 const PUBLIC: Record<string, string[]> = {
-  rate_card: ['/cars/[slug]', '/cars', '/', '/rent/[hub]'],
-  bulk_rate_apply: ['/cars/[slug]', '/cars', '/', '/rent/[hub]'],
+  // the vehicle pages (0097): the trims and the popular list change their pages and the sitemaps
+  vehicle_pages_trims: ['/'], vehicle_pages_popular: ['/'],
+  rate_card: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],
+  bulk_rate_apply: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],
   vehicle_deposit: ['/cars/[slug]'],
   fee_override: ['/cars/[slug]'], fee_override_end: ['/cars/[slug]'],
-  listing_review: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
-  listing_publish: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
-  listing_publish_now: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
-  listing_unlist: ['/cars/[slug]', '/cars', '/', '/rent/[hub]', '/sitemap.xml'],
-  vehicle_sample: ['/cars/[slug]', '/rent/[hub]', '/sitemap.xml'],
+  listing_review: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
+  listing_publish: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
+  listing_publish_now: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
+  listing_unlist: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
+  vehicle_sample: ['/cars/[slug]', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
   review_publish: ['/cars/[slug]', '/'], review_hide: ['/cars/[slug]', '/'],
   block_create: ['/cars/[slug]'], block_remove: ['/cars/[slug]'], block_end: ['/cars/[slug]'], block_update: ['/cars/[slug]'],
   vehicle_status: ['/cars/[slug]', '/cars', '/']

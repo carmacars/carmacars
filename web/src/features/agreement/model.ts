@@ -88,7 +88,7 @@ export function markdown(body: string, values: Record<string, string>): Block[] 
 }
 
 const BOOKING_TYPE: Record<string, string> = { standard: 'Standard', non_refundable: 'Non-refundable (10% discount)', owner: 'Owner Rental (Part 5 applies)' };
-const COVERAGE: Record<number, string> = { 1: '1: OPCF 27 on your own auto policy', 2: '2: rental coverage on your credit card', 3: '3: the CarmaCars Protection Plan' };
+const COVERAGE: Record<number, string> = { 1: '1: OPCF 27 on your own auto policy', 2: '2: rental coverage on your credit card', 3: '3: the CarmaCars Protection Plan', 4: '4: insurance included with the car (no personal auto policy needed)' };
 
 export interface BuildOptions { signatures?: SignatureRow[]; privacyUrl: string }
 

@@ -84,7 +84,7 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
       {show && notice && (
         <section className="cookie cookie--compact cookie--notice on-dark" aria-labelledby="ck-n" data-testid="cookie-notice">
           <h2 className="vh" id="ck-n">{w.title}</h2>
-          <p className="cookie__line small">{w.notice} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">Learn more</Link></p>
+          <p className="cookie__line small">{w.notice} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
           <p className="cookie__notice-btns">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setShow(false)} data-testid="cookie-ok">{w.ok ?? 'OK'}</button>
             <button type="button" className="cookie__link" onClick={() => save('necessary_only', false)} data-testid="cookie-optout">{w.optout ?? w.necessary}</button>
@@ -94,7 +94,7 @@ export function CookieBanner({ w }: { w: CookieWording | null }) {
       {show && !notice && (
         <section className="cookie cookie--compact on-dark" aria-labelledby="ck-t" data-testid="cookie-banner">
           <h2 className="vh" id="ck-t">{w.title}</h2>
-          <p className="cookie__line small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">Learn more</Link></p>
+          <p className="cookie__line small">{w.text} <Link prefetch={false} className="link" href="/privacy#cookies-and-analytics">How we use cookies</Link></p>
           <button type="button" className="btn btn--primary cookie__accept" onClick={() => save('accept_all', true)} data-testid="cookie-accept">{w.accept}</button>
           <p className="cookie__more small">
             <button type="button" className="cookie__link" onClick={() => save('necessary_only', false)} data-testid="cookie-necessary">{w.necessary}</button>

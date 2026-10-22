@@ -396,6 +396,12 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 .footer-grid a { color: var(--white); text-decoration: none; font-size: var(--fs-sm); }
 .footer-grid a:hover { text-decoration: underline; text-decoration-color: var(--red-600); text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .footer-cta { grid-column: 1 / -1; }
+.footer-browse { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-4); margin-top: var(--s-7); font-size: var(--fs-xs); color: var(--grey-400); }
+.footer-browse h2 { font-size: inherit; font-weight: 500; margin: 0; color: inherit; }
+.footer-browse ul { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); list-style: none; margin: 0; padding: 0; }
+.footer-browse a { color: inherit; }
+.footer-browse a:hover { color: var(--white); }
+.footer-browse + .footer-legal { margin-top: var(--s-3); }
 .footer-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-5); margin-top: var(--s-7); padding-block: var(--s-4); border-top: 1px solid var(--grey-800); font-size: var(--fs-xs); color: var(--grey-400); }
 .footer-mark { display: block; margin-top: var(--s-7); margin-bottom: -0.14em; margin-left: -0.04em; color: var(--white); user-select: none; }
 @media (min-width: 56rem) { .footer-grid { grid-template-columns: 1.6fr repeat(4, 1fr); } .footer-cta { grid-column: auto; } }

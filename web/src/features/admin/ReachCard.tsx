@@ -21,7 +21,7 @@ export function ReachCard({ reach, who }: { reach: Reach | null; who: { renter_i
         ['Email', reach.email ?? 'None'],
         ['Why not text', why ?? ''],
         ['Texts in 30 days', reach.texts_30d !== undefined ? String(reach.texts_30d) : ''],
-        ['STOP and START', stops.length ? stops.map((s) => `${s.action === 'stop' ? 'STOP' : 'START'} ${t(s.at)}`).join(', ') : '']
+        ['STOP and START', stops.length ? stops.map((s) => `${s.action === 'stop' ? 'STOP' : 'START'} ${t(s.at)}${s.confirmation ? (s.confirmation === 'sent' ? ', confirmed by text' : `, confirmation ${s.confirmation}`) : ''}`).join(', ') : '']
       ]} />
     </Card>
   );

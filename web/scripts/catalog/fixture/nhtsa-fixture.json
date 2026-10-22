@@ -1,0 +1,1786 @@
+{
+ "recalls": {
+  "cadillac|CTS|2015": [
+   {
+    "campaign": "15V358000",
+    "date": "2015-06-09",
+    "component": "SERVICE BRAKES, HYDRAULIC:PEDALS AND LINKAGES",
+    "summary": "General Motors LLC (GM) is recalling certain model year 2015 Cadillac ATS and CTS vehicles. The affected vehicles have a bracket between the brake pedal assembly and the rod that actuates the brakes that may fracture during normal brake pedal operation."
+   },
+   {
+    "campaign": "18V595000",
+    "date": "2018-09-07",
+    "component": "SEATS:FRONT ASSEMBLY:SEAT HEATER/COOLER",
+    "summary": "General Motors LLC (GM) is recalling certain 2014-2016 Cadillac CTS vehicles, equipped with heated front seats. The flexible heating mats in the front seats may be damaged over time, resulting in the seat heaters producing excessive heat."
+   },
+   {
+    "campaign": "26V329000",
+    "date": "2026-05-21",
+    "component": "AIR BAGS:FRONTAL:DRIVER SIDE:INFLATOR MODULE",
+    "summary": "General Motors, LLC (GM) is recalling certain 2015 Cadillac Escalade, Escalade ESV, XTS, 2015-2016 Cadillac ATS, CTS, and SRX vehicles. The front-driver air bag inflator may rupture during deployment."
+   }
+  ],
+  "porsche|MACAN S|2016": [
+   {
+    "campaign": "15V717000",
+    "date": "2015-10-30",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:HOSES, LINES/PIPING, AND FITTINGS",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain model year 2015-2016 Macan S vehicles manufactured March 27, 2014, to October 27, 2015, and 2015-2016 Macan Turbo vehicles manufactured March 5, 2014, to October 27, 2015. The affected vehicles have a low pressure fuel line in the engine compartment..."
+   },
+   {
+    "campaign": "17V289000",
+    "date": "2017-05-03",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2015-2017 Macan S and Macan Turbo vehicles, and 2017 Macan, Macan Turbo with the Performance Package, and Macan GTS vehicles. The fuel pump flange on the affected vehicles may crack, allowing fuel to leak."
+   },
+   {
+    "campaign": "17V133000",
+    "date": "2017-03-02",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2015-2016 Macan S and Macan Turbo and 2017 Macan GTS vehicles. The passenger occupant detection sensor mat may fail in the front passenger seat, deactivating the front passenger air bag. As such, these vehicles fail to comply with the requirements of..."
+   },
+   {
+    "campaign": "21V131000",
+    "date": "2021-03-03",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION:FRONT PASSENGER",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2017-2018 Macan, Macan Turbo Kits, Macan GTS, 2015-2018 Macan S, and Macan Turbo vehicles. The front passenger seat occupancy sensor mat may degrade and fail to detect a passenger in the front seat."
+   },
+   {
+    "campaign": "23V443000",
+    "date": "2023-06-26",
+    "component": "SEAT BELTS:REAR/OTHER:ANCHORAGE",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2016-2020 Macan S, 2017-2020 Macan, 2017 Panamera Turbo, 2018 and 2020 Macan Turbo and Panamera 4, 2018 Macan Sport Edition, Panamera 4 E-Hybrid, and 2019 Panamera 4 Sport Turismo vehicles. The screw that attaches the lower seat belt anchor to the seat..."
+   }
+  ],
+  "porsche|MACAN TURBO|2016": [
+   {
+    "campaign": "15V717000",
+    "date": "2015-10-30",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:HOSES, LINES/PIPING, AND FITTINGS",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain model year 2015-2016 Macan S vehicles manufactured March 27, 2014, to October 27, 2015, and 2015-2016 Macan Turbo vehicles manufactured March 5, 2014, to October 27, 2015. The affected vehicles have a low pressure fuel line in the engine compartment..."
+   },
+   {
+    "campaign": "17V289000",
+    "date": "2017-05-03",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2015-2017 Macan S and Macan Turbo vehicles, and 2017 Macan, Macan Turbo with the Performance Package, and Macan GTS vehicles. The fuel pump flange on the affected vehicles may crack, allowing fuel to leak."
+   },
+   {
+    "campaign": "17V133000",
+    "date": "2017-03-02",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2015-2016 Macan S and Macan Turbo and 2017 Macan GTS vehicles. The passenger occupant detection sensor mat may fail in the front passenger seat, deactivating the front passenger air bag. As such, these vehicles fail to comply with the requirements of..."
+   },
+   {
+    "campaign": "21V131000",
+    "date": "2021-03-03",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION:FRONT PASSENGER",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2017-2018 Macan, Macan Turbo Kits, Macan GTS, 2015-2018 Macan S, and Macan Turbo vehicles. The front passenger seat occupancy sensor mat may degrade and fail to detect a passenger in the front seat."
+   }
+  ],
+  "volkswagen|JETTA|2019": [
+   {
+    "campaign": "18V671000",
+    "date": "2018-09-26",
+    "component": "EXTERIOR LIGHTING:HEADLIGHTS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Volkswagen Jetta vehicles equipped with LED headlights. The passenger side headlight may be incorrectly positioned, reducing the driver's visibility when it is dark. As such, these vehicles fail to comply with the requirements of Federal Motor..."
+   },
+   {
+    "campaign": "18V824000",
+    "date": "2018-11-26",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2018-2019 Volkswagen Atlas and Tiguan and 2019 Volkswagen Jetta vehicles that do not have keyless entry. The instrument cluster may not provide an audible warning to let the driver know that the key is still in the ignition when the door is open...."
+   },
+   {
+    "campaign": "18V904000",
+    "date": "2018-12-19",
+    "component": "SUSPENSION:REAR:SPRINGS:COIL SPRINGS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2018-2019 Volkswagen Atlas, 2015 Volkswagen Golf SportWagen, and 2019 Volkswagen Jetta vehicles. The rear coil springs may prematurely fracture."
+   },
+   {
+    "campaign": "19V679000",
+    "date": "2019-09-25",
+    "component": "UNKNOWN OR OTHER",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2017 Volkswagen Passat, 2018 Tiguan LWB, 2007-2009 Jetta Sedan, 2011-2013, 2015 and 2019 Jetta, 2013 Jetta Hybrid, 2008-2009 Jetta Sportwagen, 2015 Golf Sportwagen, 2013 Golf, 2008-2010 and 2012-2013 Beetle and Beetle Convertible, 2008-2010 Beetle,..."
+   },
+   {
+    "campaign": "19V188000",
+    "date": "2019-03-06",
+    "component": "SUSPENSION:REAR:SPRINGS:COIL SPRINGS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2017-2019 Golf Sportwagen, 2019 Jetta, 2015-2019 Golf, and 2018-2019 Tiguan vehicles. The rear coil springs may prematurely fracture."
+   },
+   {
+    "campaign": "19V110000",
+    "date": "2019-02-20",
+    "component": "AIR BAGS:FRONTAL",
+    "summary": "Volkswagen Group of America (Volkswagen) is recalling certain 2019 Jetta vehicles. An incorrect driver frontal airbag may have been installed during a service/repair visit."
+   },
+   {
+    "campaign": "19V879000",
+    "date": "2019-12-11",
+    "component": "WHEELS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Jetta GLI, Golf Alltrack, and Golf GTI vehicles. The front wheel bearings may have been improperly machined, potentially causing excessive stress on the wheel, wheel bolts, or wheel bearings."
+   },
+   {
+    "campaign": "22V815000",
+    "date": "2022-10-31",
+    "component": "TIRES:PRESSURE MONITORING AND REGULATING SYSTEMS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Volkswagen Tiguan LWB, Golf Sportswagen A7, Golf Alltrack, Golf R GP, Audi Q3, Audi A3 Cabriolet, 2019-2020 Jetta NF, Jetta GLI, Golf GTI, Atlas, Golf A7, Audi A3, 2020-2021 Atlas Cross Sport, and 2021 Atlas FL vehicles. The tire pressure..."
+   },
+   {
+    "campaign": "23V604000",
+    "date": "2023-08-30",
+    "component": "ELECTRICAL SYSTEM:IGNITION:SWITCH",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Golf, Golf Alltrack, Golf Sportwagen, 2019-2020 Golf GTI, and Jetta vehicles equipped with a conventional ignition switch. The ignition switch may fail, especially in high temperature environments."
+   },
+   {
+    "campaign": "23V619000",
+    "date": "2023-09-06",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Jetta vehicles. The instrument cluster may not provide an audible warning to let the driver know that the key is still in the ignition when the door is open. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle..."
+   },
+   {
+    "campaign": "24V110000",
+    "date": "2024-02-14",
+    "component": "FUEL SYSTEM, GASOLINE",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain front-wheel drive 2015-2020 Audi A3 Sedan, 2015-2019 Audi A3 Cabriolet, 2019-2020 Volkswagen Jetta GLI, 2018 Golf Sportwagen GP, 2018-2019 Golf Sportwagen A7, 2015-2017 Golf Sportwagen, 2015-2020 Golf GTI, and 2015-2020 Golf A7 vehicles. Due to a..."
+   }
+  ],
+  "cadillac|CTS-V|2015": [
+   {
+    "campaign": "20V038000",
+    "date": "2020-01-23",
+    "component": "POWER TRAIN:DRIVELINE:DIFFERENTIAL UNIT",
+    "summary": "General Motors LLC (GM) is recalling certain 2014-2015 Cadillac CTS-V Sport vehicles equipped with 3.6L Twin Turbo V6 engines. The roll pins in the rear-axle differential may fracture."
+   }
+  ],
+  "volkswagen|JETTA|2020": [
+   {
+    "campaign": "20V359000",
+    "date": "2020-06-17",
+    "component": "SERVICE BRAKES, HYDRAULIC:FOUNDATION COMPONENTS:DISC:CALIPER",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling one 2020 Jetta vehicle. The front brake caliper bolts may come loose."
+   },
+   {
+    "campaign": "20V505000",
+    "date": "2020-08-26",
+    "component": "SEATS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen ) is recalling certain 2020 Volkswagen Atlas Cross Sport, Jetta, Jetta GLI and Tiguan and Audi Q5 and SQ5 and 2021 Volkswagen Atlas vehicles. Parts of the front seat frame and backrest adjuster may not have been welded properly."
+   },
+   {
+    "campaign": "21V492000",
+    "date": "2021-06-30",
+    "component": "AIR BAGS: AIR BAG/RESTRAINT CONTROL MODULE",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2020-2021 Jetta and Jetta GLI vehicles. The air bag control module was welded in the incorrect position."
+   },
+   {
+    "campaign": "22V815000",
+    "date": "2022-10-31",
+    "component": "TIRES:PRESSURE MONITORING AND REGULATING SYSTEMS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Volkswagen Tiguan LWB, Golf Sportswagen A7, Golf Alltrack, Golf R GP, Audi Q3, Audi A3 Cabriolet, 2019-2020 Jetta NF, Jetta GLI, Golf GTI, Atlas, Golf A7, Audi A3, 2020-2021 Atlas Cross Sport, and 2021 Atlas FL vehicles. The tire pressure..."
+   },
+   {
+    "campaign": "23V604000",
+    "date": "2023-08-30",
+    "component": "ELECTRICAL SYSTEM:IGNITION:SWITCH",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2019 Golf, Golf Alltrack, Golf Sportwagen, 2019-2020 Golf GTI, and Jetta vehicles equipped with a conventional ignition switch. The ignition switch may fail, especially in high temperature environments."
+   },
+   {
+    "campaign": "24V110000",
+    "date": "2024-02-14",
+    "component": "FUEL SYSTEM, GASOLINE",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain front-wheel drive 2015-2020 Audi A3 Sedan, 2015-2019 Audi A3 Cabriolet, 2019-2020 Volkswagen Jetta GLI, 2018 Golf Sportwagen GP, 2018-2019 Golf Sportwagen A7, 2015-2017 Golf Sportwagen, 2015-2020 Golf GTI, and 2015-2020 Golf A7 vehicles. Due to a..."
+   }
+  ],
+  "porsche|MACAN|2016": [
+   {
+    "campaign": "20V077000",
+    "date": "2020-02-12",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Porsche Cars North America, Inc. (Porsche) is recalling certain 2015-2018 Macan vehicles. The fuel pump service cover may contact the flow nozzle on the filter flange of the fuel pump, potentially causing cracks and a fuel leak."
+   }
+  ],
+  "volkswagen|JETTA|2021": [
+   {
+    "campaign": "20V716000",
+    "date": "2020-11-18",
+    "component": "BACK OVER PREVENTION: SENSING SYSTEM: CAMERA",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2021 Atlas Cross Sport, Tiguan LWB, Jetta NF, Jetta GLI, Golf GTI, Atlas FL and Arteon vehicles. The rear view camera could malfunction during an ignition cycle, leading to a black screen or infotainment system freeze. As such, these vehicles fail..."
+   },
+   {
+    "campaign": "21V038000",
+    "date": "2021-02-01",
+    "component": "SEATS:CRITICAL FASTENERS",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2021 Volkswagen Tiguan Long Wheelbase and Jetta vehicles. Bolts may be missing from the front seat tracks."
+   },
+   {
+    "campaign": "21V492000",
+    "date": "2021-06-30",
+    "component": "AIR BAGS: AIR BAG/RESTRAINT CONTROL MODULE",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2020-2021 Jetta and Jetta GLI vehicles. The air bag control module was welded in the incorrect position."
+   },
+   {
+    "campaign": "22V514000",
+    "date": "2022-07-20",
+    "component": "EQUIPMENT:ELECTRICAL:INFOTAINMENT:SOFTWARE",
+    "summary": "Volkswagen Group of America, Inc. (Volkswagen) is recalling certain 2021 Golf GTI, Jetta GLI, Jetta NF, Arteon FL, Tiguan LWB, 2022 Taos, Jetta PA, Tiguan PA, 2021-2022 Atlas Cross Sport, and Atlas FL vehicles. The manufacturing process of the eMMC memory module in the infotainment system may cause the rearview..."
+   }
+  ],
+  "ford|MUSTANG MACH E|2022": [
+   {
+    "campaign": "21V979000",
+    "date": "2021-12-16",
+    "component": "SEAT BELTS:REAR/OTHER:ANCHORAGE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 Mustang Mach-E and 2022 Maverick vehicles. The rear seat belt buckles may not be properly attached to the rear floor assembly. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard numbers 208, \"Occupant Crash..."
+   },
+   {
+    "campaign": "22V646000",
+    "date": "2022-08-26",
+    "component": "POWER TRAIN:AXLE ASSEMBLY:AXLE SHAFT",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 Mustang Mach-E vehicles. The right-rear axle half shafts may have been manufactured improperly, allowing the half shaft stem to break under load."
+   },
+   {
+    "campaign": "22V412000",
+    "date": "2022-06-10",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY:MANAGEMENT SYSTEM/ENERGY CONTROL MODULE (BMS/BECM):SOFTWARE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 Mustang Mach-E vehicles. The high voltage battery main contactors may overheat."
+   },
+   {
+    "campaign": "23V687000",
+    "date": "2023-10-13",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY:MANAGEMENT SYSTEM/ENERGY CONTROL MODULE (BMS/BECM)",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 Mustang Mach-E vehicles equipped with an extended range battery. The high voltage battery main contactors may overheat."
+   },
+   {
+    "campaign": "25V130000",
+    "date": "2025-02-28",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY:MANAGEMENT SYSTEM/ENERGY CONTROL MODULE (BMS/BECM):SOFTWARE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 Mustang Mach-E vehicles previously repaired incorrectly under recall number 22V-412. The high voltage battery main contactors may overheat."
+   },
+   {
+    "campaign": "25V315000",
+    "date": "2025-05-09",
+    "component": "BACK OVER PREVENTION:SOFTWARE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2024 Bronco, F-150, 2021-2024 Edge, 2022-2025 Escape, F-250, F-350, F-450, F-550, F-600, 2022-2024 Expedition, 2022-2025 Transit, 2021-2023 Mach-E, 2024 Ranger, Mustang, 2021-2023 Lincoln Nautilus, 2022-2024 Navigator, and 2023-2024 Corsair vehicles. A software..."
+   },
+   {
+    "campaign": "25V404000",
+    "date": "2025-06-13",
+    "component": "ELECTRICAL SYSTEM:BODY CONTROL MODULE:SOFTWARE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2025 Mustang Mach E vehicles. In the event of a low battery charge, the electronic door latches may remain locked once the driver or front passenger exits and shuts the door, possibly trapping someone who is unable to use the inside door release handles, such as a..."
+   },
+   {
+    "campaign": "25V441000",
+    "date": "2025-06-27",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY:MANAGEMENT SYSTEM/ENERGY CONTROL MODULE (BMS/BECM)",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 Mustang Mach E vehicles equipped with an extended range battery. The high voltage battery main contactors may overheat."
+   },
+   {
+    "campaign": "26V417000",
+    "date": "2026-06-30",
+    "component": "POWER TRAIN:DRIVELINE:DIFFERENTIAL UNIT",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2023 Mustang Mach E vehicles. The rear differential pinion shaft may fracture."
+   }
+  ],
+  "tesla|MODEL 3|2023": [
+   {
+    "campaign": "21V834000",
+    "date": "2021-10-25",
+    "component": "AIR BAGS:SIDE/WINDOW:CURTAIN",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2020-2021, 2023 Model 3 vehicles. The left and/or right side curtain air bag may have been improperly secured to the roof rail, which could result in a twisted air bag. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard..."
+   },
+   {
+    "campaign": "22V844000",
+    "date": "2022-11-15",
+    "component": "EXTERIOR LIGHTING:TAIL LIGHTS",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2023 Model 3 and 2020-2023 Model Y vehicles. One or both taillights may intermittently fail to illuminate."
+   },
+   {
+    "campaign": "23V085000",
+    "date": "2023-02-15",
+    "component": "STEERING:AUTOMATED/ADAPTIVE STEERING",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2016-2023 Model S, Model X, 2017-2023 Model 3, and 2020-2023 Model Y vehicles equipped with Full Self-Driving Beta (FSD Beta) software or pending installation.Â The FSD Beta system may allow the vehicle to act unsafe around intersections, such as traveling straight through..."
+   },
+   {
+    "campaign": "23V434000",
+    "date": "2023-06-19",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2023 Model 3 and Model Y vehicles. The pyrotechnic battery disconnect may be defective."
+   },
+   {
+    "campaign": "23V838000",
+    "date": "2023-12-12",
+    "component": "ELECTRICAL SYSTEM:ADAS:DRIVER MONITORING:SOFTWARE",
+    "summary": "Tesla, Inc. (Tesla) is recalling 2012-2023 Model S, 2016-2023 Model X, 2017-2023 Model 3, and 2020-2023 Model Y vehicles equipped with all versions of Autosteer leading up to the version(s) that contains the recall remedy. In certain circumstances when Autosteer is engaged, the prominence and scope of the feature's..."
+   },
+   {
+    "campaign": "24V935000",
+    "date": "2024-12-17",
+    "component": "TIRES:PRESSURE MONITORING AND REGULATING SYSTEMS",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2024 Cybertruck, 2017-2025 Model 3, and 2020-2025 Model Y vehicles. The tire pressure monitoring system (TPMS) warning light may not remain illuminated between drive cycles, failing to warn the driver of low tire pressure. As such, these vehicles fail to comply with the..."
+   },
+   {
+    "campaign": "24V051000",
+    "date": "2024-01-30",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2012-2023 Model S, 2016-2024 Model X, 2017-2023 Model 3, 2019-2024 Model Y, and 2024 Cybertruck vehicles. An incorrect font size is displayed on the instrument panel for the Brake, Park, and Antilock Brake System (ABS) warning lights. As such, these vehicles fail to comply..."
+   },
+   {
+    "campaign": "24V376000",
+    "date": "2024-05-28",
+    "component": "SEAT BELTS:FRONT:WARNING LIGHT/DEVICES",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2012-2024 Model S, 2015-2024 Model X, 2017-2023 Model 3, and 2020-2023 Model Y vehicles. In the event of an unbelted driver, the seat belt warning light and audible chime may not activate as intended. As such, these vehicles fail to comply with the requirements of Federal..."
+   },
+   {
+    "campaign": "24V554000",
+    "date": "2024-07-24",
+    "component": "ELECTRICAL SYSTEM:SOFTWARE",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2021-2024 Model 3, Model S, Model X, and 2020-2024 Model Y vehicles. The hood latch assembly may fail to detect an unlatched hood condition after the hood has been opened."
+   },
+   {
+    "campaign": "25V092000",
+    "date": "2025-02-14",
+    "component": "STEERING:ELECTRIC POWER ASSIST SYSTEM",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2023 Model 3 and Model Y vehicles operating software prior to 2023.38.4. The printed circuit board for the electronic power steering assist may experience an overstress condition, causing a loss of power steering assist when the vehicle reaches a stop and then accelerates again."
+   },
+   {
+    "campaign": "26V507000",
+    "date": "2026-08-04",
+    "component": "EXTERIOR LIGHTING:HEADLIGHTS",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2017-2023 Model 3 and 2020-2023 Model Y vehicles. The headlight low beams may be too bright and exceed the maximum light output. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard (FMVSS) number 108, \"Lamps, Reflective..."
+   },
+   {
+    "campaign": "26V283000",
+    "date": "2026-05-04",
+    "component": "BACK OVER PREVENTION:SOFTWARE",
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2017, 2021-2023 Model 3, 2020-2023 Model Y, 2021-2023 Model S, and Model X vehicles operating software version 2026.8.6. The rearview camera image may be delayed when the vehicle is placed in reverse. As such, these vehicles fail to comply with the requirements of Federal..."
+   }
+  ],
+  "ford|F-150|2022": [
+   {
+    "campaign": "21V986000",
+    "date": "2021-12-16",
+    "component": "STRUCTURE:FRAME AND MEMBERS:UNDERBODY SHIELDS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 F-150 vehicles. Underbody heat and noise insulators may loosen and contact the aluminum driveshaft, which could damage the driveshaft and cause it to fracture."
+   },
+   {
+    "campaign": "22V842000",
+    "date": "2022-11-15",
+    "component": "VISIBILITY:WINDSHIELD WIPER/WASHER:MOTOR",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 F-150 vehicles. The front windshield wiper motor may become inoperative, causing the wipers to fail."
+   },
+   {
+    "campaign": "22V253000",
+    "date": "2022-04-14",
+    "component": "STEERING:COLUMN",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 vehicles. The power-adjustable telescoping steering column connector wiring may be too short. Wiring that is too short can become damaged or separate if the adjustable steering column is extended all the way."
+   },
+   {
+    "campaign": "22V193000",
+    "date": "2022-03-25",
+    "component": "ELECTRICAL SYSTEM: INTEGRATED TRAILER BRAKE CONTROL",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 F-150, 2022 Maverick, Expedition, Lincoln Navigator, F-250, F-350, F-450, and F-550 vehicles. Due to a software error, a towed trailer equipped with an electric or electric-over hydraulic brake system may not brake."
+   },
+   {
+    "campaign": "22V675000",
+    "date": "2022-09-08",
+    "component": "WHEELS:LUGS/NUTS/BOLTS/STUDS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 Raptor Series vehicles equipped with 37-inch tires. The lug nuts on the wheels may have been incorrectly tightened."
+   },
+   {
+    "campaign": "22V684000",
+    "date": "2022-09-14",
+    "component": "AIR BAGS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 vehicles. The right-side instrument panel cover may have been manufactured incorrectly, which can cause the air bag to not deploy as intended. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard number 208,..."
+   },
+   {
+    "campaign": "22V623000",
+    "date": "2022-08-12",
+    "component": "STRUCTURE:FRAME AND MEMBERS:UNDERBODY SHIELDS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 F-150 vehicles. Underbody heat and noise insulators may loosen and contact the aluminum driveshaft, which could damage the driveshaft and cause it to fracture."
+   },
+   {
+    "campaign": "22V686000",
+    "date": "2022-09-14",
+    "component": "EXTERIOR LIGHTING:LIGHTING CONTROL MODULE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 Bronco Sport and 2022 F-150 vehicles. The parking lights may flicker when the headlights are activated. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard number 108, \"Lamps, Reflective Devices, and..."
+   },
+   {
+    "campaign": "23V896000",
+    "date": "2023-12-22",
+    "component": "POWER TRAIN:AXLE HUBS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2023 F-150 vehicles equipped with the Trailer Tow Max Duty package and a 9.75-inch heavy duty axle with a 3/4 float axle design. The rear axle hub bolt may fatigue and break, which can result in damage to the axle hub splines."
+   },
+   {
+    "campaign": "23V509000",
+    "date": "2023-07-21",
+    "component": "PARKING BRAKE:ELECTRICAL",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2023 F-150 vehicles equipped with a single exhaust system. Contact with the rear axle housing may damage the wiring harness, causing the electric parking brake to activate unexpectedly."
+   },
+   {
+    "campaign": "23V802000",
+    "date": "2023-11-28",
+    "component": "EXTERIOR LIGHTING:LIGHTING CONTROL MODULE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 vehicles. The parking lights may flicker when the headlights are activated. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard number 108, \"Lamps, Reflective Devices, and Associated Equipment.\""
+   },
+   {
+    "campaign": "23V070000",
+    "date": "2023-02-10",
+    "component": "POWER TRAIN:AUTOMATIC TRANSMISSION",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150, Mustang, Explorer, Bronco, and 2023 Lincoln Aviator vehicles equipped with automatic transmissions. The transmission may contain a loose bolt which could prevent the transmission from engaging the park gear, although the gear shifter position may..."
+   }
+  ],
+  "kia|FORTE|2021": [
+   {
+    "campaign": "21V164000",
+    "date": "2021-03-11",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION:FRONT PASSENGER",
+    "summary": "Kia Motors America (Kia) is recalling certain 2021 Telluride, K5, and Forte vehicles. The Occupant Classification and Detection System (OCS/ODS) unit may not detect the presence of a child restraint system in the front passenger seat. As such, these vehicles fail to comply with the requirements of Federal Motor..."
+   },
+   {
+    "campaign": "22V304000",
+    "date": "2022-05-05",
+    "component": "STEERING:COLUMN",
+    "summary": "Kia Motors America (Kia) is recalling certain 2021-2022 Rio and Forte vehicles. A bolt in the steering column may not be secured properly, which can cause the steering column to detach from the steering rack and result in a loss of steering control."
+   }
+  ],
+  "ford|MUSTANG|2022": [
+   {
+    "campaign": "22V334000",
+    "date": "2022-05-13",
+    "component": "FORWARD COLLISION AVOIDANCE: SENSING SYSTEM: CAMERA",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 Mustang vehicles equipped with an Image Processing Module A (IPMA) or forward-facing camera. The camera is misaligned to the vehicle, resulting in the camera not functioning as intended."
+   },
+   {
+    "campaign": "22V083000",
+    "date": "2022-02-16",
+    "component": "AIR BAGS:KNEE BOLSTER",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2022 Mustang vehicles. An insufficient weld on the front passenger knee air bag may result in an improper air bag deployment."
+   },
+   {
+    "campaign": "23V727000",
+    "date": "2023-10-27",
+    "component": "ELECTRICAL SYSTEM:BODY CONTROL MODULE/BCM",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2020-2023 Mustang vehicles. The brake fluid level sensor may not activate the visual warning indicator when the brake fluid is low. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard number 135, \"Light Vehicle Brake..."
+   },
+   {
+    "campaign": "23V070000",
+    "date": "2023-02-10",
+    "component": "POWER TRAIN:AUTOMATIC TRANSMISSION",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150, Mustang, Explorer, Bronco, and 2023 Lincoln Aviator vehicles equipped with automatic transmissions. The transmission may contain a loose bolt which could prevent the transmission from engaging the park gear, although the gear shifter position may..."
+   },
+   {
+    "campaign": "24V493000",
+    "date": "2024-06-28",
+    "component": "STEERING:ELECTRIC POWER ASSIST SYSTEM",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 Ford Mustang vehicles. The secondary steering torque sensor may not be calibrated properly, which can cause the steering wheel to turn side to side against the driver's intentions."
+   },
+   {
+    "campaign": "25V096000",
+    "date": "2025-02-14",
+    "component": "STEERING:ELECTRIC POWER ASSIST SYSTEM",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 Ford Mustang vehicles previously repaired incorrectly under recall number 24V-493. The secondary steering torque sensor may not be calibrated properly, which can cause the steering wheel to turn side to side against the driver's intentions."
+   },
+   {
+    "campaign": "25V442000",
+    "date": "2025-06-27",
+    "component": "BACK OVER PREVENTION:SOFTWARE",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2018-2022 Transit Connect, 2019-2020 MKZ, MKX, Edge, Continental, F-150, Nautilus, Fusion, 2019-2023 Ranger, Mustang, 2020-2021 EcoSport, Expedition, Navigator, 2020-2022 Escape, F-250 SD, Corsair, 2020-2023 Aviator, Transit, 2020-2024 Explorer, 2021-2024 Bronco Sport,..."
+   },
+   {
+    "campaign": "25V689000",
+    "date": "2025-10-10",
+    "component": "ELECTRICAL SYSTEM:BODY CONTROL MODULE/BCM",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2023 Mustang vehicles repaired incorrectly under recall number 23V727. The brake fluid level sensor may not activate the visual warning indicator when the brake fluid is low. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle..."
+   },
+   {
+    "campaign": "25V455000",
+    "date": "2025-07-07",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2021-2023 Bronco, Explorer, Lincoln Aviator, F-250 SD, F-350 SD, F-450 SD, F-550 SD, 2021-2022 Lincoln Navigator, Mustang, F-150, and 2022 Expedition vehicles. The low-pressure fuel pump may fail, which can result in an engine stall while driving."
+   }
+  ],
+  "ford|F-150 LIGHTNING BEV|2022": [
+   {
+    "campaign": "22V453000",
+    "date": "2022-06-24",
+    "component": "TIRES:PRESSURE MONITORING AND REGULATING SYSTEMS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 BEV vehicles equipped with 20\" or 22\" all season tires. The tire pressure monitoring system (TPMS) light may not illuminate as intended, failing to warn the driver of low tire pressure. As such, these vehicles fail to comply with the requirements of Federal..."
+   },
+   {
+    "campaign": "23V801000",
+    "date": "2023-11-28",
+    "component": "ELECTRONIC STABILITY CONTROL (ESC)",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150 Lightning vehicles. The SYNC software may fail to activate the electronic stability control (ESC) system at the beginning of each ignition cycle. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard..."
+   },
+   {
+    "campaign": "23V418000",
+    "date": "2023-06-09",
+    "component": "EXTERIOR LIGHTING",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150 BEV vehicles. The rear lightbar may have microcracks in the outer lens that allows moisture to accumulate, which can result in inoperative or flickering reverse lights."
+   },
+   {
+    "campaign": "25V340000",
+    "date": "2025-05-23",
+    "component": "TIRES:PRESSURE MONITORING AND REGULATING SYSTEMS",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022 F-150 Lightning BEV vehicles equipped with 20\" or 22\" all season tires that were repaired incorrectly under recall 22V-453. The tire pressure monitoring system (TPMS) light may not illuminate as intended, failing to warn the driver of low tire pressure. As such,..."
+   },
+   {
+    "campaign": "25V272000",
+    "date": "2025-04-23",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2023 F-150 Lightning vehicles. The fasteners that secure the junction box bus bars inside the high-voltage battery pack may not have been tightened securely, which can cause electrical arcing at the busbars."
+   },
+   {
+    "campaign": "25V131000",
+    "date": "2025-02-28",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2024 F-150 Lightning battery electric vehicles. A manufacturing defect in the high voltage battery cells may result in an internal short circuit."
+   },
+   {
+    "campaign": "25V863000",
+    "date": "2025-12-12",
+    "component": "POWER TRAIN:AUTOMATIC TRANSMISSION:INTERNAL:PARK PAWL",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2026 F-150 Lightning BEV, 2024-2026 Mustang Mach-E, and 2025-2026 Maverick vehicles. The integrated park module may fail to lock into the park position when the driver shifts into park. As such, these vehicles fail to comply with the requirements of Federal Motor..."
+   },
+   {
+    "campaign": "25V731000",
+    "date": "2025-10-24",
+    "component": "EXTERIOR LIGHTING",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150 Lightning BEV vehicles previously repaired under recall number 23V418. The rear lightbar may have microcracks in the outer lens that allows moisture to accumulate, which can result in inoperative or flickering reverse lights."
+   },
+   {
+    "campaign": "25V313000",
+    "date": "2025-05-09",
+    "component": "ELECTRONIC STABILITY CONTROL (ESC)",
+    "summary": "Ford Motor Company (Ford) is recalling certain 2022-2023 F-150 Lightning vehicles previously repaired incorrectly under recall number 23V801. The SYNC software may fail to activate the electronic stability control (ESC) system at the beginning of each ignition cycle. As such, these vehicles fail to comply with the..."
+   }
+  ],
+  "hyundai|ELANTRA|2023": [
+   {
+    "campaign": "22V632000",
+    "date": "2022-08-18",
+    "component": "AIR BAGS:FRONTAL",
+    "summary": "Hyundai Motor America (Hyundai) is recalling certain 2022 Elantra N and 2022-2023 Elantra vehicles. The emblem on the cover of the driver's front air bag may not have been welded properly, which can result in the emblem detaching upon deployment."
+   },
+   {
+    "campaign": "23V526000",
+    "date": "2023-07-27",
+    "component": "POWER TRAIN:AUTOMATIC TRANSMISSION:FLUID/LUBRICANT:PUMP",
+    "summary": "Hyundai Motor America (Hyundai) is recalling certain 2023-2024 Palisade Tucson, 2023 Sonata, Elantra, and Kona vehicles. The electronic controller for the Idle Stop & Go oil pump assembly may contain damaged electrical components that can cause the pump controller to overheat."
+   }
+  ],
+  "kia|FORTE|2022": [
+   {
+    "campaign": "22V304000",
+    "date": "2022-05-05",
+    "component": "STEERING:COLUMN",
+    "summary": "Kia Motors America (Kia) is recalling certain 2021-2022 Rio and Forte vehicles. A bolt in the steering column may not be secured properly, which can cause the steering column to detach from the steering rack and result in a loss of steering control."
+   }
+  ],
+  "chevrolet|MALIBU|2022": [
+   {
+    "campaign": "22V923000",
+    "date": "2022-12-14",
+    "component": "STRUCTURE:FRAME AND MEMBERS",
+    "summary": "General Motors, LLC (GM) is recalling certain 2022-2023 Chevrolet Malibu vehicles. The front impact bar, a structural portion of the vehicle frame, may not be properly welded to the front frame rail."
+   }
+  ],
+  "kia|FORTE|2023": [
+   {
+    "campaign": "22V906000",
+    "date": "2022-12-08",
+    "component": "STEERING:LINKAGES:KNUCKLE:SPINDLE:ARM",
+    "summary": "Kia America, Inc. (Kia) is recalling certain 2023 Forte vehicles. Due to a manufacturing error, the front left steering knuckle may crack, which can result in a loss of steering control."
+   },
+   {
+    "campaign": "23V649000",
+    "date": "2023-09-22",
+    "component": "SUSPENSION:FRONT:CONTROL ARM:LOWER ARM",
+    "summary": "Kia America, Inc. (Kia) is recalling certain 2023 Forte vehicles. The right front lower control arm may have been improperly welded, which can cause it to fail."
+   },
+   {
+    "campaign": "24V244000",
+    "date": "2024-04-01",
+    "component": "SUSPENSION:FRONT:CONTROL ARM:LOWER ARM",
+    "summary": "Kia America, Inc. (Kia) is recalling certain 2023 Forte vehicles. The right front lower control arm may have been improperly welded, which can cause it to fail."
+   }
+  ],
+  "toyota|CAMRY|2023": [
+   {
+    "campaign": "23V432000",
+    "date": "2023-06-15",
+    "component": "WHEELS:LUGS/NUTS/BOLTS/STUDS",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Camry and Camry Hybrid vehicles. The lug nuts that attach the wheels to the vehicle may be loose, which can result in wheel detachment."
+   },
+   {
+    "campaign": "24V128000",
+    "date": "2024-02-21",
+    "component": "SEATS",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Camry and Camry Hybrid vehicles. The second-row center and right-side seats may have insufficiently welded head restraint brackets. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard..."
+   }
+  ],
+  "toyota|CAMRY HYBRID|2023": [
+   {
+    "campaign": "23V432000",
+    "date": "2023-06-15",
+    "component": "WHEELS:LUGS/NUTS/BOLTS/STUDS",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Camry and Camry Hybrid vehicles. The lug nuts that attach the wheels to the vehicle may be loose, which can result in wheel detachment."
+   },
+   {
+    "campaign": "24V128000",
+    "date": "2024-02-21",
+    "component": "SEATS",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Camry and Camry Hybrid vehicles. The second-row center and right-side seats may have insufficiently welded head restraint brackets. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard..."
+   }
+  ],
+  "toyota|COROLLA|2023": [
+   {
+    "campaign": "23V480000",
+    "date": "2023-07-12",
+    "component": "AIR BAGS:FRONTAL:DRIVER CLOCKSPRING/SPIRAL CASSETTE",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, 2023 Lexus RX350, RX350 Hybrid, RX500 Hybrid, 2023-2024 Lexus NX250, NX350, and NX350 Hybrid vehicles. An electrical connection inside the steering..."
+   },
+   {
+    "campaign": "24V878000",
+    "date": "2024-11-21",
+    "component": "STEERING",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla and Corolla Hybrid vehicles. Due to cracks developed during the manufacturing process, the steering intermediate shaft assembly may fracture and possibly result in the shaft detaching from the steering column."
+   },
+   {
+    "campaign": "25V040000",
+    "date": "2025-01-29",
+    "component": "STEERING:COLUMN",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Toyota Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, Lexus RX350, 2023-2024 NX250, and NX350 vehicles that may have been incorrectly repaired under previous NHTSA recall number 23V-480. An electrical..."
+   }
+  ],
+  "toyota|COROLLA CROSS|2023": [
+   {
+    "campaign": "23V480000",
+    "date": "2023-07-12",
+    "component": "AIR BAGS:FRONTAL:DRIVER CLOCKSPRING/SPIRAL CASSETTE",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, 2023 Lexus RX350, RX350 Hybrid, RX500 Hybrid, 2023-2024 Lexus NX250, NX350, and NX350 Hybrid vehicles. An electrical connection inside the steering..."
+   },
+   {
+    "campaign": "23V864000",
+    "date": "2023-12-20",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2023 Corolla Cross vehicles that were previously inspected at a dealership under recall 23V-384. The instrument panel may have been produced without the required perforation, which could result in the front-passenger air bag not deploying..."
+   },
+   {
+    "campaign": "23V384000",
+    "date": "2023-05-30",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2023 Corolla Cross vehicles. The instrument panel may have been produced without the required perforation, which could result in the front-passenger air bag not deploying properly. As such, these vehicles fail to comply with the..."
+   },
+   {
+    "campaign": "25V040000",
+    "date": "2025-01-29",
+    "component": "STEERING:COLUMN",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Toyota Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, Lexus RX350, 2023-2024 NX250, and NX350 vehicles that may have been incorrectly repaired under previous NHTSA recall number 23V-480. An electrical..."
+   }
+  ],
+  "toyota|COROLLA CROSS HYBRID|2023": [
+   {
+    "campaign": "23V480000",
+    "date": "2023-07-12",
+    "component": "AIR BAGS:FRONTAL:DRIVER CLOCKSPRING/SPIRAL CASSETTE",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, 2023 Lexus RX350, RX350 Hybrid, RX500 Hybrid, 2023-2024 Lexus NX250, NX350, and NX350 Hybrid vehicles. An electrical connection inside the steering..."
+   },
+   {
+    "campaign": "24V548000",
+    "date": "2024-07-23",
+    "component": "EQUIPMENT:OTHER:LABELS",
+    "summary": "Gulf States Toyota, Inc. (GST) is recalling certain Toyota 2023 GR Supra, 2024 4 Runner, Corolla, Grand Highlander, Grand Highlander Hybrid, Land Cruiser Hybrid, Tacoma, Tacoma Hybrid, 2023-2024 BZ4X, Corolla Cross Hybrid, GR Corolla, GR86, Highlander, Highlander Hybrid, Prius, Prius Prime, Sequoia Hybrid, Tundra,..."
+   },
+   {
+    "campaign": "24V708000",
+    "date": "2024-09-20",
+    "component": "SERVICE BRAKES, HYDRAULIC:POWER ASSIST:ELECTRIC:SOLENOID/ACTUATOR",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla Cross Hybrid and 2023-2025 Corolla Hybrid vehicles. A software error in the skid control electronic control unit (ECU) may result in a loss of power brake assist when turning a corner."
+   },
+   {
+    "campaign": "25V040000",
+    "date": "2025-01-29",
+    "component": "AIR BAGS:FRONTAL:DRIVER CLOCKSPRING/SPIRAL CASSETTE",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023 Toyota Corolla, Corolla Cross, Corolla Cross Hybrid, Highlander, Highlander Hybrid, Tacoma, Lexus RX350, 2023-2024 NX250, and NX350 vehicles that may have been incorrectly repaired under previous NHTSA recall number 23V-480. An electrical..."
+   },
+   {
+    "campaign": "26V203000",
+    "date": "2026-03-31",
+    "component": "BACK OVER PREVENTION:WARNINGS:EXTERNAL/PEDESTRIAN ALERT",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2025 Corolla Cross Hybrid vehicles. The vehicles may fail to make sufficient pedestrian warning sounds when in reverse. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard (FMVSS) number..."
+   }
+  ],
+  "toyota|RAV4|2023": [
+   {
+    "campaign": "23V485000",
+    "date": "2023-07-11",
+    "component": "TIRES:VALVE",
+    "summary": "Gulf States Toyota, Inc. (GST) is recalling certain 2023 Toyota RAV4 vehicles equipped with 17\" black alloy accessory wheels. During installation of the alloy wheels, the tire valve stem may have been improperly installed or damaged. In addition, the load carrying capacity label may state the incorrect weight. As..."
+   },
+   {
+    "campaign": "25V595000",
+    "date": "2025-09-11",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Toyota Venza, 2023-2025 RAV4 Prime, RAV4, Highlander, GR Corolla, Crown, 2024-2025 Lexus TX, LS, Toyota Tacoma, Grand Highlander, and 2025 Lexus RX, Toyota Crown Signia, Camry, RAV 4 Plug-in Hybrid (PHEV), and 4 Runner vehicles. Due to..."
+   },
+   {
+    "campaign": "25V744000",
+    "date": "2025-10-30",
+    "component": "BACK OVER PREVENTION:DISPLAY FUNCTION",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2026 Toyota, Lexus, and Subaru Solterra vehicles equipped with a Panoramic View Monitor (PVM) system. Please see the recall report for a complete list of models. A software error may cause the rearview camera to freeze or display a blank..."
+   }
+  ],
+  "honda|CR-V|2023": [
+   {
+    "campaign": "23V858000",
+    "date": "2023-12-18",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2013-2023 Honda Accord, Civic Coupe, Civic Sedan, Civic Hatchback, Civic Type R, CR-V, HR-V, Ridgeline, Odyssey, Acura ILX, MDX, MDX Hybrid, RDX, RLX, TLX, 2019-2022 Honda Insight, Passport, 2020 Honda CR-V Hybrid, 2018-2019 Honda Clarity PHEV, Fit, and..."
+   },
+   {
+    "campaign": "23V092000",
+    "date": "2023-02-16",
+    "component": "SEATS:FRONT ASSEMBLY:RECLINER",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023 CR-V vehicles. The front passenger seat back frame may not have been welded properly, which can cause the seat back position to fail in the event of a crash. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety..."
+   },
+   {
+    "campaign": "24V744000",
+    "date": "2024-10-03",
+    "component": "STEERING",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2025 Acura Integra, Civic Type R, CR-V Hybrid, CR-V, HR-V, 2022-2025 Civic, Civic Hatchback, 2024-2025 Acura Integra Type S, 2025 CR-V Fuel Cell EV, Civic Hybrid, and Civic Hatchback Hybrid vehicles. The steering gearbox assembly may have been manufactured..."
+   }
+  ],
+  "honda|CIVIC|2022": [
+   {
+    "campaign": "23V704000",
+    "date": "2023-10-19",
+    "component": "STEERING:RACK AND PINION",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2022-2024 Civic 4-door and Civic 5-door vehicles that received a replacement power steering rack as part of a service repair. The steering rack may have been incorrectly assembled, which can allow the tire to chafe against the lower suspension or tie rod end,..."
+   },
+   {
+    "campaign": "24V064000",
+    "date": "2024-02-01",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION:FRONT PASSENGER",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2020-2022 Pilot, Accord, Civic sedan, HR-V, Odyssey, 2020 Civic coupe, Fit, 2021-2022 Civic hatchback, 2021 Civic Type R, Insight, 2020-2021 CR-V, CR-V Hybrid, Passport, Ridgeline, Accord Hybrid, 2020 Acura MDX, 2022 Acura MDX, 2020-2022 Acura RDX, and 2020-2021..."
+   },
+   {
+    "campaign": "24V744000",
+    "date": "2024-10-03",
+    "component": "STEERING",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2025 Acura Integra, Civic Type R, CR-V Hybrid, CR-V, HR-V, 2022-2025 Civic, Civic Hatchback, 2024-2025 Acura Integra Type S, 2025 CR-V Fuel Cell EV, Civic Hybrid, and Civic Hatchback Hybrid vehicles. The steering gearbox assembly may have been manufactured..."
+   },
+   {
+    "campaign": "26V332000",
+    "date": "2026-05-21",
+    "component": "AIR BAGS:SENSOR:OCCUPANT CLASSIFICATION:FRONT PASSENGER",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2018-2021, 2023 Acura TLX, 2019-2024 RDX, 2017-2020, 2022-2026 MDX, 2017-2021, 2023, 2025 Honda Ridgeline, 2017-2022 Pilot, 2019-2021 Passport, 2018-2026 Odyssey, 2019-2022 Insight, 2019-2021 HR-V, 2018-2020 Fit, 2020-2022 CR-V Hybrid, 2017-2022 CR-V, 2017-2018,..."
+   }
+  ],
+  "hyundai|ELANTRA HYBRID|2023": [
+   {
+    "campaign": "23V589000",
+    "date": "2023-08-18",
+    "component": "ELECTRICAL SYSTEM",
+    "summary": "Hyundai Motor America (Hyundai) is recalling certain 2021-2023 Elantra HEV vehicles. A software error in the motor control unit may cause unintended vehicle acceleration after the brake pedal is released."
+   }
+  ],
+  "honda|CR-V HYBRID|2023": [
+   {
+    "campaign": "23V588000",
+    "date": "2023-08-17",
+    "component": "POWER TRAIN:AUTOMATIC TRANSMISSION:INTERNAL:CVT",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023 CR-V Hybrid and Accord Hybrid vehicles. The electronic transmission may have been improperly manufactured, which can result in a loss of drive power."
+   },
+   {
+    "campaign": "24V745000",
+    "date": "2024-10-03",
+    "component": "ELECTRICAL SYSTEM:PROPULSION SYSTEM:TRACTION BATTERY",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023 Honda CR-V Hybrid vehicles. The high voltage battery modules may have been manufactured incorrectly, which can cause the battery terminal or busbar to break and spark."
+   },
+   {
+    "campaign": "24V763000",
+    "date": "2024-10-14",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2024 Honda Accord, Accord Hybrid, 2023-2025 Honda CR-V Hybrid, and 2025 Honda Civic and Civic Hybrid vehicles. The high-pressure fuel pump may crack and leak fuel."
+   },
+   {
+    "campaign": "24V744000",
+    "date": "2024-10-03",
+    "component": "STEERING",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2025 Acura Integra, Civic Type R, CR-V Hybrid, CR-V, HR-V, 2022-2025 Civic, Civic Hatchback, 2024-2025 Acura Integra Type S, 2025 CR-V Fuel Cell EV, Civic Hybrid, and Civic Hatchback Hybrid vehicles. The steering gearbox assembly may have been manufactured..."
+   },
+   {
+    "campaign": "26V663000",
+    "date": "2026-10-08",
+    "component": "TIRES:TEMPORARY/EMERGENCY SPARE TIRE",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2026 CR-V Hybrid, Accord Hybrid, and 2025 CR-V Fuel Cell EV vehicles that were previously remedied under NHTSA recall number 26V366. When using the tire repair kit, pressure may build within the sealant bottle, causing the bottle cap to detach."
+   },
+   {
+    "campaign": "26V366000",
+    "date": "2026-06-04",
+    "component": "TIRES:TEMPORARY/EMERGENCY SPARE TIRE",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2026 CR-V Hybrid, Accord Hybrid, and 2025-2026 CR-V Fuel Cell EV vehicles. When using the tire repair kit, pressure may build within the sealant bottle, causing the bottle cap to detach."
+   }
+  ],
+  "toyota|COROLLA CROSS|2022": [
+   {
+    "campaign": "23V864000",
+    "date": "2023-12-20",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2023 Corolla Cross vehicles that were previously inspected at a dealership under recall 23V-384. The instrument panel may have been produced without the required perforation, which could result in the front-passenger air bag not deploying..."
+   },
+   {
+    "campaign": "23V384000",
+    "date": "2023-05-30",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2023 Corolla Cross vehicles. The instrument panel may have been produced without the required perforation, which could result in the front-passenger air bag not deploying properly. As such, these vehicles fail to comply with the..."
+   }
+  ],
+  "toyota|COROLLA|2024": [
+   {
+    "campaign": "24V878000",
+    "date": "2024-11-21",
+    "component": "STEERING",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla and Corolla Hybrid vehicles. Due to cracks developed during the manufacturing process, the steering intermediate shaft assembly may fracture and possibly result in the shaft detaching from the steering column."
+   },
+   {
+    "campaign": "24V548000",
+    "date": "2024-07-23",
+    "component": "EQUIPMENT:OTHER:LABELS",
+    "summary": "Gulf States Toyota, Inc. (GST) is recalling certain Toyota 2023 GR Supra, 2024 4 Runner, Corolla, Grand Highlander, Grand Highlander Hybrid, Land Cruiser Hybrid, Tacoma, Tacoma Hybrid, 2023-2024 BZ4X, Corolla Cross Hybrid, GR Corolla, GR86, Highlander, Highlander Hybrid, Prius, Prius Prime, Sequoia Hybrid, Tundra,..."
+   }
+  ],
+  "toyota|COROLLA HYBRID|2024": [
+   {
+    "campaign": "24V878000",
+    "date": "2024-11-21",
+    "component": "STEERING",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla and Corolla Hybrid vehicles. Due to cracks developed during the manufacturing process, the steering intermediate shaft assembly may fracture and possibly result in the shaft detaching from the steering column."
+   },
+   {
+    "campaign": "24V708000",
+    "date": "2024-09-20",
+    "component": "SERVICE BRAKES, HYDRAULIC:POWER ASSIST:ELECTRIC:SOLENOID/ACTUATOR",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla Cross Hybrid and 2023-2025 Corolla Hybrid vehicles. A software error in the skid control electronic control unit (ECU) may result in a loss of power brake assist when turning a corner."
+   }
+  ],
+  "toyota|COROLLA HYBRID|2023": [
+   {
+    "campaign": "24V878000",
+    "date": "2024-11-21",
+    "component": "STEERING",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla and Corolla Hybrid vehicles. Due to cracks developed during the manufacturing process, the steering intermediate shaft assembly may fracture and possibly result in the shaft detaching from the steering column."
+   },
+   {
+    "campaign": "24V708000",
+    "date": "2024-09-20",
+    "component": "SERVICE BRAKES, HYDRAULIC:POWER ASSIST:ELECTRIC:SOLENOID/ACTUATOR",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla Cross Hybrid and 2023-2025 Corolla Hybrid vehicles. A software error in the skid control electronic control unit (ECU) may result in a loss of power brake assist when turning a corner."
+   }
+  ],
+  "mazda|MX-5|2021": [
+   {
+    "campaign": "24V695000",
+    "date": "2024-09-18",
+    "component": "AIR BAGS: AIR BAG/RESTRAINT CONTROL MODULE:SOFTWARE",
+    "summary": "Mazda North American Operations (Mazda) is recalling certain 2016-2023 MX-5 Miata vehicles. A software error in the air bag control module may cause the front air bags to deploy with excessive force during a crash. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard..."
+   }
+  ],
+  "hyundai|ELANTRA N|2023": [
+   {
+    "campaign": "24V528000",
+    "date": "2024-07-11",
+    "component": "FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP:CONTROL/DRIVE MODULE",
+    "summary": "Hyundai Motor America (Hyundai) is recalling certain 2019-2022 Veloster N, 2019-2023 Genesis G70, 2022-2023 Elantra N, and Kona N vehicles. The fuel pump may fail, which can result in a loss of drive power."
+   }
+  ],
+  "toyota|COROLLA CROSS HYBRID|2024": [
+   {
+    "campaign": "24V548000",
+    "date": "2024-07-23",
+    "component": "EQUIPMENT:OTHER:LABELS",
+    "summary": "Gulf States Toyota, Inc. (GST) is recalling certain Toyota 2023 GR Supra, 2024 4 Runner, Corolla, Grand Highlander, Grand Highlander Hybrid, Land Cruiser Hybrid, Tacoma, Tacoma Hybrid, 2023-2024 BZ4X, Corolla Cross Hybrid, GR Corolla, GR86, Highlander, Highlander Hybrid, Prius, Prius Prime, Sequoia Hybrid, Tundra,..."
+   },
+   {
+    "campaign": "24V708000",
+    "date": "2024-09-20",
+    "component": "SERVICE BRAKES, HYDRAULIC:POWER ASSIST:ELECTRIC:SOLENOID/ACTUATOR",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Corolla Cross Hybrid and 2023-2025 Corolla Hybrid vehicles. A software error in the skid control electronic control unit (ECU) may result in a loss of power brake assist when turning a corner."
+   },
+   {
+    "campaign": "26V203000",
+    "date": "2026-03-31",
+    "component": "BACK OVER PREVENTION:WARNINGS:EXTERNAL/PEDESTRIAN ALERT",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2025 Corolla Cross Hybrid vehicles. The vehicles may fail to make sufficient pedestrian warning sounds when in reverse. As such, these vehicles fail to comply with the requirements of Federal Motor Vehicle Safety Standard (FMVSS) number..."
+   }
+  ],
+  "honda|CIVIC HATCHBACK|2022": [
+   {
+    "campaign": "24V744000",
+    "date": "2024-10-03",
+    "component": "STEERING",
+    "summary": "Honda (American Honda Motor Co.) is recalling certain 2023-2025 Acura Integra, Civic Type R, CR-V Hybrid, CR-V, HR-V, 2022-2025 Civic, Civic Hatchback, 2024-2025 Acura Integra Type S, 2025 CR-V Fuel Cell EV, Civic Hybrid, and Civic Hatchback Hybrid vehicles. The steering gearbox assembly may have been manufactured..."
+   }
+  ],
+  "toyota|RAV4 PRIME|2023": [
+   {
+    "campaign": "25V595000",
+    "date": "2025-09-11",
+    "component": "ELECTRICAL SYSTEM: INSTRUMENT CLUSTER/PANEL",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2023-2024 Toyota Venza, 2023-2025 RAV4 Prime, RAV4, Highlander, GR Corolla, Crown, 2024-2025 Lexus TX, LS, Toyota Tacoma, Grand Highlander, and 2025 Lexus RX, Toyota Crown Signia, Camry, RAV 4 Plug-in Hybrid (PHEV), and 4 Runner vehicles. Due to..."
+   },
+   {
+    "campaign": "25V744000",
+    "date": "2025-10-30",
+    "component": "BACK OVER PREVENTION:DISPLAY FUNCTION",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2026 Toyota, Lexus, and Subaru Solterra vehicles equipped with a Panoramic View Monitor (PVM) system. Please see the recall report for a complete list of models. A software error may cause the rearview camera to freeze or display a blank..."
+   }
+  ],
+  "toyota|RAV4 HYBRID|2023": [
+   {
+    "campaign": "25V744000",
+    "date": "2025-10-30",
+    "component": "BACK OVER PREVENTION:DISPLAY FUNCTION",
+    "summary": "Toyota Motor Engineering & Manufacturing (Toyota) is recalling certain 2022-2026 Toyota, Lexus, and Subaru Solterra vehicles equipped with a Panoramic View Monitor (PVM) system. Please see the recall report for a complete list of models. A software error may cause the rearview camera to freeze or display a blank..."
+   }
+  ]
+ },
+ "complaints": {
+  "cadillac|CTS|2015": {
+   "total": 49,
+   "comps": {
+    "VEHICLE SPEED CONTROL": 4,
+    "ELECTRICAL SYSTEM": 4,
+    "SUSPENSION": 5,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 1,
+    "STEERING": 4,
+    "WHEELS": 3,
+    "POWER TRAIN": 20,
+    "UNKNOWN OR OTHER": 8,
+    "SERVICE BRAKES": 9,
+    "SEATS": 1,
+    "STRUCTURE": 1,
+    "ENGINE": 4,
+    "EXTERIOR LIGHTING": 1,
+    "TIRES": 1,
+    "ENGINE AND ENGINE COOLING": 1,
+    "EQUIPMENT": 2,
+    "AIR BAGS": 1
+   }
+  },
+  "porsche|MACAN S|2016": {
+   "total": 5,
+   "comps": {
+    "AIR BAGS": 3,
+    "ELECTRICAL SYSTEM": 2,
+    "STEERING": 1,
+    "SEAT BELTS": 1
+   }
+  },
+  "cadillac|CTS-V|2015": {
+   "total": 1,
+   "comps": {
+    "ELECTRICAL SYSTEM": 1
+   }
+  },
+  "porsche|MACAN|2016": {
+   "total": 24,
+   "comps": {
+    "VISIBILITY/WIPER": 2,
+    "STRUCTURE": 1,
+    "AIR BAGS": 10,
+    "ENGINE": 4,
+    "SEAT BELTS": 1,
+    "VEHICLE SPEED CONTROL": 2,
+    "EXTERIOR LIGHTING": 1,
+    "SEATS": 1,
+    "SERVICE BRAKES": 2,
+    "STEERING": 3,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "SUSPENSION": 1,
+    "UNKNOWN OR OTHER": 1
+   }
+  },
+  "porsche|MACAN TURBO|2016": {
+   "total": 2,
+   "comps": {
+    "AIR BAGS": 2,
+    "SEATS": 1
+   }
+  },
+  "volkswagen|JETTA|2019": {
+   "total": 549,
+   "comps": {
+    "UNKNOWN OR OTHER": 95,
+    "POWER TRAIN": 162,
+    "VEHICLE SPEED CONTROL": 16,
+    "EXTERIOR LIGHTING": 26,
+    "AIR BAGS": 16,
+    "STRUCTURE": 23,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 5,
+    "ELECTRICAL SYSTEM": 156,
+    "SUSPENSION": 16,
+    "VISIBILITY/WIPER": 18,
+    "ENGINE": 147,
+    "SERVICE BRAKES": 29,
+    "STEERING": 12,
+    "WHEELS": 6,
+    "FUEL/PROPULSION SYSTEM": 25,
+    "SEATS": 2,
+    "SEAT BELTS": 6,
+    "FORWARD COLLISION AVOIDANCE": 13,
+    "VISIBILITY": 7,
+    "ENGINE AND ENGINE COOLING": 2,
+    "LANE DEPARTURE": 8,
+    "TIRES": 3,
+    "FUEL SYSTEM": 4,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "PARKING BRAKE": 1
+   }
+  },
+  "volkswagen|JETTA|2020": {
+   "total": 54,
+   "comps": {
+    "FUEL/PROPULSION SYSTEM": 5,
+    "UNKNOWN OR OTHER": 13,
+    "SERVICE BRAKES": 7,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 1,
+    "ELECTRICAL SYSTEM": 17,
+    "VEHICLE SPEED CONTROL": 3,
+    "ENGINE": 12,
+    "STEERING": 4,
+    "POWER TRAIN": 7,
+    "VISIBILITY/WIPER": 1,
+    "AIR BAGS": 2,
+    "TIRES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "VISIBILITY": 1,
+    "SUSPENSION": 3,
+    "SEATS": 1,
+    "STRUCTURE": 2,
+    "WHEELS": 1
+   }
+  },
+  "kia|FORTE|2021": {
+   "total": 69,
+   "comps": {
+    "UNKNOWN OR OTHER": 18,
+    "VISIBILITY/WIPER": 1,
+    "EQUIPMENT": 2,
+    "TIRES": 5,
+    "SERVICE BRAKES": 2,
+    "STEERING": 9,
+    "LANE DEPARTURE": 2,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "AIR BAGS": 7,
+    "ELECTRICAL SYSTEM": 9,
+    "ENGINE": 22,
+    "FUEL/PROPULSION SYSTEM": 3,
+    "POWER TRAIN": 7,
+    "VEHICLE SPEED CONTROL": 1,
+    "SEATS": 1,
+    "STRUCTURE": 3,
+    "SEAT BELTS": 4,
+    "EXTERIOR LIGHTING": 1
+   }
+  },
+  "volkswagen|JETTA|2021": {
+   "total": 69,
+   "comps": {
+    "UNKNOWN OR OTHER": 11,
+    "AIR BAGS": 5,
+    "ENGINE": 5,
+    "SEAT BELTS": 3,
+    "SEATS": 1,
+    "STEERING": 3,
+    "SUSPENSION": 1,
+    "POWER TRAIN": 2,
+    "ELECTRICAL SYSTEM": 13,
+    "LANE DEPARTURE": 5,
+    "FORWARD COLLISION AVOIDANCE": 11,
+    "SERVICE BRAKES": 27,
+    "FUEL/PROPULSION SYSTEM": 9,
+    "VISIBILITY": 1,
+    "BACK OVER PREVENTION": 1,
+    "VISIBILITY/WIPER": 3,
+    "EXTERIOR LIGHTING": 1,
+    "LATCHES/LOCKS/LINKAGES": 2
+   }
+  },
+  "honda|CIVIC|2022": {
+   "total": 885,
+   "comps": {
+    "ELECTRICAL SYSTEM": 38,
+    "STEERING": 733,
+    "ENGINE": 11,
+    "AIR BAGS": 9,
+    "STRUCTURE": 14,
+    "VEHICLE SPEED CONTROL": 42,
+    "FORWARD COLLISION AVOIDANCE": 90,
+    "EXTERIOR LIGHTING": 2,
+    "SERVICE BRAKES": 23,
+    "VISIBILITY/WIPER": 12,
+    "LANE DEPARTURE": 81,
+    "SUSPENSION": 25,
+    "UNKNOWN OR OTHER": 41,
+    "FUEL/PROPULSION SYSTEM": 9,
+    "TIRES": 2,
+    "SEATS": 3,
+    "SEAT BELTS": 4,
+    "WHEELS": 14,
+    "POWER TRAIN": 10,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA|2022": {
+   "total": 102,
+   "comps": {
+    "AIR BAGS": 10,
+    "SERVICE BRAKES": 16,
+    "VISIBILITY/WIPER": 6,
+    "ELECTRICAL SYSTEM": 21,
+    "STRUCTURE": 7,
+    "UNKNOWN OR OTHER": 15,
+    "EXTERIOR LIGHTING": 9,
+    "POWER TRAIN": 17,
+    "VEHICLE SPEED CONTROL": 3,
+    "FORWARD COLLISION AVOIDANCE": 7,
+    "VISIBILITY": 2,
+    "TIRES": 4,
+    "ENGINE": 14,
+    "PARKING BRAKE": 1,
+    "STEERING": 5,
+    "SEAT BELTS": 1,
+    "SUSPENSION": 2,
+    "FUEL/PROPULSION SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA HYBRID|2022": {
+   "total": 1,
+   "comps": {
+    "STRUCTURE": 1,
+    "SEATS": 1
+   }
+  },
+  "kia|FORTE|2022": {
+   "total": 28,
+   "comps": {
+    "UNKNOWN OR OTHER": 9,
+    "ENGINE AND ENGINE COOLING": 2,
+    "SERVICE BRAKES": 2,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "BACK OVER PREVENTION": 1,
+    "FUEL SYSTEM": 1,
+    "ENGINE": 4,
+    "SUSPENSION": 3,
+    "SEAT BELTS": 2,
+    "POWER TRAIN": 2,
+    "VISIBILITY/WIPER": 2,
+    "AIR BAGS": 2,
+    "ELECTRICAL SYSTEM": 3,
+    "TIRES": 1,
+    "VEHICLE SPEED CONTROL": 1,
+    "STEERING": 4,
+    "EXTERIOR LIGHTING": 1,
+    "FUEL/PROPULSION SYSTEM": 1
+   }
+  },
+  "ford|F-150|2022": {
+   "total": 598,
+   "comps": {
+    "ELECTRICAL SYSTEM": 128,
+    "ENGINE": 38,
+    "POWER TRAIN": 163,
+    "VISIBILITY/WIPER": 25,
+    "BACK OVER PREVENTION": 12,
+    "STRUCTURE": 14,
+    "UNKNOWN OR OTHER": 87,
+    "FUEL SYSTEM": 55,
+    "PARKING BRAKE": 12,
+    "SERVICE BRAKES": 30,
+    "EQUIPMENT": 45,
+    "FORWARD COLLISION AVOIDANCE": 26,
+    "EXTERIOR LIGHTING": 65,
+    "SUSPENSION": 14,
+    "WHEELS": 8,
+    "VISIBILITY": 22,
+    "LATCHES/LOCKS/LINKAGES": 5,
+    "SEAT BELTS": 2,
+    "STEERING": 9,
+    "VEHICLE SPEED CONTROL": 16,
+    "AIR BAGS": 4,
+    "TIRES": 1,
+    "LANE DEPARTURE": 6,
+    "SEATS": 4,
+    "FUEL/PROPULSION SYSTEM": 35,
+    "FIRERELATED": 1,
+    "ENGINE AND ENGINE COOLING": 3
+   }
+  },
+  "ford|F-150 HYBRID|2022": {
+   "total": 215,
+   "comps": {
+    "ENGINE": 16,
+    "POWER TRAIN": 77,
+    "BACK OVER PREVENTION": 7,
+    "STEERING": 3,
+    "UNKNOWN OR OTHER": 41,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "STRUCTURE": 7,
+    "VISIBILITY": 3,
+    "EQUIPMENT": 29,
+    "ELECTRICAL SYSTEM": 65,
+    "SUSPENSION": 2,
+    "ENGINE AND ENGINE COOLING": 2,
+    "HYBRID PROPULSION SYSTEM": 1,
+    "FORWARD COLLISION AVOIDANCE": 12,
+    "EXTERIOR LIGHTING": 9,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "WHEELS": 13,
+    "VISIBILITY/WIPER": 2,
+    "SERVICE BRAKES": 6,
+    "VEHICLE SPEED CONTROL": 7,
+    "LANE DEPARTURE": 3,
+    "AIR BAGS": 1,
+    "FUEL SYSTEM": 3
+   }
+  },
+  "chevrolet|MALIBU|2022": {
+   "total": 99,
+   "comps": {
+    "ELECTRICAL SYSTEM": 33,
+    "BACK OVER PREVENTION": 1,
+    "EXTERIOR LIGHTING": 2,
+    "POWER TRAIN": 24,
+    "AIR BAGS": 4,
+    "SEAT BELTS": 2,
+    "SERVICE BRAKES": 6,
+    "ENGINE": 29,
+    "UNKNOWN OR OTHER": 29,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "STEERING": 2,
+    "WHEELS": 2,
+    "ENGINE AND ENGINE COOLING": 10,
+    "VEHICLE SPEED CONTROL": 4,
+    "FUEL SYSTEM": 2,
+    "TIRES": 1,
+    "STRUCTURE": 2,
+    "SEATS": 1
+   }
+  },
+  "ford|MUSTANG MACH E|2022": {
+   "total": 139,
+   "comps": {
+    "UNKNOWN OR OTHER": 22,
+    "FUEL/PROPULSION SYSTEM": 20,
+    "ELECTRICAL SYSTEM": 79,
+    "STEERING": 7,
+    "ENGINE": 16,
+    "FORWARD COLLISION AVOIDANCE": 29,
+    "VEHICLE SPEED CONTROL": 19,
+    "POWER TRAIN": 28,
+    "STRUCTURE": 4,
+    "SUSPENSION": 2,
+    "EQUIPMENT": 1,
+    "LANE DEPARTURE": 3,
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 16,
+    "AIR BAGS": 3,
+    "LATCHES/LOCKS/LINKAGES": 3,
+    "BACK OVER PREVENTION": 4,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "mazda|MX-5|2021": {
+   "total": 1,
+   "comps": {
+    "POWER TRAIN": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2022": {
+   "total": 47,
+   "comps": {
+    "ENGINE": 14,
+    "UNKNOWN OR OTHER": 13,
+    "EXTERIOR LIGHTING": 1,
+    "STEERING": 6,
+    "ELECTRICAL SYSTEM": 8,
+    "VISIBILITY/WIPER": 3,
+    "SERVICE BRAKES": 2,
+    "FORWARD COLLISION AVOIDANCE": 1,
+    "SUSPENSION": 2,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 6,
+    "POWER TRAIN": 8,
+    "STRUCTURE": 2,
+    "TIRES": 1,
+    "SEATS": 3,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "ENGINE AND ENGINE COOLING": 2,
+    "SEAT BELTS": 2,
+    "VISIBILITY": 1
+   }
+  },
+  "ford|F-150 LIGHTNING BEV|2022": {
+   "total": 92,
+   "comps": {
+    "EQUIPMENT": 3,
+    "ELECTRICAL SYSTEM": 36,
+    "UNKNOWN OR OTHER": 8,
+    "VISIBILITY": 3,
+    "VISIBILITY/WIPER": 4,
+    "TIRES": 1,
+    "EXTERIOR LIGHTING": 34,
+    "POWER TRAIN": 13,
+    "VEHICLE SPEED CONTROL": 10,
+    "STRUCTURE": 2,
+    "FORWARD COLLISION AVOIDANCE": 16,
+    "SERVICE BRAKES": 2,
+    "FUEL/PROPULSION SYSTEM": 5,
+    "BACK OVER PREVENTION": 1,
+    "LANE DEPARTURE": 1,
+    "AIR BAGS": 1,
+    "STEERING": 1,
+    "SUSPENSION": 1
+   }
+  },
+  "ford|MUSTANG|2022": {
+   "total": 50,
+   "comps": {
+    "UNKNOWN OR OTHER": 8,
+    "VEHICLE SPEED CONTROL": 3,
+    "SERVICE BRAKES": 2,
+    "POWER TRAIN": 4,
+    "FUEL/PROPULSION SYSTEM": 6,
+    "ELECTRICAL SYSTEM": 8,
+    "STRUCTURE": 5,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "VISIBILITY": 3,
+    "TIRES": 1,
+    "STEERING": 8,
+    "BACK OVER PREVENTION": 2,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "ENGINE": 5,
+    "SUSPENSION": 2,
+    "WHEELS": 1,
+    "LANE DEPARTURE": 2,
+    "AIR BAGS": 1,
+    "FUEL SYSTEM": 8,
+    "ENGINE AND ENGINE COOLING": 1,
+    "EQUIPMENT": 1
+   }
+  },
+  "hyundai|ELANTRA|2023": {
+   "total": 100,
+   "comps": {
+    "SERVICE BRAKES": 9,
+    "FORWARD COLLISION AVOIDANCE": 26,
+    "VISIBILITY/WIPER": 5,
+    "EXTERIOR LIGHTING": 2,
+    "BACK OVER PREVENTION": 4,
+    "ELECTRICAL SYSTEM": 24,
+    "TIRES": 4,
+    "LANE DEPARTURE": 9,
+    "ENGINE": 20,
+    "VISIBILITY": 3,
+    "SEAT BELTS": 2,
+    "POWER TRAIN": 9,
+    "UNKNOWN OR OTHER": 23,
+    "FUEL/PROPULSION SYSTEM": 4,
+    "ENGINE AND ENGINE COOLING": 1,
+    "STRUCTURE": 3,
+    "AIR BAGS": 6,
+    "STEERING": 3,
+    "VEHICLE SPEED CONTROL": 6,
+    "SUSPENSION": 1
+   }
+  },
+  "tesla|MODEL 3|2023": {
+   "total": 428,
+   "comps": {
+    "SERVICE BRAKES": 57,
+    "VEHICLE SPEED CONTROL": 69,
+    "FORWARD COLLISION AVOIDANCE": 243,
+    "ENGINE": 8,
+    "UNKNOWN OR OTHER": 59,
+    "BACK OVER PREVENTION": 9,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "LANE DEPARTURE": 36,
+    "SEATS": 9,
+    "POWER TRAIN": 10,
+    "ELECTRICAL SYSTEM": 51,
+    "VISIBILITY/WIPER": 12,
+    "AIR BAGS": 20,
+    "SUSPENSION": 19,
+    "STRUCTURE": 24,
+    "TIRES": 1,
+    "WHEELS": 9,
+    "STEERING": 88,
+    "SEAT BELTS": 10,
+    "LATCHES/LOCKS/LINKAGES": 4,
+    "EXTERIOR LIGHTING": 1,
+    "VISIBILITY": 1,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 1
+   }
+  },
+  "toyota|COROLLA|2023": {
+   "total": 74,
+   "comps": {
+    "VEHICLE SPEED CONTROL": 1,
+    "STEERING": 16,
+    "UNKNOWN OR OTHER": 18,
+    "ENGINE": 13,
+    "SERVICE BRAKES": 7,
+    "ELECTRICAL SYSTEM": 15,
+    "POWER TRAIN": 6,
+    "EXTERIOR LIGHTING": 11,
+    "BACK OVER PREVENTION": 3,
+    "VISIBILITY/WIPER": 5,
+    "AIR BAGS": 6,
+    "LANE DEPARTURE": 5,
+    "SEAT BELTS": 1,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "STRUCTURE": 1,
+    "LATCHES/LOCKS/LINKAGES": 1
+   }
+  },
+  "kia|FORTE|2023": {
+   "total": 65,
+   "comps": {
+    "SERVICE BRAKES": 4,
+    "ELECTRICAL SYSTEM": 11,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 5,
+    "POWER TRAIN": 8,
+    "STEERING": 15,
+    "FORWARD COLLISION AVOIDANCE": 14,
+    "LANE DEPARTURE": 7,
+    "EXTERIOR LIGHTING": 3,
+    "VISIBILITY/WIPER": 3,
+    "ENGINE": 9,
+    "BACK OVER PREVENTION": 4,
+    "STRUCTURE": 4,
+    "UNKNOWN OR OTHER": 8,
+    "SUSPENSION": 8,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "WHEELS": 1
+   }
+  },
+  "toyota|CAMRY|2023": {
+   "total": 65,
+   "comps": {
+    "LANE DEPARTURE": 3,
+    "UNKNOWN OR OTHER": 18,
+    "SERVICE BRAKES": 6,
+    "AIR BAGS": 5,
+    "EXTERIOR LIGHTING": 2,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "VISIBILITY/WIPER": 3,
+    "POWER TRAIN": 7,
+    "VEHICLE SPEED CONTROL": 6,
+    "FUEL/PROPULSION SYSTEM": 7,
+    "ELECTRICAL SYSTEM": 10,
+    "TIRES": 4,
+    "ENGINE": 5,
+    "WHEELS": 2,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "BACK OVER PREVENTION": 3,
+    "STRUCTURE": 5,
+    "VISIBILITY": 1,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "honda|CR-V|2023": {
+   "total": 517,
+   "comps": {
+    "SEATS": 3,
+    "BACK OVER PREVENTION": 7,
+    "ELECTRICAL SYSTEM": 28,
+    "LANE DEPARTURE": 37,
+    "FORWARD COLLISION AVOIDANCE": 57,
+    "VEHICLE SPEED CONTROL": 13,
+    "SERVICE BRAKES": 29,
+    "VISIBILITY": 4,
+    "STEERING": 325,
+    "STRUCTURE": 23,
+    "UNKNOWN OR OTHER": 33,
+    "VISIBILITY/WIPER": 25,
+    "ENGINE": 21,
+    "POWER TRAIN": 14,
+    "SUSPENSION": 1,
+    "AIR BAGS": 6,
+    "EXTERIOR LIGHTING": 5,
+    "FUEL/PROPULSION SYSTEM": 16,
+    "TRACTION CONTROL SYSTEM": 1,
+    "WHEELS": 3,
+    "FUEL SYSTEM": 8,
+    "SEAT BELTS": 1,
+    "TIRES": 1
+   }
+  },
+  "toyota|RAV4|2023": {
+   "total": 161,
+   "comps": {
+    "ELECTRICAL SYSTEM": 42,
+    "ENGINE": 25,
+    "STEERING": 27,
+    "POWER TRAIN": 11,
+    "FORWARD COLLISION AVOIDANCE": 21,
+    "UNKNOWN OR OTHER": 42,
+    "SEATS": 1,
+    "VISIBILITY/WIPER": 9,
+    "TIRES": 6,
+    "FUEL/PROPULSION SYSTEM": 11,
+    "SERVICE BRAKES": 18,
+    "BACK OVER PREVENTION": 11,
+    "SUSPENSION": 6,
+    "VEHICLE SPEED CONTROL": 7,
+    "WHEELS": 3,
+    "STRUCTURE": 10,
+    "AIR BAGS": 8,
+    "LANE DEPARTURE": 8,
+    "VISIBILITY": 3,
+    "ENGINE AND ENGINE COOLING": 1,
+    "EXTERIOR LIGHTING": 1,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "SEAT BELTS": 1,
+    "Other/I am not sure": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2023": {
+   "total": 176,
+   "comps": {
+    "ENGINE": 103,
+    "STEERING": 44,
+    "UNKNOWN OR OTHER": 24,
+    "ELECTRICAL SYSTEM": 69,
+    "FORWARD COLLISION AVOIDANCE": 12,
+    "FUEL/PROPULSION SYSTEM": 6,
+    "VISIBILITY/WIPER": 25,
+    "SERVICE BRAKES": 12,
+    "LANE DEPARTURE": 6,
+    "POWER TRAIN": 11,
+    "EXTERIOR LIGHTING": 15,
+    "BACK OVER PREVENTION": 1,
+    "AIR BAGS": 10,
+    "VEHICLE SPEED CONTROL": 2,
+    "EQUIPMENT": 1,
+    "SEATS": 1,
+    "STRUCTURE": 3,
+    "FUEL SYSTEM": 1,
+    "VISIBILITY": 1,
+    "PARKING BRAKE": 1,
+    "ENGINE AND ENGINE COOLING": 1,
+    "TIRES": 2
+   }
+  },
+  "hyundai|ELANTRA HYBRID|2023": {
+   "total": 55,
+   "comps": {
+    "UNKNOWN OR OTHER": 12,
+    "SERVICE BRAKES": 5,
+    "FORWARD COLLISION AVOIDANCE": 17,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "LANE DEPARTURE": 4,
+    "STRUCTURE": 1,
+    "AIR BAGS": 3,
+    "ELECTRICAL SYSTEM": 17,
+    "VEHICLE SPEED CONTROL": 8,
+    "ENGINE": 4,
+    "POWER TRAIN": 9,
+    "FUEL/PROPULSION SYSTEM": 3,
+    "STEERING": 5,
+    "EXTERIOR LIGHTING": 3,
+    "VISIBILITY/WIPER": 1,
+    "SUSPENSION": 1,
+    "WHEELS": 1
+   }
+  },
+  "honda|CIVIC SI|2022": {
+   "total": 73,
+   "comps": {
+    "AIR BAGS": 2,
+    "STEERING": 68,
+    "LANE DEPARTURE": 5,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "POWER TRAIN": 2,
+    "UNKNOWN OR OTHER": 2,
+    "SUSPENSION": 1,
+    "VEHICLE SPEED CONTROL": 1,
+    "ELECTRICAL SYSTEM": 2,
+    "SEATS": 1,
+    "ENGINE": 1
+   }
+  },
+  "hyundai|ELANTRA N|2023": {
+   "total": 14,
+   "comps": {
+    "ENGINE": 4,
+    "SUSPENSION": 2,
+    "VEHICLE SPEED CONTROL": 1,
+    "POWER TRAIN": 3,
+    "ELECTRICAL SYSTEM": 2,
+    "FUEL SYSTEM": 1,
+    "STEERING": 1,
+    "FUEL/PROPULSION SYSTEM": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "ENGINE AND ENGINE COOLING": 1,
+    "UNKNOWN OR OTHER": 2,
+    "SERVICE BRAKES": 2
+   }
+  },
+  "toyota|RAV4 PRIME|2023": {
+   "total": 65,
+   "comps": {
+    "UNKNOWN OR OTHER": 20,
+    "SERVICE BRAKES": 4,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "VEHICLE SPEED CONTROL": 6,
+    "FORWARD COLLISION AVOIDANCE": 6,
+    "LANE DEPARTURE": 6,
+    "POWER TRAIN": 1,
+    "ELECTRICAL SYSTEM": 43,
+    "EXTERIOR LIGHTING": 2,
+    "STEERING": 1,
+    "VISIBILITY/WIPER": 1,
+    "AIR BAGS": 1,
+    "BACK OVER PREVENTION": 1,
+    "WHEELS": 1,
+    "SEATS": 1,
+    "LATCHES/LOCKS/LINKAGES": 1
+   }
+  },
+  "honda|CR-V HYBRID|2023": {
+   "total": 116,
+   "comps": {
+    "VEHICLE SPEED CONTROL": 1,
+    "FORWARD COLLISION AVOIDANCE": 8,
+    "STEERING": 72,
+    "LANE DEPARTURE": 16,
+    "SERVICE BRAKES": 5,
+    "ELECTRICAL SYSTEM": 10,
+    "UNKNOWN OR OTHER": 9,
+    "POWER TRAIN": 5,
+    "PARKING BRAKE": 1,
+    "EXTERIOR LIGHTING": 1,
+    "VISIBILITY": 1,
+    "TIRES": 1,
+    "VISIBILITY/WIPER": 2,
+    "FUEL/PROPULSION SYSTEM": 7,
+    "WHEELS": 3,
+    "AIR BAGS": 2,
+    "FUEL SYSTEM": 9,
+    "ENGINE": 7,
+    "ENGINE AND ENGINE COOLING": 2
+   }
+  },
+  "toyota|RAV4 HYBRID|2023": {
+   "total": 8,
+   "comps": {
+    "ENGINE": 2,
+    "FUEL SYSTEM": 1,
+    "VISIBILITY": 2,
+    "ELECTRICAL SYSTEM": 4,
+    "STEERING": 1,
+    "SUSPENSION": 1,
+    "TIRES": 1
+   }
+  },
+  "toyota|COROLLA|2024": {
+   "total": 65,
+   "comps": {
+    "EXTERIOR LIGHTING": 4,
+    "STEERING": 12,
+    "LANE DEPARTURE": 4,
+    "FORWARD COLLISION AVOIDANCE": 16,
+    "ELECTRICAL SYSTEM": 8,
+    "UNKNOWN OR OTHER": 15,
+    "POWER TRAIN": 8,
+    "ENGINE": 6,
+    "SERVICE BRAKES": 10,
+    "AIR BAGS": 8,
+    "VISIBILITY/WIPER": 3,
+    "BACK OVER PREVENTION": 1,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "SEAT BELTS": 1,
+    "WHEELS": 1,
+    "TIRES": 1,
+    "VEHICLE SPEED CONTROL": 2,
+    "Chest Clip": 1,
+    "Other/I am not sure": 1,
+    "SEATS": 1
+   }
+  },
+  "toyota|COROLLA CROSS HYBRID|2023": {
+   "total": 2,
+   "comps": {
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2
+   }
+  },
+  "toyota|COROLLA HYBRID|2024": {
+   "total": 2,
+   "comps": {
+    "EXTERIOR LIGHTING": 1,
+    "ELECTRICAL SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA HATCHBACK|2022": {
+   "total": 2,
+   "comps": {
+    "SERVICE BRAKES": 1,
+    "ENGINE": 1,
+    "STEERING": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2024": {
+   "total": 45,
+   "comps": {
+    "STRUCTURE": 5,
+    "UNKNOWN OR OTHER": 13,
+    "EXTERIOR LIGHTING": 5,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "ENGINE": 7,
+    "POWER TRAIN": 3,
+    "LANE DEPARTURE": 3,
+    "SERVICE BRAKES": 6,
+    "VISIBILITY": 1,
+    "ELECTRICAL SYSTEM": 13,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 2,
+    "BACK OVER PREVENTION": 1,
+    "SEAT BELTS": 2,
+    "STEERING": 1,
+    "FUEL/PROPULSION SYSTEM": 1,
+    "VISIBILITY/WIPER": 1
+   }
+  },
+  "toyota|COROLLA CROSS HYBRID|2024": {
+   "total": 6,
+   "comps": {
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "EXTERIOR LIGHTING": 2,
+    "STEERING": 1
+   }
+  },
+  "honda|CIVIC HATCHBACK|2022": {
+   "total": 3,
+   "comps": {
+    "STEERING": 3
+   }
+  },
+  "toyota|CAMRY HYBRID|2023": {
+   "total": 1,
+   "comps": {
+    "FUEL SYSTEM": 1
+   }
+  }
+ }
+}

@@ -1254,6 +1254,9 @@ export type Database = {
           segment_ends_at: string | null;
           staff_commission_cents: number;
           staff_commission_adjusted_cents: number;
+          partner_rate_basis: boolean;
+          partner_sheet_cents: number | null;
+          partner_markup_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -1290,6 +1293,9 @@ export type Database = {
           segment_ends_at?: string | null;
           staff_commission_cents?: number;
           staff_commission_adjusted_cents?: number;
+          partner_rate_basis?: boolean;
+          partner_sheet_cents?: number | null;
+          partner_markup_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -1326,6 +1332,9 @@ export type Database = {
           segment_ends_at?: string | null;
           staff_commission_cents?: number;
           staff_commission_adjusted_cents?: number;
+          partner_rate_basis?: boolean;
+          partner_sheet_cents?: number | null;
+          partner_markup_cents?: number;
         };
         Relationships: [];
       };
@@ -1563,6 +1572,10 @@ export type Database = {
           price_reviewed_at: string | null;
           price_reviewed_by: string | null;
           price_review_note: string | null;
+          multi_day_rate_cents: number | null;
+          partner_sheet_rental_cents: number | null;
+          partner_cut_bps: number | null;
+          partner_markup_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -1698,6 +1711,10 @@ export type Database = {
           price_reviewed_at?: string | null;
           price_reviewed_by?: string | null;
           price_review_note?: string | null;
+          multi_day_rate_cents?: number | null;
+          partner_sheet_rental_cents?: number | null;
+          partner_cut_bps?: number | null;
+          partner_markup_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -1833,6 +1850,10 @@ export type Database = {
           price_reviewed_at?: string | null;
           price_reviewed_by?: string | null;
           price_review_note?: string | null;
+          multi_day_rate_cents?: number | null;
+          partner_sheet_rental_cents?: number | null;
+          partner_cut_bps?: number | null;
+          partner_markup_bps?: number | null;
         };
         Relationships: [];
       };
@@ -2343,6 +2364,171 @@ export type Database = {
           email_when_waiting?: boolean;
           desktop_alerts?: boolean;
           last_seen_at?: string | null;
+        };
+        Relationships: [];
+      };
+      chauffeur_requests: {
+        Row: {
+          id: string;
+          reference: string;
+          lead_id: string | null;
+          chauffeur_vehicle_id: string;
+          service_date: string;
+          start_time: string;
+          hours: number;
+          pickup_address: string;
+          dropoff_address: string | null;
+          passengers: number;
+          occasion: string | null;
+          notes: string | null;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          status: string;
+          rate_cents: number;
+          renter_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          sheet_cents: number;
+          cut_bps: number;
+          markup_bps: number;
+          partner_payout_cents: number;
+          carmacars_keep_cents: number;
+          quote_note: string | null;
+          staff_note: string | null;
+          request_key: string | null;
+          handled_by: string | null;
+          quoted_at: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reference?: string;
+          lead_id?: string | null;
+          chauffeur_vehicle_id: string;
+          service_date: string;
+          start_time: string;
+          hours: number;
+          pickup_address: string;
+          dropoff_address?: string | null;
+          passengers: number;
+          occasion?: string | null;
+          notes?: string | null;
+          name: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: string;
+          rate_cents: number;
+          renter_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          sheet_cents: number;
+          cut_bps: number;
+          markup_bps: number;
+          partner_payout_cents: number;
+          carmacars_keep_cents: number;
+          quote_note?: string | null;
+          staff_note?: string | null;
+          request_key?: string | null;
+          handled_by?: string | null;
+          quoted_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          reference?: string;
+          lead_id?: string | null;
+          chauffeur_vehicle_id?: string;
+          service_date?: string;
+          start_time?: string;
+          hours?: number;
+          pickup_address?: string;
+          dropoff_address?: string | null;
+          passengers?: number;
+          occasion?: string | null;
+          notes?: string | null;
+          name?: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: string;
+          rate_cents?: number;
+          renter_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          sheet_cents?: number;
+          cut_bps?: number;
+          markup_bps?: number;
+          partner_payout_cents?: number;
+          carmacars_keep_cents?: number;
+          quote_note?: string | null;
+          staff_note?: string | null;
+          request_key?: string | null;
+          handled_by?: string | null;
+          quoted_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      chauffeur_vehicles: {
+        Row: {
+          id: string;
+          partner_id: string | null;
+          sheet_name: string | null;
+          name: string;
+          slug: string;
+          kind: string;
+          passengers: number;
+          rental_vehicle_ids: string[];
+          sheet_2h_cents: number;
+          sheet_3plus_cents: number;
+          markup_bps: number | null;
+          cut_bps: number | null;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_id?: string | null;
+          sheet_name?: string | null;
+          name: string;
+          slug: string;
+          kind: string;
+          passengers: number;
+          rental_vehicle_ids?: string[];
+          sheet_2h_cents: number;
+          sheet_3plus_cents: number;
+          markup_bps?: number | null;
+          cut_bps?: number | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string | null;
+          sheet_name?: string | null;
+          name?: string;
+          slug?: string;
+          kind?: string;
+          passengers?: number;
+          rental_vehicle_ids?: string[];
+          sheet_2h_cents?: number;
+          sheet_3plus_cents?: number;
+          markup_bps?: number | null;
+          cut_bps?: number | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -5451,6 +5637,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      indexnow_sweep: {
+        Row: {
+          id: boolean;
+          file_i: number;
+          pos: number;
+          day: string;
+          sent_today: number;
+          backoff_until: string | null;
+          backoff_s: number;
+          rounds: number;
+          last_status: number | null;
+          last_error: string | null;
+          last_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          file_i?: number;
+          pos?: number;
+          day?: string;
+          sent_today?: number;
+          backoff_until?: string | null;
+          backoff_s?: number;
+          rounds?: number;
+          last_status?: number | null;
+          last_error?: string | null;
+          last_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          file_i?: number;
+          pos?: number;
+          day?: string;
+          sent_today?: number;
+          backoff_until?: string | null;
+          backoff_s?: number;
+          rounds?: number;
+          last_status?: number | null;
+          last_error?: string | null;
+          last_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       insurer_invoices: {
         Row: {
           id: string;
@@ -6729,6 +6960,7 @@ export type Database = {
           updated_at: string;
           always_email: boolean;
           no_text: boolean;
+          text_to_recipient: boolean;
         };
         Insert: {
           code: string;
@@ -6759,6 +6991,7 @@ export type Database = {
           updated_at?: string;
           always_email?: boolean;
           no_text?: boolean;
+          text_to_recipient?: boolean;
         };
         Update: {
           code?: string;
@@ -6789,6 +7022,7 @@ export type Database = {
           updated_at?: string;
           always_email?: boolean;
           no_text?: boolean;
+          text_to_recipient?: boolean;
         };
         Relationships: [];
       };
@@ -8102,6 +8336,8 @@ export type Database = {
           amount_cents: number;
           owner_credit_id: string | null;
           staff_commission_cents: number;
+          partner_sheet_cents: number | null;
+          partner_cut_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -8131,6 +8367,8 @@ export type Database = {
           amount_cents: number;
           owner_credit_id?: string | null;
           staff_commission_cents?: number;
+          partner_sheet_cents?: number | null;
+          partner_cut_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -8160,6 +8398,8 @@ export type Database = {
           amount_cents?: number;
           owner_credit_id?: string | null;
           staff_commission_cents?: number;
+          partner_sheet_cents?: number | null;
+          partner_cut_bps?: number | null;
         };
         Relationships: [];
       };
@@ -8568,6 +8808,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      partner_rates: {
+        Row: {
+          vehicle_id: string;
+          base_cents: number;
+          multi_day_cents: number;
+          long_term_cents: number;
+          source: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          base_cents: number;
+          multi_day_cents: number;
+          long_term_cents: number;
+          source?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          base_cents?: number;
+          multi_day_cents?: number;
+          long_term_cents?: number;
+          source?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       partners: {
         Row: {
           id: string;
@@ -8599,6 +8872,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          markup_bps: number | null;
+          payout_basis: string;
         };
         Insert: {
           id?: string;
@@ -8630,6 +8905,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          markup_bps?: number | null;
+          payout_basis?: string;
         };
         Update: {
           id?: string;
@@ -8661,6 +8938,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          markup_bps?: number | null;
+          payout_basis?: string;
         };
         Relationships: [];
       };
@@ -9606,6 +9885,246 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_imports: {
+        Row: {
+          id: number;
+          regions: string[];
+          sources: string[];
+          started_at: string;
+          finished_at: string | null;
+          counts: Json;
+          run_url: string | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: number;
+          regions: string[];
+          sources?: string[];
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json;
+          run_url?: string | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: number;
+          regions?: string[];
+          sources?: string[];
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json;
+          run_url?: string | null;
+          error?: string | null;
+        };
+        Relationships: [];
+      };
+      place_regions: {
+        Row: {
+          id: number;
+          code: string;
+          country: string;
+          name: string;
+          is_enabled: boolean;
+          sort_order: number;
+          loaded_at: string | null;
+          places: number;
+          skipped: string | null;
+        };
+        Insert: {
+          id?: number;
+          code: string;
+          country: string;
+          name: string;
+          is_enabled?: boolean;
+          sort_order?: number;
+          loaded_at?: string | null;
+          places?: number;
+          skipped?: string | null;
+        };
+        Update: {
+          id?: number;
+          code?: string;
+          country?: string;
+          name?: string;
+          is_enabled?: boolean;
+          sort_order?: number;
+          loaded_at?: string | null;
+          places?: number;
+          skipped?: string | null;
+        };
+        Relationships: [];
+      };
+      place_terms: {
+        Row: {
+          slug: string;
+          vertical: string;
+          phrase: string;
+          title: string;
+          canonical_slug: string | null;
+          match: Json;
+          served: string;
+          landing_slug: string | null;
+          service_code: string | null;
+          lead_kind: string | null;
+          intent_note: string;
+          faq: Json;
+          sort_order: number;
+          is_active: boolean;
+          cars_snapshot: Json | null;
+          snapshot_stamp: string | null;
+          cars_changed_at: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          vertical: string;
+          phrase: string;
+          title: string;
+          canonical_slug?: string | null;
+          match?: Json;
+          served?: string;
+          landing_slug?: string | null;
+          service_code?: string | null;
+          lead_kind?: string | null;
+          intent_note?: string;
+          faq?: Json;
+          sort_order?: number;
+          is_active?: boolean;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          cars_changed_at?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          vertical?: string;
+          phrase?: string;
+          title?: string;
+          canonical_slug?: string | null;
+          match?: Json;
+          served?: string;
+          landing_slug?: string | null;
+          service_code?: string | null;
+          lead_kind?: string | null;
+          intent_note?: string;
+          faq?: Json;
+          sort_order?: number;
+          is_active?: boolean;
+          cars_snapshot?: Json | null;
+          snapshot_stamp?: string | null;
+          cars_changed_at?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      places: {
+        Row: {
+          id: number;
+          parent_id: number | null;
+          kind: number;
+          region_id: number | null;
+          flags: number;
+          lat: number | null;
+          lng: number | null;
+          population: number | null;
+          src_id: number | null;
+          updated_on: string;
+          slug: string;
+          name: string;
+          country: string;
+          iata: string | null;
+          landing_slug: string | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: number;
+          parent_id?: number | null;
+          kind: number;
+          region_id?: number | null;
+          flags?: number;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          src_id?: number | null;
+          updated_on?: string;
+          slug: string;
+          name: string;
+          country: string;
+          iata?: string | null;
+          landing_slug?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: number;
+          parent_id?: number | null;
+          kind?: number;
+          region_id?: number | null;
+          flags?: number;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          src_id?: number | null;
+          updated_on?: string;
+          slug?: string;
+          name?: string;
+          country?: string;
+          iata?: string | null;
+          landing_slug?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      places_staging: {
+        Row: {
+          src_id: number;
+          kind: number;
+          flags: number;
+          region_code: string | null;
+          country: string;
+          lat: number | null;
+          lng: number | null;
+          population: number | null;
+          parent_src_id: number | null;
+          slug: string;
+          name: string;
+          iata: string | null;
+        };
+        Insert: {
+          src_id: number;
+          kind: number;
+          flags?: number;
+          region_code?: string | null;
+          country: string;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          parent_src_id?: number | null;
+          slug: string;
+          name: string;
+          iata?: string | null;
+        };
+        Update: {
+          src_id?: number;
+          kind?: number;
+          flags?: number;
+          region_code?: string | null;
+          country?: string;
+          lat?: number | null;
+          lng?: number | null;
+          population?: number | null;
+          parent_src_id?: number | null;
+          slug?: string;
+          name?: string;
+          iata?: string | null;
+        };
+        Relationships: [];
+      };
       program_settings: {
         Row: {
           id: string;
@@ -9981,7 +10500,17 @@ export type Database = {
           signin_phone_hourly_per_ip: number;
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
+          partner_markup_bps: number;
           game_max_per_day: number;
+          place_db_cap_mb: number;
+          place_hubs_index: boolean;
+          sale_hubs_index: boolean;
+          detailing_hubs_index: boolean;
+          bodyshop_hubs_index: boolean;
+          place_quality_gate: boolean;
+          place_delivery_reach_km: number;
+          place_sitemap_file_urls: number;
+          sale_disclaimer: string;
           sms_alerts_enabled: boolean;
           sms_default_with_phone: string;
           sms_default_phone_only: string;
@@ -9990,6 +10519,28 @@ export type Database = {
           sms_quiet_until_hour: number;
           sms_stop_line: boolean;
           sms_generic_text: string;
+          sms_stop_confirm_text: string;
+          sms_start_confirm_text: string;
+          vpage_index_mode: string;
+          vpage_model_min_years: number;
+          vpage_popular_from_year: number;
+          vpage_year_min_cars: number;
+          vpage_trim_min_cars: number;
+          vpage_gas_cents_per_litre: number;
+          vpage_premium_extra_cents: number;
+          vpage_electricity_cents_per_kwh: number;
+          vpage_import_every_days: number;
+          vpage_import_db_cap_mb: number;
+          vpage_place_index: boolean;
+          vpage_colour_index: boolean;
+          vpage_term_index: boolean;
+          vpage_buy_index: boolean;
+          vpage_detailing_index: boolean;
+          vpage_bodyshop_index: boolean;
+          vpage_finance_disclaimer: string;
+          indexnow_daily_max: number;
+          indexnow_batch: number;
+          chat_greeting_topic_text: string;
         };
         Insert: {
           id?: string;
@@ -10365,7 +10916,17 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          partner_markup_bps?: number;
           game_max_per_day?: number;
+          place_db_cap_mb?: number;
+          place_hubs_index?: boolean;
+          sale_hubs_index?: boolean;
+          detailing_hubs_index?: boolean;
+          bodyshop_hubs_index?: boolean;
+          place_quality_gate?: boolean;
+          place_delivery_reach_km?: number;
+          place_sitemap_file_urls?: number;
+          sale_disclaimer?: string;
           sms_alerts_enabled?: boolean;
           sms_default_with_phone?: string;
           sms_default_phone_only?: string;
@@ -10374,6 +10935,28 @@ export type Database = {
           sms_quiet_until_hour?: number;
           sms_stop_line?: boolean;
           sms_generic_text?: string;
+          sms_stop_confirm_text?: string;
+          sms_start_confirm_text?: string;
+          vpage_index_mode?: string;
+          vpage_model_min_years?: number;
+          vpage_popular_from_year?: number;
+          vpage_year_min_cars?: number;
+          vpage_trim_min_cars?: number;
+          vpage_gas_cents_per_litre?: number;
+          vpage_premium_extra_cents?: number;
+          vpage_electricity_cents_per_kwh?: number;
+          vpage_import_every_days?: number;
+          vpage_import_db_cap_mb?: number;
+          vpage_place_index?: boolean;
+          vpage_colour_index?: boolean;
+          vpage_term_index?: boolean;
+          vpage_buy_index?: boolean;
+          vpage_detailing_index?: boolean;
+          vpage_bodyshop_index?: boolean;
+          vpage_finance_disclaimer?: string;
+          indexnow_daily_max?: number;
+          indexnow_batch?: number;
+          chat_greeting_topic_text?: string;
         };
         Update: {
           id?: string;
@@ -10749,7 +11332,17 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          partner_markup_bps?: number;
           game_max_per_day?: number;
+          place_db_cap_mb?: number;
+          place_hubs_index?: boolean;
+          sale_hubs_index?: boolean;
+          detailing_hubs_index?: boolean;
+          bodyshop_hubs_index?: boolean;
+          place_quality_gate?: boolean;
+          place_delivery_reach_km?: number;
+          place_sitemap_file_urls?: number;
+          sale_disclaimer?: string;
           sms_alerts_enabled?: boolean;
           sms_default_with_phone?: string;
           sms_default_phone_only?: string;
@@ -10758,6 +11351,28 @@ export type Database = {
           sms_quiet_until_hour?: number;
           sms_stop_line?: boolean;
           sms_generic_text?: string;
+          sms_stop_confirm_text?: string;
+          sms_start_confirm_text?: string;
+          vpage_index_mode?: string;
+          vpage_model_min_years?: number;
+          vpage_popular_from_year?: number;
+          vpage_year_min_cars?: number;
+          vpage_trim_min_cars?: number;
+          vpage_gas_cents_per_litre?: number;
+          vpage_premium_extra_cents?: number;
+          vpage_electricity_cents_per_kwh?: number;
+          vpage_import_every_days?: number;
+          vpage_import_db_cap_mb?: number;
+          vpage_place_index?: boolean;
+          vpage_colour_index?: boolean;
+          vpage_term_index?: boolean;
+          vpage_buy_index?: boolean;
+          vpage_detailing_index?: boolean;
+          vpage_bodyshop_index?: boolean;
+          vpage_finance_disclaimer?: string;
+          indexnow_daily_max?: number;
+          indexnow_batch?: number;
+          chat_greeting_topic_text?: string;
         };
         Relationships: [];
       };
@@ -10991,6 +11606,7 @@ export type Database = {
           created_at: string;
           km_uses_defaults: boolean;
           auto_defaults: Json;
+          multi_day_rate_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -11011,6 +11627,7 @@ export type Database = {
           created_at?: string;
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
+          multi_day_rate_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -11031,6 +11648,7 @@ export type Database = {
           created_at?: string;
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
+          multi_day_rate_cents?: number | null;
         };
         Relationships: [];
       };
@@ -11653,6 +12271,8 @@ export type Database = {
           snapshot_stamp: string | null;
           snapshot_at: string | null;
           cars_changed_at: string | null;
+          min_real_cars: number | null;
+          was_indexable: boolean | null;
         };
         Insert: {
           slug: string;
@@ -11684,6 +12304,8 @@ export type Database = {
           snapshot_stamp?: string | null;
           snapshot_at?: string | null;
           cars_changed_at?: string | null;
+          min_real_cars?: number | null;
+          was_indexable?: boolean | null;
         };
         Update: {
           slug?: string;
@@ -11715,6 +12337,8 @@ export type Database = {
           snapshot_stamp?: string | null;
           snapshot_at?: string | null;
           cars_changed_at?: string | null;
+          min_real_cars?: number | null;
+          was_indexable?: boolean | null;
         };
         Relationships: [];
       };
@@ -11817,6 +12441,39 @@ export type Database = {
           help?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      shop_services: {
+        Row: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents: number | null;
+          sort_order: number;
+          is_active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          vertical: string;
+          name: string;
+          description: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          vertical?: string;
+          name?: string;
+          description?: string;
+          from_price_cents?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -12391,6 +13048,7 @@ export type Database = {
           action: string;
           source: string | null;
           at: string;
+          confirm_id: string | null;
         };
         Insert: {
           id?: number;
@@ -12398,6 +13056,7 @@ export type Database = {
           action: string;
           source?: string | null;
           at?: string;
+          confirm_id?: string | null;
         };
         Update: {
           id?: number;
@@ -12405,6 +13064,7 @@ export type Database = {
           action?: string;
           source?: string | null;
           at?: string;
+          confirm_id?: string | null;
         };
         Relationships: [];
       };
@@ -14454,6 +15114,339 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_catalog_car_match: {
+        Row: {
+          vehicle_id: string;
+          src: string;
+          make_slug: string | null;
+          model_slug: string | null;
+          trim_slug: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          src: string;
+          make_slug?: string | null;
+          model_slug?: string | null;
+          trim_slug?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          src?: string;
+          make_slug?: string | null;
+          model_slug?: string | null;
+          trim_slug?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_import_requests: {
+        Row: {
+          id: number;
+          requested_by: string | null;
+          requested_at: string;
+          import_id: string | null;
+        };
+        Insert: {
+          id?: number;
+          requested_by?: string | null;
+          requested_at?: string;
+          import_id?: string | null;
+        };
+        Update: {
+          id?: number;
+          requested_by?: string | null;
+          requested_at?: string;
+          import_id?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_imports: {
+        Row: {
+          id: string;
+          started_at: string;
+          finished_at: string | null;
+          status: string;
+          meta: Json;
+          counts: Json | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          status?: string;
+          meta?: Json;
+          counts?: Json | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          status?: string;
+          meta?: Json;
+          counts?: Json | null;
+          error?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_makes: {
+        Row: {
+          slug: string;
+          name: string;
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_models: {
+        Row: {
+          make_slug: string;
+          slug: string;
+          name: string;
+          key: string;
+          aliases: string[];
+          vclass: string | null;
+          sources: string[];
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          slug: string;
+          name: string;
+          key: string;
+          aliases?: string[];
+          vclass?: string | null;
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          slug?: string;
+          name?: string;
+          key?: string;
+          aliases?: string[];
+          vclass?: string | null;
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_popular: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          sort: number;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          sort?: number;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          sort?: number;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_popular_removed: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          removed_by: string | null;
+          removed_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          removed_by?: string | null;
+          removed_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          removed_by?: string | null;
+          removed_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_trim_lines: {
+        Row: {
+          id: number;
+          make_slug: string;
+          model_slug: string;
+          from_year: number;
+          to_year: number;
+          trims: string[];
+          source: string;
+          sort: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          make_slug: string;
+          model_slug: string;
+          from_year: number;
+          to_year: number;
+          trims: string[];
+          source?: string;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          make_slug?: string;
+          model_slug?: string;
+          from_year?: number;
+          to_year?: number;
+          trims?: string[];
+          source?: string;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_trims: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          slug: string;
+          name: string;
+          rank: number;
+          variant_ids: number[];
+          source: string;
+          ord: number | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          slug: string;
+          name: string;
+          rank: number;
+          variant_ids?: number[];
+          source: string;
+          ord?: number | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          year?: number;
+          slug?: string;
+          name?: string;
+          rank?: number;
+          variant_ids?: number[];
+          source?: string;
+          ord?: number | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_catalog_years: {
+        Row: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          vclass: string | null;
+          dims: Json;
+          recalls: Json;
+          complaints: Json;
+          variants: Json;
+          powertrains: number;
+          l100_min: number | null;
+          l100_max: number | null;
+          kwh100_min: number | null;
+          ev_range_max: number | null;
+          fuels: string[];
+          drives: string[];
+          sources: string[];
+          import_id: string | null;
+          content_hash: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          make_slug: string;
+          model_slug: string;
+          year: number;
+          vclass?: string | null;
+          dims?: Json;
+          recalls?: Json;
+          complaints?: Json;
+          variants?: Json;
+          powertrains?: number;
+          l100_min?: number | null;
+          l100_max?: number | null;
+          kwh100_min?: number | null;
+          ev_range_max?: number | null;
+          fuels?: string[];
+          drives?: string[];
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          make_slug?: string;
+          model_slug?: string;
+          year?: number;
+          vclass?: string | null;
+          dims?: Json;
+          recalls?: Json;
+          complaints?: Json;
+          variants?: Json;
+          powertrains?: number;
+          l100_min?: number | null;
+          l100_max?: number | null;
+          kwh100_min?: number | null;
+          ev_range_max?: number | null;
+          fuels?: string[];
+          drives?: string[];
+          sources?: string[];
+          import_id?: string | null;
+          content_hash?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_class_links: {
         Row: {
           vehicle_id: string;
@@ -14589,6 +15582,27 @@ export type Database = {
           error?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_colours: {
+        Row: {
+          slug: string;
+          name: string;
+          hex: string;
+          sort: number;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          hex: string;
+          sort?: number;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          hex?: string;
+          sort?: number;
         };
         Relationships: [];
       };
@@ -16023,7 +17037,14 @@ export type Database = {
           sample_bookable: boolean;
           car_code: string | null;
           auto_defaults: Json;
+          partner_markup_bps: number | null;
+          insurance_included: boolean;
+          no_credit_card: boolean;
+          year_approximate: boolean;
+          partner_sheet_name: string | null;
           trim_candidates: string[] | null;
+          for_sale: boolean;
+          asking_price_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -16078,7 +17099,14 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          partner_markup_bps?: number | null;
+          insurance_included?: boolean;
+          no_credit_card?: boolean;
+          year_approximate?: boolean;
+          partner_sheet_name?: string | null;
           trim_candidates?: string[] | null;
+          for_sale?: boolean;
+          asking_price_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -16133,7 +17161,14 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          partner_markup_bps?: number | null;
+          insurance_included?: boolean;
+          no_credit_card?: boolean;
+          year_approximate?: boolean;
+          partner_sheet_name?: string | null;
           trim_candidates?: string[] | null;
+          for_sale?: boolean;
+          asking_price_cents?: number | null;
         };
         Relationships: [];
       };
@@ -17589,6 +18624,7 @@ export type Database = {
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
+      business_rating: { Args: never; Returns: Json };
       calc_billable_days: { Args: { p_pickup: string; p_return: string; p_tz?: string }; Returns: number };
       calc_booking_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_eligible: boolean; p_company_share_bps: number; p_kickback_bps?: number }; Returns: { kickback_cents: number; owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
       calc_bps: { Args: { amount_cents: number; bps: number }; Returns: number };
@@ -17612,15 +18648,17 @@ export type Database = {
       calc_payment_retry_at: { Args: { p_first_declined_at: string; p_retries_done: number }; Returns: string };
       calc_prorated_fee: { Args: { p_monthly_cents: number; p_days_active: number; p_days_in_month: number }; Returns: number };
       calc_refund_bps: { Args: { p_booked_at: string; p_received_at: string; p_start_at: string; p_non_refundable?: boolean; p_by_carmacars?: boolean }; Returns: number };
-      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
+      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] } | { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz: string; p_multi: number }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
       calc_retransfer_payer: { Args: { p_months_on_fleet_policy: number; p_owner_default?: boolean; p_insurer_declined?: boolean; p_owner_failed_to_disclose?: boolean; p_free_after_months?: number }; Returns: string };
       calc_round: { Args: { n: number }; Returns: number };
       calc_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_cents: number; p_company_share_bps: number }; Returns: { owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
       calc_total_loss: { Args: { p_settlement_cents: number; p_lender_due_cents: number; p_owner_owes_cents: number }; Returns: { lender_cents: number; company_cents: number; owner_cents: number }[] };
       calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
+      chat_greeting: { Args: { p_page: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };
+      chauffeur_services: { Args: never; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
       delivery_origin: { Args: never; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
@@ -17687,6 +18725,12 @@ export type Database = {
       partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
+      place_hub: { Args: { p_vertical: string; p_term: string; p_place: string }; Returns: Json };
+      place_roots: { Args: never; Returns: Json };
+      place_sitemap: { Args: { p_vertical: string; p_term: string; p_page: number }; Returns: Json };
+      place_sitemap_files: { Args: never; Returns: Json };
+      place_terms_public: { Args: never; Returns: Json };
+      places_known: { Args: { p_slugs: string[] }; Returns: string[] };
       public_reviews: { Args: { p_vehicle?: string; p_limit?: number; p_offset?: number }; Returns: { review_id: string; vehicle_id: string; vehicle_label: string; rating: number; title: string; body: string; reviewer_first_name: string; review_month: string; staff_reply: string }[] };
       public_vehicle_calendar: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: { unavailable_from: string; unavailable_to: string; first_date: string; last_date: string }[] };
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
@@ -17783,6 +18827,8 @@ export type Database = {
       server_guide_upkeep_last_sha: { Args: never; Returns: string };
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
+      server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
+      server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
       server_jobs_due: { Args: never; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
@@ -17832,6 +18878,11 @@ export type Database = {
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
+      server_places_budget: { Args: never; Returns: Json };
+      server_places_import_apply: { Args: { p_import: number; p_region: string }; Returns: Json };
+      server_places_import_begin: { Args: { p_regions: string[]; p_sources: string[]; p_run_url?: string }; Returns: number };
+      server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
+      server_places_stage_clear: { Args: never; Returns: undefined };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
@@ -17875,6 +18926,7 @@ export type Database = {
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
       server_witnessed_form_facts: { Args: { p_by: string; p_code: string; p_vehicle?: string }; Returns: Json };
       set_notification_preference: { Args: { p_code: string; p_email: boolean; p_in_app: boolean }; Returns: undefined };
+      shop_services_public: { Args: { p_vertical: string }; Returns: Json };
       sign_request_facts: { Args: { p_by: string; p_id: string }; Returns: Json };
       sign_request_sign: { Args: { p_by: string; p_id: string; p: Json }; Returns: Json };
       signin_phone_rules: { Args: never; Returns: Json };
@@ -17885,16 +18937,34 @@ export type Database = {
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
+      submit_chauffeur_request: { Args: { p: Json; p_ip?: string }; Returns: Json };
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      submit_place_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };
       turo_rematch_due: { Args: { p_limit?: number }; Returns: Json };
       turo_rematch_result: { Args: { p: Json }; Returns: Json };
+      vehicle_buy_extras: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
+      vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
+      vehicle_make_page: { Args: { p_make: string }; Returns: Json };
+      vehicle_makes: { Args: never; Returns: Json };
+      vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
+      vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
+      vehicle_sitemap_files: { Args: never; Returns: Json };
+      vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
+      vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
+      vehicle_takes_debit: { Args: { p_vehicle: string }; Returns: boolean };
+      vehicle_tier_files_count: { Args: never; Returns: number };
+      vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_place: string; p_colour: string }; Returns: Json };
+      vehicle_tier_sitemap: { Args: { p_file: number; p_after: number; p_limit: number }; Returns: Json };
+      vehicle_tiers: { Args: never; Returns: Json };
+      vehicle_trim_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
+      vehicle_year_page: { Args: { p_make: string; p_model: string; p_year: number }; Returns: Json };
     };
     Enums: {
       app_role: "admin" | "va" | "field" | "owner" | "renter";

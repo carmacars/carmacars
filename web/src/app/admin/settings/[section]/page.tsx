@@ -19,8 +19,10 @@ import { GameSettings, type CostBasis, type Prize } from '@/features/games/GameS
 import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
+import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
+import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -53,6 +55,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
+  ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Text alerts', (k) => k.startsWith('sms_')],
@@ -144,10 +147,12 @@ export default async function Section({ params }: { params: Promise<{ section: s
       </Card>
     </>);
   }
+  case 'vehicle-pages':
+    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} /></>);
   case 'search': {
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
-    const o = await door<Ov>(user.id, 'admin_read', 'seo_overview');
+    const [o, po] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null)]);
     return (<>{head}
       <p className="small muted">The car pages, the landing pages and the guides are written by Workers AI from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
       <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
@@ -172,6 +177,11 @@ export default async function Section({ params }: { params: Promise<{ section: s
           { key: 'content_updated_at', label: 'Updated', render: (r) => t(r.content_updated_at) }]} />
         {o.articles.map((a) => <details key={a.slug}><summary className="link">Edit {a.title}</summary><ArticleEditor a={a} /></details>)}
       </Card>
+      {po && <>
+        <Card title="Place pages" testId="seo-places"><PlaceSettings o={po} /></Card>
+        <Card title="Regions and places" testId="seo-regions"><PlaceRegions o={po} /></Card>
+        <Card title={`Terms and services (${po.terms.length} terms)`} testId="seo-terms"><PlaceTerms o={po} /></Card>
+      </>}
     </>);
   }
   case 'discount-games': {
@@ -180,7 +190,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
     const keys = ['game_enabled', 'game_max_discount_cents', 'game_code_valid_days', 'game_trigger_car_pages', 'game_trigger_seconds', 'game_exit_intent', 'game_reshow_car_pages', 'game_reshow_seconds',
       'game_max_per_visit', 'game_max_per_day', 'game_booking_offer', 'game_dismiss_days', 'game_task_min_cars', 'game_reminder_hours'];
     return (<>{head}
-      <p className="small muted">Visitors who are not signed in get one quick game after 1 car page or 15 seconds: spin the wheel, scratch to reveal, quick blackjack, cup shuffle, Plinko or the card pack. Closed, another game they have not seen comes back after 2 more car pages or 3 minutes (at most 3 a visit, and on later visits). The request-to-book form offers it to anyone who has not claimed, signed-in renters too. Every play wins a promo code for the rental charge. To see the code they give a first name and an email (a mobile number is optional), and the code is emailed. It is on now; nothing needs setting up. Leads are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Leads</Link>.</p>
+      <p className="small muted">Visitors who are not signed in get one quick game on their 2nd page view or after 30 seconds, whichever first: spin the wheel, scratch to reveal, quick blackjack, cup shuffle, Plinko, the card pack, coin flip, dice roll, slot machine, prize drop or mystery box. Closed, another game (never the same one twice in a row) comes back on the 3rd page view after the close or 2 minutes later, at most 4 a visit, and on later visits. No games once a booking request is in progress, and never on booking, checkout or payment pages: the request-to-book form offers its own game to anyone who has not claimed, signed-in renters too. Every play wins a promo code for the rental charge; the prize shows only as the game&apos;s outcome, and a prize already won shows as a small &quot;Your 5% off is saved&quot; badge. To see the code they give a first name and an email (a mobile number is optional), and the code is emailed. It is on now; nothing needs setting up. Leads are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Leads</Link>.</p>
       <Card title="On or off and the rules" testId="game-rules"><SaveForm table="program_settings" rowKey="current" testId="program-games" fields={fieldsFrom(s.program, keys)} /></Card>
       <Card title="Prizes and games"><GameSettings prizes={(s.program.game_prizes ?? []) as Prize[]} weights={(s.program.game_weights ?? {}) as Record<string, number>}
         cap={s.program.game_max_discount_cents == null || s.program.game_max_discount_cents === '' ? null : Number(s.program.game_max_discount_cents)} basis={(r as GameReport & { cost_basis?: CostBasis }).cost_basis ?? null} /></Card>

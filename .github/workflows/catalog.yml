@@ -1,0 +1,109 @@
+name: catalog
+
+# The vehicle catalog behind the vehicle pages (/cars/<make>/<model>/<year>/<trim>, migration 0097;
+# docs/changes/2026-10-21-vehicle-pages.md). web/scripts/catalog/import.mjs downloads the US EPA fueleconomy.gov vehicles
+# file (public domain) and NHTSA vPIC's model names (public domain), adds the Canadian trim names of
+# web/scripts/catalog/canada-trims.txt, and upserts the result into the vehicle_catalog_* tables in batches through the
+# Supabase Management API (the deploy's connection, scripts/deploy/lib.sh). The pages then rebuild (/api/jobs/public-rebuild).
+#
+#   schedule        every day at 07:17 UTC a one-query check; the import runs when the last one is older than the
+#                   Admin setting (30 days by default: monthly) or an Admin pressed "Import now" in Admin > Settings >
+#                   Vehicle pages. Otherwise the run stops within seconds.
+#   Run workflow    write = true (default): import now.  write = false: a dry run.
+#   push            (any branch, when the import's code changes) a dry run only: download, normalise, counts, the
+#                   fixture subset as annotations. Never writes.
+#
+# Production is written only here, never from a developer's machine.
+on:
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+    inputs:
+      write:
+        description: Write the catalog to the production database (false for a dry run)
+        type: boolean
+        default: true
+  push:
+    paths:
+      - '.github/workflows/catalog.yml'
+      - 'web/scripts/catalog/**'
+      - 'web/src/features/vehicles/normalise.ts'
+      - 'web/src/features/vehicles/units.ts'
+
+concurrency:
+  group: catalog-${{ github.event_name == 'push' && github.ref || 'write' }}
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Due?
+        id: due
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          case "${{ github.event_name }}" in
+            push) echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            workflow_dispatch) [ "${{ inputs.write }}" = true ] && echo "mode=write" >> "$GITHUB_OUTPUT" || echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          due=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select app.vehicle_catalog_import_due() as due"}' | jq -r '.[0].due // false')
+          if [ "$due" = true ]; then echo "mode=write" >> "$GITHUB_OUTPUT"; else echo "mode=skip" >> "$GITHUB_OUTPUT"; echo "::notice title=catalog::not due: the last import is recent and none was asked for"; fi
+      - name: Dry run (download, normalise, counts, fixture)
+        if: steps.due.outputs.mode == 'dry'
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --stats "$RUNNER_TEMP/stats.json" --fixture-out "$RUNNER_TEMP/fixture" | tee "$RUNNER_TEMP/out.txt"
+          echo "::notice title=catalog stats::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
+          echo "::notice title=catalog coverage::$(jq -c '.coverage' "$RUNNER_TEMP/stats.json" | head -c 3900)"
+          echo "::notice title=catalog unmatched::$(jq -r '.unmatched | join(", ")' "$RUNNER_TEMP/stats.json" | head -c 3500)"
+      # GitHub keeps at most 10 notices per step: the fixture parts get a step of their own
+      - name: Fixture parts
+        if: steps.due.outputs.mode == 'dry'
+        run: |
+          set -euo pipefail
+          # the fixture subset, readable through the annotations API (gzip, base64, in parts)
+          tar -C "$RUNNER_TEMP/fixture" -czf "$RUNNER_TEMP/fixture.tgz" .
+          base64 -w0 "$RUNNER_TEMP/fixture.tgz" > "$RUNNER_TEMP/fixture.b64"
+          n=$(( ($(wc -c < "$RUNNER_TEMP/fixture.b64") + 3899) / 3900 ))
+          echo "::notice title=catalog fixture::$n parts, $(wc -c < "$RUNNER_TEMP/fixture.tgz") bytes"
+          for i in $(seq 0 $((n - 1))); do echo "::notice title=fixture part $i of $n::$(dd if="$RUNNER_TEMP/fixture.b64" bs=3900 skip=$i count=1 2>/dev/null)"; done
+      - name: Canadian specifications (vPIC) sample
+        if: steps.due.outputs.mode == 'dry'
+        continue-on-error: true
+        run: |
+          r=$(curl -sS --max-time 60 'https://vpic.nhtsa.dot.gov/api/vehicles/GetCanadianVehicleSpecifications/?Year=2020&Make=Volkswagen&Model=&units=Metric&format=json')
+          echo "::notice title=cvs::$(echo "$r" | jq -c '{count: .Count, models: [.Results[].Specs[] | select(.Name == "Model") | .Value] | unique, names: [.Results[0].Specs[]? | .Name], first: .Results[0]}' | head -c 3800)"
+      - name: Import (production)
+        if: steps.due.outputs.mode == 'write'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --write --stats "$RUNNER_TEMP/stats.json" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "::notice title=catalog::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
+      - name: Rebuild the public pages
+        if: steps.due.outputs.mode == 'write'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          echo "::add-mask::$L"
+          T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
+          echo "::add-mask::$T"
+          echo "::notice title=catalog::pages rebuilt: $(curl -sS -X POST https://carmacars.ca/api/jobs/public-rebuild -H "Authorization: Bearer $T" -H 'content-type: application/json' -d '{}' | head -c 200)"

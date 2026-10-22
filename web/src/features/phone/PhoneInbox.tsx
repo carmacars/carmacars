@@ -155,7 +155,8 @@ function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin'
 }
 
 const SMS_WORDS: Record<string, string> = { missed_call: 'Missed-call text', offer_sent: 'Booking text: offer', payment_confirmed: 'Booking text: confirmed', payment_received: 'Booking text: payment',
-  pickup_tomorrow: 'Booking text: pickup tomorrow', return_reminder: 'Booking text: return', payment_link: 'Booking text: payment link' };
+  pickup_tomorrow: 'Booking text: pickup tomorrow', return_reminder: 'Booking text: return', payment_link: 'Booking text: payment link',
+  opt_stop: 'STOP confirmation', opt_start: 'START confirmation' };
 
 // Sales opens requests, offers and bookings waiting for payment only (app.va_booking): any other booking is named, not linked
 const SALES_OPENS = ['requested', 'offered', 'pending_payment'];

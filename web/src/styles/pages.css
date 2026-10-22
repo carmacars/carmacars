@@ -224,6 +224,10 @@
 .gallery__track li { position: relative; }
 .car-top__example { margin-left: var(--s-2); }
 .car-top__example-note { color: inherit; opacity: 0.9; }
+.car-top__perks { list-style: none; margin: var(--s-3) 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.perk { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 32px; padding: 0.3rem 0.7rem; border: var(--bw) solid currentColor; border-radius: var(--r-1); font-size: var(--fs-xs); font-weight: 600; line-height: 1.3; }
+.perk::before { content: "\2713"; font-weight: 700; }
+.car-card__perk { font-size: var(--fs-xs); font-weight: 600; }
 .gallery__sample { position: absolute; left: var(--s-3); top: var(--s-3); padding: 2px 8px; background: rgba(0, 0, 0, 0.45); color: rgba(255, 255, 255, 0.82); font-size: var(--fs-xs); font-weight: 500; border-radius: 2px; }
 .gallery__ui .icon-btn { width: 40px; height: 40px; }
 .gallery__thumbs { display: none; }
@@ -479,3 +483,8 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .greviews__score b { font-family: var(--font-display); font-size: 1.75rem; letter-spacing: -0.02em; }
 .greviews .reviews__empty { border-top: 0; padding-top: 0; }
 .greviews__foot { border-top: 1px solid var(--grey-200); padding-top: var(--s-3); }
+
+/* the chauffeur service (0093) */
+.ch-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s-4); }
+.ch-card { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4); border: var(--bw) solid var(--line-strong); border-radius: var(--r-1); background: var(--white); }
+.ch-card .spec { margin: 0; }

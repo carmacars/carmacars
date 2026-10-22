@@ -28,6 +28,8 @@ export interface Todo {
   staffed?: Record<'cs' | 'sales' | 'finance' | 'fleet', boolean>;
   pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string; ready: boolean }>;
   returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }>;
+  /** 0093: chauffeur bookings confirmed for today */
+  chauffeur_today?: Array<{ reference: string; start_time: string; vehicle: string; name: string; hours: number }>;
   late: number;
 }
 

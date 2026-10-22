@@ -1,0 +1,3 @@
+4004156	Jalisco	Jalisco		20.33333	-103.66667	A	ADM1	MX		14				7350682		0	America/Toronto	2026-10-01
+9900401	Guadalajara	Guadalajara		20.67	-103.35	A	ADM2	MX		14	039			0		0	America/Toronto	2026-10-01
+4005539	Guadalajara	Guadalajara		20.66682	-103.39182	P	PPLA	MX		14	039			1495182		0	America/Toronto	2026-10-01

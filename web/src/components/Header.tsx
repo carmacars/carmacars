@@ -5,7 +5,7 @@ import { AccountLink, MenuButton, NavLink } from './HeaderClient';
 
 export const NAV: [string, string, string][] = [
   ['/cars', 'Fleet', 'Every car, with dates and prices'], ['/how-it-works', 'How it works', 'Request to book'],
-  ['/delivery', 'Delivery', 'Anywhere, airports too'], ['/requirements', 'Requirements', 'Age, licence, coverage'],
+  ['/delivery', 'Delivery', 'Anywhere, airports too'], ['/chauffeur', 'Chauffeur', 'A driver by the hour'], ['/requirements', 'Requirements', 'Age, licence, coverage'],
   ['/list-your-car', 'List your car', 'Owner program'], ['/faq', 'FAQ', 'Straight answers']
 ];
 

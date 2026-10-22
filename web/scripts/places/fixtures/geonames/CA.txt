@@ -1,0 +1,24 @@
+6093943	Ontario	Ontario		49.25014	-84.49983	A	ADM1	CA		08				13448494		0	America/Toronto	2026-10-01
+9900101	Toronto	Toronto		43.6667	-79.4	A	ADM2	CA		08	3520			0		0	America/Toronto	2026-10-01
+9900102	Peel	Peel		43.75	-79.78	A	ADM2	CA		08	3521			0		0	America/Toronto	2026-10-01
+9900103	York	York		44.0	-79.47	A	ADM2	CA		08	3519			0		0	America/Toronto	2026-10-01
+9900104	Halton	Halton		43.53	-79.88	A	ADM2	CA		08	3524			0		0	America/Toronto	2026-10-01
+9900105	Frontenac	Frontenac		44.5	-76.5	A	ADM2	CA		08	3510			0		0	America/Toronto	2026-10-01
+6167865	Toronto	Toronto		43.70011	-79.4163	P	PPLA	CA		08	3520			2600000		0	America/Toronto	2026-10-01
+6075357	Mississauga	Mississauga		43.5789	-79.6583	P	PPL	CA		08	3521			668549		0	America/Toronto	2026-10-01
+5907364	Brampton	Brampton		43.68341	-79.76633	P	PPL	CA		08	3521			593638		0	America/Toronto	2026-10-01
+6066513	Markham	Markham		43.86682	-79.2663	P	PPL	CA		08	3519			328966		0	America/Toronto	2026-10-01
+6173577	Vaughan	Vaughan		43.8361	-79.49827	P	PPL	CA		08	3519			306233		0	America/Toronto	2026-10-01
+6122091	Richmond Hill	Richmond Hill		43.87111	-79.43725	P	PPL	CA		08	3519			195022		0	America/Toronto	2026-10-01
+6092122	Oakville	Oakville		43.45011	-79.68292	P	PPL	CA		08	3524			193832		0	America/Toronto	2026-10-01
+5992500	Kingston	Kingston		44.22976	-76.48098	P	PPL	CA		08	3510			123798		0	America/Toronto	2026-10-01
+6111874	Port Credit	Port Credit		43.55011	-79.58292	P	PPL	CA		08	3521			0		0	America/Toronto	2026-10-01
+6156102	Streetsville	Streetsville		43.58339	-79.71633	P	PPL	CA		08	3521			0		0	America/Toronto	2026-10-01
+6122085	Rexdale	Rexdale		43.71	-79.56	P	PPLX	CA		08	3520			0		0	America/Toronto	2026-10-01
+6948711	Scarborough	Scarborough		43.77223	-79.25666	P	PPLX	CA		08	3520			0		0	America/Toronto	2026-10-01
+6091104	North York	North York		43.76681	-79.4163	P	PPLX	CA		08	3520			0		0	America/Toronto	2026-10-01
+5950267	Etobicoke	Etobicoke		43.65421	-79.56711	P	PPLX	CA		08	3520			0		0	America/Toronto	2026-10-01
+9900201	Toronto Pearson International Airport	Toronto Pearson International Airport		43.67719	-79.63079	S	AIRP	CA		08	3521			0		0	America/Toronto	2026-10-01
+9900202	Billy Bishop Toronto City Airport	Billy Bishop Toronto City Airport		43.62749	-79.39623	S	AIRP	CA		08	3520			0		0	America/Toronto	2026-10-01
+9900203	CN Tower	CN Tower		43.64256	-79.38709	S	TOWR	CA		08	3520			0		0	America/Toronto	2026-10-01
+9900204	Square One Shopping Centre	Square One Shopping Centre		43.5931	-79.6424	S	MALL	CA		08	3521			0		0	America/Toronto	2026-10-01

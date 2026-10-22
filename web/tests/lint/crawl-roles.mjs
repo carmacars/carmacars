@@ -76,12 +76,28 @@ const ROLES = Object.keys(HOME).filter((r) => !ONLY.length || ONLY.includes(r));
 const PORTALS = ['/account', '/owner', '/investor', '/admin', '/va', '/field'];
 
 // ------------------------------------------------------------------ helpers
+// the place pages (0095): every place and term is the same template, so they are one shape each (two segments: one per
+// family; one segment: a place's own page, its slug ending in its region's code, a country, a province, the GTA or an airport)
+const PLACE_HUB = /^\/(car-rental|buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+$/;
+const PLACE_ONE = /^\/car-rental\/([a-z0-9-]+-[a-z]{2,3}|canada|united-states|mexico|ontario|gta|[a-z0-9-]+-airport)$/;
 const shape = (u) => {
+  if (PLACE_HUB.test(u.pathname)) return `/${u.pathname.split('/')[1]}/:term/:place`;
+  if (PLACE_ONE.test(u.pathname)) return '/car-rental/:place';
+  // the vehicle pages (0097): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
+  // the city and colour pages and the /buy twins (0097): one shape per depth
+  const deep = /^\/(cars|buy|t)((?:\/[^/]+)+)$/.exec(u.pathname);
+  if (deep && (deep[1] !== 'cars' || deep[2].split('/').length > 5)) return `/${deep[1]}/:vehicle-${deep[2].split('/').length - 1}${deep[2].includes('/colour/') ? '-colour' : ''}`;
+  const v = /^\/cars\/([^/]+)((?:\/[^/]+){0,3})$/.exec(u.pathname);
+  if (v && (v[2] || !/\d/.test(v[1]))) return ['/cars/:make', '/cars/:make/:model', '/cars/:make/:model/:year', '/cars/:make/:model/:year/:trim'][v[2].split('/').length - 1];
   const segs = u.pathname.split('/').map((s) => (/\d/.test(s) && !/^(two-step)$/.test(s) ? ':id' : s));
   // filters multiply (queue x tab x type): a shape keeps the tab's value and only the names of the others
   const qs = [...u.searchParams.entries()].map(([k, v]) => (k === 'tab' || k === 'section' ? `${k}=${v}` : k)).sort().join('&');
   return segs.join('/') + (qs ? '?' + qs : '');
 };
+// The families of generated pages: every vehicle level and variant (make, model, year, trim, place, colour, /buy, each
+// term) and every place page; a shape of one of them stands for thousands of addresses of the same template.
+const family = (sh) => (/^\/(cars\/:|buy\/|t\/|car-rental\/:|detailing\/:|body-shop\/:)/.test(sh) ? sh : null);
+const LINK_PER_FAMILY = Number(arg('--links-per-family', '2'));
 // Never followed: sign-out, and links that act once (a resume or referral link is requested, not rendered).
 const SKIP_RENDER = /^\/(api\/|files\/|d\/|r\/|list-your-car\/apply\/resume|auth\/callback|admin\/reports\/export|admin\/documents\/|account\/documents\/[^/]+$|owner\/documents\/(forms\/)?[^/]+$|investor\/statements\/year\/|field\/manifest)/;
 const PRIVATE = /^\/(account|owner|investor|admin|va|field|two-step|sign\/|unsubscribe)/;
@@ -187,7 +203,7 @@ async function crawlRole(browser, role) {
   else await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 
   const queue = [HOME[role], ...PORTALS.filter((p) => p !== HOME[role])];
-  const seen = new Set(); const shapes = new Map(); const checked = new Map();
+  const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map();
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
     const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
@@ -238,6 +254,10 @@ async function crawlRole(browser, role) {
       const t = new URL(h, page.url());
       if (t.origin !== BASE) continue;
       const p = t.pathname + t.search;
+      // the vehicle and place pages (0095, 0097) link to hundreds of their variants: of each family (one shape) only
+      // the first LINK_PER_FAMILY links are requested; the link check and the SEO audit cover the rest by sampling
+      const fam = family(shape(t));
+      if (fam && !checked.has(p)) { const k = familyLinks.get(fam) ?? 0; if (k >= LINK_PER_FAMILY) continue; familyLinks.set(fam, k + 1); }
       const st = await status(p);
       if (st.status >= 400) bad(role, href, `link ${p} answers ${st.status}`);
       else if (!seen.has(p)) queue.push(p);

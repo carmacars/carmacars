@@ -271,7 +271,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
   // may be one another test just added, still waiting for its insurer or its rates): a copy of a seeded car on the fleet
   // policy, its listing and rates, as a CarmaCars-owned car (an owner's car needs its signed terms first), retired again at the end
   const [src] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and v.retired_at is null and v.bookings_enabled and app.vehicle_on_policy(v.id)
+    where l.status = 'published' and v.retired_at is null and v.bookings_enabled and v.partner_id is null and app.vehicle_on_policy(v.id)
       and exists (select 1 from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now()))
     order by v.is_sample desc, v.created_at limit 1`;
   const carId = randomUUID();

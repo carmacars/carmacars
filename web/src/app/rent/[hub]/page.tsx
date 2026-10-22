@@ -1,59 +1,17 @@
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { CarCard } from '@/components/CarCard';
-import { Crumbs } from '@/components/Crumbs';
-import { CtaBand } from '@/components/Blocks';
-import { JsonLd } from '@/components/JsonLd';
-import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { rpc } from '@/lib/db/repo';
-import { money } from '@/lib/format';
-import { fill, getClasses, getSettings, getTokens, photoUrl, siteUrl } from '@/lib/site';
-import type { CarRow } from '@/lib/types';
 
-// Model hubs (0022 public_model_hub): every listed car of one make and model, the landing page a
-// car's address points to when that car leaves the fleet.
+// The old model hubs (0022): /rent/<make-model> now answers 301 with the model's vehicle page, /cars/<make>/<model>
+// (migration 0097, public.vehicle_hub_path), so links and search results keep working.
 export const revalidate = 3600;
 export const dynamicParams = true;
-type Hub = { make: string; model: string; path: string; min_daily_rate_cents: number; indexable?: boolean; cars: CarRow[] };
+export async function generateStaticParams() { return []; }
 type Params = { params: Promise<{ hub: string }> };
 
-// Rendered on the first visit and kept for the hour (revalidate), not at build time: the build does not wait on the
-// database for pages a visitor or the search job renders anyway (deploy run 39289461880 stopped on one).
-export async function generateStaticParams() {
-  return [];
-}
-async function load(hub: string) {
-  const h = (await rpc('model_hub', { p_hub: hub })) as unknown as Hub | null;
-  if (!h) notFound();
-  return h;
-}
-export async function generateMetadata({ params }: Params) {
-  const h = await load((await params).hub);
-  const t = await getTokens();
-  // a model page of sample cars only (vehicles.is_sample, 0035) stays out of search until a real car joins it
-  return seoMeta({ title: fill(`Rent a ${h.make} ${h.model} in {{city}} from ${money(h.min_daily_rate_cents)} a day | {{brand}}`, t), path: h.path, noindex: h.indexable === false,
-    description: fill(`${h.make} ${h.model} for rent in {{city}} from ${money(h.min_daily_rate_cents)} a day. Pickup or delivery, drivers {{minAge}} and up, request to book with no payment up front.`, t) });
-}
-
 export default async function HubPage({ params }: Params) {
-  const h = await load((await params).hub);
-  const [s, classes] = await Promise.all([getSettings(), getClasses()]);
-  const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
-  const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [`${h.make} ${h.model}`]];
-  const abs = (p: string) => (/^https?:/.test(photoUrl(p)) ? photoUrl(p) : siteUrl() + photoUrl(p));
-  return (
-    <div className="p-hub">
-      <JsonLd graph={[breadcrumbLd(trail, h.path), { '@type': 'ItemList', name: `${h.make} ${h.model} for rent`, itemListElement: h.cars.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year} ${c.make} ${c.model}`, ...(c.cover ? { image: abs(c.cover.path) } : {}) })) }]} />
-      <section className="page-head on-dark"><div className="wrap">
-        <Crumbs trail={trail} />
-        <h1 className="d1">Rent a {h.make} {h.model} in {s.city}</h1>
-        <p className="lead muted">From {money(h.min_daily_rate_cents)} a day. Each car has its own calendar, rates and photos. Pick up, or have it delivered.</p>
-      </div></section>
-      <section className="section--tight"><div className="wrap">
-        <ul className="fleet-grid fleet-grid--3">{h.cars.map((c) => <li key={c.slug}><CarCard c={c} labels={labels} tag="h2" /></li>)}</ul>
-        <p className="small"><Link className="link link--go" href="/cars">See every car</Link></p>
-      </div></section>
-      <CtaBand h="Not the one?" p="Every car in the fleet shows its own dates and prices." />
-    </div>
-  );
+  const hub = (await params).hub;
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(hub)) notFound();
+  const to = (await rpc('vehicle_hub_path', { p_hub: hub })) as unknown as string | null;
+  if (!to) notFound();
+  permanentRedirect(to);
 }

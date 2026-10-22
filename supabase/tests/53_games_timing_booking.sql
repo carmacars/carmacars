@@ -19,13 +19,13 @@ delete from app.rate_limit_hits where key like 'game-%';
 delete from game_claims; delete from game_plays;
 
 -- ================================================================ 1. settings
-select test.eq('sooner: 1 car page or 15 seconds, exit intent kept; again after 2 more car pages or 3 minutes; 3 a visit; the booking form on',
+select test.eq('0100, the owner''s defaults: the 2nd page view or 30 seconds, exit intent on (0101); again on the 3rd page view or after 2 minutes; 4 a visit; the booking form on',
   (select format('%s/%s/%s %s/%s %s %s', game_trigger_car_pages, game_trigger_seconds, game_exit_intent, game_reshow_car_pages, game_reshow_seconds, game_max_per_visit, game_booking_offer)
-     from (select (app.settings()).*) s), '1/15/t 2/60 3 t');
+     from (select (app.settings()).*) s), '2/30/t 3/120 4 t');
 select test.eq('the column defaults are the new ones too',
   (select string_agg(column_name || '=' || column_default, ' ' order by column_name) from information_schema.columns
     where table_name = 'program_settings' and column_name in ('game_trigger_car_pages', 'game_trigger_seconds', 'game_reshow_car_pages', 'game_reshow_seconds', 'game_max_per_visit')),
-  'game_max_per_visit=3 game_reshow_car_pages=2 game_reshow_seconds=60 game_trigger_car_pages=1 game_trigger_seconds=15');
+  'game_max_per_visit=4 game_reshow_car_pages=3 game_reshow_seconds=120 game_trigger_car_pages=2 game_trigger_seconds=30');
 select test.throws('a per-visit cap of 0 is refused', $$update program_settings set game_max_per_visit = 0$$, 'check');
 select test.throws('a re-show after more than an hour is refused', $$update program_settings set game_reshow_seconds = 3601$$, 'check');
 select test.eq('the four prizes of 0069 stay (5% now 69), three rare ones join them, the $75 cap and the code length stay',
@@ -36,6 +36,10 @@ select test.eq('the four prizes of 0069 stay (5% now 69), three rare ones join t
 create temp table g2 (n int primary key, v jsonb);
 grant all on g2 to public;
 insert into g2 values (1, test.g2start('a'));
+-- the first play's prize is set, not drawn: a common one (a random draw is rare about 1 run in 100, and the rare check
+-- below reads this row as the common example); every later show of this visitor carries it
+update game_plays set prize = '{"key": "pct5", "percent_bps": 500, "weight": 69}' where token = (select v ->> 'token' from g2 where n = 1);
+update g2 set v = jsonb_set(v, '{prize}', (select app.game_play_json(gp) -> 'prize' from game_plays gp where gp.token = g2.v ->> 'token')) where n = 1;
 select test.eq('the first show: a play', (select (v ->> 'ok') || ' ' || (v ->> 'context') from g2 where n = 1), 'true site');
 select test.eq('the same page again before it was seen: the same play', (test.g2start('a') ->> 'token') = (select v ->> 'token' from g2 where n = 1), true);
 do $$
@@ -66,7 +70,7 @@ update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjac
 select test.eq('a game at weight 0 is never chosen, and the round is the four left',
   (select bool_and(app.game_next_kind(test.g2vid('w0'), null, '{}', null) not in ('plinko', 'pack')) from generate_series(1, 200))
   and app.game_next_kind(test.g2vid('w0'), null, array['wheel', 'scratch', 'blackjack'], 'blackjack') = 'cups', true);
-update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 1, "pack": 1}';
+update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjack": 1, "cups": 1, "plinko": 1, "pack": 1, "coin": 1, "dice": 1, "slots": 1, "drop": 1, "mystery": 1}';
 select test.eq('the reveal and the claim of a re-shown play work as before',
   (public.game_reveal((select v ->> 'token' from g2 where n = 6)))::text || ' ' || (app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 6),
     'first_name', 'Gina', 'email', 'g2.a@example.test')) ->> 'ok'), 'true true');
@@ -122,18 +126,19 @@ select test.eq('the privacy policy says when and where the games show where it s
               from site_content_blocks where block_key = 'legal.privacy' and body like '%Discount games are shown%'), 'true'), 'true');
 
 -- ================================================================ 5. the card pack and the rare prizes (0081, later the same day)
-select test.eq('six games: the card pack is one, on at the same weight', array_to_string(app.game_kinds(), ' ') || ' | ' || ((app.settings()).game_weights ->> 'pack'),
-  'wheel scratch blackjack cups plinko pack | 1');
+select test.eq('the card pack is one of the games (0100: eleven), on at the same weight', array_to_string(app.game_kinds(), ' ') || ' | ' || ((app.settings()).game_weights ->> 'pack'),
+  'wheel scratch blackjack cups plinko pack coin dice slots drop mystery | 1');
 delete from app.rate_limit_hits where key like 'game-%';
 do $$
 declare i int; v_seen text[] := '{}'; r jsonb;
 begin
-  for i in 1..6 loop
+  for i in 1..11 loop
+    delete from app.rate_limit_hits where key like 'game-%';
     r := test.g2start('six', v_seen);
     v_seen := v_seen || (r ->> 'game');
   end loop;
 end $$;
-select test.eq('six shows: all six games, the pack among them', (select count(distinct game) || ' ' || bool_or(game = 'pack') from game_plays where visitor_id = test.g2vid('six')), '6 true');
+select test.eq('eleven shows: all eleven games, the pack among them', (select count(distinct game) || ' ' || bool_or(game = 'pack') from game_plays where visitor_id = test.g2vid('six')), '11 true');
 select test.eq('the chances add up to 100', (select sum((x ->> 'weight')::numeric) from jsonb_array_elements((app.settings()).game_prizes) x), 100.0);
 select test.eq('20,000 draws stay within statistical bounds of the table (about 4 standard deviations)',
   (select string_agg(k || '=' || (n between lo and hi)::text, ' ' order by k) from (

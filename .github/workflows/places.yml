@@ -1,0 +1,138 @@
+name: places
+
+# The places of the place pages (migration 0095): GeoNames (CC BY 4.0) for the tree of countries, provinces and states,
+# regions, cities, airports and landmarks; OpenStreetMap place nodes (ODbL, from Geofabrik extracts filtered with
+# osmium) for neighbourhoods and towns; the US Census Gazetteer (public domain) to confirm and complete US cities.
+# web/scripts/places/build.mjs merges them (web/src/features/places/gazetteer.ts) and web/scripts/places/load.mjs loads
+# one region at a time into the database, Ontario first, and stops before the database would pass Program settings
+# place_db_cap_mb (6 GB): a region it skips is named in the run and in Admin > Settings > Search.
+#
+# Turning a region on: it is on in Admin by default; run this workflow with the region (or all). Run workflow only;
+# nothing runs on a push. Each run is recorded in place_imports with its counts per country and kind.
+on:
+  workflow_dispatch:
+    inputs:
+      regions:
+        description: Regions to load, comma separated (CA-ON,US-NY,MX-JAL), or all
+        type: string
+        default: all
+      osm:
+        description: Add OpenStreetMap neighbourhoods and towns (one job per Geofabrik extract)
+        type: boolean
+        default: true
+      environment:
+        description: Target
+        type: choice
+        options: [production, staging]
+        default: production
+
+concurrency:
+  group: places
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------- GeoNames and the Census (small files)
+  gazetteers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: GeoNames (Canada, the United States and its territories, Mexico) and the Census Gazetteer
+        run: |
+          set -euo pipefail
+          mkdir -p src/geonames src/census
+          cd src/geonames
+          for c in CA US MX PR VI GU AS MP; do
+            curl -fsSL -o "$c.zip" "https://download.geonames.org/export/dump/$c.zip" && unzip -o -q "$c.zip" "$c.txt" && rm "$c.zip"
+            curl -fsSL -o "alt-$c.zip" "https://download.geonames.org/export/dump/alternatenames/$c.zip" && unzip -o -q -p "alt-$c.zip" "$c.txt" > "alternateNames-$c.txt" && rm "alt-$c.zip"
+          done
+          curl -fsSL -o admin1CodesASCII.txt https://download.geonames.org/export/dump/admin1CodesASCII.txt
+          curl -fsSL -o countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
+          cd ../census
+          curl -fsSL -o gaz.zip https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_Gaz_place_national.zip
+          unzip -o -q gaz.zip && rm gaz.zip
+          ls -la ../geonames . | sed 's/^/::notice title=sources::/' | head -n 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gazetteers
+          path: src
+          retention-days: 3
+
+  # ---------------------------------------------------------------- OpenStreetMap place nodes, one extract a job
+  osm:
+    if: inputs.osm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        extract: [canada/ontario, canada/quebec, canada/british-columbia, canada/alberta, canada/manitoba, canada/saskatchewan, canada/nova-scotia, canada/new-brunswick,
+          canada/newfoundland-and-labrador, canada/prince-edward-island, canada/yukon, canada/northwest-territories, canada/nunavut, mexico,
+          us/alabama, us/alaska, us/arizona, us/arkansas, us/california, us/colorado, us/connecticut, us/delaware, us/district-of-columbia, us/florida, us/georgia,
+          us/hawaii, us/idaho, us/illinois, us/indiana, us/iowa, us/kansas, us/kentucky, us/louisiana, us/maine, us/maryland, us/massachusetts, us/michigan,
+          us/minnesota, us/mississippi, us/missouri, us/montana, us/nebraska, us/nevada, us/new-hampshire, us/new-jersey, us/new-mexico, us/new-york,
+          us/north-carolina, us/north-dakota, us/ohio, us/oklahoma, us/oregon, us/pennsylvania, us/rhode-island, us/south-carolina, us/south-dakota,
+          us/tennessee, us/texas, us/utah, us/vermont, us/virginia, us/washington, us/west-virginia, us/wisconsin, us/wyoming, us/puerto-rico]
+    steps:
+      - name: Place nodes (city, town, village, hamlet, suburb, quarter, neighbourhood, borough)
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq osmium-tool > /dev/null
+          name="$(echo '${{ matrix.extract }}' | tr '/' '-')"
+          curl -fsSL -o in.osm.pbf "https://download.geofabrik.de/north-america/${{ matrix.extract }}-latest.osm.pbf"
+          osmium tags-filter in.osm.pbf n/place=city,town,village,hamlet,suburb,quarter,neighbourhood,borough -o places.osm.pbf
+          mkdir -p out && osmium export places.osm.pbf -f geojsonseq --add-unique-id=type_id -o "out/$name.geojsonseq"
+          echo "::notice title=osm::$name $(wc -l < "out/$name.geojsonseq") place nodes"
+          echo "name=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osm-${{ env.name }}
+          path: out
+          retention-days: 3
+
+  # ---------------------------------------------------------------- merge, then load region by region under the cap
+  load:
+    needs: [gazetteers, osm]
+    if: ${{ !cancelled() && needs.gazetteers.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DEPLOY_ENV: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: gazetteers
+          path: ${{ runner.temp }}/src
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: osm-*
+          path: ${{ runner.temp }}/src/osm
+          merge-multiple: true
+      - name: Build (merge the sources, kinds, parents, slugs)
+        run: |
+          node --max-old-space-size=6144 scripts/places/build.mjs --in "$RUNNER_TEMP/src" --out "$RUNNER_TEMP/out" --regions "${{ inputs.regions }}" | tee "$RUNNER_TEMP/build.txt"
+          echo "::notice title=build::$(tail -n 1 "$RUNNER_TEMP/build.txt")"
+      - name: Load (region by region, under the database size cap)
+        run: |
+          set -euo pipefail
+          pool=$(curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/database/pooler" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN")
+          host=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host' <<<"$pool")
+          user=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_user' <<<"$pool")
+          enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri'); echo "::add-mask::$enc"
+          export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
+          ../.github/ci-run.sh "Places load" node scripts/places/load.mjs --in "$RUNNER_TEMP/out" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/load.txt"
+          grep -E '^(loaded|by country)|skipped' "$RUNNER_TEMP/load.txt" | sed 's/^/::notice title=places::/'

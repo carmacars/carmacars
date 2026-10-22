@@ -1,0 +1,177 @@
+id,year,make,model,baseModel,atvType,fuelType,fuelType1,displ,cylinders,tCharger,sCharger,drive,trany,VClass,city08,city08U,highway08,highway08U,comb08,comb08U,combE,range,rangeA,co2TailpipeGpm,fuelCost08,charge240,lv2,lv4,hlv,evMotor
+35007,2015,Cadillac,CTS Sedan AWD,CTS,,Regular,Regular Gasoline,3.6,6,,,All-Wheel Drive,Automatic (S6),Midsize Cars,18,18.4122,26,26.1934,21,21.2534,0.0,0,,419.0,3200,0.0,0,13,0,
+35100,2015,Cadillac,CTS,CTS,,Premium,Premium Gasoline,6.2,8,,S,Rear-Wheel Drive,Manual 6-spd,Midsize Cars,14,14.0551,19,18.7387,16,15.8363,0.0,0,,561.0,5150,0.0,15,15,0,
+35101,2015,Cadillac,CTS,CTS,,Premium,Premium Gasoline,6.2,8,,S,Rear-Wheel Drive,Automatic (S6),Midsize Cars,12,11.7644,18,17.8812,14,13.9049,0.0,0,,638.0,5850,0.0,15,15,0,
+35126,2015,Cadillac,CTS Sedan,CTS,,Premium,Premium Gasoline,3.6,6,T,,Rear-Wheel Drive,Automatic (S8),Midsize Cars,16,15.6519,24,23.6408,18,18.4589,0.0,0,,480.0,4550,0.0,0,13,0,
+35222,2015,Cadillac,CTS Sedan,CTS,,Regular,Regular Gasoline,3.6,6,,,Rear-Wheel Drive,Automatic (S8),Midsize Cars,18,18.4122,28,28.2546,22,21.835,0.0,0,,407.0,3050,0.0,0,13,0,
+35258,2015,Cadillac,CTS Sedan AWD,CTS,,Regular,Regular Gasoline,2.0,4,T,,All-Wheel Drive,Automatic (S6),Midsize Cars,19,19.0,27,27.3565,22,22.0,0.0,0,,404.0,3050,0.0,0,13,0,
+35436,2015,Cadillac,CTS Sedan,CTS,,Regular,Regular Gasoline,2.0,4,T,,Rear-Wheel Drive,Automatic (S6),Midsize Cars,20,20.4049,30,29.6001,24,23.7209,0.0,0,,374.0,2800,0.0,0,13,0,
+36069,2016,Porsche,Macan S,Macan,,Premium,Premium Gasoline,3.0,6,T,,All-Wheel Drive,Automatic (AM-S7),Small Sport Utility Vehicle 4WD,17,17.3756,23,22.8462,19,19.474,0.0,0,,455.0,4350,0.0,0,0,0,
+36690,2016,Porsche,Macan Turbo,Macan,,Premium,Premium Gasoline,3.6,6,T,,All-Wheel Drive,Automatic (AM-S7),Small Sport Utility Vehicle 4WD,17,16.8524,23,23.244,19,19.2322,0.0,0,,463.0,4350,0.0,0,0,0,
+39875,2019,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Automatic (S8),Compact Cars,30,30.1164,40,39.7619,34,33.8068,0.0,0,,262.0,1950,0.0,0,14,0,
+39876,2019,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,30,29.7537,40,39.8518,34,33.583,0.0,0,,263.0,1950,0.0,0,14,0,
+41202,2019,Volkswagen,Jetta GLI,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,25,24.5184,32,32.3866,28,27.5279,0.0,0,,321.0,2400,0.0,0,14,0,
+41203,2019,Volkswagen,Jetta GLI,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Automatic (AM-S7),Compact Cars,25,25.2479,32,32.471,28,28.0564,0.0,0,,315.0,2400,0.0,0,14,0,
+42125,2020,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,25,24.5388,33,32.957,28,27.7257,0.0,0,,319.0,2400,0.0,0,16,0,
+42126,2020,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Automatic (AM-S7),Compact Cars,25,25.2479,32,32.471,28,28.0564,0.0,0,,315.0,2400,0.0,0,16,0,
+42431,2020,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Automatic (S8),Compact Cars,30,29.5933,40,40.3519,34,33.6279,0.0,0,,263.0,1950,0.0,0,16,0,
+42432,2020,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,30,29.9508,40,40.0,34,34.0383,0.0,0,,262.0,1950,0.0,0,16,0,
+42781,2021,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Automatic (AM-S7),Midsize Cars,27,27.0633,35,35.4891,30,30.3006,0.0,0,,296.0,2250,0.0,0,15,0,
+42782,2021,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,25,24.6475,32,32.3515,28,27.6057,0.0,0,,326.0,2400,0.0,0,15,0,
+42783,2021,Kia,Forte FE,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,31,30.7457,41,41.1962,35,34.7078,0.0,0,,256.0,1900,0.0,0,15,0,
+42784,2021,Kia,Forte,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,29,29.2209,40,39.6312,33,33.138,0.0,0,,270.0,2050,0.0,0,15,0,
+42785,2021,Kia,Forte,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,27,27.4002,37,36.9348,31,31.0015,0.0,0,,290.0,2150,0.0,0,15,0,
+43246,2021,Volkswagen,Jetta GLI,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Automatic (AM-S7),Compact Cars,24,24.3525,35,34.6309,28,28.1064,0.0,0,,314.0,2400,0.0,0,16,0,
+43247,2021,Volkswagen,Jetta GLI,Jetta,,Regular,Regular Gasoline,2.0,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,24,24.189,33,33.4374,28,27.6277,0.0,0,,319.0,2400,0.0,0,16,0,
+43248,2021,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Automatic (S8),Compact Cars,29,29.4462,39,39.4054,33,33.2249,0.0,0,,266.0,2050,0.0,0,16,0,
+43249,2021,Volkswagen,Jetta,Jetta,,Regular,Regular Gasoline,1.4,4,T,,Front-Wheel Drive,Manual 6-spd,Compact Cars,30,29.9016,41,40.5938,34,33.9223,0.0,0,,260.0,1950,0.0,0,16,0,
+43625,2021,Mazda,MX-5,MX-5,,Premium,Premium Gasoline,2.0,4,,,Rear-Wheel Drive,Manual 6-spd,Two Seaters,26,26.1701,34,33.5269,29,29.0373,0.0,0,,305.0,2850,0.0,0,0,0,
+43626,2021,Mazda,MX-5,MX-5,,Premium,Premium Gasoline,2.0,4,,,Rear-Wheel Drive,Automatic (S6),Two Seaters,26,26.2388,35,35.4845,30,29.7239,0.0,0,,299.0,2750,0.0,0,0,0,
+43895,2022,Chevrolet,Malibu,Malibu,,Premium,Premium Gasoline,2.0,4,T,,Front-Wheel Drive,Automatic 9-spd,Midsize Cars,22,21.9811,33,33.0674,26,25.8866,0.0,0,,342.0,3150,0.0,0,16,0,
+43896,2022,Chevrolet,Malibu,Malibu,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,29,29.0,36,35.8627,32,32.1418,0.0,0,,275.0,2100,0.0,0,16,0,
+44070,2022,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,30,29.7651,38,38.1044,33,33.0167,0.0,0,,267.0,2050,0.0,0,13,0,
+44071,2022,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Manual 6-spd,Compact Cars,29,29.086,39,38.7858,33,32.7744,0.0,0,,271.0,2050,0.0,0,13,0,
+44072,2022,Toyota,Corolla XLE,Corolla,,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,29,28.8851,37,37.4747,32,32.2071,0.0,0,,274.0,2100,0.0,0,13,0,
+44073,2022,Toyota,Corolla Hybrid,Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,53,53.0,52,52.0,52,52.0,0.0,0,,170.0,1300,0.0,0,13,0,207V Li-Ion
+44074,2022,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,31,30.8774,40,39.6137,34,34.2793,0.0,0,,257.0,1950,0.0,0,13,0,
+44075,2022,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Manual 6-spd,Compact Cars,29,28.818,36,36.453,32,31.8168,0.0,0,,277.0,2100,0.0,0,13,0,
+44076,2022,Toyota,Corolla XSE,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,31,30.5479,38,38.4889,34,33.6743,0.0,0,,265.0,1950,0.0,0,13,0,
+44077,2022,Toyota,Corolla APEX,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,31,30.6003,38,38.0439,34,33.5547,0.0,0,,265.0,1950,0.0,0,13,0,
+44078,2022,Toyota,Corolla APEX,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Manual 6-spd,Compact Cars,28,28.0,36,35.7879,31,31.4081,0.0,0,,286.0,2150,0.0,0,13,0,
+44131,2022,Honda,Civic 4Dr,Civic,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,33,32.8942,42,41.6035,36,36.3152,0.0,0,,243.0,1850,0.0,0,15,0,
+44132,2022,Honda,Civic 4Dr,Civic,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (AV-S7),Midsize Cars,31,31.0089,38,38.3105,34,33.9179,0.0,0,,260.0,1950,0.0,0,15,0,
+44133,2022,Honda,Civic 4Dr,Civic,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,31,31.2059,40,40.0845,35,34.6607,0.0,0,,254.0,1900,0.0,0,15,0,
+44134,2022,Honda,Civic 4Dr,Civic,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S7),Midsize Cars,30,30.2174,37,37.4747,33,33.1021,0.0,0,,266.0,2050,0.0,0,15,0,
+44237,2022,Toyota,Corolla Hatchback,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Manual 6-spd,Compact Cars,28,28.1579,36,35.9365,31,31.1966,0.0,0,,284.0,2150,0.0,0,0,18,
+44238,2022,Toyota,Corolla Hatchback,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,32,31.798,41,41.0074,35,35.3728,0.0,0,,251.0,1900,0.0,0,0,18,
+44239,2022,Toyota,Corolla Hatchback XSE,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,30,29.8859,38,38.3105,33,33.1681,0.0,0,,266.0,2050,0.0,0,0,18,
+44545,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (variable gear ratios),Large Cars,31,31.0,39,39.4957,35,34.723,0.0,0,,258.0,1900,0.0,0,0,24,
+44546,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (AV-S7),Large Cars,30,30.3497,37,37.3549,33,33.1469,0.0,0,,267.0,2050,0.0,0,0,24,
+44547,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Manual 6-spd,Large Cars,28,27.6717,37,37.3549,31,31.3259,0.0,0,,282.0,2150,0.0,0,0,24,
+44548,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Large Cars,30,29.5533,38,37.9529,33,32.8221,0.0,0,,269.0,2050,0.0,0,0,24,
+44549,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S7),Large Cars,29,28.7509,37,36.6941,32,31.8538,0.0,0,,277.0,2100,0.0,0,0,24,
+44550,2022,Honda,Civic 5Dr,Civic,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Manual 6-spd,Large Cars,26,26.1013,36,35.909,29,29.0,0.0,0,,304.0,2300,0.0,0,0,24,
+44560,2022,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,22,22.323,31,31.1035,26,25.5715,0.0,0,,348.0,2600,0.0,0,15,0,
+44561,2022,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Automatic (AM-S7),Midsize Cars,27,27.0633,35,35.4891,30,30.3006,0.0,0,,296.0,2250,0.0,0,15,0,
+44562,2022,Kia,Forte FE,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,31,30.7457,41,41.1962,35,34.7078,0.0,0,,256.0,1900,0.0,0,15,0,
+44563,2022,Kia,Forte,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,29,29.1356,39,39.4289,33,33.014,0.0,0,,271.0,2050,0.0,0,15,0,
+44588,2022,Toyota,Corolla Cross,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 2WD,31,31.0089,33,33.3912,32,32.0375,0.0,0,,275.0,2100,0.0,0,0,0,
+44593,2022,Toyota,Corolla Cross 4WD,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 4WD,29,29.0,32,31.6934,30,30.0,0.0,0,,293.0,2250,0.0,0,0,0,
+44844,2022,Mercedes-Benz,C300 4matic Coupe,C-Class,,Premium,Premium Gasoline,2.0,4,T,,All-Wheel Drive,Automatic 9-spd,Subcompact Cars,22,22.0382,31,31.2023,25,25.3945,0.0,0,,350.0,3300,0.0,10,0,0,
+44845,2022,Mercedes-Benz,C300 4matic Convertible,C-Class,,Premium,Premium Gasoline,2.0,4,T,,All-Wheel Drive,Automatic 9-spd,Subcompact Cars,21,21.4659,30,29.5274,24,24.4725,0.0,0,,361.0,3400,0.0,9,0,0,
+44846,2022,Honda,Civic 4Dr,Civic,,Premium,Premium Gasoline,1.5,4,T,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,27,27.4002,37,37.0,31,31.3917,0.0,0,,285.0,2650,0.0,0,15,0,
+44859,2022,Mercedes-Benz,C300 Convertible,C-Class,,Premium,Premium Gasoline,2.0,4,T,,Rear-Wheel Drive,Automatic 9-spd,Subcompact Cars,21,20.8906,28,28.2722,24,23.6718,0.0,0,,373.0,3400,0.0,9,0,0,
+44860,2022,Mercedes-Benz,AMG C43 4matic Coupe,C-Class,,Premium,Premium Gasoline,3.0,6,T,,All-Wheel Drive,Automatic 9-spd,Subcompact Cars,19,18.7066,28,27.5494,22,21.8648,0.0,0,,406.0,3750,0.0,10,0,0,
+44861,2022,Mercedes-Benz,AMG C43 4matic Convertible,C-Class,,Premium,Premium Gasoline,3.0,6,T,,All-Wheel Drive,Automatic 9-spd,Subcompact Cars,19,18.8536,28,27.8704,22,22.0661,0.0,0,,402.0,3750,0.0,9,0,0,
+44865,2022,Ford,F150 Pickup 2WD,F150,,Regular,Regular Gasoline,2.7,6,T,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,20,19.6422,26,25.8463,22,22.0208,0.0,0,,404.0,3050,0.0,0,0,0,
+44866,2022,Ford,F150 Pickup 2WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,3.3,6,,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,19,19.3825,24,24.0,21,21.0,0.0,0,382,423.0,3200,0.0,0,0,0,
+44867,2022,Ford,F150 Pickup 2WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,18,18.1177,24,24.0443,20,20.378,0.0,0,,436.0,3350,0.0,0,0,0,
+44868,2022,Ford,F150 Pickup 2WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,17,17.1743,24,24.0,20,19.8898,0.0,0,335/378,444.0,3350,0.0,0,0,0,
+44869,2022,Ford,F150 Pickup 2WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,17,17.0,24,24.0,20,20.2316,0.0,0,,444.0,3350,0.0,0,0,0,
+44870,2022,Ford,F150 Pickup 2WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,17,16.5766,24,23.9409,19,19.2398,0.0,0,335/378,461.0,3550,0.0,0,0,0,
+44871,2022,Ford,F150 Pickup 4WD,F150,,Regular,Regular Gasoline,2.7,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,19,18.5267,24,23.6578,21,20.5305,0.0,0,,433.0,3200,0.0,0,0,0,
+44872,2022,Ford,F150 Pickup 4WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,3.3,6,,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,19,18.6452,22,22.0,20,20.0,0.0,0,358,444.0,3350,0.0,0,0,0,
+44873,2022,Ford,F150 Pickup 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,18,17.5929,23,23.0,20,19.8543,0.0,0,,444.0,3350,0.0,0,0,0,
+44874,2022,Ford,F150 Pickup 4WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,5.0,8,,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,16,16.3711,22,22.0,19,18.7139,0.0,0,311/351,468.0,3550,0.0,0,0,0,
+44875,2022,Ford,F150 RAPTOR 37 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,15,14.7421,16,16.2909,15,15.401,0.0,0,,578.0,4450,0.0,0,0,0,
+44876,2022,Ford,F150 Pickup Tremor 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,16,16.434,20,19.9271,18,17.8414,0.0,0,,498.0,3700,0.0,0,0,0,
+44877,2022,Ford,F150 Pickup 4WD,F150,,Regular,Regular Gasoline,2.7,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,17,17.3797,23,23.3145,20,19.6281,0.0,0,,453.0,3350,0.0,0,0,0,
+44878,2022,Ford,F150 Pickup 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,17,17.001,23,23.0,19,19.4384,0.0,0,,467.0,3550,0.0,0,0,0,
+44879,2022,Ford,F150 RAPTOR 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,15,14.8943,18,17.8483,16,16.0929,0.0,0,,553.0,4200,0.0,0,0,0,
+44880,2022,Ford,F150 RAPTOR 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,14,14.0,18,17.7796,15,15.0,0.0,0,,593.0,4450,0.0,0,0,0,
+44881,2022,Ford,F150 RAPTOR 37 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,14,14.2081,16,15.8851,15,14.9167,0.0,0,,596.0,4450,0.0,0,0,0,
+44882,2022,Ford,F150 Pickup Tremor 4WD,F150,,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,16,16.0584,20,20.1979,18,17.6899,0.0,0,,503.0,3700,0.0,0,0,0,
+44883,2022,Ford,F150 Pickup 4WD FFV,F150,FFV,Gasoline or E85,Regular Gasoline,5.0,8,,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,16,15.9613,22,22.0,18,18.4912,0.0,0,335/378,494.0,3700,0.0,0,0,0,
+44887,2022,Mercedes-Benz,C300 Coupe,C-Class,,Premium,Premium Gasoline,2.0,4,T,,Rear-Wheel Drive,Automatic 9-spd,Subcompact Cars,22,22.0382,31,31.2023,25,25.3945,0.0,0,,350.0,3300,0.0,10,0,0,
+44940,2022,Ford,F150 Pickup 4WD HEV,F150,Hybrid,Regular,Regular Gasoline,3.5,6,T,,Part-time 4-Wheel Drive,Automatic (S10),Standard Pickup Trucks 4WD,23,23.1589,23,23.0,23,23.3951,0.0,0,,386.0,2900,0.0,0,0,0,281V Li-Ion
+44987,2022,Ford,F150 Pickup 2WD HEV,F150,Hybrid,Regular,Regular Gasoline,3.5,6,T,,Rear-Wheel Drive,Automatic (S10),Standard Pickup Trucks 2WD,25,25.1342,25,25.1517,25,25.1421,0.0,0,,353.0,2700,0.0,0,0,0,281V Li-Ion
+45044,2022,Ford,Mustang,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic 10-spd,Subcompact Cars,22,21.6093,32,32.2893,25,25.3881,0.0,0,,350.0,2700,0.0,13,0,0,
+45045,2022,Ford,Mustang,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,21,20.6759,29,29.1859,24,23.7985,0.0,0,,373.0,2800,0.0,13,0,0,
+45046,2022,Ford,Mustang HO Coupe,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,20,19.7464,27,26.9052,22,22.4323,0.0,0,,396.0,3050,0.0,12,0,0,
+45047,2022,Ford,Mustang,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,21,21.4323,32,31.8193,25,25.1227,0.0,0,,354.0,2700,0.0,13,0,0,
+45048,2022,Ford,Mustang HO Coupe,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,20,20.0,27,27.0,23,23.0,0.0,0,,386.0,2900,0.0,12,0,0,
+45049,2022,Ford,Mustang,Mustang,,Regular,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,15,14.6499,24,23.7296,18,17.6971,0.0,0,,500.0,3700,0.0,13,0,0,
+45050,2022,Ford,Mustang,Mustang,,Regular,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,15,15.4751,24,24.3548,19,18.5124,0.0,0,,479.0,3550,0.0,13,0,0,
+45051,2022,Ford,Mustang Mach 1,Mustang,,Regular,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,15,15.4751,23,23.0,18,18.0,0.0,0,,493.0,3700,0.0,14,0,0,
+45052,2022,Ford,Mustang Mach 1,Mustang,,Regular,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,14,14.1316,22,22.4473,17,16.9587,0.0,0,,523.0,3950,0.0,14,0,0,
+45053,2022,Ford,Mustang HO Convertible,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,19,19.0736,25,25.0,21,21.0,0.0,0,,423.0,3200,0.0,12,0,0,
+45054,2022,Ford,Mustang Convertible,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic 10-spd,Subcompact Cars,20,19.9381,28,28.4223,23,23.0319,0.0,0,,386.0,2900,0.0,11,0,0,
+45055,2022,Ford,Mustang Convertible,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Manual 6-spd,Subcompact Cars,20,20.0,27,27.0,23,23.0,0.0,0,,386.0,2900,0.0,11,0,0,
+45056,2022,Ford,Mustang Convertible,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,20,19.9038,28,28.3167,23,22.9755,0.0,0,,386.0,2900,0.0,11,0,0,
+45057,2022,Ford,Mustang HO Convertible,Mustang,,Regular,Regular Gasoline,2.3,4,T,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,19,19.0,26,26.0,22,22.0,0.0,0,,404.0,3050,0.0,12,0,0,
+45058,2022,Ford,Mustang Convertible,Mustang,,Regular,Regular Gasoline,5.0,8,,,Rear-Wheel Drive,Automatic (S10),Subcompact Cars,15,15.0468,23,23.1732,18,17.8662,0.0,0,,497.0,3700,0.0,11,0,0,
+45138,2022,Ford,Mustang Mach-E AWD,Mustang Mach-E,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 4WD,99,99.12,86,86.17,93,92.8413,36.3143,224,,0.0,800,8.0,0,24,0,198 and 198 kW AC PMSM
+45139,2022,Ford,Mustang Mach-E AWD Extended,Mustang Mach-E,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 4WD,97,97.09,84,84.28,91,90.8745,37.0929,277,,0.0,850,10.7,0,24,0,258 and 258 kW AC PMSM
+45140,2022,Ford,Mustang Mach-E CAL RT 1 ER AWD,Mustang Mach-E,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 4WD,105,104.51,91,91.35,98,98.1473,34.3429,312,,0.0,750,11.4,0,24,0,258 and 258 kW AC PMSM
+45141,2022,Ford,Mustang Mach-E CAL RT 1 ER RWD,Mustang Mach-E,EV,Electricity,Electricity,,,,,Rear-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 2WD,108,107.8,94,93.94,101,101.0884,33.3429,314,,0.0,750,10.1,0,24,0,216 kW AC PMSM
+45142,2022,Ford,Mustang Mach-E GT,Mustang Mach-E,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 4WD,90,90.02,77,77.42,84,83.8771,40.1929,270,,0.0,900,10.3,0,24,0,179 and 179 kW AC PMSM
+45143,2022,Ford,Mustang Mach-E GT Performance,Mustang Mach-E,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 4WD,88,88.06,75,75.32,82,81.8314,41.1786,260,,0.0,950,10.1,0,24,0,179 kW AC PMSM
+45144,2022,Ford,Mustang Mach-E RWD,Mustang Mach-E,EV,Electricity,Electricity,,,,,Rear-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 2WD,110,110.18,96,95.83,103,103.2242,32.6286,247,,0.0,750,8.1,0,24,0,198 kW AC PMSM
+45145,2022,Ford,Mustang Mach-E RWD Extended,Mustang Mach-E,EV,Electricity,Electricity,,,,,Rear-Wheel Drive,Automatic (A1),Small Sport Utility Vehicle 2WD,104,103.88,90,90.37,97,97.3321,34.6143,303,,0.0,800,10.9,0,24,0,216 kW AC PMSM
+45290,2022,Ford,Shelby GT500 Mustang,Mustang,,Premium,Premium Gasoline,5.2,8,,S,Rear-Wheel Drive,Automatic (AM-S7),Subcompact Cars,12,11.795,18,18.4683,14,14.0853,0.0,0,,631.0,5850,0.0,12,0,0,
+45294,2023,Hyundai,Elantra,Elantra,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S1),Midsize Cars,30,30.2833,40,39.723,34,33.9095,0.0,0,,263.0,1950,0.0,0,14,0,
+45295,2023,Hyundai,Elantra,Elantra,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S1),Midsize Cars,33,32.8462,42,42.3327,37,36.53,0.0,0,,245.0,1800,0.0,0,14,0,
+45296,2023,Hyundai,Elantra,Elantra,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Automatic (AM-S7),Midsize Cars,28,28.0454,36,35.5409,31,30.9861,0.0,0,,288.0,2150,0.0,0,14,0,
+45297,2023,Hyundai,Elantra Hybrid,Elantra,Hybrid,Regular,Regular Gasoline,1.6,4,,,Front-Wheel Drive,Automatic (AM-S6),Midsize Cars,49,49.2526,52,52.0663,50,50.4802,0.0,0,,177.0,1350,0.0,0,14,0,240V Li-Ion
+45298,2023,Hyundai,Elantra Hybrid Blue,Elantra,Hybrid,Regular,Regular Gasoline,1.6,4,,,Front-Wheel Drive,Automatic (AM-S6),Midsize Cars,53,52.7058,56,55.5898,54,53.9657,0.0,0,,165.0,1250,0.0,0,14,0,240V Li-Ion
+45315,2022,Mercedes-Benz,C300,C-Class,Hybrid,Premium,Premium Gasoline,2.0,4,T,,Rear-Wheel Drive,Automatic 9-spd,Compact Cars,25,25.4114,35,35.2413,29,29.0588,0.0,0,,305.0,2850,0.0,0,12,0,48V Li-Ion
+45316,2022,Ford,F-150 Lightning Platinum 4WD,F-150 Lightning,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Standard Pickup Trucks 4WD,73,73.01,60,59.85,66,66.4363,50.7071,300,,0.0,1150,9.3,0,0,0,210 and 210 kW AC PMSM
+45317,2022,Ford,F-150 Lightning 4WD Extended Range,F-150 Lightning,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Standard Pickup Trucks 4WD,78,77.84,63,62.93,70,70.3404,47.9143,320,,0.0,1100,10.1,0,0,0,210 and 210 kW AC PMSM
+45318,2022,Ford,F-150 Lightning 4WD,F-150 Lightning,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Standard Pickup Trucks 4WD,76,76.23,61,60.69,68,68.3539,49.3643,230,,0.0,1100,11.9,0,0,0,358 and 358 kW AC PMSM
+45322,2022,Mercedes-Benz,C300 4matic,C-Class,Hybrid,Premium,Premium Gasoline,2.0,4,T,,All-Wheel Drive,Automatic 9-spd,Compact Cars,23,23.3153,33,32.8476,27,26.8174,0.0,0,,330.0,3050,0.0,0,12,0,48V Li-Ion
+45349,2023,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,22,22.323,31,31.1035,26,25.5715,0.0,0,,348.0,2600,0.0,0,15,0,
+45350,2023,Kia,Forte,Forte,,Regular,Regular Gasoline,1.6,4,T,,Front-Wheel Drive,Automatic (AM-S7),Midsize Cars,27,27.0633,35,35.4891,30,30.3006,0.0,0,,296.0,2250,0.0,0,15,0,
+45351,2023,Kia,Forte FE,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,30,30.1512,41,41.3127,34,34.3242,0.0,0,,261.0,1950,0.0,0,15,0,
+45352,2023,Kia,Forte,Forte,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Midsize Cars,28,28.3675,39,38.9491,32,32.3186,0.0,0,,277.0,2100,0.0,0,15,0,
+45719,2023,Toyota,Camry,Camry,,Regular,Regular Gasoline,3.5,6,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,22,22.3944,33,33.0332,26,26.1901,0.0,0,,338.0,2600,0.0,0,14,0,
+45720,2023,Toyota,Camry TRD,Camry,,Regular,Regular Gasoline,3.5,6,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,22,21.7524,31,30.9781,25,25.1187,0.0,0,,354.0,2700,0.0,0,14,0,
+45721,2023,Toyota,Camry XSE,Camry,,Regular,Regular Gasoline,3.5,6,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,22,22.0524,32,31.9782,26,25.6327,0.0,0,,345.0,2600,0.0,0,14,0,
+45722,2023,Toyota,Camry AWD LE/SE,Camry,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Midsize Cars,25,25.0852,34,34.0,29,28.5993,0.0,0,,310.0,2300,0.0,0,15,0,
+45723,2023,Toyota,Camry AWD XLE/XSE,Camry,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Midsize Cars,25,24.9954,34,34.4479,28,28.0,0.0,0,,315.0,2400,0.0,0,15,0,
+45724,2023,Toyota,Camry LE/SE,Camry,,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,28,27.7263,39,38.5726,32,31.7429,0.0,0,,280.0,2100,0.0,0,14,0,
+45725,2023,Toyota,Camry XLE/XSE,Camry,,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,27,27.0,38,38.0,31,31.0,0.0,0,,286.0,2150,0.0,0,14,0,
+45726,2023,Toyota,Camry Hybrid LE,Camry,Hybrid,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (AV-S6),Midsize Cars,51,50.9831,53,52.7026,52,51.7428,0.0,0,,170.0,1300,0.0,0,15,0,259V Li-Ion
+45727,2023,Toyota,Camry Hybrid SE/XLE/XSE,Camry,Hybrid,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (AV-S6),Midsize Cars,44,44.1939,47,47.0,46,46.2351,0.0,0,,195.0,1450,0.0,0,15,0,259V Li-Ion
+45899,2023,Toyota,Corolla Hatchback,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,32,31.7383,41,40.8556,35,35.2813,0.0,0,,252.0,1900,0.0,0,0,18,
+45900,2023,Toyota,Corolla Hatchback XSE,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,30,29.8859,38,38.3105,33,33.1681,0.0,0,,266.0,2050,0.0,0,0,18,
+45929,2023,Toyota,Corolla Hybrid,Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,50,50.3846,43,43.0,47,47.0,0.0,0,,186.0,1450,0.0,0,13,0,207V Li-Ion
+45930,2023,Toyota,Corolla Hybrid AWD,Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,All-Wheel Drive,Automatic (variable gear ratios),Compact Cars,47,47.0,41,41.0,44,44.0,0.0,0,,199.0,1500,0.0,0,13,0,207V Li-Ion
+45931,2023,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,32,32.0,41,41.0,35,35.0,0.0,0,,254.0,1900,0.0,0,13,0,
+45932,2023,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,31,30.8533,40,39.53,34,34.2348,0.0,0,,258.0,1950,0.0,0,13,0,
+45933,2023,Hyundai,Elantra N,Elantra,,Premium,Premium Gasoline,2.0,4,T,,Front-Wheel Drive,Automatic (AM-S8),Midsize Cars,20,19.5079,30,29.6202,23,23.0489,0.0,0,,388.0,3550,0.0,0,14,0,
+45934,2023,Hyundai,Elantra N,Elantra,,Premium,Premium Gasoline,2.0,4,T,,Front-Wheel Drive,Manual 6-spd,Midsize Cars,22,21.6676,31,30.7233,25,24.981,0.0,0,,358.0,3300,0.0,0,14,0,
+45950,2023,Honda,CR-V FWD,CR-V,,Regular,Regular Gasoline,1.5,4,T,,Front-Wheel Drive,Automatic (variable gear ratios),Small Sport Utility Vehicle 2WD,28,27.9688,34,33.7689,30,30.3116,0.0,0,,290.0,2250,0.0,0,0,0,
+45952,2023,Honda,CR-V AWD,CR-V,,Regular,Regular Gasoline,1.5,4,T,,All-Wheel Drive,Automatic (variable gear ratios),Small Sport Utility Vehicle 4WD,27,26.8552,32,31.7289,29,28.8493,0.0,0,,305.0,2300,0.0,0,0,0,
+46064,2023,Honda,CR-V Hybrid FWD,CR-V,Hybrid,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Small Sport Utility Vehicle 2WD,43,43.2731,36,36.0,40,40.3452,0.0,0,,223.0,1700,0.0,0,0,0,263V Li-Ion
+46067,2023,Toyota,RAV4,RAV4,,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 2WD,27,26.7869,35,34.8146,30,29.8882,0.0,0,,296.0,2250,0.0,0,0,0,
+46068,2023,Toyota,RAV4,RAV4,,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 2WD,27,27.4603,34,34.4925,30,30.2341,0.0,0,,292.0,2250,0.0,0,0,0,
+46071,2023,Honda,CR-V Hybrid AWD,CR-V,Hybrid,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (variable gear ratios),Small Sport Utility Vehicle 4WD,40,40.3712,34,34.0802,37,37.2749,0.0,0,,237.0,1800,0.0,0,0,0,263V Li-Ion
+46074,2023,Toyota,RAV4 AWD,RAV4,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 4WD,25,24.7171,33,32.9713,28,27.8551,0.0,0,,319.0,2400,0.0,0,0,0,
+46075,2023,Toyota,RAV4 AWD,RAV4,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 4WD,27,26.7185,33,33.1568,29,29.2767,0.0,0,,301.0,2300,0.0,0,0,0,
+46076,2023,Toyota,RAV4 AWD TRD OFFROAD,RAV4,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 4WD,25,24.8563,32,31.7289,28,27.5407,0.0,0,,323.0,2400,0.0,0,0,0,
+46077,2023,Toyota,RAV4 AWD LE,RAV4,,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (S8),Small Sport Utility Vehicle 4WD,27,27.1257,34,33.9509,30,29.8237,0.0,0,,296.0,2250,0.0,0,0,0,
+46078,2023,Toyota,RAV4 Hybrid AWD,RAV4,Hybrid,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (AV-S6),Small Sport Utility Vehicle 4WD,41,41.0,38,38.2156,40,40.1868,0.0,0,,223.0,1700,0.0,0,0,0,252V Li-Ion
+46080,2023,Toyota,RAV4 Hybrid AWD Woodland Edition,RAV4,Hybrid,Regular,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (AV-S6),Small Sport Utility Vehicle 4WD,38,38.2528,35,34.6706,37,36.5533,0.0,0,,240.0,1800,0.0,0,0,0,252V Li-Ion
+46131,2023,Toyota,Corolla Hybrid,Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,53,53.0,46,46.0,50,50.0,0.0,0,,176.0,1350,0.0,0,13,0,207V Li-Ion
+46132,2023,Toyota,Corolla Hybrid AWD,Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,All-Wheel Drive,Automatic (variable gear ratios),Compact Cars,51,51.0,44,44.0,48,48.0,0.0,0,,183.0,1400,0.0,0,13,0,207V Li-Ion
+46204,2023,Tesla,Model 3 Long Range AWD,Model 3,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Midsize Cars,134,134.2791,126,126.2005,131,130.5194,25.8238,358,,0.0,600,11.5,0,15,0,98 and 195 kW AC 3-Phase
+46205,2023,Tesla,Model 3 Performance AWD,Model 3,EV,Electricity,Electricity,,,,,All-Wheel Drive,Automatic (A1),Midsize Cars,118,117.5346,107,106.9243,113,112.5105,29.9572,315,,0.0,650,10.0,0,15,0,131 and 190 kW AC 3-Phase
+46206,2023,Tesla,Model 3 RWD,Model 3,EV,Electricity,Electricity,,,,,Rear-Wheel Drive,Automatic (A1),Midsize Cars,138,137.5297,126,126.2482,132,132.2131,25.4929,272,,0.0,550,10.4,0,15,0,192 kW AC 3-Phase
+46218,2023,Toyota,GR Corolla,Corolla,,Premium,Premium Gasoline,1.6,3,T,,All-Wheel Drive,Manual 6-spd,Subcompact Cars,21,21.1723,28,28.3153,24,23.8836,0.0,0,,368.0,3400,0.0,0,0,27,
+46293,2023,Toyota,Corolla Cross,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 2WD,31,31.0089,33,33.3912,32,32.0375,0.0,0,,275.0,2100,0.0,0,0,0,
+46296,2023,Toyota,Corolla Cross 4WD,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 4WD,29,29.0,32,31.6472,30,30.0,0.0,0,,293.0,2250,0.0,0,0,0,
+47230,2023,Toyota,RAV4 Prime 4WD,RAV4 Prime,Plug-in Hybrid,Regular Gas and Electricity,Regular Gasoline,2.5,4,,,All-Wheel Drive,Automatic (AV-S6),Small Sport Utility Vehicle 4WD,40,40.1649,36,36.0,38,38.4425,36.0,600,42,72.0,1750,4.5,0,0,0,40 and 134 kW AC Induction
+47234,2024,Toyota,GR Corolla,Corolla,,Premium,Premium Gasoline,1.6,3,T,,All-Wheel Drive,Manual 6-spd,Subcompact Cars,21,21.1786,28,28.3185,24,23.889,0.0,0,,368.0,3400,0.0,0,0,27,
+47339,2024,Toyota,Corolla Hybrid (Normal/Eco Modes),Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,53,53.0,46,46.0,50,50.0,0.0,0,,176.0,1350,0.0,0,13,0,207V Li-Ion
+47340,2024,Toyota,Corolla Hybrid (Sport/Normal/Eco Modes),Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,Front-Wheel Drive,Automatic (variable gear ratios),Compact Cars,50,50.3846,43,43.0,47,47.0,0.0,0,,186.0,1450,0.0,0,13,0,207V Li-Ion
+47341,2024,Toyota,Corolla Hybrid AWD (Normal/Eco Modes),Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,All-Wheel Drive,Automatic (variable gear ratios),Compact Cars,51,51.0,44,44.0,48,48.0,0.0,0,,183.0,1400,0.0,0,13,0,207V Li-Ion
+47342,2024,Toyota,Corolla Hybrid AWD (Sport/Normal/Eco Modes),Corolla,Hybrid,Regular,Regular Gasoline,1.8,4,,,All-Wheel Drive,Automatic (variable gear ratios),Compact Cars,47,47.0,41,41.0,44,44.0,0.0,0,,199.0,1500,0.0,0,13,0,207V Li-Ion
+47343,2024,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,32,32.0,41,41.0,35,35.0,0.0,0,,254.0,1900,0.0,0,13,0,
+47344,2024,Toyota,Corolla,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,31,30.8449,40,39.5009,34,34.2193,0.0,0,,258.0,1950,0.0,0,13,0,
+47345,2024,Toyota,Corolla Hatchback,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,32,32.0528,41,41.0,35,35.0,0.0,0,,254.0,1900,0.0,0,0,18,
+47346,2024,Toyota,Corolla Hatchback XSE,Corolla,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Compact Cars,30,29.8859,38,38.3105,33,33.1681,0.0,0,,266.0,2050,0.0,0,0,18,
+47513,2023,Toyota,Camry LE/SE,Camry,,Regular,Regular Gasoline,2.5,4,,,Front-Wheel Drive,Automatic (S8),Midsize Cars,28,27.9221,39,38.9237,32,31.991,0.0,0,,278.0,2100,0.0,0,14,0,
+47519,2023,Toyota,Corolla Cross Hybrid AWD,Corolla Cross,Hybrid,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (AV-S6),Small Sport Utility Vehicle 4WD,45,45.0,38,38.0,42,42.0,0.0,0,,209.0,1600,0.0,0,0,0,222V Li-Ion
+47635,2024,Toyota,Corolla Cross,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,Front-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 2WD,31,31.0746,33,32.6031,32,31.7443,0.0,0,,276.0,2100,0.0,0,0,0,
+47667,2024,Toyota,Corolla Cross AWD,Corolla Cross,,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (AV-S10),Small Sport Utility Vehicle 4WD,29,29.0,31,31.1142,30,30.0,0.0,0,,294.0,2250,0.0,0,0,0,
+47668,2024,Toyota,Corolla Cross Hybrid AWD,Corolla Cross,Hybrid,Regular,Regular Gasoline,2.0,4,,,All-Wheel Drive,Automatic (AV-S6),Small Sport Utility Vehicle 4WD,45,45.0,38,38.0,42,42.0,0.0,0,,209.0,1600,0.0,0,0,0,222V Li-Ion

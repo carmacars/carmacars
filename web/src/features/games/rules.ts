@@ -1,17 +1,23 @@
-// Discount games (migrations 0069 and 0081): the rules that decide when a game may show (first, again after a close,
-// in the request-to-book form), and the layouts the games draw. Pure functions (no browser, no imports) so they are
+// Discount games (migrations 0069, 0081, 0094 and 0100): the rules that decide when a game may show (first, again after
+// a close, in the request-to-book form), the rotation, and the layouts the games draw. Pure functions (no browser, no imports) so they are
 // unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
 // change it.
 
-export type GameKind = 'wheel' | 'scratch' | 'blackjack' | 'cups' | 'plinko' | 'pack';
-export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack'];
-/** The browser's settings (app.game_cfg): the first show (car pages, seconds, exit intent), the re-show after a close
- *  (page views since the close, any page, or seconds since the close: 0094), the most shows in one visit and in one day
- *  in this browser (0094), and the offer in the request-to-book form. */
-export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number; booking: boolean }
+export type GameKind = 'wheel' | 'scratch' | 'blackjack' | 'cups' | 'plinko' | 'pack' | 'coin' | 'dice' | 'slots' | 'drop' | 'mystery';
+/** The games, in the database's order (app.game_kinds; 0100 adds the last five). */
+export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack', 'coin', 'dice', 'slots', 'drop', 'mystery'];
+/** The browser's settings (app.game_cfg): the first show (page views, any page, since 0100: the key keeps its old name
+ *  car_pages; or seconds on the site; exit intent), the re-show after a close (page views since the close or seconds
+ *  since the close, whichever first), the most shows in one visit and in one day in this browser
+ *  (0094), and the offer in the request-to-book form. */
+export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number | null; booking: boolean }
+/** A prize this browser already won and has not claimed (0100): shown as "Your 5% off is saved", never as a new win. */
+export interface SavedPrize { label: string; short: string; at: number }
 /** What this browser remembers (localStorage, the visitor's own device only): a claim, a refusal from the server, the
- *  games shown in the current round, the code. dismissedAt is from 0069 and no longer read. */
-export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number }
+ *  games shown in the current round, the code, the last game shown (0100), a prize won and not claimed yet (0100), and
+ *  when a booking request was started or sent here (0100). dismissedAt is from 0069 and no longer read. */
+export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
+  won?: SavedPrize; requested?: number }
 /** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, and when the
  *  last one was closed (with the car pages seen by then). */
 export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number }
@@ -22,16 +28,35 @@ export const gameDay = (now: number) => new Intl.DateTimeFormat('en-CA', { timeZ
 export const shownToday = (m: GameMemory, now: number) => (m.day === gameDay(now) ? m.dayShows ?? 0 : 0);
 /** The memory after one more game shown today. */
 export const countShown = (m: GameMemory, now: number): Partial<GameMemory> => ({ day: gameDay(now), dayShows: shownToday(m, now) + 1 });
+/** How long a won prize stays saved in this browser: the days the database keeps the prize drawn for a visitor
+ *  (game_dismiss_days, 14 by default). */
+export const SAVED_DAYS = 14;
+/** The prize won in this browser and not claimed yet, while it lasts (0100). */
+export const savedPrize = (m: GameMemory, now: number): SavedPrize | null =>
+  (m.won && !m.claimed && now - m.won.at < SAVED_DAYS * 86_400_000 ? m.won : null);
+/** The words of the saved badge: "Your 5% off is saved". */
+export const savedWords = (p: { label: string }) => `Your ${p.label} is saved`;
+/** How long a booking request in progress keeps the games away (0100). */
+export const REQUEST_DAYS = 30;
+/** A booking request in progress in this browser (0100): the request form's draft (localStorage cc.request.v2, with a
+ *  step past the first or a saved draft), or a request sent here. Then no game shows on the site. */
+export function requestInProgress(a: { mem: GameMemory; draft: { step?: number; token?: string | null; draftId?: string | null; at?: number } | null; now: number }): boolean {
+  const recent = (t: number | undefined) => typeof t === 'number' && a.now - t < REQUEST_DAYS * 86_400_000;
+  if (recent(a.mem.requested)) return true;
+  const d = a.draft;
+  return Boolean(d && recent(d.at) && ((d.step ?? 1) > 1 || d.token || d.draftId));
+}
 export type Trigger = 'pages' | 'time' | 'exit';
 /** Why a game shows, and whether as the small slide-in (the first page of a phone visit from a search engine). */
-export interface Fire { why: Trigger; slim: boolean }
+export interface Fire { why: Trigger | 'saved'; slim: boolean }
 
 /** How much later the small slide-in comes on the first page of a phone visit from a search engine. */
 export const SEARCH_LANDING_DELAY = 15_000;
 
-/** Pages where a game never shows: booking, paying, signing, sign-in, portals, documents. */
-const NEVER = /^\/(book|account|owner|admin|va|field|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth)(\/|$)/;
-const PAYSIGN = /\/(pay|sign|checkout)(\/|$)/;
+/** Pages where a game never shows: booking, checkout and paying, signing, sign-in, portals, documents, a request's own
+ *  pages (0100: my-request, continue). The request-to-book form has its own game (bookingPath). */
+const NEVER = /^\/(book|account|owner|admin|va|field|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth|my-request|continue|checkout|pay|payment)(\/|$)/;
+const PAYSIGN = /\/(pay|payment|sign|checkout)(\/|$)/;
 export const excludedPath = (path: string) => NEVER.test(path) || PAYSIGN.test(path);
 /** The request-to-book form (/book and /book/<car>), where the inline card is offered; never its sent page. */
 export const bookingPath = (path: string) => /^\/book(\/[a-z0-9-]+)?\/?$/.test(path) && !/^\/book\/sent(\/|$)/.test(path) && !PAYSIGN.test(path);
@@ -47,12 +72,15 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
   try { return /(^|\.)(google|bing|duckduckgo|yahoo|ecosia|baidu|yandex|brave|startpage|qwant)\.[a-z.]+$/i.test(new URL(ref).hostname); } catch { return false; }
 }
 
-/** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site. */
-export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null }): string | null {
+/** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site.
+ *  0100: never once a prize was won here (the saved badge shows instead) or a booking request is in progress. */
+export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean }): string | null {
   if (a.signedIn) return 'signed_in';
   if (a.mem.claimed) return 'claimed';
   if (a.mem.never) return a.mem.never;
   if (excludedPath(a.path)) return 'page';
+  if (a.busy) return 'in_progress';
+  if (savedPrize(a.mem, a.now ?? Date.now())) return 'saved';
   if (!a.cfg) return 'no_settings';
   if (!a.cfg.on) return 'off';
   if (a.visit && (a.visit.shows ?? 0) >= Math.max(1, a.cfg.per_visit)) return 'visit_cap';
@@ -72,10 +100,20 @@ export function bookingIneligible(a: { cfg: GameCfg | null; mem: GameMemory; pat
   return null;
 }
 
-/** Which rule fires now. The first game of a visit: enough car pages, enough time, or exit intent (computers only),
- *  whichever first. After a close: more page views or more time since the close, whichever first (0094). On the first page of
- *  a phone visit from a search engine there is no interstitial: the game waits for the second page, or comes
- *  SEARCH_LANDING_DELAY after its rule as the small slide-in that covers almost nothing. */
+/** After a close: the page views since the close (any page) or the time since the close, whichever comes first
+ *  (0094, the owner's 0100 defaults: the 3rd page view or 2 minutes); a rule set to 0 is left out; both at 0: no game
+ *  again in this visit. */
+export function reshowDue(cfg: GameCfg, v: Visit, now: number): Trigger | null {
+  if (v.closedAt === undefined) return null;
+  if (cfg.reshow_pages > 0 && v.pages - (v.pagesAtClose ?? v.pages) >= cfg.reshow_pages) return 'pages';
+  if (cfg.reshow_seconds > 0 && now - v.closedAt >= cfg.reshow_seconds * 1000) return 'time';
+  return null;
+}
+
+/** Which rule fires now. The first game of a visit: enough page views (any page, 0100), enough time, or exit intent
+ *  (computers only, when on), whichever first. After a close: enough page views or enough time since the close,
+ *  whichever first. On the first page of a phone visit from a search engine there is no interstitial: the
+ *  game waits for the second page, or comes SEARCH_LANDING_DELAY after its rule as the small slide-in. */
 export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean; today?: number }): Fire | null {
   const { cfg, visit: v, now } = a;
   const shows = v.shows ?? 0;
@@ -83,12 +121,11 @@ export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boo
   if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
   if (shows > 0) {
     if (v.closedAt === undefined) return null; // one is open
-    // 0094: page views since the close, on any page (the 2nd by default), or the seconds since the close, whichever first
-    if (cfg.reshow_pages > 0 && v.pages - (v.pagesAtClose ?? v.pages) >= cfg.reshow_pages) return { why: 'pages', slim: false };
-    if (cfg.reshow_seconds > 0 && now - v.closedAt >= cfg.reshow_seconds * 1000) return { why: 'time', slim: false };
-    return null;
+    const why = reshowDue(cfg, v, now);
+    return why ? { why, slim: false } : null;
   }
-  const byPages = cfg.car_pages > 0 && v.cars.length >= cfg.car_pages;
+  // 0100: page views on any page (the 2nd by default)
+  const byPages = cfg.car_pages > 0 && v.pages >= cfg.car_pages;
   if (a.phone && v.fromSearch && v.pages <= 1) {
     // when the rule would have fired: at once by pages (the landing page is a car page), or after the seconds
     const at = byPages ? v.start : cfg.seconds > 0 ? v.start + cfg.seconds * 1000 : null;
@@ -108,9 +145,11 @@ export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: b
   if (shows >= Math.max(1, cfg.per_visit)) return null;
   if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
   let at: number | null = null;
-  if (shows > 0) { if (v.closedAt !== undefined && cfg.reshow_seconds > 0) at = v.closedAt + cfg.reshow_seconds * 1000; }
-  else {
-    const byPages = cfg.car_pages > 0 && v.cars.length >= cfg.car_pages;
+  if (shows > 0) {
+    // the time rule is the one a timer can wait for; the page rule is checked on each page
+    if (v.closedAt !== undefined && cfg.reshow_seconds > 0) at = v.closedAt + cfg.reshow_seconds * 1000;
+  } else {
+    const byPages = cfg.car_pages > 0 && v.pages >= cfg.car_pages;
     const timeAt = cfg.seconds > 0 ? v.start + cfg.seconds * 1000 : null;
     if (a.phone && v.fromSearch && v.pages <= 1) at = byPages ? v.start + SEARCH_LANDING_DELAY : timeAt === null ? null : timeAt + SEARCH_LANDING_DELAY;
     else at = timeAt;
@@ -130,13 +169,26 @@ export function addSeen(seen: GameKind[] | undefined, g: GameKind, on: GameKind[
   return on.every((x) => next.includes(x)) ? [g] : next;
 }
 
-/** The games still to come in this round (all of them again once the round is complete), the server's own rule. */
+/** The games that may come next (the server's own rule, app.game_next_kind): the ones still to come in this round
+ *  (all of them again once the round is complete), never the game shown last while another is on (0100), so one
+ *  visitor never gets the same game twice in a row. */
 export function unseen(seen: GameKind[] | undefined, on: GameKind[] = GAMES, last?: GameKind): GameKind[] {
   const s = (seen ?? []).filter((x) => on.includes(x));
-  const left = on.filter((x) => !s.includes(x));
-  if (left.length) return left;
-  const fresh = on.filter((x) => x !== last);
-  return fresh.length ? fresh : on;
+  let left = on.filter((x) => !s.includes(x));
+  if (!left.length) left = on;
+  const fresh = left.filter((x) => x !== last);
+  return fresh.length ? fresh : left;
+}
+/** One pick by weight among the games that may come next. */
+export function nextGame(a: { seen?: GameKind[]; last?: GameKind; on?: GameKind[]; weights?: Partial<Record<GameKind, number>>; r: () => number }): GameKind | null {
+  const on = (a.on ?? GAMES).filter((g) => (a.weights ? (a.weights[g] ?? 0) > 0 : true));
+  if (!on.length) return null;
+  const pool = unseen(a.seen, on, a.last);
+  const w = pool.map((g) => (a.weights ? a.weights[g] ?? 0 : 1));
+  const total = w.reduce((x, y) => x + y, 0);
+  let x = a.r() * total;
+  for (let i = 0; i < pool.length; i++) { x -= w[i]!; if (x < 0) return pool[i]!; }
+  return pool[pool.length - 1]!;
 }
 
 /** The visit with one more page. */
@@ -301,3 +353,19 @@ export function packCards(r: () => number, count = 5): PackCard[] {
 /** How far the top strip is torn (0 to 1) after a drag from x0 to x across a pack w wide; open at 0.6. */
 export const tearProgress = (x0: number, x: number, w: number) => (w <= 0 ? 0 : Math.max(0, Math.min(1, Math.abs(x - x0) / w)));
 export const TORN = 0.6;
+
+/** The slot machine (0100): three reels of the prize table's words (each prize at least once, the common ones more
+ *  often, the rare ones once), and where each reel stops so the middle row shows the drawn prize three times. The
+ *  first two reels often pass a bigger prize just before they stop. */
+export function slotStrip(prizes: PrizeWord[], n = 12): PrizeWord[] { return wheelSlices(prizes, n); }
+export function slotStops(strip: PrizeWord[], key: string, r: () => number, reels = 3): number[] {
+  const at = strip.map((s, i) => (s.key === key ? i : -1)).filter((i) => i >= 0);
+  const pick = () => (at.length ? at[Math.floor(r() * at.length)]! : 0);
+  return Array.from({ length: reels }, pick);
+}
+/** A die's face (1 to 6). The dice and the coin are for show: whatever they land on, the prize is the one drawn. */
+export const dieFace = (r: () => number) => 1 + Math.min(5, Math.floor(r() * 6));
+export type CoinSide = 'heads' | 'tails';
+export const coinFlip = (r: () => number): CoinSide => (r() < 0.5 ? 'heads' : 'tails');
+/** The mystery boxes (0100): three closed boxes; whichever is picked opens on the drawn prize, the other two stay shut. */
+export const MYSTERY_BOXES = 3;

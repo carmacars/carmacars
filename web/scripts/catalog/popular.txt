@@ -1,0 +1,157 @@
+# The popular models in the Canadian market (migration 0097), most popular first: make | model. Used only when Admin >
+# Settings > Vehicle pages limits indexing ("Only pages that pass the rules"): then a model year from the set first year
+# on is indexed when its model is on this list. Editable in Admin; the import adds the lines that are not there yet.
+Ford | F-150
+Ram | 1500
+Chevrolet | Silverado
+GMC | Sierra
+Toyota | RAV4
+Honda | CR-V
+Honda | Civic
+Toyota | Corolla
+Hyundai | Elantra
+Hyundai | Tucson
+Nissan | Rogue
+Mazda | CX-5
+Toyota | Camry
+Honda | Accord
+Ford | Escape
+Jeep | Wrangler
+Jeep | Grand Cherokee
+Jeep | Compass
+Chevrolet | Equinox
+GMC | Terrain
+Hyundai | Kona
+Kia | Sportage
+Kia | Seltos
+Kia | Forte
+Kia | Soul
+Toyota | Highlander
+Toyota | Tacoma
+Toyota | Tundra
+Honda | Pilot
+Honda | HR-V
+Honda | Odyssey
+Chrysler | Pacifica
+Dodge | Grand Caravan
+Kia | Carnival
+Toyota | Sienna
+Subaru | Crosstrek
+Subaru | Forester
+Subaru | Outback
+Subaru | Impreza
+Volkswagen | Jetta
+Volkswagen | Tiguan
+Volkswagen | Golf
+Volkswagen | Atlas
+Volkswagen | Taos
+Nissan | Sentra
+Nissan | Altima
+Nissan | Kicks
+Nissan | Pathfinder
+Mazda | 3
+Mazda | CX-30
+Mazda | CX-50
+Mazda | CX-90
+Mazda | MX-5
+Ford | Explorer
+Ford | Edge
+Ford | Bronco
+Ford | Bronco Sport
+Ford | Ranger
+Ford | Maverick
+Ford | Mustang
+Chevrolet | Malibu
+Chevrolet | Trax
+Chevrolet | Trailblazer
+Chevrolet | Tahoe
+Chevrolet | Traverse
+Chevrolet | Colorado
+Chevrolet | Bolt EV
+GMC | Acadia
+GMC | Yukon
+GMC | Canyon
+Buick | Encore
+Buick | Encore GX
+Buick | Envision
+Buick | Enclave
+Hyundai | Santa Fe
+Hyundai | Palisade
+Hyundai | Ioniq 5
+Hyundai | Venue
+Hyundai | Accent
+Kia | Sorento
+Kia | Telluride
+Kia | Niro
+Kia | EV6
+Kia | Rio
+Toyota | Corolla Cross
+Toyota | 4Runner
+Toyota | Prius
+Toyota | Venza
+Toyota | Yaris
+Mitsubishi | Outlander
+Mitsubishi | Outlander Sport
+Mitsubishi | Mirage
+Tesla | Model 3
+Tesla | Model Y
+BMW | 3 Series
+BMW | X1
+BMW | X3
+BMW | X5
+Mercedes-Benz | C-Class
+Mercedes-Benz | GLC
+Mercedes-Benz | GLE
+Mercedes-Benz | E-Class
+Mercedes-Benz | A-Class
+Mercedes-Benz | CLA
+Audi | A3
+Audi | A4
+Audi | Q3
+Audi | Q5
+Audi | Q7
+Lexus | RX
+Lexus | NX
+Lexus | ES
+Lexus | IS
+Acura | RDX
+Acura | MDX
+Acura | TLX
+Acura | Integra
+Infiniti | QX50
+Infiniti | QX60
+Volvo | XC40
+Volvo | XC60
+Volvo | XC90
+Porsche | Macan
+Porsche | Cayenne
+Cadillac | XT5
+Cadillac | Escalade
+Lincoln | Nautilus
+Lincoln | Aviator
+Land Rover | Range Rover Evoque
+Land Rover | Defender
+Jeep | Cherokee
+Jeep | Gladiator
+Dodge | Charger
+Dodge | Challenger
+Dodge | Durango
+Chrysler | 300
+Nissan | Frontier
+Nissan | Murano
+Nissan | Versa
+Nissan | Leaf
+Honda | Fit
+Chevrolet | Cruze
+Chevrolet | Spark
+Chevrolet | Blazer
+Subaru | WRX
+Subaru | Ascent
+Genesis | G70
+Genesis | GV70
+Genesis | GV80
+Volkswagen | Passat
+Volkswagen | ID.4
+Ford | Mustang Mach-E
+MINI | Cooper
+Fiat | 500

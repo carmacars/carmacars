@@ -1,0 +1,40 @@
+{
+ "ford": [
+  {
+   "Model": "F-150 LIGHTNING EV 4DR PICKUP",
+   "MYR": "22",
+   "OL": "584",
+   "OW": "203",
+   "OH": "192",
+   "WB": "369",
+   "CW": "2731"
+  },
+  {
+   "Model": "F-150 LIGHTNING EXTENDED RANGE EV 4DR PICKUP",
+   "MYR": "22",
+   "OL": "584",
+   "OW": "203",
+   "OH": "192",
+   "WB": "369",
+   "CW": "2885"
+  },
+  {
+   "Model": "F-150 LIGHTNING PLATINUM EV 4DR PICKUP",
+   "MYR": "22",
+   "OL": "584",
+   "OW": "203",
+   "OH": "192",
+   "WB": "369",
+   "CW": "3130"
+  },
+  {
+   "Model": "MUSTANG MACH 1 2DR COUPE",
+   "MYR": "22",
+   "OL": "479",
+   "OW": "192",
+   "OH": "138",
+   "WB": "272",
+   "CW": "1754"
+  }
+ ]
+}

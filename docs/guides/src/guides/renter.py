@@ -323,7 +323,7 @@ def build():
         f'Open {B("Profile")}. Under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}. It is saved at once.',
         'Texts go to the phone you verified with a code (Sign-in, above). Until you verify one, we email you.',
         'Signed agreements, statements and receipts are always emailed when we have your email. On Text you also get a text with a link to view or download them.',
-        'No texts from 9 pm to 8 am, except urgent ones such as a late return. Reply STOP to any text to stop texts; text START to turn them back on.',
+        'No texts from 9 pm to 8 am, except urgent ones such as a late return. Reply STOP to any text to stop texts (we confirm with one text); text START to turn them back on.',
     ])
     g.tip('You can also choose in the booking request (How should we reach you?) and when you sign up with your phone number, where Text is chosen for you.')
 

@@ -402,6 +402,11 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'guide_reads',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs',
+                            -- the vehicle catalog (0097): reference data the catalog workflow imports in bulk from public sources (the
+                            -- lists an Admin edits, trim lines and the popular list, are audited)
+                            'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',
+                            -- the colour pages' fixed list and the IndexNow sweep's cursor (0097): no money, pricing or status
+                            'vehicle_colours', 'indexnow_sweep', 'vehicle_catalog_car_match',
                             -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
                             'usage_readings', 'usage_alerts',
                             -- the phone line (0085): calls, texts, the send queue and the webhook log (high volume, no money, pricing or
@@ -415,7 +420,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'contact_captures', 'capture_accounts', 'capture_sessions', 'capture_session_items',
                             -- text alerts (0096): the text templates (an Admin's edit is written to audit_log by app.sms_template_save) and
                             -- the STOP and START log (itself a log)
-                            'sms_templates', 'sms_opt_out_log')
+                            'sms_templates', 'sms_opt_out_log',
+                            -- places (0095): gazetteer data loaded by the places workflow (each run recorded in place_imports); the
+                            -- regions, terms and services Admins change are audited
+                            'places', 'places_staging', 'place_imports')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

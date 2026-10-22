@@ -111,6 +111,22 @@ def build():
     ])
     g.tip('Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.')
 
+    g.task('A request from a vehicle page', 'Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.')
+    g.steps([
+        'The request arrives as an enquiry with the car named in the message ("About the car: 2023 Toyota RAV4 XLE") and an Enquiry task in To do.',
+        f'If we have that car, or one close to it, free for their dates, make a {B("New quote")} for it. If not, suggest the nearest car of the same kind and price.',
+        'Reply by email or phone, then mark the task done.',
+    ])
+    g.tip('The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.')
+
+    g.task('A buyer lead from a /buy page', 'Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.')
+    g.steps([
+        f'The lead is in {B("Leads")}, Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.',
+        'If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim).',
+        f'Press {B("Take it")}, then {B("Update")} as you go: contacted, qualified, converted or closed with the reason.',
+    ])
+    g.tip('We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.')
+
     g.task('New quote for a caller')
     g.steps([
         f'Open {B("New quote")}. Choose the Car, the Pickup and Return (at least 2 hours from now).',
@@ -173,6 +189,27 @@ def build():
     ], head=['Button', 'When'])
 
     # ---------------------------------------------------------------- 3
+
+    g.chapter('Chauffeur requests',
+              'Customer service and Sales handle the chauffeur requests sent from carmacars.ca/chauffeur, and answer questions about the partner cars on the site.',
+              blurb='Quote and confirm a chauffeur request; partner cars with insurance included or no credit card needed.')
+    g.task('Quote a chauffeur request', 'A new request is a task in your queue: Chauffeur request CH-1001, with the vehicle, the date, the hours and the client\'s contact.')
+    g.steps([
+        f'Open {B("Chauffeur")} from the task (or the menu). Find the request by its number.',
+        'Check the vehicle and the driver with the partner for that date and time.',
+        f'To change the vehicle or the hours, press {B("Change")}. The quote is worked out again: 2 hours at the 2-hour rate, 3 hours or more at the 3+ hour rate for every hour, then HST.',
+        f'Send the quote line to the client by email or phone. Press {B("Quoted")} and write how you sent it.',
+        f'When the client agrees and the payment is arranged, press {B("Confirm")}. After the trip, press {B("Completed")}.',
+    ])
+    g.tip('The minimum is 2 hours. The rates on the site are guideline rates: the price is confirmed in the quote.')
+    g.task('Partner cars: insurance included, no credit card', f'Some partner cars say {B("Insurance included: no personal auto policy needed")} and {B("No credit card needed: debit accepted")} on their page.')
+    g.steps([
+        'On these cars the renter does not choose a coverage option: the booking shows "insurance included with the car", already confirmed. There is no proof to review.',
+        'The renter may pay with a debit card in their own name. A prepaid card is still refused.',
+        'The deposit, the licence and selfie checks and the ages are the same as on every car.',
+        'Partner cars without a confirmed model year say "Year confirmed when you book". An offer cannot be sent until an Admin confirms the year: ask an Admin.',
+    ])
+
     g.chapter('Finance',
               'You keep the money right: payments, deposits and refunds, toll notices, processor payouts and Turo trips.',
               blurb='Payments, deposits and refunds, tolls and tickets, reconciliation and Turo trips.')

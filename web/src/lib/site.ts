@@ -42,8 +42,13 @@ export const siteUrl = () => env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
 export type Tokens = Record<string, string>;
 
 /** The {{token}} values for copy, built from the database. A token that is missing throws. */
-export const getTokens = cache(async (): Promise<Tokens> => {
-  const [s, f, fleet] = await Promise.all([getSettings(), getFacts(), getFleet()]);
+export const getTokens = cache(async (): Promise<Tokens> => makeTokens(await getFleet()));
+/** The tokens without reading the fleet (the place pages, 0095: the fleet read is the slowest call of a page); the
+ *  fleet's own tokens (minDaily, delMin, overMin ...) are empty. */
+export const getTokensLite = cache(async (): Promise<Tokens> => makeTokens([]));
+
+async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
+  const [s, f] = await Promise.all([getSettings(), getFacts()]);
   const extra = ((await block('policy.extra'))?.data ?? {}) as { accident_call_hours?: number; owner_reply?: string };
   const carma = (await block('brand.carma_line'))?.body ?? '';
   const fee = (code: string) => f.fees[code];
@@ -85,7 +90,7 @@ export const getTokens = cache(async (): Promise<Tokens> => {
     payoutDay: ordinal(f.payout_day), billDay: ordinal(f.billing_day), noticeDays: String(f.notice_period_days), referralPct: pct(f.kickback_bps),
     ownerReply: extra.owner_reply ?? '', listDays: s.listing_time_promise ?? '', minDaily: dailies.length ? money(Math.min(...dailies)) : ''
   };
-});
+}
 
 export function fill(text: string, t: Tokens): string {
   return text.replace(/\{\{(\w+)\}\}/g, (m, k: string) => {

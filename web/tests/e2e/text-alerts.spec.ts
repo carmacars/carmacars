@@ -4,15 +4,31 @@ import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { acceptCookies, db, noOverflow } from './helpers';
+import { signQuo } from '../../src/features/phone/webhook';
+import { SAMPLES } from '../../src/features/phone/samples';
 
 // Text alerts (migration 0096) end to end, at 375 and 1440, with the SMS sender mocked (QUO_PROVIDER=fake: texts are
 // recorded in the outbox and on the thread, never sent). A renter with a verified phone sees Both chosen by default on
 // their profile and picks Text; then sends a booking request choosing Text: the request email is skipped, the text is
 // queued with its link (and held until 8 am in the quiet hours), and the phone job sends it through the fake line. The
-// phone sign-up offers Text first. Every page is checked with axe, for overflow and the copy rules.
+// phone sign-up offers Text first. A STOP and a START texted to the CarmaCars number (signed Quo deliveries) are each
+// confirmed by one text, sent at once through the fake line. Every page is checked with axe, for overflow and the copy
+// rules.
 const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
+const SECRET = 'whsec_' + 'Y2FybWFjYXJzLWxvY2FsLXF1by13ZWJob29rLXNlY3JldA==';
+type Delivery = { id: string; data: { resource: Record<string, unknown>; context: Record<string, unknown> } };
+/** A text from a number to the CarmaCars line, as Quo delivers it (signed with the local webhook secret). */
+async function textUs(page: Page, ours: string, from: string, text: string): Promise<number> {
+  const body = JSON.parse(JSON.stringify(SAMPLES.messageReceived)) as Delivery;
+  body.id = `EV${randomUUID()}`;
+  for (const k of ['createdAt', 'updatedAt']) if (k in body.data.resource) body.data.resource[k] = new Date().toISOString();
+  body.data.resource.id = `AC${tag()}`; body.data.resource.text = text;
+  body.data.context.senderIdentifier = from; body.data.context.recipientIdentifiers = [ours];
+  const raw = JSON.stringify(body);
+  return (await page.request.post('/api/webhooks/quo', { data: raw, headers: { 'content-type': 'application/json', ...(await signQuo(raw, SECRET, `msg_${randomUUID()}`)) } })).status();
+}
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -91,12 +107,27 @@ test('profile: How should we reach you? Both by default with a verified phone; T
     await expect(page.getByTestId('channel-text')).toBeChecked();
     await expect(card).toContainText('No texts from 9 pm to 8 am unless it is urgent');
     await expect(card).toContainText('Reply STOP to any text to stop them.');
-    // STOP from that number: the profile says texts are off and how to turn them back on
-    await sql`insert into phone_threads (number, opted_out_at, opt_out_source) values (${r.phone}, now(), 'stop') on conflict (number) do update set opted_out_at = now(), opt_out_source = 'stop'`;
+    // STOP texted from that number: one confirmation, sent at once (Quo sends none), even in the quiet hours; the
+    // profile says texts are off and how to turn them back on
+    const ours = (await sql<Array<{ n: string }>>`select app.phone_our_number() as n`)[0]!.n;
+    const confirmations = () => sql<Array<{ sms_kind: string; status: string; body: string }>>`
+      select sms_kind, status, body from phone_outbox where to_number = ${r.phone} and kind = 'opt_confirm' order by created_at`;
+    expect(await textUs(page, ours, r.phone, 'STOP')).toBe(200);
+    expect(await confirmations()).toEqual([{ sms_kind: 'opt_stop', status: 'sent', body: 'CarmaCars: you\'re unsubscribed and won\'t get more texts. Reply START to resubscribe.' }]);
+    expect(await textUs(page, ours, r.phone, 'Stop')).toBe(200);
+    expect((await confirmations()).length, 'a second STOP is not confirmed again').toBe(1);
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.getByTestId('notify-why')).toContainText('You replied STOP, so texts are off. Text START to');
     await expect(page.getByTestId('notify-now')).toHaveText('We email you.');
     await check(page, 'profile after STOP');
+    expect(await textUs(page, ours, r.phone, 'START')).toBe(200);
+    expect((await confirmations()).map((c) => [c.sms_kind, c.status, c.body])).toEqual([
+      ['opt_stop', 'sent', 'CarmaCars: you\'re unsubscribed and won\'t get more texts. Reply START to resubscribe.'],
+      ['opt_start', 'sent', 'CarmaCars: texts are back on. Reply STOP to opt out.']]);
+    const log = await sql`select action, source, confirm_id is not null as confirmed from sms_opt_out_log where number = ${r.phone} order by id`;
+    expect(log).toEqual([{ action: 'stop', source: 'stop', confirmed: true }, { action: 'start', source: 'start', confirmed: true }]);
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByTestId('notify-now')).toContainText('We text you.');
   } finally { await sql.end(); }
 });
 
@@ -149,7 +180,8 @@ test('a booking request with Text: the email is skipped, the text is queued with
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
       select o.id, o.status, o.to_number, o.body, o.send_after > now() + interval '1 second' as waits, app.sms_quiet_end(o.created_at) > o.created_at as quiet
         from phone_outbox o join bookings b on b.id = o.booking_id where b.booking_number = ${number} and o.kind = 'notify' and o.sms_kind = 'renter_request_received'`;
-    expect(sms!.status).toBe('queued');
+    // queued; or already claimed by the phone job of the other width's run (both widths run at once)
+    expect(['queued', 'sending', 'sent']).toContain(sms!.status);
     expect(sms!.to_number).toBe(r.phone);
     expect(sms!.body).toContain(`we have your request ${number}`);
     expect(sms!.body).toMatch(new RegExp(`/account/bookings/${number}/request( Reply STOP to opt out\\.)?$`));
@@ -207,6 +239,8 @@ test('phone sign-up offers Text first; an Admin sees and changes a renter\'s cha
     // Settings > Text alerts and Site health
     await a.goto('/admin/settings/text-alerts', { waitUntil: 'networkidle' });
     await expect(a.getByTestId('sms-templates')).toContainText('Booking received');
+    await expect(a.getByTestId('sms-templates')).toContainText('one for every customer email');
+    await expect(a.getByTestId('sms-templates')).toContainText('Additional driver: accept');
     await check(a, 'settings text alerts');
     await a.goto('/admin', { waitUntil: 'networkidle' });
     await expect(a.getByTestId('sms-volume')).toContainText('Texts today');

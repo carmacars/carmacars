@@ -625,7 +625,7 @@ select test.eq('L anon: the twin points its canonical at the first car and is le
   (select (p ->> 'canonical_path') = '/cars/' || test.ofl_slug('oflC') and not (p ->> 'indexable')::boolean from public.car_page(test.ofl_slug('oflD')) p)::text
   || '/' || (select count(*) from public.sitemap_rows() where kind = 'car' and path in ('/cars/' || test.ofl_slug('oflC'), '/cars/' || test.ofl_slug('oflD'), '/cars/' || test.ofl_slug('oflE')))
   || '/' || jsonb_array_length(public.model_hub('mercedes-benz-c-300') -> 'cars')
-  || '/' || (select count(*) from public.sitemap_rows() where kind = 'model_hub' and path = '/rent/mercedes-benz-c-300'), 'true/2/3/1');
+  || '/' || (select count(*) from public.sitemap_rows() where kind = 'model_hub' and path = '/cars/mercedes-benz/c-300'), 'true/2/3/1');
 select test.eq('L anon: the fleet is rows only, no count field; filters work', (select count(*) >= 3 from public.fleet())::text || '/' || (select count(*) from public.fleet('{"make": "mercedes-benz", "model": "c-300"}')), 'true/3');
 reset role;
 select test.eq('L anon: no VIN, plate, fleet number, owner, original photo path, cost, draft or private field anywhere in the public reads',
@@ -646,10 +646,10 @@ select test.eq('L which becomes canonical, and the car page answers with the red
   (select coalesce(canonical_vehicle_id::text, 'none') from vehicle_listings where vehicle_id = test.id('vehicle:oflD'))
   || '/' || (select (p ->> 'redirect') = '/cars/' || test.ofl_slug('oflD') from public.car_page(test.ofl_slug('oflC')) p)::text, 'none/true');
 select test.eq('L unlisting the second while another car of the model is live: 301 to the model hub',
-  (select (r ->> 'to_path') from app.unlist_listing(test.id('vehicle:oflD'), test.id('ofl_fleet'), 'Repair') r), '/rent/mercedes-benz-c-300');
+  (select (r ->> 'to_path') from app.unlist_listing(test.id('vehicle:oflD'), test.id('ofl_fleet'), 'Repair') r), '/cars/mercedes-benz/c-300');
 select test.eq('L and the first address follows (single hop, no chain)',
   (select to_path from listing_redirects where from_path = '/cars/' || test.ofl_slug('oflC'))
-  || '/' || (select count(*) from listing_redirects r1 join listing_redirects r2 on r2.from_path = r1.to_path), '/rent/mercedes-benz-c-300/0');
+  || '/' || (select count(*) from listing_redirects r1 join listing_redirects r2 on r2.from_path = r1.to_path), '/cars/mercedes-benz/c-300/0');
 select test.eq('L the last car of the model goes: 410',
   (select (r ->> 'status_code') from app.unlist_listing(test.id('vehicle:oflE'), test.id('ofl_admin'), 'Exited') r), '410');
 select test.eq('L 410 everywhere, nothing redirects to a dead page',

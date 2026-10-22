@@ -1,0 +1,26 @@
+import { BuyIndex, buyIndexMeta } from '@/features/vehicles/buy-index';
+import { SaleHub, saleHubMeta, saleHubParts } from '@/features/vehicles/sale-hub';
+import { BUY, TwinView, twinMeta, twinPage } from '@/features/vehicles/twin';
+
+// /buy (one route for the whole tree, so the Worker carries one route file): /buy lists the makes; then the buying
+// help pages of the local SEO release (/buy/<sale term>/<place>, migration 0095); then the for-sale twin of every
+// vehicle page (migration 0097): /buy/<make>[/<model>[/<year>[/<trim>[/<place>[/<colour>]]]]] and
+// /buy/.../<trim>/colour/<colour>. Rendered on demand with no ISR entry (no KV write per page); the Worker's edge copy
+// keeps the vehicle pages for 6 hours (src/lib/edge/page-cache.ts, PROGRAMMATIC).
+export const dynamic = 'force-dynamic';
+type Params = { params: Promise<{ seg?: string[] }> };
+
+export async function generateMetadata({ params }: Params) {
+  const seg = (await params).seg ?? [];
+  if (!seg.length) return buyIndexMeta();
+  const hub = await saleHubParts(seg);
+  if (hub) return saleHubMeta(hub);
+  return twinMeta(await twinPage(BUY, seg));
+}
+export default async function Page({ params }: Params) {
+  const seg = (await params).seg ?? [];
+  if (!seg.length) return <BuyIndex />;
+  const hub = await saleHubParts(seg);
+  if (hub) return <SaleHub {...hub} />;
+  return <TwinView {...await twinPage(BUY, seg)} />;
+}

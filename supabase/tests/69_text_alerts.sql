@@ -1,12 +1,13 @@
--- 67: text alerts (migration 0096). Each person's channel (Email, Text or Both) and its default; who can be texted (a
+-- 69: text alerts (migration 0096). Each person's channel (Email, Text or Both) and its default; who can be texted (a
 -- verified phone, STOP, the US gate, numbers outside Canada and the US, switched off); routing of every customer
 -- notification (text only skips the email, both sends both, documents always emailed, sign-in emails never texted,
 -- marketing only with consent, staff notices untouched, a phone-only account); the texts (template, generic, link,
 -- the STOP line on the first text and after START); quiet hours (non-urgent texts wait, urgent ones go); STOP while a
 -- text waits sends the email instead, more keywords, the log; the job checking again before sending; setting the
 -- channel (profile, the booking request, staff with the audit log, who may); Settings and Site health reads;
--- privileges; the privacy policy. Fixtures start with "ta".
-select test.suite('67 text alerts');
+-- privileges; the privacy policy; every customer email has its own text; the STOP and START confirmation texts; a
+-- driver's link texted to the driver. Fixtures start with "ta".
+select test.suite('69 text alerts');
 
 select test.mk_user('ta_admin', 'admin');
 select test.mk_user('ta_cs', 'va', 'cs');
@@ -59,6 +60,12 @@ select test.ok('every template: CarmaCars, the link, no long dash, at most 320 c
   not exists (select 1 from sms_templates where not app.sms_template_ok(body) or length(body) > 320));
 select test.throws('a template with a long dash is refused', format($$update sms_templates set body = 'CarmaCars %s ready {{link}}' where code = 'renter_offer_ready'$$, chr(8212)), 'sms_templates_body_check');
 select test.throws('a template without the link is refused', $$update sms_templates set body = 'CarmaCars: your offer is ready' where code = 'renter_offer_ready'$$, 'sms_templates_body_check');
+select test.eq('every customer email (renter, owner, investor, driver, co-signer, lead) has its own text, except the sign-in and security ones',
+  (select count(*) from notification_catalogue c where c.audience in ('renter', 'owner', 'investor') and not c.no_text and not exists (select 1 from sms_templates t where t.code = c.code)),
+  0::bigint);
+select test.eq('...109 texts; never texted: password reset, sign-in link, security notice, the continue-your-request sign-in link',
+  (select count(*) from sms_templates)::text || ' | ' || (select string_agg(code, ',' order by code) from notification_catalogue where no_text),
+  '109 | account_password_reset,account_security_notice,account_sign_in_link,renter_continue_request');
 select test.ok('documents are always emailed; sign-in emails never become texts',
   (select bool_and(always_email) from notification_catalogue where code in ('renter_payment_receipt', 'renter_agreement_signed', 'owner_statement_ready', 'investor_statement_ready'))
   and (select bool_and(no_text) from notification_catalogue where code in ('account_password_reset', 'account_sign_in_link')));
@@ -103,9 +110,15 @@ select test.tmail('renter_payment_receipt', 'ta-4', test.id('ta_tess'), test.id(
 select test.eq('Text, a receipt: still emailed (a document), and a text with a link to view it', test.tstatus('ta-4') || ' | ' || (select body like '%Receipt: %/account/bookings/TA-1' from test.ttext('ta-4')), 'queued | true');
 select test.tmail('account_password_reset', 'ta-5', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test', null);
 select test.eq('a sign-in email is never a text, and never skipped', test.tstatus('ta-5') || ' ' || (select count(*) from test.ttext('ta-5')), 'queued 0');
+create temp table ta_tpl as select * from sms_templates where code = 'renter_damage_found';
+delete from sms_templates where code = 'renter_damage_found';
 select test.tmail('renter_damage_found', 'ta-6', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
-select test.eq('a notification without its own text: the generic text from the subject, always emailed (a notice)', test.tstatus('ta-6') || ' | ' || (select body from test.ttext('ta-6')),
+select test.eq('a notification without its own text (one added later): the generic text from the subject, always emailed (a notice)', test.tstatus('ta-6') || ' | ' || (select body from test.ttext('ta-6')),
   format('queued | CarmaCars: Damage found on the 2023 Mercedes-Benz C 300 after your return. Details: %s/account', (app.settings()).notify_base_url));
+insert into sms_templates select * from ta_tpl;
+select test.tmail('renter_damage_found', 'ta-6b', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
+select test.eq('...with its own text', (select body from test.ttext('ta-6b')),
+  format('CarmaCars: we found damage on the 2023 Mercedes-Benz C 300 after your return (booking TA-1). Details: %s/account', (app.settings()).notify_base_url));
 update sms_templates set enabled = false where code = 'renter_return_reminder';
 select test.tmail('renter_return_reminder', 'ta-7', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
 select test.eq('a text switched off in Settings: the email goes even for Text', test.tstatus('ta-7') || ' ' || (select count(*) from test.ttext('ta-7')), 'queued 0');
@@ -136,6 +149,19 @@ values ('staff_booking_request_new', 'transactional', 3, 'staff_va_cs', test.id(
 select test.eq('a staff notice is never routed', (select coalesce(channel, 'none') || ' ' || status from notification_outbox where dedupe_key = 'ta-15') || ' ' || (select count(*) from test.ttext('ta-15')), 'none queued 0');
 select test.eq('the same notification twice makes one text', (select count(*) from phone_outbox where dedupe_key = 'sms:ta-1'), 1::bigint);
 
+-- an additional driver's link: texted to the driver's own account (Eve here), never to the renter (Tess)
+update users set phone = '+16475550310', phone_verified_at = now() where id = test.id('ta_eve');
+select app.set_notify_channel(test.id('ta_eve'), 'both');
+insert into notification_outbox (code, category, priority, audience, to_address, renter_id, booking_id, payload, dedupe_key)
+values ('renter_driver_link', 'transactional', 1, 'renter', 'TA_eve@example.test', test.id('renter:ta_tess'), test.id('booking:TA-1'),
+        '{"first_name": "Eve", "renter_name": "Tess Renter", "booking_number": "TA-1", "sign_url": "https://carmacars.ca/sign/driver/abc"}', 'ta-16');
+select test.eq('a driver''s link: the driver''s phone, with the signing link (the email address finds the account)',
+  (select to_number || ' | ' || body from test.ttext('ta-16')),
+  '+16475550310 | CarmaCars: Tess Renter added you as a driver on booking TA-1. Accept the rental agreement before pickup: https://carmacars.ca/sign/driver/abc Reply STOP to opt out.');
+select test.tmail('owner_cosigner_sign', 'ta-17', null, null, 'nobody@example.test', null, 'queued', null, null, 'owner', test.id('owner:ta_otto'));
+select test.eq('a co-signer without an account: email only, never a text to the owner', test.tstatus('ta-17') || ' ' || (select count(*) from test.ttext('ta-17')), 'queued 0');
+update users set phone = null, phone_verified_at = null, notify_channel = 'text' where id = test.id('ta_eve');
+
 -- ================================================================ 4. quiet hours
 update program_settings set sms_quiet_hours = true, sms_quiet_from_hour = 21, sms_quiet_until_hour = 8;
 select test.eq('quiet hours: 22:30 waits for 8:00 the next morning, 6:00 for 8:00 the same morning, noon goes now',
@@ -165,17 +191,31 @@ update program_settings set signin_phone_us_allowed = false;
 select app.set_notify_channel(test.id('ta_tess'), 'text');
 select test.tmail('renter_extension_confirmed', 'ta-30', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
 select test.eq('a text waiting, its email skipped', test.tstatus('ta-30') || ' | ' || (select status from test.ttext('ta-30')), 'skipped: Sent by text (the person chose text) | queued');
-select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-stop', 'type', 'message.received', 'quo_id', 'AC-ta-stop', 'direction', 'in',
-  'their_number', '+16475550302', 'text', 'STOP', 'status', 'received', 'at', now()));
+update program_settings set sms_quiet_hours = true, sms_quiet_from_hour = app.local_hour(now()), sms_quiet_until_hour = (app.local_hour(now()) + 1) % 24;
+create temp table ta_stop as select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-stop', 'type', 'message.received', 'quo_id', 'AC-ta-stop', 'direction', 'in',
+  'their_number', '+16475550302', 'text', 'STOP', 'status', 'received', 'at', now())) as x;
+select test.eq('STOP: one confirmation text, sent at once by the webhook even in the quiet hours (Quo sends none)',
+  (select string_agg(e ->> 'body', ' / ') from ta_stop, jsonb_array_elements(ta_stop.x -> 'send') e),
+  'CarmaCars: you''re unsubscribed and won''t get more texts. Reply START to resubscribe.');
+select test.eq('...an opt_confirm row being sent, linked from the log', (select format('%s %s %s', o.kind, o.status, o.sms_kind) from sms_opt_out_log l join phone_outbox o on o.id = l.confirm_id
+  where l.number = '+16475550302' and l.action = 'stop'), 'opt_confirm sending opt_stop');
+select app.server_phone_sent(jsonb_build_object('id', (select e ->> 'id' from ta_stop, jsonb_array_elements(ta_stop.x -> 'send') e limit 1), 'ok', true, 'quo_id', 'AC-ta-stop-conf'));
+update program_settings set sms_quiet_hours = false, sms_quiet_from_hour = 21, sms_quiet_until_hour = 8;
+select test.eq('...a second STOP: no second confirmation', (select jsonb_array_length(app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-stop2', 'type', 'message.received',
+  'quo_id', 'AC-ta-stop2', 'direction', 'in', 'their_number', '+16475550302', 'text', 'STOP', 'status', 'received', 'at', now())) -> 'send'))
+  || ' ' || (select count(*) from phone_outbox where to_number = '+16475550302' and kind = 'opt_confirm'), '0 1');
 select test.eq('STOP: the waiting text is skipped and its email goes instead', (select status from test.ttext('ta-30')) || ' | ' || test.tstatus('ta-30'),
   'skipped | queued: By email: the text was not sent (The number opted out of texts)');
 select test.eq('...the person is now reached by email, and the profile says why', (select format('%s %s', r ->> 'channel', r ->> 'why_not') from (select app.my_notify_channel(test.id('ta_tess')) r) x), 'email opted_out');
 select test.tmail('renter_extension_declined', 'ta-31', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
 select test.eq('...new notifications: email only, no text', test.tstatus('ta-31') || ' ' || (select count(*) from test.ttext('ta-31')), 'queued 0');
 select test.eq('the opt-out log has the STOP', (select string_agg(action || ':' || coalesce(source, ''), ',') from sms_opt_out_log where number = '+16475550302'), 'stop:stop');
-select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-start', 'type', 'message.received', 'quo_id', 'AC-ta-start', 'direction', 'in',
-  'their_number', '+16475550302', 'text', 'START', 'status', 'received', 'at', now()));
+create temp table ta_start as select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-start', 'type', 'message.received', 'quo_id', 'AC-ta-start', 'direction', 'in',
+  'their_number', '+16475550302', 'text', 'START', 'status', 'received', 'at', now())) as x;
 select test.eq('START: texts again, logged', (app.notify_reach(test.id('ta_tess')) ->> 'channel') || ' ' || (select count(*) from sms_opt_out_log where number = '+16475550302' and action = 'start'), 'text 1');
+select test.eq('...and confirmed by one text', (select string_agg(e ->> 'body', ' / ') from ta_start, jsonb_array_elements(ta_start.x -> 'send') e)
+  || ' | ' || (select o.sms_kind from sms_opt_out_log l join phone_outbox o on o.id = l.confirm_id where l.number = '+16475550302' and l.action = 'start'),
+  'CarmaCars: texts are back on. Reply STOP to opt out. | opt_start');
 select test.tmail('renter_identity_needed', 'ta-32', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
 select test.ok('the first text after START has the STOP line again', (select body like '%Reply STOP to opt out.' from test.ttext('ta-32')));
 select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-optout', 'type', 'message.received', 'quo_id', 'AC-ta-optout', 'direction', 'in',
@@ -183,6 +223,27 @@ select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-optout', 'ty
 select test.eq('more keywords: OPT OUT stops texts too', (app.notify_reach(test.id('ta_tess')) ->> 'why_not') || ' ' || (select status from test.ttext('ta-32')), 'opted_out skipped');
 select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-start2', 'type', 'message.received', 'quo_id', 'AC-ta-start2', 'direction', 'in',
   'their_number', '+16475550302', 'text', 'start', 'status', 'received', 'at', now()));
+select test.eq('OPT OUT and START (other keywords) are confirmed too: 2 STOP and 2 START confirmations in all',
+  (select count(*) filter (where sms_kind = 'opt_stop')::text || ' ' || count(*) filter (where sms_kind = 'opt_start') from phone_outbox where to_number = '+16475550302' and kind = 'opt_confirm'), '2 2');
+-- staff and carrier changes are logged, never texted
+select app.phone_outbox_put('+16475550309', 'Hello from CarmaCars', 'staff');
+update phone_threads set opted_out_at = now(), opt_out_source = 'staff' where number = '+16475550309';
+update phone_threads set opted_out_at = null, opt_out_source = null where number = '+16475550309';
+select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-carrier', 'type', 'message.failed', 'quo_id', 'AC-ta-carrier', 'direction', 'out',
+  'their_number', '+16475550309', 'status', 'failed', 'error_code', '30006', 'at', now()));
+select test.eq('a staff change or a carrier error: logged, no confirmation text',
+  (select string_agg(action || ':' || coalesce(source, '') || ':' || (confirm_id is not null), ',' order by id) from sms_opt_out_log where number = '+16475550309')
+  || ' ' || (select count(*) from phone_outbox where to_number = '+16475550309' and kind = 'opt_confirm'), 'stop:staff:false,start:staff:false,stop:carrier:false 0');
+-- a US number while US texting waits: the confirmation is logged as skipped
+select app.phone_thread_for('+12125550308');
+select app.server_phone_event(jsonb_build_object('event_id', 'ev-ta-us-stop', 'type', 'message.received', 'quo_id', 'AC-ta-us-stop', 'direction', 'in',
+  'their_number', '+12125550308', 'text', 'STOP', 'status', 'received', 'at', now()));
+select test.eq('a US number before A2P 10DLC: opted out, the confirmation skipped with the reason',
+  (select format('%s %s', o.status, left(o.status_reason, 27)) from sms_opt_out_log l join phone_outbox o on o.id = l.confirm_id where l.number = '+12125550308'), 'skipped US texts wait for A2P 10DLC');
+-- a confirmation that never reported back is not sent again
+update phone_outbox set status = 'sending', locked_at = now() - interval '11 minutes' where id = (select confirm_id from sms_opt_out_log where number = '+16475550302' and action = 'start' order by id desc limit 1);
+select app.server_phone_due();
+select test.eq('...a confirmation with no answer from Quo is not retried', (select status from phone_outbox where id = (select confirm_id from sms_opt_out_log where number = '+16475550302' and action = 'start' order by id desc limit 1)), 'failed');
 -- a refusal from Quo: the email instead
 select test.tmail('renter_agreement_ready', 'ta-33', test.id('ta_tess'), test.id('renter:ta_tess'), 'ta_tess@example.test');
 select app.server_phone_sent(jsonb_build_object('id', (select id from test.ttext('ta-33')), 'ok', false, 'error', 'Quo 400: invalid number', 'permanent', true));
@@ -220,7 +281,7 @@ select test.eq('the door: staff read and change through admin_read / ops_do', (a
   || ' ' || (app.door(test.id('ta_admin'), 'aal2', 'admin_read', 'notify_reach', jsonb_build_object('owner_id', test.id('owner:ta_otto'))) ->> 'chosen'), 'text text');
 
 -- ================================================================ 9. Settings, Site health
-select test.eq('Settings > Text alerts: templates, the generic count, people', (select format('%s %s %s', jsonb_array_length(x -> 'templates') >= 40, (x ->> 'generic')::int > 0, x -> 'people' ? 'both')
+select test.eq('Settings > Text alerts: templates, the generic count, people', (select format('%s %s %s', jsonb_array_length(x -> 'templates') >= 40, (x ->> 'generic')::int = 0, x -> 'people' ? 'both')
   from (select app.door(test.id('ta_admin'), 'aal2', 'admin_read', 'sms_settings') x) y), 't t t');
 select test.eq('an Admin edits a text', app.door(test.id('ta_admin'), 'aal2', 'admin_do', 'sms_template_save', jsonb_build_object('code', 'renter_offer_ready', 'body', 'CarmaCars: offer ready for {{vehicle_name}}: {{link}}', 'urgent', false)) ->> 'body',
   'CarmaCars: offer ready for {{vehicle_name}}: {{link}}');

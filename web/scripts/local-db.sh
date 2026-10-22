@@ -60,14 +60,22 @@ build() {
   echo "   migrations applied: $(ls "$ROOT"/supabase/migrations/*.sql | wc -l)"
 }
 
+# the test places of migration 0095 (scripts/places/fixtures: Toronto and the GTA, Kingston, Buffalo, Guadalajara), built and
+# loaded the way the places workflow loads GeoNames, OpenStreetMap and the Census in production
+places() {
+  local out; out="$(mktemp -d)"
+  (cd "$WEB" && node scripts/places/build.mjs --out "$out" >/dev/null && DATABASE_URL="$URL" node scripts/places/load.mjs --in "$out" | tail -n 1)
+  rm -rf "$out"
+}
+
 case "${1:-up}" in
   up)
     start
     if ! "$PSQL" -X -At "$ADMIN" -c "select 1 from pg_database where datname = '$DB'" | grep -q 1; then
-      build; [ "${2:-}" = --no-seed ] || (cd "$WEB" && node scripts/seed.mjs)
+      build; [ "${2:-}" = --no-seed ] || { (cd "$WEB" && node scripts/seed.mjs); places; }
     fi
     echo "DATABASE_URL=$URL" ;;
-  reset) start; build; (cd "$WEB" && node scripts/seed.mjs) ;;
+  reset) start; build; (cd "$WEB" && node scripts/seed.mjs); places ;;
   down) ${AS_PG[@]+"${AS_PG[@]}"} "$PG_CTL" -D "$DIR/data" -m fast stop ;;
   *) echo "usage: $0 up|reset|down" >&2; exit 2 ;;
 esac

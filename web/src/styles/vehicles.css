@@ -1,0 +1,32 @@
+/* The vehicle pages (migration 0097): make, model, model year and trim. Same tokens and components as the rest of the site. */
+.vp-head__grid { display: grid; gap: var(--s-6); grid-template-columns: minmax(0, 1fr); align-items: center; }
+@media (min-width: 64rem) { .vp-head__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.vp-head__text { min-width: 0; }
+.page-head .vp-head__h1 { max-width: 22ch; overflow-wrap: anywhere; }
+.vp-head__facts { margin-top: var(--s-5); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vp-head__facts > div:nth-child(3) { border-left: 0; padding-left: 0; }
+@media (min-width: 36rem) { .vp-head__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } .vp-head__facts > div:nth-child(3) { border-left: 1px solid var(--grey-800); padding-left: var(--s-3); } }
+.vp-head__facts dd { overflow-wrap: anywhere; font-size: 1.05rem; }
+.vp-head__cta { margin-top: var(--s-5); }
+.vp-head__media { position: relative; margin: 0; overflow: hidden; background: #0b0b0b; }
+.vp-head__media img { display: block; width: 100%; height: auto; }
+.vp-body { padding-block: var(--s-7); display: grid; gap: var(--s-7); min-width: 0; }
+.vp-sec { display: grid; gap: var(--s-4); min-width: 0; }
+.vp-sec > h2 { margin: 0; }
+.vp-specs th[scope="row"] { color: var(--text-2); font-weight: 400; white-space: nowrap; }
+.vp-inv .fleet-grid { margin-top: var(--s-5); }
+.vp-inv__h { margin-top: var(--s-7); }
+.vp-avail { margin: var(--s-2) 0 0; min-height: 1.5em; }
+.vp-avail__free { color: var(--green-700, #1d6b3a); font-weight: 600; }
+.vp-request { margin-top: var(--s-7); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-5); border: var(--bw) solid var(--black); background: var(--white); }
+.vp-request h3 { margin: 0 0 var(--s-1); }
+.vp-request p { margin: 0; }
+.data tr[aria-current="page"] { background: var(--grey-100); }
+/* city and colour pages, /buy twins (0097) */
+.vp-swatch { display: inline-block; width: .8em; height: .8em; margin-right: .4em; border: 1px solid var(--grey-400, #999); border-radius: 50%; vertical-align: -0.05em; }
+.vp-citynotes { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin: 0; }
+.vp-citynotes > div { display: contents; }
+.vp-citynotes dt { color: var(--text-2); }
+.vp-citynotes dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .vp-citynotes { grid-template-columns: 1fr; } .vp-citynotes dd { margin-bottom: var(--s-2); } }
+.vp-sec .data td.wrap { white-space: normal; min-width: 16rem; }

@@ -47,3 +47,36 @@ export function fieldErrors(e: z.ZodError): FieldErrors {
   return out;
 }
 export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; code: string; message: string; fieldErrors?: FieldErrors };
+
+/** The vehicle pages' lead forms (0097): "Find me this car" (buyer), financing and leasing questions (finance), a
+ *  detailing or body shop request. An email or a phone; the budget, the timeline or a note as the form asks. */
+export const vehicleLeadSchema = z.object({
+  kind: z.enum(['buyer', 'finance', 'detailing', 'bodyshop']),
+  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  email: z.string().trim().max(200).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Enter an email address like name@example.com.').optional().default(''),
+  phone: optPhone.optional().default(''),
+  budget: z.string().trim().max(60).optional().default(''),
+  timeline: z.enum(['now', 'month', 'three', 'later', 'week']).default('month'),
+  note: z.string().trim().max(1000).optional().default(''),
+  vehicle: z.string().trim().min(2).max(160),
+  service: z.string().trim().max(80).optional().default(''),
+  place: z.string().trim().max(80).optional().default(''),
+  marketing: z.string().optional()
+}).refine((v) => !!(v.email || v.phone), { message: 'Give an email or a phone number so we can reply.', path: ['email'] });
+// A request from a place page, /detailing or /body-shop (migration 0095): a car to buy, financing or leasing, a car in a
+// place we do not serve yet, detailing or body work. The details depend on the kind; a way to reply is required.
+export const placeLeadSchema = z.object({
+  kind: z.enum(['buyer', 'finance', 'place_request', 'detailing', 'bodyshop']),
+  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  email,
+  phone: optPhone.optional().default(''),
+  vehicle: z.string().trim().max(120).optional().default(''),
+  service: z.string().trim().max(120).optional().default(''),
+  damage: z.string().trim().max(500).optional().default(''),
+  place: z.string().trim().max(120).optional().default(''),
+  date: z.string().trim().max(40).optional().default(''),
+  where: z.enum(['', 'mobile', 'drop_off']).optional().default(''),
+  insurance_claim: z.enum(['', 'yes', 'no']).optional().default(''),
+  term: z.string().trim().max(80).optional().default(''),
+  message: z.string().trim().max(2000, 'Keep it under 2,000 characters.').optional().default('')
+});

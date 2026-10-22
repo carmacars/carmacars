@@ -41,7 +41,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const [r, fleet, f, consent, signedIn] = await Promise.all([rules(), getFleet(), getFacts(), consentTexts(), (async () => (await auth()).currentUser())()]);
   // an account made by phone may send a request before it has an email (asked on the pay page; 0091)
   const emailOptional = !!signedIn && !signedIn.email;
-  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s), emailOptional }).safeParse(input.data);
+  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s), emailOptional,
+    insuranceIncluded: (s) => fleet.some((c) => c.slug === s && !!c.insurance_included) }).safeParse(input.data);
   if (!parsed.success) {
     const fe: Record<string, string> = {};
     for (const i of parsed.error.issues) { const k = i.path.join('.'); if (!(k in fe)) fe[k] = i.message; }

@@ -83,6 +83,7 @@
 .dk-feature__words { display: grid; gap: var(--s-3); align-content: start; }
 .dk-feature__label { font: 600 var(--fs-2xs)/1.2 var(--font-text); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 0.2em; }
 .dk-feature__words p { font-size: var(--fs-body); line-height: 1.5; }
+.dk-points { margin: 0; padding-left: 1.2em; display: grid; gap: 0.4em; font-size: var(--fs-body); line-height: 1.45; }
 .dk-shots { display: flex; gap: var(--s-3); justify-content: center; align-items: flex-start; min-width: 0; }
 .dk-shot { margin: 0; border-radius: var(--r-2); overflow: hidden; border: 1px solid var(--grey-300); background: var(--white); box-shadow: 0 12px 34px -18px rgb(0 0 0 / 0.45); min-width: 0; }
 .dk-shot img { width: 100%; height: auto; display: block; }

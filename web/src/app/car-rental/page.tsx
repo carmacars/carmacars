@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { getSeoPages } from '@/features/seo/data';
+import { getPlaceRoots } from '@/features/places/data';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { fill, getTokens, siteUrl } from '@/lib/site';
@@ -19,7 +20,7 @@ export async function generateMetadata() {
 }
 
 export default async function CarRentalHub() {
-  const [pages, t] = await Promise.all([getSeoPages(), getTokens()]);
+  const [pages, t, roots] = await Promise.all([getSeoPages(), getTokens(), getPlaceRoots().catch(() => null)]);
   const live = pages.filter((p) => p.indexable);
   const places = live.filter((p) => p.kind === 'location');
   const uses = live.filter((p) => p.kind === 'use');
@@ -41,6 +42,15 @@ export default async function CarRentalHub() {
       {uses.length > 0 && <section className="section--tight on-grey" aria-labelledby="h-uses"><div className="wrap stack">
         <h2 className="d2" id="h-uses">Ways to rent</h2>
         <ul className="hub-grid">{uses.map(card)}</ul>
+      </div></section>}
+      {roots && (roots.tops.length > 0 || roots.cities.length > 0) && <section className="section--tight" aria-labelledby="h-more-places"><div className="wrap stack">
+        <h2 className="d2" id="h-more-places">More places</h2>
+        <p className="muted measure">We deliver within the Toronto area and to its airports. For anywhere else, each place page says how far it is from us and takes a request.</p>
+        <div className="landing__cols">
+          <nav aria-label="Countries and provinces"><ul className="linklist">{roots.tops.map((p) => <li key={p.slug}><Link prefetch={false} className="link" href={`/car-rental/${p.slug}`}>Car rental in {p.name}</Link></li>)}</ul></nav>
+          {roots.cities.length > 0 && <nav aria-label="More cities"><ul className="linklist">{roots.cities.slice(0, 12).map((p) => <li key={p.slug}><Link prefetch={false} className="link" href={`/car-rental/${p.slug}`}>Car rental in {p.name}</Link></li>)}</ul></nav>}
+          <nav aria-label="Services"><ul className="linklist"><li><Link prefetch={false} className="link" href="/detailing">Car detailing</Link></li><li><Link prefetch={false} className="link" href="/body-shop">Auto body shop</Link></li><li><Link prefetch={false} className="link" href="/place-data">Place data sources</Link></li></ul></nav>
+        </div>
       </div></section>}
       <CtaBand h="Not sure where to start?" p="Every car shows its own dates, prices and delivery fee." />
     </div>

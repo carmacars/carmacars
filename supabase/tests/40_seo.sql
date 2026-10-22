@@ -22,8 +22,9 @@ select test.eq('settings: the car copy fits the listing lint (heading 20 to 70, 
 select test.eq('settings: the search budget, attempts, retry, similarity, landing threshold, rating threshold, Google review delay, IndexNow',
   (select concat_ws('/', seo_ai_daily_neurons, seo_copy_max_attempts, seo_copy_retry_hours, seo_copy_similarity_max_bps, seo_landing_min_real_cars, seo_rating_min_reviews, google_review_delay_days, indexnow_enabled)
      from (select (app.settings()).*) s), '4000/3/6/5000/2/3/3/t');
+-- 0095 made the business address the street address the site shows (one name, address and phone everywhere)
 select test.eq('settings: the business name, address and phone for the listings and the structured data',
-  (select concat_ws('|', business_name, business_street, business_city, business_region, business_postal_code) from site_settings), 'CarmaCars|2967 Dundas St W, Unit 208B|Toronto|ON|M6P 1Z2');
+  (select concat_ws('|', business_name, business_street, business_city, business_region, business_postal_code) from site_settings), 'CarmaCars|1570 Midland Ave|Toronto|ON|M1P 3C3');
 select test.ok('settings: an IndexNow key of 32 hex characters is made once', (select indexnow_key ~ '^[a-f0-9]{32}$' from site_settings));
 select test.ok('settings: the banned phrases gained the AI words (the row in force when 0061 ran)', exists (select 1 from program_settings where 'unleash' = any (listing_banned_phrases) and 'seamless' = any (listing_banned_phrases)));
 select test.throws('settings: a Google verification value is checked', $$update site_settings set google_site_verification = 'bad value <meta>'$$, 'google_site_verification');
@@ -136,6 +137,8 @@ select test.eq('budget: past the day''s search neurons the job claims nothing to
 delete from provider_calls where purpose = 'seo_page' and units = 4000;
 
 -- ================================================================ 3. landing pages
+-- 0093: the partner fleet a migration imported is set aside, so these pages count this suite's cars only
+update vehicle_listings l set status = 'paused' from vehicles v where v.id = l.vehicle_id and v.partner_sheet_name is not null and l.status = 'published';
 insert into seo_pages (slug, kind, name, facts, match, copy) values
   ('se-place', 'location', 'Se Place', '{"highways": ["401"]}', '{}', '{"seo_title": "Car Rental in Se Place | CarmaCars", "meta_description": "x", "h1": "Car rental in Se Place", "intro": "Intro.", "sections": [], "faq": []}'),
   ('se-suv', 'use', 'Se SUV rental', '{}', '{"classes": ["suv"]}', '{"seo_title": "SUV Rental | CarmaCars", "meta_description": "x", "h1": "SUV rental", "intro": "Intro.", "sections": [], "faq": []}');
@@ -199,7 +202,7 @@ select test.eq('root file: the Google verification file, only for the name in se
   'google-site-verification: google0123abcd.html/none');
 select test.eq('settings: the verification values and the business address reach every page',
   (select (s ->> 'google_site_verification') || '/' || (s ->> 'bing_site_verification') || '/' || (s -> 'business' ->> 'postal_code') from (select public.site_settings_public() s) x),
-  'abcdefghijklmnop_123/ABCDEF0123456789ABCDEF0123456789/M6P 1Z2');
+  'abcdefghijklmnop_123/ABCDEF0123456789ABCDEF0123456789/M1P 3C3');  -- 0095: the business address is the street address
 select app.car_copy_scan();
 select test.ok('car page: the written copy (without alt texts) and the car''s own reviews',
   (select (c -> 'copy' ->> 'h1') is not null and not (c -> 'copy' ? 'alt_texts') and (c -> 'reviews' ->> 'count')::integer = 0 and (c -> 'reviews' ->> 'min_for_rating')::integer = 3
@@ -247,3 +250,6 @@ insert into review_request_decisions (booking_id, problems, status, decided_at, 
 select app.notify_google_reviews(test.at40('2031-08-09 10:00'));
 select test.eq('Google: once a person says yes, it is sent like any other', test.ev40('renter_google_review_request', test.id('booking:SE-2')), 1::bigint);
 update site_settings set google_place_id = null;
+
+-- 0093: the partner fleet back on the site for the suites after this one
+update vehicle_listings l set status = 'published' from vehicles v where v.id = l.vehicle_id and v.partner_sheet_name is not null and l.status = 'paused';

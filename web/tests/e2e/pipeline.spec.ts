@@ -75,7 +75,7 @@ async function mkPaidBooking(sql: Sql, status: 'closed' | 'returned' = 'closed')
   const [renter] = await sql`insert into renters (user_id, legal_name, date_of_birth, mobile, email, identity_status)
                              values (${r.id}, 'Riley Renter', date '1990-05-05', '647-555-0199', ${r.email}, 'verified')
                              on conflict do nothing returning id`;
-  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.partner_id is null and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const id = randomUUID(); const pay = randomUUID(); const n = `PD-${tag().toUpperCase().slice(-8)}`;
   await sql`insert into bookings (id, booking_number, booking_type, status, vehicle_id, renter_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
               handed_over_at, checked_in_at, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, daily_days, weekend_days,

@@ -59,7 +59,7 @@ const fns = await sql`
    where n.nspname = 'public' and p.prokind = 'f'
      and p.proname !~ '^(gbt_|gbtreekey)' and p.proname !~ '_dist$'
      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
-   order by p.proname`;
+   order by p.proname, p.oid`;
 const typeNames = new Map((await sql`select oid, typname, typcategory, typelem from pg_type`).map((t) => [Number(t.oid), t]));
 const tname = (oid) => {
   const t = typeNames.get(Number(oid));

@@ -2,8 +2,16 @@
 
 The owner asked: "people will have the option to verify and get alerts via text instead of email". Every renter, owner,
 investor and staff member now chooses how CarmaCars reaches them: **Email**, **Text** or **Both**. Texts go from the
-CarmaCars Quo number through the Quo integration of 0085, only to a phone verified with a code (0091). Builds on branch
-`rel3` (0085 and 0091 included). Migration `0096_text_alerts.sql` (schema marker 0096); no applied migration was edited.
+CarmaCars Quo number through the Quo integration of 0085, only to a phone verified with a code (0091). Built on branch
+`rel3` (0085 and 0091 included), then merged with `vehiclepages` (477a976: release 4, the Worker size fix, the games fix
+and the vehicle pages, migrations through 0101). Migration `0096_text_alerts.sql`; no applied migration was edited.
+
+**Deploy order.** 0096 is numbered below migrations production already has (0097 to 0101). The deploy applies the
+missing migrations in filename order, so production gets 0096 alone, after 0101. Checked locally both ways: every
+migration in filename order (CI, a fresh database), and production's own order (..., 0091, 0094, 0099, 0093, 0095, 0098,
+0100, 0097, 0101, then 0096). Both apply cleanly and end with the same schema (functions, triggers, policies and
+columns compared; only the internal names of the `app.door` chain differ, as each migration renames the one before it).
+Suite 69 passes on both. Schema marker 0101 (the highest migration).
 
 ## 1. The choice
 
@@ -38,17 +46,21 @@ every path is covered:
 | No verified phone | Email only (`why_not = no_verified_phone`) |
 | No email address | Text, whatever was chosen, when the phone can be texted (a phone-only account) |
 | Always by email | Codes flagged `notification_catalogue.always_email` (signed agreements, final statement, receipts, extra charges, refunds, damage, the authority notice; owner statements, signed documents, invoices, voids, payment receipts, PAD confirmation, debit notice, fee change notice, enrolment, exit; investor statement and notice) are emailed whenever there is an address. A Text person also gets a text with a link to the page in their portal, behind sign-in, where they view or download it |
-| Never a text | `no_text`: password reset, sign-in link, security notice, chat transcript, a driver's or co-signer's link (sent to someone else), "Continue your request" |
+| Never a text | `no_text`: only the sign-in and security emails: password reset, sign-in link, security notice, and "Continue your request" (a one-tap sign-in link) |
+| Sent to someone else | `text_to_recipient`: an additional driver's link (`renter_driver_link`) and a co-signer's (`owner_cosigner_sign`) are texted to that person: the account of the address the email goes to, its own channel and verified phone, never the renter's or owner's. No account with a verified phone: email only |
+| Chat transcript | Always emailed (the visitor typed the address for it); someone on Text or Both also gets "we emailed you a copy of your chat" |
 | Marketing | The review request is texted only when its email may go (consent), and for a phone-only account only with marketing consent |
 | Opt-outs | A number that replied STOP (or a renter marked no texts): email only |
 | US numbers | A US number waits for A2P 10DLC: `signin_phone_us_allowed` (0091, off) also gates every text from the outbox, the missed-call text and staff replies included. Numbers outside Canada and the US: email only |
 | A text that does not go after all | STOP while it waited, Quo refusing it, the person choosing email meanwhile (the job checks again before sending): the email it replaced is queued ("By email: the text was not sent (...)") |
 | Switched off | `sms_alerts_enabled` off (or the phone line off): email only for everyone |
 
-The texts: `sms_templates` (one row per code, editable in Admin > Settings > Text alerts: the text, on or off, urgent),
-or the generic text `CarmaCars: {{subject}}. Details: {{link}}` for any other customer notification. Placeholders are the
+The texts: `sms_templates`, one row per customer email (editable in Admin > Settings > Text alerts: the text, on or off,
+urgent). The generic text `CarmaCars: {{subject}}. Details: {{link}}` is only for an email added later without a row
+(Settings shows how many; suite 69 fails if a customer email has none). Placeholders are the
 email's `{{variables}}`; the booking's own values fill what the email did not carry; `{{link}}` is the page of the email
-(the portal page for documents). A template names CarmaCars, keeps `{{link}}`, has no long dash and is at most 320
+(the portal page for documents); an email without a page uses its own link (a driver's signing link, the Google review
+page, the car of an unsent request), else the person's portal. A template names CarmaCars, keeps `{{link}}`, has no long dash and is at most 320
 characters (`app.sms_template_ok`).
 
 | Notification | Code | Text (with sample values, one text unless noted) |
@@ -68,7 +80,25 @@ characters (`app.sms_template_ok`).
 | Owner: payout sent, statement ready | `owner_payout_sent`, `owner_statement_ready` | CarmaCars: payout of $2,140.55 sent for October 2026. Details: (link) |
 | Owner: invoice due | `owner_fee_invoice`, `owner_invoice_issued`, `owner_upfront_invoice`, `owner_debit_notice` | CarmaCars: invoice INV-2026-0142 for $545.00 is due Nov 1, 2026. View it: (link) |
 | Investor | `investor_statement_ready`, `investor_return_paid` | CarmaCars: your October 2026 investor statement is ready. View or download it: (link) |
-| Also | signed agreement and final statement (documents), cancellation, staff message, breakdown, accident, car disabled (urgent) | 47 templates in all; every other customer notification uses the generic text |
+| Also | signed agreement and final statement (documents), cancellation, staff message, breakdown, accident, car disabled (urgent) | |
+
+**Every customer email has its own text (the owner: "47 text versions is too few").** The 176 email templates are 113
+customer emails (renter 67, owner 42, investor 4) and 63 others (staff 62, the insurer's invoice 1). 109 of the 113
+have their own text: the 47 above and 62 added, one for each email that had none:
+
+| Who | Texts added (code: label) |
+| --- | --- |
+| Renters and leads (30) | `renter_account_created` Account ready; `renter_request_needs_info` Request: one question; `renter_request_declined` Request declined; `renter_recovery_request` Request not sent yet; `renter_recovery_offer` Offer waiting; `renter_offer_expired`; `renter_offer_withdrawn`; `renter_refund_issued`; `renter_extra_charge`; `renter_rental_started`; `renter_return_complete`; `renter_extension_requested`; `renter_change_request_received`, `_approved`, `_declined`; `renter_change_proposed`; `renter_change_proposal_reminder`; `renter_recovery_change`; `renter_change_proposal_expired`; `renter_change_applied`; `renter_damage_found`; `renter_named_to_authority`; `renter_booking_cancelled_by_us`; `renter_google_review_request`; `renter_comeback_1w`, `_1m`; `renter_game_code`, `renter_game_code_reminder`; `renter_chat_transcript` |
+| Additional drivers (1) | `renter_driver_link` Additional driver: accept (with the signing link) |
+| Owners (30) | `owner_account_created`; `owner_application_received`, `_info_requested`, `_approved`, `_declined`; `owner_onboarding_steps`; `owner_registry_visit`; `owner_car_set_up`; `owner_vehicle_enrolled`; `owner_vehicle_listed`; `owner_booking_changed`; `owner_booking_confirmed`; `owner_payment_received`; `owner_payment_recorded`; `owner_payment_reversed`; `owner_invoice_voided`; `owner_debit_setup_needed`; `owner_pad_confirmed`; `owner_debit_returned`; `owner_in_arrears`; `owner_bank_details_changed`; `owner_fee_change_notice`; `owner_document_due`; `owner_form_approved`, `_rejected`; `owner_incident_opened`, `_update`; `owner_toll_ticket`; `owner_exit_notice_received`; `owner_exit_completed` |
+| Co-signers (1) | `owner_cosigner_sign` Co-signer: documents to sign (with the signing link) |
+| Investors (1) | `investor_notice_received` |
+
+Every placeholder of the 109 texts is a variable of its email (checked), the longest template is 148 characters, none
+has a long dash. **Still on the generic text: none.** Never texted (4): `account_password_reset`, `account_sign_in_link`,
+`account_security_notice` (security, email or link only) and `renter_continue_request` (a one-tap sign-in link: the
+same reason). Not routed at all: `insurer_invoice` (an insurer's claims office, a business address, not a person with a
+channel) and the 62 staff notices.
 
 0085's booking texts are replaced: its trigger `notification_outbox_phone_sms` is dropped and its six moments
 (`program_settings.phone_sms_*`) are no longer read (a moment an Admin had switched off is switched off on its template;
@@ -81,9 +111,23 @@ a verified phone, as the owner asked ("verify and get alerts via text").
   through the Quo webhook (`server_phone_event`, and the trigger `phone_activity_keywords`) set `phone_threads.opted_out_at`,
   the opt-out list. Texts waiting to the number are skipped and their emails go instead. START, UNSTOP, YES (0085) and
   OPT IN, RESUME turn texts back on.
-- Every STOP and START is logged in `sms_opt_out_log` (shown on the person's Admin card).
+- Every STOP and START is logged in `sms_opt_out_log` (shown on the person's Admin card), with its source: `stop` (a
+  reply), `carrier`, `staff`, or `start` (a reply).
+- **The confirmation (owner's decision: Quo sends none).** After a STOP reply the person gets one text, "CarmaCars:
+  you're unsubscribed and won't get more texts. Reply START to resubscribe."; after a START reply, "CarmaCars: texts are
+  back on. Reply STOP to opt out." (Program settings `sms_stop_confirm_text` and `sms_start_confirm_text`, editable in
+  Settings > Text alerts; each must name CarmaCars and the keyword that undoes it). How: the webhook marks its
+  transaction as a reply (`app.sms_reply`); the trigger `phone_threads_opt_log` (after update) logs the change and, for a
+  reply, queues a `phone_outbox` row of kind `opt_confirm` (`sms_kind` `opt_stop` or `opt_start`, dedupe
+  `optconfirm:<log id>`) already being sent; `server_phone_event` returns it with the delivery's texts and the Worker
+  sends it at once through Quo (`handleQuoWebhook`). Quiet hours do not apply. Once per change: a second STOP to a number
+  already stopped changes nothing and sends nothing, and a confirmation that never reported back is marked failed after 10
+  minutes rather than tried again (a Quo error is retried like any text). The log row links it (`confirm_id`); the
+  Admin card shows "confirmed by text"; the phone inbox labels it "STOP confirmation" or "START confirmation". A STOP or
+  START set by staff, or a carrier block, is logged and sends nothing. The US gate still holds: a US number while US
+  texting waits for A2P 10DLC is opted out and logged, and its confirmation is skipped with that reason.
 - "Reply STOP to opt out." ends the first automated text to a number, and the first after a START (`sms_stop_line`).
-- Quo and the carriers also block on their side. No confirmation text is sent by the platform (see section 9).
+- Quo and the carriers also block on their side.
 
 ## 4. Quiet hours
 
@@ -119,18 +163,25 @@ on the first text, whether "Message and data rates may apply" is wanted.
 | Suite | What |
 | --- | --- |
 | Unit `web/src/features/phone/alerts.test.ts` | Every template of the migration (parsed from the SQL): no long dash, names CarmaCars, has the link, at most 110 fixed characters, plain GSM characters, two texts at most with a long car name, the link and the STOP line (most fit in one); the renderer tidies empty values like the database; what an Admin may not save; the words of each screen |
-| Database `supabase/tests/67_text_alerts.sql` (73 assertions) | See the README row; 55 updated for the new rules (a verified phone, the new texts, a sign-in email instead of a moment with no text), 03 lists the two new log tables among those not audited |
-| End to end `web/tests/e2e/text-alerts.spec.ts` (375 and 1440, Quo mocked: `QUO_PROVIDER=fake`) | The profile: Both by default with a verified phone, Text saved, the quiet hours and STOP, the card after a STOP; a booking request with Text: the choice on the account and the renter record, the request email skipped, the text queued with its link and the STOP line (held to 8 am in the quiet hours), sent by the phone job through the fake line; the phone sign-up with Text chosen; the Admin's card (default, Change, audit log), Settings > Text alerts and Site health; axe, overflow and the copy rules on every page |
+| Database `supabase/tests/69_text_alerts.sql` (86 assertions; renumbered from 67, as 67 and 68 are the games fix's and the exit intent's) | See the README row; 55 updated for the new rules (a verified phone, the new texts, a sign-in email instead of a moment with no text), 03 lists the two new log tables among those not audited |
+| End to end `web/tests/e2e/text-alerts.spec.ts` (375 and 1440, Quo mocked: `QUO_PROVIDER=fake`) | The profile: Both by default with a verified phone, Text saved, the quiet hours and STOP; STOP texted to the line (a signed Quo delivery): one confirmation sent at once through the fake line, none for a second STOP, the card after a STOP; START: its confirmation, the log with both;  a booking request with Text: the choice on the account and the renter record, the request email skipped, the text queued with its link and the STOP line (held to 8 am in the quiet hours), sent by the phone job through the fake line; the phone sign-up with Text chosen; the Admin's card (default, Change, audit log), Settings > Text alerts and Site health; axe, overflow and the copy rules on every page |
 
-Results: see the CI run in section 10.
+Results (local, after the merge with `vehiclepages`): database suite 5969 passed, 0 failed (suite 69: 86); unit 409
+passed; lint and typecheck (app and tests) clean; types regenerated from a database with every migration; `npm run
+cf:build` passed (server bundle 20.8 MiB, budget 40 MiB); end to end `text-alerts`, `phone-signin`, `signup` and
+`request` at 375 and 1440: 28 passed, and `phone` (the webhook): 4 passed. In `text-alerts`, the booking request's text
+may already be sent by the other width's phone job when it is read (both widths run at once): the check accepts queued,
+sending or sent. The guide content JSON (admin, renter) is re-exported; the portals print each published guide's PDF from it
+(the Guide PDFs workflow, `scripts/guides-pdf.mjs` without `--committed`). The committed PDFs in `docs/guides/pdf` were
+not rebuilt for these two lines.
 
 ## 8. Guides
 
 | Guide | Chapter | Section |
 | --- | --- | --- |
-| Admin | `admin/text-alerts-email-text-or-both` (new) | Who gets what, a person's channel, STOP, START and quiet hours, the settings and the texts, texts a day |
+| Admin | `admin/text-alerts-email-text-or-both` (new) | Who gets what (every customer email has its own text; a driver's or co-signer's link to that person), a person's channel, STOP, START and quiet hours (the confirmation texts), the settings and the texts, texts a day |
 | Admin | `admin/texts-and-calls-the-quo-phone-line` | "Booking texts" and "The settings" point to Text alerts |
-| Renter | `renter/after-your-trip` | "Texts or email: how we reach you" (after Sign in with your phone number), with the tip on the request and the phone sign-up |
+| Renter | `renter/after-your-trip` | "Texts or email: how we reach you" (after Sign in with your phone number), with the tip on the request and the phone sign-up; STOP is confirmed with one text |
 | Owner | `owner/notices-profile-and-leaving` | "Texts or email" |
 | Investor | `investor/how-your-returns-work` | "Texts or email" (after Emails you get from us) |
 | Assistants | `va/texts-and-calls` | "Email, text or both" |
@@ -146,5 +197,5 @@ after the deploy.
    phone sign-in), so no one is texted on the deploy day without having verified.
 2. US renters: register the Quo number for A2P 10DLC, then turn on "Sign-in by phone: also US numbers" (it gates sign-in
    codes and every text).
-3. Check in Quo whether it answers STOP itself with a confirmation; if not, decide whether the platform should send one.
+3. Done: Quo sends no STOP confirmation, so the platform sends one (section 3).
 4. The lawyer: section 6.

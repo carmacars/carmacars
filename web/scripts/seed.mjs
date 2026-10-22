@@ -105,12 +105,15 @@ async function seedSeo(tx) {
   const has = await tx`select to_regclass('public.seo_pages') is not null as ok`;
   if (!has[0].ok) return 'skipped: no 0061';
   const seo = JSON.parse(fs.readFileSync(path.join(WEB, 'scripts/content/seo-content.json'), 'utf8'));
+  const hasMinReal = await tx`select exists (select 1 from information_schema.columns where table_name = 'seo_pages' and column_name = 'min_real_cars') as ok`;
   for (const p of seo.pages) {
     await tx`insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source, status)
              values (${p.slug}, ${p.kind === 'use' ? 'use' : 'location'}, ${p.name}, ${p.sort_order}, ${tx.json(p.facts)}, ${tx.json(p.match)}, ${tx.json(p.copy)}, 'seed', 'published')
              on conflict (slug) do update set name = excluded.name, sort_order = excluded.sort_order, facts = excluded.facts, match = excluded.match,
                copy = excluded.copy, copy_facts_hash = null, status = 'published'
-             where seo_pages.source = 'seed' and cardinality(seo_pages.locked) = 0 and (seo_pages.copy, seo_pages.facts, seo_pages.match) is distinct from (excluded.copy, excluded.facts, excluded.match)`;
+             where seo_pages.source = 'seed' and cardinality(seo_pages.locked) = 0 and (seo_pages.copy, seo_pages.facts, seo_pages.match, seo_pages.name) is distinct from (excluded.copy, excluded.facts, excluded.match, excluded.name)`;
+    // the real cars a page needs before it is indexed, when it has its own threshold (0095)
+    if (hasMinReal[0].ok) await tx`update seo_pages set min_real_cars = ${p.min_real_cars ?? null} where slug = ${p.slug} and min_real_cars is distinct from ${p.min_real_cars ?? null}`;
   }
   // the seed's copy was written from these facts
   await tx`update seo_pages set copy_facts_hash = facts_hash, status = 'published' where source = 'seed' and copy_facts_hash is null`;
@@ -247,15 +250,33 @@ async function seedSample(tx) {
   return { cars: n, bookings: bookingNo, shiftDays };
 }
 
+// The vehicle catalog fixture (0097), local and staging only: a small real subset of the EPA catalog with the Canadian
+// trims (web/scripts/catalog/import.mjs --sql-out), so the vehicle pages work without the catalog workflow. Production
+// gets the whole catalog from that workflow.
+async function seedCatalog(tx) {
+  const have = await tx`select count(*)::int as n from vehicle_catalog_makes`;
+  if (have[0].n > 0) return 'skipped: catalog exists';
+  await tx.unsafe(fs.readFileSync(path.join(ROOT, 'supabase/seed/vehicle_catalog_fixture.sql'), 'utf8'));
+  return (await tx`select count(*)::int as n from vehicle_catalog_years`)[0].n + ' model years';
+}
+
 try {
   const result = await sql.begin(async (tx) => {
     await tx`select set_config('app.request_id', 'seed', true)`;
     const blocks = await seedContent(tx);
     const seo = await seedSeo(tx);
     if (contentOnly) return { blocks, seo };
-    const already = await tx`select count(*)::int as n from vehicle_listings`;
-    if (already[0].n > 0) return { blocks, seo, sample: 'skipped: cars exist' };
-    return { blocks, seo, ...(await seedSample(tx)) };
+    // 0093, the local stack only: the partner fleet's AI copy waits (its plain copy stands), so the end-to-end tests'
+    // own cars are written first by the local writer; in production the 62 cars are written in turn as usual
+    if (!production) {
+      await tx`update car_copy c set next_attempt_at = now() + interval '30 days' from vehicles v
+                where v.id = c.vehicle_id and v.partner_sheet_name is not null and c.status = 'pending'`;
+    }
+    // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
+    const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;
+    const catalog = production ? 'production: the catalog workflow' : await seedCatalog(tx);
+    if (already[0].n > 0) return { blocks, seo, catalog, sample: 'skipped: cars exist' };
+    return { blocks, seo, catalog, ...(await seedSample(tx)) };
   });
   if (!contentOnly && !production) copyPhotos();
   console.log('seed:', JSON.stringify(result));

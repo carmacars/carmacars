@@ -18,6 +18,6 @@ export const inter = localFont({
     { path: '../fonts/inter-500.woff2', weight: '500', style: 'normal' },
     { path: '../fonts/inter-600.woff2', weight: '600 700', style: 'normal' }
   ],
-  variable: '--ff-text', display: 'swap', preload: true,
+  variable: '--ff-text', display: 'swap', preload: false,  // text swaps in; the hero image and the display face load first (0095 speed)
   fallback: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif']
 });

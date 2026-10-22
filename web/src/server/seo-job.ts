@@ -49,3 +49,20 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
   if (s.changed.length) { try { revalidatePath('/sitemap.xml'); } catch { /* ignore */ } }
   return s;
 }
+
+/** The IndexNow sweep (0097): the next batch of vehicle addresses (up to 10,000, IndexNow's most per request) after the
+ *  cursor, sent, and the answer reported: 2xx moves the cursor, 429 and 403 back off (the database keeps the cursor,
+ *  the day's count and the back-off, shared with every sender). Production only; nothing is rendered. */
+export async function runIndexNowSweep(o: { rounds?: number } = {}): Promise<{ sent: number; why?: string; status?: number }> {
+  if (!indexNowOn()) return { sent: 0, why: 'not production' };
+  let sent = 0;
+  for (let i = 0; i < (o.rounds ?? 1); i++) {
+    const c = (await rpc('server_indexnow_claim', { p_limit: 10_000 }, SR)) as unknown as { paths: string[]; cursor?: unknown; files?: number; why?: string; key?: string };
+    if (!c.paths?.length || !c.key) return { sent, why: c.why ?? 'no key' };
+    const r = await sendIndexNow(c.key, c.paths);
+    await rpc('server_indexnow_report', { p: { status: r.status, count: c.paths.length, cursor: c.cursor, files: c.files, error: r.error } as unknown as Json }, SR);
+    if (r.status < 200 || r.status >= 300) return { sent, status: r.status };
+    sent += c.paths.length;
+  }
+  return { sent };
+}

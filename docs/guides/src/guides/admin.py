@@ -437,6 +437,21 @@ def build():
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
     ])
 
+    g.task('A partner fleet on its own rates', 'Some partners send a price sheet of their own rates instead of sharing what the renter pays. '
+           '01 Motors works this way: its whole fleet is on the site, and staff manage its cars (it has no portal sign-in yet; add its email on the partner page and invite it later).')
+    g.steps([
+        f'{P("Owners and partners", "Partners")} > the partner. {B("Pricing")} shows how it is paid: the renter pays the partner\'s sheet rate plus the markup (10% unless you set another), rounded to the nearest dollar; '
+        f'CarmaCars keeps the markup plus its cut (20% of the sheet rate); the partner is owed the rest of its sheet rate. Press {B("Edit pricing")} to change the markup, the cut or the basis for every car at once.',
+        f'{B("Cars")} lists each car with its sheet rates a day (1 to 2 days, 3 or more, 7 or more) and the renter\'s rates. Press {B("Edit")} on a car to change a negotiated rate, give that car its own markup or cut, '
+        f'mark it {B("Insurance included")} or {B("No credit card needed")}, or confirm its model year. The renter\'s rates change at once.',
+        'The site shows these cars with their tiers (1 to 2 days, 3 to 6 days, 7 days or more) and "Guideline rates; final price confirmed after review". A car with insurance included needs no coverage choice from the renter '
+        '(coverage option 4, confirmed by itself); a car with no credit card needed takes a debit card for the payment and the deposit. The deposit, the licence and identity checks and the ages stay the same.',
+        'The price sheet has no years, VINs or plates. Until you confirm the year, the site leaves it out and says "Year confirmed when you book"; an offer waits until the year is confirmed (Edit on the car, Model year). '
+        'Add the plate and the VIN on the car\'s page before its first handover.',
+        f'Real photos: open the car (its name in Cars), {B("Photos")}, and add them. Once approved they replace the eight studio stand-ins.',
+    ])
+    g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
+
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
     g.steps([
         'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
@@ -479,6 +494,29 @@ def build():
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
+    g.chapter('Chauffeur service',
+              'Visitors book a driver and a luxury car or van by the hour on carmacars.ca/chauffeur. The vehicles come from a partner\'s chauffeur price guide, each with a rate for 2 hours and a rate for 3 hours or more.',
+              blurb='Chauffeur requests: quote, confirm and close them; the vehicles and their hourly rates.')
+    g.flow([('Request', 'The visitor sends the date, hours and addresses'), ('Quote', 'You check with the partner and send the quote'),
+            ('Confirm', 'The client agrees and pays'), ('Done', 'Mark it completed after the trip')])
+    g.task('The requests', f'{P("Bookings", "Chauffeur")}. Each request has its number (CH-1001 and up), the vehicle, the date and start time, the hours, the pickup and drop-off addresses, the passengers, the occasion and the notes.')
+    g.steps([
+        f'The {B("Quote")} column is the price for the client: the hours at the 2-hour rate (exactly 2 hours) or the 3+ hour rate (3 hours or more), before HST, then HST and the total. The line under it is the quote line to send.',
+        f'{B("Partner, CarmaCars")} shows the partner\'s sheet amount, what the partner is owed (the sheet amount less the cut) and what CarmaCars keeps (the markup plus the cut).',
+        f'Check the vehicle and the driver with the partner for that time. To change the vehicle or the hours, press {B("Change")}: the quote is worked out again.',
+        f'Send the quote line by email or phone, then press {B("Quoted")} and say how you sent it. The task in the queue is done.',
+        f'When the client agrees, take the payment (a payment link, or at pickup), press {B("Confirm")} and note how it is paid.',
+        f'After the trip press {B("Completed")}. {B("Decline")} or {B("Cancel")} closes a request with the reason.',
+    ])
+    g.tip(f'To do has a line {B("Chauffeur requests to quote")} while any request is new, and the card Chauffeur today lists the confirmed trips of the day.')
+    g.task('The vehicles and their rates', f'{P("Owners and partners", "Partners")} > the partner, card Chauffeur vehicles.')
+    g.steps([
+        'Each vehicle shows the partner\'s rates an hour and the client\'s (the markup added, rounded to the nearest dollar).',
+        f'Press {B("Edit")} to change a rate, give it its own markup or cut, change the passengers, or take it off the site.',
+        'A vehicle the partner also rents (chauffeur / rental) links to its car pages on the public page.',
+    ])
+    g.tip('Booking requests for cars, offers and payments do not cover chauffeur trips: a chauffeur request is a quote that you send and confirm here.', label='Good to know')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Owners and onboarding',
@@ -816,18 +854,20 @@ def build():
         'Not chosen yet: Both for someone with a verified phone and an email, Text for an account made by phone without an email, otherwise Email.',
         'No verified phone, a number that replied STOP, a US number while US texting waits for A2P 10DLC, or a number outside Canada and the US: email only.',
         'Signed agreements, statements, receipts, invoices and notices are always emailed when there is an email address. Someone on Text also gets a text with a link to view or download it in their portal.',
-        'Sign-in emails, chat transcripts and links sent to someone else (an additional driver, a co-signer) are never texts. A review request is texted only when its email may go (marketing consent).',
+        'Every customer email has its own short text: renters, owners, investors, additional drivers, co-signers and leads. Only the sign-in and security emails (password reset, sign-in link, security notice, "Continue your request") are never texts. A review request or a come-back offer is texted only when its email may go (marketing consent).',
+        'An additional driver\'s or a co-signer\'s link is texted to that person (their own account with a verified phone), never to the renter or owner.',
     ])
     g.task('A person\'s channel', f'Open the renter, owner or investor under People. The card {B("How we reach them")} shows what they chose, what is used now and why, their verified phone, texts in the last 30 days and any STOP or START. Press {B("Change")} to set it (recorded in the audit log). Customer service and Sales can change a renter\'s or owner\'s; an investor\'s only Admins.')
     g.task('STOP, START and quiet hours')
     g.bullets([
         'A reply STOP (or OPT OUT, UNSUBSCRIBE, CANCEL, END, QUIT) stops texts to the number at once; texts waiting are not sent and their emails go instead. START turns texts back on. Every STOP and START is logged.',
+        'Quo sends no confirmation, so we do: one text right away (quiet hours do not apply), "CarmaCars: you\'re unsubscribed and won\'t get more texts. Reply START to resubscribe." after STOP, and "CarmaCars: texts are back on. Reply STOP to opt out." after START. Once per change; the card How we reach them shows it as confirmed by text. A STOP or START you set by hand, or a carrier block, sends nothing.',
         'The first automated text to a number, and the first after START, ends "Reply STOP to opt out."',
         'Quiet hours, 9 pm to 8 am Toronto time: texts that are not urgent wait and go at 8 am. Urgent: late return notices, pickup and return details on the day, breakdown, accident and a disabled car.',
         'A text that is not sent after all (STOP, Quo refuses it, the person chose email meanwhile) sends the email it replaced.',
     ])
     g.task('The settings and the texts', f'{P("Settings", "All settings")}, {B("Text alerts")}: on or off, the defaults, the quiet hours, the STOP line, US numbers, and the text of each notification with a preview (edit, switch off, mark urgent). '
-           'A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. A notification without its own text uses the generic one built from the email\'s subject.')
+           'A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. The two confirmation texts (after STOP and START) are in the same settings. The generic text built from the email\'s subject is only for an email added later without its own text.')
     g.task('Texts a day', f'Site health on {B("To do")} has {B("Texts today")}: sent, notifications among them, failed, not sent and sign-in codes for the last 7 days, and the texts waiting for 8 am.')
 
     # ---------------------------------------------------------------- discount games (0066)
@@ -873,7 +913,7 @@ def build():
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
               'by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review '
               'anything. You can still change any line; what you change is kept.',
-              blurb='Car copy written by itself, landing pages, guides, search engines, business listings and IndexNow.')
+              blurb='Car copy written by itself, landing pages, place pages for every place and term, detailing and body shop, guides, business listings and IndexNow.')
     g.task('The copy of a car', f'{P("Cars", "Vehicles")}, then the car, then its Listing tab. The same card is on the listing review.')
     g.steps([
         'The card says who wrote the text: a plain copy from the car\'s facts while the written copy is prepared (usually minutes), then Workers AI.',
@@ -891,6 +931,26 @@ def build():
         'Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).',
         f'Open {B("Edit")} on a page or a guide to change its text. Edited fields are locked. {B("Write again")} asks for a new version; on a guide, the brief says what it must cover.',
     ])
+    g.task('Vehicle pages', f'{P("Settings", "Vehicle pages")}. A page for every make, model, model year and Canadian trim of every year, at carmacars.ca/cars/make/model/year/trim, with our cars below it; each trim also in every place and in 12 colours (a black 2020 Volkswagen Jetta Sportline in Mississauga, for example); every page again for sale (carmacars.ca/buy/...) and for each search term: renting (car hire), sale (financing), detailing (ceramic coating) and body shop (bumper repair), at carmacars.ca/t/term/...')
+    g.steps([
+        'Pages: how many pages each level and each tier has, the total, and how many are in search. Every page is in search by default; nothing needs setting up.',
+        f'One switch per tier takes it out of search at once: {B("Index the place pages")}, {B("Index the colour pages")}, {B("Index the search term pages")}, {B("Index the /buy pages")}, {B("Index the detailing pages")}, {B("Index the body shop pages")}. Off, those pages stay visible but leave the sitemaps and search.',
+        'The places are the place list of the local search release (every city, town and neighbourhood, with GTA and country levels); until it is filled, the area landing pages. The search terms are edited with them.',
+        f'{B("Financing disclaimer")}: the text on financing and leasing pages. CarmaCars never says it lends or leases.',
+        'Database: its size against the cap the catalog import keeps under (6,144 MB by default). IndexNow: the addresses sent today, where the sweep is, and any back-off; nothing to do.',
+        'Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.',
+        'Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings > Leads.',
+        f'Settings: {B("Index every page")} (the default) or {B("Only pages that pass the rules")}: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).',
+        f'Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. {B("Add trims for another model")} adds a model that has none.',
+        f'Catalog import: the last import and its counts. {B("Import now")} asks for a new one; it runs at the next daily check, at 07:17 UTC.',
+    ])
+    g.tip('A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car\'s trim to one Canadian name to put it on the trim page.', label='Good to know')
+    g.task('A car for sale', f'{P("Cars", "Vehicles")}, then the car. On the For sale card, tick {B("For sale")}, enter the Asking price and press {B("Save")}.')
+    g.steps([
+        'The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.',
+        'Untick it when the car is sold or no longer for sale: the pages say so at once.',
+        f'"Find me this car" on the /buy pages sends a buyer lead to Sales ({B("Leads")}, Buyer leads), with a To do line.',
+    ])
     g.task('Search engines and business listings', f'{P("Settings", "All settings")}, then Site settings.')
     g.steps([
         'Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.',
@@ -899,6 +959,28 @@ def build():
     ])
     g.tip('Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit '
           'carmacars.ca/sitemap.xml once in Search Console.', label='Good to know')
+    g.task('Place pages',
+           'Every place we have, from a country down to a neighbourhood, gets a page for every term people search with: renting (car hire, '
+           'SUV rental, monthly car rental ...), buying help (used cars, car financing ...), detailing (ceramic coating, window tint ...) and '
+           'body work (collision repair, dent repair ...). Each page is written from real data only: the distance from us, the delivery price '
+           'within our reach, the nearest airport, the landmarks near it, our live cars and the places around it. A place far from Toronto '
+           f'says we serve the Toronto area and takes a request instead. {P("Settings", "All settings")}, then Search.')
+    g.steps([
+        'Place pages: four switches, one for each family, put the pages in search and in the sitemaps. All four are on.',
+        'Quality gate: off. On, only places within the delivery reach are in search, and rental pages only with a real matching car. Search engines can treat many similar pages as low value; the gate lowers that risk.',
+        'Delivery reach: places within this distance of our location are offered delivery. Database size cap: the places import stops before the database passes it.',
+        'Regions and places: every province, state and territory is on. Untick a region to take its pages and sitemaps off the site.',
+        'Terms and services: change a term\'s title or what is true about it, point a synonym to another term (its pages then leave search), switch a term off, or add one. Give a service a starting price, or leave it empty for "price on request".',
+    ])
+    g.tip('A region has pages once the places workflow has loaded it: GitHub, Actions, places, Run workflow, with the regions or all. '
+          'The run loads Ontario first and names any region it skipped because of the size cap.', label='Good to know')
+    g.task('Requests from the place pages',
+           f'The buying help, detailing and body shop pages, and the pages of places beyond our reach, have a request form. Each request is a lead with a task in {B("To do")}: '
+           'detailing and body shop requests are due within an hour of opening and show in Today. Buying help pages say plainly that CarmaCars does not sell, finance or '
+           'lease cars; the notice at the top is set under Place pages.')
+    g.task('One name, address and phone',
+           'The footer, the contact page, the structured data and every business listing show the business address of Site settings. '
+           'Keep it the address renters come to, and change it there only.')
 
     g.chapter('Settings',
               'Settings change the public site and the rules of the program at once. Program settings are kept '
@@ -1032,8 +1114,8 @@ def build():
         f'Press {B("Save deck settings")}. Every change is in the audit log.',
     ])
     g.para(f'To hide or show it in one click, use {B("Hide the deck from investors")} or {B("Show the deck to investors")} on Investors.')
-    g.para('How we make money is one slide with the five revenue lines: our own cars, owners\' cars fully managed with coverage under our fleet policy, '
-           'coverage under our fleet policy for owners who manage their own cars, Turo management, and brokering partner fleets with the chauffeur service. '
+    g.para('How we make money is one slide with the seven revenue lines: our own cars, owners\' cars fully managed with coverage under our fleet policy, '
+           'coverage under our fleet policy for owners who manage their own cars, Turo management, brokering partner fleets with the chauffeur service, detailing, and the body shop. '
            'The features include maintenance and service tracking, phone number sign-in, saving contacts from unfinished forms and smart Turo car matching.')
     g.tip('The deck shows no internal costs, fleet counts or staff pay. Every example is labelled as an illustration, with the forward-looking statements notice '
           'on every slide and in the PDF.', label='Good to know')

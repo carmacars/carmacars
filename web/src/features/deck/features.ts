@@ -122,10 +122,16 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     features: [
       { id: 'seo', title: 'Search pages for every model and need', what: 'Model pages, landing pages for areas and needs (airport, weekly, young drivers and more) and guide articles, each kept fresh with the cars and prices available. New pages are sent to search engines at once.',
         why: 'Renters searching in Toronto and the GTA find CarmaCars without paying for every click.', shots: [d('landing.jpg', 'A landing page for car rental')] },
+      { id: 'search-reach', title: 'Search reach: a page for every car, place and need', what: 'Every year, make, model and trim of car, in every city and neighbourhood across North America, in twelve colours, and again for every way people search: renting terms, buying, financing and leasing, detailing and body shop work. Trillions of combinations, each rendered on demand when it is asked for, with no storage cost per page.',
+        why: 'The growth engine for organic demand: each page carries the car\'s real specs and our live inventory, with a request or lead form, so a search for one car in one place for one need lands on a page that can turn it into a rental or a lead.',
+        points: ['Real specs from public sources on every page', 'Our live cars and a request form below them', 'Listed in the sitemaps and sent to search engines'],
+        shots: [d('vehicle-pages.jpg', 'A car hire page for a 2024 Toyota Corolla LE in Scarborough')] },
       { id: 'chat', title: 'AI live chat, with a person behind it', what: 'Visitors ask questions in a chat that answers from our rules and prices. When it should, it hands the conversation to a person on our team.',
         why: 'Questions are answered at any hour, and real buyers reach a person.', shots: [d('chat.jpg', 'The live chat on the website')] },
-      { id: 'signals', title: 'Live visitors and buying signals', what: 'With the visitor\'s consent, staff see who is browsing now, which cars they look at, and when a request was started and left, with follow-up tasks.',
-        why: 'The team follows up with people who are close to booking.' },
+      { id: 'signals', title: 'Live visitor signals and instant leads', what: 'With the visitor\'s consent, staff see who is on the site right now, what they are looking at and how close they are to booking, and can start a live chat with any of them. What a visitor types into a form is kept as a lead even if it is never sent (see Saving contacts from unfinished forms).',
+        why: 'The team reaches people while they are still choosing a car, not after they have left.',
+        points: ['Who is on the site now, the page and the car they are looking at', 'Buying signals: a viewing spree, a return to the same car, a request started and left', 'A live chat with any visitor in one click, with a suggested first message', 'Details typed into any form are saved and a brand-new visitor gets an account at once (more in Saving contacts from unfinished forms)'],
+        shots: [d('live-visitors.jpg', 'Live visitors: who is on the site now, their signals and a suggested chat')] },
       { id: 'games', title: 'Discount games', what: 'Visitors who browse a lot may get a short game (spin the wheel, scratch card, cups and more) that always wins a small discount, in exchange for their contact details.',
         why: 'Contact details from people who were about to leave, at a capped cost per code.' },
       { id: 'capture', title: 'Saving contacts from unfinished forms', what: 'The name, email and phone typed into a booking request, the contact form, List your car, the owner application, Create an account, a discount game or the live chat are saved as they are typed, and each form says so. The person can pick up where they left off, and the team can follow up.',
@@ -133,8 +139,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         points: ['Saved as each field becomes valid, even if the form is never sent', 'One email with a link to confirm and continue on any device', 'Unfinished forms show up as follow-ups for the team', 'Explained under every form, with a link to the privacy policy'] },
       { id: 'recovery', title: 'Booking recovery emails', what: 'A request left unfinished, an offer not answered or a payment not completed gets a timely reminder.',
         why: 'Bookings that would have been lost come back on their own.' },
-      { id: 'partners', title: 'Partner fleets and a marketplace partner', what: 'Partner rental companies list their cars with us and we broker them on commission. A marketplace partner also lists our cars under our policy.',
-        why: 'More cars to offer without buying them, and more renters without more ad spend.' }
+      { id: 'partners', title: 'Partner fleets and chauffeur service', what: 'Partner rental companies list their whole fleets on CarmaCars. A partner rental fleet\'s exotic and luxury cars are on the site with their own pages, and a chauffeur service books a driver and a luxury car or van by the hour.',
+        why: 'More cars and a new hourly service to sell without buying a single car, and every booking earns a markup plus a cut of the partner\'s rates.',
+        points: ['Partner rental companies list their fleets on CarmaCars, and we earn a markup plus a cut of their rates', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum'],
+        shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] }
     ]
   }
 ];

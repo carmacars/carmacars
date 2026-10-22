@@ -7,7 +7,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
     { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }] },
   { key: 'bookings', label: 'Bookings', links: [
-    { href: '/admin/requests', label: 'Requests', key: 'r' }, { href: '/admin/chat', label: 'Live chat' }, { href: '/admin/leads', label: 'Leads' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
+    { href: '/admin/requests', label: 'Requests', key: 'r' }, { href: '/admin/chat', label: 'Live chat' }, { href: '/admin/leads', label: 'Leads' }, { href: '/admin/chauffeur', label: 'Chauffeur' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
     { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/damages', label: 'Damage' }, { href: '/admin/incidents', label: 'Incidents and claims' },
     { href: '/admin/reviews', label: 'Reviews' }] },
   { key: 'cars', label: 'Cars', links: [
@@ -27,7 +27,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'settings', label: 'Settings', links: [
     { href: '/admin/settings', label: 'All settings', key: 's' }, { href: '/admin/settings/site', label: 'Site' }, { href: '/admin/settings/program', label: 'Program' },
     { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' }, { href: '/admin/settings/email', label: 'Emails' },
-    { href: '/admin/messages', label: 'Email log' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' }, { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/audit', label: 'Audit log' }] }
+    { href: '/admin/messages', label: 'Email log' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 
 /** Every page the navigation reaches (kept for the crawl and the guide's quick reference). */

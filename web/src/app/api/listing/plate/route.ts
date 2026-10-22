@@ -79,6 +79,6 @@ export async function POST(req: Request) {
   for (const p of [res.previous_path, ...(res.previous_variants ?? []).map((v) => v.path)]) {
     if (p && !written.includes(p)) await s.remove('vehicle-public', p).catch(() => undefined);
   }
-  revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/rent/[hub]', 'page'); revalidatePath('/', 'layout');
+  revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); for (const x of ['/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]']) revalidatePath(x, 'page'); revalidatePath('/', 'layout');
   return NextResponse.json({ ok: true, path, variants: outVariants });
 }

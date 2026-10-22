@@ -7,40 +7,53 @@ import { Faq } from '@/components/Faq';
 import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
 import { businessLd } from '@/features/seo/business';
-import { getArticles, getSeoPage, paras } from '@/features/seo/data';
+import { getArticles, getSeoLinks, getSeoPage, paras } from '@/features/seo/data';
 import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { fill, getClasses, getSettings, getTokens, siteUrl } from '@/lib/site';
 import OG from '@/features/seo/og-images.json';
+import { getHub, getTerms, hubPath, placesKnown } from '@/features/places/data';
+import { getBusinessFacts } from '@/features/seo/business-data';
+import { HubPage, hubMeta } from '@/features/places/HubPage';
 import '@/styles/seo.css';
 
 // Landing pages (migration 0061): a place we deliver to or a way of renting, with the live matching cars and prices
 // from the database and copy written for that page (Admin > Settings > Search). A page for a use is indexed only
 // with enough real matching cars (Program settings seo_landing_min_real_cars); a location page always.
-export const revalidate = 3600;
-export const dynamicParams = true;
+// Rendered on each request and kept only in the Worker's edge copy (src/lib/edge/page-cache.ts, a few hours), never in
+// the page cache: a place page (0095) can be any of a million places, and one page cache entry each would cost writes.
+// A slug that is no landing page is a place: the car rental page of that place (migration 0095).
+export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ slug: string }> };
 
-// Rendered on the first visit and kept for the hour (revalidate), not at build time: the build does not wait on the
-// database for pages a visitor or the search job renders anyway (deploy run 39289461880 stopped on one).
-export async function generateStaticParams() {
-  return [];
-}
 async function load(slug: string) {
   const p = await getSeoPage(slug);
-  if (!p) notFound();
-  return p;
+  if (p) return { p, hub: null };
+  const hub = await getHub('rental', 'car-rental', slug);
+  if (!hub) notFound();
+  return { p: null, hub };
 }
 export async function generateMetadata({ params }: Params) {
-  const p = await load((await params).slug);
+  const { p, hub } = await load((await params).slug);
+  if (!p) return hubMeta(hub!);
   const t = await getTokens();
   return seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,
     image: OG.pages.includes(p.slug) ? `${siteUrl()}/og/pages/${p.slug}.png` : null, imageAlt: fill(p.copy.h1, t) });
 }
 
 export default async function LandingPage({ params }: Params) {
-  const p = await load((await params).slug);
-  const [s, t, classes, articles] = await Promise.all([getSettings(), getTokens(), getClasses(), getArticles()]);
+  const { p, hub } = await load((await params).slug);
+  if (!p) return <HubPage h={hub!} />;
+  const [s, t, classes, articles, bf, terms] = await Promise.all([getSettings(), getTokens(), getClasses(), getArticles(), getBusinessFacts(), getTerms().catch(() => [])]);
+  // the place pages of this landing page: the ways to rent here (a place), or this way of renting in the cities (a use)
+  const rentTerms = terms.filter((x) => x.vertical === 'rental' && x.slug !== 'car-rental');
+  const myTerm = p.kind === 'use' ? rentTerms.find((x) => x.landing_slug === p.slug) : undefined;
+  const citySlugs = p.kind === 'location' ? [p.slug] : (await getSeoLinks().catch(() => [])).filter((l) => l.kind === 'location' && l.slug !== 'toronto' && !/airport|station/.test(l.slug)).map((l) => l.slug);
+  const known = new Set(myTerm || p.kind === 'location' ? await placesKnown(citySlugs).catch(() => []) : []);
+  const cityLinks = (await getSeoLinks().catch(() => [])).filter((l) => known.has(l.slug) && l.slug !== p.slug);
+  const placeLinks = p.kind === 'location'
+    ? !known.has(p.slug) ? [] : rentTerms.filter((x) => x.landing_slug && x.landing_slug !== 'toronto').slice(0, 10).map((x) => ({ href: hubPath('rental', x.slug, p.slug), label: `${x.title} in ${p.name.replace(/ \(.*\)$/, '')}` }))
+    : myTerm ? cityLinks.slice(0, 10).map((c) => ({ href: hubPath('rental', myTerm.slug, c.slug), label: `${myTerm.title} in ${c.name}` })) : [];
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const trail: Trail = [['Home', '/'], ['Car rental', '/car-rental'], [p.name]];
@@ -48,8 +61,8 @@ export default async function LandingPage({ params }: Params) {
   const reading = articles.filter((a) => (p.kind === 'location' ? ['airports', 'driving', 'trips'] : ['pricing', 'drivers', 'insurance', 'driving']).includes(a.topic ?? '')).slice(0, 3);
   const graph: object[] = [breadcrumbLd(trail, p.path), faqLd(faq),
     { '@type': 'ItemList', name: F(p.copy.h1), numberOfItems: p.cars.length,
-      itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year} ${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
-  if (p.kind === 'location') graph.push({ ...businessLd(s, siteUrl(), { areas: [p.name.replace(/ \(.*\)$/, '')] }), '@id': `${siteUrl()}/#business` });
+      itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
+  if (p.kind === 'location') graph.push({ ...businessLd(s, siteUrl(), { areas: p.slug === 'toronto' ? bf.areas : [p.name.replace(/ \(.*\)$/, '')], price: bf.price }), '@id': `${siteUrl()}/#business` });
   return (
     <div className="p-landing" data-page="landing" data-indexable={p.indexable ? 'yes' : 'no'}>
       <JsonLd graph={graph} />
@@ -96,6 +109,12 @@ export default async function LandingPage({ params }: Params) {
           <section className="car-sec" aria-labelledby="h-faq">
             <h2 className="d2" id="h-faq">Questions</h2>
             <Faq items={faq} />
+          </section>
+        )}
+        {placeLinks.length > 0 && (
+          <section className="car-sec landing__links" aria-labelledby="h-here">
+            <h2 className="d2" id="h-here">{p.kind === 'location' ? `More ways to rent in ${p.name.replace(/ \(.*\)$/, '')}` : `${myTerm?.title ?? p.name} near Toronto`}</h2>
+            <nav aria-label={p.kind === 'location' ? 'Ways to rent here' : 'Places'}><ul className="linklist landing__cols">{placeLinks.map((l) => <li key={l.href}><Link prefetch={false} className="link" href={l.href}>{l.label}</Link></li>)}</ul></nav>
           </section>
         )}
         {(p.nearby.length > 0 || p.other.length > 0 || reading.length > 0) && (

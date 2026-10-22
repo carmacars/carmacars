@@ -14,12 +14,16 @@
 --      opted-out number, a US number while US texting waits for A2P 10DLC (signin_phone_us_allowed of 0091), or a
 --      number outside Canada and the US: email only. A text that cannot go after all (STOP, a refusal, the choice
 --      changed while it waited) sends the email it replaced.
---   3. A short text for every customer notification: its own template (sms_templates, editable in Admin > Settings >
---      Text alerts) or a generic one from the email's subject, always with a link. Sign-in emails, chat transcripts and
---      emails to someone else (a driver's or co-signer's link) never become texts.
+--   3. A short text of its own for every customer notification (renter, owner, investor, additional driver, co-signer,
+--      lead): sms_templates, editable in Admin > Settings > Text alerts, always with a link. The generic text from the
+--      email's subject is only for a notification added later without a template. The sign-in emails (password reset,
+--      sign-in link, security notice, the continue-your-request sign-in link) never become texts. A driver's or
+--      co-signer's link is texted to that person (their own account and verified phone), never to the renter or owner.
 --   4. Opt-outs: STOP (and the usual keywords) and START through the Quo webhook (0085's phone_threads.opted_out_at is
---      the opt-out list; this adds more keywords and a log). The first automated text to a number, and the first after
---      a START, ends "Reply STOP to opt out."
+--      the opt-out list; this adds more keywords and a log). Quo sends no confirmation of its own, so CarmaCars texts one
+--      right away (quiet hours do not apply), once per change, logged with the STOP or START: "you're unsubscribed" after
+--      STOP, "texts are back on" after START. The first automated text to a number, and the first after a START, ends
+--      "Reply STOP to opt out."
 --   5. Quiet hours: no text that is not urgent from 9 pm to 8 am Toronto time; they wait in the outbox until 8 am.
 --      Urgent: late return notices, same-day pickup and return details, breakdown, accident and vehicle disabled.
 --   6. The US gate on every text from the outbox (missed-call texts and staff replies too).
@@ -39,7 +43,9 @@ alter table program_settings
   add column if not exists sms_quiet_from_hour integer not null default 21 check (sms_quiet_from_hour between 0 and 23),
   add column if not exists sms_quiet_until_hour integer not null default 8 check (sms_quiet_until_hour between 0 and 23),
   add column if not exists sms_stop_line boolean not null default true,
-  add column if not exists sms_generic_text text not null default 'CarmaCars: {{subject}}. Details: {{link}}';
+  add column if not exists sms_generic_text text not null default 'CarmaCars: {{subject}}. Details: {{link}}',
+  add column if not exists sms_stop_confirm_text text not null default 'CarmaCars: you''re unsubscribed and won''t get more texts. Reply START to resubscribe.',
+  add column if not exists sms_start_confirm_text text not null default 'CarmaCars: texts are back on. Reply STOP to opt out.';
 
 comment on column program_settings.sms_alerts_enabled is 'Text alerts: send notifications by text to people who chose Text or Both and have a verified phone. Off: everyone gets email only.';
 comment on column program_settings.sms_default_with_phone is 'Text alerts: the channel of a person with a verified phone and an email who has not chosen (both, text or email).';
@@ -48,6 +54,8 @@ comment on column program_settings.sms_quiet_hours is 'Text alerts: hold texts t
 comment on column program_settings.sms_quiet_from_hour is 'Text alerts: quiet hours start (Toronto hour, 21 is 9 pm).';
 comment on column program_settings.sms_quiet_until_hour is 'Text alerts: quiet hours end (Toronto hour, 8 is 8 am).';
 comment on column program_settings.sms_stop_line is 'Text alerts: add "Reply STOP to opt out." to the first text to a number (and the first after START).';
+comment on column program_settings.sms_stop_confirm_text is 'Text alerts: the one text sent right after a STOP reply (Quo sends none of its own). Names CarmaCars and how to undo it (START).';
+comment on column program_settings.sms_start_confirm_text is 'Text alerts: the one text sent right after a START reply. Names CarmaCars and how to stop (STOP).';
 comment on column program_settings.sms_generic_text is 'Text alerts: the text of a notification without its own template. {{subject}} is the email''s subject, {{link}} the page.';
 
 -- A text template: 1 to 320 characters (two texts), no long dashes, names CarmaCars, has the link.
@@ -59,6 +67,13 @@ $$;
 comment on function app.sms_template_ok(text) is 'A text alert template: 1 to 320 characters, no long dashes, names CarmaCars and has {{link}}.';
 alter table program_settings drop constraint if exists program_settings_sms_generic_check;
 alter table program_settings add constraint program_settings_sms_generic_check check (app.sms_template_ok(sms_generic_text) and strpos(sms_generic_text, '{{subject}}') > 0);
+-- the STOP and START confirmations: 1 to 320 characters, no long dashes, name CarmaCars and the keyword that undoes them
+alter table program_settings drop constraint if exists program_settings_sms_confirm_check;
+alter table program_settings add constraint program_settings_sms_confirm_check check (
+  length(btrim(sms_stop_confirm_text)) between 1 and 320 and strpos(sms_stop_confirm_text, chr(8212)) = 0 and strpos(sms_stop_confirm_text, chr(8211)) = 0
+  and strpos(sms_stop_confirm_text, 'CarmaCars') > 0 and strpos(upper(sms_stop_confirm_text), 'START') > 0
+  and length(btrim(sms_start_confirm_text)) between 1 and 320 and strpos(sms_start_confirm_text, chr(8212)) = 0 and strpos(sms_start_confirm_text, chr(8211)) = 0
+  and strpos(sms_start_confirm_text, 'CarmaCars') > 0 and strpos(upper(sms_start_confirm_text), 'STOP') > 0);
 
 -- ================================================================ 2. the choice
 alter table users add column if not exists notify_channel text check (notify_channel in ('email', 'text', 'both'));
@@ -76,16 +91,20 @@ comment on column investors.notify_channel is 'Since 0096: the channel chosen fo
 alter table notification_catalogue add column if not exists always_email boolean not null default false;
 alter table notification_catalogue add column if not exists no_text boolean not null default false;
 comment on column notification_catalogue.always_email is 'Since 0096: a legal or long document (signed agreements, statements, receipts, invoices, notices): emailed whenever there is an address, whatever the person chose.';
-comment on column notification_catalogue.no_text is 'Since 0096: never a text (sign-in emails, chat transcripts, links sent to someone else).';
+alter table notification_catalogue add column if not exists text_to_recipient boolean not null default false;
+comment on column notification_catalogue.no_text is 'Since 0096: never a text (the sign-in and security emails: password reset, sign-in link, security notice, the continue-your-request sign-in link).';
+comment on column notification_catalogue.text_to_recipient is 'Since 0096: sent to someone other than the record''s person (an additional driver, a co-signer): the text goes to the account of the address it is sent to, never to the renter or owner of the record.';
 
 update notification_catalogue set always_email = true where code in (
   'renter_payment_receipt', 'renter_agreement_signed', 'renter_final_statement', 'renter_extra_charge', 'renter_refund_issued', 'renter_named_to_authority',
   'renter_damage_found', 'owner_statement_ready', 'owner_agreement_signed', 'owner_fee_invoice', 'owner_invoice_issued', 'owner_upfront_invoice',
   'owner_invoice_voided', 'owner_payment_recorded', 'owner_pad_confirmed', 'owner_debit_notice', 'owner_fee_change_notice', 'owner_vehicle_enrolled',
-  'owner_exit_completed', 'owner_exit_notice_received', 'investor_statement_ready', 'investor_notice_received');
+  'owner_exit_completed', 'owner_exit_notice_received', 'investor_statement_ready', 'investor_notice_received',
+  -- the visitor typed an address to get the copy: it goes there whatever the channel, and the text says so
+  'renter_chat_transcript');
 update notification_catalogue set no_text = true where code in (
-  'account_password_reset', 'account_sign_in_link', 'account_security_notice', 'renter_chat_transcript', 'renter_driver_link', 'owner_cosigner_sign',
-  'renter_continue_request');
+  'account_password_reset', 'account_sign_in_link', 'account_security_notice', 'renter_continue_request');
+update notification_catalogue set text_to_recipient = true where code in ('renter_driver_link', 'owner_cosigner_sign');
 
 create table if not exists sms_templates (
   code        text primary key references notification_catalogue (code) on update cascade on delete cascade,
@@ -147,7 +166,72 @@ insert into sms_templates (code, label, body, urgent, sort_order) values
   ('person_document_to_sign', 'Document to sign', 'CarmaCars: a document is ready for you to sign: {{link}}', false, 310),
   ('renter_breakdown_help', 'Breakdown help', 'CarmaCars: help is on the way, about {{eta_minutes}} minutes. Details: {{link}}', true, 400),
   ('renter_accident_instructions', 'Accident instructions', 'CarmaCars: what to do now for booking {{booking_number}}: {{link}}', true, 401),
-  ('renter_vehicle_disabled', 'Vehicle disabled', 'CarmaCars: your rental has ended and the {{vehicle_name}} will not restart. Details: {{link}}', true, 402)
+  ('renter_vehicle_disabled', 'Vehicle disabled', 'CarmaCars: your rental has ended and the {{vehicle_name}} will not restart. Details: {{link}}', true, 402),
+  -- every other customer email has its own text too (renters, leads, drivers)
+  ('renter_account_created', 'Account ready', 'CarmaCars: your account is ready. Find a car and book: {{link}}', false, 1),
+  ('renter_request_needs_info', 'Request: one question', 'CarmaCars: one question before we can send your offer for booking {{booking_number}}. Answer it here: {{link}}', false, 11),
+  ('renter_request_declined', 'Request declined', 'CarmaCars: we cannot fill your request for {{pickup_date}}. See other cars: {{link}}', false, 12),
+  ('renter_recovery_request', 'Request not sent yet', 'CarmaCars: your request for the {{vehicle_name}} is not sent yet. Finish it here: {{link}}', false, 13),
+  ('renter_recovery_offer', 'Offer waiting', 'CarmaCars: still thinking about the {{vehicle_name}}? Your offer is held until {{offer_expires_at}}: {{link}}', false, 22),
+  ('renter_offer_expired', 'Offer expired', 'CarmaCars: your offer for the {{vehicle_name}} has expired. Ask for a new one: {{link}}', false, 23),
+  ('renter_offer_withdrawn', 'Offer withdrawn', 'CarmaCars: we have withdrawn your offer for the {{vehicle_name}}, {{pickup_date}}. Details: {{link}}', false, 24),
+  ('renter_refund_issued', 'Refund sent', 'CarmaCars: refund of {{refund_amount}} sent for booking {{booking_number}}. Details: {{link}}', false, 45),
+  ('renter_extra_charge', 'Extra charge', 'CarmaCars: {{charge_type}} charge of {{charge_total}} on booking {{booking_number}}. Details: {{link}}', false, 46),
+  ('renter_rental_started', 'Rental started', 'CarmaCars: your rental of the {{vehicle_name}} has started. Return by {{return_date}} at {{return_time}}. Condition report: {{link}}', false, 54),
+  ('renter_return_complete', 'Returned', 'CarmaCars: the {{vehicle_name}} is returned. Thanks for renting with us. Condition report: {{link}}', false, 55),
+  ('renter_extension_requested', 'Extension requested', 'CarmaCars: we have your request to extend booking {{booking_number}} and will reply soon. Details: {{link}}', false, 59),
+  ('renter_change_request_received', 'Change requested', 'CarmaCars: we have your change request for booking {{booking_number}} and will reply soon. Track it: {{link}}', false, 65),
+  ('renter_change_request_approved', 'Change approved', 'CarmaCars: your change to booking {{booking_number}} is approved. Accept it by {{accept_by}}: {{link}}', false, 66),
+  ('renter_change_request_declined', 'Change declined', 'CarmaCars: we cannot make that change to booking {{booking_number}}. Your booking stays as it was. Details: {{link}}', false, 67),
+  ('renter_change_proposed', 'Change suggested', 'CarmaCars: we suggest a change to booking {{booking_number}}. Review and answer by {{accept_by}}: {{link}}', false, 68),
+  ('renter_change_proposal_reminder', 'Change: reminder', 'CarmaCars: please answer the change to booking {{booking_number}} by {{accept_by}}: {{link}}', false, 69),
+  ('renter_recovery_change', 'Change: answer waiting', 'CarmaCars: we still need your answer to the change to booking {{booking_number}}, by {{accept_by}}: {{link}}', false, 72),
+  ('renter_change_proposal_expired', 'Change: not accepted', 'CarmaCars: the change to booking {{booking_number}} was not accepted in time, so the booking stays as it was. Details: {{link}}', false, 73),
+  ('renter_change_applied', 'Booking updated', 'CarmaCars: booking {{booking_number}} is updated. See the new details: {{link}}', false, 74),
+  ('renter_driver_link', 'Additional driver: accept', 'CarmaCars: {{renter_name}} added you as a driver on booking {{booking_number}}. Accept the rental agreement before pickup: {{link}}', false, 75),
+  ('renter_damage_found', 'Damage found', 'CarmaCars: we found damage on the {{vehicle_name}} after your return (booking {{booking_number}}). Details: {{link}}', false, 94),
+  ('renter_named_to_authority', 'Named to the authority', 'CarmaCars: we gave your details to the issuing authority for {{notice_type_lower}} {{notice_number}} (booking {{booking_number}}). Details: {{link}}', false, 95),
+  ('renter_booking_cancelled_by_us', 'Booking cancelled by us', 'CarmaCars: we are sorry, we had to cancel booking {{booking_number}}. Full refund of {{refund_amount}}. Find another car: {{link}}', false, 96),
+  ('renter_google_review_request', 'Google review request', 'CarmaCars: thanks for renting the {{vehicle_name}}. Would you review us on Google? {{link}}', false, 97),
+  ('renter_comeback_1w', 'Come back: 1 week', 'CarmaCars: thanks for renting with us. {{discount_percent}}% off your next rental with code {{discount_code}}, until {{discount_expires}}: {{link}}', false, 98),
+  ('renter_comeback_1m', 'Come back: 1 month', 'CarmaCars: {{discount_percent}}% off your next rental with code {{discount_code}}, until {{discount_expires}}. Book: {{link}}', false, 99),
+  ('renter_game_code', 'Game prize code', 'CarmaCars: your code {{discount_code}} for {{prize_label}}, valid until {{discount_expires}}. Use it here: {{link}}', false, 120),
+  ('renter_game_code_reminder', 'Game code ends tomorrow', 'CarmaCars: your {{prize_label}} code {{discount_code}} ends tomorrow. Book now: {{link}}', false, 121),
+  ('renter_chat_transcript', 'Chat copy emailed', 'CarmaCars: we emailed you a copy of your chat {{chat_number}}. See our cars: {{link}}', false, 122),
+  -- owners and co-signers
+  ('owner_account_created', 'Owner: account ready', 'CarmaCars: your owner account is ready. Sign in: {{link}}', false, 190),
+  ('owner_application_received', 'Owner: application received', 'CarmaCars: we have your application for the {{vehicle_name}}. Track it: {{link}}', false, 191),
+  ('owner_application_info_requested', 'Owner: application, more needed', 'CarmaCars: we need a little more for application {{application_number}}. See what to send: {{link}}', false, 192),
+  ('owner_application_approved', 'Owner: application approved', 'CarmaCars: approved. Your {{vehicle_name}} can join CarmaCars. Next steps: {{link}}', false, 193),
+  ('owner_application_declined', 'Owner: application declined', 'CarmaCars: we cannot enrol your {{vehicle_name}}. Details: {{link}}', false, 194),
+  ('owner_onboarding_steps', 'Owner: next steps', 'CarmaCars: next steps to enrol your {{vehicle_name}}: {{link}}', false, 195),
+  ('owner_registry_visit', 'Owner: registry visit', 'CarmaCars: registry visit booked for your {{vehicle_name}}, {{visit_date}} at {{visit_time}}. Details: {{link}}', false, 196),
+  ('owner_car_set_up', 'Owner: car set up, review', 'CarmaCars: we set up your {{vehicle_name}}. Review the details and sign: {{link}}', false, 197),
+  ('owner_vehicle_enrolled', 'Owner: on the fleet policy', 'CarmaCars: your {{vehicle_name}} is on the fleet policy. Written confirmation: {{link}}', false, 198),
+  ('owner_vehicle_listed', 'Owner: car live', 'CarmaCars: your {{vehicle_name}} is live and open for bookings. See its calendar: {{link}}', false, 199),
+  ('owner_booking_changed', 'Owner: booking changed', 'CarmaCars: booking {{booking_number}} of your car changed. Details: {{link}}', false, 201),
+  ('owner_booking_confirmed', 'Owner: own booking confirmed', 'CarmaCars: confirmed, your own booking of the {{vehicle_name}}, {{pickup_date}} at {{pickup_time}}. Details: {{link}}', false, 202),
+  ('owner_payment_received', 'Owner: payment received', 'CarmaCars: payment of {{amount}} received for invoice {{invoice_number}}. Details: {{link}}', false, 225),
+  ('owner_payment_recorded', 'Owner: receipt', 'CarmaCars: receipt, {{amount}} received for invoice {{invoice_number}}. View it: {{link}}', false, 226),
+  ('owner_payment_reversed', 'Owner: payment not received', 'CarmaCars: the payment for invoice {{invoice_number}} was not received. Balance {{balance}}. Details: {{link}}', false, 227),
+  ('owner_invoice_voided', 'Owner: invoice cancelled', 'CarmaCars: invoice {{invoice_number}} is cancelled. Details: {{link}}', false, 228),
+  ('owner_debit_setup_needed', 'Owner: set up bank debit', 'CarmaCars: set up your bank debit for {{debit_total}} due {{debit_date}}: {{link}}', false, 229),
+  ('owner_pad_confirmed', 'Owner: debit agreement', 'CarmaCars: your pre-authorized debit agreement with {{payee_name}} is in place. View it: {{link}}', false, 233),
+  ('owner_debit_returned', 'Owner: debit returned', 'CarmaCars: the debit for invoice {{invoice_number}} was returned by your bank. Balance {{balance}}. Pay or update: {{link}}', false, 234),
+  ('owner_in_arrears', 'Owner: in arrears', 'CarmaCars: {{arrears_amount}} is owing on your {{vehicle_name}}. Please pay now: {{link}}', false, 235),
+  ('owner_bank_details_changed', 'Owner: payment details changed', 'CarmaCars: the payment details on your owner account were changed. Not you? Call {{support_phone}}. Review: {{link}}', false, 236),
+  ('owner_fee_change_notice', 'Owner: change to terms', 'CarmaCars: notice of a change to your terms for the {{vehicle_name}}, from {{effective_date}}. Read it: {{link}}', false, 237),
+  ('owner_cosigner_sign', 'Co-signer: documents to sign', 'CarmaCars: {{owner_name}} added you as a co-signer. Please sign the owner documents: {{link}}', false, 238),
+  ('owner_document_due', 'Owner: document due', 'CarmaCars: {{document_type}} for your {{vehicle_name}} is due {{due_date}}. Upload it: {{link}}', false, 240),
+  ('owner_form_approved', 'Owner: form approved', 'CarmaCars: {{form_title}} is approved. Details: {{link}}', false, 241),
+  ('owner_form_rejected', 'Owner: form to upload again', 'CarmaCars: please upload {{form_title}} again. See why: {{link}}', false, 242),
+  ('owner_incident_opened', 'Owner: incident', 'CarmaCars: an incident involving your {{vehicle_name}} on {{incident_date}}. We are on it. Details: {{link}}', false, 250),
+  ('owner_incident_update', 'Owner: incident update', 'CarmaCars: update on incident {{incident_number}}, {{incident_status}}. Details: {{link}}', false, 251),
+  ('owner_toll_ticket', 'Owner: toll or ticket', 'CarmaCars: {{notice_type}} for your {{vehicle_name}}, {{notice_amount}}. Details: {{link}}', false, 252),
+  ('owner_exit_notice_received', 'Owner: exit notice received', 'CarmaCars: we received your exit notice for the {{vehicle_name}}. Exit Date {{exit_date}}. Details: {{link}}', false, 260),
+  ('owner_exit_completed', 'Owner: exit complete', 'CarmaCars: exit complete, your {{vehicle_name}} is back with you. Documents: {{link}}', false, 261),
+  -- investors
+  ('investor_notice_received', 'Investor: notice received', 'CarmaCars: we received your notice of {{notice_date}}. Details: {{link}}', false, 302)
 on conflict (code) do nothing;
 -- a template only for a code that exists in this database's catalogue (the foreign key) and is not a staff code
 delete from sms_templates t where not exists (select 1 from notification_catalogue c where c.code = t.code);
@@ -248,7 +332,7 @@ end $$;
 
 -- ================================================================ 5. the outbox: texts of notifications, the US gate, STOP line
 alter table phone_outbox drop constraint if exists phone_outbox_kind_check;
-alter table phone_outbox add constraint phone_outbox_kind_check check (kind in ('missed_call', 'booking', 'staff', 'notify'));
+alter table phone_outbox add constraint phone_outbox_kind_check check (kind in ('missed_call', 'booking', 'staff', 'notify', 'opt_confirm'));
 alter table phone_outbox add column if not exists user_id uuid references users (id) on delete set null;
 alter table phone_outbox add column if not exists urgent boolean not null default false;
 create index if not exists phone_outbox_created_idx on phone_outbox (created_at);
@@ -321,7 +405,10 @@ begin
                                                       where jsonb_typeof(e.value) <> 'null' and e.value <> '""'::jsonb), '{}'::jsonb);
   select * into t from sms_templates where code = p_code;
   if t.code is not null and not t.enabled then return null; end if;
-  v_link := coalesce(app.notification_url(c, p_payload),
+  -- the email's page; for an email without one, its own link (a driver's signing link, the Google review page, the car
+  -- of an unsent request), else the person's portal
+  v_link := coalesce(app.notification_url(c, p_payload), nullif(p_payload ->> 'sign_url', ''), nullif(p_payload ->> 'google_review_url', ''),
+    nullif(p_payload ->> 'car_url', ''),
     rtrim(coalesce(s.notify_base_url, 'https://carmacars.ca'), '/') || case p_audience when 'owner' then '/owner' when 'investor' then '/investor' else '/account' end);
   v_tpl := coalesce(t.body, s.sms_generic_text);
   return jsonb_build_object('body', app.sms_render(v_tpl, coalesce(p_payload, '{}'::jsonb) || jsonb_build_object('link', v_link,
@@ -330,13 +417,33 @@ begin
 end $$;
 
 -- ================================================================ 6. routing (before and after a notification is queued)
+-- Whose channel and phone count for a notification row: {user_id, kind, record}. The record's person (renter or owner),
+-- or, for an email to someone else (an additional driver, a co-signer), the account of the address it goes to, with no
+-- record (the renter's or owner's choice and phone never apply to it).
+create or replace function app.notify_who(p_row notification_outbox) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v_user uuid := p_row.recipient_user_id;
+begin
+  if (select c.text_to_recipient from notification_catalogue c where c.code = p_row.code) then
+    if v_user is null and nullif(btrim(coalesce(p_row.to_address, '')), '') is not null then
+      select u.id into v_user from users u where lower(u.email) = lower(btrim(p_row.to_address)) order by u.created_at limit 1;
+    end if;
+    return jsonb_build_object('user_id', v_user, 'kind', null, 'record', null);
+  end if;
+  if v_user is null and p_row.audience = 'renter' and p_row.renter_id is not null then select user_id into v_user from renters where id = p_row.renter_id; end if;
+  if v_user is null and p_row.audience = 'owner' and p_row.owner_id is not null then select user_id into v_user from owners where id = p_row.owner_id; end if;
+  return jsonb_build_object('user_id', v_user,
+    'kind', case when p_row.audience = 'renter' and p_row.renter_id is not null then 'renter' when p_row.audience = 'owner' and p_row.owner_id is not null then 'owner' end,
+    'record', case p_row.audience when 'renter' then p_row.renter_id when 'owner' then p_row.owner_id end);
+end $$;
+
 create or replace function app.notify_route() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 declare
   c notification_catalogue;
-  v_kind text;
-  v_rec uuid;
-  v_user uuid := new.recipient_user_id;
+  w jsonb;
+  v_user uuid;
   r jsonb;
   v_ch text;
   v_text jsonb;
@@ -344,11 +451,9 @@ declare
 begin
   if new.audience not in ('renter', 'owner', 'investor') then return new; end if;
   select * into c from notification_catalogue where code = new.code;
-  v_kind := new.audience;
-  v_rec := case new.audience when 'renter' then new.renter_id when 'owner' then new.owner_id end;
-  if v_user is null and new.renter_id is not null and new.audience = 'renter' then select user_id into v_user from renters where id = new.renter_id; end if;
-  if v_user is null and new.owner_id is not null and new.audience = 'owner' then select user_id into v_user from owners where id = new.owner_id; end if;
-  r := app.notify_reach(v_user, case when v_rec is not null then v_kind end, v_rec);
+  w := app.notify_who(new);
+  v_user := (w ->> 'user_id')::uuid;
+  r := app.notify_reach(v_user, w ->> 'kind', (w ->> 'record')::uuid);
   v_ch := r ->> 'channel';
   new.channel := v_ch;
   if v_ch = 'email' or not (r ->> 'textable')::boolean or c.no_text then return new; end if;
@@ -372,7 +477,7 @@ create or replace function app.notify_route_text() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 declare
   s program_settings := app.settings();
-  v_user uuid := new.recipient_user_id;
+  w jsonb;
   r jsonb;
   v_text jsonb;
   v_body text;
@@ -380,15 +485,14 @@ declare
   o phone_outbox;
 begin
   if not new.sms_planned then return new; end if;
-  if v_user is null and new.audience = 'renter' and new.renter_id is not null then select user_id into v_user from renters where id = new.renter_id; end if;
-  if v_user is null and new.audience = 'owner' and new.owner_id is not null then select user_id into v_user from owners where id = new.owner_id; end if;
-  r := app.notify_reach(v_user, case when new.audience in ('renter', 'owner') then new.audience end, case new.audience when 'renter' then new.renter_id when 'owner' then new.owner_id end);
+  w := app.notify_who(new);
+  r := app.notify_reach((w ->> 'user_id')::uuid, w ->> 'kind', (w ->> 'record')::uuid);
   v_text := app.sms_text_for(new.code, new.payload, new.audience, new.booking_id);
   if v_text is null or r ->> 'phone' is null then return new; end if;
   v_body := v_text ->> 'body';
   if s.sms_stop_line and app.sms_first_to(r ->> 'phone') then v_body := v_body || ' Reply STOP to opt out.'; end if;
   v_after := case when (v_text ->> 'urgent')::boolean then new.send_after else greatest(new.send_after, app.sms_quiet_end(now())) end;
-  o := app.phone_outbox_put(r ->> 'phone', v_body, 'notify', new.booking_id, case when new.audience = 'renter' then new.renter_id end, new.code, new.id,
+  o := app.phone_outbox_put(r ->> 'phone', v_body, 'notify', new.booking_id, case when w ->> 'kind' = 'renter' then new.renter_id end, new.code, new.id,
          'sms:' || new.dedupe_key, v_after);
   update phone_outbox set user_id = (r ->> 'user_id')::uuid, urgent = (v_text ->> 'urgent')::boolean where id = o.id and user_id is null;
   -- the text could not be queued after all: the email it replaced goes
@@ -426,6 +530,9 @@ declare
   o record;
   r jsonb;
 begin
+  -- a STOP or START confirmation is sent once: one that never reported back is not tried again (0085 would retry it)
+  update phone_outbox set status = 'failed', locked_at = null, status_reason = 'No answer from Quo; a confirmation is sent once'
+   where kind = 'opt_confirm' and status = 'sending' and locked_at < now() - interval '10 minutes';
   for o in select x.id, x.user_id, x.renter_id from phone_outbox x where x.status = 'queued' and x.kind = 'notify' and x.send_after <= now() and x.user_id is not null
            order by x.send_after limit greatest(p_limit, 1) * 3 for update skip locked loop
     r := app.notify_reach(o.user_id, case when o.renter_id is not null then 'renter' end, o.renter_id);
@@ -438,30 +545,81 @@ begin
   return app.server_phone_due_pre0096(p_limit);
 end $$;
 
--- ================================================================ 7. STOP and START: more keywords, the log
+-- ================================================================ 7. STOP and START: more keywords, the log, the confirmation
 create table if not exists sms_opt_out_log (
   id         bigserial primary key,
   number     text not null,
   action     text not null check (action in ('stop', 'start')),
   source     text,
-  at         timestamptz not null default now()
+  at         timestamptz not null default now(),
+  confirm_id uuid references phone_outbox (id) on delete set null
 );
 create index if not exists sms_opt_out_log_number_idx on sms_opt_out_log (number, at desc);
-comment on table sms_opt_out_log is 'Text alerts (0096): every STOP and START of a number (the reply, a carrier error or staff), for the record. The current list is phone_threads.opted_out_at.';
+comment on table sms_opt_out_log is 'Text alerts (0096): every STOP and START of a number (the reply, a carrier error or staff), for the record, with the confirmation text sent for a reply (confirm_id, a phone_outbox row of kind opt_confirm). The current list is phone_threads.opted_out_at.';
 
-create or replace function app.sms_opt_log() returns trigger
+-- When texts start again (the first automated text after it carries the STOP line again).
+create or replace function app.sms_opt_in_at() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
-  if new.opted_out_at is not null and old.opted_out_at is null then
-    insert into sms_opt_out_log (number, action, source) values (new.number, 'stop', new.opt_out_source);
-  elsif new.opted_out_at is null and old.opted_out_at is not null then
-    insert into sms_opt_out_log (number, action, source) values (new.number, 'start', 'start');
-    new.opted_in_at := now();
-  end if;
+  if new.opted_out_at is null and old.opted_out_at is not null then new.opted_in_at := now(); end if;
   return new;
 end $$;
 drop trigger if exists phone_threads_opt_log on phone_threads;
-create trigger phone_threads_opt_log before update of opted_out_at on phone_threads for each row execute function app.sms_opt_log();
+drop trigger if exists phone_threads_opt_in_at on phone_threads;
+create trigger phone_threads_opt_in_at before update of opted_out_at on phone_threads for each row execute function app.sms_opt_in_at();
+
+-- Each change is logged once. A change made by a reply (STOP or START texted to us, read by the Quo webhook, which
+-- sets app.sms_reply for its transaction) is confirmed by one text, sent at once by the webhook (quiet hours do not
+-- apply: the person just texted us). Quo sends no confirmation of its own. A carrier error or a staff change gets no
+-- text. The US gate and "Phone and texts" off still hold (the row is then skipped with the reason, and logged).
+create or replace function app.sms_opt_log() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+declare
+  s program_settings := app.settings();
+  v_action text;
+  v_log bigint;
+  v_reply boolean := coalesce(current_setting('app.sms_reply', true), '') = 'on';
+  v_skip text;
+  v_id uuid;
+begin
+  if new.opted_out_at is not null and old.opted_out_at is null then v_action := 'stop';
+  elsif new.opted_out_at is null and old.opted_out_at is not null then v_action := 'start';
+  else return new; end if;
+  insert into sms_opt_out_log (number, action, source)
+  values (new.number, v_action, case when v_action = 'stop' then new.opt_out_source when v_reply then 'start' else 'staff' end)
+  returning id into v_log;
+  if not v_reply or (v_action = 'stop' and new.opt_out_source is distinct from 'stop') then return new; end if;
+  if not s.phone_enabled then v_skip := 'Phone and texts are off in Program settings';
+  elsif app.phone_country(new.number) = 'US' and not s.signin_phone_us_allowed then v_skip := 'US texts wait for A2P 10DLC registration (Program settings, Sign-in by phone: also US numbers)';
+  end if;
+  insert into phone_outbox (thread_id, to_number, body, kind, sms_kind, renter_id, status, status_reason, send_after, dedupe_key, locked_at, urgent)
+  values (new.id, new.number, case v_action when 'stop' then s.sms_stop_confirm_text else s.sms_start_confirm_text end, 'opt_confirm', 'opt_' || v_action, new.renter_id,
+          case when v_skip is null then 'sending' else 'skipped' end, v_skip, now(), 'optconfirm:' || v_log, case when v_skip is null then now() end, true)
+  on conflict (dedupe_key) do nothing
+  returning id into v_id;
+  update sms_opt_out_log set confirm_id = v_id where id = v_log;
+  return new;
+end $$;
+create trigger phone_threads_opt_log after update of opted_out_at on phone_threads for each row execute function app.sms_opt_log();
+
+-- The webhook: a reply's STOP or START is confirmed in the same delivery (the text is returned with the missed-call
+-- text, if any, and sent at once).
+alter function app.server_phone_event(jsonb) rename to server_phone_event_pre0096;
+create or replace function app.server_phone_event(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r jsonb;
+  v_conf jsonb;
+begin
+  perform set_config('app.sms_reply', 'on', true);
+  r := app.server_phone_event_pre0096(p);
+  perform set_config('app.sms_reply', '', true);
+  if r ->> 'thread_id' is null then return r; end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id', o.id, 'to', o.to_number, 'body', o.body) order by o.created_at), '[]'::jsonb) into v_conf
+    from phone_outbox o where o.thread_id = (r ->> 'thread_id')::uuid and o.kind = 'opt_confirm' and o.status = 'sending' and o.locked_at = now();
+  if jsonb_array_length(v_conf) = 0 then return r; end if;
+  return r || jsonb_build_object('send', coalesce(r -> 'send', '[]'::jsonb) || v_conf);
+end $$;
 
 -- The keywords carriers also honour that 0085 does not read (STOP and START themselves stay with 0085).
 create or replace function app.sms_keywords() returns trigger
@@ -562,7 +720,8 @@ begin
     values (p_by, 'notify_channel_set', coalesce(v_kind || 's', 'users'), coalesce(v_rec, v_user), b, jsonb_build_object('notify_channel', v));
   end if;
   r := app.notify_reach(v_user, v_kind, v_rec);
-  return r || jsonb_build_object('log', coalesce((select jsonb_agg(jsonb_build_object('action', l.action, 'source', l.source, 'at', l.at) order by l.at desc)
+  return r || jsonb_build_object('log', coalesce((select jsonb_agg(jsonb_build_object('action', l.action, 'source', l.source, 'at', l.at,
+                                                   'confirmation', (select o.status from phone_outbox o where o.id = l.confirm_id)) order by l.at desc)
                                                    from (select * from sms_opt_out_log where number = r ->> 'phone' order by at desc limit 5) l), '[]'::jsonb),
     'texts_30d', (select count(*) from phone_outbox o where o.user_id = v_user and o.kind = 'notify' and o.status = 'sent' and o.created_at > now() - interval '30 days'));
 end $$;
@@ -689,7 +848,8 @@ begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where (n.nspname = 'app' and p.proname = any (array['notify_reach', 'sms_quiet_end', 'sms_first_to', 'sms_text_for', 'sms_booking_vars', 'notify_route', 'notify_route_text',
-              'sms_fallback_email', 'server_phone_due', 'server_phone_due_pre0096', 'sms_opt_log', 'sms_keywords', 'my_notify_channel', 'set_notify_channel',
+              'sms_fallback_email', 'server_phone_due', 'server_phone_due_pre0096', 'sms_opt_log', 'sms_opt_in_at', 'sms_keywords', 'notify_who',
+              'server_phone_event', 'server_phone_event_pre0096', 'my_notify_channel', 'set_notify_channel',
               'request_notify_channel', 'notify_staff', 'sms_settings', 'sms_template_save', 'sms_volume', 'site_health', 'site_health_pre0096', 'phone_outbox_put']))
         or (n.nspname = 'public' and p.proname = any (array['server_my_notify_channel', 'server_set_notify_channel', 'server_request_notify_channel']))
   loop
