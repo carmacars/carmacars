@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, faqLd, type Trail } from '@/features/seo/meta';
 import { fill, getClasses, getTokens, siteUrl } from '@/lib/site';
-import { descriptionFor, fuelWord, list, ptName, rentalFaq, specs, titleFor, trimDiffs, ratingRange, ratingText, yearChanges, priceBasis, dollars } from './content';
+import { descriptionOptions, fit, fuelWord, list, ptName, rentalFaq, specs, titleOptions, trimDiffs, ratingRange, ratingText, yearChanges, priceBasis, dollars } from './content';
 import { type MakePage, type ModelPage, type TrimPage, type YearPage, vehicleMeta } from './data';
 import { CostBlock, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead, YearsTable, fromPrice } from './parts';
 import '@/styles/vehicles.css';
@@ -19,8 +19,8 @@ const EPA_NOTE = 'Fuel use is the US EPA rating (fueleconomy.gov) converted to l
 export async function makeMeta(p: MakePage): Promise<Metadata> {
   const t = await getTokens();
   const years = p.models.flatMap((m) => [m.first_year, m.last_year]);
-  return vehicleMeta({ title: fill(titleFor({ make: p.make.name }), t), path: p.path, indexable: p.indexable, canonical: p.canonical,
-    description: fill(descriptionFor({ make: p.make.name, count: p.models.length, firstYear: years.length ? Math.min(...years) : undefined, lastYear: years.length ? Math.max(...years) : undefined, cars: p.inventory.real_exact }), t),
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+    description: fit(descriptionOptions({ make: p.make.name, count: p.models.length, firstYear: years.length ? Math.min(...years) : undefined, lastYear: years.length ? Math.max(...years) : undefined, cars: p.inventory.real_exact }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: 'car', vclass: null, model: p.make.name }), imageAlt: `${p.make.name} studio image` });
 }
 
@@ -66,9 +66,9 @@ export async function modelMeta(p: ModelPage): Promise<Metadata> {
   const t = await getTokens();
   const ys = p.years.map((y) => y.year);
   const l = p.years.map((y) => y.l100_min).filter((x): x is number => x !== null).map(Number);
-  return vehicleMeta({ title: fill(titleFor({ make: p.make.name, model: p.model.name }), t), path: p.path, indexable: p.indexable, canonical: p.canonical,
-    description: fill(descriptionFor({ make: p.make.name, model: p.model.name, firstYear: ys.length ? Math.min(...ys) : undefined, lastYear: ys.length ? Math.max(...ys) : undefined,
-      use: l.length ? `from ${Math.min(...l).toFixed(1)} L/100 km` : undefined, cars: p.inventory.exact.length }), t),
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+    description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, firstYear: ys.length ? Math.min(...ys) : undefined, lastYear: ys.length ? Math.max(...ys) : undefined,
+      use: l.length ? `from ${Math.min(...l).toFixed(1)} L/100 km` : undefined, cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.model.vclass, model: p.model.name }), imageAlt: `${p.make.name} ${p.model.name} studio image` });
 }
 
@@ -115,8 +115,8 @@ export async function ModelView({ p }: { p: ModelPage }) {
 export async function yearMeta(p: YearPage): Promise<Metadata> {
   const t = await getTokens();
   const sp = specs(p.variants, p.settings);
-  return vehicleMeta({ title: fill(titleFor({ make: p.make.name, model: p.model.name, year: p.year }), t), path: p.path, indexable: p.indexable, canonical: p.canonical,
-    description: fill(descriptionFor({ make: p.make.name, model: p.model.name, year: p.year, use: ratingRange(sp), trims: p.trims.map((x) => x.name), cars: p.inventory.exact.length }), t),
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+    description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, year: p.year, use: ratingRange(sp), trims: p.trims.map((x) => x.name), cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.vclass, model: p.model.name }), imageAlt: `${p.year} ${p.make.name} ${p.model.name} studio image` });
 }
 
@@ -173,8 +173,8 @@ export async function YearView({ p }: { p: YearPage }) {
 export async function trimMeta(p: TrimPage): Promise<Metadata> {
   const t = await getTokens();
   const sp = specs(p.variants, p.settings, p.trim.variant_ids);
-  return vehicleMeta({ title: fill(titleFor({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name }), t), path: p.path, indexable: p.indexable, canonical: p.canonical,
-    description: fill(descriptionFor({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, use: [list([...new Set(sp.map((x) => x.engine))]), ratingRange(sp)].filter(Boolean).join(', '), cars: p.inventory.exact.length }), t),
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+    description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, use: [list([...new Set(sp.map((x) => x.engine))]), ratingRange(sp)].filter(Boolean).join(', '), cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.vclass, model: p.model.name }), imageAlt: `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name} studio image` });
 }
 

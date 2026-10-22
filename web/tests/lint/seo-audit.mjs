@@ -85,7 +85,12 @@ if (new Set(paths).size !== paths.length) bad('sitemap', 'duplicate entries');
 // 0035) and a model page of samples only are noindex and out of the sitemap; their content is checked all the same.
 const fleetHtml = (await get('/cars')).body;
 const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"/g)].map((m) => m[1]);
-const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p)));
+// the vehicle pages (0092): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
+const vehiclePaths = new Set();
+for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\//.test(loc)) {
+  for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) vehiclePaths.add(new URL(m[1]).pathname);
+}
+const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p) && !vehiclePaths.has(p)));
 const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
 // landing pages and guides: those in the sitemap and every one the hubs link to (a use page under the threshold is noindex)
 const hubHtml = (await get('/car-rental')).body + (await get('/guides')).body;
@@ -108,7 +113,9 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, .
   const indexable = !/noindex/.test(robotsMeta ?? '');
   if (!indexable) {
     if (paths.includes(p)) bad(p, 'in the sitemap but noindex');
-    if (canon) bad(p, 'noindex page with a canonical link');
+    // a vehicle page held out of search by the Admin's rules names its parent as canonical (0092); any other noindex page has none
+    const parent = p.split('/').slice(0, -1).join('/');
+    if (canon && !(/^\/cars\/[^/]+\/[^/]+/.test(p) && canon === SITE + parent)) bad(p, 'noindex page with a canonical link');
     report.noindex.push(p);
     if (!cars.has(p) && !hubs.has(p) && !landing.has(p)) continue;
   }
@@ -152,6 +159,13 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, .
     else for (const k of ['headline', 'datePublished', 'dateModified', 'author', 'publisher', 'image']) if (!art[k]) bad(p, `Article without ${k}`);
   }
   if (p !== '/' && !types.includes('BreadcrumbList')) bad(p, 'no BreadcrumbList');
+  if (vehiclePaths.has(p) && p.split('/').length > 3) {
+    // a model, year or trim page: its Product/Car node; offers only when real cars of ours match (never an empty offer)
+    const car = nodes.find((n) => [].concat(n['@type']).includes('Car'));
+    if (!car) bad(p, 'vehicle page without its Car node');
+    if (car?.offers && !(Number(car.offers.offerCount) > 0)) bad(p, 'vehicle page with an offer and no car');
+    if (!types.includes('FAQPage')) bad(p, 'vehicle page without FAQPage');
+  }
   if (cars.has(p)) {
     if (!types.includes('Car')) bad(p, 'no Car node');
     const car = nodes.find((n) => [].concat(n['@type']).includes('Car'));
@@ -173,6 +187,13 @@ for (const [d, ps] of descs) if (ps.length > 1) bad('descriptions', `"${d.slice(
 const from = (p) => new Set(report.pages[p]?.links ?? []);
 const fleetLinks = new Set([...from('/cars'), ...from('/')]);
 for (const c of cars) if (!fleetLinks.has(c)) bad('linking', `${c} has no link from home or /cars`);
+// vehicle pages: every make from /cars, every other level from its parent page (the tree, up and down)
+for (const v of vehiclePaths) {
+  const up = v.split('/').slice(0, -1).join('/');
+  if (v.split('/').length === 3) { if (!fleetLinks.has(v)) bad('linking', `${v} has no link from home or /cars`); }
+  else if (report.pages[up] && !from(up).has(v)) bad('linking', `${v} has no link from ${up}`);
+  if (report.pages[v] && v.split('/').length > 3 && !from(v).has(up)) bad('linking', `${v} does not link up to ${up}`);
+}
 for (const hb of hubs) {
   const linked = [...Object.values(report.pages)].some((pg) => pg.links?.includes(hb));
   if (!linked) bad('linking', `${hb} has no link from any public page`);

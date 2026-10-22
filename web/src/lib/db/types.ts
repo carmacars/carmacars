@@ -16143,6 +16143,7 @@ export type Database = {
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
       vehicle_make_page: { Args: { p_make: string }; Returns: Json };
+      vehicle_makes: { Args: never; Returns: Json };
       vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };

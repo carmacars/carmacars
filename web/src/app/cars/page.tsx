@@ -5,6 +5,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
 import { FleetBrowser } from '@/features/fleet/FleetBrowser';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { rpc } from '@/lib/db/repo';
 import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -19,7 +20,8 @@ export async function generateMetadata() {
 }
 
 export default async function Fleet() {
-  const [s, f, t, fleet, classes, band] = await Promise.all([getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), slotPhoto('fleet.band')]);
+  const [s, f, t, fleet, classes, band, makes] = await Promise.all([getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), slotPhoto('fleet.band'),
+    rpc('vehicle_makes', {}) as unknown as Promise<Array<{ slug: string; name: string; path: string; models: number }> | null>]);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const used = classes.map((c) => c.code).filter((code) => fleet.some((car) => car.classes.includes(code)));
   return (
@@ -35,6 +37,14 @@ export default async function Fleet() {
       <Suspense fallback={<div className="wrap section--tight"><ul className="fleet-grid fleet-grid--skeleton" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <li key={i}><div className="skeleton sk-img"></div></li>)}</ul></div>}>
         <FleetBrowser cars={fleet} labels={labels} classes={used} maxDays={f.max_rental_days} />
       </Suspense>
+      {/* every make's vehicle page (migration 0092): its models, years and trims, with our cars */}
+      {(makes ?? []).length > 0 && (
+        <section className="section--tight" aria-labelledby="h-makes" data-testid="fleet-makes">
+          <div className="wrap"><h2 className="d3" id="h-makes">Browse by make</h2>
+            <ul className="chips">{(makes ?? []).map((m) => <li key={m.slug}><Link prefetch={false} className="chip" href={m.path}>{m.name}</Link></li>)}</ul>
+          </div>
+        </section>
+      )}
       <section className="band band--short on-dark" aria-label="Ask us">
         <div className="band__media photo fx-drift"><SlotPicture p={band} /></div>
         <div className="wrap band__inner"><div className="band__copy stack">

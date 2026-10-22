@@ -832,6 +832,13 @@ create or replace function public.vehicle_sitemap(p_file text) returns jsonb
 language sql stable security invoker set search_path = public, app as $$
   select coalesce(jsonb_agg(jsonb_build_object('path', s.path, 'lastmod', s.lastmod) order by s.path), '[]'::jsonb) from app.vehicle_sitemap(p_file) s
 $$;
+-- The makes for the fleet page's "Browse by make" (every make page is linked from /cars).
+create or replace function public.vehicle_makes() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('slug', mk.slug, 'name', mk.name, 'path', app.vpage_path(mk.slug),
+           'models', (select count(*) from vehicle_catalog_models m where m.make_slug = mk.slug)) order by mk.name), '[]'::jsonb)
+    from vehicle_catalog_makes mk
+$$;
 create or replace function public.vehicle_hub_path(p_hub text) returns text
 language sql stable security invoker set search_path = public, app as $$ select app.vehicle_hub_path(p_hub) $$;
 
@@ -951,9 +958,9 @@ grant execute on function app.vehicle_make_page(text), app.vehicle_model_page(te
   app.model_hub_path(text, text), app.vehicle_catalog_match(text, text, integer, text), app.vpage_path(text, text, integer, text),
   app.vehicle_make_slug(text), app.vehicle_model_key(text), app.vehicle_trim_slug(text), app.vpage_token_prefix(text, text)
   to anon, authenticated;
-revoke all on function public.vehicle_make_page(text), public.vehicle_model_page(text, text), public.vehicle_year_page(text, text, integer),
+revoke all on function public.vehicle_makes(), public.vehicle_make_page(text), public.vehicle_model_page(text, text), public.vehicle_year_page(text, text, integer),
   public.vehicle_trim_page(text, text, integer, text), public.vehicle_sitemap_files(), public.vehicle_sitemap(text), public.vehicle_hub_path(text) from public;
-grant execute on function public.vehicle_make_page(text), public.vehicle_model_page(text, text), public.vehicle_year_page(text, text, integer),
+grant execute on function public.vehicle_makes(), public.vehicle_make_page(text), public.vehicle_model_page(text, text), public.vehicle_year_page(text, text, integer),
   public.vehicle_trim_page(text, text, integer, text), public.vehicle_sitemap_files(), public.vehicle_sitemap(text), public.vehicle_hub_path(text)
   to anon, authenticated, service_role;
 

@@ -116,20 +116,43 @@ export function priceBasis(x: Pick<Spec, 'fuel'>, s: Pick<Settings, 'gas_cents' 
   return `$${(s.gas_cents / 100).toFixed(2)} a litre`;
 }
 
-/** Unique titles and descriptions: every page's own name and numbers. The brand and city come from tokens. */
-export function titleFor(o: { make: string; model?: string; year?: number; trim?: string }): string {
+/** Unique titles and descriptions: every page's own name and numbers, longest first; the page takes the first that fits
+ *  (titles 70 characters, descriptions 70 to 170, after the tokens are filled). The brand and city come from tokens. */
+export function titleOptions(o: { make: string; model?: string; year?: number; trim?: string }): string[] {
   const name = [o.year, o.make, o.model, o.trim].filter(Boolean).join(' ');
-  if (!o.model) return `${o.make} rentals in {{city}}: models, years and fuel use | {{brand}}`;
-  return `Rent a ${name} in {{city}} | {{brand}}`;
+  if (!o.model) return [`${o.make} rentals in {{city}}: models, years and fuel use | {{brand}}`, `${o.make} rentals in {{city}}: models and fuel use | {{brand}}`, `${o.make} rentals in {{city}} | {{brand}}`];
+  return [`Rent a ${name} in {{city}} | {{brand}}`, `${name} rental in {{city}} | {{brand}}`, `${name} in {{city}} | {{brand}}`, `${name} | {{brand}}`];
 }
+export const titleFor = (o: Parameters<typeof titleOptions>[0]) => titleOptions(o)[0]!;
 
-export function descriptionFor(o: { make: string; model?: string; year?: number; trim?: string; use?: string; count?: number; firstYear?: number; lastYear?: number; cars: number; trims?: string[] }): string {
+export function descriptionOptions(o: { make: string; model?: string; year?: number; trim?: string; use?: string; count?: number; firstYear?: number; lastYear?: number; cars: number; trims?: string[] }): string[] {
   const name = [o.year, o.make, o.model, o.trim].filter(Boolean).join(' ');
   const have = o.cars > 0 ? `${o.cars} available to rent now` : 'request one, or rent a similar car now';
-  if (!o.model) return `${o.make} in {{city}}: ${o.count ?? 0} models${o.firstYear ? ` from ${o.firstYear} to ${o.lastYear}` : ''} with specs and fuel use. ${o.cars > 0 ? `${o.cars} ${o.make} ${o.cars === 1 ? 'car' : 'cars'} to rent now.` : 'Request one, or rent a similar car.'}`;
-  if (!o.year) return `${name}: ${o.firstYear ? `${o.firstYear} to ${o.lastYear} specs` : 'specs'}${o.use ? `, ${o.use}` : ''}, and cost per 100 km. In {{city}}: ${have}.`;
-  if (!o.trim) return `${name}${o.trims?.length ? ` (${list(o.trims.slice(0, 4))}${o.trims.length > 4 ? ' and more' : ''})` : ''}: ${o.use || 'specs'} and cost per 100 km. In {{city}}: ${have}.`;
-  return `${name}: ${o.use || 'specs'}, cost per 100 km and how it compares with the other trims. In {{city}}: ${have}.`;
+  const haveShort = o.cars > 0 ? `${o.cars} to rent now` : 'request one';
+  if (!o.model) {
+    const span = o.firstYear ? ` from ${o.firstYear} to ${o.lastYear}` : '';
+    return [`${o.make} in {{city}}: ${o.count ?? 0} models${span} with specs and fuel use. ${o.cars > 0 ? `${o.cars} ${o.make} ${o.cars === 1 ? 'car' : 'cars'} to rent now.` : 'Request one, or rent a similar car.'}`,
+      `${o.make} in {{city}}: ${o.count ?? 0} models${span}, specs and fuel use. ${o.cars > 0 ? `${o.cars} to rent now.` : 'Request one.'}`];
+  }
+  if (!o.year) {
+    const span = o.firstYear ? `${o.firstYear} to ${o.lastYear} specs` : 'specs';
+    return [`${name}: ${span}${o.use ? `, ${o.use}` : ''}, and cost per 100 km. In {{city}}: ${have}.`, `${name}: ${span}${o.use ? `, ${o.use}` : ''}. In {{city}}: ${haveShort}.`, `${name}: ${span}. In {{city}}: ${haveShort}.`];
+  }
+  if (!o.trim) {
+    const t = o.trims?.length ? ` (${list(o.trims.slice(0, 4))}${o.trims.length > 4 ? ' and more' : ''})` : '';
+    const t3 = o.trims?.length ? ` (${o.trims.length} trims)` : '';
+    return [`${name}${t}: ${o.use || 'specs'} and cost per 100 km. In {{city}}: ${have}.`, `${name}${t3}: ${o.use || 'specs'} and cost per 100 km. In {{city}}: ${haveShort}.`, `${name}: ${o.use || 'specs'}. In {{city}}: ${haveShort}.`];
+  }
+  return [`${name}: ${o.use || 'specs'}, cost per 100 km and how it compares with the other trims. In {{city}}: ${have}.`,
+    `${name}: ${o.use || 'specs'}, cost per 100 km and the other trims. In {{city}}: ${haveShort}.`, `${name}: ${o.use || 'specs'}. In {{city}}: ${haveShort}.`,
+    `${name}: specs, fuel use and cost per 100 km. In {{city}}: ${haveShort}.`];
+}
+export const descriptionFor = (o: Parameters<typeof descriptionOptions>[0]) => descriptionOptions(o)[0]!;
+
+/** The first option that fits (the last when none does), after the tokens are filled. */
+export function fit(options: string[], fill: (s: string) => string, max: number, min = 0): string {
+  const filled = options.map((x) => fill(x).replace(/\s+/g, ' ').trim());
+  return filled.find((x) => x.length <= max && x.length >= min) ?? filled.find((x) => x.length <= max) ?? filled[filled.length - 1]!;
 }
 
 /** The rental questions, answered from the program settings (tokens) and the page's own data. */
