@@ -64,10 +64,29 @@ async function epaCsv() {
   return readFileSync(join(dir, 'vehicles.csv'), 'utf8');
 }
 
+/** One vPIC call: a few tries with a pause that grows when vPIC says to slow down (429, 403, 5xx); why a call failed is
+ *  counted (stats.vpic_errors), so a dry run's annotations say what happened. */
+const VPIC_PARALLEL = 4;
+const VPIC_ERRORS = {};
+async function vpicGet(url) {
+  let why = '';
+  for (let i = 0; i < 4; i++) {
+    try {
+      const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(45_000) });
+      if (r.ok) return await r.json();
+      why = `HTTP ${r.status}`;
+      if (![403, 429, 500, 502, 503, 504].includes(r.status)) break;
+    } catch (e) { why = String(e?.cause?.code ?? e?.name ?? e).slice(0, 60); }
+    await new Promise((res) => setTimeout(res, 2000 * 2 ** i));
+  }
+  VPIC_ERRORS[why] = (VPIC_ERRORS[why] ?? 0) + 1;
+  throw new Error(why);
+}
+
 /** vPIC's model names: every model of each make (its spelling, "F-150" over EPA's "F150"), and each make's models of
  *  every model year from three years before its first EPA year (1981 at the earliest) to the next model year, for
  *  passenger cars, multipurpose vehicles and trucks (motorcycles, buses and trailers left out). Several thousand calls,
- *  eight at a time, within a time budget: vPIC answering slowly never holds up the import (what did not answer is
+ *  four at a time, within a time budget: vPIC answering slowly never holds up the import (what did not answer is
  *  counted, and the catalog is built from EPA and the answers it has). */
 async function vpicNames(spans) {
   const out = {};
@@ -79,15 +98,7 @@ async function vpicNames(spans) {
   }
   console.log(`vpic: ${jobs.length} calls for ${spans.size} makes`);
   let failed = 0, done = 0;
-  const one = async (url) => {
-    for (let i = 0; i < 2; i++) {
-      try {
-        const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30_000) });
-        if (r.ok) return await r.json();
-      } catch { /* retried once */ }
-    }
-    throw new Error('vPIC did not answer');
-  };
+  const one = vpicGet;
   const work = async () => {
     for (let job = jobs.shift(); job; job = jobs.shift()) {
       if (Date.now() - t0 > BUDGET) { failed++; continue; }
@@ -103,13 +114,13 @@ async function vpicNames(spans) {
       } catch { failed++; }
     }
   };
-  await Promise.all(Array.from({ length: 8 }, work));
+  await Promise.all(Array.from({ length: VPIC_PARALLEL }, work));
   console.log(`vpic: ${done} calls answered, ${failed} not, ${Math.round((Date.now() - t0) / 1000)} s`);
   return { names: out, failed };
 }
 
 /** vPIC's Canadian specifications (public domain): each body of a make's model years with its length, width, height,
- *  wheelbase (cm) and curb weight (kg). One call per make and year, eight at a time, within its own time budget. */
+ *  wheelbase (cm) and curb weight (kg). One call per make and year, four at a time, within its own time budget. */
 async function cvsSpecs(spans) {
   const out = {}; const t0 = Date.now(), BUDGET = 20 * 60_000;
   const jobs = [];
@@ -120,9 +131,7 @@ async function cvsSpecs(spans) {
       if (Date.now() - t0 > BUDGET) { failed++; continue; }
       const [make, y] = job;
       try {
-        const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetCanadianVehicleSpecifications/?Year=${y}&Make=${encodeURIComponent(make)}&Model=&units=Metric&format=json`, { headers: UA, signal: AbortSignal.timeout(45_000) });
-        if (!r.ok) throw new Error(String(r.status));
-        const j = await r.json();
+        const j = await vpicGet(`https://vpic.nhtsa.dot.gov/api/vehicles/GetCanadianVehicleSpecifications/?Year=${y}&Make=${encodeURIComponent(make)}&Model=&units=Metric&format=json`);
         const list = (out[slugify(make)] ??= []);
         for (const res of j.Results ?? []) {
           const rec = Object.fromEntries((res.Specs ?? []).map((x) => [x.Name, String(x.Value ?? '')]));
@@ -133,7 +142,7 @@ async function cvsSpecs(spans) {
       } catch { failed++; }
     }
   };
-  await Promise.all(Array.from({ length: 8 }, work));
+  await Promise.all(Array.from({ length: VPIC_PARALLEL }, work));
   console.log(`cvs: ${done} calls answered, ${failed} not, ${rows} bodies, ${Math.round((Date.now() - t0) / 1000)} s`);
   return { specs: out, failed, rows };
 }
@@ -160,7 +169,7 @@ const nkey = (make, model, year) => `${slugify(make)}|${String(model).trim().toU
  *  3 MAKETXT, 4 MODELTXT, 5 YEARTXT, 7 COMPNAME, 11 RCLTYPECD, 16 RCDATE, 20 DESC_DEFECT. */
 async function nhtsaRecalls() {
   const out = new Map(); let ok = 0, bad = 0;
-  const src = await zipLines(['https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL.zip', 'https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL_POST_2010.zip'], (f) => {
+  const onLine = (f) => {
     const camp = f[1], year = Number(f[4]);
     if (!/^\d{2}[VETC]\d{3}0{3}$/.test(camp ?? '') || f[10] !== 'V' || !(year >= 1949 && year <= 2100)) { bad++; return; }
     const k = nkey(f[2], f[3], year);
@@ -170,7 +179,14 @@ async function nhtsaRecalls() {
     const summary = String(f[19] ?? '').replace(/\s+/g, ' ').trim();
     list.push({ campaign: camp, date: d, component: String(f[6] ?? '').trim() || null, summary: summary ? (summary.length > 320 ? summary.slice(0, 317).replace(/\s+\S*$/, '') + '...' : summary) : null });
     ok++;
-  });
+  };
+  // the whole file, else its two halves (NHTSA has published it both ways)
+  let src = await zipLines(['https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL.zip'], onLine);
+  if (!src.url) {
+    const a = await zipLines(['https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL_PRE_2010.zip'], onLine);
+    const b = await zipLines(['https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL_POST_2010.zip'], onLine);
+    src = { url: [a.url, b.url].filter(Boolean).join(' + ') || null, lines: a.lines + b.lines };
+  }
   return { map: out, ok, bad, url: src.url };
 }
 /** NHTSA complaints (FLAT_CMPL, public domain): counts by make, model and model year, and by component. Fields
@@ -282,7 +298,10 @@ const stats = {
   largest_sitemap_file: Math.max(0, ...Object.values([...catalog.models.map((m) => `${m.make}-models`), ...catalog.years.map((y) => `${y.make}-years`), ...[...trimPages].map((t) => `${t.split('|')[0]}-trims`)]
     .reduce((n, k) => { n[k] = (n[k] ?? 0) + 1; return n; }, {}))),
   model_years_before_1984: catalog.years.filter((y) => y.year < 1984).length, batches: batches(catalog).length,
-  cvs_failed_calls: cvsFailed, cvs_bodies_attached: dimsAttached, recalls_attached: safety.recalls, complaints_attached: safety.complaints,
+  // the size the catalog will take in the database: its JSON, compressed as jsonb is (measured 0.45; 0.75 for margin),
+  // and the trims (about 300 bytes a row with its indexes). The import refuses to start over the Admin's cap.
+  batch_json_bytes: batches(catalog).reduce((n, b) => n + JSON.stringify(b).length, 0),
+  cvs_failed_calls: cvsFailed, vpic_errors: VPIC_ERRORS, cvs_bodies_attached: dimsAttached, recalls_attached: safety.recalls, complaints_attached: safety.complaints,
   nhtsa_recall_rows: nh.recalls?.ok ?? null, nhtsa_recall_rows_skipped: nh.recalls?.bad ?? null, nhtsa_complaint_rows: nh.complaints?.ok ?? null, nhtsa_complaint_rows_skipped: nh.complaints?.bad ?? null,
   nhtsa_recalls_url: nh.recalls?.url ?? null, nhtsa_complaints_url: nh.complaints?.url ?? null,
   coverage: coverage(catalog, trimPages),
@@ -290,6 +309,7 @@ const stats = {
 };
 const unmatched = [...trimLines.filter((t) => !catalog.trim_lines.some((c) => c.make === t.make && c.from === t.from && c.trims.join() === t.trims.join())).map((t) => `${t.make}/${t.model}`),
   ...popular.filter((p) => !catalog.popular.some((c) => c.make === p.make && slugify(c.model).replace(/-/g, '') === slugify(p.model).replace(/-/g, ''))).map((p) => `popular ${p.make}/${p.model}`)];
+stats.projected_bytes = Math.round(stats.batch_json_bytes * 0.75 + stats.trim_pages * 300);
 console.log(JSON.stringify(stats));
 if (unmatched.length) console.log(`not in the catalog: ${[...new Set(unmatched)].join(', ')}`);
 if (arg('--stats')) writeFileSync(arg('--stats'), JSON.stringify({ ...stats, unmatched: [...new Set(unmatched)] }, null, 2));

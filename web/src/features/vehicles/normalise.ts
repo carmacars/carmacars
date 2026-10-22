@@ -294,6 +294,8 @@ export function attachSafety(c: Catalog, recalls: Map<string, Recall[]>, complai
     y.complaints = { total: prev.total + v.total, components: [...comps].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 6).map(([component, n]) => ({ component, n })) };
     nc += v.total;
   }
+  // every year of the catalog was looked up: none found is "none" (0), not "unknown"
+  for (const y of c.years) { y.recalls ??= []; y.complaints ??= { total: 0, components: [] }; }
   for (const y of c.years) y.recalls?.sort((a, b) => String(b.date).localeCompare(String(a.date)) || a.campaign.localeCompare(b.campaign));
   return { recalls: nr, complaints: nc };
 }

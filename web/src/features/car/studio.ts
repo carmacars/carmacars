@@ -16,7 +16,9 @@ export const PAINT: Record<string, [string, string, string]> = {
   beige: ['#E2D3B5', '#A8916A', '#5A4A30'],
   brown: ['#8F6A4E', '#553923', '#22160C'],
   orange: ['#F28C3A', '#C2560F', '#5C2606'],
-  yellow: ['#F5D547', '#C9A50F', '#5E4C06']
+  yellow: ['#F5D547', '#C9A50F', '#5E4C06'],
+  // the vehicle pages' twelfth colour (0092)
+  gold: ['#E3C477', '#B8902F', '#5A4412']
 };
 
 type Shape = { x0: number; x1: number; hh: number; xc: number; hc: number; xr1: number; hr: number; xr2: number; xg: number; hd: number; wf: number; wr: number; r: number; base: number };
@@ -209,7 +211,7 @@ export function studioPaint(colour: string | null | undefined): string {
   const m: Array<[RegExp, string]> = [[/white|pearl|snow|ivory|alabaster|glacier|polar|chalk/, 'white'], [/black|obsidian|onyx|ebony|jet|midnight|night/, 'black'],
     [/silver|platinum|aluminium|aluminum|chrome|steel/, 'silver'], [/grey|gray|graphite|gunmetal|charcoal|slate|titanium|magnetic|cement|ash/, 'grey'],
     [/red|maroon|burgundy|crimson|ruby|cherry|wine/, 'red'], [/blue|navy|azure|cobalt|sapphire|teal/, 'blue'], [/green|olive|emerald|lime|jade/, 'green'],
-    [/beige|tan|sand|champagne|gold|cream|khaki/, 'beige'], [/brown|bronze|copper|mocha|espresso/, 'brown'], [/orange|amber/, 'orange'], [/yellow/, 'yellow']];
+    [/gold/, 'gold'], [/beige|tan|sand|champagne|cream|khaki/, 'beige'], [/brown|bronze|copper|mocha|espresso/, 'brown'], [/orange|amber/, 'orange'], [/yellow/, 'yellow']];
   return m.find(([re]) => re.test(c))?.[1] ?? 'grey';
 }
 /** The shot keys, in gallery order, with the listing shot type each stands for (as the sample cars use them). */

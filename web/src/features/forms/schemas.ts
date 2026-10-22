@@ -45,3 +45,19 @@ export function fieldErrors(e: z.ZodError): FieldErrors {
   return out;
 }
 export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; code: string; message: string; fieldErrors?: FieldErrors };
+
+/** The vehicle pages' lead forms (0092): "Find me this car" (buyer), financing and leasing questions (finance), a
+ *  detailing or body shop request. An email or a phone; the budget, the timeline or a note as the form asks. */
+export const vehicleLeadSchema = z.object({
+  kind: z.enum(['buyer', 'finance', 'detailing', 'bodyshop']),
+  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  email: z.string().trim().max(200).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Enter an email address like name@example.com.').optional().default(''),
+  phone: optPhone.optional().default(''),
+  budget: z.string().trim().max(60).optional().default(''),
+  timeline: z.enum(['now', 'month', 'three', 'later', 'week']).default('month'),
+  note: z.string().trim().max(1000).optional().default(''),
+  vehicle: z.string().trim().min(2).max(160),
+  service: z.string().trim().max(80).optional().default(''),
+  place: z.string().trim().max(80).optional().default(''),
+  marketing: z.string().optional()
+}).refine((v) => !!(v.email || v.phone), { message: 'Give an email or a phone number so we can reply.', path: ['email'] });

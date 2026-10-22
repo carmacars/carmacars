@@ -16,11 +16,11 @@ import { type Spec, type YearRow, dollars, fuelWord, list, paintFor, priceBasis,
 export type Inventory = { exact: CarRow[]; same_model: CarRow[]; similar: CarRow[]; real_exact: number; lastmod: string | null };
 
 /** The studio stand-in image for a page (the sample cars' drawing, the model's name behind the car). */
-export function standIn(o: { path: string; group: string; vclass: string | null; model: string }) {
-  return `/sample-photos/studio/${shapeFor(o.group, o.vclass)}/${paintFor(o.path)}/lead/${encodeURIComponent(studioName(o.model) || 'CAR')}.svg`;
+export function standIn(o: { path: string; group: string; vclass: string | null; model: string; paint?: string }) {
+  return `/sample-photos/studio/${shapeFor(o.group, o.vclass)}/${o.paint ?? paintFor(o.path)}/lead/${encodeURIComponent(studioName(o.model) || 'CAR')}.svg`;
 }
 
-export function VehicleHead({ trail, h1, lead, img, alt, facts }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]> }) {
+export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#inventory', 'See cars to rent'] }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]>; cta?: [string, string] }) {
   return (
     <section className="page-head on-dark vp-head">
       <div className="wrap vp-head__grid">
@@ -29,7 +29,7 @@ export function VehicleHead({ trail, h1, lead, img, alt, facts }: { trail: Trail
           <h1 className="d1 vp-head__h1">{h1}</h1>
           <p className="lead muted">{lead}</p>
           {facts.length > 0 && <dl className="keyspecs vp-head__facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-          <p className="vp-head__cta"><a className="btn btn--primary btn--lg" href="#inventory">See cars to rent</a></p>
+          <p className="vp-head__cta"><a className="btn btn--primary btn--lg" href={cta[0]}>{cta[1]}</a></p>
         </div>
         <figure className="vp-head__media photo photo--32">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -154,7 +154,7 @@ export function Questions({ items, title }: { items: Array<{ question: string; a
 }
 
 /** JSON-LD Product for the page's model: offers only when real cars of ours match exactly (never for samples). */
-export function productLd(o: { name: string; make: string; model: string; year?: number; trim?: string; path: string; image: string; description: string; inv: Inventory; fuel?: string; body?: string | null }) {
+export function productLd(o: { name: string; make: string; model: string; year?: number; trim?: string; path: string; image: string; description: string; inv: Inventory; fuel?: string; body?: string | null; extra?: Record<string, unknown>; offers?: boolean }) {
   const url = siteUrl() + o.path;
   const real = o.inv.exact.filter((c) => !c.is_sample);
   const prices = real.map((c) => c.daily_rate_cents);
@@ -162,7 +162,8 @@ export function productLd(o: { name: string; make: string; model: string; year?:
     '@type': ['Product', 'Car'], '@id': `${url}#vehicle`, name: o.name, url, image: siteUrl() + o.image, description: o.description,
     brand: { '@type': 'Brand', name: o.make }, manufacturer: { '@type': 'Organization', name: o.make }, model: o.model,
     ...(o.year ? { vehicleModelDate: String(o.year) } : {}), ...(o.trim ? { vehicleConfiguration: o.trim } : {}), ...(o.fuel ? { fuelType: o.fuel } : {}), ...(o.body ? { bodyType: o.body } : {}),
-    ...(real.length ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'CAD', lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2),
+    ...(o.extra ?? {}),
+    ...(real.length && o.offers !== false ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'CAD', lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2),
       offerCount: real.length, businessFunction: 'http://purl.org/goodrelations/v1#LeaseOut', availability: 'https://schema.org/InStock',
       seller: { '@id': `${siteUrl()}/#business` }, url } } : {})
   };

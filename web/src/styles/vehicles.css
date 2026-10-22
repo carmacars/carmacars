@@ -22,3 +22,11 @@
 .vp-request h3 { margin: 0 0 var(--s-1); }
 .vp-request p { margin: 0; }
 .data tr[aria-current="page"] { background: var(--grey-100); }
+/* city and colour pages, /buy twins (0092) */
+.vp-swatch { display: inline-block; width: .8em; height: .8em; margin-right: .4em; border: 1px solid var(--grey-400, #999); border-radius: 50%; vertical-align: -0.05em; }
+.vp-citynotes { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin: 0; }
+.vp-citynotes > div { display: contents; }
+.vp-citynotes dt { color: var(--text-2); }
+.vp-citynotes dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .vp-citynotes { grid-template-columns: 1fr; } .vp-citynotes dd { margin-bottom: var(--s-2); } }
+.vp-sec .data td.wrap { white-space: normal; min-width: 16rem; }

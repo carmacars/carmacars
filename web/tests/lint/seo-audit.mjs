@@ -53,8 +53,20 @@ if (/<sitemapindex/.test(sm)) {
   const parts = [...sm.matchAll(/<sitemap><loc>([^<]+)<\/loc>(?:<lastmod>([^<]+)<\/lastmod>)?<\/sitemap>/g)];
   report.sitemapParts = parts.map((m) => m[1]);
   if (parts.length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
+  // the term trees (/t/<term>, 0092) mirror the renting tree file for file: every file name is checked against it, and of
+  // each term's tree the makes and the first place and colour file are read (the rest are the same addresses under
+  // another prefix); every other file is read whole
+  const names = parts.map(([, loc]) => new URL(loc).pathname.replace(/^\/sitemap-vehicles\/|\.xml$/g, ''));
+  const rentFiles = new Set(names.filter((n) => !/^(buy-|t-)/.test(n) && /^(makes|tiers-\d+|[a-z0-9-]+-(models|years|trims)(-\d+)?)$/.test(n)));
+  const termTrees = new Map();
+  const splitT = (n) => { for (let i = n.indexOf('-', 2); i > 0; i = n.indexOf('-', i + 1)) if (rentFiles.has(n.slice(i + 1))) return [n.slice(2, i), n.slice(i + 1)]; return null; };
+  for (const n of names.filter((x) => x.startsWith('t-'))) { const m = splitT(n); if (!m) bad('sitemap', `${n} has no renting twin`); else termTrees.set(m[0], [...(termTrees.get(m[0]) ?? []), m[1]]); }
+  report.termTrees = termTrees.size;
   for (const [, loc, lastmod] of parts) {
     if (lastmod && Number.isNaN(Date.parse(lastmod))) bad('sitemap', `${loc} has an unreadable lastmod`);
+    const tn = /\/sitemap-vehicles\/(t-[a-z0-9-]+)\.xml$/.exec(loc);
+    const tb = tn ? splitT(tn[1])?.[1] : null;
+    if (tn && tb !== 'makes' && tb !== 'tiers-1') continue;
     const part = await get(new URL(loc).pathname);
     if (part.status !== 200 || !/<urlset/.test(part.body)) { bad('sitemap', `${loc} answers ${part.status}`); continue; }
     // a car entry carries its photos (image sitemap) when the car has real photos; a car that shows sample photos has
@@ -76,6 +88,19 @@ if (/<sitemapindex/.test(sm)) {
   smUrls.push(...[...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]));
 }
 const paths = smUrls.map((u) => new URL(u).pathname);
+// The city and colour pages and the /buy twins (0092) are tens of thousands of addresses of a few templates: every
+// address is checked in the sitemaps (on the site, no duplicates, lastmod), and an even sample of each kind is audited
+// as a page (title, description, canonical, JSON-LD, uniqueness among the sample and with every other page).
+const heavy = (p) => /^\/(buy|t)\//.test(p) || /^\/cars\/[^/]+\/[^/]+\/\d{4}\/[^/]+\/.+/.test(p);
+const SAMPLE = Number(process.env.SEO_SAMPLE ?? 60);
+const sampleOf = (xs) => xs.length <= SAMPLE ? xs : Array.from({ length: SAMPLE }, (_, i) => xs[Math.floor((i * xs.length) / SAMPLE)]);
+const kinds = new Map();
+for (const p of paths.filter(heavy)) { const k = `${p.split('/')[1]}:${p.split('/').length}:${p.includes('/colour/')}`; kinds.set(k, [...(kinds.get(k) ?? []), p]); }
+const auditPaths = [...paths.filter((p) => !heavy(p)), ...[...kinds.values()].flatMap(sampleOf)];
+report.sampled = Object.fromEntries([...kinds].map(([k, v]) => [k, { addresses: v.length, audited: Math.min(v.length, SAMPLE) }]));
+if (![...kinds.keys()].some((k) => k.startsWith('cars:'))) bad('sitemap', 'no city or colour pages in the sitemaps (the owner indexes them by default)');
+if (![...kinds.keys()].some((k) => k.startsWith('buy:'))) bad('sitemap', 'no /buy pages in the sitemaps (the owner indexes them by default)');
+if (![...kinds.keys()].some((k) => k.startsWith('t:'))) bad('sitemap', 'no search term pages (/t/...) in the sitemaps (the owner indexes them by default)');
 report.sitemap = paths.length;
 for (const u of smUrls) if (!u.startsWith(SITE)) bad('sitemap', `${u} is not on ${SITE}`);
 if (new Set(paths).size !== paths.length) bad('sitemap', 'duplicate entries');
@@ -88,7 +113,7 @@ const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"
 // the vehicle pages (0092): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
 const vehiclePaths = new Set();
 for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\//.test(loc)) {
-  for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) vehiclePaths.add(new URL(m[1]).pathname);
+  for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) { const vp = new URL(m[1]).pathname; if (!heavy(vp)) vehiclePaths.add(vp); }
 }
 const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p) && !vehiclePaths.has(p)));
 const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
@@ -97,9 +122,9 @@ const hubHtml = (await get('/car-rental')).body + (await get('/guides')).body;
 const landing = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/car-rental\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/car-rental\/[^/]+$/.test(p)));
 const guides = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/guides\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/guides\/[^/]+$/.test(p)));
 report.noindex = [];
-const titles = new Map(); const descs = new Map(); const bodies = new Map();
+const titles = new Map(); const descs = new Map(); const bodies = new Map(); const h1s = new Map();
 const extra = ['/investors'];
-for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, ...guides])]) {
+for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landing, ...guides])]) {
   const r = await get(p);
   const rec = { status: r.status };
   report.pages[p] = rec;
@@ -179,13 +204,22 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, .
   for (const m of h.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) bad(p, `image without alt: ${m[0].slice(0, 100)}`);
   if (/[—–]/.test(h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ''))) bad(p, 'long dash in the page');
   // vehicle pages (0092): every one indexed by the owner's decision, so no two may share their main body either
-  if (vehiclePaths.has(p)) {
+  if (vehiclePaths.has(p) || heavy(p)) {
+    const h1 = decode((/<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(h)?.[1] ?? '').replace(/<[^>]+>/g, '').trim());
+    if (h1) h1s.set(h1, [...(h1s.get(h1) ?? []), p]);
     const main = (/<main\b[\s\S]*?<\/main>/.exec(h)?.[0] ?? h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     bodies.set(main, [...(bodies.get(main) ?? []), p]);
   }
   rec.links = [...h.matchAll(/<a\b[^>]*\bhref="([^"#?]+)/g)].map((m) => m[1].replace(SITE, '').replace(BASE, ''));
 }
 for (const [t, ps] of titles) if (ps.length > 1) bad('titles', `"${t}" on ${ps.join(', ')}`);
+for (const p of auditPaths.filter(heavy)) {
+  const links = new Set(report.pages[p]?.links ?? []);
+  if (!report.pages[p] || report.pages[p].status !== 200) continue;
+  if (p.startsWith('/buy/') && !links.has('/cars/' + p.slice(5))) bad('linking', `${p} does not link to its rental twin`);
+  if (p.startsWith('/cars/') && ![...links].some((l) => p.startsWith(l + '/') && l.split('/').length === 6)) bad('linking', `${p} does not link to its trim page`);
+}
+for (const [x, ps] of h1s) if (ps.length > 1) bad('h1', `"${x}" on ${ps.join(', ')}`);
 for (const [, ps] of bodies) if (ps.length > 1) bad('bodies', `the same main body on ${ps.join(', ')}`);
 if (report.sitemapParts && !report.sitemapParts.some((l) => /\/sitemap-vehicles\/makes\.xml$/.test(l))) bad('sitemap', 'index without the vehicle sitemaps (sitemap-vehicles/makes.xml)');
 report.vehiclePages = vehiclePaths.size;

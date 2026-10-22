@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { costPer100km, driveLabel, engineLabel, kwh100miTo100km, miToKm, modelKey, mpgToL100, slugify, transLabel, trimSlug } from './units.ts';
 import { gateRules, parentPath, vpageGate, type GateSettings } from './gate.ts';
 import { batches, buildCatalog, makeName, parseCsv, parsePopular, parseTrimList, specialTokens } from './normalise.ts';
-import { descriptionFor, ratingRange, specs, titleFor, trimDiffs, yearChanges, type Variant } from './content.ts';
+import { buyDescriptionOptions, buyTitleOptions, descriptionFor, descriptionOptions, dimsFor, fit, mpgImperial, ratingRange, shortPlace, specs, statRows, tierDescriptionOptions, tierTitleOptions, titleFor, titleOptions, trimDiffs, yearChanges, type Variant } from './content.ts';
 
 const here = new URL('.', import.meta.url).pathname;
 const S = { gas_cents: 155, premium_extra_cents: 20, elec_cents: 15 };
@@ -172,4 +172,53 @@ test('titles and descriptions are unique per page and never use an em dash', () 
   assert.equal(new Set(descs).size, descs.length);
   assert.equal(titles[4], 'Rent a 2020 Volkswagen Jetta Sportline in {{city}} | {{brand}}');
   for (const s of [...titles, ...descs]) assert.ok(!s.includes('—') && !s.includes(' – '), s);
+});
+
+test('city, colour and /buy pages: unique titles and descriptions across a sample, and the fallbacks keep the place', () => {
+  const cities = ['Toronto', 'Downtown Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Mississauga', 'Brampton', 'Vaughan', 'Markham', 'Richmond Hill', 'Oakville',
+    'Toronto Pearson Airport (YYZ)', 'Billy Bishop Airport (YTZ)', 'Union Station'];
+  const colours = ['Black', 'White', 'Silver', 'Grey', 'Blue', 'Red', 'Green', 'Brown', 'Beige', 'Gold', 'Orange', 'Yellow'];
+  const trims = [{ make: 'Volkswagen', model: 'Jetta', year: 2020, trim: 'Sportline' }, { make: 'Mercedes-Benz', model: 'GLE-Class', year: 2023, trim: 'AMG GLE 53 4MATIC+' },
+    { make: 'Toyota', model: 'Camry', year: 2023, trim: 'Hybrid SE' }];
+  const fill = (x: string) => x.replace(/\{\{brand\}\}/g, 'CarmaCars').replace(/\{\{city\}\}/g, 'Toronto');
+  const titles: string[] = [], descs: string[] = [];
+  for (const t of trims) {
+    titles.push(fit(titleOptions(t), fill, 70)); descs.push(fit(descriptionOptions({ ...t, cars: 0 }), fill, 170, 70));
+    titles.push(fit(buyTitleOptions(t), fill, 70)); descs.push(fit(buyDescriptionOptions({ ...t, forSale: 0, recalls: 2 }), fill, 170, 70));
+    for (const colour of colours) {
+      titles.push(fit(tierTitleOptions({ ...t, colour }), fill, 70)); descs.push(fit(tierDescriptionOptions({ ...t, colour, cars: 0 }), fill, 170, 70));
+      titles.push(fit(buyTitleOptions({ ...t, colour }), fill, 70)); descs.push(fit(buyDescriptionOptions({ ...t, colour, forSale: 0 }), fill, 170, 70));
+    }
+    for (const city of cities) {
+      titles.push(fit(tierTitleOptions({ ...t, city, home: 'Toronto' }), fill, 70)); descs.push(fit(tierDescriptionOptions({ ...t, city, cars: 1, km: 12.5 }), fill, 170, 70));
+      titles.push(fit(buyTitleOptions({ ...t, city }), fill, 70)); descs.push(fit(buyDescriptionOptions({ ...t, city, forSale: 1 }), fill, 170, 70));
+      for (const colour of colours) {
+        titles.push(fit(tierTitleOptions({ ...t, city, colour }), fill, 70)); descs.push(fit(tierDescriptionOptions({ ...t, city, colour, cars: 0 }), fill, 170, 70));
+        titles.push(fit(buyTitleOptions({ ...t, city, colour }), fill, 70)); descs.push(fit(buyDescriptionOptions({ ...t, city, colour, forSale: 0 }), fill, 170, 70));
+      }
+    }
+  }
+  assert.equal(new Set(titles).size, titles.length, 'titles unique');
+  assert.equal(new Set(descs).size, descs.length, 'descriptions unique');
+  assert.ok(titles.every((x) => !/[\u2014\u2013]/.test(x)) && descs.every((x) => !/[\u2014\u2013]/.test(x)), 'no long dash');
+  assert.ok(descs.every((d) => d.length <= 170), 'descriptions fit');
+  assert.ok(titles.filter((x) => x.length > 70).length <= 6, 'almost every title fits 70 characters (an exotic long trim name may not)');
+  assert.equal(shortPlace('Toronto Pearson Airport (YYZ)'), 'Pearson (YYZ)');
+  assert.equal(fit(tierTitleOptions({ make: 'Volkswagen', model: 'Jetta', year: 2020, trim: 'Sportline', city: 'Mississauga', colour: 'Black' }), fill, 70), 'Rent a black 2020 Volkswagen Jetta Sportline in Mississauga');
+  assert.ok(!/an? Orange/.test(fit(buyDescriptionOptions({ make: 'VW', model: 'Golf', year: 2020, colour: 'Orange', forSale: 0 }), fill, 170, 70)), 'colour in lower case after "an"');
+});
+
+test('every figure: a row only when a source has it, conversions labelled, bodies by trim', () => {
+  const v = (o: Partial<Variant> & { id: number }): Variant => ({ epa_model: 'Jetta', displ: 1.4, cyl: 4, turbo: true, super: false, drive: 'Front-Wheel Drive', trans: 'Automatic (S8)', fuel: 'gasoline', vclass: 'Compact Cars',
+    l100_city: 7.9, l100_hwy: 5.8, l100_comb: 7, kwh100: null, ev_range_km: null, co2_g_km: 163, mpg_city: 30, mpg_hwy: 40, mpg_comb: 34, fuel_cost_usd: 1450, ...o });
+  const rows = statRows(specs([v({ id: 1 })], S), S);
+  const labels = rows.map((r) => r.label);
+  assert.ok(labels.includes('MPG combined (US)') && labels.includes('MPG combined (Imperial)') && labels.includes('Fuel cost a year (EPA)'));
+  assert.ok(!labels.includes('Battery') && !labels.includes('Charge at 240 V') && !labels.includes('Luggage volume'), 'no source, no row');
+  assert.equal(rows.find((r) => r.label === 'MPG combined (Imperial)')?.note, 'converted from the US figure');
+  assert.equal(mpgImperial(34), 41);
+  const dims = [{ body: 'JETTA 4DR SEDAN', length_cm: 470, width_cm: 180, height_cm: 146, wheelbase_cm: 269, curb_kg: 1350 }, { body: 'JETTA GLI 4DR SEDAN', length_cm: 471, width_cm: 180, height_cm: 145, wheelbase_cm: 269, curb_kg: 1450 }];
+  assert.deepEqual(dimsFor(dims, 'Jetta', 'GLI').map((d) => d.body), ['JETTA GLI 4DR SEDAN']);
+  assert.deepEqual(dimsFor(dims, 'Jetta', 'Highline').map((d) => d.body), ['JETTA 4DR SEDAN']);
+  assert.deepEqual(dimsFor([], 'Jetta', 'GLI'), []);
 });

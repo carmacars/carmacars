@@ -5,6 +5,9 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
+  vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
+  vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
   turnaround_buffer_minutes: 'Turnaround between trips (minutes)', turnaround_block_enabled: 'Show the turnaround as a cleaning block on the calendar',
   toll_read_min_confidence: 'Notice reading: confidence needed to import without a check (0 to 100)', toll_read_auto_charge: 'Notice reading: charge renters matched with high confidence when confirmed',
   toll_read_max_pages: 'Notice reading: pages sent to the vision model', listing_plate_check_required: 'Keep each listing photo private until its plate is covered or marked not visible (the car is listed meanwhile)',

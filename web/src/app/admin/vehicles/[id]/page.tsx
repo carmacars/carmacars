@@ -80,6 +80,12 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               { name: 'home_location', label: 'Home area', value: v.home_location }, { name: 'allows_18_to_20', label: 'Drivers aged 18 to 20 allowed', type: 'bool', value: v.allows_18_to_20 },
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled }]} />
           </Card>
+          <Card title="For sale" testId="vehicle-for-sale">
+            <p className="small muted">Flag the car for sale with its asking price: it then shows at the top of its /buy pages with the price (and a schema.org Offer). Without the flag no page says the car is for sale.</p>
+            <Kv rows={[['For sale', v.for_sale ? `Yes, ${v.asking_price_cents ? `$${(Number(v.asking_price_cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : 'no price'}` : 'No']]} />
+            <Act inline action="vehicle_for_sale" payload={{ vehicle_id: id }} label="Save" refresh={refresh} testId="vehicle-for-sale-save" fields={[
+              { name: 'for_sale', label: 'For sale', type: 'bool', value: !!v.for_sale }, { name: 'asking_price_cents', label: 'Asking price', type: 'money', value: (v.asking_price_cents as number | null) ?? null }]} />
+          </Card>
           <Card title="Who supplies the car" testId="vehicle-supply">
             {sp.added && <p className="alert alert--ok" role="status"><span>Car added. Its rates are on the Rates tab (set them there if you did not type them). Start its listing when it is ready.</span></p>}
             <Kv rows={[['Supplied by', <span key="s" data-testid="vehicle-supply-label">{v.supply_label}</span>], ...(v.supply_type === 'partner' ? [['Partner', supplier] as [string, React.ReactNode],

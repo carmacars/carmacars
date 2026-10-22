@@ -5,8 +5,9 @@ import { cache } from 'react';
 import { seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
-import type { Settings, TrimRef, Variant, YearRow } from './content';
+import type { Dim, Settings, TrimRef, Variant, YearRow } from './content';
 import type { Inventory, SimilarModel } from './parts';
+import type { TierPage, Tiers } from './deep';
 
 // The vehicle pages' reads (migration 0092): one database call per page (public.vehicle_*_page), shared by the
 // metadata and the page through React's cache. Unknown slugs are a 404; another spelling of a model answers 301.
@@ -17,7 +18,7 @@ export type MakePage = Base & { level: 'make'; models: Array<{ slug: string; nam
 export type ModelPage = Base & { level: 'model'; model: Named & { vclass: string | null }; in_catalog: boolean; years: YearRow[]; years_with_data: number; popular: boolean; body_group: string; similar_models: SimilarModel[] };
 export type YearPage = Base & { level: 'year'; model: Named & { vclass: string | null }; year: number; vclass: string | null; variants: Variant[]; sources: string[]; body_group: string;
   trims: TrimRef[]; prev: { year: number; variants: Variant[]; trims: string[] } | null; next: { year: number } | null; other_years: YearRow[]; similar_models: SimilarModel[] };
-export type TrimPage = Base & { level: 'trim'; model: Named & { vclass: string | null }; year: number; vclass: string | null; variants: Variant[]; sources: string[]; body_group: string;
+export type TrimPage = Base & { level: 'trim'; model: Named & { vclass: string | null }; year: number; vclass: string | null; variants: Variant[]; sources: string[]; body_group: string; dims?: Dim[];
   trim: TrimRef & { source: string }; siblings: TrimRef[]; trim_years: Array<{ year: number; path: string }>;
   prev: { year: number; variants: Variant[]; trim_variant_ids: number[] | null } | null; other_years: YearRow[]; similar_models: SimilarModel[] };
 
@@ -47,6 +48,16 @@ export const trimPage = cache(async (make: string, model: string, year: string, 
   if (!p) notFound();
   return p;
 });
+
+/** A city, city and colour, or colour page (0092): its trim's read with the city and colour. */
+export const tierPage = cache(async (make: string, model: string, year: string, trim: string, city: string | null, colour: string | null): Promise<TierPage> => {
+  if (!ok(make, model, trim) || !/^(19|20)\d\d$/.test(year) || (city !== null && !ok(city)) || (colour !== null && !/^[a-z]{3,12}$/.test(colour)) || city === 'colour') notFound();
+  const p = (await rpc('vehicle_tier_page', { p_make: make, p_model: model, p_year: Number(year), p_trim: trim, p_place: city as string, p_colour: colour as string })) as unknown as TierPage | null;
+  if (!p) notFound();
+  return p;
+});
+/** The cities and colours a trim page links to. */
+export const tiers = cache(async (): Promise<Tiers> => ((await rpc('vehicle_tiers', {})) as unknown as Tiers | null) ?? { settings: {}, places: [], place_count: 0, colours: [], terms: [] });
 
 /** Metadata: the page's own canonical when it is indexed; noindex,follow with the canonical at the parent when not. */
 export async function vehicleMeta(o: { title: string; description: string; path: string; indexable: boolean; canonical: string; image: string; imageAlt: string }): Promise<Metadata> {

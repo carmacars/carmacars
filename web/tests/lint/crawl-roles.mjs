@@ -78,6 +78,9 @@ const PORTALS = ['/account', '/owner', '/investor', '/admin', '/va', '/field'];
 // ------------------------------------------------------------------ helpers
 const shape = (u) => {
   // the vehicle pages (0092): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
+  // the city and colour pages and the /buy twins (0092): one shape per depth
+  const deep = /^\/(cars|buy)((?:\/[^/]+)+)$/.exec(u.pathname);
+  if (deep && (deep[1] === 'buy' || deep[2].split('/').length > 5)) return `/${deep[1]}/:vehicle-${deep[2].split('/').length - 1}${deep[2].includes('/colour/') ? '-colour' : ''}`;
   const v = /^\/cars\/([^/]+)((?:\/[^/]+){0,3})$/.exec(u.pathname);
   if (v && (v[2] || !/\d/.test(v[1]))) return ['/cars/:make', '/cars/:make/:model', '/cars/:make/:model/:year', '/cars/:make/:model/:year/:trim'][v[2].split('/').length - 1];
   const segs = u.pathname.split('/').map((s) => (/\d/.test(s) && !/^(two-step)$/.test(s) ? ':id' : s));

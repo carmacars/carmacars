@@ -178,3 +178,14 @@ test('numbers in the tag store: the fleet signature beside the generation', asyn
   assert.equal(await readNumber(env, 'carmacars/fleet-sig'), 123456);
   assert.equal(await readNumber(env, EDGE_GEN_KEY), 0, 'the generation is a different key');
 });
+
+test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours whatever Next.js says, public for crawlers', async () => {
+  const { PROGRAMMATIC, PROGRAMMATIC_TTL_S } = await import('./page-cache.ts');
+  const h = (o: Record<string, string>) => new Headers(o);
+  for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
+    assert.ok(PROGRAMMATIC.test(p), p);
+  for (const p of ['/cars', '/cars/porsche-911', '/buy', '/t/car-hire', '/admin/x']) assert.ok(!PROGRAMMATIC.test(p), p);
+  assert.equal(edgeTtl('/cars/volkswagen/jetta/2020', 200, h({ 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate' })), PROGRAMMATIC_TTL_S);
+  assert.equal(edgeTtl('/buy/volkswagen', 200, h({ 'cache-control': 'private, no-store', 'set-cookie': 'a=1' })), 0);
+  assert.equal(edgeTtl('/t/car-hire/volkswagen', 404, h({})), 0);
+});

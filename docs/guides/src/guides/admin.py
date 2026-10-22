@@ -721,9 +721,13 @@ def build():
         'Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).',
         f'Open {B("Edit")} on a page or a guide to change its text. Edited fields are locked. {B("Write again")} asks for a new version; on a guide, the brief says what it must cover.',
     ])
-    g.task('Vehicle pages', f'{P("Settings", "Vehicle pages")}. A page for every make, model, model year and Canadian trim, at carmacars.ca/cars/make/model/year/trim, with our cars below it.')
+    g.task('Vehicle pages', f'{P("Settings", "Vehicle pages")}. A page for every make, model, model year and Canadian trim of every year, at carmacars.ca/cars/make/model/year/trim, with our cars below it; each trim also in every place and in 12 colours (carmacars.ca/cars/volkswagen/jetta/2020/sportline/mississauga/black); every page again for sale (carmacars.ca/buy/...) and for each search term: renting (car hire), sale (financing), detailing (ceramic coating) and body shop (bumper repair), at carmacars.ca/t/term/...')
     g.steps([
-        'Pages: how many make, model, year and trim pages there are and how many are in search. Every page is in search by default; nothing needs setting up.',
+        'Pages: how many pages each level and each tier has, the total, and how many are in search. Every page is in search by default; nothing needs setting up.',
+        f'One switch per tier takes it out of search at once: {B("Index the place pages")}, {B("Index the colour pages")}, {B("Index the search term pages")}, {B("Index the /buy pages")}, {B("Index the detailing pages")}, {B("Index the body shop pages")}. Off, those pages stay visible but leave the sitemaps and search.',
+        'The places are the place list of the local search release (every city, town and neighbourhood, with GTA and country levels); until it is filled, the area landing pages. The search terms are edited with them.',
+        f'{B("Financing disclaimer")}: the text on financing and leasing pages. CarmaCars never says it lends or leases.',
+        'Database: its size against the cap the catalog import keeps under (6,144 MB by default). IndexNow: the addresses sent today, where the sweep is, and any back-off; nothing to do.',
         'Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.',
         'Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings > Leads.',
         f'Settings: {B("Index every page")} (the default) or {B("Only pages that pass the rules")}: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).',
@@ -731,6 +735,12 @@ def build():
         f'Catalog import: the last import and its counts. {B("Import now")} asks for a new one; it runs at the next daily check, at 07:17 UTC.',
     ])
     g.tip('A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car\'s trim to one Canadian name to put it on the trim page.', label='Good to know')
+    g.task('A car for sale', f'{P("Cars", "Vehicles")}, then the car. On the For sale card, tick {B("For sale")}, enter the Asking price and press {B("Save")}.')
+    g.steps([
+        'The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.',
+        'Untick it when the car is sold or no longer for sale: the pages say so at once.',
+        f'"Find me this car" on the /buy pages sends a buyer lead to Sales ({B("Leads")}, Buyer leads), with a To do line.',
+    ])
     g.task('Search engines and business listings', f'{P("Settings", "All settings")}, then Site settings.')
     g.steps([
         'Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.',

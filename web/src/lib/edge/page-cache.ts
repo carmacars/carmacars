@@ -33,7 +33,14 @@ const MIN_TTL_S = 10;
 /** First path segments that are never kept: signed-in portals, the API, files and the signing links. */
 const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'investor', 'api', 'auth', 'two-step', 'choose-portal', 'sign', 'sign-document',
   'd', 'files', 'r', 'guide-pdf', 'unsubscribe', 'link-expired', 'read-only', 'update-password', 'media', '_next', 'cdn-cgi']);
-const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml)$/;
+/** The programmatic vehicle pages (0092): the /cars tree below a make, /buy and the term trees /t/<term>. They are
+ *  rendered on demand with no ISR entry (no KV write per page: millions of pages), so their only copy is this one, kept
+ *  for PROGRAMMATIC_TTL_S whatever Next.js says (force-dynamic answers "private, no-store"), and sent to browsers and
+ *  crawlers with PROGRAMMATIC_CC. */
+export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7})$/;
+export const PROGRAMMATIC_TTL_S = 21_600;
+export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=21600, stale-while-revalidate=86400';
+const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml|sitemap-index\/\d+\.xml)$/;
 
 export interface EdgeRequestLike { method: string; url: string; headers: { get(name: string): string | null } }
 
@@ -60,6 +67,7 @@ export function edgeKey(req: EdgeRequestLike, version: string): string | null {
 /** Seconds to keep this answer, or 0 for not at all. */
 export function edgeTtl(pathname: string, status: number, headers: { get(name: string): string | null }): number {
   if (status !== 200 || headers.get('set-cookie')) return 0;
+  if (PROGRAMMATIC.test(pathname)) return PROGRAMMATIC_TTL_S;
   const cc = headers.get('cache-control') ?? '';
   if (/no-store|private/.test(cc)) return 0;
   const sharedAge = Number(/s-maxage=(\d+)/.exec(cc)?.[1] ?? NaN);
@@ -163,7 +171,8 @@ export function edgeKeep(key: string, pathname: string, res: Response, d: EdgeDe
   if (!ttl || !res.body) return res;
   const [a, b] = res.body.tee();
   const headers = new Headers(res.headers);
-  const cc = headers.get('cache-control');
+  const programmatic = PROGRAMMATIC.test(pathname);
+  const cc = programmatic ? PROGRAMMATIC_CC : headers.get('cache-control');
   if (cc) headers.set(ORIGINAL_CC, cc);
   // the copy is found by its key alone (the RSC headers are in the key); the browser still gets OpenNext's Vary
   const vary = headers.get('vary');
@@ -172,6 +181,7 @@ export function edgeKeep(key: string, pathname: string, res: Response, d: EdgeDe
   headers.set(STORED, String((d.now?.() ?? Date.now()) - STORE_MARGIN_MS));
   headers.delete('set-cookie');
   d.waitUntil(d.cache().then((c) => c.put(key, new Response(b, { status: 200, headers }))).catch(() => undefined));
+  if (programmatic) { const out = new Headers(res.headers); out.set('cache-control', PROGRAMMATIC_CC); return new Response(a, { status: res.status, statusText: res.statusText, headers: out }); }
   return new Response(a, { status: res.status, statusText: res.statusText, headers: res.headers });
 }
 

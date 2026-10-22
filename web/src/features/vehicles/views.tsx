@@ -3,8 +3,9 @@ import type { Metadata } from 'next';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, faqLd, type Trail } from '@/features/seo/meta';
 import { fill, getClasses, getTokens, siteUrl } from '@/lib/site';
-import { descriptionOptions, fit, fuelWord, list, ptName, rentalFaq, specs, titleOptions, trimDiffs, ratingRange, ratingText, yearChanges, priceBasis, dollars } from './content';
-import { type MakePage, type ModelPage, type TrimPage, type YearPage, vehicleMeta } from './data';
+import { descriptionOptions, dimsFor, fit, fuelWord, list, ptName, rentalFaq, specs, titleOptions, trimDiffs, ratingRange, ratingText, yearChanges, priceBasis, dollars } from './content';
+import { type MakePage, type ModelPage, type TrimPage, type YearPage, tiers as getTiers, vehicleMeta } from './data';
+import { StatsBlock, TierLinks, vehicleProps } from './deep';
 import { CostBlock, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead, YearsTable, fromPrice } from './parts';
 import '@/styles/vehicles.css';
 
@@ -55,6 +56,7 @@ export async function MakeView({ p }: { p: MakePage }) {
           <p className="xs muted">{EPA_NOTE}</p>
         </section>
       </div>
+      <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
       <InventoryBlock inv={p.inventory} labels={labels} name={name} exactLabel={`Our ${name} cars`} sameLabel="" />
       <div className="wrap vp-body"><Questions items={faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }))} title={`Renting a ${name} in ${t.city}`} /></div>
     </div>
@@ -105,6 +107,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
         </section>}
         <SimilarModels items={p.similar_models} title={`Similar to the ${name}`} />
       </div>
+      <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
       <InventoryBlock inv={p.inventory} labels={labels} name={name} exactLabel={`Our ${name} cars`} sameLabel="" />
       <div className="wrap vp-body"><Questions items={faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }))} title={`Renting a ${name}`} /></div>
     </div>
@@ -161,6 +164,7 @@ export async function YearView({ p }: { p: YearPage }) {
           <YearsTable years={p.other_years} current={p.year} caption={`${p.make.name} ${p.model.name} model years`} />
           <p className="xs muted">{EPA_NOTE}</p>
         </section>
+        <p className="small"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p>
         <SimilarModels items={p.similar_models} title={`Other ${p.year} ${lower(p.vclass) || 'cars'} like it`} />
       </div>
       <InventoryBlock inv={p.inventory} labels={labels} name={name} exactLabel={`Our ${name} cars`} sameLabel={`${p.make.name} ${p.model.name} in other years`} />
@@ -179,7 +183,7 @@ export async function trimMeta(p: TrimPage): Promise<Metadata> {
 }
 
 export async function TrimView({ p }: { p: TrimPage }) {
-  const [t, labels] = await Promise.all([getTokens(), labelsOf()]);
+  const [t, labels, tiers] = await Promise.all([getTokens(), labelsOf(), getTiers()]);
   const name = `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name}`;
   const modelPath = `/cars/${p.make.slug}/${p.model.slug}`;
   const yearPath = `${modelPath}/${p.year}`;
@@ -198,7 +202,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
   return (
     <div className="p-vehicle" data-page="vehicle-trim">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead, inv: p.inventory,
-        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
+        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats) }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
       <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`}
         facts={[['Engine', sp.length === 1 ? sp[0]!.engine : sp.length ? `${sp.length} choices` : ''], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ['Trim', `${p.trim.rank} of ${p.siblings.length}`], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
@@ -207,6 +211,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
           <h2 className="d3" id="h-specs">{name} specs</h2>
           <SpecsTable sp={sp} seats={seats} caption={`${name} powertrains`} />
         </section>
+        <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
         <CostBlock sp={sp} s={p.settings} name={name} />
         <section className="vp-sec" aria-labelledby="h-diff" data-testid="vp-diffs">
           <h2 className="d3" id="h-diff">How the {p.trim.name} compares with the other {p.year} trims</h2>
@@ -231,6 +236,10 @@ export async function TrimView({ p }: { p: TrimPage }) {
           <YearsTable years={p.other_years} current={p.year} caption={`${p.make.name} ${p.model.name} model years`} />
           <p className="xs muted">{EPA_NOTE}</p>
         </section>
+        <TierLinks base={p.path} tiers={tiers} name={name} />
+        <p className="small"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p>
+        <TierLinks base={p.path} tiers={tiers} name={name} />
+        <p className="small"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p>
         <SimilarModels items={p.similar_models} title={`Other ${p.year} ${lower(p.vclass) || 'cars'} like it`} />
       </div>
       <InventoryBlock inv={p.inventory} labels={labels} name={name} exactLabel={`Our ${name} cars`} sameLabel={`Other ${p.make.name} ${p.model.name} cars we have`} />

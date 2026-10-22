@@ -110,12 +110,17 @@ create table vehicle_catalog_trims (
 );
 create index vehicle_catalog_trims_slug_idx on vehicle_catalog_trims (make_slug, model_slug, slug);
 create index vehicle_catalog_trims_ord_idx on vehicle_catalog_trims (ord) include (make_slug, model_slug, year, slug, updated_at);
--- numbers every trim in catalog order (dense, from 1); called after every build of the trims
+-- numbers every trim (dense, from 1), the popular models and the newest years first: the sitemaps and IndexNow go in
+-- this order; called after every build of the trims and every change of the popular list
 create or replace function app.vehicle_catalog_number_trims() returns void
-language sql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app as $$
+begin
   update vehicle_catalog_trims t set ord = r.rn
-    from (select make_slug, model_slug, year, slug, (row_number() over (order by make_slug, model_slug, year, rank, slug))::integer rn from vehicle_catalog_trims) r
-   where (t.make_slug, t.model_slug, t.year, t.slug) = (r.make_slug, r.model_slug, r.year, r.slug) and t.ord is distinct from r.rn
+    from (select t.make_slug, t.model_slug, t.year, t.slug,
+                 (row_number() over (order by p.sort nulls last, t.year desc, t.make_slug, t.model_slug, t.rank, t.slug))::integer rn
+            from vehicle_catalog_trims t left join vehicle_catalog_popular p on p.make_slug = t.make_slug and p.model_slug = t.model_slug) r
+   where (t.make_slug, t.model_slug, t.year, t.slug) = (r.make_slug, r.model_slug, r.year, r.slug) and t.ord is distinct from r.rn;
+end
 $$;
 
 create table vehicle_catalog_popular (
@@ -166,7 +171,8 @@ alter table program_settings
   add column if not exists vpage_gas_cents_per_litre integer not null default 155 check (vpage_gas_cents_per_litre between 50 and 500),
   add column if not exists vpage_premium_extra_cents integer not null default 20 check (vpage_premium_extra_cents between 0 and 100),
   add column if not exists vpage_electricity_cents_per_kwh integer not null default 15 check (vpage_electricity_cents_per_kwh between 1 and 100),
-  add column if not exists vpage_import_every_days integer not null default 30 check (vpage_import_every_days between 7 and 365);
+  add column if not exists vpage_import_every_days integer not null default 30 check (vpage_import_every_days between 7 and 365),
+  add column if not exists vpage_import_db_cap_mb integer not null default 6144 check (vpage_import_db_cap_mb between 100 and 100000);
 comment on column program_settings.vpage_index_mode is 'Vehicle pages (0092): "all" indexes every make, model, year and trim page (the default); "rules" indexes only the pages that pass the rules below, the rest noindex,follow with the canonical at the parent page.';
 comment on column program_settings.vpage_model_min_years is 'Vehicle pages, rules only: a model page is indexed with at least this many model years of data, or one of our cars.';
 comment on column program_settings.vpage_popular_from_year is 'Vehicle pages, rules only: a model year of a popular model is indexed from this year on.';
@@ -350,7 +356,17 @@ create or replace function app.vehicle_catalog_import_begin(p jsonb) returns uui
 language plpgsql security definer set search_path = public, app as $$
 declare
   v_id uuid;
+  v_cap bigint := (app.settings()).vpage_import_db_cap_mb::bigint * 1024 * 1024;
+  v_cat bigint := (select coalesce(sum(pg_total_relation_size(c.oid)), 0) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                    where n.nspname = 'public' and c.relkind = 'r' and c.relname in ('vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims'));
+  v_proj bigint;
 begin
+  -- the database size cap (Admin > Settings > Vehicle pages, 6 GB by default on Supabase Pro's 8 GB): the database as it
+  -- is, less today's catalog, plus the catalog this import brings (the import's own estimate)
+  v_proj := pg_database_size(current_database()) - v_cat + coalesce((p -> 'stats' ->> 'projected_bytes')::bigint, 0);
+  if v_proj > v_cap then
+    raise exception 'The import would bring the database to % MB, over the cap of % MB (Admin > Settings > Vehicle pages)', v_proj / 1048576, v_cap / 1048576 using errcode = '54000';
+  end if;
   update vehicle_catalog_imports set status = 'failed', finished_at = now(), error = 'Replaced by a newer import' where status = 'running';
   insert into vehicle_catalog_imports (meta) values (coalesce(p, '{}'::jsonb)) returning id into v_id;
   update vehicle_catalog_import_requests set import_id = v_id where import_id is null;
@@ -879,18 +895,24 @@ create or replace function app.vpage_admin(p_user uuid, p_call text, p_name text
 language plpgsql security definer set search_path = public, app as $$
 declare
   v_lines jsonb;
+  v_counts jsonb; v_tiers jsonb;
   v_make text; v_model text;
   n integer;
 begin
   perform app.assert_admin(p_user);
   case p_name
   when 'vehicle_pages' then
+    v_counts := (select coalesce(jsonb_object_agg(level, jsonb_build_object('total', total, 'indexed', indexed)), '{}'::jsonb)
+                   from (select level, count(*) total, count(*) filter (where indexable) indexed from app.vpage_all() group by level) c);
+    v_tiers := app.vpage_tier_counts(v_counts);
     return jsonb_build_object(
       'settings', app.vpage_settings_json(app.settings()),
-      'counts', (select coalesce(jsonb_object_agg(level, jsonb_build_object('total', total, 'indexed', indexed)), '{}'::jsonb)
-                   from (select level, count(*) total, count(*) filter (where indexable) indexed from app.vpage_all() group by level) c),
-      'sitemaps', (select count(*) from app.vehicle_sitemap_files()),
-      'tiers', app.vpage_tier_counts(), 'buy', app.vpage_buy_counts(),
+      'counts', v_counts,
+      'sitemaps', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer,
+      'tiers', v_tiers, 'indexnow', (select to_jsonb(w) from indexnow_sweep w),
+      'db', jsonb_build_object('bytes', pg_database_size(current_database()), 'cap_mb', (app.settings()).vpage_import_db_cap_mb,
+        'tables', (select coalesce(jsonb_object_agg(c.relname, pg_total_relation_size(c.oid)), '{}'::jsonb) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                    where n.nspname = 'public' and c.relkind = 'r' and (c.relname like 'vehicle_catalog%' or c.relname in ('places', 'search_terms', 'vehicle_colours', 'indexnow_queue', 'indexnow_sweep')))),
       'makes', (select count(*) from vehicle_catalog_makes),
       'last_import', (select to_jsonb(i) - 'meta' || jsonb_build_object('stats', i.meta -> 'stats', 'run_url', i.meta ->> 'run_url')
                         from vehicle_catalog_imports i order by i.started_at desc limit 1),
@@ -933,6 +955,7 @@ begin
     insert into vehicle_catalog_popular (make_slug, model_slug, sort, added_by) select make_slug, model_slug, sort, p_user from vpage_pop
     on conflict (make_slug, model_slug) do update set sort = excluded.sort;
     select count(*) into n from vpage_pop;
+    perform app.vehicle_catalog_number_trims();
     return jsonb_build_object('ok', true, 'count', n,
       'unknown', (select count(*) from unnest(string_to_array(coalesce(p ->> 'lines', ''), E'\n')) l where btrim(l) <> '') - n);
   when 'vehicle_pages_trims' then
@@ -997,14 +1020,60 @@ grant execute on function public.vehicle_makes(), public.vehicle_make_page(text)
   public.vehicle_trim_page(text, text, integer, text), public.vehicle_sitemap_files(), public.vehicle_sitemap(text), public.vehicle_hub_path(text)
   to anon, authenticated, service_role;
 
--- ================================================================ 5. city and colour pages (the owner, October 22, 2026)
--- Every trim page multiplied by our service areas and by colours, every one indexed by default:
---   /cars/<make>/<model>/<year>/<trim>/<city>               a city page
---   /cars/<make>/<model>/<year>/<trim>/<city>/<colour>      a city and colour page
---   /cars/<make>/<model>/<year>/<trim>/colour/<colour>      a colour page
--- The cities are the active location landing pages (seo_pages, kind 'location'), read, never listed here; the colours
--- are vehicle_colours. Nothing is stored per page: a page is its trim, its city and its colour. One Admin switch
--- (program_settings.vpage_tier_index, on by default) takes the city and colour pages out of search at once.
+-- ================================================================ 5. places, colours, search terms and the twins (the owner, October 22, 2026)
+-- Every vehicle page multiplied, every page indexed by default, nothing stored per page (a page is a trim, a place, a
+-- colour and a term, read on demand):
+--   /cars/<make>/<model>/<year>/<trim>/<place>[/<colour>]   and   /cars/.../<trim>/colour/<colour>      renting
+--   /buy/...  (the same tree)                                                                            for sale
+--   /t/<term>/...  (the same tree, for each search term: "car hire", "financing", "ceramic coating"...)  a term's twin
+-- Places are every city, town and neighbourhood the place table holds (the gazetteer of the local SEO release; until
+-- it is filled, the location landing pages), with "GTA" (region), "Ontario" (province) and "Canada" (country) levels.
+-- One Admin switch per tier, all on: places, colours, terms, sale, detailing. CarmaCars mostly rents: a page says a car
+-- is for sale only when an Admin flagged a matching fleet car (then with an Offer), and never says it lends or leases.
+
+-- the place hierarchy: the same definition as the local SEO release (whichever migration runs first creates it)
+create table if not exists places (
+  id bigint primary key,
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  name text not null,
+  kind text not null check (kind in ('province', 'region', 'city', 'neighbourhood', 'airport', 'country')),
+  parent_id bigint references places (id),
+  lat numeric(9, 6),
+  lng numeric(9, 6)
+);
+create index if not exists places_parent_idx on places (parent_id);
+alter table places enable row level security;
+-- the search terms people type: renting, buying and detailing synonyms (the local SEO release edits them too)
+create table if not exists search_terms (
+  id bigint generated by default as identity primary key,
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  name text not null,
+  kind text not null check (kind in ('rental', 'sale', 'detailing', 'bodyshop')),
+  sort_order integer not null default 100,
+  is_active boolean not null default true
+);
+alter table search_terms enable row level security;
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'places' and policyname = 'admin_all') then
+    create policy admin_all on places for all to authenticated using (app.is_admin()) with check (app.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'search_terms' and policyname = 'admin_all') then
+    create policy admin_all on search_terms for all to authenticated using (app.is_admin()) with check (app.is_admin());
+  end if;
+end $$;
+-- the defaults ("rent" and "for sale" are the /cars and /buy trees themselves)
+insert into search_terms (slug, name, kind, sort_order) values
+  ('car-rental', 'Car rental', 'rental', 10), ('car-hire', 'Car hire', 'rental', 20), ('cars-for-hire', 'Cars for hire', 'rental', 30),
+  ('vehicle-rental', 'Vehicle rental', 'rental', 40), ('insurance-replacement', 'Insurance replacement rental', 'rental', 50),
+  ('used', 'Used', 'sale', 110), ('financing', 'Financing', 'sale', 120), ('leasing', 'Leasing', 'sale', 130), ('lease-takeover', 'Lease takeover', 'sale', 140),
+  ('car-detailing', 'Car detailing', 'detailing', 210), ('interior-detailing', 'Interior detailing', 'detailing', 220), ('exterior-detailing', 'Exterior detailing', 'detailing', 230),
+  ('mobile-detailing', 'Mobile detailing', 'detailing', 240), ('paint-correction', 'Paint correction', 'detailing', 250), ('ceramic-coating', 'Ceramic coating', 'detailing', 260),
+  ('window-tint', 'Window tint', 'detailing', 270), ('ppf', 'Paint protection film (PPF)', 'detailing', 280), ('vinyl-wrap', 'Vinyl wrap', 'detailing', 290),
+  ('collision-repair', 'Collision repair', 'bodyshop', 310), ('auto-body', 'Auto body repair', 'bodyshop', 320), ('dent-repair', 'Dent repair', 'bodyshop', 330),
+  ('bumper-repair', 'Bumper repair', 'bodyshop', 340), ('car-painting', 'Car painting', 'bodyshop', 350), ('scratch-repair', 'Scratch repair', 'bodyshop', 360)
+on conflict (slug) do nothing;
+
 create table vehicle_colours (
   slug text primary key check (slug ~ '^[a-z]+$' and slug <> 'colour'),
   name text not null,
@@ -1018,20 +1087,48 @@ insert into vehicle_colours (slug, name, hex, sort) values
   ('blue', 'Blue', '#24477F', 50), ('red', 'Red', '#C20F18', 60), ('green', 'Green', '#2F5E3B', 70), ('brown', 'Brown', '#553923', 80),
   ('beige', 'Beige', '#A8916A', 90), ('gold', 'Gold', '#B8902F', 100), ('orange', 'Orange', '#C2560F', 110), ('yellow', 'Yellow', '#C9A50F', 120);
 
-alter table program_settings add column if not exists vpage_tier_index boolean not null default true;
+alter table program_settings
+  add column if not exists vpage_place_index boolean not null default true,
+  add column if not exists vpage_colour_index boolean not null default true,
+  add column if not exists vpage_term_index boolean not null default true,
+  add column if not exists vpage_buy_index boolean not null default true,
+  add column if not exists vpage_detailing_index boolean not null default true,
+  add column if not exists vpage_bodyshop_index boolean not null default true,
+  add column if not exists vpage_finance_disclaimer text not null default 'CarmaCars is not a lender, dealer or lessor, and does not arrange financing or leases. We rent cars, and sell one only when it is listed for sale on this page with its price.'
+    check (length(vpage_finance_disclaimer) between 20 and 600);
+
+alter table vehicles
+  add column if not exists for_sale boolean not null default false,
+  add column if not exists asking_price_cents bigint check (asking_price_cents is null or asking_price_cents > 0);
 
 create or replace function app.vpage_settings_json(s program_settings) returns jsonb
 language sql immutable as $$
   select jsonb_build_object('index_mode', s.vpage_index_mode, 'model_min_years', s.vpage_model_min_years, 'popular_from_year', s.vpage_popular_from_year,
     'year_min_cars', s.vpage_year_min_cars, 'trim_min_cars', s.vpage_trim_min_cars, 'gas_cents', s.vpage_gas_cents_per_litre,
-    'premium_extra_cents', s.vpage_premium_extra_cents, 'elec_cents', s.vpage_electricity_cents_per_kwh, 'tier_index', s.vpage_tier_index)
+    'premium_extra_cents', s.vpage_premium_extra_cents, 'elec_cents', s.vpage_electricity_cents_per_kwh,
+    'place_index', s.vpage_place_index, 'colour_index', s.vpage_colour_index, 'term_index', s.vpage_term_index, 'buy_index', s.vpage_buy_index,
+    'detailing_index', s.vpage_detailing_index, 'bodyshop_index', s.vpage_bodyshop_index, 'finance_disclaimer', s.vpage_finance_disclaimer)
 $$;
 
--- The cities: the active location landing pages, in their order. A city without coordinates has no distance.
-create or replace function app.vpage_cities() returns table (slug text, name text, lat numeric, lng numeric, facts jsonb, sort integer, updated timestamptz)
+-- The places: the place table when it has rows, else the location landing pages (as cities and airports). Each with
+-- its landing page's facts when it has one, numbered the GTA first (the sitemaps take ranges of the numbers).
+create or replace function app.vpage_places() returns table (slug text, name text, kind text, parent text, lat numeric, lng numeric, facts jsonb, landing text, updated timestamptz, ord integer)
 language sql stable security definer set search_path = public, app as $$
-  select p.slug, p.name, nullif(p.facts ->> 'lat', '')::numeric, nullif(p.facts ->> 'lng', '')::numeric, p.facts, p.sort_order, p.content_updated_at
-    from seo_pages p where p.kind = 'location' and p.is_active and p.slug <> 'colour' order by p.sort_order, p.slug
+  with g as (select exists (select 1 from places) has, (select id from places where kind = 'region' and slug in ('gta', 'greater-toronto-area') limit 1) gta),
+       p as (
+    select pl.slug, pl.name, pl.kind, p1.name parent, pl.lat, pl.lng,
+           coalesce(s.facts, '{}'::jsonb) facts, case when s.slug is not null then app.seo_page_path(s.slug) end landing, s.content_updated_at updated,
+           (select gta from g) in (pl.id, pl.parent_id, p1.parent_id, p2.parent_id) in_gta
+      from places pl left join places p1 on p1.id = pl.parent_id left join places p2 on p2.id = p1.parent_id
+      left join seo_pages s on s.slug = pl.slug and s.kind = 'location' and s.is_active
+     where (select has from g)
+    union all
+    select s.slug, s.name, case when s.facts ? 'airport_code' then 'airport' else 'city' end, null, nullif(s.facts ->> 'lat', '')::numeric, nullif(s.facts ->> 'lng', '')::numeric,
+           s.facts, app.seo_page_path(s.slug), s.content_updated_at, true
+      from seo_pages s where s.kind = 'location' and s.is_active and not (select has from g))
+  -- numbered the GTA first (the sitemaps and IndexNow go in this order), then by slug
+  select p.slug, p.name, p.kind, p.parent, p.lat, p.lng, p.facts, p.landing, p.updated,
+         (row_number() over (order by coalesce(p.in_gta, false) desc, p.slug))::integer from p where p.slug <> 'colour'
 $$;
 
 -- What a delivery to a place costs from our lowest delivery fee (the real cars' rate cards, the per-kilometre setting,
@@ -1066,18 +1163,24 @@ begin
     'airport_surcharge_cents', a.surcharge_cents, 'per_km_cents', s.delivery_per_km_cents);
 end $$;
 
--- The cities and colours a trim page links to (and the switch).
+-- The places, colours and terms a trim page links to (the regions and the places with a landing page first), the
+-- switches, and the terms (every page's twins).
 create or replace function app.vpage_tiers() returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select jsonb_build_object(
-    'index', (app.settings()).vpage_tier_index,
-    'cities', (select coalesce(jsonb_agg(jsonb_build_object('slug', c.slug, 'name', c.name, 'lat', c.lat, 'lng', c.lng) order by c.sort, c.slug), '[]'::jsonb) from app.vpage_cities() c),
-    'colours', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'hex', x.hex) order by x.sort), '[]'::jsonb) from vehicle_colours x))
+    'settings', app.vpage_settings_json(app.settings()),
+    'places', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'kind', x.kind) order by x.o, x.name), '[]'::jsonb) from (
+                 select p.slug, p.name, p.kind, case p.kind when 'country' then 0 when 'province' then 1 when 'region' then 2 else 3 end o
+                   from app.vpage_places() p order by (p.kind in ('country', 'province', 'region')) desc, (p.landing is not null) desc, p.kind = 'neighbourhood', p.name limit 30) x),
+    'place_count', (select count(*) from app.vpage_places()),
+    'colours', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'hex', x.hex) order by x.sort), '[]'::jsonb) from vehicle_colours x),
+    'terms', (select coalesce(jsonb_agg(jsonb_build_object('slug', t.slug, 'name', t.name, 'kind', t.kind) order by t.sort_order, t.slug), '[]'::jsonb) from search_terms t where t.is_active))
 $$;
 
--- One city or colour page: the trim page's read, and the city (its distance from us, the delivery fee from our rate
--- cards, the landing page's local notes, the nearby cities) and the colour. Null when the trim, city or colour is unknown.
-create or replace function app.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_city text, p_colour text) returns jsonb
+-- One place, colour or place and colour page: the trim page's read, and the place (its parent, its distance from us and
+-- the delivery fee from our rate cards for a local place, the landing page's local notes, the nearby places, or the
+-- places within a region) and the colour. Null when the trim, place or colour is unknown.
+create or replace function app.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_place text, p_colour text) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
   s program_settings := app.settings();
@@ -1088,11 +1191,12 @@ declare
   v_path text;
   v_km numeric;
   v_ok boolean;
-  v_city jsonb;
-  v_city_slug text;
+  v_place jsonb;
+  v_slug text;
   v_upd timestamptz;
+  v_local boolean;
 begin
-  if p_city is null and p_colour is null then return null; end if;
+  if p_place is null and p_colour is null then return null; end if;
   base := app.vehicle_trim_page(p_make, p_model, p_year, p_trim);
   if base is null then return null; end if;
   v_trim_path := base ->> 'path';
@@ -1100,36 +1204,45 @@ begin
     select * into col from vehicle_colours where slug = lower(btrim(p_colour));
     if col.slug is null then return null; end if;
   end if;
-  if p_city is not null then
-    select * into c from app.vpage_cities() x where x.slug = lower(btrim(p_city));
+  if p_place is not null then
+    select * into c from app.vpage_places() x where x.slug = lower(btrim(p_place));
     if c.slug is null then return null; end if;
-    v_city_slug := c.slug; v_upd := c.updated;
-    v_km := app.distance_km(s.company_latitude, s.company_longitude, c.lat, c.lng);
-    v_city := jsonb_build_object('slug', c.slug, 'name', c.name, 'facts', c.facts, 'landing', app.seo_page_path(c.slug),
-      'km', round(v_km, 1), 'delivery', app.vpage_delivery_from(v_km, c.facts ->> 'airport_code'),
-      'nearby', (select coalesce(jsonb_agg(jsonb_build_object('slug', n.slug, 'name', n.name, 'km', round(app.distance_km(c.lat, c.lng, n.lat, n.lng), 1)) order by n.o), '[]'::jsonb)
+    v_slug := c.slug; v_upd := c.updated; v_local := c.kind in ('city', 'neighbourhood', 'airport');
+    v_km := case when v_local then app.distance_km(s.company_latitude, s.company_longitude, c.lat, c.lng) end;
+    v_place := jsonb_build_object('slug', c.slug, 'name', c.name, 'kind', c.kind, 'parent', c.parent, 'facts', c.facts, 'landing', c.landing,
+      'km', round(v_km, 1), 'delivery', case when v_local then app.vpage_delivery_from(v_km, c.facts ->> 'airport_code') end,
+      'nearby', case when v_local then (select coalesce(jsonb_agg(jsonb_build_object('slug', n.slug, 'name', n.name, 'km', round(app.distance_km(c.lat, c.lng, n.lat, n.lng), 1)) order by n.o), '[]'::jsonb)
                    from (select x.slug, x.name, x.lat, x.lng,
                                 coalesce(array_position(array(select jsonb_array_elements_text(coalesce(c.facts -> 'nearby', '[]'::jsonb))), x.slug), 100)
                                   * 100000 + coalesce(app.distance_km(c.lat, c.lng, x.lat, x.lng), 99999) o
-                           from app.vpage_cities() x where x.slug <> c.slug order by o limit 5) n));
+                           from app.vpage_places() x where x.slug <> c.slug and x.kind in ('city', 'neighbourhood', 'airport') order by o limit 5) n) else '[]'::jsonb end,
+      'within', case when not v_local then (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name) order by x.name), '[]'::jsonb)
+                   from (select pl.slug, pl.name from places pl join places pp on pp.id = pl.parent_id where pp.slug = c.slug order by pl.name limit 24) x) else '[]'::jsonb end);
   end if;
-  v_path := v_trim_path || case when v_city_slug is null then '/colour/' || col.slug else '/' || v_city_slug || coalesce('/' || col.slug, '') end;
-  v_ok := s.vpage_tier_index and (base ->> 'indexable')::boolean;
+  v_path := v_trim_path || case when v_slug is null then '/colour/' || col.slug else '/' || v_slug || coalesce('/' || col.slug, '') end;
+  v_ok := (base ->> 'indexable')::boolean and (v_slug is null or s.vpage_place_index) and (col.slug is null or s.vpage_colour_index);
   return base || jsonb_build_object(
-    'level', case when p_city is null then 'colour' when p_colour is null then 'city' else 'city_colour' end,
-    'trim_path', v_trim_path, 'path', v_path, 'city', v_city,
+    'level', case when v_slug is null then 'colour' when col.slug is null then 'city' else 'city_colour' end,
+    'trim_path', v_trim_path, 'path', v_path, 'city', v_place,
     'colour', case when col.slug is not null then jsonb_build_object('slug', col.slug, 'name', col.name, 'hex', col.hex) end,
     'tiers', app.vpage_tiers(), 'indexable', v_ok, 'canonical', case when v_ok then v_path else v_trim_path end,
     'lastmod', greatest((base ->> 'lastmod')::timestamptz, v_upd));
 end $$;
 
--- The city and colour sitemaps: "tiers-<n>", each the pages of a range of trims (by ord) so that no file holds more than
--- 50,000 addresses: K pages a trim (cities x (1 + colours) + colours), floor(50,000 / K) trims a file. A file's
--- addresses are read by keyset (ord after the last one read), never by offset.
-create or replace function app.vpage_tier_shape() returns table (per_trim integer, trims_per_file integer, cities integer, colours integer, on_ boolean)
+-- ---------------------------------------------------------------- the sitemaps
+-- Files are named by tree: "" (renting), "buy-" (for sale) and "t-<term>-" (a term's twin), then the level files
+-- ("makes", "toyota-years"...) and the place and colour files "tiers-<n>". A tiers file is a range of (trim, place)
+-- pairs: each trim has Q pairs (its places, then one more pair for its 12 colour pages), a pair at most 13 addresses (the
+-- place page and its 12 colours), so a file of floor(50,000 / 13) pairs never passes 50,000 addresses. Pair g is trim
+-- ord g / Q + 1 and place g % Q + 1: a file and each slice of it are read by keyset on g, never by offset, and the list
+-- of files is arithmetic, so the index never counts addresses.
+create or replace function app.vpage_tier_shape() returns table (places integer, q integer, per_pair integer, pairs_per_file integer, trims integer, place_on boolean, colour_on boolean)
 language sql stable security definer set search_path = public, app as $$
-  with n as (select (select count(*) from app.vpage_cities())::integer c, (select count(*) from vehicle_colours)::integer k)
-  select n.c * (1 + n.k) + n.k, greatest(1, 50000 / greatest(1, n.c * (1 + n.k) + n.k)), n.c, n.k, (app.settings()).vpage_tier_index from n
+  with s as (select app.settings() s),
+       n as (select (select count(*) from app.vpage_places())::integer p, coalesce((select max(ord) from vehicle_catalog_trims), 0) t,
+                    ((select s from s)).vpage_place_index po, ((select s from s)).vpage_colour_index co)
+  select n.p, (case when n.po then n.p else 0 end) + (case when n.co then 1 else 0 end), case when n.co then 13 else 1 end,
+         50000 / case when n.co then 13 else 1 end, n.t, n.po, n.co from n
 $$;
 
 create or replace function app.vpage_trim_indexed(p_from integer, p_to integer) returns table (ord integer, make_slug text, model_slug text, year smallint, slug text, lastmod timestamptz)
@@ -1143,97 +1256,89 @@ language sql stable security definer set search_path = public, app as $$
    order by t.ord
 $$;
 
-create or replace function app.vehicle_tier_files() returns table (file text, urls bigint, lastmod timestamptz)
+-- the tiers files (the same for every tree): only those with an indexed trim; the lastmod of the file's first trim
+create or replace function app.vehicle_tier_files() returns table (file text, lastmod timestamptz)
 language sql stable security definer set search_path = public, app as $$
   with sh as (select * from app.vpage_tier_shape()),
-       f as (select g n from sh, generate_series(1, ceil(coalesce((select max(ord) from vehicle_catalog_trims), 0)::numeric / sh.trims_per_file)::integer) g where sh.on_ and sh.per_trim > 0)
-  select 'tiers-' || f.n, count(t.ord) * (select per_trim from sh), max(t.lastmod)
-    from f cross join sh cross join lateral app.vpage_trim_indexed((f.n - 1) * sh.trims_per_file, f.n * sh.trims_per_file) t
-   group by f.n having count(t.ord) > 0 order by f.n
+       ix as materialized (select x.ord, x.lastmod from app.vpage_trim_indexed(0, 2147483647) x),
+       f as (select g n, ((g - 1)::bigint * sh.pairs_per_file) / sh.q + 1 first_ord, least((g::bigint * sh.pairs_per_file - 1) / sh.q + 1, sh.trims) last_ord
+               from sh, generate_series(1, ceil((sh.trims::numeric * sh.q) / sh.pairs_per_file)::integer) g where sh.q > 0)
+  select 'tiers-' || f.n, (select max(i.lastmod) from ix i where i.ord between f.first_ord and f.last_ord) from f
+   where exists (select 1 from ix i where i.ord between f.first_ord and f.last_ord) order by f.n
 $$;
 
--- One slice of a tier sitemap: the pages of up to p_limit trims of file p_file after trim p_after (keyset).
-create or replace function app.vehicle_tier_sitemap(p_file integer, p_after integer, p_limit integer) returns table (ord integer, path text, lastmod timestamptz)
+-- One slice of a tiers file: the addresses of up to p_limit pairs of file p_file after pair p_after (keyset).
+create or replace function app.vehicle_tier_sitemap(p_file integer, p_after bigint, p_limit integer) returns table (g bigint, path text, lastmod timestamptz)
 language sql stable security definer set search_path = public, app as $$
   with sh as (select * from app.vpage_tier_shape()),
-       t as (select x.* from sh cross join lateral app.vpage_trim_indexed(greatest(coalesce(p_after, 0), (p_file - 1) * sh.trims_per_file), p_file * sh.trims_per_file) x
-              where sh.on_ order by x.ord limit greatest(1, least(coalesce(p_limit, 500), 5000))),
-       c as (select slug, sort, updated from app.vpage_cities()),
+       r as (select greatest((p_file - 1)::bigint * sh.pairs_per_file, coalesce(p_after, -1) + 1) a,
+                    least(p_file::bigint * sh.pairs_per_file, sh.trims::bigint * sh.q) - 1 b, sh.q from sh where sh.q > 0),
+       gs as (select x g from r, generate_series(r.a, least(r.b, r.a + greatest(1, least(coalesce(p_limit, 200), 4000)) - 1)) x),
+       pr as (select gs.g, (gs.g / r.q + 1)::integer ord, (gs.g % r.q + 1)::integer pidx from gs, r),
+       t as materialized (select x.* from r, app.vpage_trim_indexed((select min(ord) from pr) - 1, (select max(ord) from pr)) x),
+       pl as materialized (select p.slug, p.ord, p.updated from app.vpage_places() p),
        k as (select slug, sort from vehicle_colours)
-  select t.ord, app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug) || u.tail, greatest(t.lastmod, u.upd)
-    from t cross join lateral (
-      select '/' || c.slug tail, c.updated upd, c.sort * 1000 o from c
-      union all select '/' || c.slug || '/' || k.slug, c.updated, c.sort * 1000 + k.sort from c cross join k
-      union all select '/colour/' || k.slug, null, 1000000 + k.sort from k) u
-   order by t.ord, u.o, u.tail
+  select pr.g, app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug) || u.tail, greatest(t.lastmod, u.upd)
+    from pr join t on t.ord = pr.ord cross join sh
+    cross join lateral (
+      select '/' || pl.slug tail, pl.updated upd, 0 o from pl where sh.place_on and pl.ord = pr.pidx
+      union all select '/' || pl.slug || '/' || k.slug, pl.updated, k.sort from pl cross join k where sh.place_on and sh.colour_on and pl.ord = pr.pidx
+      union all select '/colour/' || k.slug, null, k.sort from k where sh.colour_on and pr.pidx = sh.q and (not sh.place_on or pr.pidx > sh.places)) u
+   order by pr.g, u.o, u.tail
 $$;
 
--- the sitemap list of the vehicle pages, the city and colour files after the levels'
-create or replace function public.vehicle_sitemap_files() returns jsonb
-language sql stable security invoker set search_path = public, app as $$
-  select coalesce(jsonb_agg(jsonb_build_object('file', f.file, 'urls', f.urls, 'lastmod', f.lastmod) order by f.o, f.file), '[]'::jsonb)
-    from (select file, urls, lastmod, 0 o from app.vehicle_sitemap_files() union all select file, urls, lastmod, 1 from app.vehicle_tier_files()) f
+-- The trees and their prefixes, as the switches allow: renting always, for sale, each active term.
+create or replace function app.vpage_trees() returns table (prefix text, term text, kind text)
+language sql stable security definer set search_path = public, app as $$
+  with s as (select app.settings() s)
+  select '', null, 'rental'
+  union all select 'buy-', null, 'sale' where ((select s from s)).vpage_buy_index
+  union all select 't-' || t.slug || '-', t.slug, t.kind from search_terms t, s
+   where t.is_active and case t.kind when 'rental' then (s.s).vpage_term_index when 'sale' then (s.s).vpage_term_index and (s.s).vpage_buy_index
+                                     when 'detailing' then (s.s).vpage_detailing_index else (s.s).vpage_bodyshop_index end
 $$;
-create or replace function public.vehicle_tier_sitemap(p_file integer, p_after integer, p_limit integer) returns jsonb
-language sql stable security invoker set search_path = public, app as $$
-  select coalesce(jsonb_agg(jsonb_build_object('ord', s.ord, 'path', s.path, 'lastmod', s.lastmod) order by s.ord), '[]'::jsonb) from app.vehicle_tier_sitemap(p_file, p_after, p_limit) s
+
+-- a tree's prefix is allowed now (a file of a tree switched off is a 404)
+create or replace function public.vehicle_sitemap_tree(p_prefix text) returns boolean
+language sql stable security definer set search_path = public, app as $$ select exists (select 1 from app.vpage_trees() where prefix = p_prefix) $$;
+create or replace function public.vehicle_tier_sitemap(p_file integer, p_after bigint, p_limit integer) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('g', s.g, 'path', s.path, 'lastmod', s.lastmod) order by s.g), '[]'::jsonb) from app.vehicle_tier_sitemap(p_file, p_after, p_limit) s
 $$;
-create or replace function public.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_city text, p_colour text) returns jsonb
-language sql stable security invoker set search_path = public, app as $$ select app.vehicle_tier_page(p_make, p_model, p_year, p_trim, p_city, p_colour) $$;
+create or replace function public.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_place text, p_colour text) returns jsonb
+language sql stable security invoker set search_path = public, app as $$ select app.vehicle_tier_page(p_make, p_model, p_year, p_trim, p_place, p_colour) $$;
 create or replace function public.vehicle_tiers() returns jsonb
 language sql stable security invoker set search_path = public, app as $$ select app.vpage_tiers() $$;
 
--- the Admin's counts of the city and colour pages
-create or replace function app.vpage_tier_counts() returns jsonb
+-- The Admin's counts of every tier: a tree (renting, for sale, each term) has the level pages, the place pages, the
+-- place and colour pages and the colour pages of every trim.
+create or replace function app.vpage_tier_counts(p_counts jsonb) returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  with sh as (select * from app.vpage_tier_shape()),
+  with s as (select app.settings() s),
+       sh as (select * from app.vpage_tier_shape()),
        t as (select count(*) total from vehicle_catalog_trims),
-       ti as (select count(*) n from app.vpage_trim_indexed(0, 2147483647))
-  select jsonb_build_object('cities', sh.cities, 'colours', sh.colours, 'index', sh.on_, 'trims', t.total, 'trims_indexed', ti.n,
-    'city', jsonb_build_object('total', t.total * sh.cities, 'indexed', case when sh.on_ then ti.n * sh.cities else 0 end),
-    'city_colour', jsonb_build_object('total', t.total * sh.cities * sh.colours, 'indexed', case when sh.on_ then ti.n * sh.cities * sh.colours else 0 end),
-    'colour', jsonb_build_object('total', t.total * sh.colours, 'indexed', case when sh.on_ then ti.n * sh.colours else 0 end),
-    'files', (select count(*) from app.vehicle_tier_files()), 'trims_per_file', sh.trims_per_file, 'per_trim', sh.per_trim)
-    from sh, t, ti
+       ti as (select count(*) n from app.vpage_trim_indexed(0, 2147483647)),
+       b as (select coalesce(sum((v ->> 'total')::bigint), 0) total, coalesce(sum((v ->> 'indexed')::bigint), 0) indexed from jsonb_each(p_counts) e(k, v)),
+       c as (select (select count(*) from search_terms where is_active and kind = 'rental') r, (select count(*) from search_terms where is_active and kind = 'sale') sa,
+                    (select count(*) from search_terms where is_active and kind = 'detailing') d, (select count(*) from search_terms where is_active and kind = 'bodyshop') bs),
+       tree as (select b.total + t.total * sh.places + t.total * sh.places * 12 + t.total * 12 total,
+                       b.indexed + case when sh.place_on then ti.n * sh.places else 0 end + case when sh.place_on and sh.colour_on then ti.n * sh.places * 12 else 0 end
+                         + case when sh.colour_on then ti.n * 12 else 0 end indexed from b, t, ti, sh)
+  select jsonb_build_object('places', sh.places, 'colours', 12, 'trims', t.total, 'trims_indexed', ti.n,
+    'place', jsonb_build_object('total', t.total * sh.places, 'indexed', case when sh.place_on then ti.n * sh.places else 0 end),
+    'place_colour', jsonb_build_object('total', t.total * sh.places * 12, 'indexed', case when sh.place_on and sh.colour_on then ti.n * sh.places * 12 else 0 end),
+    'colour', jsonb_build_object('total', t.total * 12, 'indexed', case when sh.colour_on then ti.n * 12 else 0 end),
+    'tree', jsonb_build_object('total', tree.total, 'indexed', tree.indexed),
+    'sale', jsonb_build_object('total', tree.total, 'indexed', case when (s.s).vpage_buy_index then tree.indexed else 0 end),
+    'rental_terms', jsonb_build_object('terms', c.r, 'total', tree.total * c.r, 'indexed', case when (s.s).vpage_term_index then tree.indexed * c.r else 0 end),
+    'sale_terms', jsonb_build_object('terms', c.sa, 'total', tree.total * c.sa, 'indexed', case when (s.s).vpage_term_index and (s.s).vpage_buy_index then tree.indexed * c.sa else 0 end),
+    'detailing_terms', jsonb_build_object('terms', c.d, 'total', tree.total * c.d, 'indexed', case when (s.s).vpage_detailing_index then tree.indexed * c.d else 0 end),
+    'bodyshop_terms', jsonb_build_object('terms', c.bs, 'total', tree.total * c.bs, 'indexed', case when (s.s).vpage_bodyshop_index then tree.indexed * c.bs else 0 end),
+    'for_sale', (select count(*) from vehicles where for_sale and asking_price_cents is not null and not is_sample))
+    from s, sh, t, ti, tree, c
 $$;
 
-do $$
-declare f record;
-begin
-  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname in ('vpage_cities', 'vpage_delivery_from', 'vpage_tiers', 'vehicle_tier_page', 'vpage_tier_shape', 'vpage_trim_indexed',
-                                                      'vehicle_tier_files', 'vehicle_tier_sitemap', 'vpage_tier_counts', 'vehicle_catalog_number_trims', 'vpage_settings_json')
-  loop
-    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
-    execute format('grant execute on function %s to service_role', f.sig);
-  end loop;
-end $$;
-grant execute on function app.vpage_cities(), app.vpage_delivery_from(numeric, text), app.vpage_tiers(), app.vehicle_tier_page(text, text, integer, text, text, text),
-  app.vpage_tier_shape(), app.vpage_trim_indexed(integer, integer), app.vehicle_tier_files(), app.vehicle_tier_sitemap(integer, integer, integer)
-  to anon, authenticated;
-revoke all on function public.vehicle_tier_sitemap(integer, integer, integer), public.vehicle_tier_page(text, text, integer, text, text, text), public.vehicle_tiers() from public;
-grant execute on function public.vehicle_sitemap_files(), public.vehicle_tier_sitemap(integer, integer, integer), public.vehicle_tier_page(text, text, integer, text, text, text),
-  public.vehicle_tiers() to anon, authenticated, service_role;
-select app.vehicle_catalog_number_trims();
-
--- ================================================================ 6. the for-sale twins (/buy/..., the owner, October 22, 2026)
--- Every vehicle page has a twin under /buy (/buy/volkswagen/jetta/2020/sportline/mississauga/black): the same real
--- stats, what to check when buying that model year (NHTSA recalls and complaint counts, public domain, imported with
--- the catalog), the fuel cost of a year, "rent it for a week before you buy" and a buyer lead form. CarmaCars mostly
--- does not sell cars: a page says a car is for sale only when a fleet car matching it is flagged for sale by an Admin,
--- and only then carries an Offer. One Admin switch (vpage_buy_index, on by default) takes the /buy tree out of search.
-alter table vehicles
-  add column if not exists for_sale boolean not null default false,
-  add column if not exists asking_price_cents bigint check (asking_price_cents is null or asking_price_cents > 0);
-alter table program_settings add column if not exists vpage_buy_index boolean not null default true;
-
-create or replace function app.vpage_settings_json(s program_settings) returns jsonb
-language sql immutable as $$
-  select jsonb_build_object('index_mode', s.vpage_index_mode, 'model_min_years', s.vpage_model_min_years, 'popular_from_year', s.vpage_popular_from_year,
-    'year_min_cars', s.vpage_year_min_cars, 'trim_min_cars', s.vpage_trim_min_cars, 'gas_cents', s.vpage_gas_cents_per_litre,
-    'premium_extra_cents', s.vpage_premium_extra_cents, 'elec_cents', s.vpage_electricity_cents_per_kwh, 'tier_index', s.vpage_tier_index, 'buy_index', s.vpage_buy_index)
-$$;
-
+-- ---------------------------------------------------------------- the /buy twins: for sale only when a car really is
 -- Fleet cars flagged for sale that match a page (make, and the model, year and trim when the page has them).
 create or replace function app.vpage_for_sale(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
 language sql stable security definer set search_path = public, app as $$
@@ -1247,61 +1352,37 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- What a /buy page adds to its /cars twin: the cars for sale, the model year's recalls and complaints (or the model's by
--- year), and whether the /buy tree is indexed.
+-- year), and the switches.
 create or replace function app.vehicle_buy_extras(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select jsonb_build_object(
     'for_sale', app.vpage_for_sale(lower(p_make), lower(p_model), p_year, lower(p_trim)),
     'buy_index', (app.settings()).vpage_buy_index,
-    'recalls', case when p_year is not null then (select y.recalls from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
-    'complaints', case when p_year is not null then (select y.complaints from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
+    -- null when NHTSA's files were not imported for the year (then the page says nothing about recalls, never "none")
+    'recalls', case when p_year is not null then (select case when y.complaints ? 'total' then y.recalls end from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
+    'complaints', case when p_year is not null then (select case when y.complaints ? 'total' then y.complaints end from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
     'by_year', case when p_year is null and p_model is not null then (select coalesce(jsonb_agg(jsonb_build_object('year', y.year, 'recalls', jsonb_array_length(y.recalls),
                     'complaints', coalesce((y.complaints ->> 'total')::integer, 0)) order by y.year desc), '[]'::jsonb)
-                    from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model)) end)
-$$;
-
--- the sitemaps: every vehicle sitemap has a /buy twin ("buy-toyota-years", "buy-tiers-3") when the switch is on
-create or replace function app.vehicle_buy_path(p text) returns text
-language sql immutable as $$ select case when p like '/cars/%' then '/buy/' || substr(p, 7) else p end $$;
-
-create or replace function public.vehicle_sitemap_files() returns jsonb
-language sql stable security invoker set search_path = public, app as $$
-  with f as (select file, urls, lastmod, 0 o from app.vehicle_sitemap_files() union all select file, urls, lastmod, 1 from app.vehicle_tier_files())
-  select coalesce(jsonb_agg(jsonb_build_object('file', x.file, 'urls', x.urls, 'lastmod', x.lastmod) order by x.o, x.file), '[]'::jsonb)
-    from (select file, urls, lastmod, o from f
-          union all select 'buy-' || file, urls, lastmod, o + 2 from f where (app.settings()).vpage_buy_index) x
-$$;
-create or replace function public.vehicle_sitemap(p_file text) returns jsonb
-language sql stable security invoker set search_path = public, app as $$
-  select coalesce(jsonb_agg(jsonb_build_object('path', case when p_file like 'buy-%' then app.vehicle_buy_path(s.path) else s.path end, 'lastmod', s.lastmod) order by s.path), '[]'::jsonb)
-    from app.vehicle_sitemap(case when p_file like 'buy-%' then substr(p_file, 5) else p_file end) s
-   where p_file not like 'buy-%' or (app.settings()).vpage_buy_index
+                    from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.complaints ? 'total') end)
 $$;
 create or replace function public.vehicle_buy_extras(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
 language sql stable security invoker set search_path = public, app as $$ select app.vehicle_buy_extras(p_make, p_model, p_year, p_trim) $$;
 
--- the Admin's counts: the /buy tree is the twin of every page
-create or replace function app.vpage_buy_counts() returns jsonb
-language sql stable security definer set search_path = public, app as $$
-  with b as (select count(*) total, count(*) filter (where indexable) indexed from app.vpage_all()), t as (select app.vpage_tier_counts() c)
-  select jsonb_build_object('index', (app.settings()).vpage_buy_index,
-    'total', b.total + ((t.c -> 'city' ->> 'total')::bigint + (t.c -> 'city_colour' ->> 'total')::bigint + (t.c -> 'colour' ->> 'total')::bigint),
-    'indexed', case when (app.settings()).vpage_buy_index then b.indexed + ((t.c -> 'city' ->> 'indexed')::bigint + (t.c -> 'city_colour' ->> 'indexed')::bigint + (t.c -> 'colour' ->> 'indexed')::bigint) else 0 end,
-    'for_sale', (select count(*) from vehicles where for_sale and asking_price_cents is not null and not is_sample))
-    from b, t
-$$;
-
--- ---------------------------------------------------------------- buyer leads ("Find me this car")
+-- ---------------------------------------------------------------- leads from the twins: buyer, finance, detailing
 alter table leads drop constraint if exists leads_kind_check;
-alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'buyer'));
+alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'buyer', 'finance', 'detailing', 'bodyshop'));
 insert into task_rules (task_type, queue, title, priority, due_kind, due_amount, procedure_no, completion_rule, description) values
-  ('buyer_lead', 'sales', 'A buyer asked us to find a car', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day: a car of ours for sale, or what we can find')
+  ('buyer_lead', 'sales', 'A buyer asked us to find a car', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day: a car of ours for sale, or what we can find'),
+  ('finance_lead', 'sales', 'Someone asked about financing or leasing a car', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day. We do not lend or lease: offer a car of ours for sale if there is one, or renting first'),
+  ('detailing_lead', 'sales', 'A detailing request', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day with a time and a price, and offer a rental while the car is in'),
+  ('bodyshop_lead', 'sales', 'A body shop request', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day, and offer an insurance replacement rental while the car is repaired')
 on conflict (task_type) do nothing;
 
 alter function app.submit_lead(jsonb, text) rename to submit_lead_pre0092;
 create or replace function app.submit_lead(p jsonb, p_ip text default null) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
+  v_kind text := coalesce(p ->> 'kind', 'contact');
   v_id uuid := gen_random_uuid();
   v_email text := nullif(lower(btrim(p ->> 'email')), '');
   v_phone text := nullif(btrim(p ->> 'phone'), '');
@@ -1311,8 +1392,9 @@ declare
   v_assignee uuid;
   v_task uuid;
   v_car text := nullif(btrim(p -> 'payload' ->> 'vehicle'), '');
+  v_what text := nullif(btrim(p -> 'payload' ->> 'service'), '');
 begin
-  if coalesce(p ->> 'kind', 'contact') <> 'buyer' then return app.submit_lead_pre0092(p, p_ip); end if;
+  if v_kind not in ('buyer', 'finance', 'detailing', 'bodyshop') then return app.submit_lead_pre0092(p, p_ip); end if;
   if nullif(btrim(p_ip), '') is not null and not app.rate_limit('lead:ip:' || btrim(p_ip), v_set.lead_hourly_limit, interval '1 hour') then
     return jsonb_build_object('ok', false, 'error', 'rate_limited');
   end if;
@@ -1325,12 +1407,17 @@ begin
    where sp.staff_type = 'va' and sp.va_function = 'sales' and sp.is_active
    order by (select count(*) from leads l where l.assigned_to = sp.user_id and l.status in ('new', 'contacted', 'qualified')), sp.created_at, sp.user_id limit 1;
   insert into leads (id, kind, name, email, phone, message, payload, source, source_url, referrer, consent_marketing, consent_text, consent_at, assigned_to)
-  values (v_id, 'buyer', v_name, v_email, v_phone, nullif(btrim(p ->> 'message'), ''), app.strip_transient(coalesce(p -> 'payload', '{}'::jsonb)),
+  values (v_id, v_kind, v_name, v_email, v_phone, nullif(btrim(p ->> 'message'), ''), app.strip_transient(coalesce(p -> 'payload', '{}'::jsonb)),
           coalesce(nullif(p ->> 'source', ''), 'web'), p ->> 'source_url', p ->> 'referrer',
           v_consent, case when v_consent then p ->> 'consent_text' end, case when v_consent then now() end, v_assignee);
-  v_task := app.raise_task(p_type => 'buyer_lead',
-    p_detail => concat_ws(' ', coalesce(v_name, 'Someone'), 'wants to buy', coalesce(v_car, 'a car') || '.',
-                          'Budget: ' || nullif(btrim(p -> 'payload' ->> 'budget'), '') || '.', 'Timeline: ' || nullif(btrim(p -> 'payload' ->> 'timeline'), '') || '.'),
+  v_task := app.raise_task(p_type => v_kind || '_lead',
+    p_detail => case v_kind
+      when 'detailing' then concat_ws(' ', coalesce(v_name, 'Someone'), 'asked for', coalesce(lower(v_what), 'detailing'), 'on', coalesce(v_car, 'a car') || '.',
+                                      'Where: ' || nullif(btrim(p -> 'payload' ->> 'place'), '') || '.', 'When: ' || nullif(btrim(p -> 'payload' ->> 'timeline'), '') || '.')
+      when 'bodyshop' then concat_ws(' ', coalesce(v_name, 'Someone'), 'asked for', coalesce(lower(v_what), 'body work'), 'on', coalesce(v_car, 'a car') || '.',
+                                      'Where: ' || nullif(btrim(p -> 'payload' ->> 'place'), '') || '.', 'When: ' || nullif(btrim(p -> 'payload' ->> 'timeline'), '') || '.')
+      else concat_ws(' ', coalesce(v_name, 'Someone'), case v_kind when 'finance' then 'asked about ' || coalesce(lower(v_what), 'financing') || ' for' else 'wants to buy' end,
+                     coalesce(v_car, 'a car') || '.', 'Budget: ' || nullif(btrim(p -> 'payload' ->> 'budget'), '') || '.', 'Timeline: ' || nullif(btrim(p -> 'payload' ->> 'timeline'), '') || '.') end,
     p_related_table => 'leads', p_related_id => v_id, p_dedupe => 'lead:' || v_id);
   if v_assignee is not null then update tasks set assigned_to = v_assignee where id = v_task; end if;
   return jsonb_build_object('ok', true, 'lead_id', v_id);
@@ -1366,20 +1453,180 @@ begin
   return app.door_pre0092b(p_user, p_aal, p_call, p_name, p);
 end $$;
 
+-- ---------------------------------------------------------------- IndexNow: every page, as fast as the engines allow
+-- One queue and one quota for the whole site (shared with the local SEO release): indexnow_queue holds the addresses
+-- whose content changed (sent first, by the search job, 0061); indexnow_sweep walks every address of the vehicle
+-- sitemaps in their order (the popular models and the newest years first, the GTA first within each) with a cursor, in
+-- batches of up to 10,000 (IndexNow's most per request), as often as the job runs, within a daily ceiling. A 429 or 403
+-- backs off (doubling from 15 minutes; a 403 or 422 until the next day) and the sweep resumes where it stopped.
+create table indexnow_sweep (
+  id boolean primary key default true check (id),
+  file_i integer not null default 0,
+  pos bigint not null default -1,
+  day date not null default (now() at time zone 'America/Toronto')::date,
+  sent_today integer not null default 0,
+  backoff_until timestamptz,
+  backoff_s integer not null default 0,
+  rounds integer not null default 0,
+  last_status integer,
+  last_error text,
+  last_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+comment on table indexnow_sweep is 'The IndexNow sweep of every vehicle page (0092): where it is in the sitemap index (file_i, and pos: the row of a level file or the pair of a tiers file last sent), the addresses sent today (every sender counts here), and the back-off after a 429 or 403.';
+insert into indexnow_sweep default values;
+alter table indexnow_sweep enable row level security;
+create policy admin_read on indexnow_sweep for select to authenticated using (app.is_admin());
+alter table program_settings
+  add column if not exists indexnow_daily_max integer not null default 2000000 check (indexnow_daily_max between 0 and 100000000),
+  add column if not exists indexnow_batch integer not null default 10000 check (indexnow_batch between 1 and 10000);
+
+-- every file of the vehicle sitemap index, numbered (the index and the sweep read the same list)
+create or replace function app.vpage_index_entries() returns table (i bigint, file text, lastmod timestamptz)
+language sql stable security definer set search_path = public, app as $$
+  with base as materialized (select file, lastmod, 0 o from app.vehicle_sitemap_files() union all select file, lastmod, 1 from app.vehicle_tier_files()),
+       tr as (select prefix, row_number() over (order by prefix = '' desc, prefix = 'buy-' desc, prefix) n from app.vpage_trees())
+  select row_number() over (order by tr.n, b.o, b.file), tr.prefix || b.file, b.lastmod from tr cross join base b
+$$;
+create or replace function public.vehicle_sitemap_index(p_offset integer, p_limit integer) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  with e as materialized (select * from app.vpage_index_entries())
+  select jsonb_build_object('total', (select count(*) from e),
+    'files', coalesce((select jsonb_agg(jsonb_build_object('file', x.file, 'lastmod', x.lastmod) order by x.i) from e x where x.i > p_offset and x.i <= p_offset + least(p_limit, 50000)), '[]'::jsonb))
+$$;
+
+-- a path of the /cars tree in another tree ("buy-" is /buy, "t-car-hire-" is /t/car-hire)
+create or replace function app.vpage_tree_path(p_prefix text, p_path text) returns text
+language sql immutable as $$
+  select case when p_prefix = '' then p_path when p_prefix = 'buy-' then '/buy' || substr(p_path, 6)
+              else '/t/' || substring(p_prefix from '^t-(.*)-$') || substr(p_path, 6) end
+$$;
+
+-- The next batch: up to p_limit addresses after the cursor, within today's ceiling; nothing while backing off.
+create or replace function app.server_indexnow_claim(p_limit integer) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  s program_settings := app.settings();
+  w indexnow_sweep;
+  v_today date := (now() at time zone 'America/Toronto')::date;
+  v_room integer;
+  v_paths text[] := '{}';
+  v_file text; v_prefix text; v_base text; v_n integer;
+  v_i bigint; v_pos bigint;
+  v_total bigint;
+  v_more text[];
+  v_last bigint;
+begin
+  select * into w from indexnow_sweep for update;
+  if w.day < v_today then update indexnow_sweep set day = v_today, sent_today = 0 returning * into w; end if;
+  if not s.indexnow_enabled then return jsonb_build_object('paths', '[]'::jsonb, 'why', 'off'); end if;
+  if w.backoff_until > now() then return jsonb_build_object('paths', '[]'::jsonb, 'why', 'backing off', 'until', w.backoff_until); end if;
+  v_room := least(coalesce(p_limit, s.indexnow_batch), s.indexnow_batch, greatest(s.indexnow_daily_max - w.sent_today, 0));
+  if v_room <= 0 then return jsonb_build_object('paths', '[]'::jsonb, 'why', 'daily ceiling'); end if;
+  drop table if exists vpage_ix;
+  create temporary table vpage_ix (i bigint primary key, file text) on commit drop;
+  insert into vpage_ix select e.i, e.file from app.vpage_index_entries() e;
+  select count(*) into v_total from vpage_ix;
+  if v_total = 0 then return jsonb_build_object('paths', '[]'::jsonb, 'why', 'nothing to send'); end if;
+  v_i := w.file_i; v_pos := w.pos;
+  if v_i >= v_total then v_i := 0; v_pos := -1; end if;
+  while cardinality(v_paths) < v_room and v_i < v_total loop
+    select file into v_file from vpage_ix where i = v_i + 1;
+    v_prefix := coalesce(substring(v_file from '^(buy-|t-[a-z0-9-]+?-)(?=makes$|tiers-[0-9]+$|[a-z0-9-]+-(?:models|years|trims)(?:-[0-9]+)?$)'), '');
+    v_base := substr(v_file, length(v_prefix) + 1);
+    v_last := null;
+    if v_base ~ '^tiers-[0-9]+$' then
+      -- a pair is up to 13 addresses: stop when the batch has no room for one more
+      exit when v_room - cardinality(v_paths) < 13 and cardinality(v_paths) > 0;
+      v_n := substring(v_base from '[0-9]+$')::integer;
+      select coalesce(array_agg(app.vpage_tree_path(v_prefix, x.path) order by x.g, x.path), '{}'), max(x.g) into v_more, v_last
+        from app.vehicle_tier_sitemap(v_n, v_pos, greatest(1, (v_room - cardinality(v_paths)) / 13)) x;
+    else
+      select coalesce(array_agg(app.vpage_tree_path(v_prefix, x.path) order by x.rn), '{}'), max(x.rn) into v_more, v_last
+        from (select r.path, row_number() over (order by r.path) rn from app.vehicle_sitemap(v_base) r) x
+       where x.rn > v_pos and x.rn <= v_pos + (v_room - cardinality(v_paths));
+    end if;
+    v_paths := v_paths || v_more;
+    if v_last is null then v_i := v_i + 1; v_pos := -1; else v_pos := v_last; end if;
+  end loop;
+  return jsonb_build_object('paths', to_jsonb(v_paths), 'cursor', jsonb_build_object('file_i', v_i, 'pos', v_pos), 'files', v_total,
+    'key', (select indexnow_key from site_settings limit 1));
+end $$;
+
+-- What the batch got: 2xx moves the cursor and counts the addresses; 429 backs off (15 minutes, doubling, at most a day);
+-- 403 or 422 (the key refused) waits until tomorrow; anything else waits 10 minutes. The cursor stays put on a failure.
+create or replace function app.server_indexnow_report(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_status integer := coalesce((p ->> 'status')::integer, 0);
+  v_n integer := coalesce((p ->> 'count')::integer, 0);
+  w indexnow_sweep;
+  v_wait integer;
+begin
+  select * into w from indexnow_sweep for update;
+  if v_status between 200 and 299 then
+    update indexnow_sweep set sent_today = sent_today + v_n, backoff_s = 0, backoff_until = null, last_status = v_status, last_error = null, last_at = now(), updated_at = now(),
+           file_i = case when p -> 'cursor' is not null then (p -> 'cursor' ->> 'file_i')::integer else file_i end,
+           pos = case when p -> 'cursor' is not null then (p -> 'cursor' ->> 'pos')::bigint else pos end
+     returning * into w;
+    -- the whole list sent: start again from the top (lastmod tells the engines what changed)
+    if (p ->> 'files') is not null and w.file_i >= (p ->> 'files')::integer then update indexnow_sweep set file_i = 0, pos = -1, rounds = rounds + 1 returning * into w; end if;
+  else
+    v_wait := case when v_status = 429 then least(greatest(w.backoff_s * 2, 900), 86400)
+                   when v_status in (403, 422) then greatest(60, extract(epoch from (((now() at time zone 'America/Toronto')::date + 1 + time '00:05') at time zone 'America/Toronto') - now())::integer)
+                   else 600 end;
+    update indexnow_sweep set backoff_s = v_wait, backoff_until = now() + make_interval(secs => v_wait), last_status = v_status, last_error = left(p ->> 'error', 300),
+           last_at = now(), updated_at = now() returning * into w;
+  end if;
+  return to_jsonb(w);
+end $$;
+-- the changed addresses (0061's sender) count against the same ceiling and back off the same way
+create or replace function app.server_indexnow_sent(p jsonb) returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_ok boolean := coalesce((p ->> 'status')::integer, 0) between 200 and 299;
+  n integer;
+begin
+  update indexnow_queue set attempts = attempts + 1, last_status = (p ->> 'status')::integer, last_error = left(p ->> 'error', 300),
+         sent_at = case when v_ok then now() else sent_at end
+   where path = any (array(select jsonb_array_elements_text(coalesce(p -> 'paths', '[]'::jsonb))));
+  get diagnostics n = row_count;
+  perform app.server_indexnow_report(jsonb_build_object('status', p ->> 'status', 'count', n, 'error', p ->> 'error'));
+  return n;
+end $$;
+create or replace function public.server_indexnow_claim(p_limit integer) returns jsonb
+language sql security definer set search_path = public, app as $$ select app.server_indexnow_claim(p_limit) $$;
+create or replace function public.server_indexnow_report(p jsonb) returns jsonb
+language sql security definer set search_path = public, app as $$ select app.server_indexnow_report(p) $$;
+revoke all on function app.server_indexnow_claim(integer), app.server_indexnow_report(jsonb), public.server_indexnow_claim(integer), public.server_indexnow_report(jsonb),
+  app.vpage_index_entries(), app.vpage_tree_path(text, text) from public, anon, authenticated;
+grant execute on function app.server_indexnow_claim(integer), app.server_indexnow_report(jsonb), public.server_indexnow_claim(integer), public.server_indexnow_report(jsonb) to service_role;
+grant execute on function app.vpage_index_entries(), app.vpage_tree_path(text, text) to anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------- privileges
 do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname in ('vpage_for_sale', 'vehicle_buy_extras', 'vehicle_buy_path', 'vpage_buy_counts',
-                                                      'vpage_for_sale_set', 'door_pre0092b', 'door')
+            where n.nspname = 'app' and p.proname in ('vpage_places', 'vpage_delivery_from', 'vpage_tiers', 'vehicle_tier_page', 'vpage_tier_shape', 'vpage_trim_indexed',
+                    'vehicle_tier_files', 'vehicle_tier_sitemap', 'vpage_trees', 'vpage_tier_counts', 'vehicle_catalog_number_trims', 'vpage_settings_json',
+                    'vpage_for_sale', 'vehicle_buy_extras', 'vpage_for_sale_set', 'door_pre0092b', 'door')
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
-grant execute on function app.vehicle_buy_extras(text, text, integer, text), app.vehicle_buy_path(text) to anon, authenticated;
-revoke all on function public.vehicle_buy_extras(text, text, integer, text) from public;
-grant execute on function public.vehicle_buy_extras(text, text, integer, text), public.vehicle_sitemap(text), public.vehicle_sitemap_files() to anon, authenticated, service_role;
+grant execute on function app.vpage_places(), app.vpage_delivery_from(numeric, text), app.vpage_tiers(), app.vehicle_tier_page(text, text, integer, text, text, text),
+  app.vpage_tier_shape(), app.vpage_trim_indexed(integer, integer), app.vehicle_tier_files(), app.vehicle_tier_sitemap(integer, bigint, integer), app.vpage_trees(),
+  app.vehicle_buy_extras(text, text, integer, text) to anon, authenticated;
+revoke all on function public.vehicle_sitemap_index(integer, integer), public.vehicle_sitemap_tree(text), public.vehicle_tier_sitemap(integer, bigint, integer),
+  public.vehicle_tier_page(text, text, integer, text, text, text), public.vehicle_tiers(), public.vehicle_buy_extras(text, text, integer, text) from public;
+grant execute on function public.vehicle_sitemap_index(integer, integer), public.vehicle_sitemap_tree(text), public.vehicle_tier_sitemap(integer, bigint, integer),
+  public.vehicle_tier_page(text, text, integer, text, text, text), public.vehicle_tiers(), public.vehicle_buy_extras(text, text, integer, text) to anon, authenticated, service_role;
+revoke all on places, search_terms, vehicle_colours from anon, authenticated;
+grant select on places, search_terms, vehicle_colours to authenticated;
+grant all on places, search_terms, vehicle_colours to service_role;
+select app.vehicle_catalog_number_trims();
 
 -- ================================================================ the guides (Admin: Vehicle pages; customer service: A request from a vehicle page)
 -- GUIDES VEHICLE PAGES START (generated by supabase/seed/vehicle_pages_gen_guides.mjs from docs/guides/content; do not edit by hand)
@@ -1439,16 +1686,28 @@ select app.guide_release_section('admin', 'search-car-pages-landing-pages-and-gu
 
 ## Vehicle pages
 
-**Settings** > **Vehicle pages**. A page for every make, model, model year and Canadian trim, at carmacars.ca/cars/make/model/year/trim, with our cars below it.
+**Settings** > **Vehicle pages**. A page for every make, model, model year and Canadian trim of every year, at carmacars.ca/cars/make/model/year/trim, with our cars below it; each trim also in every place and in 12 colours (carmacars.ca/cars/volkswagen/jetta/2020/sportline/mississauga/black); every page again for sale (carmacars.ca/buy/...) and for each search term: renting (car hire), sale (financing), detailing (ceramic coating) and body shop (bumper repair), at carmacars.ca/t/term/...
 
-1. Pages: how many make, model, year and trim pages there are and how many are in search. Every page is in search by default; nothing needs setting up.
-2. Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.
-3. Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings > Leads.
-4. Settings: **Index every page** (the default) or **Only pages that pass the rules**: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).
-5. Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. **Add trims for another model** adds a model that has none.
-6. Catalog import: the last import and its counts. **Import now** asks for a new one; it runs at the next daily check, at 07:17 UTC.
+1. Pages: how many pages each level and each tier has, the total, and how many are in search. Every page is in search by default; nothing needs setting up.
+2. One switch per tier takes it out of search at once: **Index the place pages**, **Index the colour pages**, **Index the search term pages**, **Index the /buy pages**, **Index the detailing pages**, **Index the body shop pages**. Off, those pages stay visible but leave the sitemaps and search.
+3. The places are the place list of the local search release (every city, town and neighbourhood, with GTA and country levels); until it is filled, the area landing pages. The search terms are edited with them.
+4. **Financing disclaimer**: the text on financing and leasing pages. CarmaCars never says it lends or leases.
+5. Database: its size against the cap the catalog import keeps under (6,144 MB by default). IndexNow: the addresses sent today, where the sweep is, and any back-off; nothing to do.
+6. Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.
+7. Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings > Leads.
+8. Settings: **Index every page** (the default) or **Only pages that pass the rules**: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).
+9. Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. **Add trims for another model** adds a model that has none.
+10. Catalog import: the last import and its counts. **Import now** asks for a new one; it runs at the next daily check, at 07:17 UTC.
 
 > Good to know: A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car''s trim to one Canadian name to put it on the trim page.
+
+## A car for sale
+
+**Cars** > **Vehicles**, then the car. On the For sale card, tick **For sale**, enter the Asking price and press **Save**.
+
+1. The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.
+2. Untick it when the car is sold or no longer for sale: the pages say so at once.
+3. "Find me this car" on the /buy pages sends a buyer lead to Sales (**Leads**, Buyer leads), with a To do line.
 
 ## Search engines and business listings
 
@@ -1460,7 +1719,7 @@ select app.guide_release_section('admin', 'search-car-pages-landing-pages-and-gu
 
 > Good to know: Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit carmacars.ca/sitemap.xml once in Search Console.
 ',
-  '<p class="gd-p">The text of every car page, the landing pages for each area and way of renting, and the guides are written by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review anything. You can still change any line; what you change is kept.</p><section class="gd-task" id="search-car-pages-landing-pages-and-guides-the-copy-of-a-car" data-gd-task><h2 class="gd-h2">The copy of a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then the car, then its Listing tab. The same card is on the listing review.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The card says who wrote the text: a plain copy from the car&#39;s facts while the written copy is prepared (usually minutes), then Workers AI.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Every field is shown: search title and description, heading, introduction, highlights, good for, what&#39;s included, pickup and delivery, requirements, questions and the photo descriptions.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To change a field press <b class="gd-ui">Change</b>, then <b class="gd-ui">Save and lock</b>. A locked field is kept by every new version. <b class="gd-ui">Unlock</b> lets it be written again.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Write again</b> asks for a new version now. A new version is also written by itself when the car&#39;s facts change: its rates, specs, area or photos.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>The checks refuse long dashes, sales words, the numbered company, any number that is not in the car&#39;s facts (a price, a seat count) and equipment the facts do not list. A version that fails is asked again with the problems named; if it still fails, the page keeps its current text and it is tried again later.</div></aside></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-landing-pages-and-guides" data-gd-task><h2 class="gd-h2">Landing pages and guides</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">All settings</b>, then Search.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Today: the Workers AI used for search copy and in all, and IndexNow (addresses waiting and sent).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Car copy: every real car, who wrote its text, and whether its facts changed since.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Open <b class="gd-ui">Edit</b> on a page or a guide to change its text. Edited fields are locked. <b class="gd-ui">Write again</b> asks for a new version; on a guide, the brief says what it must cover.</div></li></ol></div></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-vehicle-pages" data-gd-task><h2 class="gd-h2">Vehicle pages</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Vehicle pages</b>. A page for every make, model, model year and Canadian trim, at carmacars.ca/cars/make/model/year/trim, with our cars below it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Pages: how many make, model, year and trim pages there are and how many are in search. Every page is in search by default; nothing needs setting up.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings &gt; Leads.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Settings: <b class="gd-ui">Index every page</b> (the default) or <b class="gd-ui">Only pages that pass the rules</b>: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. <b class="gd-ui">Add trims for another model</b> adds a model that has none.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Catalog import: the last import and its counts. <b class="gd-ui">Import now</b> asks for a new one; it runs at the next daily check, at 07:17 UTC.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car&#39;s trim to one Canadian name to put it on the trim page.</div></aside></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-search-engines-and-business-listings" data-gd-task><h2 class="gd-h2">Search engines and business listings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">All settings</b>, then Site settings.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Business name, address and phone: the exact text for every listing, and the description and categories.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Business listings: press <b class="gd-ui">Copy</b> beside each line and paste it into Google Business Profile, Bing Places, Apple Business Connect, Yelp, Yellow Pages and Facebook. Tick each one when it is done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit carmacars.ca/sitemap.xml once in Search Console.</div></aside></section>');
+  '<p class="gd-p">The text of every car page, the landing pages for each area and way of renting, and the guides are written by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review anything. You can still change any line; what you change is kept.</p><section class="gd-task" id="search-car-pages-landing-pages-and-guides-the-copy-of-a-car" data-gd-task><h2 class="gd-h2">The copy of a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then the car, then its Listing tab. The same card is on the listing review.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The card says who wrote the text: a plain copy from the car&#39;s facts while the written copy is prepared (usually minutes), then Workers AI.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Every field is shown: search title and description, heading, introduction, highlights, good for, what&#39;s included, pickup and delivery, requirements, questions and the photo descriptions.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To change a field press <b class="gd-ui">Change</b>, then <b class="gd-ui">Save and lock</b>. A locked field is kept by every new version. <b class="gd-ui">Unlock</b> lets it be written again.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Write again</b> asks for a new version now. A new version is also written by itself when the car&#39;s facts change: its rates, specs, area or photos.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>The checks refuse long dashes, sales words, the numbered company, any number that is not in the car&#39;s facts (a price, a seat count) and equipment the facts do not list. A version that fails is asked again with the problems named; if it still fails, the page keeps its current text and it is tried again later.</div></aside></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-landing-pages-and-guides" data-gd-task><h2 class="gd-h2">Landing pages and guides</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">All settings</b>, then Search.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Today: the Workers AI used for search copy and in all, and IndexNow (addresses waiting and sent).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Car copy: every real car, who wrote its text, and whether its facts changed since.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Landing pages: each place and way of renting, whether it is in search, its cars and who wrote it. A page for a way of renting (monthly, SUV) goes into search once enough real cars match it (Program settings).</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Open <b class="gd-ui">Edit</b> on a page or a guide to change its text. Edited fields are locked. <b class="gd-ui">Write again</b> asks for a new version; on a guide, the brief says what it must cover.</div></li></ol></div></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-vehicle-pages" data-gd-task><h2 class="gd-h2">Vehicle pages</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Vehicle pages</b>. A page for every make, model, model year and Canadian trim of every year, at carmacars.ca/cars/make/model/year/trim, with our cars below it; each trim also in every place and in 12 colours (carmacars.ca/cars/volkswagen/jetta/2020/sportline/mississauga/black); every page again for sale (carmacars.ca/buy/...) and for each search term: renting (car hire), sale (financing), detailing (ceramic coating) and body shop (bumper repair), at carmacars.ca/t/term/...</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Pages: how many pages each level and each tier has, the total, and how many are in search. Every page is in search by default; nothing needs setting up.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">One switch per tier takes it out of search at once: <b class="gd-ui">Index the place pages</b>, <b class="gd-ui">Index the colour pages</b>, <b class="gd-ui">Index the search term pages</b>, <b class="gd-ui">Index the /buy pages</b>, <b class="gd-ui">Index the detailing pages</b>, <b class="gd-ui">Index the body shop pages</b>. Off, those pages stay visible but leave the sitemaps and search.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The places are the place list of the local search release (every city, town and neighbourhood, with GTA and country levels); until it is filled, the area landing pages. The search terms are edited with them.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Financing disclaimer</b>: the text on financing and leasing pages. CarmaCars never says it lends or leases.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Database: its size against the cap the catalog import keeps under (6,144 MB by default). IndexNow: the addresses sent today, where the sweep is, and any back-off; nothing to do.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Each page is built from data: the EPA fuel-use ratings in litres per 100 km, the cost to drive 100 km at the gas or electricity price set here, what changed from the year before, how a trim differs from the others, similar models, and the rental questions from the program settings.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Below the facts: our cars of that exact year, model and trim, then the same model in other years, then similar cars free now, and Request it, which sends an enquiry to Bookings &gt; Leads.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">Settings: <b class="gd-ui">Index every page</b> (the default) or <b class="gd-ui">Only pages that pass the rules</b>: makes, models with 2 or more years of data, years with one of our cars or of a popular model from 2015, trims with one of our cars. The others stay visible but out of search. Also the gas, premium and electricity prices, and how often the catalog is imported (every 30 days).</div></li><li><span class="gd-n" aria-hidden="true">9</span><div class="gd-t">Canadian trims: open a model and type one line per run of years, entry trim first: 2020-2021: Comfortline, Highline, Sportline, Execline. Your lines are kept by every import; empty them to go back to the CarmaCars list. <b class="gd-ui">Add trims for another model</b> adds a model that has none.</div></li><li><span class="gd-n" aria-hidden="true">10</span><div class="gd-t">Catalog import: the last import and its counts. <b class="gd-ui">Import now</b> asks for a new one; it runs at the next daily check, at 07:17 UTC.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car&#39;s trim to one Canadian name to put it on the trim page.</div></aside></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-a-car-for-sale" data-gd-task><h2 class="gd-h2">A car for sale</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then the car. On the For sale card, tick <b class="gd-ui">For sale</b>, enter the Asking price and press <b class="gd-ui">Save</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Untick it when the car is sold or no longer for sale: the pages say so at once.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">&quot;Find me this car&quot; on the /buy pages sends a buyer lead to Sales (<b class="gd-ui">Leads</b>, Buyer leads), with a To do line.</div></li></ol></div></section><section class="gd-task" id="search-car-pages-landing-pages-and-guides-search-engines-and-business-listings" data-gd-task><h2 class="gd-h2">Search engines and business listings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">All settings</b>, then Site settings.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Search engines: paste the Google Search Console value (HTML tag) or the file name (HTML file), and the Bing value. The steps are on the card.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Business name, address and phone: the exact text for every listing, and the description and categories.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Business listings: press <b class="gd-ui">Copy</b> beside each line and paste it into Google Business Profile, Bing Places, Apple Business Connect, Yelp, Yellow Pages and Facebook. Tick each one when it is done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit carmacars.ca/sitemap.xml once in Search Console.</div></aside></section>');
 select app.guide_release_section('va', 'customer-service', 'chapter', 'your-workday', 'You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter''s first person.
 
 Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.
@@ -1589,6 +1848,16 @@ Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, f
 
 > Tip: The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.
 
+## A buyer lead from a /buy page
+
+Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.
+
+1. The lead is in **Leads**, Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.
+2. If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim).
+3. Press **Take it**, then **Update** as you go: contacted, qualified, converted or closed with the reason.
+
+> Tip: We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.
+
 ## New quote for a caller
 
 1. Open **New quote**. Choose the Car, the Pickup and Return (at least 2 hours from now).
@@ -1647,5 +1916,5 @@ A booking past its return time shows the late return panel. Work it in order:
 | **Request disable** | Ask an Admin to approve disabling the car. |
 | **Open an incident** | When the car is not coming back as planned. |
 ',
-  '<p class="gd-p">You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter&#39;s first person.</p><p class="gd-p">Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.</p><section class="gd-task" id="customer-service-answer-a-request" data-gd-task><h2 class="gd-h2">Answer a request</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Requests</b>. Filter by New, Waiting on the renter, Pushed back, Offer out or Offer expired.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Waiting shows how long the renter has waited. Open the booking number.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/640"><img src="/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg" alt="" loading="lazy" decoding="async" width="1440" height="640"><span class="gd-pin" style="left:27.1%;top:17.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:52.8%;top:32.8%" aria-hidden="true">2</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="3"><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the Review tab, check the request: the car is free, the renter, the places.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Adjust the booking</b> to change the car, dates, places, price or extras, then <b class="gd-ui">Save changes</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Add a message and press <b class="gd-ui">Send the offer</b>. Within your limit you can also use <b class="gd-ui">Approve (within my limit)</b> or <b class="gd-ui">Approve and send the pay link</b>.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Can&#39;t do it? <b class="gd-ui">Decline</b> with Reason and any alternative. Need to know more? <b class="gd-ui">Ask the renter</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/bookings/CC-10056?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/1000"><img src="/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg" alt="" loading="lazy" decoding="async" width="1440" height="1000"><span class="gd-pin" style="left:69.4%;top:24%" aria-hidden="true">3</span><span class="gd-pin" style="left:95.8%;top:98%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within 5 minutes: send the offer, or ask the renter what you need. That is the &quot;First reply in opening hours&quot; measure on your scorecard. Requests waiting longer show in red.</div></aside></section><section class="gd-task" id="customer-service-an-enquiry-on-an-example-car" data-gd-task><h2 class="gd-h2">An enquiry on an example car</h2><p class="gd-p">Some cars on the site are marked &quot;Example car&quot;: samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Find a real car of the same kind and price that is free for those dates, and make a <b class="gd-ui">New quote</b> for it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Call or email the person with the car and the price, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.</div></aside></section><section class="gd-task" id="customer-service-a-request-from-a-vehicle-page" data-gd-task><h2 class="gd-h2">A request from a vehicle page</h2><p class="gd-p">Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The request arrives as an enquiry with the car named in the message (&quot;About the car: 2023 Toyota RAV4 XLE&quot;) and an Enquiry task in To do.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">If we have that car, or one close to it, free for their dates, make a <b class="gd-ui">New quote</b> for it. If not, suggest the nearest car of the same kind and price.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Reply by email or phone, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.</div></aside></section><section class="gd-task" id="customer-service-new-quote-for-a-caller" data-gd-task><h2 class="gd-h2">New quote for a caller</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">New quote</b>. Choose the Car, the Pickup and Return (at least 2 hours from now).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose how the lead came in, then the caller&#39;s Full legal name, Email, Mobile and Date of birth.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Set the Licence class and Damage cover, and note places, extras and what they asked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Create the request</b>. It opens like any request; send the offer from there.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/quotes/new</span></div><div class="gd-imgwrap" style="aspect-ratio:1220/1260"><img src="/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg" alt="" loading="lazy" decoding="async" width="1220" height="1260"><span class="gd-pin" style="left:72.1%;top:15.6%" aria-hidden="true">1</span><span class="gd-pin" style="left:72.1%;top:41.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:72.1%;top:72.7%" aria-hidden="true">3</span><span class="gd-pin" style="left:63.9%;top:85.5%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="customer-service-renter-messages-and-find-a-renter" data-gd-task><h2 class="gd-h2">Renter messages and Find a renter</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Renter messages</b> lists the latest messages with their booking. Open the booking to reply, then press <b class="gd-ui">Send</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Find a renter</b>: search by name, email, phone or booking number.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To open a renter&#39;s private details, press <b class="gd-ui">Open with a reason</b>. The reason is kept in the access log.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/messages</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/260"><img src="/guides/img/va-cs-06-messages-desktop-3441fa91.jpg" alt="" loading="lazy" decoding="async" width="1440" height="260"><span class="gd-pin" style="left:32.6%;top:48.5%" aria-hidden="true">1</span></div></div></figure></div></section><section class="gd-task" id="customer-service-add-a-car-for-an-owner" data-gd-task><h2 class="gd-h2">Add a car for an owner</h2><p class="gd-p">Open <b class="gd-ui">Owners</b> &gt; <b class="gd-ui">Add a car for an owner</b> (fleet: under Cars). You enter everything for the owner; they never fill in the application.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The car: type the VIN and press Decode, then the details. Upload the ownership permit, the insurance slip and the lender&#39;s information if you have them. Photos are optional.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Add the car and send to an Admin</b>. The application waits in the Admin&#39;s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.</div></li></ol></div></section><section class="gd-task" id="customer-service-owner-forms-forms-c-and-d" data-gd-task><h2 class="gd-h2">Owner forms (Forms C and D)</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Owner forms</b>. Each row is a scan an owner uploaded, with the witnesses and the status.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press Open to read the scan. Check every page is there and signed, with each witness&#39;s signature and name.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Approve</b>, or <b class="gd-ui">Send back</b> with What to fix (the owner reads this).</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/owner-forms</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/300"><img src="/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg" alt="" loading="lazy" decoding="async" width="1440" height="300"><span class="gd-pin" style="left:68.6%;top:36.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:76.7%;top:36.7%" aria-hidden="true">3</span></div></div></figure></div></section><section class="gd-task" id="customer-service-a-rental-agreement-signed-on-paper" data-gd-task><h2 class="gd-h2">A rental agreement signed on paper</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking. Under Signed on paper, press <b class="gd-ui">Record paper signature</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the Rental agreement, or the booking change the renter signed.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check Signed by and Date signed, and upload the scan of every signed page.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Record signature</b>. It counts as signed, and the renter is not asked to sign again.</div></li></ol></div></section><section class="gd-task" id="customer-service-a-change-to-a-confirmed-booking" data-gd-task><h2 class="gd-h2">A change to a confirmed booking</h2><p class="gd-p">On a booking&#39;s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press <b class="gd-ui">Preview the price</b>, then <b class="gd-ui">Send to the renter</b>. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.</p></section><section class="gd-task" id="customer-service-a-late-return" data-gd-task><h2 class="gd-h2">A late return</h2><p class="gd-p">A booking past its return time shows the late return panel. Work it in order:</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Button</th><th scope="col">When</th></tr></thead><tbody><tr><td><b class="gd-ui">Log a call</b></td><td>Record each call to the renter and what they said.</td></tr><tr><td><b class="gd-ui">Send T13</b></td><td>The first late notice email.</td></tr><tr><td><b class="gd-ui">Send T14 (final notice)</b></td><td>The final notice.</td></tr><tr><td><b class="gd-ui">Request disable</b></td><td>Ask an Admin to approve disabling the car.</td></tr><tr><td><b class="gd-ui">Open an incident</b></td><td>When the car is not coming back as planned.</td></tr></tbody></table></div></section>');
+  '<p class="gd-p">You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter&#39;s first person.</p><p class="gd-p">Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.</p><section class="gd-task" id="customer-service-answer-a-request" data-gd-task><h2 class="gd-h2">Answer a request</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Requests</b>. Filter by New, Waiting on the renter, Pushed back, Offer out or Offer expired.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Waiting shows how long the renter has waited. Open the booking number.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/640"><img src="/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg" alt="" loading="lazy" decoding="async" width="1440" height="640"><span class="gd-pin" style="left:27.1%;top:17.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:52.8%;top:32.8%" aria-hidden="true">2</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="3"><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the Review tab, check the request: the car is free, the renter, the places.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Adjust the booking</b> to change the car, dates, places, price or extras, then <b class="gd-ui">Save changes</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Add a message and press <b class="gd-ui">Send the offer</b>. Within your limit you can also use <b class="gd-ui">Approve (within my limit)</b> or <b class="gd-ui">Approve and send the pay link</b>.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Can&#39;t do it? <b class="gd-ui">Decline</b> with Reason and any alternative. Need to know more? <b class="gd-ui">Ask the renter</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/bookings/CC-10056?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/1000"><img src="/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg" alt="" loading="lazy" decoding="async" width="1440" height="1000"><span class="gd-pin" style="left:69.4%;top:24%" aria-hidden="true">3</span><span class="gd-pin" style="left:95.8%;top:98%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within 5 minutes: send the offer, or ask the renter what you need. That is the &quot;First reply in opening hours&quot; measure on your scorecard. Requests waiting longer show in red.</div></aside></section><section class="gd-task" id="customer-service-an-enquiry-on-an-example-car" data-gd-task><h2 class="gd-h2">An enquiry on an example car</h2><p class="gd-p">Some cars on the site are marked &quot;Example car&quot;: samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Find a real car of the same kind and price that is free for those dates, and make a <b class="gd-ui">New quote</b> for it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Call or email the person with the car and the price, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.</div></aside></section><section class="gd-task" id="customer-service-a-request-from-a-vehicle-page" data-gd-task><h2 class="gd-h2">A request from a vehicle page</h2><p class="gd-p">Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The request arrives as an enquiry with the car named in the message (&quot;About the car: 2023 Toyota RAV4 XLE&quot;) and an Enquiry task in To do.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">If we have that car, or one close to it, free for their dates, make a <b class="gd-ui">New quote</b> for it. If not, suggest the nearest car of the same kind and price.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Reply by email or phone, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.</div></aside></section><section class="gd-task" id="customer-service-a-buyer-lead-from-a-buy-page" data-gd-task><h2 class="gd-h2">A buyer lead from a /buy page</h2><p class="gd-p">Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with &quot;Find me this car&quot;, and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The lead is in <b class="gd-ui">Leads</b>, Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Take it</b>, then <b class="gd-ui">Update</b> as you go: contacted, qualified, converted or closed with the reason.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.</div></aside></section><section class="gd-task" id="customer-service-new-quote-for-a-caller" data-gd-task><h2 class="gd-h2">New quote for a caller</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">New quote</b>. Choose the Car, the Pickup and Return (at least 2 hours from now).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose how the lead came in, then the caller&#39;s Full legal name, Email, Mobile and Date of birth.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Set the Licence class and Damage cover, and note places, extras and what they asked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Create the request</b>. It opens like any request; send the offer from there.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/quotes/new</span></div><div class="gd-imgwrap" style="aspect-ratio:1220/1260"><img src="/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg" alt="" loading="lazy" decoding="async" width="1220" height="1260"><span class="gd-pin" style="left:72.1%;top:15.6%" aria-hidden="true">1</span><span class="gd-pin" style="left:72.1%;top:41.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:72.1%;top:72.7%" aria-hidden="true">3</span><span class="gd-pin" style="left:63.9%;top:85.5%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="customer-service-renter-messages-and-find-a-renter" data-gd-task><h2 class="gd-h2">Renter messages and Find a renter</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Renter messages</b> lists the latest messages with their booking. Open the booking to reply, then press <b class="gd-ui">Send</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Find a renter</b>: search by name, email, phone or booking number.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To open a renter&#39;s private details, press <b class="gd-ui">Open with a reason</b>. The reason is kept in the access log.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/messages</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/260"><img src="/guides/img/va-cs-06-messages-desktop-3441fa91.jpg" alt="" loading="lazy" decoding="async" width="1440" height="260"><span class="gd-pin" style="left:32.6%;top:48.5%" aria-hidden="true">1</span></div></div></figure></div></section><section class="gd-task" id="customer-service-add-a-car-for-an-owner" data-gd-task><h2 class="gd-h2">Add a car for an owner</h2><p class="gd-p">Open <b class="gd-ui">Owners</b> &gt; <b class="gd-ui">Add a car for an owner</b> (fleet: under Cars). You enter everything for the owner; they never fill in the application.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The car: type the VIN and press Decode, then the details. Upload the ownership permit, the insurance slip and the lender&#39;s information if you have them. Photos are optional.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Add the car and send to an Admin</b>. The application waits in the Admin&#39;s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.</div></li></ol></div></section><section class="gd-task" id="customer-service-owner-forms-forms-c-and-d" data-gd-task><h2 class="gd-h2">Owner forms (Forms C and D)</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Owner forms</b>. Each row is a scan an owner uploaded, with the witnesses and the status.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press Open to read the scan. Check every page is there and signed, with each witness&#39;s signature and name.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Approve</b>, or <b class="gd-ui">Send back</b> with What to fix (the owner reads this).</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/owner-forms</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/300"><img src="/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg" alt="" loading="lazy" decoding="async" width="1440" height="300"><span class="gd-pin" style="left:68.6%;top:36.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:76.7%;top:36.7%" aria-hidden="true">3</span></div></div></figure></div></section><section class="gd-task" id="customer-service-a-rental-agreement-signed-on-paper" data-gd-task><h2 class="gd-h2">A rental agreement signed on paper</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking. Under Signed on paper, press <b class="gd-ui">Record paper signature</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the Rental agreement, or the booking change the renter signed.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check Signed by and Date signed, and upload the scan of every signed page.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Record signature</b>. It counts as signed, and the renter is not asked to sign again.</div></li></ol></div></section><section class="gd-task" id="customer-service-a-change-to-a-confirmed-booking" data-gd-task><h2 class="gd-h2">A change to a confirmed booking</h2><p class="gd-p">On a booking&#39;s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press <b class="gd-ui">Preview the price</b>, then <b class="gd-ui">Send to the renter</b>. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.</p></section><section class="gd-task" id="customer-service-a-late-return" data-gd-task><h2 class="gd-h2">A late return</h2><p class="gd-p">A booking past its return time shows the late return panel. Work it in order:</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Button</th><th scope="col">When</th></tr></thead><tbody><tr><td><b class="gd-ui">Log a call</b></td><td>Record each call to the renter and what they said.</td></tr><tr><td><b class="gd-ui">Send T13</b></td><td>The first late notice email.</td></tr><tr><td><b class="gd-ui">Send T14 (final notice)</b></td><td>The final notice.</td></tr><tr><td><b class="gd-ui">Request disable</b></td><td>Ask an Admin to approve disabling the car.</td></tr><tr><td><b class="gd-ui">Open an incident</b></td><td>When the car is not coming back as planned.</td></tr></tbody></table></div></section>');
 -- GUIDES VEHICLE PAGES END

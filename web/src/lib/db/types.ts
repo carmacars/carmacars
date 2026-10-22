@@ -5196,6 +5196,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      indexnow_sweep: {
+        Row: {
+          id: boolean;
+          file_i: number;
+          pos: number;
+          day: string;
+          sent_today: number;
+          backoff_until: string | null;
+          backoff_s: number;
+          rounds: number;
+          last_status: number | null;
+          last_error: string | null;
+          last_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          file_i?: number;
+          pos?: number;
+          day?: string;
+          sent_today?: number;
+          backoff_until?: string | null;
+          backoff_s?: number;
+          rounds?: number;
+          last_status?: number | null;
+          last_error?: string | null;
+          last_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          file_i?: number;
+          pos?: number;
+          day?: string;
+          sent_today?: number;
+          backoff_until?: string | null;
+          backoff_s?: number;
+          rounds?: number;
+          last_status?: number | null;
+          last_error?: string | null;
+          last_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       insurer_invoices: {
         Row: {
           id: string;
@@ -8967,6 +9012,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      places: {
+        Row: {
+          id: number;
+          slug: string;
+          name: string;
+          kind: string;
+          parent_id: number | null;
+          lat: number | null;
+          lng: number | null;
+        };
+        Insert: {
+          id: number;
+          slug: string;
+          name: string;
+          kind: string;
+          parent_id?: number | null;
+          lat?: number | null;
+          lng?: number | null;
+        };
+        Update: {
+          id?: number;
+          slug?: string;
+          name?: string;
+          kind?: string;
+          parent_id?: number | null;
+          lat?: number | null;
+          lng?: number | null;
+        };
+        Relationships: [];
+      };
       program_settings: {
         Row: {
           id: string;
@@ -9280,8 +9355,16 @@ export type Database = {
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
           vpage_import_every_days: number;
-          vpage_tier_index: boolean;
+          vpage_import_db_cap_mb: number;
+          vpage_place_index: boolean;
+          vpage_colour_index: boolean;
+          vpage_term_index: boolean;
           vpage_buy_index: boolean;
+          vpage_detailing_index: boolean;
+          vpage_bodyshop_index: boolean;
+          vpage_finance_disclaimer: string;
+          indexnow_daily_max: number;
+          indexnow_batch: number;
         };
         Insert: {
           id?: string;
@@ -9595,8 +9678,16 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
-          vpage_tier_index?: boolean;
+          vpage_import_db_cap_mb?: number;
+          vpage_place_index?: boolean;
+          vpage_colour_index?: boolean;
+          vpage_term_index?: boolean;
           vpage_buy_index?: boolean;
+          vpage_detailing_index?: boolean;
+          vpage_bodyshop_index?: boolean;
+          vpage_finance_disclaimer?: string;
+          indexnow_daily_max?: number;
+          indexnow_batch?: number;
         };
         Update: {
           id?: string;
@@ -9910,8 +10001,16 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
-          vpage_tier_index?: boolean;
+          vpage_import_db_cap_mb?: number;
+          vpage_place_index?: boolean;
+          vpage_colour_index?: boolean;
+          vpage_term_index?: boolean;
           vpage_buy_index?: boolean;
+          vpage_detailing_index?: boolean;
+          vpage_bodyshop_index?: boolean;
+          vpage_finance_disclaimer?: string;
+          indexnow_daily_max?: number;
+          indexnow_batch?: number;
         };
         Relationships: [];
       };
@@ -10734,6 +10833,33 @@ export type Database = {
           uploaded_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      search_terms: {
+        Row: {
+          id: number;
+          slug: string;
+          name: string;
+          kind: string;
+          sort_order: number;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: number;
+          slug: string;
+          name: string;
+          kind: string;
+          sort_order?: number;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: number;
+          slug?: string;
+          name?: string;
+          kind?: string;
+          sort_order?: number;
+          is_active?: boolean;
         };
         Relationships: [];
       };
@@ -16100,6 +16226,8 @@ export type Database = {
       server_guide_upkeep_last_sha: { Args: never; Returns: string };
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
+      server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
+      server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
       server_jobs_due: { Args: never; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
@@ -16194,7 +16322,9 @@ export type Database = {
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
       vehicle_sitemap_files: { Args: never; Returns: Json };
-      vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_city: string; p_colour: string }; Returns: Json };
+      vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
+      vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
+      vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_place: string; p_colour: string }; Returns: Json };
       vehicle_tier_sitemap: { Args: { p_file: number; p_after: number; p_limit: number }; Returns: Json };
       vehicle_tiers: { Args: never; Returns: Json };
       vehicle_trim_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };

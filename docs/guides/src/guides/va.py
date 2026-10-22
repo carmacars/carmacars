@@ -117,6 +117,14 @@ def build():
     ])
     g.tip('The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.')
 
+    g.task('A buyer lead from a /buy page', 'Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.')
+    g.steps([
+        f'The lead is in {B("Leads")}, Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.',
+        'If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim).',
+        f'Press {B("Take it")}, then {B("Update")} as you go: contacted, qualified, converted or closed with the reason.',
+    ])
+    g.tip('We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.')
+
     g.task('New quote for a caller')
     g.steps([
         f'Open {B("New quote")}. Choose the Car, the Pickup and Return (at least 2 hours from now).',

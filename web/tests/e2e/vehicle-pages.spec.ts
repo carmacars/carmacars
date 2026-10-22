@@ -161,3 +161,170 @@ test('under the rules a trim page with no car is noindex with its year as canoni
     await sql.end();
   }
 });
+
+// ---------------------------------------------------------------- city and colour pages, the /buy twins (0092)
+const TIERS: Array<[string, string, RegExp]> = [
+  ['city', '/cars/volkswagen/jetta/2020/sportline/mississauga', /^Rent a 2020 Volkswagen Jetta Sportline in Mississauga$/],
+  ['city and colour', '/cars/volkswagen/jetta/2020/sportline/mississauga/black', /^Rent a black 2020 Volkswagen Jetta Sportline in Mississauga$/],
+  ['colour', '/cars/volkswagen/jetta/2020/sportline/colour/gold', /^The 2020 Volkswagen Jetta Sportline in gold$/],
+  ['for sale', '/buy/volkswagen/jetta/2020/sportline', /^2020 Volkswagen Jetta Sportline for sale$/],
+  ['for sale in a city and colour', '/buy/volkswagen/jetta/2020/sportline/mississauga/black', /^Black 2020 Volkswagen Jetta Sportline for sale in Mississauga$/]
+];
+for (const [kind, url, h1] of TIERS) {
+  test(`the ${kind} page renders, indexed and self-canonical, with every figure and its sources`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const res = await page.goto(url);
+    expect(res?.status(), url).toBe(200);
+    await acceptCookies(page);
+    await expect(page.locator('h1')).toHaveText(h1);
+    const m = await meta(page);
+    expect(m.robots ?? '', `${url} robots`).not.toContain('noindex');
+    expect(m.canonical, `${url} canonical`).toMatch(new RegExp(`${url.replace(/\//g, '\\/')}$`));
+    await expect(page.getByTestId('vp-figures')).toContainText('MPG combined (US)');
+    await expect(page.getByTestId('vp-sources')).toContainText('fueleconomy.gov');
+    const ld = (await page.locator('script[type="application/ld+json"]').allInnerTexts()).join(' ');
+    expect(ld).toContain('BreadcrumbList');
+    expect(ld).toContain('fuelConsumption');
+    if (url.startsWith('/buy/')) {
+      // honest: nothing for sale, no Offer; rent it for a week; find me this car
+      await expect(page.getByTestId('buy-none')).toBeVisible();
+      expect(ld).not.toMatch(/"Offer"|AggregateOffer/);
+      await expect(page.getByTestId('buy-rent-first').getByRole('link', { name: /^Rent the / })).toHaveAttribute('href', `/cars${url.slice(4)}`);
+      await expect(page.getByTestId('lead-form')).toBeVisible();
+    } else {
+      await expect(page.getByTestId('vp-inventory')).toBeVisible();
+      if (url.includes('mississauga')) await expect(page.getByTestId('vp-city')).toContainText('Mississauga');
+      await expect(page.locator('.vp-head__media img')).toHaveAttribute('src', url.endsWith('/black') ? /\/black\/lead\// : url.endsWith('/gold') ? /\/gold\/lead\// : /\/lead\//);
+    }
+    await check(page, url);
+  });
+}
+
+test('city, colour and /buy pages: unique titles, descriptions and H1s, links between them, unknown ones 404', async ({ request }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  test.setTimeout(120_000);
+  const seen = new Map<string, string>();
+  const urls = ['/cars/volkswagen/jetta/2020/sportline', '/cars/volkswagen/jetta/2020/sportline/toronto', '/cars/volkswagen/jetta/2020/sportline/toronto/gold', '/cars/volkswagen/jetta/2020/sportline/colour/gold',
+    '/cars/volkswagen/jetta/2020/sportline/mississauga', '/cars/volkswagen/jetta/2020/highline/mississauga', '/cars/volkswagen/jetta/2020/sportline/oakville/red',
+    '/buy/volkswagen/jetta/2020/sportline', '/buy/volkswagen/jetta/2020/sportline/toronto', '/buy/volkswagen/jetta/2020/sportline/colour/gold', '/buy/volkswagen', '/buy/volkswagen/jetta'];
+  for (const url of urls) {
+    const r = await request.get(url);
+    expect(r.status(), url).toBe(200);
+    const html = await r.text();
+    for (const [i, k] of [/<title>(.*?)<\/title>/, /<meta name="description" content="(.*?)"/, /<h1[^>]*>(.*?)<\/h1>/].entries()) {
+      const v = k.exec(html)?.[1] ?? '';
+      expect(v, `${url}: ${k}`).not.toBe('');
+      expect(seen.get(`${i}|${v}`), `${url}: shares "${v}"`).toBeUndefined();
+      seen.set(`${i}|${v}`, url);
+    }
+  }
+  const trim = await (await request.get('/cars/volkswagen/jetta/2020/sportline')).text();
+  expect(trim).toContain('href="/cars/volkswagen/jetta/2020/sportline/mississauga"');
+  expect(trim).toContain('href="/cars/volkswagen/jetta/2020/sportline/colour/gold"');
+  expect(trim).toContain('href="/buy/volkswagen/jetta/2020/sportline"');
+  for (const u of ['/cars/volkswagen/jetta/2020/sportline/colour', '/cars/volkswagen/jetta/2020/sportline/nowhere', '/cars/volkswagen/jetta/2020/sportline/mississauga/plaid',
+    '/cars/volkswagen/jetta/2020/sportline/colour/plaid', '/buy/nosuchmake', '/buy/volkswagen/jetta/2020/sportline/nowhere'])
+    expect((await request.get(u)).status(), u).toBe(404);
+});
+
+test('sitemaps: the city, colour and /buy files, each under 50,000 addresses, read in slices; robots names the index', async ({ request }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  test.setTimeout(120_000);
+  const index = await (await request.get('/sitemap.xml')).text();
+  expect(index).toContain('/sitemap-vehicles/tiers-1.xml');
+  expect(index).toContain('/sitemap-vehicles/buy-tiers-1.xml');
+  expect(index).toContain('/sitemap-vehicles/buy-makes.xml');
+  const tiers = await (await request.get('/sitemap-vehicles/tiers-1.xml')).text();
+  const locs = [...tiers.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
+  expect(locs.length).toBeGreaterThan(1000);
+  expect(locs.length).toBeLessThanOrEqual(50_000);
+  expect(new Set(locs).size, 'no address twice across the keyset slices').toBe(locs.length);
+  expect(locs).toContain('/cars/volkswagen/jetta/2020/sportline/mississauga/black');
+  expect(locs).toContain('/cars/volkswagen/jetta/2020/sportline/colour/gold');
+  const buy = await (await request.get('/sitemap-vehicles/buy-tiers-1.xml')).text();
+  expect(buy).toContain('/buy/volkswagen/jetta/2020/sportline/mississauga/black</loc>');
+  expect((await request.get('/sitemap-vehicles/tiers-999.xml')).status()).toBe(404);
+  expect((await request.get('/sitemap-index/2.xml')).status()).toBe(404);
+  expect(await (await request.get('/robots.txt')).text()).toMatch(/Sitemap: \S+\/sitemap\.xml/);
+});
+
+test('the Admin switches take the city and colour pages and the /buy tree out of search at once', async ({ request }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  test.setTimeout(150_000);
+  const sql = db();
+  const rebuild = () => request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${jobToken()}`, 'content-type': 'application/json' }, data: {} });
+  const robots = async (u: string) => /<meta name="robots" content="([^"]*)"/.exec(await (await request.get(u)).text())?.[1] ?? '';
+  try {
+    await sql`update program_settings set vpage_place_index = false, vpage_colour_index = false, vpage_buy_index = false where id = (app.settings()).id`;
+    await expect.poll(async () => { await rebuild(); return robots('/cars/volkswagen/jetta/2020/sportline/oakville'); }, { timeout: 60_000, intervals: [2_000] }).toContain('noindex');
+    await expect.poll(async () => robots('/buy/volkswagen/jetta/2020'), { timeout: 30_000, intervals: [2_000] }).toContain('noindex');
+    const index = await (await request.get('/sitemap.xml')).text();
+    expect(index).not.toMatch(/\/sitemap-vehicles\/(t-[a-z-]+-)?tiers-/);
+    expect(index).not.toContain('/sitemap-vehicles/buy-');
+    expect(await robots('/cars/volkswagen/jetta/2020/sportline')).not.toContain('noindex');
+  } finally {
+    await sql`update program_settings set vpage_place_index = true, vpage_colour_index = true, vpage_buy_index = true where id = (app.settings()).id`;
+    await rebuild();
+    await sql.end();
+  }
+});
+
+test('"Find me this car" makes a buyer lead for Sales with a To do line', async ({ page }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  test.setTimeout(90_000);
+  const sql = db();
+  const email = `buyer-${randomBytes(3).toString('hex')}@example.com`;
+  try {
+    await page.goto('/buy/volkswagen/jetta/2020/sportline');
+    await acceptCookies(page);
+    const f = page.getByTestId('lead-form');
+    await f.getByLabel('Your name').fill('Sam Buyer');
+    await f.getByRole('textbox', { name: 'Email' }).fill(email);
+    await f.getByLabel('Budget').fill('24000');
+    await f.getByLabel('When do you want to buy?').selectOption('three');
+    await f.getByRole('button', { name: 'Find me this car' }).click();
+    await expect(page.getByTestId('lead-sent')).toBeVisible({ timeout: 20_000 });
+    const [lead] = await sql`select l.kind, l.payload ->> 'vehicle' as car, t.queue from leads l join tasks t on t.related_id = l.id where l.email = ${email}`;
+    expect(lead).toMatchObject({ kind: 'buyer', car: '2020 Volkswagen Jetta Sportline', queue: 'sales' });
+  } finally {
+    await sql.end();
+  }
+});
+
+const TERMS: Array<[string, string, RegExp, string]> = [
+  ['renting search', '/t/car-hire/volkswagen/jetta/2020/sportline/mississauga', /^2020 Volkswagen Jetta Sportline car hire in Mississauga$/, 'vp-inventory'],
+  ['financing', '/t/financing/volkswagen/jetta/2020/sportline/oakville', /^2020 Volkswagen Jetta Sportline financing in Oakville$/, 'finance-disclaimer'],
+  ['detailing', '/t/ceramic-coating/volkswagen/jetta/2020/sportline/mississauga/black', /^Ceramic coating for a black 2020 Volkswagen Jetta Sportline in Mississauga$/, 'svc-rent-first'],
+  ['body shop', '/t/bumper-repair/volkswagen/jetta/2020/sportline/scarborough', /^Bumper repair for a 2020 Volkswagen Jetta Sportline in Scarborough$/, 'svc-rent-first']
+];
+for (const [kind, url, h1, block] of TERMS) {
+  test(`a ${kind} page renders, indexed and self-canonical, with its own block`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const res = await page.goto(url);
+    expect(res?.status(), url).toBe(200);
+    await acceptCookies(page);
+    await expect(page.locator('h1')).toHaveText(h1);
+    const m = await meta(page);
+    expect(m.robots ?? '', `${url} robots`).not.toContain('noindex');
+    expect(m.canonical, `${url} canonical`).toMatch(new RegExp(`${url.replace(/\//g, '\\/')}$`));
+    await expect(page.getByTestId(block)).toBeVisible();
+    const ld = (await page.locator('script[type="application/ld+json"]').allInnerTexts()).join(' ');
+    expect(ld).not.toMatch(/"Offer"/);
+    if (kind === 'financing') await expect(page.getByTestId('finance-disclaimer')).toContainText('not a lender');
+    if (kind === 'body shop') await expect(page.getByTestId('svc-rent-first').getByRole('link', { name: 'See cars to rent' })).toHaveAttribute('href', '/t/insurance-replacement/volkswagen/jetta/2020/sportline/scarborough');
+    if (kind !== 'renting search') await expect(page.getByTestId('lead-form')).toBeVisible();
+    await check(page, url);
+  });
+}
+
+test('the term index and an unknown term', async ({ request }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  expect((await request.get('/t/car-hire')).status()).toBe(200);
+  expect(await (await request.get('/t/car-hire')).text()).toContain('href="/t/car-hire/volkswagen"');
+  expect((await request.get('/t/nosuchterm/volkswagen')).status()).toBe(404);
+  const idx = await (await request.get('/sitemap.xml')).text();
+  expect(idx).toContain('/sitemap-vehicles/t-car-hire-makes.xml');
+  expect(idx).toContain('/sitemap-vehicles/t-bumper-repair-tiers-1.xml');
+  const f = await (await request.get('/sitemap-vehicles/t-ceramic-coating-volkswagen-trims.xml')).text();
+  expect(f).toContain('/t/ceramic-coating/volkswagen/jetta/2020/sportline</loc>');
+});

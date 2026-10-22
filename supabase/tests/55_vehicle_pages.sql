@@ -127,9 +127,104 @@ select test.ok('Import now: the daily check finds it due', app.vehicle_catalog_i
 select test.mk_user('vp_cs', 'va', 'cs');
 select test.throws('only an Admin', $$select app.door(test.id('vp_cs'), 'aal2', 'admin_read', 'vehicle_pages', '{}')$$);
 
+
+-- ---------------------------------------------------------------- city and colour pages (the owner, October 22)
+insert into seo_pages (slug, kind, name, sort_order, facts, copy) values
+  ('vp-town', 'location', 'Vptown', 10, '{"lat": 43.59, "lng": -79.64, "nearby": ["vp-port"], "transit": ["Line 9"]}', '{"h1": "x"}'),
+  ('vp-port', 'location', 'Vp Airport (VPA)', 20, '{"lat": 43.68, "lng": -79.62, "terminals": ["Terminal 1"]}', '{"h1": "x"}');
+select test.ok('without the place table, the places are the active location landing pages', (select count(*) from app.vpage_places() where slug in ('vp-town', 'vp-port')) = 2);
+select test.eq('twelve colours', (select count(*) from vehicle_colours), 12::bigint);
+select test.ok('the search terms: renting, sale, detailing and body shop', (select count(distinct kind) from search_terms where is_active) = 4);
+select test.ok('every trim is numbered (the sitemaps take ranges of it)', not exists (select 1 from vehicle_catalog_trims where ord is null)
+  and (select count(distinct ord) from vehicle_catalog_trims) = (select count(*) from vehicle_catalog_trims));
+select test.eq('a place page: its trim with the place', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'path', '/cars/volkswagen/jetta/2020/sportline/vp-town');
+select test.eq('a place and colour page', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', 'black') ->> 'level', 'city_colour');
+select test.eq('a colour page', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'gold') ->> 'path', '/cars/volkswagen/jetta/2020/sportline/colour/gold');
+select test.ok('the nearby place named by the landing page comes first', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) -> 'city' -> 'nearby' -> 0 ->> 'slug' = 'vp-port');
+select test.ok('unknown place, colour or trim: 404', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'nowhere', null) is null
+  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'plaid') is null and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'nosuch', 'vp-town', null) is null);
+select test.ok('indexed and self-canonical by default', (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-port', 'red') ->> 'indexable')::boolean
+  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-port', 'red') ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline/vp-port/red');
+
+-- the place table, once filled (the local SEO release's gazetteer), replaces the landing pages; a region lists its places
+insert into places (id, slug, name, kind, parent_id, lat, lng) values (9001, 'vp-canada', 'Vpcanada', 'country', null, null, null), (9002, 'vp-gta', 'Vp GTA', 'region', 9001, null, null),
+  (9003, 'vp-borough', 'Vp Borough', 'city', 9002, 43.6, -79.6), (9004, 'vp-corner', 'Vp Corner', 'neighbourhood', 9003, 43.61, -79.61);
+select test.eq('the place table is the place list', (select string_agg(slug, ',' order by slug) from app.vpage_places()), 'vp-borough,vp-canada,vp-corner,vp-gta');
+select test.ok('a neighbourhood page names its city; a region page lists its places', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-corner', null) -> 'city' ->> 'parent' = 'Vp Borough'
+  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'within' -> 0 ->> 'slug' = 'vp-borough'
+  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'delivery' = 'null'::jsonb);
+delete from places where id between 9001 and 9004;
+
+-- the sitemaps: no file over 50,000, the slices read by keyset, every page once
+select test.ok('tiers files listed', exists (select 1 from app.vehicle_tier_files()));
+create temp table vp_slices as select * from app.vehicle_tier_sitemap(1, -1, 3);
+insert into vp_slices select * from app.vehicle_tier_sitemap(1, (select max(g) from vp_slices), 3);
+select test.ok('the next slice starts after the last pair read (keyset), no address twice', (select count(*) from vp_slices) = (select count(distinct path) from vp_slices)
+  and (select count(distinct g) from vp_slices) = 6);
+select test.ok('a pair is at most 13 addresses, so a file is at most 50,000', (select max(n) from (select count(*) n from app.vehicle_tier_sitemap(1, -1, 4000) group by g) x) <= 13
+  and (select count(*) from app.vehicle_tier_sitemap(1, -1, 4000)) <= 50000);
+select test.eq('every trim has its place pages, place and colour pages and colour pages once',
+  (select count(*) from app.vehicle_tier_sitemap(1, -1, 4000)) + coalesce((select sum(1) from generate_series(1, 0)), 0),
+  (select count(*) from vehicle_catalog_trims) * ((select count(*) from app.vpage_places()) * 13 + 12));
+select test.ok('the index: the renting tree, /buy and every term''s tree', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer
+  = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files()) + (select count(*) from app.vehicle_tier_files())));
+select test.ok('every tree is allowed by default', public.vehicle_sitemap_tree('') and public.vehicle_sitemap_tree('buy-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-ceramic-coating-'));
+select test.ok('IndexNow: a batch of at most 10,000 addresses from the sitemaps, the cursor after it', (select jsonb_array_length(c -> 'paths') between 1 and 10000 and (c -> 'cursor' ->> 'file_i') is not null
+  from app.server_indexnow_claim(10000) c));
+select app.server_indexnow_report('{"status": 200, "count": 10, "cursor": {"file_i": 3, "pos": 5}}');
+select test.eq('a 2xx moves the cursor and counts the addresses', (select file_i || '/' || pos || '/' || sent_today from indexnow_sweep), '3/5/10');
+select app.server_indexnow_report('{"status": 429, "count": 10, "cursor": {"file_i": 9, "pos": 9}}');
+select test.ok('a 429 backs off and keeps the cursor', (select backoff_until > now() + interval '14 minutes' and file_i = 3 from indexnow_sweep)
+  and app.server_indexnow_claim(10000) ->> 'why' = 'backing off');
+update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0;
+
+-- the switches: off takes the tier out of search at once
+update program_settings set vpage_place_index = false, vpage_buy_index = false, vpage_detailing_index = false where id = (app.settings()).id;
+select test.ok('place switch off: noindex, canonical at the trim; the colour pages stay', not (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'indexable')::boolean
+  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline'
+  and (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'gold') ->> 'indexable')::boolean
+  and not exists (select 1 from app.vehicle_tier_sitemap(1, -1, 4000) where path !~ '/colour/'));
+select test.ok('/buy and detailing switches off: those trees leave the sitemaps', not public.vehicle_sitemap_tree('buy-') and not public.vehicle_sitemap_tree('t-used-')
+  and not public.vehicle_sitemap_tree('t-ceramic-coating-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-bumper-repair-'));
+update program_settings set vpage_place_index = true, vpage_buy_index = true, vpage_detailing_index = true where id = (app.settings()).id;
+
+-- ---------------------------------------------------------------- the /buy twins: for sale only when a car really is
+select test.eq('no car flagged: nothing for sale', jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'for_sale'), 0);
+select test.eq('recalls unknown until NHTSA is imported: null, never "none"', public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'recalls', 'null'::jsonb);
+update vehicle_catalog_years set recalls = '[{"campaign": "20V000000", "date": "2020-05-01", "component": "AIR BAGS", "summary": "x"}]', complaints = '{"total": 7, "components": [{"component": "ENGINE", "n": 4}]}'
+ where make_slug = 'volkswagen' and model_slug = 'jetta' and year = 2020;
+select test.eq('imported: the year''s recalls', jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'recalls'), 1);
+select test.ok('the model page: recalls and complaints by year', exists (select 1 from jsonb_array_elements(public.vehicle_buy_extras('volkswagen', 'jetta', null, null) -> 'by_year') y where (y ->> 'year')::integer = 2020 and (y ->> 'complaints')::integer = 7));
+select test.throws('for sale needs a price', $$select app.door(test.id('vp_admin'), 'aal2', 'admin_do', 'vehicle_for_sale', jsonb_build_object('vehicle_id', test.id('vehicle:VP1'), 'for_sale', true))$$, 'asking price');
+select app.door(test.id('vp_admin'), 'aal2', 'admin_do', 'vehicle_for_sale', jsonb_build_object('vehicle_id', test.id('vehicle:VP1'), 'for_sale', true, 'asking_price_cents', 2150000));
+select test.eq('flagged by an Admin: on its /buy pages with the asking price', (public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'for_sale' -> 0 ->> 'asking_price_cents')::bigint, 2150000::bigint);
+select test.eq('and on its model''s, not on another trim''s', jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', null, null) -> 'for_sale') || '/' || jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'highline') -> 'for_sale'), '1/0');
+select test.throws('only an Admin flags a car for sale', $$select app.door(test.id('vp_cs'), 'aal2', 'admin_do', 'vehicle_for_sale', jsonb_build_object('vehicle_id', test.id('vehicle:VP1'), 'for_sale', false))$$);
+select test.ok('the panel counts every tier', (select (d -> 'tiers' -> 'place' ->> 'total')::bigint > 0 and (d -> 'tiers' -> 'sale' ->> 'total')::bigint > (d -> 'counts' -> 'trim' ->> 'total')::bigint
+  and (d -> 'tiers' -> 'detailing_terms' ->> 'terms')::integer >= 1 and (d -> 'tiers' ->> 'for_sale')::integer = 1 and (d -> 'db' ->> 'bytes')::bigint > 0
+  from app.door(test.id('vp_admin'), 'aal2', 'admin_read', 'vehicle_pages', '{}') d));
+update vehicles set for_sale = false where id = test.id('vehicle:VP1');
+
+-- buyer leads: "Find me this car" goes to Sales with a To do line
+select test.ok('a buyer lead', (app.submit_lead('{"kind": "buyer", "name": "Vp Buyer", "email": "vp-buyer@example.com", "payload": {"vehicle": "2020 Volkswagen Jetta Sportline", "budget": "22000", "timeline": "Within a month"}}'::jsonb) ->> 'ok')::boolean);
+select test.eq('kept as a buyer lead', (select kind from leads where email = 'vp-buyer@example.com'), 'buyer');
+select test.eq('with a Sales task naming the car and the budget', (select t.queue || ': ' || t.detail from tasks t join leads l on l.id = t.related_id where l.email = 'vp-buyer@example.com'),
+  'sales: Vp Buyer wants to buy 2020 Volkswagen Jetta Sportline. Budget: 22000. Timeline: Within a month.');
+select test.throws('a buyer lead needs an email or a phone', $$select app.submit_lead('{"kind": "buyer", "name": "X"}'::jsonb)$$, 'email address or a phone');
+select app.submit_lead(jsonb_build_object('kind', k, 'name', 'Vp ' || k, 'email', 'vp-' || k || '@example.com', 'payload', jsonb_build_object('vehicle', '2020 Volkswagen Jetta Sportline', 'service', 'Ceramic coating')))
+  from unnest(array['finance', 'detailing', 'bodyshop']) k;
+select test.eq('detailing and body shop requests and financing questions are leads for Sales too',
+  (select string_agg(t.queue || ': ' || t.title, ' | ' order by l.kind) from leads l join tasks t on t.related_id = l.id where l.email in ('vp-finance@example.com', 'vp-detailing@example.com', 'vp-bodyshop@example.com')),
+  'sales: A body shop request | sales: A detailing request | sales: Someone asked about financing or leasing a car');
+select test.ok('other enquiries still go the old way', (app.submit_lead('{"kind": "contact", "name": "Vp C", "email": "vp-c@example.com", "message": "hello there"}'::jsonb) ->> 'ok')::boolean);
+
 -- ---------------------------------------------------------------- who may call what
 set role anon;
 select test.ok('anon reads a page (the public site)', public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') is not null);
 select test.throws('anon cannot import', $$select app.vehicle_catalog_import_batch('{}'::jsonb)$$, 'permission denied');
 select test.throws('anon cannot read the tables', $$select count(*) from vehicle_catalog_years$$, 'permission denied');
+select test.ok('anon reads a city page and a /buy twin''s extras, and the sitemaps', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', 'black') is not null
+  and public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') is not null and (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer > 0 and jsonb_array_length(public.vehicle_tier_sitemap(1, -1, 1)) > 0);
+select test.throws('anon cannot claim IndexNow batches', $$select app.server_indexnow_claim(10)$$, 'permission denied');
+select test.throws('anon cannot flag a car for sale', $$select app.vpage_for_sale_set(null, '{}'::jsonb)$$, 'permission denied');
 reset role;

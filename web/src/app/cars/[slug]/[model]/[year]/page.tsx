@@ -2,10 +2,10 @@ import { yearPage } from '@/features/vehicles/data';
 import { YearView, yearMeta } from '@/features/vehicles/views';
 
 // A model year's vehicle page (migration 0092): its EPA powertrains, cost of driving, Canadian trims, what changed
-// from the year before, the other years, similar models, our cars. On demand with the page cache, never at build.
-export const revalidate = 3600;
-export const dynamicParams = true;
-export async function generateStaticParams() { return []; }
+// from the year before, the other years, similar models, our cars. On demand, never at build.
+// rendered on demand with no ISR entry: no KV write per page (millions of pages); the Worker's edge copy keeps it
+// (src/lib/edge/page-cache.ts, PROGRAMMATIC) for 6 hours
+export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ slug: string; model: string; year: string }> };
 
 export async function generateMetadata({ params }: Params) {
