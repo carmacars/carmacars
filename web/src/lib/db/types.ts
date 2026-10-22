@@ -13155,6 +13155,10 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          guest_name: string | null;
+          guest_phone: string | null;
+          guest_email: string | null;
+          lead_id: string | null;
         };
         Insert: {
           id?: string;
@@ -13170,6 +13174,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          guest_name?: string | null;
+          guest_phone?: string | null;
+          guest_email?: string | null;
+          lead_id?: string | null;
         };
         Update: {
           id?: string;
@@ -13185,6 +13193,49 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          guest_name?: string | null;
+          guest_phone?: string | null;
+          guest_email?: string | null;
+          lead_id?: string | null;
+        };
+        Relationships: [];
+      };
+      turo_identities: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          kind: string;
+          value: string;
+          norm: string | null;
+          source: string;
+          hits: number;
+          first_seen_at: string;
+          last_seen_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          kind: string;
+          value: string;
+          norm?: string | null;
+          source: string;
+          hits?: number;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          kind?: string;
+          value?: string;
+          norm?: string | null;
+          source?: string;
+          hits?: number;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          created_by?: string | null;
         };
         Relationships: [];
       };
@@ -13214,6 +13265,14 @@ export type Database = {
           task_id: string | null;
           resolved_by: string | null;
           resolved_at: string | null;
+          turo_car_ids: string[] | null;
+          car_name: string | null;
+          candidates: Json | null;
+          match_why: string | null;
+          guest_name: string | null;
+          guest_phone: string | null;
+          guest_email: string | null;
+          rematched_at: string | null;
         };
         Insert: {
           id?: string;
@@ -13240,6 +13299,14 @@ export type Database = {
           task_id?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
+          turo_car_ids?: string[] | null;
+          car_name?: string | null;
+          candidates?: Json | null;
+          match_why?: string | null;
+          guest_name?: string | null;
+          guest_phone?: string | null;
+          guest_email?: string | null;
+          rematched_at?: string | null;
         };
         Update: {
           id?: string;
@@ -13266,6 +13333,14 @@ export type Database = {
           task_id?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
+          turo_car_ids?: string[] | null;
+          car_name?: string | null;
+          candidates?: Json | null;
+          match_why?: string | null;
+          guest_name?: string | null;
+          guest_phone?: string | null;
+          guest_email?: string | null;
+          rematched_at?: string | null;
         };
         Relationships: [];
       };

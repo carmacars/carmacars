@@ -70,7 +70,7 @@ select test.eq('one contact record: a Turo guest, source turo, no marketing cons
   (select format('%s %s %s %s %s %s', l.kind, l.source, l.consent_marketing, l.name, l.phone, l.payload -> 'trips') from leads l join turo_calendar_trips t on t.lead_id = l.id where t.trip_id = '61000001'),
   'turo_guest turo f Omar R. +14165550101 ["61000001"]');
 select test.ok('the note says transactional contact only, no marketing', (select l.message from leads l join turo_calendar_trips t on t.lead_id = l.id where t.trip_id = '61000001') like '%Never add them to a marketing list%CASL%');
-select test.eq('never a renter account for a Turo guest', (select count(*) from renters where mobile like '%555-0101%' or lower(email) = 'omar.r@example.test'), 0::bigint);
+select test.eq('never a renter account for a Turo guest', (select count(*) from renters where legal_name = 'Omar R.' or lower(email) = 'omar.r@example.test'), 0::bigint);  -- (not by the phone: suite 55 quo phone has a renter at 416-555-0101)
 select test.throws('a Turo guest can never be given marketing consent', $$ update leads set consent_marketing = true, consent_text = 'x', consent_at = now()
   where kind = 'turo_guest' and phone = '+14165550101' $$, '%leads_turo_guest_no_marketing%');
 -- the same Turo car id again: hits go up; the same guest on another trip: the same contact record

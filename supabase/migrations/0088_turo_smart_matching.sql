@@ -63,7 +63,7 @@ alter table turo_calendar_trips
 comment on column turo_calendar_trips.guest_name is 'Turo by email (0088): the guest''s name as Turo''s email shows it (often a first name and an initial).';
 
 alter table leads drop constraint if exists leads_kind_check;
-alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'turo_guest'));
+alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'phone', 'turo_guest'));  -- 'phone': the Quo line's leads (0085)
 alter table leads drop constraint if exists leads_check;
 alter table leads add constraint leads_check check (email is not null or phone is not null or kind = 'turo_guest');
 alter table leads add constraint leads_turo_guest_no_marketing check (kind <> 'turo_guest' or not consent_marketing);

@@ -157,6 +157,27 @@ begin
       'source', format('Young drivers allowed for the %s class: %s (Program settings)', v.class, case when (d ->> 'allows_18_to_20')::boolean then 'yes' else 'no' end), 'at', now()));
   end if;
 
+  -- the onboarding method of a car staff add for an owner, when none was chosen and none is recommended (an individual
+  -- who owns the car outright has three, none recommended): the open method with the lowest estimate, so the Admin's
+  -- approval in the same step can set the terms (0077 refuses terms without a method). The owner's own application
+  -- keeps the owner's choice in the wizard. Changed on the owner's page like any proposed method.
+  if not p_backfill and p_by is not null and (app.user_is_admin(p_by) or app.user_va_has(p_by, 'cs', 'fleet')) then
+    declare
+      ob vehicle_onboardings;
+      m onboarding_method;
+    begin
+      select * into ob from vehicle_onboardings where vehicle_id = v.id;
+      if ob.id is not null and ob.status = 'intake' and ob.proposed_onboarding_method is null and ob.held_by is not null and ob.title_status is not null then
+        select x.method into m from app.onboarding_options(ob.held_by, ob.title_status, coalesce(ob.proposed_management_mode, v.management_mode)) x
+         order by x.recommended desc, x.estimate_cents, x.method limit 1;
+        if m is not null then
+          perform app.choose_onboarding_method(v.id, m, p_by);
+          v_set := v_set || jsonb_build_object('onboarding_method', jsonb_build_object('value', m, 'source', 'The open method with the lowest estimate', 'at', now()));
+        end if;
+      end if;
+    end;
+  end if;
+
   -- the rate card
   select * into rc from rate_cards x where x.vehicle_id = v.id and x.effective_from <= now() and (x.effective_to is null or x.effective_to > now());
   if not exists (select 1 from rate_cards x where x.vehicle_id = v.id) then

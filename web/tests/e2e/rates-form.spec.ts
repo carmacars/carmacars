@@ -126,6 +126,12 @@ test('post a car with its rates and kilometres in one pass: Add a car (three sup
   // the Rates tab: a car with no rates saves in one pass (the circular refusal of 0063)
   const [bare] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2024, make: 'Kia', model: `K5 ${tag()}` })}) as r`;
   const bareId = (bare!.r as { vehicle_id: string }).vehicle_id;
+  // 0087: a car added without rates gets a complete rate card from the class defaults, marked "Set automatically";
+  // the circular refusal of 0063 is checked on a car with no card at all, so that card is taken off here
+  await page.goto(`/admin/vehicles/${bareId}?tab=rates`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('rate-card-auto')).toContainText('Set automatically');
+  await expect(page.getByTestId('auto-rate-daily')).toBeVisible();
+  await sql`delete from rate_cards where vehicle_id = ${bareId} and auto_defaults ? 'daily'`;
   await page.goto(`/admin/vehicles/${bareId}?tab=rates`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rate-form-none')).toBeVisible();
   await page.getByTestId('rate-form-daily').fill('75');

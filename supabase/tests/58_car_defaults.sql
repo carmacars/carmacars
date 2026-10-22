@@ -70,6 +70,8 @@ insert into s58 select 'staff', app.staff_add_owner_car(test.id('cd_fleet'), jso
 select test.eq('staff add for an owner: the typed card replaces the one from the defaults (one card) and keeps the defaulted delivery',
   (select format('%s %s %s', count(*), max(daily_rate_cents), bool_and(delivery_fee_cents > 0)) from rate_cards where vehicle_id = test.s58v('staff')), '1 5500 t');
 select test.eq('staff add for an owner: delivery stays marked', (test.s58rc('staff')).auto_defaults ? 'delivery', true);
+select test.eq('staff add for an owner: no method chosen and none recommended: the open method with the lowest estimate, marked',
+  (select format('%s %s', ob.proposed_onboarding_method is not null, v.auto_defaults ? 'onboarding_method') from vehicles v join vehicle_onboardings ob on ob.vehicle_id = v.id where v.id = test.s58v('staff')), 't t');
 
 -- ================================================================ 4. what follows the car: add-ons, winter tires, fuel, the Protection Plan
 insert into s58 select 'ev', app.vehicle_add(test.id('cd_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1CD58AE0000000001', 'plate', 'CDE001',
