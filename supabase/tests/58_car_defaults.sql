@@ -113,6 +113,32 @@ select app.apply_car_defaults(test.s58v('second'), null, '{}'::jsonb, true);
 select test.eq('backfill: a person''s choices are kept (young drivers switched off, a deposit set)',
   (select format('%s %s', v.allows_18_to_20, (select max(deposit_cents) from rate_cards r where r.vehicle_id = v.id)) from vehicles v where v.id = test.s58v('second')), 'f 123400');
 
+-- ================================================================ 6b. make, model and trim never in capitals
+select test.eq('casing: the owner''s Jetta, brands, digits and acronyms kept, mixed case untouched',
+  concat_ws('|', app.car_name_case('VOLKSWAGEN', 'make'), app.car_name_case('JETTA', 'model'), app.car_name_case('COMFORTLINE SPORT', 'trim'),
+            app.car_name_case('MERCEDES-BENZ', 'make'), app.car_name_case('BMW', 'make'), app.car_name_case('KIA', 'make'), app.car_name_case('CLA250 4MATIC', 'model'),
+            app.car_name_case('F-150', 'model'), app.car_name_case('XLT SPORT AWD', 'trim'), app.car_name_case('R-LINE', 'trim'), app.car_name_case('iX xDrive50', 'model')),
+  'Volkswagen|Jetta|Comfortline Sport|Mercedes-Benz|BMW|Kia|CLA250 4MATIC|F-150|XLT Sport AWD|R-Line|iX xDrive50');
+select test.eq('casing: words without a vowel, punctuation and special forms (the Kia Forte on file reads "FE, LXS")',
+  concat_ws('|', app.car_name_case('FE, LXS', 'trim'), app.car_name_case('CR-V', 'model'), app.car_name_case('S', 'trim'), app.car_name_case('XDRIVE SEDAN', 'trim'),
+            app.car_name_case('XLT SUPERCREW 4X4', 'trim'), app.car_name_case('GLE COUPE', 'model'), app.car_name_case('EXECLINE, HIGHLINE', 'trim'),
+            app.car_name_case('EX-L', 'trim'), app.car_name_case('GMC', 'make'), app.car_name_case('MINI', 'make'), coalesce(app.car_name_case(null, 'trim'), 'null')),
+  'FE, LXS|CR-V|S|xDrive Sedan|XLT SuperCrew 4X4|GLE Coupe|Execline, Highline|EX-L|GMC|MINI|null');
+insert into s58 select 'caps', app.vehicle_add(test.id('cd_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1CD58AH0000000001', 'plate', 'CDC001',
+  'year', 2024, 'make', 'VOLKSWAGEN', 'model', 'JETTA', 'trim', 'COMFORTLINE SPORT', 'class', 'standard'));
+select test.eq('casing: a car added in capitals is stored in proper case', (select concat_ws(' ', make, model, trim) from vehicles where id = test.s58v('caps')), 'Volkswagen Jetta Comfortline Sport');
+update vehicles set trim = 'HIGHLINE TSI' where id = test.s58v('caps');
+select test.eq('casing: an update in capitals too', (select trim from vehicles where id = test.s58v('caps')), 'Highline TSI');
+set session_replication_role = replica;
+update vehicles set make = 'VOLKSWAGEN', model = 'JETTA', trim = 'COMFORTLINE SPORT' where id = test.s58v('caps');
+set session_replication_role = origin;
+select test.ok('backfill: the cars in capitals are fixed', app.car_name_case_backfill() >= 1);
+select test.eq('backfill: the car reads in proper case', (select concat_ws(' ', make, model, trim) from vehicles where id = test.s58v('caps')), 'Volkswagen Jetta Comfortline Sport');
+select test.ok('backfill: its listing title, description and search text made again from the fixed name',
+  (select concat_ws(' ', l.headline, l.description, l.seo_title, l.seo_description) not like '%VOLKSWAGEN%' and l.headline like '%Volkswagen Jetta%'
+     from vehicle_listings l where l.vehicle_id = test.s58v('caps')));
+select test.ok('backfill: the AI copy queued for it', exists (select 1 from car_copy c where c.vehicle_id = test.s58v('caps')));
+
 -- ================================================================ 7. sample cars and privileges
 select test.ok('a sample car keeps its own number (none given)', not exists (select 1 from vehicles where is_sample and vin like 'SAMPLE%' and auto_defaults ? 'fleet_number'));
 select test.throws('the defaults are the server''s: not callable by a signed-in person',

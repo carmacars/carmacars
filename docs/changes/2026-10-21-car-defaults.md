@@ -12,13 +12,17 @@ The owner: "every car that's entered gets standard settings automatically based 
 - One function, `app.apply_car_defaults`, called by every add path through 0082's `app.vehicle_after_add` (Add a car, Add a car for an owner, Fleet, the owner's application, `vehicle_add`, `staff_add_owner_car`). The real cars on file: only what is empty was filled.
 - The Admin car page shows "(Set automatically)" next to the fleet number and the young driver setting, and lists the rate card's automatic values on the Rates tab, until a person changes them (`vehicles.auto_defaults`, `rate_cards.auto_defaults`).
 
+- **Make, model and trim never in capitals** (the owner's report of a live "VOLKSWAGEN JETTA COMFORTLINE SPORT"): `app.car_name_case` and a trigger on every insert and update write a value that is entirely in capitals in proper case (brand spellings such as Mercedes-Benz, BMW, GMC, MINI, Kia; words with digits kept, CLA250, 4MATIC, F-150; trim and drive acronyms kept, SE, XLT, AWD, TSI; a word without a vowel kept, LXS, CR-V; R-Line, S-Line, xDrive, SuperCrew); mixed case stays as typed. The cars on file were fixed and their title, description and search text made again (`app.car_name_case_backfill`). The VIN decoder's answer gets the same rule in code (`web/src/features/vin/name-case.ts`).
+
 ## Note
 
 A new car added without rates now has a rate card at once, so with "Publish new cars automatically" on it goes on the site at the suggested rates as soon as its basics are complete (0070's rule). The values are marked for review.
 
+The migration fixes the cars on file written in capitals when it is applied: on the live site that is the 2024 Volkswagen Jetta Comfortline Sport (title, description and search text made again, AI copy queued) and the 2021 Kia Forte's make (KIA to Kia; its trim "FE, LXS" stays).
+
 ## Tests
 
-Suite 58 (`supabase/tests/58_car_defaults.sql`); suite 43 turns the rate card from the defaults off while it tests cars added without rates. Unit test `web/src/features/supply/auto-defaults.test.ts`.
+Suite 58 (`supabase/tests/58_car_defaults.sql`); suite 43 turns the rate card from the defaults off while it tests cars added without rates. Unit tests `web/src/features/supply/auto-defaults.test.ts` and `web/src/features/vin/name-case.test.ts` (make, model and trim casing).
 
 ## Guides
 

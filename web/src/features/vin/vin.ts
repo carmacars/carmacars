@@ -1,3 +1,4 @@
+import { nameCase } from './name-case.ts';
 // VIN-first entry (migration 0082): the VIN's own rules, the decoder's answer in our words, the one summary line and the
 // colour swatches. Pure, so the browser, the server and the unit tests share it (src/features/vin/vin.test.ts).
 // The database keeps the same check (app.vin_check_ok, 0040) and decides what is stored.
@@ -85,9 +86,7 @@ export function fuelOf(primary: string, electrification: string, secondary = '')
 export function makeName(make: string): string {
   const m = (make ?? '').trim();
   if (!m) return '';
-  if (m.length <= 3) return m.toUpperCase();
-  const special: Record<string, string> = { 'MERCEDES-BENZ': 'Mercedes-Benz', 'LAND ROVER': 'Land Rover', 'ALFA ROMEO': 'Alfa Romeo', MINI: 'MINI', 'ROLLS-ROYCE': 'Rolls-Royce', 'ASTON MARTIN': 'Aston Martin', MCLAREN: 'McLaren', RAM: 'Ram', FIAT: 'FIAT', SMART: 'smart' };
-  return special[m.toUpperCase()] ?? m.toLowerCase().replace(/(^|[\s-])[a-z]/g, (c) => c.toUpperCase());
+  return nameCase(m.toUpperCase(), 'make');
 }
 
 /** vPIC lists every trim a VIN may be when the VIN does not say ("S, SE, SEL"): no trim then, rather than a list. */
@@ -97,14 +96,15 @@ const n = (s: unknown) => { const x = String(s ?? '').trim(); return x && x !== 
 
 /** One vPIC DecodeVinValues result in the shape the listing worker and public.server_record_vin_decode store. */
 export function mapVpic(x: Record<string, unknown>): VinDecode {
-  const year = n(x.ModelYear), make = makeName(n(x.Make)), model = n(x.Model);
+  // vPIC answers in capitals: the names in the case people write them (0087), so a new car never comes in shouting
+  const year = n(x.ModelYear), make = makeName(n(x.Make)), model = nameCase(n(x.Model), 'model');
   const litres = n(x.DisplacementL), cyl = n(x.EngineCylinders), conf = n(x.EngineConfiguration);
   const litresText = litres ? `${Number(litres) ? Number(litres).toFixed(1) : litres} L` : '';
   const engine = [litresText, cyl && (/v-shaped/i.test(conf) ? `V${cyl}` : `${cyl} cylinders`), n(x.Turbo) && /yes/i.test(n(x.Turbo)) ? 'turbo' : ''].filter(Boolean).join(', ');
   const speeds = n(x.TransmissionSpeeds);
   const style = n(x.TransmissionStyle);
   return {
-    ok: !!(year && make && model), year, make, model, trim: trimOf(n(x.Trim) || n(x.Series)), body_class: n(x.BodyClass),
+    ok: !!(year && make && model), year, make, model, trim: nameCase(trimOf(n(x.Trim) || n(x.Series)), 'trim'), body_class: n(x.BodyClass),
     fuel: fuelOf(n(x.FuelTypePrimary), n(x.ElectrificationLevel), n(x.FuelTypeSecondary)), drivetrain: n(x.DriveType),
     transmission: style ? (speeds && !/continuously/i.test(style) ? `${style}, ${speeds} speeds` : style) : '',
     doors: n(x.Doors), seats: n(x.Seats), engine,

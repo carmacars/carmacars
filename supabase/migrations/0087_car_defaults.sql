@@ -439,3 +439,90 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ================================================================ 7. make, model and trim never in capitals
+-- The owner, October 21, 2026: a live listing read "VOLKSWAGEN JETTA COMFORTLINE SPORT". A make, model or trim
+-- written entirely in capitals (a VIN decode, or typed) is kept in the case people write it; mixed case is left as
+-- typed. Known brand spellings win, a word with a digit stays (CLA250, 4MATIC, F-150), known trim and drive acronyms
+-- stay in capitals, a word or hyphen part without a vowel stays (LXS, SXT, CR-V), R-Line, S-Line, xDrive and SuperCrew
+-- keep their form, every other word is Title case. The same rule is web/src/features/vin/name-case.ts (the VIN
+-- decoder's answer).
+create or replace function app.car_name_case(p text, p_kind text default 'model') returns text
+language plpgsql immutable as $$
+declare
+  brands constant jsonb := '{"MERCEDES-BENZ": "Mercedes-Benz", "MERCEDES BENZ": "Mercedes-Benz", "BMW": "BMW", "GMC": "GMC", "MINI": "MINI", "KIA": "Kia",
+    "VOLKSWAGEN": "Volkswagen", "VW": "VW", "LAND ROVER": "Land Rover", "ALFA ROMEO": "Alfa Romeo", "ROLLS-ROYCE": "Rolls-Royce", "ASTON MARTIN": "Aston Martin",
+    "MCLAREN": "McLaren", "RAM": "Ram", "FIAT": "FIAT", "SMART": "smart", "JAC": "JAC", "BYD": "BYD", "MG": "MG", "DS": "DS",
+    "MERCEDES-AMG": "Mercedes-AMG", "MERCEDES-MAYBACH": "Mercedes-Maybach"}';
+  acronyms constant text[] := array['SE', 'SEL', 'LE', 'XLE', 'XSE', 'LX', 'EX', 'EX-L', 'FE', 'GT', 'GTI', 'GLI', 'GTE', 'XLT', 'LT', 'LS', 'LTZ', 'RS',
+    'SR', 'SV', 'SL', 'AMG', 'AWD', 'FWD', 'RWD', '4WD', 'SUV', 'TDI', 'TSI', 'EV', 'HEV', 'PHEV', 'ES', 'IS', 'UX', 'SE-R', 'GLA', 'GLB', 'GLC', 'GLE',
+    'GLS', 'CLA', 'CLS', 'EQB', 'EQE', 'EQS', 'TRD'];
+  special constant jsonb := '{"R-LINE": "R-Line", "S-LINE": "S-Line", "XDRIVE": "xDrive", "SDRIVE": "sDrive", "SUPERCREW": "SuperCrew", "SUPERCAB": "SuperCab"}';
+  s text := btrim(coalesce(p, ''));
+  w text;
+  core text;
+  pre text;
+  post text;
+  out text[] := '{}';
+begin
+  if s = '' or s = lower(s) or s <> upper(s) then return p; end if;
+  if p_kind = 'make' and brands ? regexp_replace(s, '\s+', ' ', 'g') then return brands ->> regexp_replace(s, '\s+', ' ', 'g'); end if;
+  foreach w in array regexp_split_to_array(s, '\s+') loop
+    core := regexp_replace(w, '^[^[:alnum:]]+|[^[:alnum:]]+$', '', 'g');
+    pre := coalesce(substring(w from '^[^[:alnum:]]*'), '');
+    post := coalesce(substring(w from '[^[:alnum:]]*$'), '');
+    out := out || case
+      when w ~ '[0-9]' or core = '' then w
+      when special ? core then pre || (special ->> core) || post
+      when core = any (acronyms) then w
+      when p_kind = 'make' and brands ? core then pre || (brands ->> core) || post
+      else pre || array_to_string(array(select case when x ~ '[AEIOUY]' then initcap(lower(x)) else x end
+                                          from unnest(string_to_array(core, '-')) with ordinality t(x, i) order by i), '-') || post end;
+  end loop;
+  return array_to_string(out, ' ');
+end $$;
+
+create or replace function app.vehicle_name_case() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  new.make := app.car_name_case(new.make, 'make');
+  new.model := app.car_name_case(new.model, 'model');
+  new.trim := app.car_name_case(new.trim, 'trim');
+  return new;
+end $$;
+drop trigger if exists vehicles_a0_name_case on vehicles;
+create trigger vehicles_a0_name_case before insert or update of make, model, trim on vehicles for each row execute function app.vehicle_name_case();
+revoke all on function app.vehicle_name_case() from public, anon, authenticated;
+grant execute on function app.vehicle_name_case() to service_role;
+grant execute on function app.car_name_case(text, text) to authenticated, service_role;
+
+-- The cars on file: fixed, then their public title, description and search text made again by the listing's own
+-- path (the plain copy at once, the AI copy queued right after: 0070 and 0082).
+create or replace function app.car_name_case_backfill() returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r record;
+  n integer := 0;
+begin
+  for r in select v.id, v.is_sample from vehicles v
+            where app.car_name_case(v.make, 'make') is distinct from v.make or app.car_name_case(v.model, 'model') is distinct from v.model
+               or app.car_name_case(v.trim, 'trim') is distinct from v.trim loop
+    update vehicles set make = make, model = model, trim = trim where id = r.id;   -- the trigger writes the case
+    if not coalesce(r.is_sample, false) then
+      begin
+        perform app.listing_template_copy(r.id);
+        perform app.car_copy_queue(r.id);
+      exception when others then
+        insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+        values (null, 'car_name_case_copy_failed', 'vehicles', r.id::text, jsonb_build_object('error', sqlerrm));
+      end;
+    end if;
+    insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+    values (null, 'car_name_case', 'vehicles', r.id::text, jsonb_build_object('note', 'Make, model or trim in capitals written in proper case (0087)'));
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+revoke all on function app.car_name_case_backfill() from public, anon, authenticated;
+grant execute on function app.car_name_case_backfill() to service_role;
+select app.car_name_case_backfill();
