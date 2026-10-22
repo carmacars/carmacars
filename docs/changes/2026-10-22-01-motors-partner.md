@@ -195,3 +195,16 @@ Mercedes-Benz C-Class C43 AMG (Blue), sheet $250 / $225 / $200 a day, markup 10%
 - `admin/partners-company-cars-and-rentals-added-by-hand` (A partner fleet on its own rates)
 - `admin/chauffeur-service` (new)
 - `va/chauffeur-requests` (new)
+
+## The partner agreement on the partner's rates (migration 0105)
+
+The partner agreement (`web/src/features/partner/agreement.ts`, now `partner-v3-2026-10-22`) described only 0046's
+basis (a commission of what the renter paid). A partner on the `partner_rate` basis, such as 01 Motors, now gets
+sections 1, 3 and 4 on its real basis: its rates are the guideline rates on its rate sheet, adjustable by written
+agreement or in Admin; the renter pays the sheet rate plus the markup (10%); CarmaCars keeps the markup plus its cut
+(20% of the sheet rate); the partner is paid the rest (80%) of its sheet rate per completed rental, net of the
+deductions the terms already had (refunds in proportion, chargebacks, uncollected damage, deposit shortfalls). The
+cars table shows each car's sheet rates (1-2 / 3+ / 7+ days), markup and cut. `app.partner_agreement_facts` carries the
+basis, the markup and each car's sheet rates (0105; `supabase/tests/70_partner_rate_agreement.sql`). A partner on the
+`renter_price` basis signs the same text as before. 01 Motors has no agreement sent or signed yet, so no PDF is
+stored; Admin > Partners > Print the partner agreement renders the new text.
