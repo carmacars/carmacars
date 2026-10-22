@@ -104,6 +104,14 @@ def build():
     ])
     g.para('A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.')
 
+    g.task('Carry on later')
+    g.bullets([
+        'Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.',
+        f'On the same phone or computer, open {U("carmacars.ca/account")} (or the request page again) to carry on, no password needed.',
+        'We send you one email, "Continue your request". One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.',
+        'Already have an account? The form says "You have an account: we sent you a sign-in link".',
+    ])
+
     # ---------------------------------------------------------------- 2
     g.chapter('Your offer',
               'Our offer is the confirmed price for your car and dates, with every fee and HST. '

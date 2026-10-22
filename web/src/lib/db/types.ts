@@ -1986,6 +1986,114 @@ export type Database = {
         };
         Relationships: [];
       };
+      capture_accounts: {
+        Row: {
+          user_id: string;
+          opened_by_capture: boolean;
+          brand_new: boolean;
+          opened_at: string;
+          opened_form: string | null;
+          visitor_id: string | null;
+          sign_in_made: boolean;
+          continue_sent_at: string | null;
+          continue_link_hash: string | null;
+          continue_link_expires_at: string | null;
+          continue_next: string | null;
+          confirmed_at: string | null;
+          closed_at: string | null;
+          close_reason: string | null;
+        };
+        Insert: {
+          user_id: string;
+          opened_by_capture?: boolean;
+          brand_new?: boolean;
+          opened_at?: string;
+          opened_form?: string | null;
+          visitor_id?: string | null;
+          sign_in_made?: boolean;
+          continue_sent_at?: string | null;
+          continue_link_hash?: string | null;
+          continue_link_expires_at?: string | null;
+          continue_next?: string | null;
+          confirmed_at?: string | null;
+          closed_at?: string | null;
+          close_reason?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          opened_by_capture?: boolean;
+          brand_new?: boolean;
+          opened_at?: string;
+          opened_form?: string | null;
+          visitor_id?: string | null;
+          sign_in_made?: boolean;
+          continue_sent_at?: string | null;
+          continue_link_hash?: string | null;
+          continue_link_expires_at?: string | null;
+          continue_next?: string | null;
+          confirmed_at?: string | null;
+          closed_at?: string | null;
+          close_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      capture_session_items: {
+        Row: {
+          session_id: string;
+          kind: string;
+          entity_id: string;
+          added_at: string;
+        };
+        Insert: {
+          session_id: string;
+          kind: string;
+          entity_id: string;
+          added_at?: string;
+        };
+        Update: {
+          session_id?: string;
+          kind?: string;
+          entity_id?: string;
+          added_at?: string;
+        };
+        Relationships: [];
+      };
+      capture_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          token_hash: string;
+          visitor_id: string;
+          created_at: string;
+          expires_at: string;
+          last_seen_at: string;
+          revoked_at: string | null;
+          revoked_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token_hash: string;
+          visitor_id: string;
+          created_at?: string;
+          expires_at: string;
+          last_seen_at?: string;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          token_hash?: string;
+          visitor_id?: string;
+          created_at?: string;
+          expires_at?: string;
+          last_seen_at?: string;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+        };
+        Relationships: [];
+      };
       car_copy: {
         Row: {
           vehicle_id: string;
@@ -3027,6 +3135,72 @@ export type Database = {
           ip_address?: string | null;
           user_agent?: string | null;
           withdrawn_at?: string | null;
+        };
+        Relationships: [];
+      };
+      contact_captures: {
+        Row: {
+          id: string;
+          visitor_id: string;
+          form: string;
+          ref: string;
+          draft_id: string | null;
+          chat_id: string | null;
+          name: string | null;
+          email: string | null;
+          phone: string | null;
+          lead_id: string | null;
+          user_id: string | null;
+          renter_id: string | null;
+          state: string | null;
+          page: string | null;
+          first_at: string;
+          last_at: string;
+          done_at: string | null;
+          done_reason: string | null;
+          task_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          visitor_id: string;
+          form: string;
+          ref?: string;
+          draft_id?: string | null;
+          chat_id?: string | null;
+          name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          lead_id?: string | null;
+          user_id?: string | null;
+          renter_id?: string | null;
+          state?: string | null;
+          page?: string | null;
+          first_at?: string;
+          last_at?: string;
+          done_at?: string | null;
+          done_reason?: string | null;
+          task_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          visitor_id?: string;
+          form?: string;
+          ref?: string;
+          draft_id?: string | null;
+          chat_id?: string | null;
+          name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          lead_id?: string | null;
+          user_id?: string | null;
+          renter_id?: string | null;
+          state?: string | null;
+          page?: string | null;
+          first_at?: string;
+          last_at?: string;
+          done_at?: string | null;
+          done_reason?: string | null;
+          task_id?: string | null;
         };
         Relationships: [];
       };
@@ -9768,6 +9942,12 @@ export type Database = {
           maint_tasks_enabled: boolean;
           maint_digest_enabled: boolean;
           maint_winter_addon_link: boolean;
+          capture_enabled: boolean;
+          capture_continue_minutes: number;
+          capture_link_hours: number;
+          capture_close_days: number;
+          capture_rate_per_minute: number;
+          capture_followup_tasks: boolean;
         };
         Insert: {
           id?: string;
@@ -10131,6 +10311,12 @@ export type Database = {
           maint_tasks_enabled?: boolean;
           maint_digest_enabled?: boolean;
           maint_winter_addon_link?: boolean;
+          capture_enabled?: boolean;
+          capture_continue_minutes?: number;
+          capture_link_hours?: number;
+          capture_close_days?: number;
+          capture_rate_per_minute?: number;
+          capture_followup_tasks?: boolean;
         };
         Update: {
           id?: string;
@@ -10494,6 +10680,12 @@ export type Database = {
           maint_tasks_enabled?: boolean;
           maint_digest_enabled?: boolean;
           maint_winter_addon_link?: boolean;
+          capture_enabled?: boolean;
+          capture_continue_minutes?: number;
+          capture_link_hours?: number;
+          capture_close_days?: number;
+          capture_rate_per_minute?: number;
+          capture_followup_tasks?: boolean;
         };
         Relationships: [];
       };
@@ -17393,6 +17585,14 @@ export type Database = {
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
+      server_capture_contact: { Args: { p: Json }; Returns: Json };
+      server_capture_continue_open: { Args: { p_token: string }; Returns: Json };
+      server_capture_done: { Args: { p: Json }; Returns: number };
+      server_capture_session_add_booking: { Args: { p_token: string; p_number: string }; Returns: boolean };
+      server_capture_session_end: { Args: { p_token: string }; Returns: undefined };
+      server_capture_session_read: { Args: { p_token: string; p_visitor?: string }; Returns: Json };
+      server_capture_sign_in_made: { Args: { p_user: string }; Returns: undefined };
+      server_capture_unconfirmed: { Args: { p_user: string }; Returns: boolean };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
       server_chat_ai_reply: { Args: { p_token: string; p: Json }; Returns: Json };
       server_chat_contact: { Args: { p_token: string; p: Json }; Returns: Json };

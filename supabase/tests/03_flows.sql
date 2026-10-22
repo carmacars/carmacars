@@ -409,7 +409,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'quo_config', 'phone_threads', 'phone_activity', 'phone_outbox', 'phone_webhook_log',
                             -- live visitor signals (0086): the signals of each visit, the actions taken (each also a chat, promo code or
                             -- task) and cars viewed together per day; the rules and settings Admins change are audited
-                            'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily')
+                            'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily',
+                            -- contact capture (0090): what is typed into forms, saved on every blur (no money, pricing or status); the
+                            -- account it opens is a users row (audited), confirmation and closing are on capture_accounts and in users
+                            'contact_captures', 'capture_accounts', 'capture_sessions', 'capture_session_items')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

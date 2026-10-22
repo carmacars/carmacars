@@ -27,6 +27,16 @@ export interface AuthAdapter {
   /** Server only (staff set up an owner's car, 0067): a sign-in for the address (the record's id when one is on file)
    *  and a one-time link to choose a password, returned instead of emailed, so it goes in CarmaCars' own email. */
   accountLink?(email: string, fullName: string, next: string, userId?: string | null): Promise<{ ok: true; user: SessionUser; link: string } | { ok: false; message: string; code?: AuthFailure }>;
+  /** Server only (contact capture, 0090): a sign-in for a record on file (its id), with no password and the email NOT
+   *  confirmed, and no email sent. code 'exists' when the address already has a sign-in. */
+  openForCapture?(userId: string, email: string, fullName: string): Promise<AuthResult>;
+  /** Server only (contact capture, 0090): the browser that opened this brand-new account (its unverified session) now
+   *  chooses a password in a form: the password is set and the usual "confirm your email" link is sent, exactly as a
+   *  sign-up would; nothing signs in until the email is confirmed. Refused once the address is confirmed. */
+  claimForCapture?(userId: string, email: string, password: string): Promise<AuthResult>;
+  /** Server only (contact capture, 0090): a one-time token-hash link that signs the address in and confirms it in the
+   *  same step (/auth/callback, type magiclink), then goes to `next`. Made fresh each time the emailed link is opened. */
+  continueLink?(email: string, next: string): Promise<{ ok: true; link: string } | { ok: false; message: string }>;
   /** Local stand-in only: checks a sign-up confirmation link (Supabase checks its own in the callback). */
   confirmEmail?(tokenHash: string): Promise<AuthResult>;
   /** Server only: removes a sign-in account (one this request created and could not finish). */

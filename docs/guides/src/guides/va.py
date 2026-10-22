@@ -423,6 +423,9 @@ def build():
     g.para('A visitor who viewed 3 cars or more also raises a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.')
     g.tip('Without marketing consent, talk only about their request and the code they asked for: no other offers. The code takes up to $75 '
           'off the rental charge (a percentage), or $50 off a rental of 3 days or more, on one booking within 7 days.')
+    g.task('Contact details typed into forms')
+    g.para('The card "Typed into forms" above the game leads lists the name, email and phone people typed into a form on the site without sending it, '
+           'with "On the site now" and "Email not confirmed". Call or email to help them finish. Only what they typed; no offers without their consent.')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Add-ons',

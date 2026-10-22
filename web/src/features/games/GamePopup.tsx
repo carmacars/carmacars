@@ -6,6 +6,7 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
 import { remember, rememberSeen } from './GameGate';
+import { useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
 // phone, never a full-screen block, always closable (the close button and Esc). On the first page of a phone visit
@@ -63,6 +64,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   const [slim, setSlim] = useState(slimAtFirst);
   const [stage, setStage] = useState<'ready' | 'playing' | 'won' | 'claimed'>('ready');
   const [form, setForm] = useState({ first: prefill?.first ?? '', email: prefill?.email ?? '', phone: prefill?.phone ?? '', marketing: false });
+  // contact capture (0090): what is typed to claim the code is saved as each field becomes valid
+  const cap = useCapture('game');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState('');
   const [busy, setBusy] = useState(false);
@@ -176,7 +179,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
           <p className="vh" id={`${id}-d`}>{g.pitch}</p>
           <Suspense fallback={<div className="ccg-stage" aria-busy="true" />}><g.C prize={play.prize} prizes={play.prizes} reduced={reduced} onReveal={revealed} /></Suspense>
         </>}
-        {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim">
+        {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
           {play.prize.rare && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
           <p className={`ccg-prize${play.prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {/free day/.test(play.prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>

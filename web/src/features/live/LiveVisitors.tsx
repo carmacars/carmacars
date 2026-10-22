@@ -178,6 +178,10 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
           <span className="muted"> · {v.page_views} page{v.page_views === 1 ? '' : 's'} this visit{v.cars_viewed ? `, ${v.cars_viewed} car${v.cars_viewed === 1 ? '' : 's'}` : ''} · visit {v.visit_number}</span></p>
         <p className="small muted">{[v.device, v.city, v.referrer ? `from ${v.referrer}` : null, v.utm_source ? `campaign ${v.utm_source}${v.utm_campaign ? `/${v.utm_campaign}` : ''}` : null, v.from_ad ? 'from an ad' : null].filter(Boolean).join(' · ')} · since {clock(v.started_at)}</p>
         {(v.reasons?.length ?? 0) > 0 && <p className="small lv-why" data-testid="reasons"><span className="muted">Why: </span>{v.reasons!.map((r) => r.why || r.label).join(' · ')}</p>}
+        {v.captured && <p className="small" data-testid="live-captured"><span className="muted">Typed into the {v.captured.form}{v.captured.done ? '' : ', not sent'}: </span>
+          {[v.captured.name, v.captured.email, v.captured.phone].filter(Boolean).join(', ')}
+          {v.captured.email && v.captured.email_confirmed === false && <> <span className="ad-b ad-b--amber">Email not confirmed</span></>}
+          {v.captured.renter_id && portal === 'admin' && !v.renter_id && <> <Link prefetch={false} className="link small" href={`/admin/renters/${v.captured.renter_id}`}>Renter page</Link></>}</p>}
         {v.signals.length > 0 && <p className="lv-badges">{v.signals.map((s, i) => <SignalBadge key={i} s={s} />)}</p>}
       </div>
       <div className="lv-row__acts">

@@ -8,6 +8,7 @@ import { newPasswordSchema, resetSchema, signInSchema, signUpSchema } from './sc
 import { describedBy, Field } from './Field';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
+import { useCapture } from '@/features/capture/useCapture';
 
 const Err = ({ s }: { s: { ok: boolean; code?: string; message?: string } | null }) =>
   s && !s.ok && s.code !== 'invalid' ? <p className="alert alert--error" role="alert"><span>{s.message}</span></p> : null;
@@ -49,6 +50,9 @@ function ResendConfirmation({ email }: { email: () => string }) {
 
 export function SignUpForm({ minAge }: { minAge: string }) {
   const { state, run, pending, errors: e, clear } = useForm(signUpSchema, signUp, (fd) => ({ agree: fd.get('agree') === 'on' }));
+  // contact capture (0090): the name and email are saved as each becomes valid, even if the account is not finished.
+  // Nothing is shown here: sending this form finishes the account, and it answers an existing address itself.
+  const cap = useCapture('signup');
   if (state?.ok) {
     const email = (state as { data?: { email?: string } }).data?.email;
     const onRecord = (state as { data?: { onRecord?: boolean } }).data?.onRecord;
@@ -57,7 +61,7 @@ export function SignUpForm({ minAge }: { minAge: string }) {
       : <>We sent a link to {email ?? 'your email address'} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours to confirm your email: it signs you in. It can take a minute to arrive; check spam if you do not see it.</>}</span></div>;
   }
   return (
-    <form className="stack-lg" onSubmit={run} noValidate aria-label="Create an account">
+    <form className="stack-lg" onSubmit={(ev) => { cap.cancel(); return run(ev); }} noValidate aria-label="Create an account" onBlur={(ev) => cap.onFormBlur(ev, { name: 'name', email: 'email' })}>
       <Err s={state as never} />
       <Field float id="su-name" label="Full name" error={e.name}><input className="input" placeholder=" " id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
       <Field float id="su-email" label="Email" error={e.email}><input className="input" placeholder=" " id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>

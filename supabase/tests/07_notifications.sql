@@ -741,6 +741,10 @@ insert into usage_alerts (id, service, period_start, level, used, included) valu
 select app.emit_event('staff_usage_alert', 'usage_alert', test.id('nt_usage'), '{}', 'staff_usage_alert:nt');
 select test.flush();
 delete from usage_alerts where id = test.id('nt_usage');
+-- the "Continue your request" email of contact capture (0090)
+select app.capture_contact(jsonb_build_object('visitor_id', test.id('nt_cap_vid'), 'form', 'contact', 'name', 'Nina Capture', 'email', 'nt.capture@example.test'));
+select app.capture_send_continue((select id from users where email = 'nt.capture@example.test'), (select id from contact_captures where email = 'nt.capture@example.test'));
+select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',

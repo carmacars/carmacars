@@ -17,6 +17,7 @@ import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
+import { CaptureNote, useCapture } from '@/features/capture/useCapture';
 import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
@@ -55,6 +56,9 @@ export function RequestWizard(p: WizardProps) {
   const meta = useRef<{ token: string | null; draftId: string | null; key: string }>({ token: null, draftId: null, key: '' });
   const ready = useRef(false);
   const form = useRef<HTMLFormElement>(null);
+  // contact capture (0090): the name, email and phone are saved as each becomes valid, with this draft
+  const cap = useCapture('booking_request', () => ({ ref: meta.current.draftId, draftToken: meta.current.token }));
+  const { relink } = cap;
 
   // start: the link's car and dates win over a saved draft for a different car or dates
   useEffect(() => {
@@ -96,11 +100,11 @@ export function RequestWizard(p: WizardProps) {
     writeStore({ data: d, step, ...meta.current, at: Date.now() });
     const t = setTimeout(() => {
       saveRequestDraft({ data: d, step, token: meta.current.token }).then((r) => {
-        if (r.ok) { meta.current.token = r.data.token; meta.current.draftId = r.data.draftId; writeStore({ data: d, step, ...meta.current, at: Date.now() }); setSaved(true); }
+        if (r.ok) { meta.current.token = r.data.token; meta.current.draftId = r.data.draftId; writeStore({ data: d, step, ...meta.current, at: Date.now() }); setSaved(true); relink(); }
       }).catch(() => setSaved(true));
     }, 800);
     return () => clearTimeout(t);
-  }, [d, step]);
+  }, [d, step, relink]);
 
   const car = p.cars.find((c) => c.slug === d.car) ?? null;
   const { blocks } = useBlocks(car?.vehicleId ?? null);
@@ -293,7 +297,7 @@ export function RequestWizard(p: WizardProps) {
             <div className="req__nav"><span></span><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(1)) show(2); }}>Continue to driver details</button></div>
           </section>
 
-          <section data-step="2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2}>
+          <section data-step="2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2} onBlur={() => cap.capture({ name: `${d.first} ${d.last}`.trim(), email: d.email, phone: d.phone })}>
             <h2 className="d3" id="rs2" tabIndex={-1}>The driver</h2>
             <div className="field-row">
               <div className={fieldCls('first')}><label className="label" htmlFor="rq-first">First name</label><input className="input" id="rq-first" autoComplete="given-name" value={d.first} onChange={(e) => set('first', e.target.value)} {...aria('first', 'rq-first')} />{errEl('first', 'rq-first')}</div>
@@ -303,6 +307,7 @@ export function RequestWizard(p: WizardProps) {
               <div className={fieldCls('email')}><label className="label" htmlFor="rq-email">Email</label><input className="input" id="rq-email" type="email" autoComplete="email" value={d.email} onChange={(e) => set('email', e.target.value)} {...aria('email', 'rq-email', true)} /><p className="hint" id="rq-email-hint">We send the confirmed price here.</p>{errEl('email', 'rq-email')}</div>
               <div className={fieldCls('phone')}><label className="label" htmlFor="rq-phone">Mobile number</label><input className="input" id="rq-phone" type="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} {...aria('phone', 'rq-phone', true)} /><p className="hint" id="rq-phone-hint">For questions about this request only.</p>{errEl('phone', 'rq-phone')}</div>
             </div>
+            <CaptureNote reply={cap.reply} />
             {renderDob({ prefix: 'rq-dob', y: d.dobY, m: d.dobM, dd: d.dobD, k: 'dob', onChange: (part, v) => set(part, v) })}
             <p className="hint">Drivers must be {p.tokens.minAge} or older at pickup. Age sets the young driver fee.</p>
             <div className={fieldCls('drivers')}>
