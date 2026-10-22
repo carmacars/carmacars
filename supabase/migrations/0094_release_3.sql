@@ -23,9 +23,14 @@
 --      The two other sample vehicles without a listing are not catalogue cars (live: two "2022 Toyota Corolla Test"
 --      cars in onboarding since October 14, no rates, no photos): they are left as they are, never published as a car
 --      named "Test" with no price.
+--   5. Car facts (the owner, October 22): a trim that is a list is never the trim (vehicles.trim_candidates; Admin > Today
+--      "Pick the trim for ..."); the gearbox only from EPA's data or an explicit vPIC answer, the seats from vPIC or the
+--      body, both confirmed on Admin > Today when not certain ("Confirm gearbox and seats for ..."); the live cars fixed.
+--   6. Discount games: after a close, another game on the 2nd page view (any page) or 60 seconds later; at most 3 a visit
+--      and 6 a day in one browser; all four are settings.
 -- No applied migration is edited.
 
--- ================================================================ 1. the guides for this release (the block is in section 3)
+-- ================================================================ 1. the guides for this release (the block is in section 5)
 create or replace function app.guide_release_0094(p_portal text, p_slug text, p_kind text, p_after text, p_base_md text, p_title text, p_blurb text,
                                                   p_md text, p_html text) returns text
 language sql security definer set search_path = public, app as $$
@@ -47,7 +52,271 @@ revoke all on function app.sample_cars_restore_0094() from public, anon, authent
 grant execute on function app.sample_cars_restore_0094() to service_role;
 select app.sample_cars_restore_0094();
 
--- ================================================================ 3. the guides block
+-- ================================================================ 3. car facts: the trim, the gearbox and the seats
+-- 3a. A trim that is a list ("S, SE, SEL", "S / SE / R-Line", "FE or LXS": vPIC lists every trim a VIN may be) is never
+--     the trim: the list goes to vehicles.trim_candidates and the trim stays empty until a person picks one (Admin >
+--     Today, "Pick the trim for CC 102 2019 Volkswagen Beetle", or the add-a-car form at once).
+alter table vehicles add column if not exists trim_candidates text[];
+comment on column vehicles.trim_candidates is
+  'The trims the VIN may be when the decoder lists several (0094). Set: the trim is empty and Admin > Today asks which one; picking one clears it.';
+
+create or replace function app.trim_list(p text) returns text[]
+language sql immutable as $$
+  select case when p is null or p !~* ',|\s/\s|\sor\s' then null else (
+    select case when count(*) > 1 then array_agg(x order by o) end
+      from (select btrim(t) x, min(o) o from regexp_split_to_table(btrim(p), '\s*,\s*|\s+/\s+|\s+[oO][rR]\s+') with ordinality s(t, o)
+             where btrim(t) <> '' group by btrim(t)) y) end
+$$;
+-- the decode's trim (0082): a list is no trim
+create or replace function app.decode_trim(p text) returns text
+language sql immutable as $$ select case when p ~* ',|\s/\s|\sor\s' then null else nullif(btrim(p), '') end $$;
+
+create or replace function app.vehicle_trim_list() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+declare
+  c text[] := app.trim_list(new.trim);
+begin
+  if c is not null then
+    new.trim_candidates := (select array_agg(app.car_name_case(x, 'trim') order by o) from unnest(c) with ordinality u(x, o));
+    new.trim := null;
+  elsif nullif(btrim(new.trim), '') is not null then
+    new.trim_candidates := null;
+  end if;
+  return new;
+end $$;
+drop trigger if exists vehicles_a0_trim_list on vehicles;
+create trigger vehicles_a0_trim_list before insert or update of trim on vehicles for each row execute function app.vehicle_trim_list();
+
+-- 3b. The gearbox: a decode from vPIC fills it only when the decoder chose it from EPA's data for the model, or vPIC
+--     stated it for this VIN (raw._transmission_source, web/src/integrations/vin.ts, from 0094 on). An older vPIC decode
+--     never fills it (vPIC fills in Manual by default). 3c. The seats: vPIC's when it gives them, otherwise the usual
+--     number for the body, to be confirmed by staff. Either one not known: Admin > Today, "Confirm gearbox and seats".
+create or replace function app.decode_transmission_ok(d vin_decodes) returns boolean
+language sql immutable as $$ select d.provider <> 'vpic' or coalesce(d.raw ->> '_transmission_source', '') in ('epa', 'vpic_explicit') $$;
+
+create or replace function app.body_default_seats(p text) returns integer
+language sql immutable as $$
+  select case when p is null then null
+              when p ~* 'convertible|cabrio|coupe|roadster' then 4
+              when p ~* 'sedan|saloon|suv|sport utility|hatch|wagon|crossover|mpv' then 5 end
+$$;
+
+alter function app.vin_fill_missing(uuid) rename to vin_fill_missing_pre0094;
+create or replace function app.vin_fill_missing(p_vehicle uuid) returns text[]
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_out text[] := app.vin_fill_missing_pre0094(p_vehicle);
+  v vehicles;
+  d vin_decodes;
+  l vehicle_listings;
+  c text[];
+  n integer;
+begin
+  select * into v from vehicles where id = p_vehicle;
+  if v.id is null or v.vin is null or coalesce(v.is_sample, false) then return v_out; end if;
+  select * into d from vin_decodes z where z.vin = upper(v.vin) and z.ok order by z.decoded_at desc limit 1;
+  if d.id is null then return v_out; end if;
+  if nullif(btrim(v.trim), '') is null and v.trim_candidates is null and coalesce(v.spec_sources #>> '{trim,source}', '') <> 'person' then
+    c := coalesce(app.trim_list(d.trim), app.trim_list(d.raw ->> 'Trim'), app.trim_list(d.raw ->> 'Series'));
+    if c is not null then
+      update vehicles set trim_candidates = (select array_agg(app.car_name_case(x, 'trim') order by o) from unnest(c) with ordinality u(x, o)) where id = p_vehicle;
+      v_out := v_out || 'trim_candidates'::text;
+    end if;
+  end if;
+  select * into l from vehicle_listings where vehicle_id = p_vehicle;
+  if l.id is null then return v_out; end if;
+  if 'transmission' = any (v_out) and not app.decode_transmission_ok(d) then
+    update vehicle_listings set transmission = null, spec_sources = spec_sources - 'transmission' where id = l.id;
+    v_out := array_remove(v_out, 'transmission');
+  end if;
+  if l.seats is null and coalesce(l.spec_sources #>> '{seats,source}', '') <> 'person' then
+    n := app.body_default_seats(coalesce(nullif(btrim(v.body_type), ''), d.body_class, l.body_style));
+    if n is not null then
+      update vehicle_listings set seats = n, spec_sources = coalesce(spec_sources, '{}'::jsonb) || jsonb_build_object('seats', jsonb_build_object('source', 'body_default', 'at', now()))
+       where id = l.id;
+      v_out := v_out || 'seats'::text;
+    end if;
+  end if;
+  return v_out;
+end $$;
+
+-- The car's public title, description and search text made again (as 0087): the plain copy at once, the AI copy queued.
+create or replace function app.car_copy_again(p_vehicle uuid, p_why text) returns void
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if exists (select 1 from vehicles where id = p_vehicle and coalesce(is_sample, false)) then return; end if;
+  begin
+    perform app.listing_template_copy(p_vehicle);
+    perform app.car_copy_queue(p_vehicle);
+  exception when others then
+    insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+    values (null, 'car_copy_again_failed', 'vehicles', p_vehicle::text, jsonb_build_object('why', p_why, 'error', sqlerrm));
+  end;
+end $$;
+
+-- Pick the trim: one of the candidates (or none of them). The copy is made again and the Today line is gone.
+create or replace function app.vehicle_pick_trim(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v vehicles;
+  t text := nullif(btrim(coalesce(p ->> 'trim', '')), '');
+begin
+  perform app.assert_admin(p_by);
+  select * into v from vehicles where id = (p ->> 'vehicle_id')::uuid for update;
+  if v.id is null then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  if t is not null and (length(t) > 60 or app.trim_list(t) is not null) then raise exception 'Choose one trim' using errcode = '22023'; end if;
+  update vehicles set trim = t, trim_candidates = null,
+         spec_sources = coalesce(spec_sources, '{}'::jsonb) || jsonb_build_object('trim', jsonb_build_object('source', 'person', 'by', p_by, 'at', now()))
+   where id = v.id;
+  perform app.car_copy_again(v.id, 'trim');
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
+  values (p_by, 'vehicle_pick_trim', 'vehicles', v.id::text, jsonb_build_object('candidates', v.trim_candidates), jsonb_build_object('trim', t));
+  return jsonb_build_object('vehicle_id', v.id, 'trim', t, 'name', app.vehicle_name(v.id));
+end $$;
+
+-- Confirm the gearbox and the seats on the listing (a person's: the decoder never changes them again).
+create or replace function app.vehicle_confirm_specs(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_id uuid := (p ->> 'vehicle_id')::uuid;
+  g text := p ->> 'transmission';
+  n integer := nullif(p ->> 'seats', '')::integer;
+  l vehicle_listings;
+  mark jsonb := jsonb_build_object('source', 'person', 'by', p_by, 'at', now());
+begin
+  perform app.assert_admin(p_by);
+  if g is null or g not in ('Automatic', 'Automatic (CVT)', 'Automatic (dual-clutch)', 'Manual') then raise exception 'Choose the gearbox' using errcode = '22023'; end if;
+  if n is null or n not between 2 and 9 then raise exception 'Choose the seats (2 to 9)' using errcode = '22023'; end if;
+  perform app.ensure_listing(v_id);
+  select * into l from vehicle_listings where vehicle_id = v_id for update;
+  if l.id is null then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  update vehicle_listings set transmission = g, seats = n,
+         spec_sources = coalesce(spec_sources, '{}'::jsonb) || jsonb_build_object('transmission', mark, 'seats', mark)
+   where id = l.id;
+  perform app.car_copy_again(v_id, 'specs');
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
+  values (p_by, 'vehicle_confirm_specs', 'vehicles', v_id::text, jsonb_build_object('transmission', l.transmission, 'seats', l.seats), jsonb_build_object('transmission', g, 'seats', n));
+  return jsonb_build_object('vehicle_id', v_id, 'transmission', g, 'seats', n);
+end $$;
+
+-- Admin > Today: one line per car, the guided one-step pop-up.
+alter function app.todo_prompts(uuid) rename to todo_prompts_pre0094;
+create or replace function app.todo_prompts(p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v_all jsonb := app.todo_prompts_pre0094(p_by);
+  v_new jsonb;
+begin
+  select coalesce(jsonb_agg(x order by x ->> 'since'), '[]'::jsonb) into v_new from (
+    select jsonb_build_object('key', 'trim:' || v.id, 'kind', 'trim', 'vehicle_id', v.id, 'name', app.vehicle_name(v.id), 'priority', 2, 'since', v.created_at,
+             'candidates', to_jsonb(v.trim_candidates),
+             'title', format('Pick the trim for %s', concat_ws(' ', v.fleet_number, app.vehicle_name(v.id))),
+             'why', format('Its VIN fits %s trims (%s). The listing leaves the trim out until you pick one.', cardinality(v.trim_candidates), array_to_string(v.trim_candidates, ', '))) x
+      from vehicles v
+     where v.trim_candidates is not null and nullif(btrim(v.trim), '') is null and not coalesce(v.is_sample, false) and v.retired_at is null
+       and v.status not in ('exited', 'total_loss', 'declined')
+    union all
+    select jsonb_build_object('key', 'specs:' || v.id, 'kind', 'specs', 'vehicle_id', v.id, 'name', app.vehicle_name(v.id), 'priority', 2, 'since', v.created_at,
+             'transmission', l.transmission, 'seats', l.seats, 'seats_default', coalesce(l.spec_sources #>> '{seats,source}', '') = 'body_default',
+             'title', format('Confirm gearbox and seats for %s', concat_ws(' ', v.fleet_number, app.vehicle_name(v.id))),
+             'why', concat_ws(' ', case when nullif(btrim(l.transmission), '') is null then 'The VIN does not say which gearbox it has.' end,
+                              case when l.seats is null then 'The seats are not known.' when coalesce(l.spec_sources #>> '{seats,source}', '') = 'body_default'
+                                   then format('%s seats is the usual number for its body.', l.seats) end, 'Renters see both on the listing.')) x
+      from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+     where not coalesce(v.is_sample, false) and v.retired_at is null and v.status not in ('exited', 'total_loss', 'declined')
+       and (nullif(btrim(l.transmission), '') is null or l.seats is null or coalesce(l.spec_sources #>> '{seats,source}', '') = 'body_default')) s;
+  return (select coalesce(jsonb_agg(x order by (x ->> 'priority')::int, x ->> 'since'), '[]'::jsonb) from jsonb_array_elements(v_all || v_new) x);
+end $$;
+
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0094;
+create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if p_call in ('ops_do', 'admin_do') and p_name in ('vehicle_pick_trim', 'vehicle_confirm_specs') then
+    perform app.door_begin(p_user, p_aal);
+    if p_name = 'vehicle_pick_trim' then return app.vehicle_pick_trim(p_user, coalesce(p, '{}'::jsonb) - '_va'); end if;
+    return app.vehicle_confirm_specs(p_user, coalesce(p, '{}'::jsonb) - '_va');
+  end if;
+  return app.door_pre0094(p_user, p_aal, p_call, p_name, p);
+end $$;
+
+-- The decode in the add-a-car form (0082) with the trims to choose from.
+alter function app.vin_decode_json(vin_decodes) rename to vin_decode_json_pre0094;
+create or replace function app.vin_decode_json(d vin_decodes) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select case when d.id is null then null else app.vin_decode_json_pre0094(d)
+    || jsonb_build_object('trim_candidates', to_jsonb(coalesce(app.trim_list(d.trim), app.trim_list(d.raw ->> 'Trim'), app.trim_list(d.raw ->> 'Series'))),
+                          'transmission', case when app.decode_transmission_ok(d) then app.vin_decode_json_pre0094(d) -> 'transmission' end) end
+$$;
+
+do $$
+declare
+  f record;
+begin
+  for f in
+    select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'app' and p.proname = any (array['vehicle_trim_list', 'vin_fill_missing', 'vin_fill_missing_pre0094', 'car_copy_again', 'vehicle_pick_trim',
+                                                         'vehicle_confirm_specs', 'todo_prompts', 'todo_prompts_pre0094', 'door', 'door_pre0094', 'vin_decode_json_pre0094'])
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+    execute format('grant execute on function %s to service_role', f.sig);
+  end loop;
+end $$;
+
+-- 3d. The cars on file. A trim that is a list: its candidates kept, the trim emptied, the copy made again.
+do $$
+declare
+  r record;
+begin
+  for r in select id from vehicles where app.trim_list(trim) is not null loop
+    update vehicles set trim = trim where id = r.id;   -- the trigger moves the list to trim_candidates
+    perform app.car_copy_again(r.id, 'trim list');
+    insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+    values (null, 'trim_list_backfill', 'vehicles', r.id::text, jsonb_build_object('note', 'A list of trims moved to trim_candidates (0094)'));
+  end loop;
+end $$;
+-- The owner's corrections of October 22, 2026 (North American spec), on the live cars by fleet number, year, make and
+-- model; a person's values, so the decoder never changes them again.
+do $$
+declare
+  r record;
+  mark jsonb := jsonb_build_object('source', 'person', 'note', 'owner, 0094', 'at', now());
+begin
+  for r in select v.id, x.g, x.n from (values ('CC 102', 2019, 'Volkswagen', 'Beetle', 'Automatic', 4), ('CC 110', 2020, 'Mercedes-Benz', 'GLA', 'Automatic (dual-clutch)', 5),
+                                             ('CC 108', 2015, 'Cadillac', 'CTS', 'Automatic', 5), ('CC 107', 2016, 'Porsche', 'Macan', 'Automatic (dual-clutch)', 5),
+                                             ('CC 103', 2021, 'Kia', 'Forte', 'Automatic (CVT)', 5)) x(fleet, yr, mk, md, g, n)
+             join vehicles v on v.fleet_number = x.fleet and v.year = x.yr and v.make = x.mk and v.model ilike x.md || '%' and not coalesce(v.is_sample, false) loop
+    perform app.ensure_listing(r.id);
+    update vehicle_listings set transmission = r.g, seats = r.n, spec_sources = coalesce(spec_sources, '{}'::jsonb) || jsonb_build_object('transmission', mark, 'seats', mark)
+     where vehicle_id = r.id;
+    perform app.car_copy_again(r.id, 'gearbox and seats');
+    insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
+    values (null, 'vehicle_specs_owner_fix', 'vehicles', r.id::text, jsonb_build_object('transmission', r.g, 'seats', r.n));
+  end loop;
+end $$;
+-- The cars whose listing gearbox came from an older vPIC decode with nothing else to confirm it stay as they are (the
+-- owner checked them: the Jettas and the Malibu are right); a car with no gearbox or seats gets its Today line.
+
+-- ================================================================ 4. discount games: sooner again after a close (the owner, October 22)
+-- After a close, a different game on the 2nd page view after the close (any page) or 60 seconds later on the site,
+-- whichever first; at most 3 a visit and 6 a day in one browser; never on booking, payment or signing pages (as before:
+-- the request-to-book form has its own game). Each is a setting in Admin > Settings > Discount games.
+-- game_reshow_car_pages keeps its name and now counts every page view after the close.
+alter table program_settings add column if not exists game_max_per_day integer not null default 6 check (game_max_per_day between 1 and 50);
+alter table program_settings alter column game_reshow_seconds set default 60;
+update program_settings set game_reshow_seconds = 60 where game_reshow_seconds = 180;
+comment on column program_settings.game_reshow_car_pages is 'Discount games (0081, 0094): after the visitor closes a game, the next one shows on this page view after the close, any page (2 by default; 0: not by pages).';
+comment on column program_settings.game_reshow_seconds is 'Discount games (0081, 0094): or this many seconds on the site after the close, whichever first (60 by default; 0: not by time).';
+comment on column program_settings.game_max_per_day is 'Discount games (0094): the most games shown in one day in one browser (6 by default), counted in the browser.';
+create or replace function app.game_cfg() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select jsonb_build_object('on', s.game_enabled, 'car_pages', s.game_trigger_car_pages, 'seconds', s.game_trigger_seconds,
+    'exit', s.game_exit_intent, 'reshow_pages', s.game_reshow_car_pages, 'reshow_seconds', s.game_reshow_seconds,
+    'per_visit', s.game_max_per_visit, 'per_day', s.game_max_per_day, 'booking', s.game_booking_offer)
+    from (select (app.settings()).*) s
+$$;
+
+-- ================================================================ 5. the guides block
 -- GUIDES 0094 START (generated by supabase/seed/0094_gen_guides.mjs from docs/guides/content; do not edit by hand)
 select app.guide_release_0094('renter', 'find-a-car-and-send-a-request', 'chapter', 'start-here', 'Every booking starts as a request. A person checks the car and the price, then sends you an offer. Nothing is charged until you approve, sign and pay.
 
@@ -527,17 +796,20 @@ Bookings held for an insurer and other placeholders are never matched to a toll.
 **Cars** > **Vehicles**, then **Add a car**. Start with the VIN: everything else about the car comes from it.
 
 1. Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.
-2. No VIN at hand? Press **No VIN at hand? Add the car by its plate** and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.
-3. Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.
-4. Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.
-5. Choose who supplies it: **A program owner''s car** (choose the owner; the car starts its onboarding), **CarmaCars-owned (company fleet)** (no owner; all of its revenue is CarmaCars'') or **A partner rental company''s car** (choose the partner; leave the commission empty to use the partner''s).
-6. The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car''s Rates tab. Press **Add the car**.
+2. When the VIN fits several trims, the form asks which trim it is: press the one on the car''s papers or badge, or **Not sure** (Admin > Today asks again).
+3. No VIN at hand? Press **No VIN at hand? Add the car by its plate** and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.
+4. Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.
+5. Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.
+6. Choose who supplies it: **A program owner''s car** (choose the owner; the car starts its onboarding), **CarmaCars-owned (company fleet)** (no owner; all of its revenue is CarmaCars'') or **A partner rental company''s car** (choose the partner; leave the commission empty to use the partner''s).
+7. The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car''s Rates tab. Press **Add the car**.
 
 > Tip: The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car''s listing; a field you change is kept.
 
 > Good to know: Every car gets a fleet number and its standard settings the moment it is added: a complete rate card (the daily rate you typed or the suggested one, weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. Each value set this way says (Set automatically) on the car''s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.
 
 > Tip: A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.
+
+The gearbox comes from the government''s fuel economy data for the model when it has one gearbox for it, or from the VIN when the VIN states it. Seats come from the VIN, or the usual number for the body (4 for a coupe or convertible, 5 for a sedan, SUV or hatchback). When either is not certain, Admin > Today shows **Confirm gearbox and seats**: press the gearbox and the number of seats, then **Save**. A car whose VIN fits several trims shows **Pick the trim** there: press the right one. Either way the title, description and search text are written again.
 
 On a car''s page, **Who supplies the car** shows the supplier and the commission, and changes them. Vehicles filters by supply type.
 
@@ -598,7 +870,7 @@ On a car''s page, **Who supplies the car** shows the supplier and the commission
 
 Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.
 ',
-  '<p class="gd-p">A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.</p><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-car" data-gd-task><h2 class="gd-h2">Add a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then <b class="gd-ui">Add a car</b>. Start with the VIN: everything else about the car comes from it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">No VIN at hand? Press <b class="gd-ui">No VIN at hand? Add the car by its plate</b> and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Choose who supplies it: <b class="gd-ui">A program owner&#39;s car</b> (choose the owner; the car starts its onboarding), <b class="gd-ui">CarmaCars-owned (company fleet)</b> (no owner; all of its revenue is CarmaCars&#39;) or <b class="gd-ui">A partner rental company&#39;s car</b> (choose the partner; leave the commission empty to use the partner&#39;s).</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car&#39;s Rates tab. Press <b class="gd-ui">Add the car</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car&#39;s listing; a field you change is kept.</div></aside><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Every car gets a fleet number and its standard settings the moment it is added: a complete rate card (the daily rate you typed or the suggested one, weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. Each value set this way says (Set automatically) on the car&#39;s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.</div></aside><aside class="gd-box"><span class="gd-lbl">Tip</span><div>A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.</div></aside><p class="gd-p">On a car&#39;s page, <b class="gd-ui">Who supplies the car</b> shows the supplier and the commission, and changes them. Vehicles filters by supply type.</p></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-partners" data-gd-task><h2 class="gd-h2">Partners</h2><p class="gd-p"><b class="gd-ui">Owners and partners</b> &gt; <b class="gd-ui">Partners</b>. Partner rental companies whose cars we rent out on commission.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press <b class="gd-ui">Add a partner</b>: business and legal name, contacts, HST number, commission and insurance with its expiry date.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Banking (Admins only): <b class="gd-ui">Save the payout account</b> for the account we pay the partner into. The account number is stored encrypted. Press <b class="gd-ui">Verify</b> once checked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Portal: <b class="gd-ui">Invite to the owner portal</b> gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Signed on paper? Press <b class="gd-ui">Print the partner agreement</b>, then record the signed scan under Record a paper signature.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-rental-by-hand" data-gd-task><h2 class="gd-h2">Add a rental by hand</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Add a rental</b>. For phone, walk-in, Turo, partner and insurer bookings.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The dates decide the case, shown under them (nothing to tick): a pickup ahead is an upcoming rental, handed over at pickup as usual. A pickup already passed with the return ahead is a rental already underway: it is recorded as on trip from the pickup you enter, on any active car (even one closed to public bookings), and anything a handover checks that is still missing (signature, licence check, coverage proof, deposit, condition report, insurance) becomes a task. A return already passed is a rental that has ended: kept as completed, paid another way or unpaid.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Check the price: the car&#39;s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">An owner&#39;s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner&#39;s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press <b class="gd-ui">Insurer confirmed</b> once the insurer confirms it.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Choose Where it came from and how it is paid: <b class="gd-ui">Paid another way</b>, <b class="gd-ui">Send a payment link</b>, <b class="gd-ui">Charge the saved card when the renter signs</b> or <b class="gd-ui">Unpaid: invoice later</b>.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">Press <b class="gd-ui">Check the calendar and the price</b>. Tick <b class="gd-ui">Do not email the renter</b> if they should not get the confirmation. Press <b class="gd-ui">Add the rental</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. On the booking, <b class="gd-ui">Verified in person</b> records a licence checked at the counter. A rental already underway can be paid by payment link (the renter signs, then pays from their booking) or the saved card, like an upcoming one.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-retire-or-delete-a-car" data-gd-task><h2 class="gd-h2">Retire or delete a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Retire or delete</b>, or the car&#39;s own page.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Retire this car</b> takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. <b class="gd-ui">Restore</b> brings it back.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Delete this car</b> removes a car added by mistake, with its photos. Only a car with nothing tied to money (no confirmed or paid booking, payment, statement, toll or damage). Type the plate or the name to confirm.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Booking requests that never confirmed and never took money (requested, offered, declined, expired) do not stop a delete. The confirmation lists them; they are removed with the car and a copy is kept. The renters stay on file.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">On the same page, <b class="gd-ui">Delete all sample cars</b> deletes every sample car that meets the rule at once, with its requests. Type DELETE SAMPLE CARS to confirm; the ones kept show why, with the booking numbers.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-sample-cars-on-the-site" data-gd-task><h2 class="gd-h2">Sample cars on the site</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, or <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Site</b>. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Hide sample cars</b> asks first (&quot;Hide all 20 sample cars from the site?&quot;); press <b class="gd-ui">Hide them</b> to take every sample car off the site at once, or <b class="gd-ui">Keep them</b>. Nothing else stops it: not an enquiry, not an old request.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Show sample cars</b> puts the 20 back, with their photos and rates. Ones that were deleted are made again.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the site each one is marked &quot;Example car&quot;. They never appear in search engines or the sitemap.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-why-a-car-is-not-on-the-site-yet" data-gd-task><h2 class="gd-h2">Why a car is not on the site yet</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, the card Not on the site yet.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Every real car that is not on the site is listed with its next step first: the rates, Publish now, the listing review.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The same car is a line on To do with <b class="gd-ui">Set rates and publish</b>. The car comes off both once it is on the site.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-tolls-when-two-rentals-overlap" data-gd-task><h2 class="gd-h2">Tolls when two rentals overlap</h2><p class="gd-p">Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.</p></section>');
+  '<p class="gd-p">A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.</p><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-car" data-gd-task><h2 class="gd-h2">Add a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, then <b class="gd-ui">Add a car</b>. Start with the VIN: everything else about the car comes from it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">When the VIN fits several trims, the form asks which trim it is: press the one on the car&#39;s papers or badge, or <b class="gd-ui">Not sure</b> (Admin &gt; Today asks again).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">No VIN at hand? Press <b class="gd-ui">No VIN at hand? Add the car by its plate</b> and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Choose who supplies it: <b class="gd-ui">A program owner&#39;s car</b> (choose the owner; the car starts its onboarding), <b class="gd-ui">CarmaCars-owned (company fleet)</b> (no owner; all of its revenue is CarmaCars&#39;) or <b class="gd-ui">A partner rental company&#39;s car</b> (choose the partner; leave the commission empty to use the partner&#39;s).</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car&#39;s Rates tab. Press <b class="gd-ui">Add the car</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car&#39;s listing; a field you change is kept.</div></aside><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Every car gets a fleet number and its standard settings the moment it is added: a complete rate card (the daily rate you typed or the suggested one, weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. Each value set this way says (Set automatically) on the car&#39;s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.</div></aside><aside class="gd-box"><span class="gd-lbl">Tip</span><div>A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.</div></aside><p class="gd-p">The gearbox comes from the government&#39;s fuel economy data for the model when it has one gearbox for it, or from the VIN when the VIN states it. Seats come from the VIN, or the usual number for the body (4 for a coupe or convertible, 5 for a sedan, SUV or hatchback). When either is not certain, Admin &gt; Today shows <b class="gd-ui">Confirm gearbox and seats</b>: press the gearbox and the number of seats, then <b class="gd-ui">Save</b>. A car whose VIN fits several trims shows <b class="gd-ui">Pick the trim</b> there: press the right one. Either way the title, description and search text are written again.</p><p class="gd-p">On a car&#39;s page, <b class="gd-ui">Who supplies the car</b> shows the supplier and the commission, and changes them. Vehicles filters by supply type.</p></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-partners" data-gd-task><h2 class="gd-h2">Partners</h2><p class="gd-p"><b class="gd-ui">Owners and partners</b> &gt; <b class="gd-ui">Partners</b>. Partner rental companies whose cars we rent out on commission.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press <b class="gd-ui">Add a partner</b>: business and legal name, contacts, HST number, commission and insurance with its expiry date.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Banking (Admins only): <b class="gd-ui">Save the payout account</b> for the account we pay the partner into. The account number is stored encrypted. Press <b class="gd-ui">Verify</b> once checked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Portal: <b class="gd-ui">Invite to the owner portal</b> gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Signed on paper? Press <b class="gd-ui">Print the partner agreement</b>, then record the signed scan under Record a paper signature.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-add-a-rental-by-hand" data-gd-task><h2 class="gd-h2">Add a rental by hand</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Add a rental</b>. For phone, walk-in, Turo, partner and insurer bookings.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The dates decide the case, shown under them (nothing to tick): a pickup ahead is an upcoming rental, handed over at pickup as usual. A pickup already passed with the return ahead is a rental already underway: it is recorded as on trip from the pickup you enter, on any active car (even one closed to public bookings), and anything a handover checks that is still missing (signature, licence check, coverage proof, deposit, condition report, insurance) becomes a task. A return already passed is a rental that has ended: kept as completed, paid another way or unpaid.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Check the price: the car&#39;s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">An owner&#39;s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner&#39;s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press <b class="gd-ui">Insurer confirmed</b> once the insurer confirms it.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Choose Where it came from and how it is paid: <b class="gd-ui">Paid another way</b>, <b class="gd-ui">Send a payment link</b>, <b class="gd-ui">Charge the saved card when the renter signs</b> or <b class="gd-ui">Unpaid: invoice later</b>.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">Press <b class="gd-ui">Check the calendar and the price</b>. Tick <b class="gd-ui">Do not email the renter</b> if they should not get the confirmation. Press <b class="gd-ui">Add the rental</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. On the booking, <b class="gd-ui">Verified in person</b> records a licence checked at the counter. A rental already underway can be paid by payment link (the renter signs, then pays from their booking) or the saved card, like an upcoming one.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-retire-or-delete-a-car" data-gd-task><h2 class="gd-h2">Retire or delete a car</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Retire or delete</b>, or the car&#39;s own page.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Retire this car</b> takes the car off the site and the calendars and keeps every record. It needs no future confirmed booking. <b class="gd-ui">Restore</b> brings it back.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Delete this car</b> removes a car added by mistake, with its photos. Only a car with nothing tied to money (no confirmed or paid booking, payment, statement, toll or damage). Type the plate or the name to confirm.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Booking requests that never confirmed and never took money (requested, offered, declined, expired) do not stop a delete. The confirmation lists them; they are removed with the car and a copy is kept. The renters stay on file.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">On the same page, <b class="gd-ui">Delete all sample cars</b> deletes every sample car that meets the rule at once, with its requests. Type DELETE SAMPLE CARS to confirm; the ones kept show why, with the booking numbers.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-sample-cars-on-the-site" data-gd-task><h2 class="gd-h2">Sample cars on the site</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, or <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Site</b>. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Hide sample cars</b> asks first (&quot;Hide all 20 sample cars from the site?&quot;); press <b class="gd-ui">Hide them</b> to take every sample car off the site at once, or <b class="gd-ui">Keep them</b>. Nothing else stops it: not an enquiry, not an old request.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Show sample cars</b> puts the 20 back, with their photos and rates. Ones that were deleted are made again.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the site each one is marked &quot;Example car&quot;. They never appear in search engines or the sitemap.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.</div></aside></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-why-a-car-is-not-on-the-site-yet" data-gd-task><h2 class="gd-h2">Why a car is not on the site yet</h2><p class="gd-p"><b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Vehicles</b>, the card Not on the site yet.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Every real car that is not on the site is listed with its next step first: the rates, Publish now, the listing review.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The same car is a line on To do with <b class="gd-ui">Set rates and publish</b>. The car comes off both once it is on the site.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.</div></li></ol></div></section><section class="gd-task" id="partners-company-cars-and-rentals-added-by-hand-tolls-when-two-rentals-overlap" data-gd-task><h2 class="gd-h2">Tolls when two rentals overlap</h2><p class="gd-p">Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.</p></section>');
 select app.guide_release_0094('admin', 'live-visitors-and-live-chat', 'chapter', 'tolls-and-tickets', 'See who is on the site right now and what they look at, with buying signals, and answer the live chat. The CarmaCars assistant answers the chat first; you take over whenever you want, and it hands over by itself for complaints, damage, payments and anything it should not answer.
 
 ## Live visitors
@@ -822,10 +1094,11 @@ select app.guide_release_0094('admin', 'discount-games-and-leads', 'chapter', 't
 
 **Settings** > **Discount games**.
 
-- On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).
+- On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), the cars viewed for a Sales task (3) and the reminder (24 hours).
+- After a visitor closes a game, a different one shows on their 2nd page view after the close (any page) or 60 seconds later, whichever first; at most 3 in one visit and 6 a day in one browser. All four are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.
 - Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game''s weight (0 turns it off). Press **Save prizes and games**. Codes already sent keep their value.
 ',
-  '<p class="gd-p">Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number is optional), so you get a lead. It is on by default; nothing needs setting up.</p><section class="gd-task" id="discount-games-and-leads-what-the-visitor-sees" data-gd-task><h2 class="gd-h2">What the visitor sees</h2><ul class="gd-ul"><li>After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.</li><li>Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.</li><li>Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.</li><li>The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.</li><li>On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.</li></ul></section><section class="gd-task" id="discount-games-and-leads-leads" data-gd-task><h2 class="gd-h2">Leads</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each claim: when, the name (and &quot;on the site now&quot;), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Call</b> or <b class="gd-ui">Email</b>, then <b class="gd-ui">Contacted</b> (it is yours). <b class="gd-ui">Close</b> with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A visitor who viewed 3 cars or more also gets a Sales task, for example &quot;Claimed 10% off, viewed 6 cars: Maya&quot;. It closes when the code goes on a request.</div></li></ol></div></section><section class="gd-task" id="discount-games-and-leads-contact-details-typed-into-forms" data-gd-task><h2 class="gd-h2">Contact details typed into forms</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>, the card &quot;Typed into forms&quot; at the top.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each line: when, the name (and &quot;On the site now&quot;), email and phone, the form, and Sent or Not sent. &quot;Email not confirmed&quot; means the account was opened from the form and the person has not opened the link we emailed them yet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">After 30 minutes without sending, To do shows &quot;Unfinished request from Maya Chen: follow up&quot; (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Only what they typed is saved, and never used for offers without their consent.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A new email gets an account at once (no password, email not confirmed) and one email &quot;Continue your request&quot; 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. It is on by default; the times and the To do are in <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, the card &quot;Forms left unfinished&quot;.</div></aside></section><section class="gd-task" id="discount-games-and-leads-settings" data-gd-task><h2 class="gd-h2">Settings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Discount games</b>.</p><ul class="gd-ul"><li>On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).</li><li>Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game&#39;s weight (0 turns it off). Press <b class="gd-ui">Save prizes and games</b>. Codes already sent keep their value.</li></ul></section>');
+  '<p class="gd-p">Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number is optional), so you get a lead. It is on by default; nothing needs setting up.</p><section class="gd-task" id="discount-games-and-leads-what-the-visitor-sees" data-gd-task><h2 class="gd-h2">What the visitor sees</h2><ul class="gd-ul"><li>After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.</li><li>Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.</li><li>Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.</li><li>The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.</li><li>On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.</li></ul></section><section class="gd-task" id="discount-games-and-leads-leads" data-gd-task><h2 class="gd-h2">Leads</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each claim: when, the name (and &quot;on the site now&quot;), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Call</b> or <b class="gd-ui">Email</b>, then <b class="gd-ui">Contacted</b> (it is yours). <b class="gd-ui">Close</b> with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A visitor who viewed 3 cars or more also gets a Sales task, for example &quot;Claimed 10% off, viewed 6 cars: Maya&quot;. It closes when the code goes on a request.</div></li></ol></div></section><section class="gd-task" id="discount-games-and-leads-contact-details-typed-into-forms" data-gd-task><h2 class="gd-h2">Contact details typed into forms</h2><p class="gd-p"><b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Leads</b>, the card &quot;Typed into forms&quot; at the top.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each line: when, the name (and &quot;On the site now&quot;), email and phone, the form, and Sent or Not sent. &quot;Email not confirmed&quot; means the account was opened from the form and the person has not opened the link we emailed them yet.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">After 30 minutes without sending, To do shows &quot;Unfinished request from Maya Chen: follow up&quot; (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Only what they typed is saved, and never used for offers without their consent.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A new email gets an account at once (no password, email not confirmed) and one email &quot;Continue your request&quot; 30 minutes later, between 9:00 and 21:00. Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. It is on by default; the times and the To do are in <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, the card &quot;Forms left unfinished&quot;.</div></aside></section><section class="gd-task" id="discount-games-and-leads-settings" data-gd-task><h2 class="gd-h2">Settings</h2><p class="gd-p"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Discount games</b>.</p><ul class="gd-ul"><li>On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), the cars viewed for a Sales task (3) and the reminder (24 hours).</li><li>After a visitor closes a game, a different one shows on their 2nd page view after the close (any page) or 60 seconds later, whichever first; at most 3 in one visit and 6 a day in one browser. All four are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.</li><li>Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game&#39;s weight (0 turns it off). Press <b class="gd-ui">Save prizes and games</b>. Codes already sent keep their value.</li></ul></section>');
 select app.guide_release_0094('admin', 'settings', 'chapter', 'search-car-pages-landing-pages-and-guides', 'Settings change the public site and the rules of the program at once. Program settings are kept as dated rows, so earlier values stay on record.
 
 ## The Settings page

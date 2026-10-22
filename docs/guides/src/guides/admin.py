@@ -410,6 +410,7 @@ def build():
     g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. Start with the VIN: everything else about the car comes from it.')
     g.steps([
         'Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.',
+        f'When the VIN fits several trims, the form asks which trim it is: press the one on the car\'s papers or badge, or {B("Not sure")} (Admin > Today asks again).',
         f'No VIN at hand? Press {B("No VIN at hand? Add the car by its plate")} and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.',
         'Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.',
         'Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.',
@@ -421,6 +422,10 @@ def build():
           'weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. '
           'Each value set this way says (Set automatically) on the car\'s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.', label='Good to know')
     g.tip('A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
+    g.para('The gearbox comes from the government\'s fuel economy data for the model when it has one gearbox for it, or from the VIN when the VIN states it. '
+           'Seats come from the VIN, or the usual number for the body (4 for a coupe or convertible, 5 for a sedan, SUV or hatchback). '
+           f'When either is not certain, Admin > Today shows {B("Confirm gearbox and seats")}: press the gearbox and the number of seats, then {B("Save")}. '
+           f'A car whose VIN fits several trims shows {B("Pick the trim")} there: press the right one. Either way the title, description and search text are written again.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
     g.task('Partners', f'{P("Owners and partners", "Partners")}. Partner rental companies whose cars we rent out on commission.')
@@ -836,7 +841,8 @@ def build():
           f'It is on by default; the times and the To do are in {P("Settings", "Program")}, the card "Forms left unfinished".', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
-        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
+        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
+        'After a visitor closes a game, a different one shows on their 2nd page view after the close (any page) or 60 seconds later, whichever first; at most 3 in one visit and 6 a day in one browser. All four are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
         f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
 

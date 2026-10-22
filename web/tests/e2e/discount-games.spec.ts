@@ -9,7 +9,7 @@ import { db, noOverflow } from './helpers';
 // fills in the request form, takes the discount and goes on the booking request; a signed-in visitor never sees a game
 // on the site; the Admin's Leads page and Settings > Discount games show the claim. 0081: the first game after 15
 // seconds without a car page; on a phone visit from a search engine the small slide-in 15 seconds later; closed, a
-// different game after 2 more car pages; the request-to-book form's card applies the code to that booking and the
+// different game on the 2nd page view after the close (0094: any page, or 60 seconds; at most 6 a day in one browser); the request-to-book form's card applies the code to that booking and the
 // price changes; closing it leaves the booking as it was; a signed-in renter is offered it there. The card is checked
 // with axe and for overflow.
 const PW = 'correct horse battery';
@@ -221,7 +221,7 @@ test('a phone visit from a search engine: nothing on the landing page at first, 
   await sql.end();
 });
 
-test('closed: a different game comes back after 2 more car pages, with the same prize (0081)', async ({ browser }) => {
+test('closed: a different game comes back on the 2nd page view after the close, with the same prize (0081, 0094)', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const { page, vid } = await visitor(browser, sql, 'wheel', PRIZE10);
@@ -229,7 +229,7 @@ test('closed: a different game comes back after 2 more car pages, with the same 
   await expect(page.getByTestId('game')).toHaveAttribute('data-game', 'wheel');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('game')).toHaveCount(0);
-  // one more car page is not enough
+  // one more page is not enough
   await carPage(page, 'kia-forte');
   await page.waitForTimeout(1500);
   await expect(page.getByTestId('game')).toHaveCount(0);
@@ -241,7 +241,7 @@ test('closed: a different game comes back after 2 more car pages, with the same 
   const plays = await sql`select game, prize ->> 'key' as k from game_plays where visitor_id = ${vid} order by created_at`;
   expect(plays.map((r) => `${r.game} ${r.k}`)).toEqual(['wheel pct10', `${second} pct10`]);
   await axe(page, 'second game');
-  // closed again: the third and last of this visit comes after 2 more car pages, then no more
+  // closed again: the third and last of this visit comes on the 2nd page view after the close, then no more
   await page.getByTestId('game-close').click();
   await expect(page.getByTestId('game')).toHaveCount(0);
   for (const c of ['mercedes-benz-a220', 'tesla-model-3']) await carPage(page, c);
@@ -254,6 +254,45 @@ test('closed: a different game comes back after 2 more car pages, with the same 
   await page.waitForTimeout(2500);
   await expect(page.getByTestId('game')).toHaveCount(0);
   await page.context().close();
+  await sql.end();
+});
+
+/** Any page (not a car page): the visit counts it. */
+async function anyPage(page: Page, path: string) {
+  const before = await page.evaluate(() => JSON.parse(sessionStorage.getItem('cc_game_visit') ?? '{}').pages ?? 0);
+  await page.goto(path, { waitUntil: 'load' });
+  await page.waitForFunction((n) => (JSON.parse(sessionStorage.getItem('cc_game_visit') ?? '{}').pages ?? 0) > n, before, { timeout: 15_000 });
+}
+
+test('closed: any two pages bring a different game; at most 6 a day in one browser (0094)', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const sql = db();
+  const { page } = await visitor(browser, sql, 'scratch', PRIZE10);
+  await browseUntilGame(page);
+  await expect(page.getByTestId('game')).toHaveAttribute('data-game', 'scratch');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  // pages that are not car pages count too: the 1st is not enough, the 2nd brings another game
+  await anyPage(page, '/how-it-works');
+  await page.waitForTimeout(1500);
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await anyPage(page, '/faq');
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+  expect(await page.getByTestId('game').getAttribute('data-game')).not.toBe('scratch');
+  // this browser counted both games today
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cc_game') ?? '{}').dayShows)).toBe(2);
+  await page.context().close();
+
+  // a browser that saw 6 games today gets no seventh, even on a new visit
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const { page: p2 } = await visitor(browser, sql, 'wheel', PRIZE10);
+  await p2.context().addInitScript((d) => { try { localStorage.setItem('cc_game', JSON.stringify({ day: d, dayShows: 6 })); } catch { /* none */ } }, day);
+  await p2.goto('/cars/toyota-corolla', { waitUntil: 'load' });
+  await answerCookies(p2);
+  await carPage(p2, 'kia-forte');
+  await p2.waitForTimeout(3000);
+  await expect(p2.getByTestId('game')).toHaveCount(0);
+  await p2.context().close();
   await sql.end();
 });
 

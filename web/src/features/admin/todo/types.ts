@@ -3,7 +3,7 @@ import type { ReviewCoverage } from '@/features/coverage/types';
 // What app.todo_prompts returns (migration 0078): one prompt per piece of work. title says what to do, why says why,
 // both one line; the rest is what the prompt's pop-up needs, pre-filled.
 export type PromptKind = 'insurer' | 'insurer_bulk' | 'publish' | 'documents' | 'chat' | 'requests' | 'changes' | 'applications' | 'invoice_payment'
-  | 'invoice_draft' | 'paper' | 'forms' | 'plates' | 'photos' | 'task' | 'first_last_paid' | 'terms';
+  | 'invoice_draft' | 'paper' | 'forms' | 'plates' | 'photos' | 'task' | 'first_last_paid' | 'terms' | 'trim' | 'specs';
 
 export interface Prompt {
   key: string; kind: PromptKind; priority: 1 | 2 | 3; title: string; why: string | null; since: string | null;
@@ -17,6 +17,8 @@ export interface Prompt {
   invoice_id?: string; invoice_number?: string; balance_cents?: number; owner?: string; owner_id?: string | null;
   docs?: Array<{ code: string; label: string; doc_type?: string; target_id: string; vehicle_name?: string | null }>;
   template_id?: string; form_code?: string;
+  /** 0094: the trims to choose from (trim); the gearbox and seats on the listing, and whether the seats are a body default (specs) */
+  candidates?: string[]; transmission?: string | null; seats?: number | null; seats_default?: boolean;
   task_id?: string; task_type?: string; queue?: string; due_at?: string | null; related_table?: string | null; related_id?: string | null; from_queue?: boolean;
 }
 

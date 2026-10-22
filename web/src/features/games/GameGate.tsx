@@ -2,14 +2,15 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
-import { addPage, addSeen, closed, excludedPath, ineligible, isSearchReferrer, nextCheck, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type Visit } from './rules';
+import { addPage, addSeen, closed, countShown, excludedPath, shownToday, ineligible, isSearchReferrer, nextCheck, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
 // Discount games (migrations 0069 and 0081): the watcher. Loaded after the page is idle (with the beacon and the chat),
 // it counts this visit's pages, car pages and time in the browser only (sessionStorage: nothing leaves the device for
 // this). The first game comes after 1 car page or 15 seconds (or the mouse leaving towards the tabs on a computer);
-// after a close another game this browser has not seen comes after 2 more car pages or 3 minutes, at most 3 a visit,
-// and again on later visits; never after a claim. Never for a signed-in visitor (they get it in the request-to-book
+// after a close another game this browser has not seen comes on the 2nd page view after the close (any page) or 60
+// seconds later (0094), at most 3 a visit and 6 a day in this browser (all four are Admin settings), and again on later
+// visits; never after a claim. Never for a signed-in visitor (they get it in the request-to-book
 // form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
 // a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. The
 // game's code is fetched in idle time once the visitor can get one, so it opens at once.
@@ -69,6 +70,7 @@ export function GameGate() {
     open.current = true;
     const v = visitNow();
     if (v) saveVisit(shown(v));
+    remember(countShown(memory(), Date.now()));
     setFired(f);
     void loadPopup().then((m) => setPopup(() => m.GamePopup)).catch(() => { open.current = false; });
   }, [may]);
@@ -77,9 +79,10 @@ export function GameGate() {
     if (timer.current) { clearTimeout(timer.current); timer.current = undefined; }
     const c = cfg.current, v = visitNow();
     if (!c || !v || open.current || !may()) return;
-    const f = trigger({ cfg: c, visit: v, now: Date.now(), exit, phone: phone() });
+    const today = shownToday(memory(), Date.now());
+    const f = trigger({ cfg: c, visit: v, now: Date.now(), exit, phone: phone(), today });
     if (f) { fire(f); return; }
-    const wait = nextCheck({ cfg: c, visit: v, now: Date.now(), phone: phone() });
+    const wait = nextCheck({ cfg: c, visit: v, now: Date.now(), phone: phone(), today });
     if (wait !== null) timer.current = setTimeout(() => again.current(), wait + 250);
   }, [fire, may]);
   useEffect(() => { again.current = check; }, [check]);
