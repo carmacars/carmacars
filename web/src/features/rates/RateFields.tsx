@@ -32,17 +32,28 @@ export function RateFields({ v, set, context, prefix, delivery = false, optional
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, empty]);
-  // Add a car (0070): the daily rate starts pre-filled with the default (similar cars, else the class's), once
-  const prefilled = useRef(false);
+  // Add a car (0070): the daily rate starts pre-filled with the default (similar cars, else the class's). With the
+  // VIN first (0082) the class, make and model arrive after the form opens: the default follows them while the daily
+  // rate is still the one filled in here (a rate a person typed is never replaced).
+  const auto = useRef<string | null>(null);
+  const ctxKey = JSON.stringify(['class' in context ? context.class : null, 'make' in context ? context.make : null, 'model' in context ? context.model : null]);
+  const vRef = useRef(v); vRef.current = v;
   useEffect(() => {
-    if (prefilled.current || 'vehicle' in context || !ratesEmpty(v)) return;
-    prefilled.current = true;
+    if ('vehicle' in context) return;
+    if ('make' in context && !context.make) return;   // wait for the car
+    const cur = vRef.current;
+    if (!(ratesEmpty(cur) || (auto.current !== null && cur.daily === auto.current && !cur.weekend && !cur.weekly && !cur.monthly))) return;
+    let live = true;
     void rateCheck({ ...context }).then((r) => {
       const c = r.ok ? r.data?.defaults?.daily_default_cents : null;
-      if (c && ratesEmpty(v)) set('daily', centsInput(c));
+      const now = vRef.current;
+      if (!live || !c || !(ratesEmpty(now) || now.daily === auto.current)) return;
+      auto.current = centsInput(c);
+      set('daily', auto.current);
     }).catch(() => undefined);
+    return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ctxKey]);
   const err = (k: string) => (empty ? undefined : chk?.errors?.[k]);
   const d = chk?.defaults;
   const id = (k: string) => `${prefix}-${k}`;

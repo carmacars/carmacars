@@ -40,7 +40,14 @@ const schema = z.object({
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
   PHOTO_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
   PHOTO_FAKE_MODE: z.enum(['ok', 'not_enabled']).default('ok'),
-  PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional()
+  PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),
+  /** The business phone line (migration 0085): quo sends texts through Quo's API with QUO_API_KEY (CarmaCars' own Quo
+   *  account only); fake records them without sending (local work and tests). */
+  QUO_PROVIDER: z.enum(['quo', 'fake']).default('fake'),
+  QUO_API_KEY: z.string().optional(),
+  QUO_API_BASE: z.string().url().optional(),
+  /** The signing secret of our Quo webhook (whsec_...), made by the deploy (scripts/deploy/quo.mjs) and kept in the vault. */
+  QUO_WEBHOOK_SECRET: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

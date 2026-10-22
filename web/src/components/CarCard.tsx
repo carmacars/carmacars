@@ -21,7 +21,7 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
       </div>
       <div className="car-card__body">
         <Tag className="car-card__name"><Link prefetch={false} href={href ?? `/cars/${c.slug}`}>{c.make} <span>{c.model}</span></Link></Tag>
-        <p className="car-card__meta">{[c.year, c.trim].filter(Boolean).join(' ')}</p>
+        <p className="car-card__meta">{[c.year, c.trim].filter(Boolean).join(' ')}{c.car_code && <span data-testid="car-card-code"> · Car code {c.car_code}</span>}</p>
         <p className="car-card__price"><b className="num">{price ?? money(c.daily_rate_cents)}</b><span>{unit ?? 'a day'}</span></p>
         <ul className="car-card__specs">
           <li>{classLabel(c.classes, labels)}</li>

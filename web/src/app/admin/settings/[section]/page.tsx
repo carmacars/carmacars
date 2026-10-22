@@ -15,7 +15,7 @@ import { OfficialForms, type FormsData } from '@/features/official-forms/Officia
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
-import { GameSettings, type Prize } from '@/features/games/GameSettings';
+import { GameSettings, type CostBasis, type Prize } from '@/features/games/GameSettings';
 import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
@@ -53,6 +53,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Discount games', (k) => k.startsWith('game_')],
+  ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
@@ -171,11 +172,13 @@ export default async function Section({ params }: { params: Promise<{ section: s
   case 'discount-games': {
     // the giveaway game (0069): on by default with the owner's settings; everything here is optional to change
     const r = await door<GameReport>(user.id, 'admin_read', 'game_report', { days: 30 });
-    const keys = ['game_enabled', 'game_max_discount_cents', 'game_code_valid_days', 'game_trigger_car_pages', 'game_trigger_seconds', 'game_exit_intent', 'game_dismiss_days', 'game_task_min_cars', 'game_reminder_hours'];
+    const keys = ['game_enabled', 'game_max_discount_cents', 'game_code_valid_days', 'game_trigger_car_pages', 'game_trigger_seconds', 'game_exit_intent', 'game_reshow_car_pages', 'game_reshow_seconds',
+      'game_max_per_visit', 'game_booking_offer', 'game_dismiss_days', 'game_task_min_cars', 'game_reminder_hours'];
     return (<>{head}
-      <p className="small muted">Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle or Plinko. Every play wins a promo code for the rental charge. To see the code they give a first name and an email (a mobile number is optional), and the code is emailed. It is on now; nothing needs setting up. Leads are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Leads</Link>.</p>
+      <p className="small muted">Visitors who are not signed in get one quick game after 1 car page or 15 seconds: spin the wheel, scratch to reveal, quick blackjack, cup shuffle, Plinko or the card pack. Closed, another game they have not seen comes back after 2 more car pages or 3 minutes (at most 3 a visit, and on later visits). The request-to-book form offers it to anyone who has not claimed, signed-in renters too. Every play wins a promo code for the rental charge. To see the code they give a first name and an email (a mobile number is optional), and the code is emailed. It is on now; nothing needs setting up. Leads are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Leads</Link>.</p>
       <Card title="On or off and the rules" testId="game-rules"><SaveForm table="program_settings" rowKey="current" testId="program-games" fields={fieldsFrom(s.program, keys)} /></Card>
-      <Card title="Prizes and games"><GameSettings prizes={(s.program.game_prizes ?? []) as Prize[]} weights={(s.program.game_weights ?? {}) as Record<string, number>} /></Card>
+      <Card title="Prizes and games"><GameSettings prizes={(s.program.game_prizes ?? []) as Prize[]} weights={(s.program.game_weights ?? {}) as Record<string, number>}
+        cap={s.program.game_max_discount_cents == null || s.program.game_max_discount_cents === '' ? null : Number(s.program.game_max_discount_cents)} basis={(r as GameReport & { cost_basis?: CostBasis }).cost_basis ?? null} /></Card>
       <Card title="Last 30 days"><GameReportTiles r={r} /></Card>
     </>);
   }

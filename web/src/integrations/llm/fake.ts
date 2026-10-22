@@ -58,7 +58,10 @@ export function fakeChatStep(prompt: string): Record<string, unknown> {
   const phone = /(\+?1?[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4})/.exec(last)?.[1];
   const name = /(?:my name is|i am|i'm|this is)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i.exec(last)?.[1];
   const known = /\(car ([a-z0-9-]+)\)/.exec(prompt)?.[1];
-  const car = slugs.find((x) => last.toLowerCase().includes(x.slug.replace(/-/g, ' ')) || last.toLowerCase().includes(x.name.toLowerCase().replace(/^\d{4} /, '').split(' ').slice(0, 2).join(' ')))?.slug;
+  // the car named, and of several with that name the one on the visitor's page (as a writer would read it): since 0087
+  // a car added by hand goes live at once, so the e2e site lists more than one Toyota Corolla
+  const named = slugs.filter((x) => last.toLowerCase().includes(x.slug.replace(/-/g, ' ')) || last.toLowerCase().includes(x.name.toLowerCase().replace(/^\d{4} /, '').split(' ').slice(0, 2).join(' ')));
+  const car = (named.find((x) => x.slug === known) ?? named[0])?.slug;
   if (email && phone && name) return { action: 'start_request', name, email, phone, car: car ?? known, pickup_date: dates[0], return_date: dates[1] };
   if (dates.length >= 2 && (car || known)) return { action: 'quote', car: car ?? known, pickup_date: dates[0], return_date: dates[1] };
   if (dates.length >= 2) return { action: 'search_cars', pickup_date: dates[0], return_date: dates[1] };
@@ -112,11 +115,20 @@ export function fakeCarCopy(prompt: string): Record<string, unknown> {
     'We meet you in person, show you the car and record its condition with you.'], 3);
   void open; void where; void drive; void how; void close; void area;
   // car-copy-v2 (0073): a short blurb in the sample cars' voice, and six features from the offered equipment
-  const intro = pick([`Easy to park downtown and quiet on the highway, with room for ${c.seats ?? 'five'} and a proper trunk.`,
-    `A comfortable ${body} for the week: errands in the city, a long drive on Friday, and space for the bags.`,
-    `Simple to drive, simple to park, and roomy enough for the airport run with luggage.`,
-    `The everyday ${c.make} ${c.model}. Room for the family, and a trunk that takes the weekend.`,
-    `A calm, easy ${body} that suits a commute as well as a road trip out of the city.`], 0);
+  // three short sentences from separate lists, so two cars of the same model (and a retry) rarely share more than one
+  // of them: the e2e database collects dozens of cars, and one pick from five sentences repeated another car's intro
+  const seats = c.seats ?? 'five';
+  const intro = [
+    pick([`Easy to park downtown and quiet on the highway.`, `Simple to drive and simple to park.`, `A calm, easy ${body} for the city.`,
+      `Comfortable on long drives and light in traffic.`, `The everyday ${c.make} ${c.model}, with nothing to learn.`, `Smooth on the highway and easy in tight spots.`,
+      `Quiet inside, with a soft ride over the potholes.`, `Relaxed to drive, whatever the traffic is doing.`], 5),
+    pick([`Room for ${seats} and a proper trunk.`, `Space for ${seats} people and the bags.`, `Seats for ${seats}, and the luggage fits too.`,
+      `Enough room for the family and the groceries.`, `The trunk takes a weekend of bags.`, `Plenty of space for passengers and luggage.`,
+      `A big trunk for the airport run.`, `${seats} seats and room behind them for the stroller.`], 6),
+    pick([`Good for a commute or a road trip.`, `Made for errands all week and a drive out on Friday.`, `It suits a work week as well as a cottage weekend.`,
+      `Ready for school runs and long weekends.`, `A sensible pick for a week or a month.`, `Just right for visiting family out of town.`,
+      `Fine for daily driving and the odd long trip.`, `It handles a busy week without fuss.`], 7)
+  ].join(' ');
   const eq = [...(Array.isArray(c.equipment_known) ? (c.equipment_known as unknown as string[]) : []), ...(Array.isArray(c.equipment) ? (c.equipment as unknown as string[]) : [])];
   const hl = [...new Set(eq)].slice(0, 6);
   return {
@@ -165,6 +177,15 @@ export function fakeText(): TextGenerator {
       if (req.task === 'chat') {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
         return { ok: true, data: fakeChatStep(req.prompt) as T, model: 'fake-chat-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 60, neurons: 0 } };
+      }
+      // the phone line (0085): a reply draft and a call's one-line summary, built from the prompt's own words
+      if (req.task === 'phone_draft' || req.task === 'phone_summary') {
+        if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
+        const name = /<who>([^<]*)<\/who>/.exec(req.prompt)?.[1]?.trim().split(' ')[0];
+        const data = req.task === 'phone_draft'
+          ? { reply: `Hi${name && name !== 'the' ? ` ${name}` : ''}, thanks for your message. How can we help with your booking? CarmaCars` }
+          : { summary: `Caller asked about ${/pric/i.test(req.prompt) ? 'pricing' : 'a booking'}.` };
+        return { ok: true, data: data as T, model: 'fake-phone-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 40, neurons: 0 } };
       }
       // the search copy (0061): built from the facts in the prompt, so it passes the same checks as a real answer
       if (req.task === 'car_copy' || req.task === 'seo_page' || req.task === 'article') {

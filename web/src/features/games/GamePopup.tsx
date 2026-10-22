@@ -4,31 +4,65 @@ import Link from 'next/link';
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
-import { claimProblems, type GameKind, type PrizeWord, type Visit } from './rules';
-import { remember } from './GameGate';
+import { claimProblems, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
+import { remember, rememberSeen } from './GameGate';
 
-// Discount games (migration 0069): the game itself. A slide-in card on a computer and a bottom sheet on a phone, never
-// a full-screen block, always closable (the close button and Esc). The database has already drawn the prize; the game
-// only shows it. Then the visitor enters a first name, an email and (optional) a mobile number to get the code, which
-// is also emailed. Each game is its own small file, loaded here.
-export interface GamePopupProps { trigger: 'pages' | 'time' | 'exit'; path: string; onDone: () => void }
-export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean }
+// Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
+// phone, never a full-screen block, always closable (the close button and Esc). On the first page of a phone visit
+// from a search engine it starts as a small slide-in that opens into the card when tapped. The database has already
+// drawn the prize; the game only shows it. Then the visitor enters a first name, an email and (optional) a mobile
+// number to get the code, which is also emailed. In the request-to-book form (context "booking") the same card opens
+// from the inline offer, the fields come filled from the form (a signed-in renter's code goes to their account's
+// email), and the code goes on that booking request. Each game is its own small file, fetched in idle time.
+export type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string; min_days?: number | null };
+export interface GamePopupProps {
+  trigger: Trigger | 'booking'; path: string; seen: GameKind[]; onDone: (how: 'closed' | 'claimed' | 'failed') => void; slim?: boolean;
+  context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
+}
+export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
+  context?: 'site' | 'booking'; account?: { first: string | null; email: string } }
 export interface GameProps { prize: Play['prize']; prizes: PrizeWord[]; reduced: boolean; onReveal: () => void }
-type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string };
 
-const GAMES: Record<GameKind, { title: string; pitch: string; C: ComponentType<GameProps> }> = {
-  wheel: { title: 'Spin to win', pitch: 'Every spin wins a discount on your rental.', C: lazy(() => import('./games/Wheel')) },
-  scratch: { title: 'Scratch to win', pitch: 'Scratch the card. Every card wins a discount.', C: lazy(() => import('./games/Scratch')) },
-  blackjack: { title: 'Beat the dealer', pitch: 'One quick hand of blackjack. Win or lose, you get a discount.', C: lazy(() => import('./games/Blackjack')) },
-  cups: { title: 'Find the ball', pitch: 'Watch the cups, then pick one. Every cup hides a discount.', C: lazy(() => import('./games/Cups')) },
-  plinko: { title: 'Drop to win', pitch: 'Drop the disc. Every slot is a discount.', C: lazy(() => import('./games/Plinko')) }
+const LOAD: Record<GameKind, () => Promise<{ default: ComponentType<GameProps> }>> = {
+  wheel: () => import('./games/Wheel'), scratch: () => import('./games/Scratch'), blackjack: () => import('./games/Blackjack'),
+  cups: () => import('./games/Cups'), plinko: () => import('./games/Plinko'), pack: () => import('./games/Pack')
 };
+/** The five games' code, fetched ahead (idle time) so a game opens at once. */
+export function preloadGames() { for (const f of Object.values(LOAD)) void f().catch(() => undefined); }
+const GAMES: Record<GameKind, { title: string; pitch: string; C: ComponentType<GameProps> }> = {
+  wheel: { title: 'Spin to win', pitch: 'Every spin wins a discount on your rental.', C: lazy(LOAD.wheel) },
+  scratch: { title: 'Scratch to win', pitch: 'Scratch the card. Every card wins a discount.', C: lazy(LOAD.scratch) },
+  blackjack: { title: 'Beat the dealer', pitch: 'One quick hand of blackjack. Win or lose, you get a discount.', C: lazy(LOAD.blackjack) },
+  cups: { title: 'Find the ball', pitch: 'Watch the cups, then pick one. Every cup hides a discount.', C: lazy(LOAD.cups) },
+  plinko: { title: 'Drop to win', pitch: 'Drop the disc. Every slot is a discount.', C: lazy(LOAD.plinko) },
+  pack: { title: 'Rip the pack', pitch: 'Tear open the CarmaCars pack. The last card is your discount.', C: lazy(LOAD.pack) }
+};
+const COLOURS = ['#D0111B', '#000000', '#ffffff', '#ff6a70', '#ffd23f', '#6ec6ff'];
+/** A rare prize: a burst of confetti over the card (never with reduced motion). */
+function Confetti() {
+  return (
+    <span className="ccg-confetti" aria-hidden="true">
+      {Array.from({ length: 36 }, (_, i) => <i key={i} style={{ ['--x' as string]: `${(i * 37) % 100}%`, ['--c' as string]: COLOURS[i % COLOURS.length],
+        ['--d' as string]: `${(i % 9) * 70}ms`, ['--rot' as string]: `${(i % 2 ? 1 : -1) * (180 + (i * 53) % 360)}deg` }} />)}
+    </span>
+  );
+}
 const device = () => (matchMedia('(max-width: 599px)').matches ? 'phone' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop');
 
-export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
+async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<Play> {
+  if (!booking) return browserRpc<Play>('game_start', { p });
+  // the request-to-book form's play goes through the site's server, which knows who is signed in
+  const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'start', p }) });
+  if (!r.ok && r.status >= 500) throw new Error('unavailable');
+  return (await r.json()) as Play;
+}
+
+export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, context = 'site', prefill, onClaimed, applied }: GamePopupProps) {
+  const booking = context === 'booking';
   const [play, setPlay] = useState<Play | null>(null);
+  const [slim, setSlim] = useState(slimAtFirst);
   const [stage, setStage] = useState<'ready' | 'playing' | 'won' | 'claimed'>('ready');
-  const [form, setForm] = useState({ first: '', email: '', phone: '', marketing: false });
+  const [form, setForm] = useState({ first: prefill?.first ?? '', email: prefill?.email ?? '', phone: prefill?.phone ?? '', marketing: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,21 +76,27 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
   useEffect(() => {
     let live = true;
     back.current = document.activeElement;
-    const start = () => browserRpc<Play>('game_start', { p: { vid: visitorId(), sid: sessionId(), device: device(), path, trigger } });
+    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen, ...(booking ? { context: 'booking' } : {}) };
     // one more try after a moment if the network dropped the first
-    start().catch(() => new Promise<Play>((ok, ko) => setTimeout(() => start().then(ok, ko), 3000)))
+    startPlay(p, booking).catch(() => new Promise<Play>((ok, ko) => setTimeout(() => startPlay(p, booking).then(ok, ko), 3000)))
       .then((r) => {
         if (!live) return;
-        if (!r?.ok) { if (r?.reason && ['claimed', 'known', 'signed_in'].includes(r.reason)) remember({ never: r.reason }); onDone(); return; }
+        if (!r?.ok) {
+          if (r?.reason && (r.reason === 'claimed' || (!booking && ['known', 'signed_in'].includes(r.reason)))) remember(r.reason === 'claimed' ? { never: 'claimed', claimed: true } : { never: r.reason });
+          onDone('failed'); return;
+        }
+        rememberSeen(r.game);
+        if (r.account) setForm((f) => ({ ...f, first: f.first || r.account?.first || '', email: r.account?.email ?? f.email }));
         setPlay(r);
         if (r.revealed) setStage('won');
       })
-      .catch(() => { if (live) onDone(); });
+      .catch(() => { if (live) onDone('failed'); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // focus moves to the card when it opens (it does not trap focus: the page stays usable behind it)
-  useEffect(() => { if (play) head.current?.focus(); }, [play]);
+  // focus moves to the card when it opens (it does not trap focus: the page stays usable behind it); the small
+  // slide-in does not take the focus
+  useEffect(() => { if (play && !slim) head.current?.focus(); }, [play, slim]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     addEventListener('keydown', k);
@@ -64,9 +104,8 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
   });
 
   function close() {
-    if (stage !== 'claimed') remember({ dismissedAt: Date.now() });
-    if (back.current instanceof HTMLElement) back.current.focus();
-    onDone();
+    if (back.current instanceof HTMLElement && document.contains(back.current)) back.current.focus();
+    onDone(stage === 'claimed' ? 'claimed' : 'closed');
   }
   function revealed() {
     setStage('won');
@@ -94,6 +133,7 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
       }
       setClaimed(j); setStage('claimed');
       remember({ claimed: true, code: j.code, codeUntil: j.expires });
+      onClaimed?.(j);
       setTimeout(() => head.current?.focus(), 0);
     } catch { setFailure('We could not send the code. Check your connection and try again.'); }
     finally { setBusy(false); }
@@ -106,55 +146,72 @@ export function GamePopup({ trigger, path, onDone }: GamePopupProps) {
   if (!play) return null;
   const g = GAMES[play.game];
   const err = (k: string) => errors[k];
+  const account = booking && play.account;
+  if (slim) return (
+    <section className="ccg ccg--slim" role="region" aria-label="CarmaCars giveaway" data-testid="game" data-game={play.game} data-slim="true">
+      <p className="ccg-slim__text"><strong>Play for a discount</strong> <span>on your rental</span></p>
+      <button type="button" className="btn btn--primary btn--sm ccg-slim__go" onClick={() => setSlim(false)} data-testid="game-open">Play</button>
+      <button type="button" className="ccg-x ccg-x--dark" onClick={close} aria-label="Close the game" data-testid="game-close">×</button>
+    </section>
+  );
   return (
-    <section className="ccg" role="dialog" aria-modal="false" aria-labelledby={`${id}-h`} aria-describedby={`${id}-d`} data-testid="game" data-game={play.game}>
+    <section className={`ccg${booking ? ' ccg--booking' : ''}`} role="dialog" aria-modal="false" aria-labelledby={`${id}-h`} aria-describedby={`${id}-d`} data-testid="game" data-game={play.game} data-context={context}>
       <header className="ccg-head">
         <div>
-          <p className="ccg-kicker">CarmaCars giveaway</p>
+          <p className="ccg-kicker">{booking ? 'A discount on this booking' : 'CarmaCars giveaway'}</p>
           <h2 className="ccg-title" id={`${id}-h`} ref={head} tabIndex={-1}>
-            {stage === 'claimed' ? 'Your code is ready' : stage === 'won' ? `You won ${play.prize.label}` : g.title}
+            {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? `You won ${play.prize.label}` : g.title}
           </h2>
         </div>
-        <button type="button" className="ccg-x" onClick={close} aria-label="Close the game" data-testid="game-close">×</button>
+        <button type="button" className="ccg-x" onClick={close} aria-label={booking ? 'Close the game and go on with the booking' : 'Close the game'} data-testid="game-close">×</button>
       </header>
+      {stage === 'won' && play.prize.rare && !reduced && <Confetti />}
       <div className="ccg-body">
         {stage === 'ready' && <>
           <p className="ccg-pitch" id={`${id}-d`}>{g.pitch}</p>
           <button type="button" className="btn btn--primary ccg-play" onClick={() => setStage('playing')} data-testid="game-play">Play now</button>
-          <p className="ccg-fine">{play.terms} <Link className="link" href="/terms#s14">Terms</Link></p>
+          <p className="ccg-fine">{play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link></p>
         </>}
         {stage === 'playing' && <>
           <p className="vh" id={`${id}-d`}>{g.pitch}</p>
           <Suspense fallback={<div className="ccg-stage" aria-busy="true" />}><g.C prize={play.prize} prizes={play.prizes} reduced={reduced} onReveal={revealed} /></Suspense>
         </>}
         {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim">
-          <p className="ccg-prize" id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> your rental{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. Tell us where to send your code.</p>
+          {play.prize.rare && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
+          <p className={`ccg-prize${play.prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {/free day/.test(play.prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>
             <input className="input" id={`${id}-first`} name="first" autoComplete="given-name" value={form.first} onChange={(e) => setForm({ ...form, first: e.target.value })}
               aria-invalid={err('first') ? true : undefined} aria-describedby={err('first') ? `${id}-first-e` : undefined} /></label>
           {err('first') && <p className="ccg-err" id={`${id}-first-e`}>{err('first')}</p>}
-          <label className="ccg-field" htmlFor={`${id}-email`}><span>Email</span>
-            <input className="input" id={`${id}-email`} name="email" type="email" inputMode="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-              aria-invalid={err('email') ? true : undefined} aria-describedby={err('email') ? `${id}-email-e` : undefined} /></label>
-          {err('email') && <p className="ccg-err" id={`${id}-email-e`}>{err('email')}</p>}
-          <label className="ccg-field" htmlFor={`${id}-phone`}><span>Mobile <em>(optional, for a faster booking)</em></span>
-            <input className="input" id={`${id}-phone`} name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              aria-invalid={err('phone') ? true : undefined} aria-describedby={err('phone') ? `${id}-phone-e` : undefined} /></label>
-          {err('phone') && <p className="ccg-err" id={`${id}-phone-e`}>{err('phone')}</p>}
+          {!account && <>
+            <label className="ccg-field" htmlFor={`${id}-email`}><span>Email</span>
+              <input className="input" id={`${id}-email`} name="email" type="email" inputMode="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                aria-invalid={err('email') ? true : undefined} aria-describedby={err('email') ? `${id}-email-e` : undefined} /></label>
+            {err('email') && <p className="ccg-err" id={`${id}-email-e`}>{err('email')}</p>}
+            <label className="ccg-field" htmlFor={`${id}-phone`}><span>Mobile <em>(optional, for a faster booking)</em></span>
+              <input className="input" id={`${id}-phone`} name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                aria-invalid={err('phone') ? true : undefined} aria-describedby={err('phone') ? `${id}-phone-e` : undefined} /></label>
+            {err('phone') && <p className="ccg-err" id={`${id}-phone-e`}>{err('phone')}</p>}
+          </>}
           {play.consent && <label className="check ccg-check"><input type="checkbox" name="marketing" checked={form.marketing} onChange={(e) => setForm({ ...form, marketing: e.target.checked })} />
             <span>{play.consent}</span></label>}
-          <button type="submit" className="btn btn--primary ccg-play" disabled={busy} data-testid="game-get-code">{busy ? 'Sending...' : 'Get my code'}</button>
+          <button type="submit" className="btn btn--primary ccg-play" disabled={busy} data-testid="game-get-code">{busy ? 'Sending...' : booking ? 'Apply my discount' : 'Get my code'}</button>
           {failure && <p className="ccg-err" role="alert">{failure}</p>}
-          <p className="ccg-fine">We email the code either way. {play.terms} <Link className="link" href="/terms#s14">Terms</Link> and <Link className="link" href="/privacy">Privacy</Link>.</p>
+          <p className="ccg-fine">We email the code either way. {play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link> and <Link className="link" href="/privacy" target={booking ? '_blank' : undefined}>Privacy</Link>.</p>
         </form>}
         {stage === 'claimed' && claimed && <div className="ccg-done" data-testid="game-done">
           <p className="ccg-codebox"><span className="vh">Your code: </span><strong data-testid="game-code">{claimed.code}</strong></p>
           <p className="ccg-pitch">{claimed.prize_label} {claimed.applies_to}. Good until {claimed.expires}. We sent it to {claimed.email} too.</p>
-          <div className="ccg-row">
-            <button type="button" className="btn btn--ghost" onClick={copy}>{copied ? 'Copied' : 'Copy the code'}</button>
-            <Link className="btn btn--primary" href="/cars" onClick={() => onDone()}>Choose a car</Link>
-          </div>
-          <p className="ccg-fine" role="status">{copied ? 'The code is copied.' : 'Enter it in the promo code box when you send your booking request. We fill it in for you on this device.'}</p>
+          {booking ? <>
+            <p className="ccg-pitch" role="status" data-testid="game-applied">{applied ?? 'The code is on this booking request. The price beside the form shows it.'}</p>
+            <button type="button" className="btn btn--primary ccg-play" onClick={close} data-testid="game-continue">Back to my booking</button>
+          </> : <>
+            <div className="ccg-row">
+              <button type="button" className="btn btn--ghost" onClick={copy}>{copied ? 'Copied' : 'Copy the code'}</button>
+              <Link className="btn btn--primary" href="/cars" onClick={() => onDone('claimed')}>Choose a car</Link>
+            </div>
+            <p className="ccg-fine" role="status">{copied ? 'The code is copied.' : 'Enter it in the promo code box when you send your booking request. We fill it in for you on this device.'}</p>
+          </>}
         </div>}
       </div>
     </section>

@@ -222,7 +222,7 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
   const [src] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published'
                             and exists (select 1 from vehicle_photos p where p.vehicle_id = v.id and p.status = 'approved' and p.is_public) order by v.created_at limit 1`;
   const id = randomUUID(); const slug = `lr-sample-${tag()}`;
-  await cloneRow(sql, 'vehicles', src!.id as string, { id, vin: vin(), plate: plate(), fleet_number: null });
+  await cloneRow(sql, 'vehicles', src!.id as string, { id, vin: vin(), plate: plate(), fleet_number: null, car_code: null, is_sample: false });
   const [lst] = await sql`select id from vehicle_listings where vehicle_id = ${src!.id}`;
   await cloneRow(sql, 'vehicle_listings', lst!.id as string, { id: randomUUID(), vehicle_id: id, slug, canonical_vehicle_id: null });
   for (const rc of await sql`select id from rate_cards where vehicle_id = ${src!.id} and (effective_to is null or effective_to > now())`) await cloneRow(sql, 'rate_cards', rc.id as string, { id: randomUUID(), vehicle_id: id });
@@ -243,9 +243,9 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
     await expect(page.locator('body')).toContainText('The most specific photo wins');
     await check(page, 'sample photos settings');
     await page.goto('/admin', { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('todo-samples')).toBeVisible();
+    await expect(page.getByTestId(`prompt-photos:${id}`)).toBeVisible(); // each real car showing sample photos is a To do prompt (0078)
     // a real photo approved: the sample is gone, nothing else to do
-    for (const ph of await sql`select id from vehicle_photos where vehicle_id = ${src!.id} and status = 'approved' and is_public`) await cloneRow(sql, 'vehicle_photos', ph.id as string, { id: randomUUID(), vehicle_id: id });
+    for (const ph of await sql`select id from vehicle_photos where vehicle_id = ${src!.id} and status = 'approved' and is_public`) await cloneRow(sql, 'vehicle_photos', ph.id as string, { id: randomUUID(), vehicle_id: id, plate_status: 'not_visible' });
     // (the public page is rebuilt when staff approve the photos in the listing review; the data and staff screens change at once)
     expect((await sql`select app.public_listing_row(${id}::uuid) ->> 'sample_photos' s`)[0]!.s).toBe('false');
     await page.goto(`/admin/vehicles/${id}`, { waitUntil: 'networkidle' });

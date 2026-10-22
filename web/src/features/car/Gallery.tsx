@@ -3,11 +3,24 @@ import { useEffect, useRef, useState } from 'react';
 import type { Photo } from '@/lib/types';
 import { photoUrl } from '@/lib/photo';
 
+// The sizes the listing pipeline made of a photo (0022): a phone downloads the one that fits, not the 1800 px original.
+const srcSetOf = (g: Photo) => {
+  if (!g.variants?.length) return undefined;
+  const all = [...g.variants, ...(g.width ? [{ width: g.width, path: g.path }] : [])];
+  return [...new Map(all.map((v) => [v.width, v])).values()].sort((a, b) => a.width - b.width).map((v) => `${photoUrl(v.path)} ${v.width}w`).join(', ') || undefined;
+};
+
 // Native scroll-snap gallery (prototype .gallery): touch, trackpad and keyboard all move it;
 // buttons and thumbnails scroll it. The first photo is the page's LCP image and is never lazy.
 export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
   const track = useRef<HTMLUListElement>(null);
   const [cur, setCur] = useState(0);
+  // Live visitors (0086): how many different photos were looked at, told to the beacon at 3, 6 and 10 (and all)
+  const seen = useRef(new Set<number>([0]));
+  useEffect(() => {
+    const s = seen.current; if (s.has(cur)) return; s.add(cur);
+    if ([3, 6, 10, photos.length].includes(s.size)) window.dispatchEvent(new CustomEvent('cc:track', { detail: { k: 'photos', d: { n: String(s.size) } } }));
+  }, [cur, photos.length]);
   useEffect(() => {
     const t = track.current; if (!t) return;
     let tk = false;
@@ -27,7 +40,7 @@ export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
         {photos.map((g, i) => (
           <li key={g.path} aria-label={`${i + 1} of ${photos.length}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl(g.path)} width={g.width ?? 1800} height={g.height ?? 1200} alt={g.alt} sizes="(min-width: 64rem) 62vw, 100vw"
+            <img src={photoUrl(g.path)} srcSet={srcSetOf(g)} width={g.width ?? 1800} height={g.height ?? 1200} alt={g.alt} sizes="(min-width: 64rem) 62vw, 100vw"
               loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" />
             {g.sample && <span className="gallery__sample" data-testid="sample-photo-caption">Representative photo</span>}
           </li>
@@ -44,7 +57,7 @@ export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
         {photos.map((g, i) => (
           <li key={g.path}><button type="button" aria-label={`Photo ${i + 1}: ${g.label ?? ''}`} aria-current={i === cur} onClick={() => go(i)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl(g.path)} width={g.width ?? 1800} height={g.height ?? 1200} alt="" sizes="120px" loading="lazy" decoding="async" />
+            <img src={photoUrl(g.path)} srcSet={srcSetOf(g)} width={g.width ?? 1800} height={g.height ?? 1200} alt="" sizes="120px" loading="lazy" decoding="async" />
           </button></li>
         ))}
       </ul>

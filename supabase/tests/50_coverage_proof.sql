@@ -101,7 +101,7 @@ select test.eq('the readiness still misses coverage', app.booking_readiness(test
 select test.eq('a fleet assistant does not review coverage', test.cv_err(format($$select app.review_coverage_proof('%s', test.id('cv_fleet'), true)$$, (test.cv_proof('CV-1')).id)),
   'Only customer service or an Admin reviews identity and coverage documents');
 select test.eq('nor through the assistants'' door', test.cv_err(format($$select app.va_do(test.id('cv_fleet'), 'coverage_review', '{"proof": "%s", "approve": true}')$$, (test.cv_proof('CV-1')).id)),
-  'Coverage is reviewed by customer service');
+  'Identity and coverage documents are reviewed by customer service');
 select test.eq('a rejection needs a reason', test.cv_err(format($$select app.review_coverage_proof('%s', test.id('cv_cs'), false)$$, (test.cv_proof('CV-1')).id)),
   'Rejecting a proof needs a reason the renter can act on');
 select app.va_do(test.id('cv_cs'), 'coverage_review', jsonb_build_object('proof', (test.cv_proof('CV-1')).id, 'approve', false, 'reason', 'The endorsement page is missing: send the OPCF 27 page.'));
@@ -119,12 +119,10 @@ update coverage_proofs set policy_expiry = (select app.local_date(return_at) fro
 select test.ok('approval checks that the policy runs past the return date',
   test.cv_err(format($$select app.review_coverage_proof('%s', test.id('cv_cs'), true)$$, (test.cv_proof('CV-1')).id)) like 'The policy ends on %, not after the return date%');
 update coverage_proofs set policy_expiry = policy_expiry + 30 where id = (test.cv_proof('CV-1')).id;
+-- 0078: customer service reviews from the booking itself, with no review task needed
 update tasks set status = 'done', completed_at = now() where booking_id = test.id('booking:CV-1') and task_type = 'verify_renter' and status = 'open';
-select test.eq('approval needs an open review task on the booking', test.cv_err(format($$select app.va_do(test.id('cv_cs'), 'coverage_review', '{"proof": "%s", "approve": true}')$$,
-  (test.cv_proof('CV-1')).id)), 'Coverage is reviewed from an open review task on this booking');
-update tasks set status = 'open', completed_at = null where booking_id = test.id('booking:CV-1') and task_type = 'verify_renter' and status = 'done';
-select app.va_do(test.id('cv_cs'), 'coverage_review', jsonb_build_object('proof', (test.cv_proof('CV-1')).id, 'approve', true,
-  'checks', '{"active_after_return": true, "covers_car_and_drivers": true}'::jsonb));
+select test.eq('approval needs no open review task on the booking (0078)', test.cv_err(format($$select app.va_do(test.id('cv_cs'), 'coverage_review', '{"proof": "%s", "approve": true, "checks": {"active_after_return": true, "covers_car_and_drivers": true}}')$$,
+  (test.cv_proof('CV-1')).id)), 'ok');
 select test.eq('approved: the proof is confirmed with the reviewer and the ticks, its page approved, and the booking''s coverage confirmed',
   (select p.status || '/' || (p.confirmed_by = test.id('cv_cs')) || '/' || (p.reviewed_checks ->> 'covers_car_and_drivers') || '/'
           || (select string_agg(u.status, ',') from verification_uploads u where u.coverage_proof_id = p.id) from test.cv_proof('CV-1') p)

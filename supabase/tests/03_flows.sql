@@ -393,6 +393,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- Turo by email (0063): the inbound log and the trips written by the email reader; every change by staff (the
                             -- listing, a trip added or cancelled, a review handled, Done on Turo) is written to audit_log by the functions
                             'turo_vehicle_links', 'turo_inbound_emails', 'turo_calendar_trips', 'turo_blocked_bookings',
+                            -- Turo smart matching (0088): what each car learned from Turo's emails (counted on every email); staff moving or
+                            -- forgetting one is written to audit_log by the functions
+                            'turo_identities',
                             -- discount games (0069): one row per game shown, no personal information (the claims are audited)
                             'game_plays',
                             -- 0074: the count of guide opens per person (app_events, the internal event queue, is listed above)
@@ -403,7 +406,15 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- lists an Admin edits, trim lines and the popular list, are audited)
                             'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',
                             -- the colour pages' fixed list and the IndexNow sweep's cursor (0092): no money, pricing or status
-                            'vehicle_colours', 'indexnow_sweep')
+                            'vehicle_colours', 'indexnow_sweep',
+                            -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
+                            'usage_readings', 'usage_alerts',
+                            -- the phone line (0085): calls, texts, the send queue and the webhook log (high volume, no money, pricing or
+                            -- status); staff links, leads made and opt-outs are written to audit_log by app.phone_staff_do
+                            'quo_config', 'phone_threads', 'phone_activity', 'phone_outbox', 'phone_webhook_log',
+                            -- live visitor signals (0086): the signals of each visit, the actions taken (each also a chat, promo code or
+                            -- task) and cars viewed together per day; the rules and settings Admins change are audited
+                            'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

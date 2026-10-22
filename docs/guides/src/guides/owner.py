@@ -33,11 +33,13 @@ def build():
     g.steps([
         f'Go to {U("carmacars.ca/list-your-car")} and press {B("Apply to list your car")}.',
         f'About you: individual or corporation, your address, licence and date of birth. Press {B("Continue to vehicles")}.',
-        f'For each car, type the VIN and press {B("Look up")}. Use {B("Add another vehicle")} for more cars.',
+        f'For each car, type the VIN: your car is found as you type the last character (Edit if anything is wrong), then tap its colour and answer the rest. Use {B("Add another vehicle")} for more cars.',
         f'Read how it will work, press {B("Continue")}, then {B("Review")}.',
         f'Press {B("Submit application")}, then {B("Go to your owner portal")}.',
     ], shot=S('public/13-list-your-car-desktop', 0, 0, 1440, 800, pins=[(1, 290, 599)]))
     g.tip(f'Need a break? {B("Email me a link")} saves your application and sends you a link to finish later.')
+    g.tip(f'No car to add yet? On the vehicle step press {B("I\'ll add my car later")}, choose your password and press {B("Open my owner account")}. '
+          f'Your owner portal opens with {B("Add your first car")}: press it when you are ready, starting with the VIN.', label='Good to know')
     g.task('What happens next', 'Five steps take your car from your driveway to its first rental.')
     g.flow([('Tell us about the car', 'We confirm fees and set your terms'), ('Sign the agreements', 'Online, one for all your cars'),
             ('One registry visit', 'We fill in the forms and come with you'), ('Tracker and insurance', 'We install it and add the car'),

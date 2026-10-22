@@ -156,6 +156,7 @@ export default async function CarPage({ params }: Params) {
             </dl>
             <div className="car-top__cta">
               <p className="car-top__price"><span className="small muted">From</span> <b className="num">{money(c.daily_rate_cents)}</b> <span className="small muted">a day</span></p>
+              {c.car_code && <p className="small muted" data-testid="car-code">Car code <b className="num">{c.car_code}</b>: quote it when you call or chat with us.</p>}
               {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--warn"><span>Not taking requests right now.</span></p>}
               {c.is_sample
                 ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>

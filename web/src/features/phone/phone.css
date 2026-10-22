@@ -1,0 +1,19 @@
+/* The phone line (migration 0085): calls in the thread, the reply actions, linking an unknown caller, the timeline. */
+.ph-call { align-self: stretch; border-left: 3px solid var(--grey-300); background: var(--white); padding: 6px 10px; }
+.ph-call p { margin: 0; }
+.ph-call--missed { border-left-color: var(--red-600); }
+.ph-callbody { display: grid; gap: 2px; overflow-wrap: anywhere; }
+.ph-callbody p { margin: 0; }
+.ph-transcript { margin: 4px 0 0; padding-left: 1.1em; display: grid; gap: 2px; }
+.ph-formacts { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: flex-end; }
+.ph-pad { padding: 0 var(--s-3) var(--s-3); margin: 0; }
+.ph-link { display: grid; gap: var(--s-2); }
+.ph-row { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.ph-row .input { flex: 1 1 10rem; min-width: 0; font-size: 16px; }
+.ph-found { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ph-tl { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.ph-tl li { display: grid; gap: 2px; border-left: 3px solid var(--grey-200); padding-left: var(--s-2); overflow-wrap: anywhere; }
+.ph-tl li.is-missed { border-left-color: var(--red-600); }
+.ph-tl p { margin: 0; }
+.ph-tabs { margin-bottom: var(--s-3); }
+@media (max-width: 47.99rem) { .ph-form { flex-direction: column; align-items: stretch; } .ph-formacts { justify-content: stretch; } .ph-formacts .btn { flex: 1 1 auto; } }

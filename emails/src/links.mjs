@@ -68,6 +68,7 @@ export const PATHS = {
   admin_weekly: '/admin/reports/weekly',
   admin_reports: '/admin/reports',
   admin_debits: '/admin/debits',
+  admin_usage: '/admin/settings/usage',
 
   // VA portal
   va_cs: '/va/cs',

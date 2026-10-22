@@ -285,6 +285,10 @@ select test.eq('Q a driver under 18 is a problem the quote names; a driver of 18
           jsonb_array_elements(v -> 'problems') p), 'driver_under_minimum_age');
 select test.eq('Q with no driver given the quote assumes one renter of 26 or over: no driver fee',
   (select (v -> 'drivers' -> 0 ->> 'assumed') || '/' || jsonb_array_length(v -> 'lines') from test.out('q1') v), 'true/1');
+-- 0079 seeds a default Protection Plan price for every class and age band; this block tests the table without them
+create table if not exists test.cov_0079 as select * from coverage_prices where false;
+insert into test.cov_0079 select * from coverage_prices where note like 'Default of 0079%';
+delete from coverage_prices where note like 'Default of 0079%';
 -- coverage: a placeholder until an Admin prices it
 select test.keep('q7', app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-03 10:00'), test.at('2029-05-06 10:00'), '{"coverage_option": 3}'));
 select test.eq('Q (0025) coverage through CarmaCars is sold; with no default price: no line, no problem, the quote says it is priced in the offer',
@@ -292,6 +296,9 @@ select test.eq('Q (0025) coverage through CarmaCars is sold; with no default pri
           || '/' || coalesce(v -> 'coverage' ->> 'sold_by_carmacars_price_cents', 'no price') || '/' || coalesce(v -> 'problems' -> 0 ->> 'code', 'no problem')
           || '/' || (v -> 'coverage' ->> 'price_note') from test.out('q7') v),
   '1/3/true/no price/no problem/Priced in your offer');
+-- the 0079 defaults back for the later suites
+insert into coverage_prices select * from test.cov_0079 on conflict (id) do nothing;
+delete from test.cov_0079;
 insert into vehicle_fee_overrides (vehicle_id, fee_type_code, amount_cents, reason, effective_from)
 values (test.id('vehicle:BA2'), 'coverage_sold', 4500, 'test price', app.today()),
        (test.id('vehicle:BA2'), 'additional_driver', 1500, 'test price', app.today());

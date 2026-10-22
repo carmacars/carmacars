@@ -1,20 +1,32 @@
-// Discount games (migration 0069): the rules that decide when a game may show, and the layouts the games draw. Pure
-// functions (no browser, no imports) so they are unit tested and shared by the trigger and the games. The prize itself
-// is drawn by the database; nothing here can change it.
+// Discount games (migrations 0069 and 0081): the rules that decide when a game may show (first, again after a close,
+// in the request-to-book form), and the layouts the games draw. Pure functions (no browser, no imports) so they are
+// unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
+// change it.
 
-export type GameKind = 'wheel' | 'scratch' | 'blackjack' | 'cups' | 'plinko';
-export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko'];
-export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; dismiss_days: number }
-/** What this browser remembers (localStorage, the visitor's own device only). */
-export interface GameMemory { claimed?: boolean; never?: string; dismissedAt?: number; code?: string; codeUntil?: string }
-/** This visit (sessionStorage): when it started, pages and car pages seen, how it began. */
-export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean }
+export type GameKind = 'wheel' | 'scratch' | 'blackjack' | 'cups' | 'plinko' | 'pack';
+export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack'];
+/** The browser's settings (app.game_cfg): the first show (car pages, seconds, exit intent), the re-show after a close
+ *  (more car pages, seconds since the close), the most shows in one visit, and the offer in the request-to-book form. */
+export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; booking: boolean }
+/** What this browser remembers (localStorage, the visitor's own device only): a claim, a refusal from the server, the
+ *  games shown in the current round, the code. dismissedAt is from 0069 and no longer read. */
+export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; dismissedAt?: number; code?: string; codeUntil?: string }
+/** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, and when the
+ *  last one was closed (with the car pages seen by then). */
+export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number }
+export type Trigger = 'pages' | 'time' | 'exit';
+/** Why a game shows, and whether as the small slide-in (the first page of a phone visit from a search engine). */
+export interface Fire { why: Trigger; slim: boolean }
 
-const DAY = 86_400_000;
+/** How much later the small slide-in comes on the first page of a phone visit from a search engine. */
+export const SEARCH_LANDING_DELAY = 15_000;
 
 /** Pages where a game never shows: booking, paying, signing, sign-in, portals, documents. */
 const NEVER = /^\/(book|account|owner|admin|va|field|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth)(\/|$)/;
-export const excludedPath = (path: string) => NEVER.test(path) || /\/(pay|sign|checkout)(\/|$)/.test(path);
+const PAYSIGN = /\/(pay|sign|checkout)(\/|$)/;
+export const excludedPath = (path: string) => NEVER.test(path) || PAYSIGN.test(path);
+/** The request-to-book form (/book and /book/<car>), where the inline card is offered; never its sent page. */
+export const bookingPath = (path: string) => /^\/book(\/[a-z0-9-]+)?\/?$/.test(path) && !/^\/book\/sent(\/|$)/.test(path) && !PAYSIGN.test(path);
 
 /** A car page: /cars/<slug>. */
 export function carSlug(path: string): string | null {
@@ -27,26 +39,93 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
   try { return /(^|\.)(google|bing|duckduckgo|yahoo|ecosia|baidu|yandex|brave|startpage|qwant)\.[a-z.]+$/i.test(new URL(ref).hostname); } catch { return false; }
 }
 
-/** Why the game may not show to this visitor now (null: it may). */
-export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; now: number }): string | null {
+/** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site. */
+export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null }): string | null {
   if (a.signedIn) return 'signed_in';
   if (a.mem.claimed) return 'claimed';
   if (a.mem.never) return a.mem.never;
   if (excludedPath(a.path)) return 'page';
   if (!a.cfg) return 'no_settings';
   if (!a.cfg.on) return 'off';
-  if (a.mem.dismissedAt && a.now - a.mem.dismissedAt < a.cfg.dismiss_days * DAY) return 'dismissed';
+  if (a.visit && (a.visit.shows ?? 0) >= Math.max(1, a.cfg.per_visit)) return 'visit_cap';
   return null;
 }
 
-/** Which rule fires now: enough car pages, enough time, or exit intent (computers only). Never on the first page of a
- *  visit that came from a search engine on a phone (no interstitial on a search landing). */
-export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean }): 'pages' | 'time' | 'exit' | null {
-  if (a.phone && a.visit.fromSearch && a.visit.pages <= 1) return null;
-  if (a.cfg.car_pages > 0 && a.visit.cars.length >= a.cfg.car_pages) return 'pages';
-  if (a.cfg.seconds > 0 && a.now - a.visit.start >= a.cfg.seconds * 1000) return 'time';
-  if (a.exit && a.cfg.exit && !a.phone) return 'exit';
+/** Why the request-to-book form may not offer the game (null: it may). Anyone who has not claimed, signed-in renters
+ *  included; never staff (the server says so). A visitor the site leaves alone because they are known or signed in
+ *  is welcome here; only a claim stops it. */
+export function bookingIneligible(a: { cfg: GameCfg | null; mem: GameMemory; path: string; staff?: boolean; promoApplied?: boolean }): string | null {
+  if (a.mem.claimed || a.mem.never === 'claimed') return 'claimed';
+  if (a.staff) return 'staff';
+  if (!bookingPath(a.path)) return 'page';
+  if (!a.cfg) return 'no_settings';
+  if (!a.cfg.on || !a.cfg.booking) return 'off';
+  if (a.promoApplied) return 'has_code';
   return null;
+}
+
+/** Which rule fires now. The first game of a visit: enough car pages, enough time, or exit intent (computers only),
+ *  whichever first. After a close: more car pages or more time since the close, whichever first. On the first page of
+ *  a phone visit from a search engine there is no interstitial: the game waits for the second page, or comes
+ *  SEARCH_LANDING_DELAY after its rule as the small slide-in that covers almost nothing. */
+export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean }): Fire | null {
+  const { cfg, visit: v, now } = a;
+  const shows = v.shows ?? 0;
+  if (shows >= Math.max(1, cfg.per_visit)) return null;
+  if (shows > 0) {
+    if (v.closedAt === undefined) return null; // one is open
+    if (cfg.reshow_pages > 0 && v.cars.length - (v.carsAtClose ?? v.cars.length) >= cfg.reshow_pages) return { why: 'pages', slim: false };
+    if (cfg.reshow_seconds > 0 && now - v.closedAt >= cfg.reshow_seconds * 1000) return { why: 'time', slim: false };
+    return null;
+  }
+  const byPages = cfg.car_pages > 0 && v.cars.length >= cfg.car_pages;
+  if (a.phone && v.fromSearch && v.pages <= 1) {
+    // when the rule would have fired: at once by pages (the landing page is a car page), or after the seconds
+    const at = byPages ? v.start : cfg.seconds > 0 ? v.start + cfg.seconds * 1000 : null;
+    if (at === null || now < at + SEARCH_LANDING_DELAY) return null;
+    return { why: byPages ? 'pages' : 'time', slim: true };
+  }
+  if (byPages) return { why: 'pages', slim: false };
+  if (cfg.seconds > 0 && now - v.start >= cfg.seconds * 1000) return { why: 'time', slim: false };
+  if (a.exit && cfg.exit && !a.phone) return { why: 'exit', slim: false };
+  return null;
+}
+
+/** When to look again (ms from now), so a timer can fire the time rule on time; null when no time rule is pending. */
+export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: boolean }): number | null {
+  const { cfg, visit: v, now } = a;
+  const shows = v.shows ?? 0;
+  if (shows >= Math.max(1, cfg.per_visit)) return null;
+  let at: number | null = null;
+  if (shows > 0) { if (v.closedAt !== undefined && cfg.reshow_seconds > 0) at = v.closedAt + cfg.reshow_seconds * 1000; }
+  else {
+    const byPages = cfg.car_pages > 0 && v.cars.length >= cfg.car_pages;
+    const timeAt = cfg.seconds > 0 ? v.start + cfg.seconds * 1000 : null;
+    if (a.phone && v.fromSearch && v.pages <= 1) at = byPages ? v.start + SEARCH_LANDING_DELAY : timeAt === null ? null : timeAt + SEARCH_LANDING_DELAY;
+    else at = timeAt;
+  }
+  return at === null ? null : Math.max(0, at - now);
+}
+
+/** The visit after a game is shown, and after it is closed. */
+export const shown = (v: Visit): Visit => ({ ...v, shows: (v.shows ?? 0) + 1, closedAt: undefined, carsAtClose: undefined });
+export const closed = (v: Visit, now: number): Visit => ({ ...v, closedAt: now, carsAtClose: v.cars.length });
+
+/** The games this browser has shown in the current round, with one more: once every game on was shown, a new round
+ *  starts with the one just shown (so the next is never the same twice in a row). */
+export function addSeen(seen: GameKind[] | undefined, g: GameKind, on: GameKind[] = GAMES): GameKind[] {
+  const s = (seen ?? []).filter((x) => on.includes(x));
+  const next = s.includes(g) ? s : [...s, g];
+  return on.every((x) => next.includes(x)) ? [g] : next;
+}
+
+/** The games still to come in this round (all of them again once the round is complete), the server's own rule. */
+export function unseen(seen: GameKind[] | undefined, on: GameKind[] = GAMES, last?: GameKind): GameKind[] {
+  const s = (seen ?? []).filter((x) => on.includes(x));
+  const left = on.filter((x) => !s.includes(x));
+  if (left.length) return left;
+  const fresh = on.filter((x) => x !== last);
+  return fresh.length ? fresh : on;
 }
 
 /** The visit with one more page. */
@@ -58,7 +137,8 @@ export function addPage(v: Visit, path: string): Visit {
 export interface PrizeWord { key: string; short: string; label: string }
 
 /** The wheel's 12 slices: the most common prize on every other slice, the rest in turn between them (the rarest once
- *  or twice), so the wheel looks lively; the terms say the chances differ. */
+ *  or twice), so the wheel looks lively; the terms say the chances differ. Every prize is on the wheel: with more
+ *  prizes than the slices between, some of the common prize's slices give way to them. */
 export function wheelSlices(prizes: PrizeWord[], n = 12): PrizeWord[] {
   if (!prizes.length) return [];
   if (prizes.length === 1) return Array.from({ length: n }, () => prizes[0]!);
@@ -70,7 +150,11 @@ export function wheelSlices(prizes: PrizeWord[], n = 12): PrizeWord[] {
   const pool = [...cycle];
   // interleave so equal prizes are apart
   while (pool.length) { for (const p of rest) { const j = pool.indexOf(p); if (j >= 0) { spread.push(p); pool.splice(j, 1); } } }
-  return Array.from({ length: n }, (_, i) => (i % 2 === 0 ? top! : spread[((i - 1) / 2) % spread.length]!));
+  const out = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? top! : spread[((i - 1) / 2) % spread.length]!));
+  // a prize that found no slice takes one of the common prize's, from the far side
+  const missing = rest.filter((p) => !out.includes(p));
+  missing.forEach((p, k) => { out[n - 2 - 2 * k] = p; });
+  return out;
 }
 
 /** Where the wheel stops: total degrees to turn so the pointer (at the top) rests inside a slice showing the prize.
@@ -85,18 +169,19 @@ export function wheelStop(slices: PrizeWord[], key: string, r: () => number, tur
   return { index, degrees: turns * 360 + (360 - at) };
 }
 
-/** Plinko's slots (rows + 1): the rarest prize in the middle, the next rarest beside it, the most common at the sides. */
+/** Plinko's slots (rows + 1): the rarest prize in the middle, then the next rarest beside it, left and right in turn,
+ *  the most common at the sides. Every prize has a slot while there are slots enough. */
 export function plinkoSlots(prizes: PrizeWord[], rows = 8): PrizeWord[] {
   const n = rows + 1;
   if (!prizes.length) return [];
   const rarest = [...prizes].reverse(); // least likely first
   const mid = Math.floor(n / 2);
-  return Array.from({ length: n }, (_, i) => {
-    const d = Math.abs(i - mid);
-    // distance 0: rarest; 1: next; 2: most common; 3: the third rarest; beyond: the most common
-    const pick = d === 0 ? rarest[0] : d === 1 ? rarest[1] : d === 3 ? rarest[2] : prizes[0];
-    return pick ?? prizes[0]!;
-  });
+  const out: PrizeWord[] = Array.from({ length: n }, () => prizes[0]!);
+  // the order outwards from the middle: mid, mid-1, mid+1, mid-2, mid+2, ...
+  const order = [mid];
+  for (let d = 1; order.length < n; d++) { if (mid - d >= 0) order.push(mid - d); if (mid + d < n) order.push(mid + d); }
+  rarest.slice(0, n).forEach((p, i) => { out[order[i]!] = p; });
+  return out;
 }
 
 /** A path down the pegs (true: right) that ends in a slot showing the prize. It stays near the middle as long as it
@@ -170,3 +255,38 @@ export function claimProblems(v: { first: string; email: string; phone: string }
   if (v.phone.trim() && !(d.length === 10 || (d.length === 11 && d.startsWith('1')) || (v.phone.trim().startsWith('+') && d.length >= 8 && d.length <= 15))) e.phone = 'Enter a mobile number with area code, or leave it empty.';
   return e;
 }
+
+/** A prize of the table (Settings, Discount games): a percentage, an amount or free days, its own minimum length and cap. */
+export interface PrizeRow { key: string; percent_bps?: number; amount_cents?: number; free_days?: number; min_days?: number; max_cents?: number; weight: number }
+/** What one prize takes off the average booking (net rental charge, billable days), as the database applies it: never
+ *  on a shorter booking than its minimum, never above its cap (or the games' cap for a percentage or free days). */
+export function prizeCost(p: PrizeRow, basis: { charge_cents: number; days: number }, defaultCap: number | null): number {
+  const { charge_cents: c, days } = basis;
+  if (c <= 0 || days <= 0) return 0;
+  if (p.min_days && days < p.min_days) return 0;
+  const cap = p.amount_cents ? null : (p.max_cents ?? defaultCap);
+  const raw = p.percent_bps ? Math.round((c * p.percent_bps) / 10000) : p.free_days ? Math.round((c * Math.min(p.free_days, days)) / days) : (p.amount_cents ?? 0);
+  return Math.min(raw, c, cap ?? c);
+}
+/** The expected discount of one claimed code: each prize's cost on the average booking, by its chance. */
+export function expectedCost(prizes: PrizeRow[], basis: { charge_cents: number; days: number }, defaultCap: number | null): number {
+  const total = prizes.reduce((a, p) => a + (p.weight > 0 ? p.weight : 0), 0);
+  if (total <= 0) return 0;
+  return prizes.reduce((a, p) => a + (p.weight > 0 ? (p.weight / total) * prizeCost(p, basis, defaultCap) : 0), 0);
+}
+
+/** The card pack: five cards, four CarmaCars picture cards (never a real trading card design) and the prize last. */
+export type PackCard = { kind: 'art'; title: string; hue: number } | { kind: 'prize' };
+const ART = ['City run', 'Highway', 'Airport pickup', 'Road trip', 'Weekend away', 'Night drive', 'Lake drive', 'Downtown'];
+export function packCards(r: () => number, count = 5): PackCard[] {
+  const pool = [...ART];
+  const art: PackCard[] = [];
+  for (let i = 0; i < count - 1; i++) {
+    const j = Math.floor(r() * pool.length);
+    art.push({ kind: 'art', title: pool.splice(j, 1)[0]!, hue: Math.floor(r() * 360) });
+  }
+  return [...art, { kind: 'prize' }];
+}
+/** How far the top strip is torn (0 to 1) after a drag from x0 to x across a pack w wide; open at 0.6. */
+export const tearProgress = (x0: number, x: number, w: number) => (w <= 0 ? 0 : Math.max(0, Math.min(1, Math.abs(x - x0) / w)));
+export const TORN = 0.6;

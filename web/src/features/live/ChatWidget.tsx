@@ -187,7 +187,7 @@ export function ChatWidget() {
             <div><h2 id="ccw-title" className="ccw-title">Chat with CarmaCars</h2><p className="ccw-status" data-testid="chat-status">{status}</p></div>
             <button type="button" className="ccw-x" aria-label="Close the chat window" onClick={() => { setOpen(false); launcher.current?.focus(); }}>×</button>
           </header>
-          <div className="ccw-log" ref={log} role="log" aria-live="polite" aria-label="Messages" data-testid="chat-log">
+          <div className="ccw-log" ref={log} role="log" aria-live="polite" aria-label="Messages" tabIndex={0} data-testid="chat-log">
             {!msgs.length && <p className="ccw-sys">Hi! Ask about a car, your dates, prices or how booking works.</p>}
             {msgs.map((m) => m.sender === 'system'
               ? <p key={m.id} className="ccw-sys">{m.body}</p>

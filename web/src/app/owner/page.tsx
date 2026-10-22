@@ -36,12 +36,15 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   return (
     <>
       {sp.signed && <p className="alert alert--ok" role="status" data-testid="owner-signed-banner"><span className="alert__title">Signed</span><span>Thank you: your signature is recorded and CarmaCars countersigned. Your signed copies appear in Documents within a few minutes, and we email them to you.</span></p>}
+      {sp.account && <p className="alert alert--ok" role="status" data-testid="owner-account-banner"><span className="alert__title">Your owner account is open</span><span>Add your first car whenever you are ready.</span></p>}
       {sp.applied && <p className="alert alert--ok" role="status"><span className="alert__title">Application received</span><span>We reply within 1 business day with the terms for each vehicle.</span></p>}
       <header className="stack"><p className="pt-kicker">{partner ? `Partner portal · ${partner.partner_number}` : 'Owner portal'}</p><h1 className="d2">Hello, {home.owner.first_name}</h1></header>
       {appTask && <ApplicationTask t={appTask} />}
       {!home.vehicles.length ? (
         partner ? <div className="pt-empty" data-testid="partner-no-cars"><p className="d4">No cars yet</p><p className="muted">CarmaCars adds your cars once we agree which ones join. Questions? Reply to any of our emails.</p>{partner.agreement_status !== 'signed' && <Link prefetch={false} className="btn btn--primary" href="/owner/partner-agreement">Read and sign your partner agreement</Link>}</div>
-        : <div className="pt-empty"><p className="d4">Add your first vehicle</p><p className="muted">Apply once and add every vehicle you want to enrol.</p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add a vehicle</Link></div>
+        : <section className="pt-card pt-card--next" aria-labelledby="ow-first-car" data-testid="owner-first-car"><p className="pt-kicker">Next step</p><h2 className="d3" id="ow-first-car">Add your first car</h2>
+            <p>Start with the VIN: we look the car up and fill in the details. Then choose how it will work and we reply within 1 business day with its terms.</p>
+            <p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply" data-testid="owner-add-first-car">Add your first car</Link></p></section>
       ) : (
         <div className="pt-home">
           {next ? (

@@ -159,7 +159,17 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', '/payment_intents', {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: 'manual', setup_future_usage: 'off_session',
         payment_method_types: ['card'], description: r.description,
+        // a longer hold where the card network and the account's pricing allow it (vehicle rental, MCC 7512: up to about
+        // 30 days); otherwise Stripe places the usual hold and the platform renews it before it lapses
+        'payment_method_options[card][request_extended_authorization]': 'if_available',
         metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, offer_version: String(r.offerVersion), purpose: 'booking_total' },
+        expand
+      }, r.idempotencyKey));
+    },
+    async createAddonIntent(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method_types: ['card'], description: r.description,
+        metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, purpose: 'addon_unpaid' },
         expand
       }, r.idempotencyKey));
     },

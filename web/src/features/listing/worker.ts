@@ -28,7 +28,11 @@ export interface JobContext {
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
   photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null } | null;
 }
-export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number }
+export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
+  /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
+  images_paused?: boolean }
+/** The fallback reason of a photo that kept its original because of the usage guard; the database retries it later. */
+export const USAGE_PAUSED = 'usage_paused';
 export interface Claim { jobs: JobContext[]; budget: Budget; held: { photos: boolean; copy: boolean }; due: number }
 
 export interface JobResult {
@@ -184,6 +188,9 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   if (!p) return { ok: false, error: 'The photo is missing', retryable: false };
   // a photo that never goes on the website (the odometer) is kept as it was taken
   if (!p.is_public) return { ok: true, provider: 'carmacars', output: { used_original: true, flags: [], preset_version: 'original' } };
+  // the usage guard (0080): no transformations while the allowance is used up; the original goes on the site now and the
+  // database queues the studio background again once transformations may be used (app.usage_retry_photos)
+  if (b.images_paused) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
   const src = await d.files.privateUrl(p.original_path);
   let n = 0;
   const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable
@@ -234,6 +241,7 @@ async function fallback(d: WorkerDeps, j: JobContext, reason: string, message: s
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo;
   if (!p?.processed_path || !p.is_public) return { ok: true, provider: 'carmacars', output: { variants: [] } };
+  if (b.images_paused) return { ok: true, provider: 'carmacars', output: { variants: [], flags: ['no_variants'], fallback_reason: `${USAGE_PAUSED}: no size variants this month` } };
   const src = d.files.publicUrl(p.processed_path);
   const variants: { width: number; format: string; path: string }[] = [];
   let n = 0;

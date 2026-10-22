@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { viewAs } from '@/server/view-as';
 import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
@@ -22,11 +23,13 @@ export default async function VaLayout({ children }: { children: React.ReactNode
   let open = 0;
   let needsAddress = false;
   let chat = 0;
+  let hot = 0;
   if (user && roles?.va) {
     try { open = Number((await door<{ open: number }>(user.id, 'va_read', 'digest')).open) || 0; } catch { open = 0; }
     // chats waiting for a person (0060), for customer service and Sales
     if (roles.va === 'cs' || roles.va === 'sales') {
-      try { chat = Number((await door<{ waiting: number }>(user.id, 'va_read', 'chat_counts')).waiting) || 0; } catch { chat = 0; }
+      // and hot visitors on the site now (0086), from the same read
+      try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'va_read', 'chat_counts'); chat = Number(c.waiting) || 0; hot = Number(c.hot) || 0; } catch { chat = 0; }
     }
     // the first sign-in (0059): the home address, asked on every page until it is in
     needsAddress = !viewing && (await homeAddressOf(user.id, 'va')).missing;
@@ -37,14 +40,14 @@ export default async function VaLayout({ children }: { children: React.ReactNode
         {roles?.va ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">{FN_LABEL[roles.va]} · <b data-testid="account-email">{roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><Link prefetch={false} className="link" href="/va/profile" data-testid="va-profile-link">Profile</Link><GuideLink portal="va" /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links"><Link prefetch={false} className="link" href="/va/profile" data-testid="va-profile-link">Profile</Link>{!viewing && <AssistantPanel portal="va" />}<GuideLink portal="va" /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {(roles.va_functions?.length ?? 0) > 1 && !viewing && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
                 <ul className="ad-fn__list">{roles.va_functions!.map((f) => (
                   <li key={f}><form action={switchFunction.bind(null, f)}><button type="submit" className={`btn btn--sm ${f === roles.va ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={f === roles.va}>{FN_LABEL[f]}</button></form></li>
                 ))}</ul></nav>)}
-            <VaNav fn={roles.va} open={open} chat={chat} />
+            <VaNav fn={roles.va} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
         <div className="ad__main">{needsAddress ? <HomeAddressCard portal="va" /> : null}{roles?.va && user ? <GuideBanner portal="va" userId={user.id} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>

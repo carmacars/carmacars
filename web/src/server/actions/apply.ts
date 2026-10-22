@@ -6,6 +6,7 @@ import { DbError, rpc } from '@/lib/db/repo';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { decodeVin } from '@/integrations/vin';
 import type { ActionResult } from '@/features/forms/schemas';
+import type { DecodedCar } from '@/features/vin/vin';
 import { cleanVin, DRAFT_COOKIE, ownerErrors, planErrors, vehicleErrors, vehiclePayload, type ApplyState } from '@/features/owner/apply-schema';
 import { currentUser } from '@/server/portal/data';
 import { requestMeta } from '@/server/request';
@@ -57,19 +58,28 @@ export async function emailResumeLink(email: string): Promise<R> {
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export interface VinResult { vin: string; valid: boolean; taken: boolean; decode: { year: number | null; make: string | null; model: string | null; trim: string | null; fuel: string | null; body_class: string | null } | null }
+export interface VinResult {
+  vin: string; valid: boolean; taken: boolean;
+  /** the decode in the listing's words (0082): year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine */
+  decode: (DecodedCar & { body_class?: string | null }) | null;
+  /** false when the check digit does not add up (the VIN may be mistyped; it can still be used) */
+  check_ok: boolean;
+}
 
+/** The owner's VIN, looked up at the 17th character: the decode on file, or the decoder now (stored once per VIN). */
 export async function lookupVin(raw: string): Promise<R<VinResult>> {
   const vin = cleanVin(raw ?? '');
   try {
-    let r = (await rpc('server_vin_lookup', { p_vin: vin }, SR)) as unknown as VinResult;
+    const r = (await rpc('server_vin_lookup', { p_vin: vin }, SR)) as unknown as { valid: boolean; taken: boolean; decode: unknown };
     if (!r.valid) return { ok: false, code: 'invalid', message: 'Check the VIN: 17 letters and numbers, no I, O or Q.', fieldErrors: { vin: 'Check the VIN: 17 letters and numbers, no I, O or Q.' } };
     if (r.taken) return { ok: false, code: 'taken', message: 'This vehicle is already with CarmaCars. If it is yours, contact us.', fieldErrors: { vin: 'This vehicle is already with CarmaCars. If it is yours, contact us.' } };
-    if (!r.decode) {
+    let f = (await rpc('server_vin_facts', { p_vin: vin }, SR)) as unknown as { decode: VinResult['decode']; check_ok: boolean; decode_failed_at: string | null };
+    if (!f.decode && !(f.decode_failed_at && Date.now() - new Date(f.decode_failed_at).getTime() < 3_600_000)) {
       const d = await decodeVin(vin);
-      r = (await rpc('server_record_vin_decode', { p_vin: vin, p_provider: d.provider, p_output: d.result as never }, SR)) as unknown as VinResult;
+      await rpc('server_record_vin_decode', { p_vin: vin, p_provider: d.provider, p_output: d.result as never }, SR);
+      f = (await rpc('server_vin_facts', { p_vin: vin }, SR)) as unknown as typeof f;
     }
-    return { ok: true, data: r };
+    return { ok: true, data: { vin, valid: true, taken: false, decode: f.decode, check_ok: f.check_ok } };
   } catch (e) { return fail(dbMessage(e)); }
 }
 
@@ -82,12 +92,14 @@ export async function methodOptions(heldBy: string, titleStatus: string, mode: s
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number; checkEmail?: boolean; confirmEmail?: string }
+export interface SubmitResult { applicationNumber: string; vehicles: number; declined: number; checkEmail?: boolean; confirmEmail?: string; accountOnly?: boolean }
 
 export async function submitApplication(state: ApplyState, password: string, turnstileToken: string | null): Promise<R<SubmitResult>> {
   const o = state.owner;
   const fe: Record<string, string> = { ...ownerErrors(o) };
-  if (!state.vehicles.length) return fail('Add at least one vehicle.');
+  // "I'll add my car later" (0087): the owner account and record with no car; otherwise at least one car
+  const accountOnly = !state.vehicles.length && !!state.later;
+  if (!state.vehicles.length && !accountOnly) return fail('Add at least one vehicle, or choose "I\'ll add my car later".');
   state.vehicles.forEach((v, i) => { for (const [k, m] of Object.entries({ ...vehicleErrors(v, o.owner_type), ...planErrors(v) })) fe[`v${i}.${k}`] = m; });
   let user = await currentUser();
   let onRecord = false;
@@ -148,10 +160,11 @@ export async function submitApplication(state: ApplyState, password: string, tur
         licence_number: o.owner_type === 'individual' ? o.licence_number.replace(/\s/g, '').toUpperCase() : null,
         date_of_birth: o.owner_type === 'individual' ? o.date_of_birth : null, referred_by: o.referred_by.trim() || null
       },
-      vehicles: state.vehicles.map(vehiclePayload)
+      vehicles: state.vehicles.map(vehiclePayload), ...(accountOnly ? { account_only: true } : {})
     }, p_by: user.id }, SR)) as unknown as { application_number: string; vehicles: Array<{ declined: boolean }> };
     (await cookies()).delete(DRAFT_COOKIE);
     if (confirmEmail || onRecord) await rememberEmail(user.email);
-    return { ok: true, data: { applicationNumber: res.application_number, vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}), ...(confirmEmail ? { confirmEmail } : {}) } };
+    if (!accountOnly) { const { afterCarAdded } = await import('@/server/car-added'); afterCarAdded(); }   // each car's copy at once (0082)
+    return { ok: true, data: { applicationNumber: res.application_number, ...(accountOnly ? { accountOnly: true } : {}), vehicles: res.vehicles.length, declined: res.vehicles.filter((v) => v.declined).length, ...(onRecord ? { checkEmail: true } : {}), ...(confirmEmail ? { confirmEmail } : {}) } };
   } catch (e) { return fail(dbMessage(e)); }
 }

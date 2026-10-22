@@ -136,6 +136,9 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-form--compact .ad-fields { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
 .ad-dialog { border: 1px solid var(--black); padding: var(--s-5); width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; }
 .ad-dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+.ad-dialog--wide { width: min(56rem, calc(100vw - 2rem)); }
+.ad-form-pages { display: grid; gap: var(--s-3); }
+.ad-form-pages img { width: 100%; height: auto; border: 1px solid var(--line, #d6d6d8); background: #fff; }
 .ad-dialog .ad-fields { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 40rem) { .ad-dialog .ad-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ad-err { font-size: var(--fs-xs); color: var(--red-700, #a1121a); margin-left: var(--s-2); }
@@ -345,3 +348,7 @@ a.ad-tile:hover { border-color: var(--black); }
 .cs-trip__fields { display: grid; gap: var(--s-2); }
 @media (min-width: 48rem) { .cs-trip__fields { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); } }
 .cs-block { display: grid; gap: var(--s-1); min-width: 0; }
+/* Turo: "Which car is this?" (0088) */
+.cs-which__list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: var(--s-2); }
+.cs-which__car { width: 100%; min-height: 3rem; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; white-space: normal; height: auto; padding-block: var(--s-2); }
+.cs-which__other { display: grid; gap: var(--s-2); margin-top: var(--s-3); }

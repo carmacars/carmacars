@@ -73,7 +73,11 @@ update program_settings set vpage_index_mode = 'rules' where id = (app.settings(
 select test.ok('rules: a trim with no car of ours is noindex, canonical at its year', not (public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'indexable')::boolean
   and public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'canonical' = '/cars/volkswagen/jetta/2020');
 select test.ok('rules: a popular model''s year from 2015 is indexed', (public.vehicle_year_page('volkswagen', 'jetta', 2020) ->> 'indexable')::boolean);
-select test.ok('rules: a year of a model not on the list, with no car, is not', not (public.vehicle_year_page('cadillac', 'cts', 2015) ->> 'indexable')::boolean);
+-- (a model year no car of any suite matches: earlier suites add cars of their own, a 2015 Cadillac CTS among them)
+select test.ok('rules: a year of a model not on the list, with no car, is not', (select bool_and(not (public.vehicle_year_page(y.make_slug, y.model_slug, y.year) ->> 'indexable')::boolean) and count(*) > 0
+  from vehicle_catalog_years y join vehicle_catalog_makes k on k.slug = y.make_slug join vehicle_catalog_models m on m.make_slug = y.make_slug and m.slug = y.model_slug
+ where not exists (select 1 from vehicle_catalog_popular p where p.make_slug = y.make_slug and p.model_slug = y.model_slug)
+   and not exists (select 1 from vehicles v where lower(v.make) = lower(k.name) and app.slugify(v.model) = y.model_slug)));
 select test.ok('rules: makes are always indexed', (public.vehicle_make_page('cadillac') ->> 'indexable')::boolean);
 select test.ok('rules: the sitemap leaves out the trim', not exists (select 1 from app.vehicle_sitemap('volkswagen-trims') where path = '/cars/volkswagen/jetta/2020/sportline'));
 

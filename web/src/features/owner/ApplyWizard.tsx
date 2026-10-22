@@ -6,6 +6,8 @@ import { money, pct } from '@/lib/format';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
+import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
+import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
@@ -115,12 +117,15 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     if (Object.keys(e).length) { focusFirstError(); return false; }
     return true;
   };
-  const addVehicle = () => { if (s.active >= 0 && !saveVehicle(s.active)) return; setS((x) => ({ ...x, vehicles: [...x.vehicles, blankVehicle(uid())], active: x.vehicles.length })); };
+  const addVehicle = () => { if (s.active >= 0 && !saveVehicle(s.active)) return; setS((x) => ({ ...x, later: false, vehicles: [...x.vehicles, blankVehicle(uid())], active: x.vehicles.length })); };
+  // "I'll add my car later" (0087): no car and no plan now; the review creates the account and the owner portal asks for the first car
+  const addLater = () => { setS((x) => ({ ...x, later: true, vehicles: [], active: -1 })); go(3); };
+  const addCarNow = () => { setS((x) => ({ ...x, later: false, vehicles: x.vehicles.length ? x.vehicles : [blankVehicle(uid())], active: 0 })); go(1); };
   const nextFromVehicles = () => {
     if (s.active >= 0 && !saveVehicle(s.active)) return;
     const bad = s.vehicles.findIndex((_, i) => Object.keys(vehicleErr(i)).length);
     if (bad >= 0) { setS((x) => ({ ...x, active: bad })); saveVehicle(bad); return; }
-    setS((x) => ({ ...x, active: -1 }));
+    setS((x) => ({ ...x, active: -1, later: false }));
     go(2);
   };
   const nextFromPlan = () => {
@@ -131,19 +136,40 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     go(3);
   };
 
+  // the VIN looked up at the 17th character (0082): the details fill themselves, shown as one line with an Edit link
+  const asked = useRef<Record<string, string>>({});
   const checkVin = async (i: number) => {
     const v = s.vehicles[i]!;
     const vin = cleanVin(v.vin);
-    setVinMsg((m) => ({ ...m, [v.key]: 'Checking' }));
+    asked.current[v.key] = vin;
+    setVinMsg((m) => ({ ...m, [v.key]: 'Looking up your VIN' }));
     const r = await lookupVin(vin);
+    if (asked.current[v.key] !== vin) return;
     if (!r.ok) { setVinMsg((m) => ({ ...m, [v.key]: '' })); setErrs((e) => ({ ...e, [`v${i}.vin`]: r.message })); return; }
     clearErr(`v${i}.vin`);
     const d = r.data.decode;
+    const warn = r.data.check_ok ? '' : ' This VIN does not add up: check it against the ownership permit.';
     if (d && d.make) {
-      setVehicle(i, { vin, year: v.year || String(d.year ?? ''), make: v.make || d.make || '', model: v.model || d.model || '', trim: v.trim || d.trim || '', fuel: v.fuel || d.fuel || '', decoded: true });
-      setVinMsg((m) => ({ ...m, [v.key]: `Found: ${[d.year, d.make, d.model, d.trim].filter(Boolean).join(' ')}. Check the details below.` }));
-    } else setVinMsg((m) => ({ ...m, [v.key]: 'VIN checked. Enter the year, make and model from the ownership permit.' }));
+      setVehicle(i, { vin, year: String(d.year ?? ''), make: d.make ?? '', model: d.model ?? '', trim: d.trim ?? '', fuel: d.fuel ?? '', decoded: true, editing: false, details: detailLine(d) });
+      ['year', 'make', 'model'].forEach((k) => clearErr(`v${i}.${k}`));
+      setVinMsg((m) => ({ ...m, [v.key]: `Found your car.${warn}` }));
+    } else {
+      setVehicle(i, { vin, decoded: false, details: '' });
+      setVinMsg((m) => ({ ...m, [v.key]: `We could not look this VIN up. Choose the year, make and model below.${warn}` }));
+    }
   };
+  const activeVin = s.active >= 0 ? cleanVin(s.vehicles[s.active]?.vin ?? '') : '';
+  useEffect(() => {
+    const v = s.active >= 0 ? s.vehicles[s.active] : null;
+    if (!v) return;
+    const st = vinState(v.vin);
+    if (st.kind !== 'ok' && st.kind !== 'check_digit') return;
+    if (asked.current[v.key] === st.vin) return;
+    // a draft opened again keeps what was found and edited; a new or changed VIN is looked up
+    if (asked.current[v.key] === undefined && (v.decoded || v.make)) { asked.current[v.key] = st.vin; return; }
+    void checkVin(s.active);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVin, s.active]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -181,15 +207,15 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
   if (done) {
     return (
       <div className="pt-card pt-card--next" tabIndex={-1} ref={top} data-testid="apply-done">
-        <p className="pt-kicker">Application {done.applicationNumber}</p>
-        <h2 className="d2">Application received</h2>
-        <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>
+        <p className="pt-kicker">{done.accountOnly ? 'Owner account' : 'Application'} {done.applicationNumber}</p>
+        <h2 className="d2">{done.accountOnly ? 'Your owner account is open' : 'Application received'}</h2>
+        {done.accountOnly ? <p data-testid="apply-account-only">Add your first car from your owner portal whenever you are ready. We will also be in touch to help.</p> : <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>}
         {done.declined > 0 && <p className="ow-warn">{done.declined} vehicle{done.declined === 1 ? ' was' : 's were'} not accepted: a rebuilt, salvage or irreparable brand is not eligible (Enrollment Agreement 3.1).</p>}
         {done.checkEmail
           ? <p className="pt-note" data-testid="apply-check-email">We already had your email from an earlier booking request, so your sign-in is set up on that record. Open the email we just sent and choose your password: your owner portal and your earlier requests are there. The link works for 24 hours.</p>
           : done.confirmEmail
             ? <div className="pt-note" data-testid="apply-confirm-email"><p><strong>One more step: confirm your email.</strong> We sent a link to {done.confirmEmail} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours: it confirms your email and opens your owner portal.</p><p className="small">No email after a few minutes? Check spam, or go to <Link className="link" href="/sign-in">Sign in</Link>, enter your email and password, and press &quot;Send a new confirmation link&quot;.</p></div>
-            : <p><Link className="btn btn--primary" href="/owner?applied=1">Go to your owner portal</Link></p>}
+            : <p><Link className="btn btn--primary" href={done.accountOnly ? '/owner?account=1' : '/owner?applied=1'}>Go to your owner portal</Link></p>}
       </div>
     );
   }
@@ -281,20 +307,32 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             return (
               <div className="pt-card" data-testid="vehicle-editor">
                 <h3 className="d4">Vehicle {i + 1}{v.make ? `: ${vName(v)}` : ''}</h3>
-                <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || 'On the ownership permit and the driver\'s door frame. We look up the year, make and model.'}>
-                  <div className="ow-vin"><input className="input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => set({ vin: ev.target.value.toUpperCase(), decoded: false }, 'vin')} onBlur={() => { if (cleanVin(v.vin).length === 17 && !v.decoded) void checkVin(i); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
-                    <button type="button" className="btn btn--ghost" onClick={() => void checkVin(i)}>Look up</button></div>
+                <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || vinMessage(vinState(v.vin)) || 'On the ownership permit and the driver\'s door frame. Your car\'s details come from it.'}>
+                  <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" /></div>
                 </Field>
-                <div className="field-row field-row--3">
-                  <Field id={id('year')} label="Year" err={e('year')}><input className="input" inputMode="numeric" {...aria(id('year'), e('year'))} value={v.year} onChange={(ev) => set({ year: ev.target.value.replace(/\D/g, '').slice(0, 4) }, 'year')} /></Field>
-                  <Field id={id('make')} label="Make" err={e('make')}><input className="input" {...aria(id('make'), e('make'))} value={v.make} onChange={(ev) => set({ make: ev.target.value }, 'make')} /></Field>
-                  <Field id={id('model')} label="Model" err={e('model')}><input className="input" {...aria(id('model'), e('model'))} value={v.model} onChange={(ev) => set({ model: ev.target.value }, 'model')} /></Field>
-                </div>
-                <div className="field-row field-row--3">
-                  <Field id={id('trim')} label="Trim" optional><input className="input" id={id('trim')} value={v.trim} onChange={(ev) => set({ trim: ev.target.value })} /></Field>
-                  <Field id={id('colour')} label="Colour" err={e('colour')}><input className="input" {...aria(id('colour'), e('colour'))} value={v.colour} onChange={(ev) => set({ colour: ev.target.value }, 'colour')} /></Field>
-                  <Field id={id('fuel')} label="Fuel" err={e('fuel')}><select className="select" {...aria(id('fuel'), e('fuel'))} value={v.fuel} onChange={(ev) => set({ fuel: ev.target.value }, 'fuel')}><option value="">Choose</option>{FUELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-                </div>
+                {v.decoded && !v.editing ? (
+                  <div className="vin-sum" data-testid="apply-vin-summary">
+                    <p className="vin-sum__name"><b>{carName({ year: Number(v.year) || null, make: v.make, model: v.model, trim: v.trim })}</b> <button type="button" className="link" onClick={() => set({ editing: true })} data-testid="apply-vin-edit">Edit</button></p>
+                    {v.details && <p className="small muted vin-sum__line">{v.details}</p>}
+                  </div>
+                ) : v.decoded ? (
+                  <div className="stack" data-testid="apply-vin-edit-fields">
+                    <div className="field-row field-row--3">
+                      <Field id={id('year')} label="Year" err={e('year')}><input className="input" inputMode="numeric" {...aria(id('year'), e('year'))} value={v.year} onChange={(ev) => set({ year: ev.target.value.replace(/\D/g, '').slice(0, 4) }, 'year')} /></Field>
+                      <Field id={id('make')} label="Make" err={e('make')}><input className="input" {...aria(id('make'), e('make'))} value={v.make} onChange={(ev) => set({ make: ev.target.value }, 'make')} /></Field>
+                      <Field id={id('model')} label="Model" err={e('model')}><input className="input" {...aria(id('model'), e('model'))} value={v.model} onChange={(ev) => set({ model: ev.target.value }, 'model')} /></Field>
+                    </div>
+                    <div className="field-row field-row--3">
+                      <Field id={id('trim')} label="Trim" optional><input className="input" id={id('trim')} value={v.trim} onChange={(ev) => set({ trim: ev.target.value })} /></Field>
+                      <Field id={id('fuel')} label="Fuel" optional><select className="select" id={id('fuel')} value={v.fuel} onChange={(ev) => set({ fuel: ev.target.value })}><option value="">Choose</option>{FUELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+                    </div>
+                    <p className="small"><button type="button" className="link" onClick={() => set({ editing: false })}>Done</button></p>
+                  </div>
+                ) : (cleanVin(v.vin).length === 17 && vinMsg[v.key] !== 'Looking up your VIN' && (!!vinMsg[v.key] || !!v.make)) ? (
+                  <YearMakeModel value={{ year: v.year, make: v.make, model: v.model }} onChange={(x) => { set({ year: x.year ?? '', make: x.make ?? '', model: x.model ?? '' }); ['year', 'make', 'model'].forEach((k) => clearErr(`v${i}.${k}`)); }}
+                    prefix="apply" errs={{ year: e('year'), make: e('make'), model: e('model') }} />
+                ) : (e('year') || e('make') || e('model')) ? <p className="error" role="alert">Enter the VIN: we fill in the year, make and model from it.</p> : null}
+                <ColourSwatches value={v.colour} onChange={(c) => set({ colour: c }, 'colour')} prefix="apply" err={e('colour')} />
                 <div className="field-row field-row--3">
                   <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" /></Field>
                   <Field id={id('odo')} label="Odometer (km)" err={e('odometer_km')}><input className="input" inputMode="numeric" {...aria(id('odo'), e('odometer_km'))} value={v.odometer_km} onChange={(ev) => set({ odometer_km: ev.target.value.replace(/[^\d]/g, '') }, 'odometer_km')} /></Field>
@@ -320,6 +358,10 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <button className="btn btn--ghost" type="button" onClick={addVehicle}>Add another vehicle</button>
             <button className="btn btn--primary btn--lg" type="button" onClick={nextFromVehicles} disabled={!s.vehicles.length}>Continue</button>
           </div>
+          {!ownerOnFile && (
+            <p className="small" data-testid="apply-later-row">No car to add right now? <button type="button" className="btn btn--quiet btn--sm" onClick={addLater} data-testid="apply-later">I&apos;ll add my car later</button>
+              <span className="muted"> Your owner account opens now; add your first car from your owner portal when you are ready.</span></p>
+          )}
         </section>
       )}
 
@@ -397,6 +439,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <p className="small">{o.owner_type === 'corporation' ? `For ${o.corporation_name} (no. ${o.corporation_number}), as ${o.signing_officer_title}. ` : ''}{[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}. {o.email}, {o.phone}.</p>
             {o.owner_type === 'individual' && !o.licence_number && <p className="ow-warn">Enter your driver&apos;s licence number again in step 1 (it is never kept in a saved draft).</p>}
           </section>
+          {s.later && !s.vehicles.length && (
+            <section className="pt-card" aria-label="Your car" data-testid="apply-review-later">
+              <div className="pt-card__head"><h3 className="d4">No car yet</h3><button type="button" className="btn btn--quiet btn--sm" onClick={addCarNow}>Add a car now</button></div>
+              <p className="small">Your owner account opens with this step. Add your first car from your owner portal whenever you are ready: we set its terms then.</p>
+            </section>
+          )}
           {s.vehicles.map((v, i) => (
             <section key={v.key} className="pt-card" aria-label={vName(v)}>
               <div className="pt-card__head"><h3 className="d4">{vName(v)}</h3><button type="button" className="btn btn--quiet btn--sm" onClick={() => { setS((x) => ({ ...x, active: i })); go(1); }}>Edit</button></div>
@@ -415,8 +463,8 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
           <Turnstile action="owner_application" />
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
           <div className="ow-actions">
-            <button className="btn btn--ghost" type="button" onClick={() => go(2)}>Back</button>
-            <button className="btn btn--primary btn--lg" type="submit" disabled={busy}>{busy ? 'Sending' : 'Submit application'}</button>
+            <button className="btn btn--ghost" type="button" onClick={() => go(s.later && !s.vehicles.length ? 1 : 2)}>Back</button>
+            <button className="btn btn--primary btn--lg" type="submit" disabled={busy}>{busy ? 'Sending' : s.later && !s.vehicles.length ? 'Open my owner account' : 'Submit application'}</button>
           </div>
         </form>
       )}

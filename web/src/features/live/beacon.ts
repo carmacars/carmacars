@@ -4,11 +4,16 @@
 // consent it records the pages, cars and dates a visitor looks at; without it, only a known customer's own booking
 // pages (offer, change proposal, pay page) and the email link that brought them, which the privacy policy describes.
 // No third-party script, no fingerprinting, no network address kept.
+// 0086 adds a few low-cost events, with analytics consent only (the list in allowed() is unchanged): the price shown
+// (from Estimate), the request form step reached and its errors, a question opened in a FAQ (its topic only), a tap
+// to call, text, WhatsApp or email us or a copied phone number, photos looked through (from Gallery), sorting and
+// filters on the fleet list, dates changed without a page load, repeated taps, and a flag when the visit came from an
+// ad click (the click id never leaves the browser). Never what a visitor types.
 
 type Ev = { k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> };
 export interface BeaconReply { ok?: boolean; invite?: { token: string; number: string; message: string; from?: string } | null; cfg?: { chat: boolean; greet_after: number; greet_text: string } }
 
-const SID = 'cc_sid', VID = 'cc_vid', CHOICE = 'cc_cookie_choice';
+const SID = 'cc_sid', VID = 'cc_vid', CHOICE = 'cc_cookie_choice', AD = 'cc_ad';
 const IDLE_MS = 30 * 60 * 1000, FLUSH_MS = 4000, BEAT_MS = 30_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -59,7 +64,9 @@ function batch(events: Ev[]) {
   const q = new URLSearchParams(location.search);
   const utm: Record<string, string> = {};
   for (const k of ['source', 'medium', 'campaign', 'term', 'content']) { const v = q.get('utm_' + k); if (v) utm[k] = v; }
-  return { sid: sessionId(), vid: visitorId(), consent: analyticsOn() ? 'analytics' : 'essential', ref, landing: location.pathname, utm, events };
+  let ad: '1' | undefined;
+  try { ad = sessionStorage.getItem(AD) === '1' ? '1' : undefined; } catch { /* none */ }
+  return { sid: sessionId(), vid: visitorId(), consent: analyticsOn() ? 'analytics' : 'essential', ref, landing: location.pathname, utm, ad, events };
 }
 
 /** Without analytics consent, only what the privacy policy allows leaves the browser. */
@@ -95,9 +102,56 @@ function leave(final: boolean) {
   if (final) void send(true);
 }
 
+// ---------------------------------------------------------------- 0086: what changes on the page without a load
+let page = { dates: '', sort: '', filters: '', max: 0, step: 0, errs: 0, frictions: 0, rage: { t: null as EventTarget | null, n: 0, at: 0 } };
+let browseTimer: ReturnType<typeof setTimeout> | undefined;
+let browseNext: Record<string, string> = {};
+/** The address changed on the same page (dates picked, the fleet list sorted or filtered): one event after a pause. */
+function queryChanged(first: boolean) {
+  const q = new URLSearchParams(location.search);
+  const from = q.get('from'), to = q.get('to');
+  const dates = from && to ? `${from}|${to}` : '';
+  const sort = q.get('sort') ?? '';
+  const filters = ['cls', 'seats', 'trans', 'q', 'mode'].map((k) => q.get(k) ?? '').join('|');
+  const max = Number(q.get('max') ?? 0) || 0;
+  if (!first) {
+    if (dates && dates !== page.dates) browseNext.dates = dates;
+    if (sort !== page.sort && sort) browseNext.sort = sort === 'price-asc' || sort === 'price-desc' ? sort : 'other';
+    if (filters !== page.filters) browseNext.filter = '1';
+    if (max && (!page.max || max < page.max)) browseNext.maxp = '1';
+    if (Object.keys(browseNext).length) {
+      if (browseTimer) clearTimeout(browseTimer);
+      browseTimer = setTimeout(() => {
+        const n = browseNext; browseNext = {};
+        if (n.dates) { const [p, r] = n.dates.split('|'); track('search', { slug: current.slug, d: { pickup: p!, return: r! } }); }
+        const d: Record<string, string> = {};
+        for (const k of ['sort', 'filter', 'maxp']) if (n[k]) d[k] = n[k]!;
+        if (Object.keys(d).length) track('browse', { d });
+      }, 1500);
+    }
+  }
+  page.dates = dates; page.sort = sort; page.filters = filters; page.max = max;
+}
+const TOPICS: Array<[RegExp, string]> = [[/cancel|refund/i, 'cancel'], [/deposit|\bhold\b/i, 'deposit'], [/(additional|second|another|extra) driver|add a driver/i, 'drivers'],
+  [/insur|coverage|protection|damage/i, 'insurance'], [/young|under 2[15]|how old|\bage\b/i, 'young'], [/deliver|airport|drop.?off/i, 'delivery'],
+  [/kilomet|\bkm\b|mileage/i, 'km'], [/licen[cs]e|requir|document|credit card|debit/i, 'requirements'], [/price|cost|rate|fee|pay|tax|hst/i, 'price']];
+export const topicOf = (q: string) => TOPICS.find(([re]) => re.test(q))?.[1] ?? 'other';
+const CONTACT = (h: string) => (/^tel:/i.test(h) ? 'call' : /^sms:/i.test(h) ? 'sms' : /^mailto:/i.test(h) ? 'email' : /wa\.me|whatsapp/i.test(h) ? 'whatsapp' : null);
+/** The request form: the step on screen and its errors, read after a tap (nothing typed is read). */
+function formCheck() {
+  if (current.kind !== 'book') return;
+  const n = Number((document.querySelector('[data-step]:not([hidden])') as HTMLElement | null)?.dataset.step ?? 0);
+  if (n > page.step) { page.step = n; if (n > 1) track('request_step', { slug: current.slug, d: { step: String(n) } }); }
+  const errs = document.querySelectorAll('form .has-error').length;
+  if (errs > 0 && errs !== page.errs && page.frictions < 3) { page.frictions++; track('friction', { slug: current.slug, d: { type: 'error' } }); }
+  page.errs = errs;
+}
+
 function view() {
   const path = location.pathname;
-  if (path === current.path) return;
+  if (path === current.path) { queryChanged(false); return; }
+  page = { dates: '', sort: '', filters: '', max: 0, step: 0, errs: 0, frictions: 0, rage: { t: null, n: 0, at: 0 } };
+  queryChanged(true);
   const ctx = pageContext(path);
   // leaving the form for the "sent" page is a submission, not an abandoned request
   if (current.path && !(current.kind === 'book' && ctx.kind === 'sent')) leave(false);
@@ -105,7 +159,7 @@ function view() {
   if (ctx.kind === 'book') lastBookSlug = ctx.slug;
   push({ k: 'page_view', path, slug: ctx.kind === 'sent' ? lastBookSlug : ctx.slug, bn: ctx.bn });
   const q = new URLSearchParams(location.search);
-  if (q.get('from') && q.get('to')) push({ k: 'search', path, d: { pickup: q.get('from')!, return: q.get('to')! } });
+  if (q.get('from') && q.get('to')) push({ k: 'search', path, slug: ctx.slug, d: { pickup: q.get('from')!, return: q.get('to')! } });
   // the outbox row an email link carries (?m=), also inside a sign-in page's next=
   let m = q.get('m');
   if (!m) { const next = q.get('next'); if (next) m = new URLSearchParams(next.split('?')[1] ?? '').get('m'); }
@@ -126,6 +180,32 @@ export function startBeacon() {
     history[k] = (...a: Parameters<History['pushState']>) => { const r = orig(...a); queueMicrotask(view); return r; };
   }
   addEventListener('popstate', () => queueMicrotask(view));
+  try { if (/[?&](gclid|gbraid|wbraid|msclkid|dclid)=/.test(location.search)) sessionStorage.setItem(AD, '1'); } catch { /* none */ }
+  // 0086: events from the components (the price shown, photos looked through), and taps, copies and questions opened
+  addEventListener('cc:track', (e) => {
+    const x = (e as CustomEvent<{ k?: string; d?: Record<string, string> }>).detail;
+    if (x?.k && ['quote_seen', 'photos'].includes(x.k)) track(x.k, { slug: current.slug, d: x.d });
+  });
+  document.addEventListener('click', (e) => {
+    const a = (e.target as Element | null)?.closest?.('a[href]');
+    const via = a ? CONTACT(a.getAttribute('href') ?? '') : null;
+    if (via) track('contact_click', { d: { via } });
+    // the same thing tapped four times in quick succession: something did not respond
+    const r = page.rage, now = Date.now();
+    if (e.target === r.t && now - r.at < 700) r.n++; else { r.t = e.target; r.n = 1; }
+    r.at = now;
+    if (r.n === 4 && page.frictions < 3) { page.frictions++; track('friction', { d: { type: 'rage' } }); }
+    if (current.kind === 'book') setTimeout(formCheck, 120);
+  }, true);
+  document.addEventListener('invalid', () => { if (page.frictions < 3 && !page.errs) { page.frictions++; page.errs = 1; track('friction', { slug: current.slug, d: { type: 'error' } }); } }, true);
+  document.addEventListener('copy', () => {
+    const t = String(getSelection() ?? '');
+    if (t.length < 40 && /(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/.test(t)) track('contact_click', { d: { via: 'copy' } });
+  });
+  document.addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (d instanceof HTMLDetailsElement && d.open && d.closest('.faq')) track('help_open', { d: { topic: topicOf(d.querySelector('summary')?.textContent ?? '') } });
+  }, true);
   // a booking request form: the first field touched starts it
   document.addEventListener('focusin', (e) => {
     if (current.kind !== 'book' || current.requestStarted) return;

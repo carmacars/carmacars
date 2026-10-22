@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow } from './helpers';
 
 // Migration 0064 end to end, at 375 and 1440 pixels: posting a car with its rates and kilometres in one pass (Add a
 // car for the three supply types, a car's Rates tab, Fleet), the field messages, the preview priced like bookings;
@@ -66,9 +66,7 @@ async function addCar(page: Page, supply: 'company' | 'partner' | 'program_owner
   if (o.ownerId) await page.getByTestId('add-car-owner').selectOption({ index: 1 });
   await page.getByTestId('add-car-vin').fill(vin());
   await page.getByTestId('add-car-plate').fill(plate());
-  await page.getByTestId('add-car-year').fill('2023');
-  await page.getByTestId('add-car-make').fill('Hyundai');
-  await page.getByTestId('add-car-model').fill(`Elantra ${tag()}`);
+  await carByHand(page, 'add-car', { year: '2023', make: 'Hyundai', model: `Elantra ${tag()}` });
   for (const [k, v] of Object.entries(o.rates)) await page.getByTestId(`add-car-${k}`).fill(v);
   // the check answers after a short pause (and may add the similar cars line above the fields)
   await expect(page.getByTestId('add-car-example-friday_sunday')).toBeVisible({ timeout: 15_000 });
@@ -128,6 +126,12 @@ test('post a car with its rates and kilometres in one pass: Add a car (three sup
   // the Rates tab: a car with no rates saves in one pass (the circular refusal of 0063)
   const [bare] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2024, make: 'Kia', model: `K5 ${tag()}` })}) as r`;
   const bareId = (bare!.r as { vehicle_id: string }).vehicle_id;
+  // 0087: a car added without rates gets a complete rate card from the class defaults, marked "Set automatically";
+  // the circular refusal of 0063 is checked on a car with no card at all, so that card is taken off here
+  await page.goto(`/admin/vehicles/${bareId}?tab=rates`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('rate-card-auto')).toContainText('Set automatically');
+  await expect(page.getByTestId('auto-rate-daily')).toBeVisible();
+  await sql`delete from rate_cards where vehicle_id = ${bareId} and auto_defaults ? 'daily'`;
   await page.goto(`/admin/vehicles/${bareId}?tab=rates`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rate-form-none')).toBeVisible();
   await page.getByTestId('rate-form-daily').fill('75');
@@ -199,6 +203,10 @@ test('delete a sample car whose bookings are only requests; Add a rental for a c
   // Add a rental for a CarmaCars-owned car with a draft listing and no rates
   const [u] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2024, make: 'Nissan', model: `Sentra ${tag()}` })}) as r`;
   const uid = (u!.r as { vehicle_id: string }).vehicle_id;
+  // 0087: a car added without rates gets a rate card from the class defaults and, with "Publish new cars
+  // automatically" on, goes live at once; this case is a car with neither, so both are taken back here
+  await sql`delete from rate_cards where vehicle_id = ${uid} and auto_defaults ? 'daily'`;
+  await sql`update vehicle_listings set status = 'draft' where vehicle_id = ${uid}`;
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
   await page.getByTestId('mr-vehicle_id').selectOption(uid);
   await expect(page.getByTestId('mr-unlisted-tag')).toContainText('Listing not finished');

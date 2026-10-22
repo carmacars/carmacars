@@ -9,6 +9,7 @@ import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 
 // The admin portal's frame (docs/blueprint/03-admin.md; simpler since October 16, 2026): who is signed in, one search
 // box, seven groups of pages with the counts that need someone. Every page checks the Admin role and two-step sign-in itself (requireAdmin);
@@ -24,7 +25,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       counts = { '/admin/requests': c.requests, '/admin/listings': c.listings, '/admin/statements': c.statements, '/admin/tolls': c.tolls, '/admin/money': c.refunds, '/admin/applications': c.applications ?? 0 };
     } catch { counts = {}; }
     // chats waiting for a person (0060)
-    try { counts['/admin/chat'] = Number((await door<{ waiting: number }>(user.id, 'admin_read', 'chat_counts')).waiting) || 0; } catch { /* no count */ }
+    // and hot visitors on the site now (0086), from the same read
+    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/chat'] = Number(c.waiting) || 0; counts['/admin/live'] = Number(c.hot) || 0; } catch { /* no count */ }
   }
   return (
     <div className="ad">
@@ -32,7 +34,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {gate?.admin ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
+              <span className="gd-frame-links"><AssistantPanel portal="admin" /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
             <PortalSwitch current="admin" />
             <AdminSearch />
             <AdminNav counts={counts} />

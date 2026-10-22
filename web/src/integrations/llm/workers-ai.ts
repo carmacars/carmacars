@@ -42,7 +42,11 @@ export function workersAi(ai: AiBinding, model = DRAFT_MODEL, timeoutMs = 60_000
         return { ok: false, reason: 'unavailable', message: msg.slice(0, 300) };
       }
       const r = (raw ?? {}) as { response?: unknown; usage?: { prompt_tokens?: number; completion_tokens?: number } };
-      const usage: Usage = { inputTokens: r.usage?.prompt_tokens ?? 0, outputTokens: r.usage?.completion_tokens ?? 0, neurons: 0 };
+      // the binding does not always report its token counts (the neurons of every call were recorded as 0 until the usage
+      // guard, 0080): then they are estimated from the text, about 4 characters a token, so the daily gates count them
+      const outText = typeof r.response === 'string' ? r.response : JSON.stringify(r.response ?? '');
+      const usage: Usage = { inputTokens: r.usage?.prompt_tokens || Math.ceil((req.system.length + req.prompt.length) / 4),
+        outputTokens: r.usage?.completion_tokens || Math.ceil(outText.length / 4), neurons: 0 };
       usage.neurons = neuronsFor(model, usage.inputTokens, usage.outputTokens);
       let data: unknown = r.response;
       if (typeof data === 'string') {

@@ -3,13 +3,14 @@ import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
-import { lookupVin } from '@/server/actions/apply';
+import { ColourSwatches, VinEntry, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
 import { addCarFacts, pickOwner, staffAddOwnerCar } from '@/server/actions/owner-billing';
 import { InvoiceChoice, inv, type Inv } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
 
 // Add a car for an owner (migration 0067): Admin, customer service and fleet enter everything for the owner in one
-// flow: the owner (found, or new), the car (VIN decode), the documents, who sourced the owner, how the owner signs, and
+// flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
+// inferred, the colour in one tap; the copy is written right after), the documents, who sourced the owner, how the owner signs, and
 // for an Admin the terms and first invoices (an assistant's go to an Admin as a proposal). The owner then gets one
 // email to review, correct and sign (or signs on paper).
 type Owner = { id: string; legal_name: string; email: string | null; phone: string | null; cars?: number };
@@ -29,7 +30,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const [hits, setHits] = useState<Owner[]>([]);
   const [o, setO] = useState<Record<string, string>>({ owner_type: 'individual', province: 'ON' });
   const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed' });
-  const [decoded, setDecoded] = useState<string | null>(null);
+  const [car, setCar] = useState<VinValue>(emptyVin());
   const [sourced, setSourced] = useState(false);
   const [signing, setSigning] = useState<'email' | 'paper'>('email');
   const t0 = initial.terms ?? (initial.standard ? { ...initial.standard, first_last_cents: initial.standard.insurance_fee_cents * 2, sources: {} } : null);
@@ -53,14 +54,6 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
     });
   }, [owner, v.management_mode]);
   const search = async () => { const r = await pickOwner(q); if (r.ok) setHits(r.data); };
-  const decode = async () => {
-    setDecoded(null);
-    const r = await lookupVin(v.vin ?? '');
-    if (!r.ok) { setDecoded(r.message); return; }
-    const d = r.data.decode;
-    if (d) setV((x) => ({ ...x, year: d.year ? String(d.year) : x.year ?? '', make: d.make ?? x.make ?? '', model: d.model ?? x.model ?? '', trim: d.trim ?? x.trim ?? '' }));
-    setDecoded(d ? [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ') : 'No decode for this VIN: enter the year, make and model.');
-  };
   const f = (k: string, label: string, opts: { req?: boolean; type?: string; mode?: 'decimal' | 'numeric' | 'email' | 'tel'; obj?: 'o' | 'v'; hint?: string } = {}) => {
     const obj = opts.obj ?? 'v'; const val = obj === 'o' ? o : v; const set = obj === 'o' ? setO : setV;
     return (
@@ -73,6 +66,9 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const submit = () => {
     setProblem(null);
     if (!isNew && !owner) { setProblem('Find the owner, or choose New owner.'); return; }
+    const carProblem = vinProblem(car);
+    if (carProblem) { setProblem(carProblem); return; }
+    if (car.mode === 'vin' && car.facts?.taken) { setProblem(`This VIN is already in the fleet: ${car.facts.taken.name}.`); return; }
     const n = { ins: toCents(terms.ins!), trk: toCents(terms.trk!), inst: toCents(terms.inst!), fl: toCents(terms.fl!), share: Math.round(Number(terms.share) * 100) };
     if ([n.ins, n.trk, n.inst, n.fl, n.share].some((x) => !Number.isFinite(x) || x < 0)) { setProblem('Enter every amount of the terms in dollars and cents.'); return; }
     const invoices: Array<Record<string, unknown>> = [];
@@ -86,7 +82,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
     const payload = {
       owner_id: isNew ? undefined : owner!.id,
       owner: isNew ? { ...o, email: (o.email ?? '').trim().toLowerCase(), first_name: (o.legal_name ?? '').trim().split(/\s+/)[0] } : undefined,
-      vehicle: { ...v, vin: (v.vin ?? '').trim().toUpperCase(), year: v.year ? Number(v.year) : undefined, odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, title_brand_clear: true },
+      vehicle: { ...v, ...vinPayload(car), plate: car.mode === 'plate' ? car.plate.toUpperCase().replace(/\s/g, '') : v.plate || undefined,
+        odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, title_brand_clear: true },
       sourced, signing,
       plan: { terms: { management_mode: v.management_mode, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst, first_last_cents: n.fl }, invoices }
     };
@@ -140,11 +137,11 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
       </section>
 
       <section className="pt-card stack" aria-labelledby={`${uid}-c`}><h2 className="d4" id={`${uid}-c`}>2. The car</h2>
-        <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'end', flexWrap: 'wrap' }}>{f('vin', 'VIN (17 characters)', { req: true })}<button type="button" className="btn btn--ghost btn--sm" onClick={() => void decode()} data-testid="addcar-decode">Decode</button></div>
-        {decoded && <p className="small" role="status">{decoded}</p>}
+        <VinEntry value={car} onChange={setCar} prefix="addcar" carHref={base === '/admin' ? (id) => `/admin/vehicles/${id}` : undefined} err={a.err('vin')} />
+        <ColourSwatches value={car.colour} onChange={(c) => setCar((x) => ({ ...x, colour: c }))} prefix="addcar" legend="Colour (optional)"
+          hint="Not in the VIN. Leave it empty and it is read from the cover photo once there is one." />
         <div className="ad-fields ob-terms">
-          {f('year', 'Year', { req: true, mode: 'numeric' })}{f('make', 'Make', { req: true })}{f('model', 'Model', { req: true })}{f('trim', 'Trim')}
-          {f('plate', 'Plate')}{f('colour', 'Colour')}{f('odometer_km', 'Odometer (km)', { mode: 'numeric' })}{f('current_insurer', 'Current insurer')}
+          {car.mode === 'vin' && f('plate', 'Plate')}{f('odometer_km', 'Odometer (km)', { mode: 'numeric' })}{f('current_insurer', 'Current insurer')}
           <div className="field"><label className="label" htmlFor={`${uid}-ts`}>It is</label>
             <select className="select" id={`${uid}-ts`} value={v.title_status} onChange={(e) => setV({ ...v, title_status: e.target.value })} data-testid="addcar-title_status"><option value="owned_outright">Owned outright</option><option value="financed">Financed</option><option value="leased">Leased</option></select></div>
           {v.title_status !== 'owned_outright' && f('finance_party_name', v.title_status === 'leased' ? 'Lease company' : 'Lender', { req: true })}

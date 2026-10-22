@@ -29,10 +29,12 @@ def build():
               'Admin opens on To do: what needs you now, most urgent first. The menu groups every screen into seven groups: '
               'Today, Bookings, Cars, Owners and partners, Money, People and Settings. Search finds any booking, car or person.',
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
-    g.task('To do', 'Start every shift here. Each line counts what is waiting and has one button to deal with it.')
+    g.task('To do', 'Start every shift here. Each line says what to do and why, and its button opens a small pop-up that does it, already filled in. Nothing to remember and no menu to search.')
     g.steps([
-        'The list is in order of urgency: owner applications, booking requests, changes renters asked for, failed payments, agreements to countersign, tolls, listings, plates not checked, insurance, cars using sample photos, staff commissions to approve and to pay, prices typed by hand to review, and staff who say they sourced a website request.',
-        'Press the button on a line to go straight to that work. A line with nothing waiting moves to the bottom, under "more with nothing waiting".',
+        'Each piece of work is its own line, marked Now, Today or When you can: a car the insurer has not confirmed, a car not on the site, a renter\'s documents to check, a visitor waiting in live chat, a booking request, a change a renter asked for, an owner application, an owner invoice waiting for payment, the first and last month an owner paid after their invoices were voided, the terms agreed with an owner still on the standard grid, documents an owner has not signed, an official form to check, a plate to check, a car showing sample photos, and any task of the Admin.',
+        'Press the line\'s button: Mark insured, Set rates and publish, Review documents, Record payment, Record what they paid, Enter the terms, Record paper signature, Checked: use for owners, Open the chat, and so on. A line you do not need has Not needed or These are correct. The pop-up is filled in; check it and confirm. The line disappears once the work is done.',
+        'Under the lines, the counts with one button each (failed payments, agreements to countersign, tolls, listings, insurance, staff commissions, prices typed by hand, sales claims, Turo emails). A count with nothing waiting moves to the bottom, under "more with nothing waiting".',
+        'While no assistant holds customer service, sales, finance or fleet (the live verification\'s test accounts do not count), their tasks come to To do too, and so do their emails, to rent@carmacars.ca.',
         'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
         f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
     ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
@@ -49,7 +51,7 @@ def build():
     g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
     g.task('Search', 'The search box sits at the top of the menu, on every page.')
     g.steps([
-        'Type a booking number (CC-1042), a plate, a VIN, or a name or email address.',
+        'Type a booking number (CC-1042), a car code (CC-7F3A, on every car page and fleet card), a plate, a VIN, or a name or email address.',
         f'Press {B("Search")} (or Enter). Results come in groups: bookings, cars, owners, partners and renters. Open one to go to its page.',
     ], shot=S('admin/32-search-desktop', 0, 0, 1440, 420, pins=[(1, 107, 190), (2, 1368, 197)]))
     g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box.')
@@ -180,6 +182,15 @@ def build():
         f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
     ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(1, 290, 230), (2, 500, 560), (3, 290, 700), (4, 1300, 176)]))
 
+    g.task('Renter documents: licence and proof of coverage', 'A renter\'s licence photos, selfie and proof of coverage (OPCF 27 or a credit card\'s rental coverage) are checked before the handover. You check them yourself; no task is needed.')
+    g.steps([
+        f'A booking with documents waiting is a line on To do: "Check <renter>\'s documents for booking <number>", marked Now when the pickup is within two days. Press {B("Review documents")}.',
+        'The pop-up shows each driver\'s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.',
+        f'Tick the checks, then {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}: they are asked for a new one.',
+        f'The same pop-up is on the booking: the card Renter documents ({B("Review documents")}) on Overview and on Drivers and documents.',
+    ])
+    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute.')
+
     g.task('Propose a change to a confirmed booking', 'The renter gets an email and answers on their booking. The calendar moves only when they accept.')
     g.steps([
         'Open the booking\'s Changes tab. Under Propose a change, set the new pickup, return or car.',
@@ -229,27 +240,36 @@ def build():
               'A car rented on Turo, Getaround or another site must never be booked twice. Turo has no calendar link, so '
               'Turo works by email: Turo\'s trip emails block the car here, and you block our bookings on Turo by hand. '
               'Getaround, Google Calendar and other sites work through calendar links (iCal), both ways.',
-              blurb='Turo by email (the Gmail filter, the car\'s name on Turo, emails to check, Done on Turo), calendar links for other platforms, clashes.')
+              blurb='Turo by email (set up once, cars found by themselves, "Which car is this?", the guest, Done on Turo), calendar links for other platforms, clashes.')
     g.task('Set up Turo by email (once)', 'Turo emails rent@carmacars.ca for every trip booked, changed, extended or cancelled. One Gmail filter forwards those emails to trips@in.carmacars.ca, and each one blocks the car here within a minute.')
     g.steps([
         'In Gmail (rent@carmacars.ca): Settings, See all settings, Forwarding and POP/IMAP. Press Add a forwarding address and type trips@in.carmacars.ca.',
         f'Gmail sends a confirmation code to that address. Open {P("Cars", "Calendar sync")}: the code shows under "Turo by email" (and To do shows "Gmail forwarding to confirm"). Type it in Gmail and press Verify. Leave forwarding itself off: only the filter forwards.',
         'In Gmail, in the search box, show the search options. From: turo.com. Press Create filter, tick Forward it to: trips@in.carmacars.ca, and press Create filter.',
-        f'On Calendar sync, for each car on Turo, press {B("This car is on Turo")}, type its name exactly as Turo\'s emails show it (for example Mercedes-Benz GLC 2021) and press {B("Save")}. The Turo car number (the number at the end of its Turo page address) is optional; the plate and VIN are matched too.',
+        'Nothing to set up per car. Every active car (not the sample cars) is matched by itself: see the next task.',
+    ])
+    g.task('How Turo emails find their car (automatic)', 'Each Turo email is matched to one of our cars by itself. You never type a car\'s name on Turo.')
+    g.bullets([
+        'The reader looks at the Turo car number in the email\'s links and pictures, the VIN, the plate, the year, make and model (C-Class finds a C 300, Model3 a Model 3, 3 Series a 330i), trim and colour words, the trip already on a car, and whether a car is already busy at those dates.',
+        'A clear winner is applied at once. When two cars are close (two black 2021 Jettas), the assistant picks between them only if the email tells them apart; otherwise the email waits as "Which car is this?".',
+        'Every match teaches the car what Turo calls it (its Turo car number and the name in Turo\'s emails), so the next email for that car matches at once. Each car on Calendar sync shows what it learned; press Forget next to one that is wrong.',
+        f'Rarely needed: {B("Type its name on Turo (optional)")} on a car whose Turo name the reader cannot place. The Turo car number there is optional too.',
     ])
     g.task('Turo trips on the calendar')
     g.steps([
         'A trip booked on Turo becomes an "External booking" block on the car, with the turnaround before and after it. The car cannot be requested, offered or booked here for those times.',
         'A changed or extended trip moves its block; a cancelled trip frees the car. An older email never undoes a newer one.',
-        'Each car lists its Turo trips: the dates, the Turo trip number and the guest\'s first name. Press Cancelled if Turo cancelled a trip and its email did not come.',
+        'Each car lists its Turo trips: the dates, the Turo trip number, the guest\'s name as Turo shows it and their phone when the email includes it (press Call). The car\'s calendar block shows them too. Press Cancelled if Turo cancelled a trip and its email did not come.',
         f'{B("Add a Turo trip")}: the trip start and end (Toronto time), and the Turo trip number if you have it. Use it for a trip whose email did not come.',
-        'Only what the email says is kept: the car, the dates, the trip number and the guest\'s first name. The email itself is never stored.',
+        'Only what the email says is kept: the car, the dates, the trip number, and the guest\'s name, phone and email when Turo shows them (a hidden or masked number is never taken). The email itself is never stored.',
+        'Each guest gets one contact record (source Turo), so a Turo guest who calls our line or writes in Live chat is recognised by their phone. Contact them only about their trip: never add them to a marketing list or send promotions (Canada\'s anti-spam law and Turo\'s rules on taking guests off the platform). Nothing is sent to them by itself.',
     ])
-    g.task('Turo emails to check', 'When the reader is not sure (which car, the dates or the trip number), the email waits under "Turo emails to check", with a Fleet task and a line on To do.')
+    g.task('Which car is this? (Turo emails to check)', 'Only an email the reader cannot be sure about waits under "Turo emails to check", with a Fleet task and a line on To do.')
     g.steps([
-        'Read what was found and the short excerpt (no email addresses, phone numbers or links). Check the trip on Turo.',
-        f'Press {B("Add as a Turo trip")}, choose the car, check the dates and press {B("Add this trip")}. The email is checked and the task closes.',
-        f'Not a trip (a request, a message)? Press {B("Dismiss")}.',
+        f'To do shows "Turo emails: which car is this?". Press {B("Choose the car")}, or {B("Which car is this?")} on the email in Calendar sync.',
+        'The pop-up shows what Turo calls the car and the trip, then our best guesses first (with colour and the plate\'s last 3). Press the right car. Not among them? Choose it under Another car and press This car.',
+        'The trip is added and blocks the car, the task closes, and the car remembers what Turo called it: the next email for it matches by itself. Other emails waiting with the same Turo car number are matched at once.',
+        f'Something else is missing (the dates or the trip number)? Check the trip on Turo, press {B("Add as a Turo trip")}, choose the car, check the dates and press {B("Add this trip")}. Not a trip (a request, a message)? Press {B("Dismiss")}.',
     ])
     g.task('Block our bookings on Turo (Done on Turo)', 'Turo cannot read our calendar. Each car on Turo lists, under "Block on Turo", the CarmaCars bookings not yet blocked there.')
     g.steps([
@@ -292,7 +312,7 @@ def build():
     g.steps([
         'Type the four rates. Only the daily rate is needed: an empty weekend rate is the daily rate, an empty weekly rate is 6 days at the daily rate, and an empty monthly rate is 22 days.',
         f'Kilometres: keep {B("Use the defaults")} (the kilometres a day in Settings, Kilometre choices, and the extra kilometre rate in Fee defaults for the car\'s class), or choose {B("Custom for this car")} and type them.',
-        'Check the deposit (the class default is filled in), and the delivery and pickup fees (0: not offered).',
+        'Check the deposit (the class default is filled in), and the delivery and pickup fees: each is one way, an empty pickup fee is the delivery fee, and 0 means not offered.',
         f'Read What renters pay under the fields: real prices for a weekend, a few weekdays, a week and a month, worked out the way bookings are priced. Press {B("Save the rates")}.',
     ])
     g.table([
@@ -316,7 +336,7 @@ def build():
     g.task('Review a listing')
     g.steps([
         'Pipeline shows each step done, such as photo sizes, copy draft and backgrounds.',
-        f'Similar cars on file lists possible duplicates. Press {B("Not a duplicate")} or {B("Same car")}. An open flag stops publishing.',
+        f'Similar cars on file lists possible duplicates. Press {B("Not a duplicate")} or {B("Same car")}. An open flag does not keep the car off the site; only Same car does.',
         'The copy is written by itself from the car\'s facts and published when it passes the checks: nothing to type. To change a line, press Change; that field is then locked and kept by every new version.',
         'Under Photos, each public photo shows its plate state: Plate not checked, Plate covered or No plate visible.',
     ], shot=S('admin/10-listing-review-desktop', 0, 0, 1440, 1100, pins=[(1, 297, 183), (2, 1240, 522), (3, 286, 1175), (4, 1078, 1175)]))
@@ -335,11 +355,12 @@ def build():
 
     g.task('Publish')
     g.steps([
-        f'When every public photo is covered or marked, press {B("Approve and publish")}.',
-        f'Or press {B("Approve, publish later")}, or {B("Send back")} with what to fix.',
+        f'A real car that is not on the site is a line on To do: press {B("Set rates and publish")}. The daily rate is filled in (the car\'s own, or the suggested rate from similar cars or the class); change it if you like and press {B("Publish now")}.',
+        f'On the car itself, the Listing tab has {B("Publish now")}; each open item of its checklist has a button to where it is done.',
+        f'From a listing review: press {B("Approve and publish")}, {B("Approve, publish later")}, or {B("Send back")} with what to fix.',
     ])
-    g.warn('Publishing waits for a plate decision on every public photo ("Cover the licence plate or mark it not visible on every '
-           'public photo first"). Listings already live show "Plate not checked" until someone checks them.')
+    g.warn('The plate check never holds a car back: a real photo whose plate is not checked stays private (the other photos, or the sample photos, '
+           'show instead) and goes public by itself once its plate is covered or marked not visible. Listings already live show "Plate not checked" on such photos.')
 
     g.task('A listing without photos yet: sample photos', 'A car can be listed before its photos are taken. Until then the site shows a sample photo.')
     g.steps([
@@ -353,23 +374,53 @@ def build():
         'Every body type has a built-in picture (sedan, SUV, truck, van, coupe, hatchback, electric car).',
         f'Add your own: choose the Body type, and a Make and Model if the photo is of that exact model, pick the Photo, and press {B("Add the photo")}.',
         f'The most specific photo wins: make and model, then make and body type, then body type. {B("Turn off")} or {B("Delete")} a photo you no longer want.',
-        'Cars using sample photos lists the cars still waiting for real photos. It is also a line on To do.',
+        f'Cars using sample photos lists the cars still waiting for real photos. Each real car showing sample photos is also a line on To do, with {B("Add photos")}.',
     ], shot=S('admin/36-sample-photos-desktop', 0, 160, 1440, 900, pins=[(4, 386, 323)]))
+
+    g.task('Publish now, and new cars published by themselves', 'Nothing between a new car and the site has to be finished first: the car goes on the site, and what is still open shows on its checklist.')
+    g.steps([
+        f'{P("Settings", "Program")}, {B("Publish new cars automatically")} (on by default): a new real car goes on the site by itself as soon as it has its year, make and model and its rates, when it is added with rates, when its rates are saved, when it is added for an owner, or when an owner\'s application is approved.',
+        f'Otherwise open the car: its Listing tab says why it is not on the site and has {B("Publish now")}. A car with no rates yet is published with the suggested rates (similar cars, else the class defaults in Program settings); change them later on the Rates tab.',
+        'Every real car has its listing from the moment it is added, as a draft. It shows in Listings and in Not on the site yet until it is published.',
+        'An owner\'s own application waits for your decision before its car is published by itself; Publish now still works.',
+        f'A car taken off the site by staff, or scheduled for a later date, is never published by itself: press {B("Publish now")}.',
+    ])
+    g.task('The checklist: what is still open on a listed car', 'Open items never stop publishing. They show as warnings on the car\'s Listing tab and after Publish now.')
+    g.table([
+        ['Paperwork', 'Ownership permit, registry forms, agreements signed, Forms C and D, upfront payment, registry visit, tracker, safety certificate'],
+        ['Insurance', 'Not on the fleet insurance policy yet: the car can be booked, but not handed over'],
+        ['Details', 'Colour, body, seats, gearbox: the car page leaves out what is missing'],
+        ['Photos', 'No real photos: sample photos stand in. A photo whose plate is not checked stays private until it is'],
+        ['No VIN yet', 'A car added by its plate alone: add the VIN when you have it'],
+        ['Possible duplicate', 'An open flag in Similar cars. Only Same car keeps the car off the site'],
+        ['Owner terms', 'The management fee (Revenue Share) and fees not set: a request uses the owner\'s terms or the standard grid'],
+    ], head=['Item', 'What it means'])
+    g.task('The fleet policy rule at handover', 'A program owner\'s car is listed and can be requested, offered and paid for while its paperwork is open. It is never handed over until the insurer confirms in writing that it is on the fleet insurance policy.')
+    g.bullets([
+        'Staff see a warning on a request and an offer for a car not on the policy yet.',
+        'The handover refuses the car until the insurer\'s confirmation is recorded (Owners and onboarding). The field app says so on the job.',
+        'Only real states keep a car off the site: retired, left the program, out of service, Turo only, bookings turned off, a self-managed owner in arrears, or a paused listing.',
+    ])
 
     # ---------------------------------------------------------------- 5b
     g.chapter('Partners, company cars and rentals added by hand',
               'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. '
               'You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.',
               blurb='Add a car, partners, add a rental, retire or delete a car, sample cars and tolls with two rentals.')
-    g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. First choose who supplies it.')
+    g.task('Add a car', f'{P("Cars", "Vehicles")}, then {B("Add a car")}. Start with the VIN: everything else about the car comes from it.')
     g.steps([
-        B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
-        f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
-        B("A partner rental company's car") + ': choose the partner. Leave the commission empty to use the partner\'s, or type one for this car.',
-        f'Type the VIN, the plate and the details.',
-        f'Under Rates and kilometres, type the rates now (only the daily rate is needed) and keep the default kilometres, or leave the rates empty and set them later on the car\'s Rates tab. What renters pay shows as you type. Press {B("Add the car")}.',
+        'Type or paste the VIN. At the 17th character the car is looked up: one line shows the year, make, model, trim, body, seats, doors, fuel, drive, gearbox and engine. Press Edit only if something is wrong.',
+        f'No VIN at hand? Press {B("No VIN at hand? Add the car by its plate")} and choose the year, make and model from the lists. The VIN can be added later; the details fill in then.',
+        'Tap the colour (it is not in the VIN). Leave it empty and it is read from the cover photo once the car has one.',
+        'Check the class. It is set from the make, model, body and age (a 2016 Porsche Macan is Premium, an SUV is SUV) and the line under it says why. Change it if it is wrong.',
+        'Choose who supplies it: ' + B("A program owner's car") + ' (choose the owner; the car starts its onboarding), ' + B("CarmaCars-owned (company fleet)") + ' (no owner; all of its revenue is CarmaCars\') or ' + B("A partner rental company's car") + ' (choose the partner; leave the commission empty to use the partner\'s).',
+        f'The daily rate is filled in from similar cars, else the class. Keep it, change it, or empty it and set the rates later on the car\'s Rates tab. Press {B("Add the car")}.',
     ])
-    g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
+    g.tip('The title, description and features are written by themselves right after the car is added, from the VIN details. Change any of them on the car\'s listing; a field you change is kept.')
+    g.tip('Every car gets a fleet number and its standard settings the moment it is added: a complete rate card (the daily rate you typed or the suggested one, '
+          'weekend, weekly and monthly from it, the kilometres a day, the extra kilometre rate, the deposit and the delivery and pickup fee of its class) and drivers 18 to 20 allowed. '
+          'Each value set this way says (Set automatically) on the car\'s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.', label='Good to know')
+    g.tip('A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
     g.task('Partners', f'{P("Owners and partners", "Partners")}. Partner rental companies whose cars we rent out on commission.')
@@ -388,7 +439,7 @@ def build():
         'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
         'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
         'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
-        'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car to be Available (Overview, Change status).',
+        f'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press {B("Insurer confirmed")} once the insurer confirms it.',
         f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card when the renter signs")} or {B("Unpaid: invoice later")}.',
         f'Press {B("Check the calendar and the price")}. Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
     ])
@@ -415,8 +466,8 @@ def build():
 
     g.task('Why a car is not on the site yet', f'{P("Cars", "Vehicles")}, the card Not on the site yet.')
     g.steps([
-        'Every real car that is not on the site is listed with its next step first: the owner\'s signature, the upfront payment, the registry visit, the tracker, the insurer\'s confirmation, the rates, the listing review.',
-        'Do the step named, or ask the person it waits on. The car comes off the list once it is on the site.',
+        'Every real car that is not on the site is listed with its next step first: the rates, Publish now, the listing review.',
+        f'The same car is a line on To do with {B("Set rates and publish")}. The car comes off both once it is on the site.',
         'A car without photos is marked sample photos: once listed it shows a sample photo until its real photos are approved.',
     ])
 
@@ -438,7 +489,7 @@ def build():
     g.task('Decide on an application', 'One page holds everything: the owner, the car, the uploads, the four checks and the notes.')
     g.steps([
         'Check the driver\'s licence, the ownership, the insurance and the lender or lessor. Mark each one Checked, fine, Problem or Not needed.',
-        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, Revenue Share, Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
+        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, management fee (Revenue Share), Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
         'Choose the invoices: First and last month, Registration fee (any exact amount), Tracker install (only once trackers are available) and Another invoice. For each one choose Send now, Save as draft or Already paid. Already paid asks how (e-Transfer, cash, cheque, bank transfer or other), the date and the reference: it is recorded like Record payment and the owner gets the receipt, not an invoice.',
         f'Press {B("Approve")} at the bottom of the step. Nothing is set or sent before that. The owner becomes active, the documents open for one signature in their portal, only the invoices you chose are made, and the owner gets one email.',
         f'Missing something? Press {B("Ask for something")}, tick what you need (for example the ownership permit or the insurance slip), add a message if you like, and press {B("Send to the owner")}. The owner gets an email and a task in their portal; the application shows Waiting on owner until they answer.',
@@ -449,7 +500,7 @@ def build():
     g.task('Add a car for an owner', f'{P("Owners and partners", "Add a car for an owner")}, or {B("Add another car")} on an owner\'s page. The owner never has to fill in the application.')
     g.steps([
         'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
-        'The car: type the VIN and press Decode, then the plate, colour, odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
+        'The car: type the VIN. The car is looked up at once and shown in one line (Edit if something is wrong); no VIN at hand, add it by its plate with the year, make and model from the lists. Tap the colour, check the class, then the odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
         'Terms and first invoice: the same fields as Approve. For another car of the same owner they start from that owner\'s terms.',
         'Who sourced the owner: Entered for CarmaCars, or I sourced this owner (only then are you recorded as the one who brought the owner). How the owner signs: by email, or on paper.',
         f'Press {B("Add the car and set it up")}. The owner gets one email: review the details, correct anything, and sign. An owner with no sign-in gets the link to choose a password in that same email.',
@@ -464,6 +515,34 @@ def build():
     g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready). '
            'The confirmations to tick, then one signature: CarmaCars countersigns at the same moment, under the signing officer\'s standing authorization. '
            'A car with a second owner on the ownership waits for that owner too: they get their own link by email and sign the same documents.')
+    g.task('Mark a car insured (Insurer confirmed)', 'A program owner\'s car is handed over to a renter only once the insurer confirms in writing that it is on the fleet policy. Requests, offers and payment never wait for it.')
+    g.steps([
+        f'Each car waiting for the insurer is a line on To do: "Insurer has not confirmed <car>: mark it insured". It says Now when a booking picks the car up soon.',
+        f'When the insurer\'s email arrives, press {B("Mark insured")}. The date is today; change it to the date of the insurer\'s email if it was earlier. Add its subject as the Reference if you like, and press {B("Insurer confirmed")}.',
+        f'One email for several cars? Press {B("Mark several insured")} on the line "<n> cars wait for the insurer". Every waiting car is ticked: untick any car the insurer did not name, check the date, and confirm them all at once.',
+        f'The same button is on the car: Overview ({B("Insurer confirmed")}) and the Listing tab\'s checklist, item "Not on the fleet insurance policy yet".',
+    ])
+    g.para('The car is then on the fleet policy from that date: it can be handed over, its Enrollment Date is that date, its fee terms start, and the owner gets the email "Written confirmation: your car is on the fleet policy". '
+           'Its paperwork (agreements, registry visit, tracker) stays on its checklist until done. A car already listed and Available stays Available.')
+    g.task('Owners who paid another way, and the terms you agreed', 'Two lines on To do keep an owner\'s money right without opening their page.')
+    g.steps([
+        f'"Record the first and last month paid by <owner>": their first and last month invoice was voided and nothing paid is recorded. Press {B("Record what they paid")}, type the amount for each car (tax included), or one total for several cars, how and when it was paid and the reference. A draft first and last month invoice is kept or voided, your choice. Each car\'s invoice is then marked paid, the owner gets the receipt and the two prepaid months count. Never for a shareholder.',
+        f'"Enter the terms agreed with <owner>": their cars still use the standard grid. Press {B("Enter the terms")}: the Management fee (Revenue Share), the Insurance Fee, the Tracker Fee, the Install Fee and the first and last month are filled in from the grid. Type what you agreed for the owner, and open a car to give it its own. A car whose schedule is signed gets an updated schedule for the owner to sign.',
+        f'Nothing to change? Press {B("Not needed")} or {B("These are correct")}: the line does not come back.',
+    ])
+    g.task('A shareholder\'s own car', f'On the owner\'s page, each car has {B("Shareholder\u2019s own car")}.')
+    g.steps([
+        'A shareholder\'s own car is split 90/10 (the share in Program settings) and pays no Insurance Fee, Tracker Fee, first and last month or tracker install.',
+        f'Press {B("Shareholder\u2019s own car")}, say why (it is kept in the audit log) and confirm. Press it again to undo. Bookings already made keep their split.',
+        'A first and last month or a tracker install invoice is refused for such a car, from any screen.',
+    ])
+    g.task('Cancellation refunds', f'{P("Settings", "Program")}: the refund for each cancellation tier.')
+    g.table([
+        ['Within 24 hours of booking, 48 hours or more before the start', '95%'],
+        ['48 hours or more before the start', '75%'],
+        ['24 to 48 hours before the start', '50%'],
+        ['Under 24 hours, or after the start', '0%'],
+    ], head=['When the renter cancels', 'Refund (default)'])
     g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
         'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',
@@ -487,6 +566,7 @@ def build():
         f'Paid by e-Transfer, cheque, cash or bank transfer? Press {B("Record payment")}. Choose Paid by, the Date received and the Reference (the cheque number for a cheque). Leave Amount empty for the full balance, or type less for a partial payment. Add a photo of the cheque or a screenshot if you have one.',
         f'Signed on paper? Press {B("Record paper signature")}. Choose the Document, check Signed by and Date signed, add the witnesses where the form needs them, and upload the scan of every signed page.',
         'The same checklist sits at the top of each owner\'s page.',
+        f'You rarely need to come here: an upfront or overdue owner invoice is a line on To do with {B("Record payment")}, and an owner whose documents were sent two days ago or more and are not signed is a line with {B("Record paper signature")}. Both pop-ups are the same forms, filled in.',
     ])
     g.para('A recorded payment marks the invoice paid (or partly paid), stops the automatic debit for that amount, sends the owner a receipt, and shows "Paid by e-Transfer on <date>" in their portal. '
            'A paper signature counts as signed everywhere: the checklist, onboarding and the owner portal. The scan is kept privately with the owner\'s documents.')
@@ -572,7 +652,7 @@ def build():
     g.table([
         ['Sales', 'By rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all that month\'s rentals'],
         ['Customer service, finance, fleet, field staff', '10% (also the field referral fee)'],
-        ['Base', 'The rental charge before tax, after discounts, less refunds'],
+        ['Base', 'The rental charge before tax, after discounts, with late extra days; never delivery, kilometres, add-ons or anything else bought. Only a refund of the rental charge comes off'],
         ['On the owner statement', 'An owner\'s car: deducted with the kickbacks before Owner Revenue, its own line on the statement. A partner\'s car: from CarmaCars\' commission. A CarmaCars-owned car: a CarmaCars expense'],
     ], head=['', 'Commission'])
     g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
@@ -626,14 +706,38 @@ def build():
               'See who is on the site right now and what they look at, with buying signals, and answer the live chat. '
               'The CarmaCars assistant answers the chat first; you take over whenever you want, and it hands over by itself '
               'for complaints, damage, payments and anything it should not answer.',
-              blurb='Who is on the site now, signals and follow-ups, interest per car, the chat inbox, take over and hand back.')
-    g.task('Live visitors', 'Visitors who accepted analytics, known customers on their own booking pages and anyone in a chat.')
+              blurb='Who is on the site now, how likely each visitor is to book and why, one-click actions, follow-ups, interest per car, the chat inbox.')
+    g.task('Live visitors', 'Visitors who accepted analytics (or got the notice in Canada outside Quebec and the US), known customers on their own booking pages and anyone in a chat.')
     g.steps([
-        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, known customers, visits and chats today.',
-        'Each visitor shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on; the pages and cars of this visit; their visit number, device, city and the site or campaign that sent them.',
-        'Badges are buying signals: "Viewing spree: 6 cars in 10 minutes", "Opened offer CC-1042, not answered", "Opened the change proposal twice", "Left the pay page", "Returning visitor, 3rd visit this week", "Started a request and stopped".',
-        f'Press {B("Pages")} for every page and event of the visit, or {B("Start a chat")} to write to the visitor. They see your message in a bubble and reply from it.',
-        'Below: the signals of the last 24 hours and the most viewed cars of the week. The page refreshes by itself every few seconds.',
+        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, hot visitors now, known customers, visits and chats today. The menu shows how many hot visitors are on the site.',
+        'Each visitor shows a booking likelihood from 0 to 100, with Hot (60 or more), Warm (30 or more) or Cold. The list is sorted by it; choose "Most recent" in Sort, or tick "Hot and warm only".',
+        '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Reached step 3 of the request form · Tapped to call". The badges are all the signals of the visit; the dots say how strong each is.',
+        'Each visitor also shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on, and how many others look at that car now; the device, city, the site or campaign that sent them and "from an ad".',
+        f'Suggested: the best next step and the message to send. Press {B("Invite to chat with this message")} to send it at once, {B("Edit the message")} to change it first, {B("Offer a 10% discount code")}, {B("Assign to Sales")} or, when their dates are taken, {B("Suggest a similar free car")}.',
+        f'Press {B("Pages")} for every page and event of the visit with each signal\'s points, or {B("Start a chat")} to write your own message. They see it in a bubble and reply from it.',
+        'Below: hot visitors today (and whether someone acted), the signals of the last 24 hours, and the most viewed cars of the week with prices shown and the car most compared with each. The page refreshes by itself every few seconds.',
+    ])
+    g.task('The signals', 'Each signal adds points to the booking likelihood. They come from what the visitor does on the site, never from what they type.')
+    g.bullets([
+        'Intent: dates searched again and again, saw the full price, reached the booking form (and which step), came back for the same car on another day, comparing two or three cars, read the cancellation policy, read about the deposit, insurance or requirements, tapped to call, text or WhatsApp us or copied our number, checked delivery, looked through many photos or stayed long on one car.',
+        'Urgency: pickup within 72 hours, weekend or holiday dates, on a phone late at night, came from a city or model page or a "near me" search.',
+        'Value: a weekly or monthly rental, a premium car, SUV or van, adding a driver, asked about young drivers, a business email.',
+        'Hesitation: watching the price (sorted by lowest price, lowered the price limit), left after seeing the price, unsure about the deposit, trouble with a form, the car not free for their dates.',
+        'Context: came from an ad, a past renter, an offer or payment waiting, a game code not used yet, a popular car. The signals of known customers (offer opened, pay page left, change proposal, request stopped, returning visitor, viewing spree) count too.',
+    ])
+    g.task('Hot visitors and the actions')
+    g.bullets([
+        'When a visitor turns hot, everyone with Live visitors open sees an alert at the top of the page. Turn on desktop alerts in Live chat to get one on your computer too; none come in the quiet hours (11 pm to 7 am). No email is sent.',
+        'A discount code is single use, 10% off the rental charge (at most $75), valid 3 days, one per visitor a week and 10 a day per person. Admins and Sales send them; the code goes in the chat with the message.',
+        'Assign to Sales gives the visitor to the Sales person on shift (or to you if you work Sales) and raises a task with the reasons and the contact when we know who they are.',
+        'Each action shows on the visitor ("Invited by Lena, 2 min ago") so two people do not write to the same visitor.',
+    ])
+    g.task('Signal settings')
+    g.steps([
+        f'Open {P("Today", "Live visitors")} and press {B("Signal settings")}.',
+        'Score and actions: from how many points a visitor is hot or warm, when a signal is strong or medium, the hot alert, and the discount code (percent, most off a booking, days valid, codes a day per person, whether customer service may send codes, and the message).',
+        'Each signal: on or off, its points, its thresholds (for example 72 hours for "Pickup soon", 3 searches for "Searching dates again and again"), the suggested action and the message. {car}, {days}, {pickup} and the other words in braces are filled in from the visit.',
+        f'Press {B("Save the signals")}. The next look at each visit uses them.',
     ])
     g.task('Follow-up tasks', 'Signals of known visitors become tasks with a suggested action, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours".')
     g.bullets([
@@ -652,11 +756,11 @@ def build():
     ])
     g.task('Interest in a car')
     g.para(f'{P("Cars", "Vehicles")}, a car, Overview: "Interest on the site" shows who is looking now, views today and in 7 days, '
-           'conversion over 30 days (requests from the people who viewed it) and the last 14 days. The Vehicles list has "Most viewed cars this week".')
+           'the people who saw the price for their dates, conversion over 30 days (requests from the people who viewed it), the cars most often compared with it, and the last 14 days. The Vehicles list has "Most viewed cars this week".')
     g.task('A renter\'s visits', 'On a renter\'s page (People > Renters, the name) and on a booking\'s History tab, "On the site" lists when they viewed the offer, opened the change proposal, viewed or left the pay page, which cars they looked at, and their chats.')
     g.task('Live chat')
     g.steps([
-        f'Open {P("Bookings", "Live chat")}. The menu counts chats waiting for a person. Open chats come first, those waiting for a person on top, with their minutes against the first reply target (5 minutes).',
+        f'A visitor who asks for a person is a line on To do, marked Now: press {B("Open the chat")}. Or open {P("Bookings", "Live chat")}. The menu counts chats waiting for a person. Open chats come first, those waiting for a person on top, with their minutes against the first reply target (5 minutes).',
         'Choose a conversation. Beside it you see the visitor\'s page, pages, signals, and the renter with their bookings when known.',
         f'Press {B("Take over")}: the assistant stops and the visitor reads that you joined. Writing a reply also takes over. Press {B("Send")} (or Enter).',
         f'{B("Hand back to the assistant")} lets it answer again. {B("Close")} ends the chat; if the visitor gave an email they get a copy. {B("Email the transcript")} sends it any time.',
@@ -670,6 +774,31 @@ def build():
     g.para('In Program settings, "Live visitors and live chat": the chat on or off, the AI first or not, its model, the neurons it may use a day '
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
+
+    # ---------------------------------------------------------------- the phone line (0085)
+    g.chapter('Texts and calls (the Quo phone line)',
+              'Every call and text on the CarmaCars number (Quo) is kept and matched to the person: staff, a renter and their booking, '
+              'an owner or a lead. Staff answer texts from the same inbox as live chat. It is on by default; Program settings switch each part.',
+              blurb='Texts and calls in the chat inbox, unknown callers, missed calls, booking texts, call summaries and the settings.')
+    g.task('The inbox')
+    g.steps([
+        f'Open {P("Bookings", "Live chat")} and press {B("Texts and calls")}. Each number shows who it is (Renter, Owner, Lead, Staff or Unknown caller), unread texts and missed calls.',
+        'Choose a number. Calls and texts are in order; a call shows its length, and Quo\'s summary or a one-line AI summary when there is one.',
+        f'Write a text and press {B("Send text")}: it goes from the CarmaCars number through Quo. {B("Suggest a reply")} puts an AI draft in the box; nothing is ever sent until you press Send text.',
+        'Beside the conversation: the renter with their bookings, the owner or the lead. A caller who gave the same phone in live chat or a discount game shows their visit on the site.',
+        f'{B("Stop texts")} stops every text to the number, booking texts included. A person who texts STOP is stopped the same way; START allows texts again.',
+    ])
+    g.task('Unknown callers', f'Press {B("Unknown callers")}. For a number nobody on file has, type the name if you know it and press {B("Create lead")}, or find the renter and press {B("Link to")} the name. The calls and texts so far follow the link. {B("Match automatically again")} undoes a link made by hand.')
+    g.task('Missed calls', 'A missed call raises the task "Missed call from ..." for the person on duty in customer service (whoever has Live chat or Texts and calls open), otherwise the customer service queue, and the Admins when nobody holds that function. In the quiet hours (11 pm to 7 am) the task is due at 7 am. One open task per number.')
+    g.tip('Quo itself texts back missed callers (its own auto-reply). The platform can do it instead (Program settings, "Missed call: text the caller back"), once per number in 12 hours: turn off Quo\'s own auto-reply first, or callers get two texts.')
+    g.task('Calls and texts on records', 'A booking\'s History tab, a renter\'s page and an owner\'s page have "Calls and texts": the texts, calls, missed calls, voicemails and summaries with that person. Calls are not recorded on the line for now, so there is no transcript or recording to show.')
+    g.task('Booking texts')
+    g.para('Renters with a mobile number get a short text beside some emails: the offer, the booking confirmed, a payment received, the pickup tomorrow, the return reminder and the payment link after they left the pay page. '
+           'The first one ends "Reply STOP to opt out." They are about the booking only, never marketing, and wait for the end of the quiet hours.')
+    g.task('The settings')
+    g.para('Program settings, "Phone and texts (Quo)": the line on or off, calls and texts kept, the missed-call text and its task, who calls back, AI suggestions and summaries with their daily neurons, '
+           'the visit of a caller, each booking text on or off with its wording ({first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}; short, no long dashes, naming CarmaCars), '
+           'and how long calls and texts of people who are not customers are kept (12 months).')
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount games and leads',
@@ -783,7 +912,7 @@ def build():
         f'Open {P("Settings", "Forms")}. Each form shows "Mapping to check" (a draft is ready) or "Official PDF in use". Its notes say what the form is for and which boxes are left blank on purpose.',
         f'Press {B("Download a filled preview")} for one car and check each value against the form.',
         'Change a field if needed: What goes in it (or "The owner signs here"), a Format (for example YYYY/MM/DD) and Only when. Press Save the mapping.',
-        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed, and owners sign it with their other documents.',
+        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed, and owners sign it with their other documents. Each form not checked yet is also a line on To do with the same button and Preview it.',
         f'A new version from ServiceOntario? Press {B("Upload the official fillable PDF")}: the fields of the same name keep their mapping.',
     ])
     g.tip('SR-LV-006 (registration), SR-LV-012 (two registrants), ON00453 (a company\'s RIN), 013-1155 and 013-0169 (the tax-exempt transfer into an owner\'s corporation). 013-1155 is sworn before a commissioner, so it is printed and signed in person.', label='Good to know')
@@ -858,10 +987,73 @@ def build():
     ])
     g.task('The money')
     g.bullets([
+        f'An add-on a renter adds with no card on file waits for payment: the renter pays it on the booking ({B("Pay for your add-ons")}), and the Finance task closes by itself. Paid another way, record it on the booking.',
         'Add-on revenue is CarmaCars\' own: never Owner Revenue or a partner\'s share, and never in a commission or kickback base.',
         'The company statement shows Add-ons as its own income line (account 4150).',
         'A cancellation refunds add-ons by the booking\'s tier, except one marked Not refunded once its notice has started.',
         'Removing a paid add-on after booking creates a refund for it, waiting for approval.',
+    ])
+
+    # ---------------------------------------------------------------- the investor deck (0083)
+    g.chapter('The investor deck',
+              f'The investor deck is a slide deck in the investor portal at {U("/investor/deck")}. Signed-in investors see it while it is shown; Admins always see it. '
+              'Its figures come from the database when it opens: the owner fee tiers, the partner commission, the real cars\' public rates, delivery, add-ons and renter fees, '
+              'the deductible and deposits, and the investment terms of Program settings.',
+              blurb='Preview the deck, show or hide it, and set its multiplier and percentage.')
+    g.task('Preview and settings')
+    g.steps([
+        f'Go to {B("Investors")} and press {B("Investor deck")}. The button says whether investors see it now.',
+        'The page shows the settings, then the whole deck as investors see it.',
+        f'{B("Show the deck to investors")}: on, investors see it under Investor deck and on their Investments page; off, only Admins see it.',
+        f'{B("Multiplier on the money we invest (x)")}: the company\'s own figure, shown large on the profitability slide with its footnote (internal, not audited).',
+        f'{B("Yearly percentage of the current offer (%)")}: used by the worked examples and the calculator. Each investor\'s own percentage is the one in their agreement.',
+        f'Press {B("Save deck settings")}. Every change is in the audit log.',
+    ])
+    g.para(f'To hide or show it in one click, use {B("Hide the deck from investors")} or {B("Show the deck to investors")} on Investors.')
+    g.tip('The deck shows no internal costs, fleet counts or staff pay. Every example is labelled as an illustration, with the forward-looking statements notice '
+          'on every slide and in the PDF.', label='Good to know')
+
+    # ---------------------------------------------------------------- the assistant (0080)
+    g.chapter('Assistant',
+              'The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the '
+              'screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.',
+              blurb='Ask about today, bookings, cars and money; confirm the changes it prepares.')
+    g.task('Open it', f'Press {B("Assistant")} at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.')
+    g.steps([
+        'Type a question or what you want done, in your own words, and press Enter. Examples: "What needs doing today?", "Who has the Tesla?", '
+        '"Is the Corolla free from 2026-11-02 to 2026-11-04?", "Find booking R-000123".',
+        'Answers come as cards with links: open one to go straight to the screen.',
+        'If something is missing or more than one thing matches, it asks and lists the choices. Press the one you mean.',
+    ])
+    g.task('Changes: a card to confirm')
+    g.steps([
+        'Ask for a change, for example "Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345".',
+        f'The assistant shows a card: "Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?". Read it, then press {B("Confirm")} or {B("Cancel")}.',
+        'Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.',
+        'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
+    ])
+    g.para('When the insurer\'s email arrives, say so: "The insurer confirmed CC-7F3A on 2026-10-20". The card marks the car insured as To do\'s Insurer confirmed does, '
+           'from the date of the email. A car is found by its name, its plate or its car code (CC- and four characters, on the car page and in the chat).')
+    g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
+    g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
+
+    # ---------------------------------------------------------------- usage (0080)
+    g.chapter('Usage and paid usage',
+              'The plans CarmaCars runs on include a free allowance: AI, the website, image transformations, emails, the database and storage. '
+              'When an allowance runs out, AI and photo features pause with a short message until it resets, and you are asked before anything is paid.',
+              blurb='Included allowances, the 80% and used-up alerts, allowing paid usage, what pauses and what never does.')
+    g.task('The alerts', f'At 80% of an allowance you get one quiet card on {B("To do")} and one email to the alert address. When it is used up, a second card and email.')
+    g.steps([
+        f'A used-up AI or image allowance shows "Included ... used up for today: Allow paid usage". Press {B("Allow paid usage")} to see what continuing costs at the current rates.',
+        'Choose until the end of today or this month, type the most it may cost (for example $1), and press the Allow button. Or press Keep paused.',
+        'Nobody answering keeps it paused: nothing is charged. Live chat goes to a person, AI copy waits with the template text, Turo emails are read by the rules, photos keep their original background, the assistant rests.',
+        'The website and the portals are never paused (that would stop bookings): their card shows the estimated cost, usually cents.',
+    ])
+    g.task('Settings > Usage', f'Open {B("Settings")}, then {B("Usage")}: every service, used against included, when it resets, paid usage and the last 30 days.')
+    g.steps([
+        f'Press {B("Change the allowance")} after a plan change (for example a Supabase or Resend upgrade).',
+        f'Supabase egress is not readable automatically: press {B("Enter a figure")} with the number from the Supabase dashboard.',
+        'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',
     ])
 
     # ---------------------------------------------------------------- email
@@ -911,7 +1103,9 @@ def build():
         top_tasks=[('Answer an application', f'{P("Owners and partners", "Applications")}, then {B("Approve")}, {B("Ask for something")} or {B("Decline")}'),
                    ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
                    ('Change a booking', f'The booking\'s Changes tab, then {B("Send to the renter")}'),
-                   ('Publish a listing', f'{B("Cover the plate")}, then {B("Approve and publish")}'),
+                   ('Publish a car', f'To do, the car\'s line, then {B("Set rates and publish")}'),
+                   ('Mark a car insured', f'To do, the car\'s line, then {B("Mark insured")}'),
+                   ('Check renter documents', f'To do, the booking\'s line, then {B("Review documents")}'),
                    ('Let someone in', f'{P("People", "Portals and view as")}, then {B("Invite")}'),
                    ('Help someone sign in', f'{B("Send password link")}'),
                    ('Read a toll notice', f'{P("Money", "Tolls and tickets")}, then {B("Read a notice")}'),

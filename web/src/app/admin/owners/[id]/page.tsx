@@ -5,11 +5,14 @@ import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, invoiceTitle, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
+import { ShareholderToggle } from '@/features/admin/ShareholderToggle';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
+import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import type { PhoneTimelineData } from '@/features/phone/client';
 import Link from 'next/link';
 import { Cosigners, type CosignerRow } from '@/features/admin/LegalActions';
 import { door } from '@/server/door';
@@ -60,6 +63,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
   const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
+  const calls = await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { owner_id: id }).catch(() => null);
   const [checklist, paper, manual] = await Promise.all([
     door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
@@ -85,10 +89,11 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
                 ['Declined', v.onboarding.decline_reason ?? '']]} />
               {v.onboarding.pending_terms && (
                 <div className="ow-warn"><b>Terms waiting for your approval</b>
-                  <span>{money(v.onboarding.pending_terms.insurance_fee_cents)} insurance, {money(v.onboarding.pending_terms.tracker_fee_cents)} tracker, {pct(v.onboarding.pending_terms.revenue_share_bps)} share, {money(v.onboarding.pending_terms.install_fee_cents)} install, {MODE_LABEL[v.onboarding.pending_terms.management_mode]}</span>
+                  <span>{money(v.onboarding.pending_terms.insurance_fee_cents)} insurance, {money(v.onboarding.pending_terms.tracker_fee_cents)} tracker, {pct(v.onboarding.pending_terms.revenue_share_bps)} management fee (Revenue Share), {money(v.onboarding.pending_terms.install_fee_cents)} install, {MODE_LABEL[v.onboarding.pending_terms.management_mode]}</span>
                   <PendingTerms ownerId={o.id} vehicleId={v.vehicle_id} /></div>
               )}
-              {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} Revenue Share, {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
+              {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} management fee (Revenue Share), {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
+              <ShareholderToggle ownerId={o.id} vehicleId={v.vehicle_id} on={!!v.is_shareholder_owned} />
               {TERMS_OPEN.includes(v.onboarding.status) && !v.is_shareholder_owned && (
                 <details open={!v.schedule}><summary className="link">{v.schedule ? 'Change the terms' : 'Set the terms'}</summary>
                   <TermsForm ownerId={o.id} vehicleId={v.vehicle_id} standard={v.standard} mode={v.schedule?.management_mode ?? v.onboarding.proposed_management_mode ?? 'managed'}
@@ -137,6 +142,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>
             <Table rows={witnessed} testId="owner-witnessed" empty="No witnessed form is needed yet." cols={[{ key: 'title', label: 'Form', render: (r) => <>{String(r.title)}{r.vehicle_name ? <><br /><span className="small">{String(r.vehicle_name)}</span></> : null}</> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'reject_reason', label: 'Note', className: 'wrap' }, { key: 'uploaded_at', label: 'Uploaded', render: (r) => at(r.uploaded_at) }]} /></Card>
+          <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
             {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>

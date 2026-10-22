@@ -128,6 +128,8 @@ const worker = {
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
     if (due.seo) run('/api/jobs/seo');
+    // the phone line (migration 0085): booking texts that are due and the AI one-liners of calls
+    if (due.phone) run('/api/jobs/phone');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
@@ -152,8 +154,12 @@ const worker = {
     const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
     const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
     if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
+    // Turo emails waiting for their car, matched again after the fleet or what was learned changed (0088)
+    if (due.turo) run('/api/jobs/turo-rematch');
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
+    // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick
+    if (new Date().getUTCMinutes() >= 10 && new Date().getUTCMinutes() < 15) run('/api/jobs/usage');
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
@@ -206,6 +212,10 @@ const worker = {
     if (geo && !new RegExp(`(^|;\\s*)cc_geo=${geo}(;|$)`).test(request.headers.get('cookie') ?? '')) {
       headers.append('set-cookie', `cc_geo=${geo}; Path=/; Max-Age=86400; SameSite=Lax${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}`);
     }
+    // a page is never reused by the browser without asking first: OpenNext's stale-while-revalidate let Safari show a
+    // page kept from a previous deploy, whose style files are gone (home loaded unstyled on phones, Oct 21). The
+    // data centre's copy above is unaffected (it is kept before this line).
+    headers.set('cache-control', 'no-cache');
     const nonce = newNonce();
     headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true }));
     const out = new Response(response.body, { status: response.status, statusText: response.statusText, headers });

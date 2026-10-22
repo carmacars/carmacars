@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
+import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import type { PhoneTimelineData } from '@/features/phone/client';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
+import { DocumentReview } from '@/features/admin/DocumentReview';
+import '@/features/admin/todo/todo.css';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { BookingAddons } from '@/features/addons/BookingAddons';
@@ -12,6 +16,7 @@ import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
+import { REFUND_OF } from '@/features/admin/refunds';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -55,6 +60,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const P = { booking: b.id };
   // the renter's visits on the site (0060), on the history tab
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
+  // calls and texts with the renter about this booking (0085)
+  const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
@@ -92,7 +99,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
             </Card>
           </div>
-          {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span></p>}
+          {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
           <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={b.status === 'requested'} />
         </>
       )}
@@ -106,6 +113,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
+          {['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           <Card title="Price">
             <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>
@@ -122,7 +130,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
             <ManualPaymentList rows={manual} canVoid refresh={[base]} />
             <ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" />
           </Card>
-          <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
+          <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" testId="new-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
             <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
           </Card>
           <Card title="Deposit" aside={b.deposit ? <DepositSettle bookingId={b.id} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
@@ -153,6 +161,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           </Card>
           <div className="stack">
             <Card title="Status history"><ol className="ad-timeline">{b.history.map((h, i) => <li key={i}><time>{t(h.at)}</time><span>{label(h.from)} to <b>{label(h.to)}</b> <span className="muted small">{String(h.by ?? '')}</span></span></li>)}</ol></Card>
+            <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
             <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/admin/chat" /></Card>
             <Card title="Emails sent"><Table rows={b.emails} empty="No emails." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to', label: 'To' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} /></Card>
           </div>
@@ -160,6 +169,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'documents' && (
         <div className="ad-cols ad-cols--2">
+          {['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) },
             { key: 'identity_verified_on', label: 'Identity', render: (r) => r.identity_verified_on ? `Verified${r.identity_method === 'in_person' ? ' in person' : ''}`
               : ['confirmed', 'pending_payment'].includes(String(b.status)) ? <Act ops action="verify_driver_in_person" payload={{ booking_driver_id: r.id }} label="Verified in person" testId={`verify-in-person-${String(r.role)}`} refresh={[base]}
@@ -195,5 +205,17 @@ function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: str
       {c.commissions && c.commissions.length > 0 && <span className="ad-sub" data-testid="booking-commissions">Commission: {c.commissions.map((x) => `${x.name} ${$(x.amount_cents)} (${x.kind === 'commission' ? `${x.rate_bps / 100}%, ${x.status.replace(/_/g, ' ')}` : x.kind})`).join('; ')}
         {c.supply_type === 'program_owner' ? '. Deducted with the kickbacks before Owner Revenue.' : c.supply_type === 'partner' ? '. Paid from CarmaCars\' commission.' : '. A CarmaCars expense.'}</span>}
     </span>
+  );
+}
+
+// The renter's licence, selfie and proof of coverage (0078): reviewed here by an Admin, no task needed. The images load
+// when the pop-up opens.
+function RenterDocs({ b, refresh }: { b: Detail; refresh: string[] }) {
+  const r = b.readiness ?? {};
+  const missing = [r.all_drivers_verified === false ? 'every driver\u2019s identity' : '', r.coverage_confirmed === false ? 'the proof of coverage' : ''].filter(Boolean);
+  return (
+    <Card title="Renter documents" testId="booking-doc-review" tone={missing.length ? 'next' : undefined} aside={<DocumentReview booking={b.booking_number} refresh={refresh} label="Review documents" />}>
+      <p className="small">{missing.length ? `Still needed before the handover: ${missing.join(' and ')}. Approve or reject what the renter sent; a rejection tells them why.` : 'Identity and coverage are confirmed.'}</p>
+    </Card>
   );
 }
