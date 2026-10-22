@@ -158,7 +158,7 @@ export default async function CarPage({ params }: Params) {
       </section>
 
       <nav className="car-nav" aria-label="On this page"><div className="wrap"><ul>
-        {[['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
+        {[['rates', 'Rates'], ['dates', 'Dates and price'], ['specs', 'Specs'], ['need', 'Requirements'], ['coverage', 'Coverage'], ['delivery', 'Delivery'], ['cancel', 'Cancelling'], ['questions', 'Questions']].filter(([id]) => id !== 'dates' || c.taking_requests).map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}
       </ul></div></nav>
 
       <div className="wrap car-body">

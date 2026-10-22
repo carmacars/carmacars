@@ -203,6 +203,10 @@ test('delete a sample car whose bookings are only requests; Add a rental for a c
   // Add a rental for a CarmaCars-owned car with a draft listing and no rates
   const [u] = await sql`select app.vehicle_add(${admin.id}, ${sql.json({ supply_type: 'company', vin: vin(), plate: plate(), year: 2024, make: 'Nissan', model: `Sentra ${tag()}` })}) as r`;
   const uid = (u!.r as { vehicle_id: string }).vehicle_id;
+  // 0087: a car added without rates gets a rate card from the class defaults and, with "Publish new cars
+  // automatically" on, goes live at once; this case is a car with neither, so both are taken back here
+  await sql`delete from rate_cards where vehicle_id = ${uid} and auto_defaults ? 'daily'`;
+  await sql`update vehicle_listings set status = 'draft' where vehicle_id = ${uid}`;
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
   await page.getByTestId('mr-vehicle_id').selectOption(uid);
   await expect(page.getByTestId('mr-unlisted-tag')).toContainText('Listing not finished');

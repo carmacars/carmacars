@@ -113,7 +113,7 @@ jobs:
   full:
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 100   # the release 2 suite: end to end alone runs about 45 minutes
     defaults:
       run:
         working-directory: web
