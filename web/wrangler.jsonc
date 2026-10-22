@@ -12,6 +12,9 @@
   "minify": true,
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
+  // Workers Paid: up to 30 s of CPU a request, so a cold render of a heavy page (home, a car page) is never cut off
+  // with Error 1102 (about 2 s of CPU before; 246 refusals on Oct 21)
+  "limits": { "cpu_ms": 30000 },
   // the deployment's version id: the Worker entry's edge copies of the public pages belong to one deployment
   // (src/lib/edge/page-cache.ts)
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
