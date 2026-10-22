@@ -21,11 +21,11 @@ delete from game_claims; delete from game_plays;
 -- ================================================================ 1. settings
 select test.eq('sooner: 1 car page or 15 seconds, exit intent kept; again after 2 more car pages or 3 minutes; 3 a visit; the booking form on',
   (select format('%s/%s/%s %s/%s %s %s', game_trigger_car_pages, game_trigger_seconds, game_exit_intent, game_reshow_car_pages, game_reshow_seconds, game_max_per_visit, game_booking_offer)
-     from (select (app.settings()).*) s), '1/15/t 2/180 3 t');
+     from (select (app.settings()).*) s), '1/15/t 2/60 3 t');
 select test.eq('the column defaults are the new ones too',
   (select string_agg(column_name || '=' || column_default, ' ' order by column_name) from information_schema.columns
     where table_name = 'program_settings' and column_name in ('game_trigger_car_pages', 'game_trigger_seconds', 'game_reshow_car_pages', 'game_reshow_seconds', 'game_max_per_visit')),
-  'game_max_per_visit=3 game_reshow_car_pages=2 game_reshow_seconds=180 game_trigger_car_pages=1 game_trigger_seconds=15');
+  'game_max_per_visit=3 game_reshow_car_pages=2 game_reshow_seconds=60 game_trigger_car_pages=1 game_trigger_seconds=15');
 select test.throws('a per-visit cap of 0 is refused', $$update program_settings set game_max_per_visit = 0$$, 'check');
 select test.throws('a re-show after more than an hour is refused', $$update program_settings set game_reshow_seconds = 3601$$, 'check');
 select test.eq('the four prizes of 0069 stay (5% now 69), three rare ones join them, the $75 cap and the code length stay',

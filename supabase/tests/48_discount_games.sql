@@ -60,8 +60,8 @@ select test.eq('the short terms list the prizes and say the chances differ',
 select test.eq('the consent wording with the tokens filled from Site settings',
   (app.game_marketing_text() ->> 'text') = 'Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars'
     || coalesce(', ' || nullif((select mailing_address from site_settings), ''), '') || ', ' || coalesce((select public_email from site_settings), '') || '.', true);
-select test.eq('the browser''s settings (0081: sooner, the re-show and the booking form)', public.game_cfg(),
-  '{"on": true, "exit": true, "booking": true, "seconds": 15, "car_pages": 1, "per_visit": 3, "reshow_pages": 2, "reshow_seconds": 180}'::jsonb);
+select test.eq('the browser''s settings (0081: sooner, the re-show and the booking form; 0094: 60 seconds, 6 a day)', public.game_cfg(),
+  '{"on": true, "exit": true, "booking": true, "seconds": 15, "car_pages": 1, "per_day": 6, "per_visit": 3, "reshow_pages": 2, "reshow_seconds": 60}'::jsonb);
 
 -- ================================================================ 2. who may play
 select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in ('pct5', 'pct10', 'pct15', 'amt50'))
