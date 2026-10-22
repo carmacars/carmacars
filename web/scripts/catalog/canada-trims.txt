@@ -1,0 +1,147 @@
+# Canadian trim names for the vehicle pages (migration 0092). Compiled by CarmaCars from the makers' Canadian lineups:
+# trim names are facts, so the list is ours to publish. One line per model and run of model years, entry trim first:
+#   make | model | first year-last year | Trim, Trim, Trim
+# A model year may have more than one line (a separate hybrid or performance line): the trims are added in order.
+# Names in a trim that EPA uses for a powertrain (Hybrid, Prime, GLI, Si, Type R, N, AMG C 43, Long Range, M340i...) tie
+# the trim to that powertrain; AWD, xDrive, 4MATIC, quattro tie it to all-wheel drive. Admins can correct or add lines
+# in Admin > Settings > Vehicle pages; those edits are kept by every import.
+
+# Volkswagen (Canadian names: Trendline, Comfortline, Highline, Sportline, Execline)
+Volkswagen | Jetta | 2015-2018 | Trendline, Trendline+, Comfortline, Highline, GLI
+Volkswagen | Jetta | 2019 | Comfortline, Highline, Execline, GLI
+Volkswagen | Jetta | 2020-2021 | Comfortline, Highline, Sportline, Execline, GLI
+Volkswagen | Jetta | 2022-2024 | Trendline, Comfortline, Highline, GLI
+Volkswagen | Jetta | 2025-2026 | Comfortline, Highline, GLI
+Volkswagen | Golf | 2015-2019 | Trendline, Comfortline, Highline
+Volkswagen | Golf | 2020-2021 | Comfortline, Highline
+Volkswagen | Tiguan | 2018-2024 | Trendline, Comfortline, Highline
+Volkswagen | Atlas | 2018-2023 | Trendline, Comfortline, Highline, Execline
+Volkswagen | Taos | 2022-2024 | Trendline, Comfortline, Highline
+
+# Toyota
+Toyota | Corolla | 2015-2016 | CE, S, LE, LE ECO
+Toyota | Corolla | 2017-2019 | CE, LE, SE, XSE
+Toyota | Corolla | 2020-2022 | L, LE, SE, XLE, XSE, Hybrid LE
+Toyota | Corolla | 2023-2025 | LE, SE, XSE, Hybrid LE, Hybrid SE
+Toyota | Camry | 2015-2017 | LE, SE, XSE, XLE, Hybrid LE, Hybrid SE, Hybrid XLE
+Toyota | Camry | 2018-2024 | LE, SE, XSE, XLE, Hybrid LE, Hybrid SE, Hybrid XLE
+Toyota | Camry | 2025-2026 | LE, SE, XSE, XLE
+Toyota | RAV4 | 2016-2018 | LE, XLE, SE, Limited, Hybrid XLE, Hybrid Limited
+Toyota | RAV4 | 2019-2024 | LE, XLE, Trail, Limited, Hybrid LE, Hybrid XLE, Hybrid Limited
+Toyota | RAV4 | 2021-2024 | Prime SE, Prime XSE
+Toyota | Highlander | 2020-2024 | L, LE, XLE, Limited, Platinum, Hybrid XLE, Hybrid Limited, Hybrid Platinum
+Toyota | Sienna | 2021-2024 | LE, XLE, XSE, Limited, Platinum
+Toyota | Tacoma | 2016-2023 | SR5, TRD Sport, TRD Off-Road, Limited
+Toyota | Corolla Cross | 2022-2024 | L, LE, XLE
+
+# Honda
+Honda | Civic | 2016-2018 | DX, LX, EX, EX-T, Touring, Si, Type R
+Honda | Civic | 2019-2021 | LX, Sport, EX, Touring, Si, Type R
+Honda | Civic | 2022-2024 | LX, EX, Sport, Touring, Si, Type R
+Honda | Civic | 2025-2026 | LX, Sport, EX, Sport Hybrid, Sport Touring Hybrid, Si, Type R
+Honda | CR-V | 2017-2022 | LX, EX, EX-L, Touring
+Honda | CR-V | 2023-2025 | LX, EX-L, Sport, Touring
+Honda | Accord | 2018-2022 | LX, Sport, EX-L, Touring, Hybrid
+Honda | Accord | 2023-2025 | EX, Sport-L Hybrid, Touring Hybrid
+Honda | HR-V | 2016-2022 | LX, Sport, EX-L Navi, Touring
+Honda | HR-V | 2023-2025 | LX, Sport, EX-L
+Honda | Pilot | 2016-2022 | LX, EX, EX-L, Touring, Black Edition
+Honda | Pilot | 2023-2025 | Sport, EX-L, TrailSport, Touring, Black Edition
+Honda | Odyssey | 2018-2024 | LX, EX, EX-RES, Touring, Black Edition
+
+# Hyundai
+Hyundai | Elantra | 2017-2020 | L, LE, GL, Preferred, Luxury, Ultimate, Sport
+Hyundai | Elantra | 2021-2025 | Essential, Preferred, Luxury, Ultimate, N Line, N
+Hyundai | Tucson | 2016-2021 | 2.0L, Preferred, Luxury, Ultimate
+Hyundai | Tucson | 2022-2025 | Essential, Preferred, N Line, Urban, Luxury, Ultimate
+Hyundai | Kona | 2018-2023 | Essential, Preferred, Trend, Luxury, Ultimate, N Line
+Hyundai | Kona | 2024-2025 | Essential, Preferred, Trend, N Line, Ultimate
+Hyundai | Santa Fe | 2019-2023 | Essential, Preferred, Luxury, Ultimate Calligraphy
+
+# Kia
+Kia | Forte | 2019-2023 | LX, EX, EX+, EX Premium, GT-Line, GT
+Kia | Forte | 2024-2025 | LX, EX, EX+, GT-Line, GT
+Kia | Sportage | 2017-2022 | LX, EX, EX Premium, EX Tech, SX Turbo
+Kia | Soul | 2020-2025 | LX, EX, EX+, GT-Line
+Kia | Seltos | 2021-2025 | LX, EX, EX Premium, SX Turbo
+Kia | Telluride | 2020-2025 | EX, SX, SX Limited, X-Line
+Kia | Carnival | 2022-2024 | LX, LX+, EX, EX+, SX, SX+
+Kia | Sorento | 2021-2024 | LX, LX+, EX, EX+, SX, X-Line
+
+# Mazda
+Mazda | CX-5 | 2017-2021 | GX, GS, GT, Signature
+Mazda | CX-5 | 2022-2025 | GX, GS, Sport Design, Kuro, GT, Signature
+Mazda | CX-30 | 2020-2025 | GX, GS, GT, GT Turbo
+Mazda | MX-5 | 2016-2025 | GS, GS-P, GT
+Mazda | CX-50 | 2023-2025 | GS-L, Meridian Edition, GT, GT Turbo
+Mazda | CX-90 | 2024-2025 | GS, GS-L, GT, GT-P, Signature
+
+# Ford
+Ford | F-150 | 2015-2020 | XL, XLT, Lariat, King Ranch, Platinum, Limited, Raptor
+Ford | F-150 | 2021-2025 | XL, XLT, Lariat, King Ranch, Platinum, Limited, Tremor, Raptor
+Ford | Escape | 2020-2022 | S, SE, SEL, Titanium
+Ford | Escape | 2023-2025 | Active, ST-Line, ST-Line Select, Platinum
+Ford | Explorer | 2020-2025 | Base, XLT, Limited, ST, Timberline, Platinum
+Ford | Mustang | 2015-2023 | EcoBoost, EcoBoost Premium, GT, GT Premium
+Ford | Mustang | 2024-2025 | EcoBoost, EcoBoost Premium, GT, GT Premium, Dark Horse
+Ford | Edge | 2019-2024 | SE, SEL, ST-Line, Titanium, ST
+Ford | Bronco Sport | 2021-2025 | Base, Big Bend, Outer Banks, Badlands
+Ford | Ranger | 2019-2023 | XL, XLT, Lariat
+Ford | Maverick | 2022-2024 | XL, XLT, Lariat
+
+# Chevrolet and GMC
+Chevrolet | Malibu | 2016-2018 | L, LS, LT, Premier
+Chevrolet | Malibu | 2019-2024 | LS, RS, LT, Premier
+Chevrolet | Equinox | 2018-2024 | LS, LT, RS, Premier
+Chevrolet | Silverado | 2019-2025 | WT, Custom, LT, RST, LTZ, High Country, Trail Boss
+Chevrolet | Trax | 2024-2025 | LS, 1RS, LT, 2RS, ACTIV
+Chevrolet | Cruze | 2016-2019 | L, LS, LT, Premier
+Chevrolet | Tahoe | 2021-2025 | LS, LT, RST, Z71, Premier, High Country
+GMC | Sierra | 2019-2025 | Pro, SLE, Elevation, SLT, AT4, Denali
+GMC | Terrain | 2018-2024 | SLE, SLT, AT4, Denali
+
+# Nissan
+Nissan | Rogue | 2014-2020 | S, SV, SL
+Nissan | Rogue | 2021-2025 | S, SV, SL, Platinum
+Nissan | Sentra | 2020-2025 | S, SV, SR
+Nissan | Altima | 2019-2025 | S, SV, SR, SL, Platinum
+Nissan | Kicks | 2018-2024 | S, SV, SR
+
+# Subaru (Canadian names)
+Subaru | Crosstrek | 2018-2020 | Convenience, Touring, Sport-tech, Limited
+Subaru | Crosstrek | 2021-2023 | Convenience, Touring, Sport, Outdoor, Limited
+Subaru | Forester | 2019-2025 | Base, Convenience, Touring, Sport, Limited, Premier
+Subaru | Outback | 2020-2025 | Convenience, Touring, Limited, Outdoor XT, Premier XT
+Subaru | Impreza | 2017-2023 | Convenience, Touring, Sport, Sport-tech
+
+# Jeep, Chrysler, Dodge, Ram
+Jeep | Wrangler | 2018-2025 | Sport, Sport S, Willys, Sahara, Rubicon
+Jeep | Grand Cherokee | 2014-2021 | Laredo, Altitude, Limited, Trailhawk, Overland, Summit, SRT
+Jeep | Grand Cherokee | 2022-2025 | Laredo, Altitude, Limited, Trailhawk, Overland, Summit
+Jeep | Compass | 2017-2025 | Sport, North, Altitude, Limited, Trailhawk
+Jeep | Cherokee | 2014-2023 | Sport, North, Altitude, Limited, Trailhawk, Overland
+Dodge | Grand Caravan | 2015-2020 | Canada Value Package, SXT, SXT Premium Plus, Crew Plus, GT
+Chrysler | Pacifica | 2017-2020 | Touring, Touring Plus, Touring L, Touring L Plus, Limited
+Chrysler | Pacifica | 2021-2025 | Touring, Touring L, Limited, Pinnacle
+Ram | 1500 | 2019-2025 | Tradesman, Big Horn, Sport, Rebel, Laramie, Limited, TRX
+
+# Tesla
+Tesla | Model 3 | 2019-2021 | Standard Range Plus, Long Range, Performance
+Tesla | Model 3 | 2022-2025 | Rear-Wheel Drive, Long Range, Performance
+Tesla | Model Y | 2020-2025 | Long Range, Performance
+
+# Premium makes (Canadian packages where the maker names them: Audi Komfort, Progressiv, Technik)
+Audi | A4 | 2017-2025 | Komfort, Progressiv, Technik
+Audi | Q3 | 2019-2025 | Komfort, Progressiv, Technik
+Audi | Q5 | 2018-2025 | Komfort, Progressiv, Technik
+Audi | Q7 | 2017-2025 | Komfort, Progressiv, Technik
+BMW | 3 Series | 2019-2025 | 330i xDrive, M340i xDrive
+BMW | X3 | 2018-2025 | xDrive30i, M40i
+Mercedes-Benz | C-Class | 2015-2021 | C 300 4MATIC, AMG C 43
+Mercedes-Benz | C-Class | 2022-2025 | C 300 4MATIC, AMG C 43
+Mercedes-Benz | GLC | 2016-2025 | GLC 300 4MATIC, AMG GLC 43
+Acura | RDX | 2019-2025 | Tech, A-Spec, Platinum Elite
+Acura | MDX | 2022-2025 | Tech, A-Spec, Platinum Elite, Type S
+Cadillac | CTS | 2014-2016 | Standard, Luxury, Performance, Premium, V-Sport
+Porsche | Macan | 2015-2016 | S, Turbo
+Porsche | Macan | 2017-2018 | Macan, S, GTS, Turbo
