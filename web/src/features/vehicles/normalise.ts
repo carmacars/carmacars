@@ -4,17 +4,24 @@
 // Pure functions: no imports beyond ./units.ts, nothing read or written here.
 import { kwh100miTo100km, miToKm, modelKey, mpgToL100, slugify, trimSlug } from './units.ts';
 
-/** Makes sold new in Canada since 2010, as the EPA file spells them, with the name shown. Exotic makes are left out. */
-export const CANADA_MAKES: Record<string, string> = {
-  'Acura': 'Acura', 'Alfa Romeo': 'Alfa Romeo', 'Audi': 'Audi', 'BMW': 'BMW', 'Buick': 'Buick', 'Cadillac': 'Cadillac', 'Chevrolet': 'Chevrolet',
-  'Chrysler': 'Chrysler', 'Dodge': 'Dodge', 'Fiat': 'Fiat', 'FIAT': 'Fiat', 'Ford': 'Ford', 'Genesis': 'Genesis', 'GMC': 'GMC', 'Honda': 'Honda', 'Hummer': 'Hummer',
-  'Hyundai': 'Hyundai', 'Infiniti': 'Infiniti', 'Jaguar': 'Jaguar', 'Jeep': 'Jeep', 'Kia': 'Kia', 'Land Rover': 'Land Rover', 'Lexus': 'Lexus',
-  'Lincoln': 'Lincoln', 'Lucid': 'Lucid', 'Mazda': 'Mazda', 'Mercedes-Benz': 'Mercedes-Benz', 'MINI': 'MINI', 'Mini': 'MINI', 'Mitsubishi': 'Mitsubishi',
-  'Nissan': 'Nissan', 'Polestar': 'Polestar', 'Pontiac': 'Pontiac', 'Porsche': 'Porsche', 'Ram': 'Ram', 'Rivian': 'Rivian', 'Saab': 'Saab',
-  'Saturn': 'Saturn', 'Scion': 'Scion', 'smart': 'smart', 'Subaru': 'Subaru', 'Suzuki': 'Suzuki', 'Tesla': 'Tesla', 'Toyota': 'Toyota',
-  'VinFast': 'VinFast', 'Volkswagen': 'Volkswagen', 'Volvo': 'Volvo'
+/** Every make of the EPA file is in the catalog (the owner, October 22, 2026: every make, exotics included, every year).
+ *  The name shown: this list where the EPA spelling differs in case or carries a company suffix, else EPA's own
+ *  spelling less "Inc.", "LLC", "Ltd" and the like. */
+export const MAKE_NAMES: Record<string, string> = {
+  'FIAT': 'Fiat', 'Mini': 'MINI', 'MINI': 'MINI', 'smart': 'smart', 'McLaren Automotive': 'McLaren', 'Roush Performance': 'Roush',
+  'Saleen Performance': 'Saleen', 'TVR Engineering Ltd': 'TVR', 'Panoz Auto-Development': 'Panoz', 'CODA Automotive': 'CODA',
+  'Mobility Ventures LLC': 'Mobility Ventures', 'Shelby American Inc': 'Shelby', 'Ruf Automobile Gmbh': 'RUF', 'Pagani': 'Pagani',
+  'Bugatti': 'Bugatti', 'Koenigsegg': 'Koenigsegg', 'Rolls-Royce': 'Rolls-Royce', 'Aston Martin': 'Aston Martin', 'Lotus': 'Lotus',
+  'Grumman Olson': 'Grumman Olson', 'Lambda Control Systems': 'Lambda Control Systems'
 };
-
+/** The name a make is shown with, from EPA's spelling (or null for an empty one). */
+export function makeName(raw: string): string | null {
+  const s = raw.replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  if (MAKE_NAMES[s]) return MAKE_NAMES[s]!;
+  const plain = s.replace(/,?\s+(inc\.?|llc|ltd\.?|limited|corp\.?|corporation|co\.?|gmbh|s\.?p\.?a\.?|ag|plc)$/i, '').trim();
+  return plain || s;
+}
 /** Words in an EPA model name that say the drive, the body or the cab, not the model or the trim. */
 const GENERIC = new Set(['2wd', '4wd', 'awd', 'fwd', 'rwd', '4x4', '4x2', '4matic', '4matic+', 'xdrive', 'sdrive', 'quattro', '4motion', 'sh-awd', 'all4', 'e-four',
   'pickup', 'cab', 'chassis', 'sedan', 'coupe', 'convertible', 'cabriolet', 'roadster', 'hatchback', 'wagon', 'van', 'cargo', 'passenger', 'suv', 'crossover',
@@ -24,8 +31,16 @@ export type Variant = {
   id: number; epa_model: string; special: string[]; displ: number | null; cyl: number | null; turbo: boolean; super: boolean;
   drive: string | null; trans: string | null; fuel: string; vclass: string | null;
   l100_city: number | null; l100_hwy: number | null; l100_comb: number | null; kwh100: number | null; ev_range_km: number | null; co2_g_km: number | null;
+  /** EPA's own figures as published: MPG (MPGe for an EV) in US gallons, the annual fuel cost in US dollars (15,000 miles,
+   *  EPA's prices), the hours to charge at 240 V, the luggage volume in cubic feet, the battery in kWh when EPA names it */
+  mpg_city?: number | null; mpg_hwy?: number | null; mpg_comb?: number | null; fuel_cost_usd?: number | null; charge240_h?: number | null;
+  luggage_cuft?: number | null; battery_kwh?: number | null;
 };
-export type YearRow = { make: string; model: string; year: number; vclass: string | null; variants: Variant[]; sources: string[] };
+/** A body's Canadian dimensions and curb weight, as NHTSA vPIC's Canadian specifications give them (cm, kg). */
+export type Dim = { body: string; length_cm: number | null; width_cm: number | null; height_cm: number | null; wheelbase_cm: number | null; curb_kg: number | null };
+export type Recall = { campaign: string; date: string | null; component: string | null; summary: string | null };
+export type Complaints = { total: number; components: Array<{ component: string; n: number }> };
+export type YearRow = { make: string; model: string; year: number; vclass: string | null; variants: Variant[]; sources: string[]; dims?: Dim[]; recalls?: Recall[]; complaints?: Complaints };
 export type ModelRow = { make: string; slug: string; name: string; key: string; aliases: string[]; vclass: string | null; sources: string[] };
 export type MakeRow = { slug: string; name: string };
 export type TrimLine = { make: string; model: string; from: number; to: number; trims: string[] };
@@ -85,8 +100,8 @@ export function specialTokens(epaModel: string, baseModel: string): string[] {
 /** One EPA row as a powertrain, or null when it is outside the years or makes the site covers. */
 export function variantOf(r: Record<string, string>, years: [number, number]): { make: string; makeName: string; base: string; year: number; v: Variant } | null {
   const year = num(pick(r, 'year'));
-  const makeName = CANADA_MAKES[String(pick(r, 'make') ?? '').trim()];
-  if (!year || year < years[0] || year > years[1] || !makeName) return null;
+  const name = makeName(String(pick(r, 'make') ?? ''));
+  if (!year || year < years[0] || year > years[1] || !name) return null;
   const epaModel = String(pick(r, 'model') ?? '').trim();
   const base = String(pick(r, 'baseModel') ?? '').trim() || epaModel;
   if (!epaModel) return null;
@@ -96,7 +111,7 @@ export function variantOf(r: Record<string, string>, years: [number, number]): {
   const rng = num(pick(r, 'range')) || (fuel === 'plug_in_hybrid' ? num(String(pick(r, 'rangeA') ?? '').split('/')[0]) : null);
   const co2 = num(pick(r, 'co2TailpipeGpm'));
   return {
-    make: slugify(makeName), makeName, base, year,
+    make: slugify(name), makeName: name, base, year,
     v: {
       id: num(pick(r, 'id')) ?? 0, epa_model: epaModel, special: specialTokens(epaModel, base),
       displ: ev ? null : num(pick(r, 'displ')), cyl: ev ? null : num(pick(r, 'cylinders')), turbo: tc === 'T' || tc === 'TRUE' || tc === '1', super: sc === 'S',
@@ -107,10 +122,15 @@ export function variantOf(r: Record<string, string>, years: [number, number]): {
       l100_comb: ev ? null : mpgToL100(num(pick(r, 'comb08U')) || num(pick(r, 'comb08'))),
       kwh100: ev ? kwh100miTo100km(num(pick(r, 'combE'))) : null,
       ev_range_km: ev || fuel === 'plug_in_hybrid' ? miToKm(rng) : null,
-      co2_g_km: co2 && co2 > 0 ? Math.round(co2 / 1.609344) : (ev ? 0 : null)
+      co2_g_km: co2 && co2 > 0 ? Math.round(co2 / 1.609344) : (ev ? 0 : null),
+      mpg_city: pos(num(pick(r, 'city08'))), mpg_hwy: pos(num(pick(r, 'highway08'))), mpg_comb: pos(num(pick(r, 'comb08'))),
+      fuel_cost_usd: pos(num(pick(r, 'fuelCost08'))), charge240_h: ev || fuel === 'plug_in_hybrid' ? pos(num(pick(r, 'charge240'))) : null,
+      luggage_cuft: pos(Math.max(num(pick(r, 'lv2')) ?? 0, num(pick(r, 'lv4')) ?? 0, num(pick(r, 'hlv')) ?? 0)),
+      battery_kwh: ev || fuel === 'plug_in_hybrid' ? pos(num(/(\d+(?:\.\d+)?)\s*kW[- ]?hr?\b/i.exec(String(pick(r, 'evMotor') ?? ''))?.[1])) : null
     }
   };
 }
+const pos = (n: number | null) => (n !== null && n > 0 ? n : null);
 
 /** The size class without the drive ("Small Sport Utility Vehicle 4WD" is "Small Sport Utility Vehicle"). */
 export const classOf = (s: string | null) => (s ? s.replace(/\s+[24]WD$/i, '').replace(/\s*-\s*[24]WD$/i, '').trim() : null);
@@ -142,8 +162,10 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
     if (!y) { y = { make: x.make, model: key, year: x.year, vclass: null, variants: [], sources: ['epa'] }; years.set(yk, y); }
     y.variants.push(x.v);
   }
-  // vPIC: the manufacturer's spelling of a model EPA knows, and model years EPA has no row for
-  const named = new Set((opts.trimLines ?? []).map((t) => `${t.make}|${modelKey(t.model)}`));
+  // vPIC: the manufacturer's spelling of a model EPA knows, model years EPA has no row for (1981 to 1983, the next model
+  // year), and the models EPA does not rate (heavy-duty pickups and vans): every model of every year (the owner, October 22)
+  const epaKeys = new Map<string, string[]>();
+  for (const m of models.values()) epaKeys.set(m.make, [...(epaKeys.get(m.make) ?? []), m.key]);
   for (const [make, byYear] of opts.vpic ?? []) {
     if (!makes.has(make)) continue;
     for (const [year, names] of byYear) {
@@ -152,9 +174,14 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
       if (!nameOnly && (year < opts.years[0] || year > opts.years[1])) continue;
       for (const name of names) {
         const key = modelKey(name);
+        if (!key) continue;
         const mk = `${make}|${key}`;
-        const m = models.get(mk) ?? [...models.values()].find((o) => o.make === make && o.aliases.has(key));
-        if (!m && (nameOnly || !named.has(mk))) continue;
+        // a vPIC name that is an EPA model and a size ("Silverado 2500", "Sierra 1500 HD") is that model's year
+        const family = (epaKeys.get(make) ?? []).filter((k) => k.length >= 3 && key.startsWith(k) && /^(\d{3,4}(hd)?|hd)$/.test(key.slice(k.length)))
+          .sort((a, b) => b.length - a.length)[0];
+        const m = models.get(mk) ?? [...models.values()].find((o) => o.make === make && o.aliases.has(key)) ?? (family ? models.get(`${make}|${family}`) : undefined);
+        if (m && m.key !== key) m.aliases.add(key);
+        if (!m && nameOnly) continue;
         const mm = m ?? (() => { const n = { make, name, key, aliases: new Set<string>(), vclass: [], sources: new Set(['vpic']) }; models.set(mk, n); return n; })();
         mm.sources.add('vpic');
         if (mm.key === key && /[-\s]/.test(name) && !/[-\s]/.test(mm.name)) mm.name = name; // "F-150", "CR-V", "CX-5"
@@ -206,6 +233,71 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
   };
 }
 
+/** A make's models by every compact spelling the catalog knows (key, aliases), for names from other sources. */
+function modelIndex(c: Catalog): Map<string, Map<string, string>> {
+  const out = new Map<string, Map<string, string>>();
+  for (const m of c.models) {
+    const by = out.get(m.make) ?? out.set(m.make, new Map()).get(m.make)!;
+    for (const k of [m.key, modelKey(m.slug), ...m.aliases]) if (k && !by.has(k)) by.set(k, m.slug);
+  }
+  return out;
+}
+/** The catalog model a name from another source starts with ("JETTA GLI 4DR SEDAN" is the Jetta): the longest run of
+ *  its first words whose compact spelling the make has, and the words after it. */
+export function modelOfName(idx: Map<string, string> | undefined, name: string): { slug: string; rest: string[] } | null {
+  if (!idx) return null;
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  let best: { slug: string; rest: string[] } | null = null;
+  let acc = '';
+  for (let i = 0; i < words.length && i < 5; i++) {
+    acc += modelKey(words[i]!);
+    const hit = idx.get(acc);
+    if (hit) best = { slug: hit, rest: words.slice(i + 1) };
+  }
+  return best;
+}
+const twoDigitYear = (y: string) => { const n = Number(y); if (!Number.isFinite(n)) return null; return y.length === 4 ? n : n < 50 ? 2000 + n : 1900 + n; };
+
+/** vPIC Canadian specifications (one per body and model year) as each catalog year's dims. */
+export function attachDims(c: Catalog, cvs: Map<string, Array<Record<string, string>>>): number {
+  const idx = modelIndex(c); const years = new Map(c.years.map((y) => [`${y.make}|${y.model}|${y.year}`, y]));
+  const n = (s: string | undefined) => { const x = Number(String(s ?? '').trim()); return Number.isFinite(x) && x > 0 ? x : null; };
+  let hit = 0;
+  for (const [make, rows] of cvs) for (const r of rows) {
+    const body = String(r.Model ?? '').trim(); const year = twoDigitYear(String(r.MYR ?? '').trim());
+    const m = year ? modelOfName(idx.get(make), body) : null;
+    const y = m ? years.get(`${make}|${m.slug}|${year}`) : undefined;
+    if (!y) continue;
+    const d: Dim = { body, length_cm: n(r.OL), width_cm: n(r.OW), height_cm: n(r.OH), wheelbase_cm: n(r.WB), curb_kg: n(r.CW) };
+    y.dims ??= [];
+    if (!y.dims.some((x) => x.body === d.body)) { y.dims.push(d); hit++; }
+  }
+  for (const y of c.years) y.dims?.sort((a, b) => a.body.localeCompare(b.body));
+  return hit;
+}
+
+/** NHTSA recalls and complaint counts, keyed "make|MODEL TEXT|year" by the import, as each catalog year's. */
+export function attachSafety(c: Catalog, recalls: Map<string, Recall[]>, complaints: Map<string, { total: number; comps: Map<string, number> }>): { recalls: number; complaints: number } {
+  const idx = modelIndex(c); const years = new Map(c.years.map((y) => [`${y.make}|${y.model}|${y.year}`, y]));
+  const find = (k: string) => { const [make, model, year] = k.split('|'); const m = modelOfName(idx.get(make!), model!); return m && m.rest.length <= 2 ? years.get(`${make}|${m.slug}|${year}`) : undefined; };
+  let nr = 0, nc = 0;
+  for (const [k, list] of recalls) {
+    const y = find(k); if (!y) continue;
+    y.recalls ??= [];
+    for (const r of list) if (!y.recalls.some((x) => x.campaign === r.campaign)) { y.recalls.push(r); nr++; }
+  }
+  for (const [k, v] of complaints) {
+    const y = find(k); if (!y) continue;
+    const prev = y.complaints ?? { total: 0, components: [] };
+    const comps = new Map(prev.components.map((x) => [x.component, x.n]));
+    for (const [comp, cnt] of v.comps) comps.set(comp, (comps.get(comp) ?? 0) + cnt);
+    y.complaints = { total: prev.total + v.total, components: [...comps].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 6).map(([component, n]) => ({ component, n })) };
+    nc += v.total;
+  }
+  for (const y of c.years) y.recalls?.sort((a, b) => String(b.date).localeCompare(String(a.date)) || a.campaign.localeCompare(b.campaign));
+  return { recalls: nr, complaints: nc };
+}
+
 /**
  * The CarmaCars trim list (web/scripts/catalog/canada-trims.txt): one line per model and run of years,
  *   make | model | 2019-2021 | Comfortline, Highline, Sportline, Execline
@@ -220,7 +312,7 @@ export function parseTrimList(text: string): TrimLine[] {
     const m = /^(\d{4})(?:-(\d{4}))?$/.exec(span ?? '');
     if (!make || !model || !m || !trims) throw new Error(`canada-trims line ${i + 1}: expected "make | model | 2019-2021 | Trim, Trim"`);
     const mk = slugify(make);
-    if (!Object.values(CANADA_MAKES).some((n) => slugify(n) === mk)) throw new Error(`canada-trims line ${i + 1}: unknown make ${make}`);
+    if (!mk) throw new Error(`canada-trims line ${i + 1}: no make`);
     const list = trims.split(',').map((s) => s.trim()).filter(Boolean);
     if (new Set(list.map(trimSlug)).size !== list.length) throw new Error(`canada-trims line ${i + 1}: a trim is named twice`);
     out.push({ make: mk, model, from: Number(m[1]), to: Number(m[2] ?? m[1]), trims: list });
@@ -236,9 +328,24 @@ export function parsePopular(text: string): Array<{ make: string; model: string 
   }).filter((p) => p.make && p.model);
 }
 
-/** The import as batches for app.vehicle_catalog_import_batch: one per make, so no call carries the whole catalog. */
-export function batches(c: Catalog): Array<{ make: MakeRow; models: ModelRow[]; years: YearRow[]; trim_lines: TrimLine[] }> {
-  return c.makes.map((make) => ({
-    make, models: c.models.filter((m) => m.make === make.slug), years: c.years.filter((y) => y.make === make.slug), trim_lines: c.trim_lines.filter((t) => t.make === make.slug)
-  }));
+/** The import as batches for app.vehicle_catalog_import_batch: a make's models with their years, split so no call carries
+ *  more than about `maxBytes` of JSON (a make of 40 years is several MB). The make's trim lines go with its first batch
+ *  only (the database replaces them when a batch carries them). */
+export type Batch = { make: MakeRow; models: ModelRow[]; years: YearRow[]; trim_lines?: TrimLine[] };
+export function batches(c: Catalog, maxBytes = 900_000): Batch[] {
+  const out: Batch[] = [];
+  const yearsOf = new Map<string, YearRow[]>();
+  for (const y of c.years) { const k = `${y.make}|${y.model}`; (yearsOf.get(k) ?? yearsOf.set(k, []).get(k)!).push(y); }
+  for (const make of c.makes) {
+    let cur: Batch = { make, models: [], years: [], trim_lines: c.trim_lines.filter((t) => t.make === make.slug) };
+    let size = JSON.stringify(cur).length;
+    for (const m of c.models.filter((x) => x.make === make.slug)) {
+      const ys = yearsOf.get(`${m.make}|${m.slug}`) ?? [];
+      const add = JSON.stringify(m).length + JSON.stringify(ys).length + 2;
+      if (cur.models.length && size + add > maxBytes) { out.push(cur); cur = { make, models: [], years: [] }; size = JSON.stringify(cur).length; }
+      cur.models.push(m); cur.years.push(...ys); size += add;
+    }
+    out.push(cur);
+  }
+  return out;
 }

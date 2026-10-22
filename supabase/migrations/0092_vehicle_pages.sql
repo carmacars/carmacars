@@ -53,6 +53,11 @@ create table vehicle_catalog_years (
   model_slug text not null,
   year smallint not null check (year between 1980 and 2100),
   vclass text,
+  -- the Canadian dimensions and curb weight of each body of the year (NHTSA vPIC GetCanadianVehicleSpecifications)
+  dims jsonb not null default '[]'::jsonb check (jsonb_typeof(dims) = 'array'),
+  -- NHTSA recall campaigns of the model year [{campaign, date, component, summary}] and complaint counts {total, components}
+  recalls jsonb not null default '[]'::jsonb check (jsonb_typeof(recalls) = 'array'),
+  complaints jsonb not null default '{}'::jsonb check (jsonb_typeof(complaints) = 'object'),
   variants jsonb not null default '[]'::jsonb,
   -- the summary of the powertrains, kept with the row so the lists and the similar models read no JSON
   powertrains smallint not null default 0,
@@ -96,12 +101,22 @@ create table vehicle_catalog_trims (
   rank smallint not null,
   variant_ids integer[] not null default '{}',
   source text not null,
+  -- the trim's place in the whole catalog (make, model, year, lineup): the city and colour sitemaps take ranges of it
+  ord integer,
   content_hash text,
   updated_at timestamptz not null default now(),
   primary key (make_slug, model_slug, year, slug),
   foreign key (make_slug, model_slug, year) references vehicle_catalog_years (make_slug, model_slug, year) on delete cascade
 );
 create index vehicle_catalog_trims_slug_idx on vehicle_catalog_trims (make_slug, model_slug, slug);
+create index vehicle_catalog_trims_ord_idx on vehicle_catalog_trims (ord) include (make_slug, model_slug, year, slug, updated_at);
+-- numbers every trim in catalog order (dense, from 1); called after every build of the trims
+create or replace function app.vehicle_catalog_number_trims() returns void
+language sql security definer set search_path = public, app as $$
+  update vehicle_catalog_trims t set ord = r.rn
+    from (select make_slug, model_slug, year, slug, (row_number() over (order by make_slug, model_slug, year, rank, slug))::integer rn from vehicle_catalog_trims) r
+   where (t.make_slug, t.model_slug, t.year, t.slug) = (r.make_slug, r.model_slug, r.year, r.slug) and t.ord is distinct from r.rn
+$$;
 
 create table vehicle_catalog_popular (
   make_slug text not null,
@@ -325,6 +340,7 @@ begin
   on conflict (make_slug, model_slug, year, slug) do update
     set name = excluded.name, rank = excluded.rank, variant_ids = excluded.variant_ids, source = excluded.source, content_hash = excluded.content_hash,
         updated_at = case when vehicle_catalog_trims.content_hash is distinct from excluded.content_hash then now() else vehicle_catalog_trims.updated_at end;
+  perform app.vehicle_catalog_number_trims();
   select count(*) into n from vpage_new_trims;
   return n;
 end $$;
@@ -370,9 +386,10 @@ begin
     updated_at = case when vehicle_catalog_models.content_hash is distinct from excluded.content_hash then now() else vehicle_catalog_models.updated_at end;
   get diagnostics n_models = row_count;
 
-  insert into vehicle_catalog_years (make_slug, model_slug, year, vclass, variants, powertrains, l100_min, l100_max, kwh100_min, ev_range_max, fuels, drives,
+  insert into vehicle_catalog_years (make_slug, model_slug, year, vclass, variants, dims, recalls, complaints, powertrains, l100_min, l100_max, kwh100_min, ev_range_max, fuels, drives,
                                      sources, import_id, content_hash)
-  select v_make, y ->> 'model', (y ->> 'year')::smallint, y ->> 'vclass', coalesce(y -> 'variants', '[]'::jsonb),
+  select v_make, y ->> 'model', (y ->> 'year')::smallint, y ->> 'vclass', coalesce(y -> 'variants', '[]'::jsonb), coalesce(y -> 'dims', '[]'::jsonb),
+         coalesce(y -> 'recalls', '[]'::jsonb), coalesce(y -> 'complaints', '{}'::jsonb),
          jsonb_array_length(coalesce(y -> 'variants', '[]'::jsonb)),
          (select min((v ->> 'l100_comb')::numeric) from jsonb_array_elements(y -> 'variants') v),
          (select max((v ->> 'l100_comb')::numeric) from jsonb_array_elements(y -> 'variants') v),
@@ -382,17 +399,20 @@ begin
          array(select distinct v ->> 'drive' from jsonb_array_elements(y -> 'variants') v where v ->> 'drive' is not null order by 1),
          array(select jsonb_array_elements_text(y -> 'sources')), v_imp, md5((y - 'make')::text)
     from jsonb_array_elements(coalesce(p -> 'years', '[]'::jsonb)) y
-  on conflict (make_slug, model_slug, year) do update set vclass = excluded.vclass, variants = excluded.variants, powertrains = excluded.powertrains,
+  on conflict (make_slug, model_slug, year) do update set vclass = excluded.vclass, variants = excluded.variants, dims = excluded.dims, recalls = excluded.recalls, complaints = excluded.complaints, powertrains = excluded.powertrains,
     l100_min = excluded.l100_min, l100_max = excluded.l100_max, kwh100_min = excluded.kwh100_min, ev_range_max = excluded.ev_range_max,
     fuels = excluded.fuels, drives = excluded.drives, sources = excluded.sources, import_id = excluded.import_id, content_hash = excluded.content_hash,
     updated_at = case when vehicle_catalog_years.content_hash is distinct from excluded.content_hash then now() else vehicle_catalog_years.updated_at end;
   get diagnostics n_years = row_count;
 
-  -- the list's trim lines for this make, as the list now has them (an Admin's lines are never touched)
-  delete from vehicle_catalog_trim_lines where make_slug = v_make and source = 'seed';
-  insert into vehicle_catalog_trim_lines (make_slug, model_slug, from_year, to_year, trims, source, sort)
-  select v_make, t ->> 'model', (t ->> 'from')::smallint, (t ->> 'to')::smallint, array(select jsonb_array_elements_text(t -> 'trims')), 'seed', i::integer
-    from jsonb_array_elements(coalesce(p -> 'trim_lines', '[]'::jsonb)) with ordinality x(t, i);
+  -- the list's trim lines for this make, as the list now has them (an Admin's lines are never touched); a make split
+  -- into several batches sends them with its first batch only
+  if p ? 'trim_lines' then
+    delete from vehicle_catalog_trim_lines where make_slug = v_make and source = 'seed';
+    insert into vehicle_catalog_trim_lines (make_slug, model_slug, from_year, to_year, trims, source, sort)
+    select v_make, t ->> 'model', (t ->> 'from')::smallint, (t ->> 'to')::smallint, array(select jsonb_array_elements_text(t -> 'trims')), 'seed', i::integer
+      from jsonb_array_elements(coalesce(p -> 'trim_lines', '[]'::jsonb)) with ordinality x(t, i);
+  end if;
   return jsonb_build_object('make', v_make, 'models', n_models, 'years', n_years);
 end $$;
 
@@ -689,7 +709,7 @@ begin
   v_ok := app.vpage_gate('year', 0, (v_inv ->> 'real_exact')::integer, app.vpage_is_popular(y.make_slug, y.model_slug), y.year, s);
   return jsonb_build_object(
     'level', 'year', 'make', jsonb_build_object('slug', mk.slug, 'name', mk.name), 'model', jsonb_build_object('slug', m.slug, 'name', m.name, 'vclass', m.vclass),
-    'year', y.year, 'vclass', y.vclass, 'path', app.vpage_path(y.make_slug, y.model_slug, y.year), 'variants', y.variants, 'sources', y.sources,
+    'year', y.year, 'vclass', y.vclass, 'path', app.vpage_path(y.make_slug, y.model_slug, y.year), 'variants', y.variants, 'dims', y.dims, 'sources', y.sources,
     'body_group', app.vpage_body_group(coalesce(y.vclass, m.vclass)),
     'trims', (select coalesce(jsonb_agg(jsonb_build_object('slug', t.slug, 'name', t.name, 'rank', t.rank, 'variant_ids', t.variant_ids,
                 'path', app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug)) order by t.rank), '[]'::jsonb)
@@ -726,7 +746,7 @@ begin
   v_ok := app.vpage_gate('trim', 0, (v_inv ->> 'real_exact')::integer, false, t.year, s);
   return jsonb_build_object(
     'level', 'trim', 'make', jsonb_build_object('slug', mk.slug, 'name', mk.name), 'model', jsonb_build_object('slug', m.slug, 'name', m.name, 'vclass', m.vclass),
-    'year', y.year, 'vclass', y.vclass, 'body_group', app.vpage_body_group(coalesce(y.vclass, m.vclass)), 'variants', y.variants, 'sources', y.sources,
+    'year', y.year, 'vclass', y.vclass, 'body_group', app.vpage_body_group(coalesce(y.vclass, m.vclass)), 'variants', y.variants, 'dims', y.dims, 'sources', y.sources,
     'trim', jsonb_build_object('slug', t.slug, 'name', t.name, 'rank', t.rank, 'variant_ids', t.variant_ids, 'source', t.source),
     'path', app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug),
     'siblings', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'rank', x.rank, 'variant_ids', x.variant_ids,
@@ -774,18 +794,30 @@ language sql stable security definer set search_path = public, app as $$
    where p_make is null or t.make_slug = p_make
 $$;
 
--- The vehicle sitemaps: one of the makes, then one per make and level ("toyota-models", "toyota-years", "toyota-trims"),
--- each far under 50,000 addresses. Only indexed pages, each with its lastmod.
+-- The vehicle sitemaps: one of the makes, then one per make and level ("toyota-models", "toyota-years", "toyota-trims").
+-- A file never holds more than 45,000 addresses (the protocol's limit is 50,000): a bigger one is split into
+-- "<make>-years-1", "<make>-years-2"... in address order. Only indexed pages, each with its lastmod.
 create or replace function app.vehicle_sitemap_files() returns table (file text, urls bigint, lastmod timestamptz)
 language sql stable security definer set search_path = public, app as $$
-  select case when level = 'make' then 'makes' else make_slug || '-' || level || 's' end, count(*), max(lastmod)
-    from app.vpage_all() where indexable group by 1 order by 1
+  with f as (
+    select case when level = 'make' then 'makes' else make_slug || '-' || level || 's' end base, path, lastmod
+      from app.vpage_all() where indexable),
+  n as (select base, path, lastmod, (row_number() over (partition by base order by path) - 1) / 45000 + 1 part, count(*) over (partition by base) total from f)
+  select case when max(total) > 45000 then base || '-' || part else base end, count(*), max(lastmod) from n group by base, part order by 1
 $$;
 
 create or replace function app.vehicle_sitemap(p_file text) returns table (path text, lastmod timestamptz)
 language sql stable security definer set search_path = public, app as $$
-  select a.path, a.lastmod from app.vpage_all(case when p_file = 'makes' then null else substring(p_file from '^(.*)-(models|years|trims)$') end) a
-   where a.indexable and (case when a.level = 'make' then 'makes' else a.make_slug || '-' || a.level || 's' end) = p_file
+  with p as (select coalesce(substring(p_file from '^(.*-(?:models|years|trims))-[0-9]+$'), p_file) base,
+                    coalesce(substring(p_file from '-([0-9]+)$')::integer, 1) part,
+                    p_file ~ '-(models|years|trims)-[0-9]+$' numbered),
+  a as (
+    select a.path, a.lastmod, row_number() over (order by a.path) rn, count(*) over () total
+      from p, app.vpage_all(case when p.base = 'makes' then null else substring(p.base from '^(.*)-(models|years|trims)$') end) a
+     where a.indexable and (case when a.level = 'make' then 'makes' else a.make_slug || '-' || a.level || 's' end) = p.base)
+  select a.path, a.lastmod from a, p
+   where (p.numbered and a.total > 45000 and a.rn > (p.part - 1) * 45000 and a.rn <= p.part * 45000)
+      or (not p.numbered and a.total <= 45000)
    order by a.path
 $$;
 
@@ -858,6 +890,7 @@ begin
       'counts', (select coalesce(jsonb_object_agg(level, jsonb_build_object('total', total, 'indexed', indexed)), '{}'::jsonb)
                    from (select level, count(*) total, count(*) filter (where indexable) indexed from app.vpage_all() group by level) c),
       'sitemaps', (select count(*) from app.vehicle_sitemap_files()),
+      'tiers', app.vpage_tier_counts(), 'buy', app.vpage_buy_counts(),
       'makes', (select count(*) from vehicle_catalog_makes),
       'last_import', (select to_jsonb(i) - 'meta' || jsonb_build_object('stats', i.meta -> 'stats', 'run_url', i.meta ->> 'run_url')
                         from vehicle_catalog_imports i order by i.started_at desc limit 1),
@@ -963,6 +996,390 @@ revoke all on function public.vehicle_makes(), public.vehicle_make_page(text), p
 grant execute on function public.vehicle_makes(), public.vehicle_make_page(text), public.vehicle_model_page(text, text), public.vehicle_year_page(text, text, integer),
   public.vehicle_trim_page(text, text, integer, text), public.vehicle_sitemap_files(), public.vehicle_sitemap(text), public.vehicle_hub_path(text)
   to anon, authenticated, service_role;
+
+-- ================================================================ 5. city and colour pages (the owner, October 22, 2026)
+-- Every trim page multiplied by our service areas and by colours, every one indexed by default:
+--   /cars/<make>/<model>/<year>/<trim>/<city>               a city page
+--   /cars/<make>/<model>/<year>/<trim>/<city>/<colour>      a city and colour page
+--   /cars/<make>/<model>/<year>/<trim>/colour/<colour>      a colour page
+-- The cities are the active location landing pages (seo_pages, kind 'location'), read, never listed here; the colours
+-- are vehicle_colours. Nothing is stored per page: a page is its trim, its city and its colour. One Admin switch
+-- (program_settings.vpage_tier_index, on by default) takes the city and colour pages out of search at once.
+create table vehicle_colours (
+  slug text primary key check (slug ~ '^[a-z]+$' and slug <> 'colour'),
+  name text not null,
+  hex text not null check (hex ~ '^#[0-9A-F]{6}$'),
+  sort integer not null default 100
+);
+alter table vehicle_colours enable row level security;
+create policy admin_all on vehicle_colours for all to authenticated using (app.is_admin()) with check (app.is_admin());
+insert into vehicle_colours (slug, name, hex, sort) values
+  ('black', 'Black', '#1C1C1C', 10), ('white', 'White', '#F4F4F4', 20), ('silver', 'Silver', '#8C8C8C', 30), ('grey', 'Grey', '#555555', 40),
+  ('blue', 'Blue', '#24477F', 50), ('red', 'Red', '#C20F18', 60), ('green', 'Green', '#2F5E3B', 70), ('brown', 'Brown', '#553923', 80),
+  ('beige', 'Beige', '#A8916A', 90), ('gold', 'Gold', '#B8902F', 100), ('orange', 'Orange', '#C2560F', 110), ('yellow', 'Yellow', '#C9A50F', 120);
+
+alter table program_settings add column if not exists vpage_tier_index boolean not null default true;
+
+create or replace function app.vpage_settings_json(s program_settings) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object('index_mode', s.vpage_index_mode, 'model_min_years', s.vpage_model_min_years, 'popular_from_year', s.vpage_popular_from_year,
+    'year_min_cars', s.vpage_year_min_cars, 'trim_min_cars', s.vpage_trim_min_cars, 'gas_cents', s.vpage_gas_cents_per_litre,
+    'premium_extra_cents', s.vpage_premium_extra_cents, 'elec_cents', s.vpage_electricity_cents_per_kwh, 'tier_index', s.vpage_tier_index)
+$$;
+
+-- The cities: the active location landing pages, in their order. A city without coordinates has no distance.
+create or replace function app.vpage_cities() returns table (slug text, name text, lat numeric, lng numeric, facts jsonb, sort integer, updated timestamptz)
+language sql stable security definer set search_path = public, app as $$
+  select p.slug, p.name, nullif(p.facts ->> 'lat', '')::numeric, nullif(p.facts ->> 'lng', '')::numeric, p.facts, p.sort_order, p.content_updated_at
+    from seo_pages p where p.kind = 'location' and p.is_active and p.slug <> 'colour' order by p.sort_order, p.slug
+$$;
+
+-- What a delivery to a place costs from our lowest delivery fee (the real cars' rate cards, the per-kilometre setting,
+-- the minimum, the maximum and the rounding; an airport's own distance and surcharge), as app.delivery_fee counts it.
+create or replace function app.vpage_delivery_from(p_km numeric, p_airport text) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  s program_settings := app.settings();
+  a airports;
+  v_base bigint;
+  v_km numeric := p_km;
+  v_fee bigint;
+begin
+  select min(rc.delivery_fee_cents) into v_base from app.vpage_cars() c
+    join rate_cards rc on rc.vehicle_id = c.vehicle_id and rc.effective_from <= now() and (rc.effective_to is null or rc.effective_to > now())
+   where not c.is_sample;
+  if p_airport is not null then
+    select * into a from airports x where x.is_active and x.code = upper(p_airport);
+    if a.id is not null then v_km := coalesce(a.distance_km, app.distance_km(s.company_latitude, s.company_longitude, a.latitude, a.longitude), v_km); end if;
+  end if;
+  if v_base is null then
+    return jsonb_build_object('fee_cents', null, 'km', round(v_km, 1), 'per_km_cents', s.delivery_per_km_cents, 'min_cents', s.delivery_min_cents);
+  end if;
+  v_fee := v_base;
+  if v_km is not null and s.delivery_per_km_cents > 0 then
+    v_fee := v_base + round(s.delivery_per_km_cents * v_km)::bigint;
+    if s.delivery_min_cents is not null then v_fee := greatest(v_fee, s.delivery_min_cents); end if;
+    if s.delivery_max_cents is not null then v_fee := least(v_fee, s.delivery_max_cents); end if;
+    v_fee := (round(v_fee::numeric / s.delivery_round_cents) * s.delivery_round_cents)::bigint;
+  end if;
+  return jsonb_build_object('fee_cents', v_fee + coalesce(a.surcharge_cents, 0), 'km', round(v_km, 1), 'airport_code', a.code, 'airport_name', a.name,
+    'airport_surcharge_cents', a.surcharge_cents, 'per_km_cents', s.delivery_per_km_cents);
+end $$;
+
+-- The cities and colours a trim page links to (and the switch).
+create or replace function app.vpage_tiers() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select jsonb_build_object(
+    'index', (app.settings()).vpage_tier_index,
+    'cities', (select coalesce(jsonb_agg(jsonb_build_object('slug', c.slug, 'name', c.name, 'lat', c.lat, 'lng', c.lng) order by c.sort, c.slug), '[]'::jsonb) from app.vpage_cities() c),
+    'colours', (select coalesce(jsonb_agg(jsonb_build_object('slug', x.slug, 'name', x.name, 'hex', x.hex) order by x.sort), '[]'::jsonb) from vehicle_colours x))
+$$;
+
+-- One city or colour page: the trim page's read, and the city (its distance from us, the delivery fee from our rate
+-- cards, the landing page's local notes, the nearby cities) and the colour. Null when the trim, city or colour is unknown.
+create or replace function app.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_city text, p_colour text) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  s program_settings := app.settings();
+  base jsonb;
+  c record;
+  col vehicle_colours;
+  v_trim_path text;
+  v_path text;
+  v_km numeric;
+  v_ok boolean;
+  v_city jsonb;
+  v_city_slug text;
+  v_upd timestamptz;
+begin
+  if p_city is null and p_colour is null then return null; end if;
+  base := app.vehicle_trim_page(p_make, p_model, p_year, p_trim);
+  if base is null then return null; end if;
+  v_trim_path := base ->> 'path';
+  if p_colour is not null then
+    select * into col from vehicle_colours where slug = lower(btrim(p_colour));
+    if col.slug is null then return null; end if;
+  end if;
+  if p_city is not null then
+    select * into c from app.vpage_cities() x where x.slug = lower(btrim(p_city));
+    if c.slug is null then return null; end if;
+    v_city_slug := c.slug; v_upd := c.updated;
+    v_km := app.distance_km(s.company_latitude, s.company_longitude, c.lat, c.lng);
+    v_city := jsonb_build_object('slug', c.slug, 'name', c.name, 'facts', c.facts, 'landing', app.seo_page_path(c.slug),
+      'km', round(v_km, 1), 'delivery', app.vpage_delivery_from(v_km, c.facts ->> 'airport_code'),
+      'nearby', (select coalesce(jsonb_agg(jsonb_build_object('slug', n.slug, 'name', n.name, 'km', round(app.distance_km(c.lat, c.lng, n.lat, n.lng), 1)) order by n.o), '[]'::jsonb)
+                   from (select x.slug, x.name, x.lat, x.lng,
+                                coalesce(array_position(array(select jsonb_array_elements_text(coalesce(c.facts -> 'nearby', '[]'::jsonb))), x.slug), 100)
+                                  * 100000 + coalesce(app.distance_km(c.lat, c.lng, x.lat, x.lng), 99999) o
+                           from app.vpage_cities() x where x.slug <> c.slug order by o limit 5) n));
+  end if;
+  v_path := v_trim_path || case when v_city_slug is null then '/colour/' || col.slug else '/' || v_city_slug || coalesce('/' || col.slug, '') end;
+  v_ok := s.vpage_tier_index and (base ->> 'indexable')::boolean;
+  return base || jsonb_build_object(
+    'level', case when p_city is null then 'colour' when p_colour is null then 'city' else 'city_colour' end,
+    'trim_path', v_trim_path, 'path', v_path, 'city', v_city,
+    'colour', case when col.slug is not null then jsonb_build_object('slug', col.slug, 'name', col.name, 'hex', col.hex) end,
+    'tiers', app.vpage_tiers(), 'indexable', v_ok, 'canonical', case when v_ok then v_path else v_trim_path end,
+    'lastmod', greatest((base ->> 'lastmod')::timestamptz, v_upd));
+end $$;
+
+-- The city and colour sitemaps: "tiers-<n>", each the pages of a range of trims (by ord) so that no file holds more than
+-- 50,000 addresses: K pages a trim (cities x (1 + colours) + colours), floor(50,000 / K) trims a file. A file's
+-- addresses are read by keyset (ord after the last one read), never by offset.
+create or replace function app.vpage_tier_shape() returns table (per_trim integer, trims_per_file integer, cities integer, colours integer, on_ boolean)
+language sql stable security definer set search_path = public, app as $$
+  with n as (select (select count(*) from app.vpage_cities())::integer c, (select count(*) from vehicle_colours)::integer k)
+  select n.c * (1 + n.k) + n.k, greatest(1, 50000 / greatest(1, n.c * (1 + n.k) + n.k)), n.c, n.k, (app.settings()).vpage_tier_index from n
+$$;
+
+create or replace function app.vpage_trim_indexed(p_from integer, p_to integer) returns table (ord integer, make_slug text, model_slug text, year smallint, slug text, lastmod timestamptz)
+language sql stable security definer set search_path = public, app as $$
+  with s as (select app.settings() s),
+       cars as materialized (select c.make_slug, c.model_slug, c.year, c.trim_slug, c.content_updated_at from app.vpage_cars() c where not c.is_sample)
+  select t.ord, t.make_slug, t.model_slug, t.year, t.slug, greatest(t.updated_at, x.upd)
+    from vehicle_catalog_trims t
+    left join lateral (select count(*) n, max(c.content_updated_at) upd from cars c where c.make_slug = t.make_slug and c.model_slug = t.model_slug and c.year = t.year and c.trim_slug = t.slug) x on true
+   where t.ord > p_from and t.ord <= p_to and app.vpage_gate('trim', 0, coalesce(x.n, 0)::integer, false, t.year, (select s from s))
+   order by t.ord
+$$;
+
+create or replace function app.vehicle_tier_files() returns table (file text, urls bigint, lastmod timestamptz)
+language sql stable security definer set search_path = public, app as $$
+  with sh as (select * from app.vpage_tier_shape()),
+       f as (select g n from sh, generate_series(1, ceil(coalesce((select max(ord) from vehicle_catalog_trims), 0)::numeric / sh.trims_per_file)::integer) g where sh.on_ and sh.per_trim > 0)
+  select 'tiers-' || f.n, count(t.ord) * (select per_trim from sh), max(t.lastmod)
+    from f cross join sh cross join lateral app.vpage_trim_indexed((f.n - 1) * sh.trims_per_file, f.n * sh.trims_per_file) t
+   group by f.n having count(t.ord) > 0 order by f.n
+$$;
+
+-- One slice of a tier sitemap: the pages of up to p_limit trims of file p_file after trim p_after (keyset).
+create or replace function app.vehicle_tier_sitemap(p_file integer, p_after integer, p_limit integer) returns table (ord integer, path text, lastmod timestamptz)
+language sql stable security definer set search_path = public, app as $$
+  with sh as (select * from app.vpage_tier_shape()),
+       t as (select x.* from sh cross join lateral app.vpage_trim_indexed(greatest(coalesce(p_after, 0), (p_file - 1) * sh.trims_per_file), p_file * sh.trims_per_file) x
+              where sh.on_ order by x.ord limit greatest(1, least(coalesce(p_limit, 500), 5000))),
+       c as (select slug, sort, updated from app.vpage_cities()),
+       k as (select slug, sort from vehicle_colours)
+  select t.ord, app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug) || u.tail, greatest(t.lastmod, u.upd)
+    from t cross join lateral (
+      select '/' || c.slug tail, c.updated upd, c.sort * 1000 o from c
+      union all select '/' || c.slug || '/' || k.slug, c.updated, c.sort * 1000 + k.sort from c cross join k
+      union all select '/colour/' || k.slug, null, 1000000 + k.sort from k) u
+   order by t.ord, u.o, u.tail
+$$;
+
+-- the sitemap list of the vehicle pages, the city and colour files after the levels'
+create or replace function public.vehicle_sitemap_files() returns jsonb
+language sql stable security invoker set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('file', f.file, 'urls', f.urls, 'lastmod', f.lastmod) order by f.o, f.file), '[]'::jsonb)
+    from (select file, urls, lastmod, 0 o from app.vehicle_sitemap_files() union all select file, urls, lastmod, 1 from app.vehicle_tier_files()) f
+$$;
+create or replace function public.vehicle_tier_sitemap(p_file integer, p_after integer, p_limit integer) returns jsonb
+language sql stable security invoker set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('ord', s.ord, 'path', s.path, 'lastmod', s.lastmod) order by s.ord), '[]'::jsonb) from app.vehicle_tier_sitemap(p_file, p_after, p_limit) s
+$$;
+create or replace function public.vehicle_tier_page(p_make text, p_model text, p_year integer, p_trim text, p_city text, p_colour text) returns jsonb
+language sql stable security invoker set search_path = public, app as $$ select app.vehicle_tier_page(p_make, p_model, p_year, p_trim, p_city, p_colour) $$;
+create or replace function public.vehicle_tiers() returns jsonb
+language sql stable security invoker set search_path = public, app as $$ select app.vpage_tiers() $$;
+
+-- the Admin's counts of the city and colour pages
+create or replace function app.vpage_tier_counts() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  with sh as (select * from app.vpage_tier_shape()),
+       t as (select count(*) total from vehicle_catalog_trims),
+       ti as (select count(*) n from app.vpage_trim_indexed(0, 2147483647))
+  select jsonb_build_object('cities', sh.cities, 'colours', sh.colours, 'index', sh.on_, 'trims', t.total, 'trims_indexed', ti.n,
+    'city', jsonb_build_object('total', t.total * sh.cities, 'indexed', case when sh.on_ then ti.n * sh.cities else 0 end),
+    'city_colour', jsonb_build_object('total', t.total * sh.cities * sh.colours, 'indexed', case when sh.on_ then ti.n * sh.cities * sh.colours else 0 end),
+    'colour', jsonb_build_object('total', t.total * sh.colours, 'indexed', case when sh.on_ then ti.n * sh.colours else 0 end),
+    'files', (select count(*) from app.vehicle_tier_files()), 'trims_per_file', sh.trims_per_file, 'per_trim', sh.per_trim)
+    from sh, t, ti
+$$;
+
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and p.proname in ('vpage_cities', 'vpage_delivery_from', 'vpage_tiers', 'vehicle_tier_page', 'vpage_tier_shape', 'vpage_trim_indexed',
+                                                      'vehicle_tier_files', 'vehicle_tier_sitemap', 'vpage_tier_counts', 'vehicle_catalog_number_trims', 'vpage_settings_json')
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+    execute format('grant execute on function %s to service_role', f.sig);
+  end loop;
+end $$;
+grant execute on function app.vpage_cities(), app.vpage_delivery_from(numeric, text), app.vpage_tiers(), app.vehicle_tier_page(text, text, integer, text, text, text),
+  app.vpage_tier_shape(), app.vpage_trim_indexed(integer, integer), app.vehicle_tier_files(), app.vehicle_tier_sitemap(integer, integer, integer)
+  to anon, authenticated;
+revoke all on function public.vehicle_tier_sitemap(integer, integer, integer), public.vehicle_tier_page(text, text, integer, text, text, text), public.vehicle_tiers() from public;
+grant execute on function public.vehicle_sitemap_files(), public.vehicle_tier_sitemap(integer, integer, integer), public.vehicle_tier_page(text, text, integer, text, text, text),
+  public.vehicle_tiers() to anon, authenticated, service_role;
+select app.vehicle_catalog_number_trims();
+
+-- ================================================================ 6. the for-sale twins (/buy/..., the owner, October 22, 2026)
+-- Every vehicle page has a twin under /buy (/buy/volkswagen/jetta/2020/sportline/mississauga/black): the same real
+-- stats, what to check when buying that model year (NHTSA recalls and complaint counts, public domain, imported with
+-- the catalog), the fuel cost of a year, "rent it for a week before you buy" and a buyer lead form. CarmaCars mostly
+-- does not sell cars: a page says a car is for sale only when a fleet car matching it is flagged for sale by an Admin,
+-- and only then carries an Offer. One Admin switch (vpage_buy_index, on by default) takes the /buy tree out of search.
+alter table vehicles
+  add column if not exists for_sale boolean not null default false,
+  add column if not exists asking_price_cents bigint check (asking_price_cents is null or asking_price_cents > 0);
+alter table program_settings add column if not exists vpage_buy_index boolean not null default true;
+
+create or replace function app.vpage_settings_json(s program_settings) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object('index_mode', s.vpage_index_mode, 'model_min_years', s.vpage_model_min_years, 'popular_from_year', s.vpage_popular_from_year,
+    'year_min_cars', s.vpage_year_min_cars, 'trim_min_cars', s.vpage_trim_min_cars, 'gas_cents', s.vpage_gas_cents_per_litre,
+    'premium_extra_cents', s.vpage_premium_extra_cents, 'elec_cents', s.vpage_electricity_cents_per_kwh, 'tier_index', s.vpage_tier_index, 'buy_index', s.vpage_buy_index)
+$$;
+
+-- Fleet cars flagged for sale that match a page (make, and the model, year and trim when the page has them).
+create or replace function app.vpage_for_sale(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('name', concat_ws(' ', v.year, v.make, v.model, v.trim), 'year', v.year, 'colour', v.colour, 'odometer_km', v.odometer_km,
+           'asking_price_cents', v.asking_price_cents, 'trim_slug', m.trim_slug, 'model_slug', m.model_slug,
+           'listing', case when l.status = 'published' and l.slug is not null then app.public_listing_row(v.id) end) order by v.asking_price_cents nulls last, v.year desc), '[]'::jsonb)
+    from vehicles v cross join lateral app.vehicle_catalog_match(v.make, v.model, v.year, v.trim) m
+    left join vehicle_listings l on l.vehicle_id = v.id
+   where v.for_sale and v.asking_price_cents is not null and not v.is_sample and v.status not in ('exited', 'total_loss', 'declined')
+     and m.make_slug = p_make and (p_model is null or m.model_slug = p_model) and (p_year is null or v.year = p_year) and (p_trim is null or m.trim_slug = p_trim)
+$$;
+
+-- What a /buy page adds to its /cars twin: the cars for sale, the model year's recalls and complaints (or the model's by
+-- year), and whether the /buy tree is indexed.
+create or replace function app.vehicle_buy_extras(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select jsonb_build_object(
+    'for_sale', app.vpage_for_sale(lower(p_make), lower(p_model), p_year, lower(p_trim)),
+    'buy_index', (app.settings()).vpage_buy_index,
+    'recalls', case when p_year is not null then (select y.recalls from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
+    'complaints', case when p_year is not null then (select y.complaints from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model) and y.year = p_year) end,
+    'by_year', case when p_year is null and p_model is not null then (select coalesce(jsonb_agg(jsonb_build_object('year', y.year, 'recalls', jsonb_array_length(y.recalls),
+                    'complaints', coalesce((y.complaints ->> 'total')::integer, 0)) order by y.year desc), '[]'::jsonb)
+                    from vehicle_catalog_years y where y.make_slug = lower(p_make) and y.model_slug = lower(p_model)) end)
+$$;
+
+-- the sitemaps: every vehicle sitemap has a /buy twin ("buy-toyota-years", "buy-tiers-3") when the switch is on
+create or replace function app.vehicle_buy_path(p text) returns text
+language sql immutable as $$ select case when p like '/cars/%' then '/buy/' || substr(p, 7) else p end $$;
+
+create or replace function public.vehicle_sitemap_files() returns jsonb
+language sql stable security invoker set search_path = public, app as $$
+  with f as (select file, urls, lastmod, 0 o from app.vehicle_sitemap_files() union all select file, urls, lastmod, 1 from app.vehicle_tier_files())
+  select coalesce(jsonb_agg(jsonb_build_object('file', x.file, 'urls', x.urls, 'lastmod', x.lastmod) order by x.o, x.file), '[]'::jsonb)
+    from (select file, urls, lastmod, o from f
+          union all select 'buy-' || file, urls, lastmod, o + 2 from f where (app.settings()).vpage_buy_index) x
+$$;
+create or replace function public.vehicle_sitemap(p_file text) returns jsonb
+language sql stable security invoker set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('path', case when p_file like 'buy-%' then app.vehicle_buy_path(s.path) else s.path end, 'lastmod', s.lastmod) order by s.path), '[]'::jsonb)
+    from app.vehicle_sitemap(case when p_file like 'buy-%' then substr(p_file, 5) else p_file end) s
+   where p_file not like 'buy-%' or (app.settings()).vpage_buy_index
+$$;
+create or replace function public.vehicle_buy_extras(p_make text, p_model text, p_year integer, p_trim text) returns jsonb
+language sql stable security invoker set search_path = public, app as $$ select app.vehicle_buy_extras(p_make, p_model, p_year, p_trim) $$;
+
+-- the Admin's counts: the /buy tree is the twin of every page
+create or replace function app.vpage_buy_counts() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  with b as (select count(*) total, count(*) filter (where indexable) indexed from app.vpage_all()), t as (select app.vpage_tier_counts() c)
+  select jsonb_build_object('index', (app.settings()).vpage_buy_index,
+    'total', b.total + ((t.c -> 'city' ->> 'total')::bigint + (t.c -> 'city_colour' ->> 'total')::bigint + (t.c -> 'colour' ->> 'total')::bigint),
+    'indexed', case when (app.settings()).vpage_buy_index then b.indexed + ((t.c -> 'city' ->> 'indexed')::bigint + (t.c -> 'city_colour' ->> 'indexed')::bigint + (t.c -> 'colour' ->> 'indexed')::bigint) else 0 end,
+    'for_sale', (select count(*) from vehicles where for_sale and asking_price_cents is not null and not is_sample))
+    from b, t
+$$;
+
+-- ---------------------------------------------------------------- buyer leads ("Find me this car")
+alter table leads drop constraint if exists leads_kind_check;
+alter table leads add constraint leads_kind_check check (kind in ('owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'buyer'));
+insert into task_rules (task_type, queue, title, priority, due_kind, due_amount, procedure_no, completion_rule, description) values
+  ('buyer_lead', 'sales', 'A buyer asked us to find a car', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day: a car of ours for sale, or what we can find')
+on conflict (task_type) do nothing;
+
+alter function app.submit_lead(jsonb, text) rename to submit_lead_pre0092;
+create or replace function app.submit_lead(p jsonb, p_ip text default null) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_id uuid := gen_random_uuid();
+  v_email text := nullif(lower(btrim(p ->> 'email')), '');
+  v_phone text := nullif(btrim(p ->> 'phone'), '');
+  v_name text := nullif(btrim(p ->> 'name'), '');
+  v_consent boolean := coalesce((p ->> 'consent_marketing')::boolean, false);
+  v_set program_settings := app.settings();
+  v_assignee uuid;
+  v_task uuid;
+  v_car text := nullif(btrim(p -> 'payload' ->> 'vehicle'), '');
+begin
+  if coalesce(p ->> 'kind', 'contact') <> 'buyer' then return app.submit_lead_pre0092(p, p_ip); end if;
+  if nullif(btrim(p_ip), '') is not null and not app.rate_limit('lead:ip:' || btrim(p_ip), v_set.lead_hourly_limit, interval '1 hour') then
+    return jsonb_build_object('ok', false, 'error', 'rate_limited');
+  end if;
+  if v_email is null and v_phone is null then raise exception 'Give an email address or a phone number so we can reply' using errcode = '22023'; end if;
+  if v_email is not null and v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'Enter a full email address, for example name@example.com' using errcode = '22023'; end if;
+  if v_consent and nullif(p ->> 'consent_text', '') is null then raise exception 'Marketing consent needs the wording the person agreed to' using errcode = '22023'; end if;
+  -- Sales: the least busy active sales assistant
+  select sp.user_id into v_assignee from staff_profiles sp join users u on u.id = sp.user_id and u.status = 'active'
+    join user_roles r on r.user_id = sp.user_id and r.role = 'va'
+   where sp.staff_type = 'va' and sp.va_function = 'sales' and sp.is_active
+   order by (select count(*) from leads l where l.assigned_to = sp.user_id and l.status in ('new', 'contacted', 'qualified')), sp.created_at, sp.user_id limit 1;
+  insert into leads (id, kind, name, email, phone, message, payload, source, source_url, referrer, consent_marketing, consent_text, consent_at, assigned_to)
+  values (v_id, 'buyer', v_name, v_email, v_phone, nullif(btrim(p ->> 'message'), ''), app.strip_transient(coalesce(p -> 'payload', '{}'::jsonb)),
+          coalesce(nullif(p ->> 'source', ''), 'web'), p ->> 'source_url', p ->> 'referrer',
+          v_consent, case when v_consent then p ->> 'consent_text' end, case when v_consent then now() end, v_assignee);
+  v_task := app.raise_task(p_type => 'buyer_lead',
+    p_detail => concat_ws(' ', coalesce(v_name, 'Someone'), 'wants to buy', coalesce(v_car, 'a car') || '.',
+                          'Budget: ' || nullif(btrim(p -> 'payload' ->> 'budget'), '') || '.', 'Timeline: ' || nullif(btrim(p -> 'payload' ->> 'timeline'), '') || '.'),
+    p_related_table => 'leads', p_related_id => v_id, p_dedupe => 'lead:' || v_id);
+  if v_assignee is not null then update tasks set assigned_to = v_assignee where id = v_task; end if;
+  return jsonb_build_object('ok', true, 'lead_id', v_id);
+end $$;
+revoke all on function app.submit_lead_pre0092(jsonb, text) from public, anon, authenticated;
+grant execute on function app.submit_lead_pre0092(jsonb, text) to service_role;
+revoke all on function app.submit_lead(jsonb, text) from public, anon, authenticated;
+grant execute on function app.submit_lead(jsonb, text) to service_role;
+
+-- ---------------------------------------------------------------- an Admin flags a fleet car for sale
+create or replace function app.vpage_for_sale_set(p_user uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_id uuid := (p ->> 'vehicle_id')::uuid;
+  v_on boolean := coalesce((p ->> 'for_sale')::boolean, false);
+  v_price bigint := nullif(p ->> 'asking_price_cents', '')::bigint;
+begin
+  perform app.assert_admin(p_user);
+  if v_on and (v_price is null or v_price <= 0) then raise exception 'Enter the asking price' using errcode = '22023'; end if;
+  update vehicles set for_sale = v_on, asking_price_cents = case when v_on then v_price else asking_price_cents end where id = v_id;
+  if not found then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0092b;
+create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if p_call = 'admin_do' and p_name = 'vehicle_for_sale' then
+    perform app.door_begin(p_user, p_aal);
+    return app.vpage_for_sale_set(p_user, coalesce(p, '{}'::jsonb));
+  end if;
+  return app.door_pre0092b(p_user, p_aal, p_call, p_name, p);
+end $$;
+
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and p.proname in ('vpage_for_sale', 'vehicle_buy_extras', 'vehicle_buy_path', 'vpage_buy_counts',
+                                                      'vpage_for_sale_set', 'door_pre0092b', 'door')
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+    execute format('grant execute on function %s to service_role', f.sig);
+  end loop;
+end $$;
+grant execute on function app.vehicle_buy_extras(text, text, integer, text), app.vehicle_buy_path(text) to anon, authenticated;
+revoke all on function public.vehicle_buy_extras(text, text, integer, text) from public;
+grant execute on function public.vehicle_buy_extras(text, text, integer, text), public.vehicle_sitemap(text), public.vehicle_sitemap_files() to anon, authenticated, service_role;
 
 -- ================================================================ the guides (Admin: Vehicle pages; customer service: A request from a vehicle page)
 -- GUIDES VEHICLE PAGES START (generated by supabase/seed/vehicle_pages_gen_guides.mjs from docs/guides/content; do not edit by hand)

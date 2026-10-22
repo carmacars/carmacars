@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { costPer100km, driveLabel, engineLabel, kwh100miTo100km, miToKm, modelKey, mpgToL100, slugify, transLabel, trimSlug } from './units.ts';
 import { gateRules, parentPath, vpageGate, type GateSettings } from './gate.ts';
-import { buildCatalog, parseCsv, parsePopular, parseTrimList, specialTokens } from './normalise.ts';
+import { batches, buildCatalog, makeName, parseCsv, parsePopular, parseTrimList, specialTokens } from './normalise.ts';
 import { descriptionFor, ratingRange, specs, titleFor, trimDiffs, yearChanges, type Variant } from './content.ts';
 
 const here = new URL('.', import.meta.url).pathname;
@@ -103,12 +103,35 @@ test('the fixture CSV builds the catalog with the Canadian trims', () => {
   assert.ok(c.models.find((m) => m.make === 'mercedes-benz')?.aliases.includes('c300'), 'C300 finds the C-Class');
 });
 
-test('the trim list refuses a malformed line, an unknown make and a trim named twice', () => {
+test('the trim list refuses a malformed line, a missing make and a trim named twice', () => {
   assert.throws(() => parseTrimList('Toyota | Corolla | 20x0 | LE'));
-  assert.throws(() => parseTrimList('Toyoda | Corolla | 2020 | LE'));
+  assert.throws(() => parseTrimList(' | Corolla | 2020 | LE'));
   assert.throws(() => parseTrimList('Toyota | Corolla | 2020 | LE, LE'));
   assert.deepEqual(parseTrimList('# c\nToyota | Corolla | 2020-2022 | L, LE\n'), [{ make: 'toyota', model: 'Corolla', from: 2020, to: 2022, trims: ['L', 'LE'] }]);
   void here;
+});
+
+test('every make and every year: shown names, vPIC models and years, batches by size', () => {
+  assert.equal(makeName('McLaren Automotive'), 'McLaren');
+  assert.equal(makeName('FIAT'), 'Fiat');
+  assert.equal(makeName('JBA Motorcars, Inc.'), 'JBA Motorcars');
+  assert.equal(makeName('Lamborghini'), 'Lamborghini');
+  assert.equal(makeName('  '), null);
+  const row = (o: Record<string, string>) => ({ id: '1', year: '1985', make: 'Ferrari', model: 'Testarossa', baseModel: 'Testarossa', fuelType: 'Regular', atvType: '', displ: '4.9', cylinders: '12',
+    drive: 'Rear-Wheel Drive', trany: 'Manual 5-spd', VClass: 'Two Seaters', city08: '9', highway08: '14', comb08: '11', ...o });
+  const rows = [row({}), row({ id: '2', year: '1986' }), row({ id: '3', year: '1990', make: 'Chevrolet', model: 'Silverado C15 2WD', baseModel: 'Silverado', VClass: 'Standard Pickup Trucks 2WD' })];
+  const vpic = new Map([['ferrari', new Map([[1983, ['Testarossa', 'Mondial']]])], ['chevrolet', new Map([[1990, ['Silverado 2500', 'Express']]])]]);
+  const c = buildCatalog(rows, { years: [1981, 2027], vpic });
+  assert.deepEqual(c.makes.map((m) => m.slug), ['chevrolet', 'ferrari'], 'an exotic make is in');
+  assert.deepEqual(c.years.filter((y) => y.make === 'ferrari' && y.model === 'testarossa').map((y) => y.year), [1983, 1985, 1986], 'EPA years and a vPIC year before 1984');
+  assert.ok(c.models.some((m) => m.make === 'ferrari' && m.slug === 'mondial' && m.sources.join() === 'vpic'), 'a model only vPIC has');
+  assert.ok(c.models.find((m) => m.slug === 'silverado')?.aliases.includes('silverado2500'), 'a size of an EPA model is that model');
+  assert.ok(!c.models.some((m) => m.slug === 'silverado-2500'), 'no second Silverado');
+  const big = { ...c, trim_lines: [{ make: 'ferrari', model: 'testarossa', from: 1985, to: 1986, trims: ['Base'] }] };
+  const bs = batches(big, 300);
+  assert.ok(bs.length > c.makes.length, 'a make is split when its batch is large');
+  assert.equal(bs.filter((b) => b.make.slug === 'ferrari' && b.trim_lines).length, 1, 'trim lines with the first batch only');
+  assert.equal(bs.reduce((n, b) => n + b.years.length, 0), c.years.length, 'every year once');
 });
 
 const v = (o: Partial<Variant> & { id: number }): Variant => ({ epa_model: 'X', displ: 2, cyl: 4, turbo: false, super: false, drive: 'Front-Wheel Drive', trans: 'Automatic (S8)', fuel: 'gasoline', vclass: 'Compact Cars',

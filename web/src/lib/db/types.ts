@@ -9280,6 +9280,8 @@ export type Database = {
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
           vpage_import_every_days: number;
+          vpage_tier_index: boolean;
+          vpage_buy_index: boolean;
         };
         Insert: {
           id?: string;
@@ -9593,6 +9595,8 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
+          vpage_tier_index?: boolean;
+          vpage_buy_index?: boolean;
         };
         Update: {
           id?: string;
@@ -9906,6 +9910,8 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
+          vpage_tier_index?: boolean;
+          vpage_buy_index?: boolean;
         };
         Relationships: [];
       };
@@ -13315,6 +13321,7 @@ export type Database = {
           rank: number;
           variant_ids: number[];
           source: string;
+          ord: number | null;
           content_hash: string | null;
           updated_at: string;
         };
@@ -13327,6 +13334,7 @@ export type Database = {
           rank: number;
           variant_ids?: number[];
           source: string;
+          ord?: number | null;
           content_hash?: string | null;
           updated_at?: string;
         };
@@ -13339,6 +13347,7 @@ export type Database = {
           rank?: number;
           variant_ids?: number[];
           source?: string;
+          ord?: number | null;
           content_hash?: string | null;
           updated_at?: string;
         };
@@ -13350,6 +13359,9 @@ export type Database = {
           model_slug: string;
           year: number;
           vclass: string | null;
+          dims: Json;
+          recalls: Json;
+          complaints: Json;
           variants: Json;
           powertrains: number;
           l100_min: number | null;
@@ -13368,6 +13380,9 @@ export type Database = {
           model_slug: string;
           year: number;
           vclass?: string | null;
+          dims?: Json;
+          recalls?: Json;
+          complaints?: Json;
           variants?: Json;
           powertrains?: number;
           l100_min?: number | null;
@@ -13386,6 +13401,9 @@ export type Database = {
           model_slug?: string;
           year?: number;
           vclass?: string | null;
+          dims?: Json;
+          recalls?: Json;
+          complaints?: Json;
           variants?: Json;
           powertrains?: number;
           l100_min?: number | null;
@@ -13449,6 +13467,27 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_colours: {
+        Row: {
+          slug: string;
+          name: string;
+          hex: string;
+          sort: number;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          hex: string;
+          sort?: number;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          hex?: string;
+          sort?: number;
         };
         Relationships: [];
       };
@@ -14545,6 +14584,8 @@ export type Database = {
           retired_reason: string | null;
           added_by: string | null;
           sample_bookable: boolean;
+          for_sale: boolean;
+          asking_price_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -14597,6 +14638,8 @@ export type Database = {
           retired_reason?: string | null;
           added_by?: string | null;
           sample_bookable?: boolean;
+          for_sale?: boolean;
+          asking_price_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -14649,6 +14692,8 @@ export type Database = {
           retired_reason?: string | null;
           added_by?: string | null;
           sample_bookable?: boolean;
+          for_sale?: boolean;
+          asking_price_cents?: number | null;
         };
         Relationships: [];
       };
@@ -16139,6 +16184,7 @@ export type Database = {
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };
+      vehicle_buy_extras: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
@@ -16148,6 +16194,9 @@ export type Database = {
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
       vehicle_sitemap_files: { Args: never; Returns: Json };
+      vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_city: string; p_colour: string }; Returns: Json };
+      vehicle_tier_sitemap: { Args: { p_file: number; p_after: number; p_limit: number }; Returns: Json };
+      vehicle_tiers: { Args: never; Returns: Json };
       vehicle_trim_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
       vehicle_year_page: { Args: { p_make: string; p_model: string; p_year: number }; Returns: Json };
     };
