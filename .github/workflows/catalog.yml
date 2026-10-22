@@ -4,7 +4,9 @@ name: catalog
 # docs/changes/2026-10-21-vehicle-pages.md). web/scripts/catalog/import.mjs downloads the US EPA fueleconomy.gov vehicles
 # file (public domain) and NHTSA vPIC's model names (public domain), adds the Canadian trim names of
 # web/scripts/catalog/canada-trims.txt, and upserts the result into the vehicle_catalog_* tables in batches through the
-# Supabase Management API (the deploy's connection, scripts/deploy/lib.sh). The pages then rebuild (/api/jobs/public-rebuild).
+# Supabase Management API (the deploy's connection, scripts/deploy/lib.sh), or COPY over the pooler with the database
+# password; gently since 0106 (2,000 rows a transaction, a pause and a busy check before each). The pages then rebuild
+# (/api/jobs/public-rebuild) and the top pages are warmed (/api/jobs/warm-up, the Worker's post-deploy warm-up).
 #
 #   schedule        every day at 07:17 UTC a one-query check; the import runs when the last one is older than the
 #                   Admin setting (30 days by default: monthly) or an Admin pressed "Import now" in Admin > Settings >
@@ -84,17 +86,37 @@ jobs:
         run: |
           r=$(curl -sS --max-time 60 'https://vpic.nhtsa.dot.gov/api/vehicles/GetCanadianVehicleSpecifications/?Year=2020&Make=Volkswagen&Model=&units=Metric&format=json')
           echo "::notice title=cvs::$(echo "$r" | jq -c '{count: .Count, models: [.Results[].Specs[] | select(.Name == "Model") | .Value] | unique, names: [.Results[0].Specs[]? | .Name], first: .Results[0]}' | head -c 3800)"
+      # the database driver for the COPY path (0106)
+      - name: Install
+        if: steps.due.outputs.mode == 'write'
+        run: npm ci --no-audit --no-fund
+      # 0106: gentle on the database. Staged (COPY over the pooler when the database password is available, else through
+      # the Management API), merged 2,000 rows a transaction with a pause and a busy check before each, the trims a
+      # make a transaction, the catalog-wide refreshes once at the end. The website keeps the database meanwhile.
       - name: Import (production)
         if: steps.due.outputs.mode == 'write'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            pool=$(curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/database/pooler" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" || true)
+            host=$(jq -r '[.[]? | select(.database_type == "PRIMARY")][0].db_host // empty' <<<"$pool")
+            user=$(jq -r '[.[]? | select(.database_type == "PRIMARY")][0].db_user // empty' <<<"$pool")
+            if [ -n "$host" ] && [ -n "$user" ]; then
+              enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri'); echo "::add-mask::$enc"
+              export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
+            fi
+          fi
           node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --write --stats "$RUNNER_TEMP/stats.json" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/write.txt"
           echo "::notice title=catalog::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
-      - name: Rebuild the public pages
+          grep -E '^(write|staged|merged|written):' "$RUNNER_TEMP/write.txt" | sed 's/^/::notice title=catalog write::/' || true
+      # then the warm-up of the top pages (home, the fleet, each car page: the Worker's post-deploy warm-up, 0102), a
+      # little over a minute after the rebuild so every data centre sees the rebuild first (0106)
+      - name: Rebuild and warm the public pages
         if: steps.due.outputs.mode == 'write'
         continue-on-error: true
         env:
@@ -107,3 +129,5 @@ jobs:
           T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
           echo "::add-mask::$T"
           echo "::notice title=catalog::pages rebuilt: $(curl -sS -X POST https://carmacars.ca/api/jobs/public-rebuild -H "Authorization: Bearer $T" -H 'content-type: application/json' -d '{}' | head -c 200)"
+          sleep 75
+          echo "::notice title=catalog::warm-up: $(curl -sS -X POST https://carmacars.ca/api/jobs/warm-up -H "Authorization: Bearer $T" | head -c 200)"

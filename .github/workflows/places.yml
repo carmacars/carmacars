@@ -4,7 +4,8 @@ name: places
 # regions, cities, airports and landmarks; OpenStreetMap place nodes (ODbL, from Geofabrik extracts filtered with
 # osmium) for neighbourhoods and towns; the US Census Gazetteer (public domain) to confirm and complete US cities.
 # web/scripts/places/build.mjs merges them (web/src/features/places/gazetteer.ts) and web/scripts/places/load.mjs loads
-# one region at a time into the database, Ontario first, and stops before the database would pass Program settings
+# one region at a time into the database, Ontario first (2,000 places a transaction with a pause and a busy check before
+# each since 0106, then the top pages warmed), and stops before the database would pass Program settings
 # place_db_cap_mb (6 GB): a region it skips is named in the run and in Admin > Settings > Search.
 #
 # Turning a region on: it is on in Admin by default; run this workflow with the region (or all). Run workflow only;
@@ -135,4 +136,15 @@ jobs:
           enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri'); echo "::add-mask::$enc"
           export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
           ../.github/ci-run.sh "Places load" node scripts/places/load.mjs --in "$RUNNER_TEMP/out" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/load.txt"
-          grep -E '^(loaded|by country)|skipped' "$RUNNER_TEMP/load.txt" | sed 's/^/::notice title=places::/'
+          grep -E '^(loaded|by country|paced)|skipped' "$RUNNER_TEMP/load.txt" | sed 's/^/::notice title=places::/'
+      # 0106: the top pages warmed again after the load (the Worker's post-deploy warm-up, 0102), production only
+      - name: Warm the public pages
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: |
+          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          echo "::add-mask::$L"
+          T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
+          echo "::add-mask::$T"
+          echo "::notice title=places::warm-up: $(curl -sS -X POST https://carmacars.ca/api/jobs/warm-up -H "Authorization: Bearer $T" | head -c 200)"

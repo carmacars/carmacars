@@ -85,3 +85,26 @@ test('run time: a timeout, a refusal or a network error is not repeated', async 
     assert.equal(n, 1);
   }
 });
+
+test('0106: a deadline gives up on a hanging call with the statement-timeout code, and it is not tried again at run time', async () => {
+  const { DEADLINE_CODE, didNotRun } = await import('./postgrest.ts');
+  let calls = 0;
+  const hang = (async (_u: string | URL | Request, init?: RequestInit) => {
+    calls++;
+    return new Promise<Response>((_r, reject) => { init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted', 'TimeoutError'))); });
+  }) as typeof fetch;
+  const t0 = Date.now();
+  // (AbortSignal.timeout's timer does not hold Node's event loop; the app's own call runs inside a request)
+  const ac = new AbortController(); setTimeout(() => ac.abort(new DOMException('timeout', 'TimeoutError')), 50);
+  const signal = ac.signal;
+  const run = () => postgrestRpc(hang, T, 'car_page', {}, { role: 'anon' }, signal);
+  await assert.rejects(withBuildRetry(run, { building: false, sleep: async () => {} }), (e: unknown) => e instanceof RpcError && e.code === DEADLINE_CODE && /busy/.test(e.message));
+  assert.ok(Date.now() - t0 < 1000, 'gave up fast');
+  assert.equal(calls, 1, 'not repeated');
+  assert.equal(didNotRun(new RpcError('x', DEADLINE_CODE)), false);
+  // an already spent deadline does not even send the call
+  await assert.rejects(postgrestRpc(hang, T, 'car_page', {}, { role: 'anon' }, signal), (e: unknown) => e instanceof RpcError && e.code === DEADLINE_CODE);
+  assert.equal(calls, 1);
+  // without a deadline the call is as before
+  assert.deepEqual(await postgrestRpc(mock(200, '{"a":1}').f, T, 'car_page', {}, { role: 'anon' }), { a: 1 });
+});

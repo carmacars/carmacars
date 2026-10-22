@@ -56,9 +56,99 @@ function viewAsWriteRefused(method, pathname, cookie) {
   return !(isAdminArea(pathname) || pathname.startsWith('/api/view-as/') || pathname.startsWith('/api/webhooks/'));
 }
 
-http.createServer((req, res) => {
+// The last good copy of the public pages (0106, src/lib/edge/page-cache.ts serveEdge), as the Worker keeps it: a public
+// page (no session) that answers 5xx, or not within SERVE_STALE_WAIT_MS (15 s here: a first render on this machine can
+// take seconds), is answered from its last good copy (x-edge-stale), and with none by the busy page. The fresh edge
+// copy is not used here (the tests read every change at once). Outside production, POST /__test/fault {path, status}
+// from this machine makes the app's answer for that path a 5xx (status 0 clears it): tests/e2e/stale-on-error.spec.ts.
+let pageCache = null;
+try { pageCache = await import('../src/lib/edge/page-cache.ts'); } catch { /* Node without type stripping: no copies */ }
+const staleStore = new Map();
+const staleCache = async () => ({ match: async (k) => staleStore.get(k)?.clone(), put: async (k, r) => { staleStore.set(k, new Response(await r.arrayBuffer(), r)); } });
+const faults = new Map();
+const testing = () => (process.env.APP_ENV ?? '') !== 'production';
+const loopback = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
+
+function testFault(req, res) {
+  let body = '';
+  req.on('data', (c) => { body += c; });
+  req.on('end', () => {
+    try {
+      const { path: p, status } = JSON.parse(body || '{}');
+      if (typeof p !== 'string' || !p.startsWith('/')) throw new Error('path');
+      if (status) faults.set(p, Number(status)); else faults.delete(p);
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify({ ok: true, faults: [...faults] }));
+    } catch { res.writeHead(400); res.end('{"ok":false}'); }
+  });
+}
+
+/** The app's answer as a web Response (the body read in full), or the fault set for this path. */
+function originResponse(req, pathname, headers) {
+  const status = faults.get(pathname);
+  if (status) return Promise.resolve(new Response('<html><body>Internal Server Error</body></html>', { status, headers: { 'content-type': 'text/html; charset=utf-8' } }));
+  return new Promise((resolve, reject) => {
+    const up = http.request({ host: '127.0.0.1', port: INNER, method: 'GET', path: req.url, headers }, (r) => {
+      const chunks = [];
+      r.on('data', (c) => chunks.push(c));
+      r.on('error', reject);
+      r.on('end', () => {
+        const h = new Headers();
+        for (const [k, v] of Object.entries(r.headers)) {
+          if (['transfer-encoding', 'connection', 'content-length', 'keep-alive'].includes(k)) continue;
+          for (const x of [].concat(v)) h.append(k, String(x));
+        }
+        const noBody = [101, 204, 205, 304].includes(r.statusCode);
+        resolve(new Response(noBody ? null : Buffer.concat(chunks), { status: r.statusCode, statusText: r.statusMessage, headers: h }));
+      });
+    });
+    up.on('error', reject);
+    up.end();
+  });
+}
+
+/** Sends a web Response as the proxy below sends the app's answers: security headers, the nonce on HTML, compression. */
+async function sendResponse(req, res, out) {
+  const h = { ...security };
+  out.headers.forEach((v, k) => { if (k !== 'set-cookie') h[k] = v; });
+  const cookies = out.headers.getSetCookie?.() ?? [];
+  if (cookies.length) h['set-cookie'] = cookies;
+  const type = String(h['content-type'] || '');
+  let body = Buffer.from(await out.arrayBuffer());
+  if (type.includes('text/html')) {
+    const nonce = randomBytes(16).toString('base64');
+    body = Buffer.from(body.toString('utf8').replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`));
+    h['content-security-policy'] = csp(nonce);
+  }
+  const accept = String(req.headers['accept-encoding'] || '');
+  const enc = body.length && /\b(text|javascript|json|xml|svg|css|x-component)\b/.test(type) && !h['content-encoding'] ? (accept.includes('br') ? 'br' : accept.includes('gzip') ? 'gzip' : '') : '';
+  if (enc) { h['content-encoding'] = enc; h.vary = [h.vary, 'Accept-Encoding'].filter(Boolean).join(', '); body = enc === 'br' ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }) : zlib.gzipSync(body); }
+  h['content-length'] = body.length;
+  res.writeHead(out.status, h); res.end(body);
+}
+
+http.createServer(async (req, res) => {
   if (localPublic(req, res)) return;
   const pathname = (req.url || '/').split('?')[0];
+  if (pathname === '/__test/fault' && req.method === 'POST' && testing() && loopback(req)) { testFault(req, res); return; }
+  // a public page or its RSC payload without a session: through the last good copy (0106)
+  const webReq = { method: req.method, url: `http://${req.headers.host || 'localhost'}${req.url}`, headers: new Headers(Object.entries(req.headers).flatMap(([k, v]) => [].concat(v).map((x) => [k, String(x)]))) };
+  const sKey = pageCache && req.method === 'GET' && (String(req.headers.accept || '').includes('text/html') || req.headers.rsc === '1') ? pageCache.staleKey(webReq) : null;
+  if (sKey) {
+    const headers = { ...req.headers, 'accept-encoding': 'identity', 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http' };
+    delete headers['x-cc-admin-area'];
+    try {
+      const out = await pageCache.serveEdge(webReq, null, sKey, pathname, {
+        cache: staleCache, env: {}, version: 'local', origin: () => originResponse(req, pathname, headers), waitUntil: (p) => { p.catch(() => undefined); },
+        waitMs: Number(process.env.SERVE_STALE_WAIT_MS ?? 15_000), giveUpMs: Number(process.env.SERVE_STALE_GIVE_UP_MS ?? 60_000), refreshAfterMs: 2_000
+      });
+      await sendResponse(req, res, out);
+    } catch { if (!res.headersSent) { res.writeHead(502); res.end('Starting'); } }
+    return;
+  }
+  if (req.method === 'GET' && faults.has(pathname)) {
+    res.writeHead(faults.get(pathname), { ...security, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end('<html><body>Internal Server Error</body></html>');
+    return;
+  }
   if (viewAsWriteRefused(req.method, pathname, req.headers.cookie)) {
     if (req.headers['next-action']) { res.writeHead(200, { ...security, 'content-type': 'text/plain', 'cache-control': 'no-store', 'x-action-redirect': '/read-only;push' }); res.end(); }
     else {

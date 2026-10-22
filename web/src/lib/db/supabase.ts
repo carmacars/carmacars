@@ -1,6 +1,6 @@
 import 'server-only';
 import { required } from '@/lib/env';
-import { postgrestRpc, RpcError, withBuildRetry } from './postgrest';
+import { ANON_DEADLINE_MS, postgrestRpc, RpcError, withBuildRetry } from './postgrest';
 import { DbError, type Backend } from './repo';
 
 // Supabase backend: one POST to PostgREST per call (postgrest.ts), the request supabase-js's rpc() makes,
@@ -12,11 +12,15 @@ export function supabaseBackend(): Backend {
   return {
     async call(fn, args, o) {
       try {
+        const building = process.env.NEXT_PHASE === 'phase-production-build';
+        // 0106: a visitor's anonymous read (the public pages) has one deadline for the call and its quick retries, so
+        // a busy database fails the page within about 3 s (postgrest.ts ANON_DEADLINE_MS); never during the build
+        const signal = o.role === 'anon' && !o.accessToken && !building ? AbortSignal.timeout(ANON_DEADLINE_MS) : undefined;
         // pre-rendering during `next build` tries a slow database again (postgrest.ts, withBuildRetry)
         return await withBuildRetry(() => postgrestRpc(fetch, {
           url: required('NEXT_PUBLIC_SUPABASE_URL'), anonKey: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
           serviceKey: o.role === 'service_role' ? required('SUPABASE_SERVICE_ROLE_KEY') : undefined
-        }, fn, args, o), { building: process.env.NEXT_PHASE === 'phase-production-build' });
+        }, fn, args, o, signal), { building });
       } catch (e) {
         if (e instanceof RpcError) throw new DbError(e.message, e.code, e.hint);
         throw e;

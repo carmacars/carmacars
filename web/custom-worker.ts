@@ -9,7 +9,7 @@ import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
-import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
+import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
 import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
@@ -124,6 +124,38 @@ async function track(request: Request, env: Env, ctx: { waitUntil(p: Promise<unk
 interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void }
 const MAX_EMAIL_BYTES = 1_000_000;
 
+/** One share of the warm-up (0102): the next pages of this deploy's list, within the budget; the progress kept. */
+async function warmTick(env: Env, rows: ReadonlyArray<{ slug?: unknown }>, deployed: number, warmed: number, self: { fetch(r: Request): Promise<Response> }, base: string): Promise<number> {
+  const paths = warmPaths(rows);
+  const start = warmDone(warmed, deployed);
+  if (start >= paths.length) return 0;
+  const origin = base.replace(/\/$/, '');
+  const done = await warmBatch(paths, start, async (path) => {
+    const res = await self.fetch(new Request(`${origin}${path}`, { headers: { 'user-agent': 'CarmaCars warm-up (cron)', accept: 'text/html' } }));
+    await res.arrayBuffer();
+  });
+  await writeNumber(env, WARM_KEY, warmValue(deployed, done));
+  return done - start;
+}
+
+// 0106: the warm-up again after a bulk import (the catalog and places workflows call it after their rebuild): the
+// progress of this deploy's warm-up goes back to the start, the first share runs now, the cron ticks do the rest. The
+// pages it renders are kept as their fresh and last good copies (src/lib/edge/page-cache.ts).
+async function warmUp(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+  const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...securityHeaders() } });
+  const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
+  if (!secret || request.headers.get('authorization') !== `Bearer ${await workerToken(secret)}`) return json({ ok: false }, 401);
+  const self = env.WORKER_SELF_REFERENCE as { fetch(r: Request): Promise<Response> } | undefined;
+  const deployed = deployNumber(deploymentOf(env));
+  if (!self || deployed === 0 || !(env.NEXT_TAG_CACHE_KV || env.NEXT_TAG_CACHE_D1)) return json({ ok: false, reason: 'no warm-up here (no service binding, version or tag store)' }, 409);
+  const rows = await fleetRows(env);
+  if (!rows) return json({ ok: false, reason: 'the fleet could not be read' }, 503);
+  await writeNumber(env, WARM_KEY, warmValue(deployed, 0));
+  const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : new URL(request.url).origin;
+  ctx.waitUntil(warmTick(env, rows, deployed, warmValue(deployed, 0), self, base).catch(() => undefined));
+  return json({ ok: true, pages: warmPaths(rows).length }, 202);
+}
+
 const worker = {
   async email(message: InboundEmail, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
@@ -180,16 +212,9 @@ const worker = {
       // 0102: then the pages visitors open first are rendered once for this deploy (src/lib/edge/warm.ts): home, the fleet
       // page and each car page, through the service binding (each its own invocation), a few at a time within a budget;
       // the rest on the next ticks. Without it every car page was a cold render for its first visitor after a deploy.
+      // 0106: an import's end asks for the same warm-up again (POST /api/jobs/warm-up, below).
       if (!rebuiltForDeploy || !self || deployed === 0 || warmed === null) return;
-      const paths = warmPaths(rows!);
-      const start = warmDone(warmed, deployed);
-      if (start >= paths.length) return;
-      const origin = base.replace(/\/$/, '');
-      const done = await warmBatch(paths, start, async (path) => {
-        const res = await self.fetch(new Request(`${origin}${path}`, { headers: { 'user-agent': 'CarmaCars warm-up (cron)', accept: 'text/html' } }));
-        await res.arrayBuffer();
-      });
-      await writeNumber(env, WARM_KEY, warmValue(deployed, done));
+      await warmTick(env, rows!, deployed, warmed, self, base);
     })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
@@ -211,6 +236,7 @@ const worker = {
     // on a fresh isolate)
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
+    if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());
@@ -232,14 +258,16 @@ const worker = {
     }
     // The public pages the page cache answered before, from this data centre's copy, without loading the app
     // (src/lib/edge/page-cache.ts); what OpenNext answers from its page cache is kept for the next request.
+    // 0106: the last good copy of each public page (no session) is kept too, for a week; when OpenNext answers 5xx or
+    // takes more than 4 seconds (the database busy with an import or a load spike), the visitor gets that copy
+    // (x-edge-stale) and the page is asked for again in the background; with no copy yet, the busy page that retries.
     const version = deploymentOf(env);
     const key = version ? edgeKey(req, version) : null;
-    const edge = key ? { cache: () => caches.open(EDGE_CACHE_NAME), env, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p) } : null;
-    let response: Response | null = key && edge ? await edgeMatch(key, edge) : null;
-    if (!response) {
-      response = (await handler.fetch(req, env, ctx)) as Response;
-      if (key && edge) response = edgeKeep(key, path, response, edge);
-    }
+    const sKey = version ? staleKey(req) : null;
+    const origin = () => handler.fetch(new Request(req), env, ctx) as Promise<Response>;
+    const response: Response = version && (key || sKey)
+      ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p) })
+      : await origin();
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(securityHeaders())) headers.set(k, v);
@@ -257,7 +285,7 @@ const worker = {
     // a page is never reused by the browser without asking first: OpenNext's stale-while-revalidate let Safari show a
     // page kept from a previous deploy, whose style files are gone (home loaded unstyled on phones, Oct 21). The
     // data centre's copy above is unaffected (it is kept before this line).
-    headers.set('cache-control', 'no-cache');
+    headers.set('cache-control', response.headers.get(STALE_HEADER) === 'busy' ? 'no-store' : 'no-cache');
     const nonce = newNonce();
     headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true }));
     const out = new Response(response.body, { status: response.status, statusText: response.statusText, headers });

@@ -7,18 +7,37 @@ export class RpcError extends Error {
   constructor(message: string, code: string | undefined, hint?: string, status?: number) { super(message); this.name = 'RpcError'; this.code = code; this.hint = hint; this.status = status; }
 }
 
-export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, args: Record<string, unknown>, o: RpcCaller): Promise<unknown> {
+/** 0106: a public page's anonymous read gives up after this long (the database's own limit for anon is 2.5 s): a busy
+ *  database (an import, a load spike) then fails the page fast, and the Worker answers from the last good copy
+ *  (src/lib/edge/page-cache.ts serveEdge) instead of holding the visitor for 30 s or more. */
+export const ANON_DEADLINE_MS = 3_000;
+/** the code an abandoned call is reported with: the database's statement timeout, never tried again at run time */
+export const DEADLINE_CODE = '57014';
+
+export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, args: Record<string, unknown>, o: RpcCaller, signal?: AbortSignal): Promise<unknown> {
   if (o.role === 'service_role' && !t.serviceKey) throw new RpcError('The service role key is not set', undefined);
   const key = o.role === 'service_role' ? t.serviceKey! : t.anonKey;
   const bearer = o.role === 'service_role' ? key : o.role === 'authenticated' && o.accessToken ? o.accessToken : t.anonKey;
-  const res = await f(`${t.url.replace(/\/$/, '')}/rest/v1/rpc/${encodeURIComponent(fn)}`, {
+  if (signal?.aborted) throw new RpcError(`Database call ${fn} gave up: the database is busy`, DEADLINE_CODE);
+  let res: Response;
+  try {
+  res = await f(`${t.url.replace(/\/$/, '')}/rest/v1/rpc/${encodeURIComponent(fn)}`, {
     method: 'POST',
     headers: { apikey: key, Authorization: `Bearer ${bearer}`, 'content-type': 'application/json', accept: 'application/json',
       ...(o.requestId ? { 'x-request-id': o.requestId } : {}) },
     // no cache option, as supabase-js sends none: 'no-store' would make every public page dynamic in Next.js
-    body: JSON.stringify(args ?? {})
+    body: JSON.stringify(args ?? {}),
+    ...(signal ? { signal } : {})
   });
-  const text = await res.text();
+  } catch (e) {
+    if (signal?.aborted) throw new RpcError(`Database call ${fn} gave up: the database is busy`, DEADLINE_CODE);
+    throw e;
+  }
+  let text: string;
+  try { text = await res.text(); } catch (e) {
+    if (signal?.aborted) throw new RpcError(`Database call ${fn} gave up: the database is busy`, DEADLINE_CODE);
+    throw e;
+  }
   if (!res.ok) {
     let e: { message?: string; code?: string; hint?: string | null } = {};
     try { e = JSON.parse(text); } catch { e = { message: text.slice(0, 300) || res.statusText }; }

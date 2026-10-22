@@ -46,6 +46,12 @@ export interface EdgeRequestLike { method: string; url: string; headers: { get(n
 
 /** The cache key for a request that may be answered from (or kept in) the edge copy, else null. */
 export function edgeKey(req: EdgeRequestLike, version: string): string | null {
+  const s = edgeSuffix(req);
+  return s === null ? null : `https://edge.cache/${encodeURIComponent(version)}/${s}`;
+}
+
+/** host, path and the RSC part of the key, or null when the request is never kept */
+function edgeSuffix(req: EdgeRequestLike): string | null {
   if (req.method !== 'GET') return null;
   const u = new URL(req.url);
   const seg = u.pathname.split('/')[1] ?? '';
@@ -61,7 +67,7 @@ export function edgeKey(req: EdgeRequestLike, version: string): string | null {
   // state tree, Next-Url and the prefetch flag do not change a cached answer
   const segment = rsc ? h.get('next-router-segment-prefetch') ?? '' : '';
   const path = u.pathname.length > 1 ? u.pathname.replace(/\/$/, '') : '/';
-  return `https://edge.cache/${encodeURIComponent(version)}/${u.host}${path}${rsc ? `?rsc=1&seg=${encodeURIComponent(segment)}` : ''}`;
+  return `${u.host}${path}${rsc ? `?rsc=1&seg=${encodeURIComponent(segment)}` : ''}`;
 }
 
 // The place pages (migration 0095) and the landing pages they share a route with: rendered on demand (dynamic, never in
@@ -195,6 +201,178 @@ export function edgeKeep(key: string, pathname: string, res: Response, d: EdgeDe
   if (place) out.set('cache-control', PLACE_BROWSER_CC);
   else if (programmatic) out.set('cache-control', PROGRAMMATIC_CC);
   return new Response(a, { status: res.status, statusText: res.statusText, headers: out });
+}
+
+// ------------------------------------------------------------------ the last good copy (0106)
+// When the database is slow (a bulk import, a load spike on the Micro compute), OpenNext answers 500 or takes 5 to 40
+// seconds. The last good answer of each public page is kept beside the fresh copy, under a key without the deployment
+// and for a week, whatever its freshness; when OpenNext answers 5xx or has not answered within ORIGIN_WAIT_MS, the
+// visitor gets that copy (x-edge-stale says why) and the page is asked for again in the background. With no copy yet,
+// the visitor waits, and a 5xx (or no answer within GIVE_UP_MS) becomes the "Busy for a moment" page, which tries
+// again by itself. Only for the requests edgeKey covers, and only without a session (a signed-in visitor or an Admin
+// viewing as someone always reaches the app): never a portal, the API or a write.
+
+export const STALE_TTL_S = 7 * 86_400;
+export const STALE_HEADER = 'x-edge-stale';
+const STALE_VERSION = 'x-edge-version';
+/** OpenNext's answer is waited for this long when a last good copy exists */
+export const ORIGIN_WAIT_MS = 4_000;
+/** with no copy, the first visitor waits at most this long before the busy page */
+export const GIVE_UP_MS = 25_000;
+/** after a 5xx answered from the copy, the page is asked for again this much later, at most once a minute */
+export const REFRESH_AFTER_MS = 5_000;
+export const REFRESH_EVERY_MS = 60_000;
+
+/** A sign-in session (Supabase's cookie) or an Admin viewing as someone: such a request never gets a kept copy. */
+export function hasSession(cookieHeader: string | null | undefined): boolean {
+  for (const part of (cookieHeader ?? '').split(';')) {
+    const name = part.slice(0, Math.max(0, part.indexOf('='))).trim();
+    if (/^sb-[a-z0-9]+-auth-token(\.\d+)?$/.test(name) || name === 'cc-view-as') return true;
+  }
+  return false;
+}
+
+/** The key of the last good copy (no deployment in it: it outlives a deploy), or null. */
+export function staleKey(req: EdgeRequestLike): string | null {
+  const s = edgeSuffix(req);
+  if (s === null || hasSession(req.headers.get('cookie'))) return null;
+  return `https://edge.stale/${s}`;
+}
+
+/** A good answer worth keeping as the last good copy: 200, no Set-Cookie, a page, its RSC payload, a sitemap or robots. */
+export function staleWorthy(status: number, headers: { get(name: string): string | null }): boolean {
+  if (status !== 200 || headers.get('set-cookie') || headers.get(STALE_HEADER)) return false;
+  return /text\/html|text\/x-component|xml|text\/plain/.test(headers.get('content-type') ?? '');
+}
+
+/** Keeps the answer as the page's last good copy when it is one; returns the response to send on (the body is shared). */
+export function staleKeep(key: string, res: Response, d: EdgeDeps & { version: string; waitUntil(p: Promise<unknown>): void }): Response {
+  if (!res.body || !staleWorthy(res.status, res.headers)) return res;
+  const [a, b] = res.body.tee();
+  const headers = new Headers(res.headers);
+  const cc = headers.get('cache-control');
+  if (cc) headers.set(ORIGINAL_CC, cc);
+  const vary = headers.get('vary');
+  if (vary) { headers.set(ORIGINAL_VARY, vary); headers.delete('vary'); }
+  headers.set('cache-control', `public, max-age=${STALE_TTL_S}`);
+  headers.set(STORED, String(d.now?.() ?? Date.now()));
+  headers.set(STALE_VERSION, d.version);
+  d.waitUntil(d.cache().then((c) => c.put(key, new Response(b, { status: 200, headers }))).catch(() => undefined));
+  return new Response(a, { status: res.status, statusText: res.statusText, headers: res.headers });
+}
+
+/** The last good copy, marked with why it is served; null when none is kept. An RSC payload is served only to the
+ *  deployment that made it (another build's router cannot use it); a page is served whatever deployment kept it. */
+export async function staleMatch(key: string, d: EdgeDeps & { version: string }, why: string, rsc: boolean): Promise<Response | null> {
+  try {
+    const hit = await (await d.cache()).match(key);
+    if (!hit) return null;
+    const version = hit.headers.get(STALE_VERSION);
+    if (rsc && version !== d.version) { void hit.body?.cancel().catch(() => undefined); return null; }
+    const headers = new Headers(hit.headers);
+    const vary = headers.get(ORIGINAL_VARY);
+    if (vary) headers.set('vary', vary);
+    const age = Math.max(0, Math.round(((d.now?.() ?? Date.now()) - Number(headers.get(STORED) ?? 0)) / 1000));
+    for (const h of [ORIGINAL_CC, ORIGINAL_VARY, STORED, STALE_VERSION, 'age', 'cf-cache-status', 'etag']) headers.delete(h);
+    // never kept by a browser or a shared cache: the next visit asks again
+    headers.set('cache-control', 'no-cache');
+    headers.set(EDGE_HEADER, 'STALE');
+    headers.set(STALE_HEADER, `${why}; age=${age}${version === d.version ? '' : '; deploy=previous'}`);
+    return new Response(hit.body, { status: 200, headers });
+  } catch {
+    return null;
+  }
+}
+
+/** The page a first visitor gets when the site cannot answer and no copy is kept: it tries again by itself. */
+export function busyPage(status = 503): Response {
+  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<meta name="robots" content="noindex"><title>CarmaCars: busy for a moment</title>'
+    + '<noscript><meta http-equiv="refresh" content="8"></noscript>'
+    + '<style>body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f7f7f5;color:#1b1b1b;display:grid;place-items:center;min-height:100vh}'
+    + 'main{max-width:28rem;padding:2rem 1rem;text-align:center}h1{font-size:1.5rem;margin:0 0 .5rem}p{margin:.5rem 0;color:#4a4a4a}a{color:#0b57d0}'
+    + '@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}p{color:#bbb}a{color:#8ab4f8}}</style></head>'
+    + '<body><main><h1>Busy for a moment, retrying</h1><p>CarmaCars is very busy right now. This page tries again by itself in a few seconds.</p>'
+    + '<p id="cc-busy-next" aria-live="polite"></p><p><a href="">Try now</a></p></main>'
+    + '<script>(function(){var k="cc-busy",n=0,t=Date.now();try{var o=JSON.parse(sessionStorage.getItem(k)||"null");if(o&&t-o.t<120000)n=o.n+1;sessionStorage.setItem(k,JSON.stringify({n:n,t:t}))}catch(e){}'
+    + 'var ms=Math.min(30000,Math.round(3000*Math.pow(1.6,n)));var el=document.getElementById("cc-busy-next");if(el)el.textContent="Trying again in "+Math.round(ms/1000)+" seconds.";'
+    + 'setTimeout(function(){location.reload()},ms)})()</script></body></html>';
+  return new Response(html, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '5', [STALE_HEADER]: 'busy' } });
+}
+
+const refreshed = new Map<string, number>();
+/** May the page be asked for again now (at most once a REFRESH_EVERY_MS per page and isolate)? */
+export function refreshDue(key: string, now: number): boolean {
+  const last = refreshed.get(key);
+  if (last !== undefined && now - last < REFRESH_EVERY_MS) return false;
+  if (refreshed.size > 500) refreshed.clear();
+  refreshed.set(key, now);
+  return true;
+}
+
+export interface ServeDeps extends EdgeDeps {
+  version: string;
+  waitUntil(p: Promise<unknown>): void;
+  /** OpenNext's answer for this request (called again for a background refresh) */
+  origin(): Promise<Response>;
+  waitMs?: number; giveUpMs?: number; refreshAfterMs?: number;
+  /** a timer that can be cancelled (tests pass their own) */
+  timer?: (ms: number) => { done: Promise<void>; cancel(): void };
+}
+
+const realTimer = (ms: number) => {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  const done = new Promise<void>((r) => { id = setTimeout(r, ms); });
+  return { done, cancel: () => { if (id !== undefined) clearTimeout(id); } };
+};
+const drain = (r: Response | null | undefined) => { if (r?.body) void r.body.cancel().catch(() => undefined); };
+const consume = (r: Response) => r.arrayBuffer().then(() => undefined, () => undefined);
+const failed = (status: number) => new Response(null, { status });
+
+/**
+ * One public request: the fresh edge copy (edgeMatch) when it holds, else OpenNext, keeping its answer (edgeKeep) and
+ * its last good copy (staleKeep); with a stale key, a 5xx or a slow answer is replaced by the last good copy, and with
+ * none by the busy page (HTML) or the error itself (RSC, sitemaps).
+ */
+export async function serveEdge(req: EdgeRequestLike, key: string | null, sKey: string | null, pathname: string, d: ServeDeps): Promise<Response> {
+  if (key) { const hit = await edgeMatch(key, d); if (hit) return hit; }
+  const keep = (r: Response) => { let out = key ? edgeKeep(key, pathname, r, d) : r; if (sKey) out = staleKeep(sKey, out, d); return out; };
+  if (!sKey) return keep(await d.origin());
+  const timer = d.timer ?? realTimer;
+  const rsc = req.headers.get('rsc') === '1';
+  const html = !rsc && !/\.(xml|txt)$/.test(pathname);
+  const origin: Promise<Response> = d.origin().then(keep, () => failed(502));
+  const slow = timer(d.waitMs ?? ORIGIN_WAIT_MS);
+  const first = await Promise.race([origin, slow.done.then(() => null)]);
+  slow.cancel();
+  if (first && first.status < 500) return first;
+  const why = first ? `error ${first.status}` : 'slow';
+  const old = await staleMatch(sKey, d, why, rsc);
+  if (old) {
+    if (first) {
+      drain(first);
+      // the page asked for again a little later, so the copy is replaced once the site answers
+      if (refreshDue(sKey, d.now?.() ?? Date.now())) {
+        const later = timer(d.refreshAfterMs ?? REFRESH_AFTER_MS);
+        d.waitUntil(later.done.then(() => d.origin()).then(keep).then(consume).catch(() => undefined));
+      }
+    } else {
+      // the answer still on its way is the refresh: it is kept when it comes
+      d.waitUntil(origin.then(consume));
+    }
+    return old;
+  }
+  // no copy kept yet: the first visitor waits (up to GIVE_UP_MS in all), then gets the busy page
+  let last = first;
+  if (!last) {
+    const rest = timer(Math.max(0, (d.giveUpMs ?? GIVE_UP_MS) - (d.waitMs ?? ORIGIN_WAIT_MS)));
+    last = await Promise.race([origin, rest.done.then(() => null)]);
+    rest.cancel();
+    if (last && last.status < 500) return last;
+    if (!last) d.waitUntil(origin.then(consume));
+  }
+  if (html) { drain(last); return busyPage(); }
+  return last ?? failed(504);
 }
 
 // ------------------------------------------------------------------ requests nobody should render
