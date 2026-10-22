@@ -93,7 +93,7 @@
 .gd-figblock { display: grid; }
 
 /* boxes, tables, stages, phone grids */
-.gd-box { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1); padding: var(--s-3) var(--s-4); background: var(--grey-50); border-left: 4px solid var(--black); max-width: 46rem; }
+.gd-box { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1); padding: var(--s-3) var(--s-4); background: var(--grey-50); border-left: 4px solid var(--black); max-width: 46rem; overflow-wrap: anywhere; }
 .gd-box--warn { background: var(--red-50); border-left-color: var(--red-600); }
 .gd-lbl { font: 700 var(--fs-2xs)/1.4 var(--font-text); letter-spacing: 0.12em; text-transform: uppercase; }
 .gd-box--warn .gd-lbl { color: var(--red-700); }

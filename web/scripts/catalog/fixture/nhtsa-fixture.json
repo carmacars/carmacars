@@ -299,7 +299,7 @@
     "campaign": "23V085000",
     "date": "2023-02-15",
     "component": "STEERING:AUTOMATED/ADAPTIVE STEERING",
-    "summary": "Tesla, Inc. (Tesla) is recalling certain 2016-2023 Model S, Model X, 2017-2023 Model 3, and 2020-2023 Model Y vehicles equipped with Full Self-Driving Beta (FSD Beta) software or pending installation.\u00c2 The FSD Beta system may allow the vehicle to act unsafe around intersections, such as traveling straight through..."
+    "summary": "Tesla, Inc. (Tesla) is recalling certain 2016-2023 Model S, Model X, 2017-2023 Model 3, and 2020-2023 Model Y vehicles equipped with Full Self-Driving Beta (FSD Beta) software or pending installation.Â The FSD Beta system may allow the vehicle to act unsafe around intersections, such as traveling straight through..."
    },
    {
     "campaign": "23V434000",
@@ -949,7 +949,7 @@
  },
  "complaints": {
   "cadillac|CTS|2015": {
-   "total": 48,
+   "total": 49,
    "comps": {
     "VEHICLE SPEED CONTROL": 4,
     "ELECTRICAL SYSTEM": 4,
@@ -959,7 +959,7 @@
     "WHEELS": 3,
     "POWER TRAIN": 20,
     "UNKNOWN OR OTHER": 8,
-    "SERVICE BRAKES": 8,
+    "SERVICE BRAKES": 9,
     "SEATS": 1,
     "STRUCTURE": 1,
     "ENGINE": 4,
@@ -1008,6 +1008,778 @@
    "comps": {
     "AIR BAGS": 2,
     "SEATS": 1
+   }
+  },
+  "volkswagen|JETTA|2019": {
+   "total": 549,
+   "comps": {
+    "UNKNOWN OR OTHER": 95,
+    "POWER TRAIN": 162,
+    "VEHICLE SPEED CONTROL": 16,
+    "EXTERIOR LIGHTING": 26,
+    "AIR BAGS": 16,
+    "STRUCTURE": 23,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 5,
+    "ELECTRICAL SYSTEM": 156,
+    "SUSPENSION": 16,
+    "VISIBILITY/WIPER": 18,
+    "ENGINE": 147,
+    "SERVICE BRAKES": 29,
+    "STEERING": 12,
+    "WHEELS": 6,
+    "FUEL/PROPULSION SYSTEM": 25,
+    "SEATS": 2,
+    "SEAT BELTS": 6,
+    "FORWARD COLLISION AVOIDANCE": 13,
+    "VISIBILITY": 7,
+    "ENGINE AND ENGINE COOLING": 2,
+    "LANE DEPARTURE": 8,
+    "TIRES": 3,
+    "FUEL SYSTEM": 4,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "PARKING BRAKE": 1
+   }
+  },
+  "volkswagen|JETTA|2020": {
+   "total": 54,
+   "comps": {
+    "FUEL/PROPULSION SYSTEM": 5,
+    "UNKNOWN OR OTHER": 13,
+    "SERVICE BRAKES": 7,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 1,
+    "ELECTRICAL SYSTEM": 17,
+    "VEHICLE SPEED CONTROL": 3,
+    "ENGINE": 12,
+    "STEERING": 4,
+    "POWER TRAIN": 7,
+    "VISIBILITY/WIPER": 1,
+    "AIR BAGS": 2,
+    "TIRES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "VISIBILITY": 1,
+    "SUSPENSION": 3,
+    "SEATS": 1,
+    "STRUCTURE": 2,
+    "WHEELS": 1
+   }
+  },
+  "kia|FORTE|2021": {
+   "total": 69,
+   "comps": {
+    "UNKNOWN OR OTHER": 18,
+    "VISIBILITY/WIPER": 1,
+    "EQUIPMENT": 2,
+    "TIRES": 5,
+    "SERVICE BRAKES": 2,
+    "STEERING": 9,
+    "LANE DEPARTURE": 2,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "AIR BAGS": 7,
+    "ELECTRICAL SYSTEM": 9,
+    "ENGINE": 22,
+    "FUEL/PROPULSION SYSTEM": 3,
+    "POWER TRAIN": 7,
+    "VEHICLE SPEED CONTROL": 1,
+    "SEATS": 1,
+    "STRUCTURE": 3,
+    "SEAT BELTS": 4,
+    "EXTERIOR LIGHTING": 1
+   }
+  },
+  "volkswagen|JETTA|2021": {
+   "total": 69,
+   "comps": {
+    "UNKNOWN OR OTHER": 11,
+    "AIR BAGS": 5,
+    "ENGINE": 5,
+    "SEAT BELTS": 3,
+    "SEATS": 1,
+    "STEERING": 3,
+    "SUSPENSION": 1,
+    "POWER TRAIN": 2,
+    "ELECTRICAL SYSTEM": 13,
+    "LANE DEPARTURE": 5,
+    "FORWARD COLLISION AVOIDANCE": 11,
+    "SERVICE BRAKES": 27,
+    "FUEL/PROPULSION SYSTEM": 9,
+    "VISIBILITY": 1,
+    "BACK OVER PREVENTION": 1,
+    "VISIBILITY/WIPER": 3,
+    "EXTERIOR LIGHTING": 1,
+    "LATCHES/LOCKS/LINKAGES": 2
+   }
+  },
+  "honda|CIVIC|2022": {
+   "total": 885,
+   "comps": {
+    "ELECTRICAL SYSTEM": 38,
+    "STEERING": 733,
+    "ENGINE": 11,
+    "AIR BAGS": 9,
+    "STRUCTURE": 14,
+    "VEHICLE SPEED CONTROL": 42,
+    "FORWARD COLLISION AVOIDANCE": 90,
+    "EXTERIOR LIGHTING": 2,
+    "SERVICE BRAKES": 23,
+    "VISIBILITY/WIPER": 12,
+    "LANE DEPARTURE": 81,
+    "SUSPENSION": 25,
+    "UNKNOWN OR OTHER": 41,
+    "FUEL/PROPULSION SYSTEM": 9,
+    "TIRES": 2,
+    "SEATS": 3,
+    "SEAT BELTS": 4,
+    "WHEELS": 14,
+    "POWER TRAIN": 10,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA|2022": {
+   "total": 102,
+   "comps": {
+    "AIR BAGS": 10,
+    "SERVICE BRAKES": 16,
+    "VISIBILITY/WIPER": 6,
+    "ELECTRICAL SYSTEM": 21,
+    "STRUCTURE": 7,
+    "UNKNOWN OR OTHER": 15,
+    "EXTERIOR LIGHTING": 9,
+    "POWER TRAIN": 17,
+    "VEHICLE SPEED CONTROL": 3,
+    "FORWARD COLLISION AVOIDANCE": 7,
+    "VISIBILITY": 2,
+    "TIRES": 4,
+    "ENGINE": 14,
+    "PARKING BRAKE": 1,
+    "STEERING": 5,
+    "SEAT BELTS": 1,
+    "SUSPENSION": 2,
+    "FUEL/PROPULSION SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA HYBRID|2022": {
+   "total": 1,
+   "comps": {
+    "STRUCTURE": 1,
+    "SEATS": 1
+   }
+  },
+  "kia|FORTE|2022": {
+   "total": 28,
+   "comps": {
+    "UNKNOWN OR OTHER": 9,
+    "ENGINE AND ENGINE COOLING": 2,
+    "SERVICE BRAKES": 2,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "BACK OVER PREVENTION": 1,
+    "FUEL SYSTEM": 1,
+    "ENGINE": 4,
+    "SUSPENSION": 3,
+    "SEAT BELTS": 2,
+    "POWER TRAIN": 2,
+    "VISIBILITY/WIPER": 2,
+    "AIR BAGS": 2,
+    "ELECTRICAL SYSTEM": 3,
+    "TIRES": 1,
+    "VEHICLE SPEED CONTROL": 1,
+    "STEERING": 4,
+    "EXTERIOR LIGHTING": 1,
+    "FUEL/PROPULSION SYSTEM": 1
+   }
+  },
+  "ford|F-150|2022": {
+   "total": 598,
+   "comps": {
+    "ELECTRICAL SYSTEM": 128,
+    "ENGINE": 38,
+    "POWER TRAIN": 163,
+    "VISIBILITY/WIPER": 25,
+    "BACK OVER PREVENTION": 12,
+    "STRUCTURE": 14,
+    "UNKNOWN OR OTHER": 87,
+    "FUEL SYSTEM": 55,
+    "PARKING BRAKE": 12,
+    "SERVICE BRAKES": 30,
+    "EQUIPMENT": 45,
+    "FORWARD COLLISION AVOIDANCE": 26,
+    "EXTERIOR LIGHTING": 65,
+    "SUSPENSION": 14,
+    "WHEELS": 8,
+    "VISIBILITY": 22,
+    "LATCHES/LOCKS/LINKAGES": 5,
+    "SEAT BELTS": 2,
+    "STEERING": 9,
+    "VEHICLE SPEED CONTROL": 16,
+    "AIR BAGS": 4,
+    "TIRES": 1,
+    "LANE DEPARTURE": 6,
+    "SEATS": 4,
+    "FUEL/PROPULSION SYSTEM": 35,
+    "FIRERELATED": 1,
+    "ENGINE AND ENGINE COOLING": 3
+   }
+  },
+  "ford|F-150 HYBRID|2022": {
+   "total": 215,
+   "comps": {
+    "ENGINE": 16,
+    "POWER TRAIN": 77,
+    "BACK OVER PREVENTION": 7,
+    "STEERING": 3,
+    "UNKNOWN OR OTHER": 41,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "STRUCTURE": 7,
+    "VISIBILITY": 3,
+    "EQUIPMENT": 29,
+    "ELECTRICAL SYSTEM": 65,
+    "SUSPENSION": 2,
+    "ENGINE AND ENGINE COOLING": 2,
+    "HYBRID PROPULSION SYSTEM": 1,
+    "FORWARD COLLISION AVOIDANCE": 12,
+    "EXTERIOR LIGHTING": 9,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "WHEELS": 13,
+    "VISIBILITY/WIPER": 2,
+    "SERVICE BRAKES": 6,
+    "VEHICLE SPEED CONTROL": 7,
+    "LANE DEPARTURE": 3,
+    "AIR BAGS": 1,
+    "FUEL SYSTEM": 3
+   }
+  },
+  "chevrolet|MALIBU|2022": {
+   "total": 99,
+   "comps": {
+    "ELECTRICAL SYSTEM": 33,
+    "BACK OVER PREVENTION": 1,
+    "EXTERIOR LIGHTING": 2,
+    "POWER TRAIN": 24,
+    "AIR BAGS": 4,
+    "SEAT BELTS": 2,
+    "SERVICE BRAKES": 6,
+    "ENGINE": 29,
+    "UNKNOWN OR OTHER": 29,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "STEERING": 2,
+    "WHEELS": 2,
+    "ENGINE AND ENGINE COOLING": 10,
+    "VEHICLE SPEED CONTROL": 4,
+    "FUEL SYSTEM": 2,
+    "TIRES": 1,
+    "STRUCTURE": 2,
+    "SEATS": 1
+   }
+  },
+  "ford|MUSTANG MACH E|2022": {
+   "total": 139,
+   "comps": {
+    "UNKNOWN OR OTHER": 22,
+    "FUEL/PROPULSION SYSTEM": 20,
+    "ELECTRICAL SYSTEM": 79,
+    "STEERING": 7,
+    "ENGINE": 16,
+    "FORWARD COLLISION AVOIDANCE": 29,
+    "VEHICLE SPEED CONTROL": 19,
+    "POWER TRAIN": 28,
+    "STRUCTURE": 4,
+    "SUSPENSION": 2,
+    "EQUIPMENT": 1,
+    "LANE DEPARTURE": 3,
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 16,
+    "AIR BAGS": 3,
+    "LATCHES/LOCKS/LINKAGES": 3,
+    "BACK OVER PREVENTION": 4,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "mazda|MX-5|2021": {
+   "total": 1,
+   "comps": {
+    "POWER TRAIN": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2022": {
+   "total": 47,
+   "comps": {
+    "ENGINE": 14,
+    "UNKNOWN OR OTHER": 13,
+    "EXTERIOR LIGHTING": 1,
+    "STEERING": 6,
+    "ELECTRICAL SYSTEM": 8,
+    "VISIBILITY/WIPER": 3,
+    "SERVICE BRAKES": 2,
+    "FORWARD COLLISION AVOIDANCE": 1,
+    "SUSPENSION": 2,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 6,
+    "POWER TRAIN": 8,
+    "STRUCTURE": 2,
+    "TIRES": 1,
+    "SEATS": 3,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "ENGINE AND ENGINE COOLING": 2,
+    "SEAT BELTS": 2,
+    "VISIBILITY": 1
+   }
+  },
+  "ford|F-150 LIGHTNING BEV|2022": {
+   "total": 92,
+   "comps": {
+    "EQUIPMENT": 3,
+    "ELECTRICAL SYSTEM": 36,
+    "UNKNOWN OR OTHER": 8,
+    "VISIBILITY": 3,
+    "VISIBILITY/WIPER": 4,
+    "TIRES": 1,
+    "EXTERIOR LIGHTING": 34,
+    "POWER TRAIN": 13,
+    "VEHICLE SPEED CONTROL": 10,
+    "STRUCTURE": 2,
+    "FORWARD COLLISION AVOIDANCE": 16,
+    "SERVICE BRAKES": 2,
+    "FUEL/PROPULSION SYSTEM": 5,
+    "BACK OVER PREVENTION": 1,
+    "LANE DEPARTURE": 1,
+    "AIR BAGS": 1,
+    "STEERING": 1,
+    "SUSPENSION": 1
+   }
+  },
+  "ford|MUSTANG|2022": {
+   "total": 50,
+   "comps": {
+    "UNKNOWN OR OTHER": 8,
+    "VEHICLE SPEED CONTROL": 3,
+    "SERVICE BRAKES": 2,
+    "POWER TRAIN": 4,
+    "FUEL/PROPULSION SYSTEM": 6,
+    "ELECTRICAL SYSTEM": 8,
+    "STRUCTURE": 5,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "VISIBILITY": 3,
+    "TIRES": 1,
+    "STEERING": 8,
+    "BACK OVER PREVENTION": 2,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "ENGINE": 5,
+    "SUSPENSION": 2,
+    "WHEELS": 1,
+    "LANE DEPARTURE": 2,
+    "AIR BAGS": 1,
+    "FUEL SYSTEM": 8,
+    "ENGINE AND ENGINE COOLING": 1,
+    "EQUIPMENT": 1
+   }
+  },
+  "hyundai|ELANTRA|2023": {
+   "total": 100,
+   "comps": {
+    "SERVICE BRAKES": 9,
+    "FORWARD COLLISION AVOIDANCE": 26,
+    "VISIBILITY/WIPER": 5,
+    "EXTERIOR LIGHTING": 2,
+    "BACK OVER PREVENTION": 4,
+    "ELECTRICAL SYSTEM": 24,
+    "TIRES": 4,
+    "LANE DEPARTURE": 9,
+    "ENGINE": 20,
+    "VISIBILITY": 3,
+    "SEAT BELTS": 2,
+    "POWER TRAIN": 9,
+    "UNKNOWN OR OTHER": 23,
+    "FUEL/PROPULSION SYSTEM": 4,
+    "ENGINE AND ENGINE COOLING": 1,
+    "STRUCTURE": 3,
+    "AIR BAGS": 6,
+    "STEERING": 3,
+    "VEHICLE SPEED CONTROL": 6,
+    "SUSPENSION": 1
+   }
+  },
+  "tesla|MODEL 3|2023": {
+   "total": 428,
+   "comps": {
+    "SERVICE BRAKES": 57,
+    "VEHICLE SPEED CONTROL": 69,
+    "FORWARD COLLISION AVOIDANCE": 243,
+    "ENGINE": 8,
+    "UNKNOWN OR OTHER": 59,
+    "BACK OVER PREVENTION": 9,
+    "FUEL/PROPULSION SYSTEM": 8,
+    "LANE DEPARTURE": 36,
+    "SEATS": 9,
+    "POWER TRAIN": 10,
+    "ELECTRICAL SYSTEM": 51,
+    "VISIBILITY/WIPER": 12,
+    "AIR BAGS": 20,
+    "SUSPENSION": 19,
+    "STRUCTURE": 24,
+    "TIRES": 1,
+    "WHEELS": 9,
+    "STEERING": 88,
+    "SEAT BELTS": 10,
+    "LATCHES/LOCKS/LINKAGES": 4,
+    "EXTERIOR LIGHTING": 1,
+    "VISIBILITY": 1,
+    "ELECTRONIC STABILITY CONTROL (ESC)": 1
+   }
+  },
+  "toyota|COROLLA|2023": {
+   "total": 74,
+   "comps": {
+    "VEHICLE SPEED CONTROL": 1,
+    "STEERING": 16,
+    "UNKNOWN OR OTHER": 18,
+    "ENGINE": 13,
+    "SERVICE BRAKES": 7,
+    "ELECTRICAL SYSTEM": 15,
+    "POWER TRAIN": 6,
+    "EXTERIOR LIGHTING": 11,
+    "BACK OVER PREVENTION": 3,
+    "VISIBILITY/WIPER": 5,
+    "AIR BAGS": 6,
+    "LANE DEPARTURE": 5,
+    "SEAT BELTS": 1,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "STRUCTURE": 1,
+    "LATCHES/LOCKS/LINKAGES": 1
+   }
+  },
+  "kia|FORTE|2023": {
+   "total": 65,
+   "comps": {
+    "SERVICE BRAKES": 4,
+    "ELECTRICAL SYSTEM": 11,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 5,
+    "POWER TRAIN": 8,
+    "STEERING": 15,
+    "FORWARD COLLISION AVOIDANCE": 14,
+    "LANE DEPARTURE": 7,
+    "EXTERIOR LIGHTING": 3,
+    "VISIBILITY/WIPER": 3,
+    "ENGINE": 9,
+    "BACK OVER PREVENTION": 4,
+    "STRUCTURE": 4,
+    "UNKNOWN OR OTHER": 8,
+    "SUSPENSION": 8,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "WHEELS": 1
+   }
+  },
+  "toyota|CAMRY|2023": {
+   "total": 65,
+   "comps": {
+    "LANE DEPARTURE": 3,
+    "UNKNOWN OR OTHER": 18,
+    "SERVICE BRAKES": 6,
+    "AIR BAGS": 5,
+    "EXTERIOR LIGHTING": 2,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "VISIBILITY/WIPER": 3,
+    "POWER TRAIN": 7,
+    "VEHICLE SPEED CONTROL": 6,
+    "FUEL/PROPULSION SYSTEM": 7,
+    "ELECTRICAL SYSTEM": 10,
+    "TIRES": 4,
+    "ENGINE": 5,
+    "WHEELS": 2,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "BACK OVER PREVENTION": 3,
+    "STRUCTURE": 5,
+    "VISIBILITY": 1,
+    "FUEL SYSTEM": 1
+   }
+  },
+  "honda|CR-V|2023": {
+   "total": 517,
+   "comps": {
+    "SEATS": 3,
+    "BACK OVER PREVENTION": 7,
+    "ELECTRICAL SYSTEM": 28,
+    "LANE DEPARTURE": 37,
+    "FORWARD COLLISION AVOIDANCE": 57,
+    "VEHICLE SPEED CONTROL": 13,
+    "SERVICE BRAKES": 29,
+    "VISIBILITY": 4,
+    "STEERING": 325,
+    "STRUCTURE": 23,
+    "UNKNOWN OR OTHER": 33,
+    "VISIBILITY/WIPER": 25,
+    "ENGINE": 21,
+    "POWER TRAIN": 14,
+    "SUSPENSION": 1,
+    "AIR BAGS": 6,
+    "EXTERIOR LIGHTING": 5,
+    "FUEL/PROPULSION SYSTEM": 16,
+    "TRACTION CONTROL SYSTEM": 1,
+    "WHEELS": 3,
+    "FUEL SYSTEM": 8,
+    "SEAT BELTS": 1,
+    "TIRES": 1
+   }
+  },
+  "toyota|RAV4|2023": {
+   "total": 161,
+   "comps": {
+    "ELECTRICAL SYSTEM": 42,
+    "ENGINE": 25,
+    "STEERING": 27,
+    "POWER TRAIN": 11,
+    "FORWARD COLLISION AVOIDANCE": 21,
+    "UNKNOWN OR OTHER": 42,
+    "SEATS": 1,
+    "VISIBILITY/WIPER": 9,
+    "TIRES": 6,
+    "FUEL/PROPULSION SYSTEM": 11,
+    "SERVICE BRAKES": 18,
+    "BACK OVER PREVENTION": 11,
+    "SUSPENSION": 6,
+    "VEHICLE SPEED CONTROL": 7,
+    "WHEELS": 3,
+    "STRUCTURE": 10,
+    "AIR BAGS": 8,
+    "LANE DEPARTURE": 8,
+    "VISIBILITY": 3,
+    "ENGINE AND ENGINE COOLING": 1,
+    "EXTERIOR LIGHTING": 1,
+    "LATCHES/LOCKS/LINKAGES": 2,
+    "SEAT BELTS": 1,
+    "Other/I am not sure": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2023": {
+   "total": 176,
+   "comps": {
+    "ENGINE": 103,
+    "STEERING": 44,
+    "UNKNOWN OR OTHER": 24,
+    "ELECTRICAL SYSTEM": 69,
+    "FORWARD COLLISION AVOIDANCE": 12,
+    "FUEL/PROPULSION SYSTEM": 6,
+    "VISIBILITY/WIPER": 25,
+    "SERVICE BRAKES": 12,
+    "LANE DEPARTURE": 6,
+    "POWER TRAIN": 11,
+    "EXTERIOR LIGHTING": 15,
+    "BACK OVER PREVENTION": 1,
+    "AIR BAGS": 10,
+    "VEHICLE SPEED CONTROL": 2,
+    "EQUIPMENT": 1,
+    "SEATS": 1,
+    "STRUCTURE": 3,
+    "FUEL SYSTEM": 1,
+    "VISIBILITY": 1,
+    "PARKING BRAKE": 1,
+    "ENGINE AND ENGINE COOLING": 1,
+    "TIRES": 2
+   }
+  },
+  "hyundai|ELANTRA HYBRID|2023": {
+   "total": 55,
+   "comps": {
+    "UNKNOWN OR OTHER": 12,
+    "SERVICE BRAKES": 5,
+    "FORWARD COLLISION AVOIDANCE": 17,
+    "LATCHES/LOCKS/LINKAGES": 1,
+    "LANE DEPARTURE": 4,
+    "STRUCTURE": 1,
+    "AIR BAGS": 3,
+    "ELECTRICAL SYSTEM": 17,
+    "VEHICLE SPEED CONTROL": 8,
+    "ENGINE": 4,
+    "POWER TRAIN": 9,
+    "FUEL/PROPULSION SYSTEM": 3,
+    "STEERING": 5,
+    "EXTERIOR LIGHTING": 3,
+    "VISIBILITY/WIPER": 1,
+    "SUSPENSION": 1,
+    "WHEELS": 1
+   }
+  },
+  "honda|CIVIC SI|2022": {
+   "total": 73,
+   "comps": {
+    "AIR BAGS": 2,
+    "STEERING": 68,
+    "LANE DEPARTURE": 5,
+    "FORWARD COLLISION AVOIDANCE": 4,
+    "POWER TRAIN": 2,
+    "UNKNOWN OR OTHER": 2,
+    "SUSPENSION": 1,
+    "VEHICLE SPEED CONTROL": 1,
+    "ELECTRICAL SYSTEM": 2,
+    "SEATS": 1,
+    "ENGINE": 1
+   }
+  },
+  "hyundai|ELANTRA N|2023": {
+   "total": 14,
+   "comps": {
+    "ENGINE": 4,
+    "SUSPENSION": 2,
+    "VEHICLE SPEED CONTROL": 1,
+    "POWER TRAIN": 3,
+    "ELECTRICAL SYSTEM": 2,
+    "FUEL SYSTEM": 1,
+    "STEERING": 1,
+    "FUEL/PROPULSION SYSTEM": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "ENGINE AND ENGINE COOLING": 1,
+    "UNKNOWN OR OTHER": 2,
+    "SERVICE BRAKES": 2
+   }
+  },
+  "toyota|RAV4 PRIME|2023": {
+   "total": 65,
+   "comps": {
+    "UNKNOWN OR OTHER": 20,
+    "SERVICE BRAKES": 4,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "VEHICLE SPEED CONTROL": 6,
+    "FORWARD COLLISION AVOIDANCE": 6,
+    "LANE DEPARTURE": 6,
+    "POWER TRAIN": 1,
+    "ELECTRICAL SYSTEM": 43,
+    "EXTERIOR LIGHTING": 2,
+    "STEERING": 1,
+    "VISIBILITY/WIPER": 1,
+    "AIR BAGS": 1,
+    "BACK OVER PREVENTION": 1,
+    "WHEELS": 1,
+    "SEATS": 1,
+    "LATCHES/LOCKS/LINKAGES": 1
+   }
+  },
+  "honda|CR-V HYBRID|2023": {
+   "total": 116,
+   "comps": {
+    "VEHICLE SPEED CONTROL": 1,
+    "FORWARD COLLISION AVOIDANCE": 8,
+    "STEERING": 72,
+    "LANE DEPARTURE": 16,
+    "SERVICE BRAKES": 5,
+    "ELECTRICAL SYSTEM": 10,
+    "UNKNOWN OR OTHER": 9,
+    "POWER TRAIN": 5,
+    "PARKING BRAKE": 1,
+    "EXTERIOR LIGHTING": 1,
+    "VISIBILITY": 1,
+    "TIRES": 1,
+    "VISIBILITY/WIPER": 2,
+    "FUEL/PROPULSION SYSTEM": 7,
+    "WHEELS": 3,
+    "AIR BAGS": 2,
+    "FUEL SYSTEM": 9,
+    "ENGINE": 7,
+    "ENGINE AND ENGINE COOLING": 2
+   }
+  },
+  "toyota|RAV4 HYBRID|2023": {
+   "total": 8,
+   "comps": {
+    "ENGINE": 2,
+    "FUEL SYSTEM": 1,
+    "VISIBILITY": 2,
+    "ELECTRICAL SYSTEM": 4,
+    "STEERING": 1,
+    "SUSPENSION": 1,
+    "TIRES": 1
+   }
+  },
+  "toyota|COROLLA|2024": {
+   "total": 65,
+   "comps": {
+    "EXTERIOR LIGHTING": 4,
+    "STEERING": 12,
+    "LANE DEPARTURE": 4,
+    "FORWARD COLLISION AVOIDANCE": 16,
+    "ELECTRICAL SYSTEM": 8,
+    "UNKNOWN OR OTHER": 15,
+    "POWER TRAIN": 8,
+    "ENGINE": 6,
+    "SERVICE BRAKES": 10,
+    "AIR BAGS": 8,
+    "VISIBILITY/WIPER": 3,
+    "BACK OVER PREVENTION": 1,
+    "FUEL/PROPULSION SYSTEM": 2,
+    "SEAT BELTS": 1,
+    "WHEELS": 1,
+    "TIRES": 1,
+    "VEHICLE SPEED CONTROL": 2,
+    "Chest Clip": 1,
+    "Other/I am not sure": 1,
+    "SEATS": 1
+   }
+  },
+  "toyota|COROLLA CROSS HYBRID|2023": {
+   "total": 2,
+   "comps": {
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2
+   }
+  },
+  "toyota|COROLLA HYBRID|2024": {
+   "total": 2,
+   "comps": {
+    "EXTERIOR LIGHTING": 1,
+    "ELECTRICAL SYSTEM": 1
+   }
+  },
+  "toyota|COROLLA HATCHBACK|2022": {
+   "total": 2,
+   "comps": {
+    "SERVICE BRAKES": 1,
+    "ENGINE": 1,
+    "STEERING": 1
+   }
+  },
+  "toyota|COROLLA CROSS|2024": {
+   "total": 45,
+   "comps": {
+    "STRUCTURE": 5,
+    "UNKNOWN OR OTHER": 13,
+    "EXTERIOR LIGHTING": 5,
+    "FORWARD COLLISION AVOIDANCE": 9,
+    "ENGINE": 7,
+    "POWER TRAIN": 3,
+    "LANE DEPARTURE": 3,
+    "SERVICE BRAKES": 6,
+    "VISIBILITY": 1,
+    "ELECTRICAL SYSTEM": 13,
+    "VEHICLE SPEED CONTROL": 2,
+    "AIR BAGS": 2,
+    "BACK OVER PREVENTION": 1,
+    "SEAT BELTS": 2,
+    "STEERING": 1,
+    "FUEL/PROPULSION SYSTEM": 1,
+    "VISIBILITY/WIPER": 1
+   }
+  },
+  "toyota|COROLLA CROSS HYBRID|2024": {
+   "total": 6,
+   "comps": {
+    "VISIBILITY": 1,
+    "SERVICE BRAKES": 1,
+    "FORWARD COLLISION AVOIDANCE": 2,
+    "EXTERIOR LIGHTING": 2,
+    "STEERING": 1
+   }
+  },
+  "honda|CIVIC HATCHBACK|2022": {
+   "total": 3,
+   "comps": {
+    "STEERING": 3
+   }
+  },
+  "toyota|CAMRY HYBRID|2023": {
+   "total": 1,
+   "comps": {
+    "FUEL SYSTEM": 1
    }
   }
  }

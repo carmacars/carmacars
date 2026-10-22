@@ -99,9 +99,10 @@ is refused, and so is one that would bring the database over the Admin's cap (se
 production from this branch.
 
 The committed fixture (`web/scripts/catalog/fixture/`) is turned into `supabase/seed/vehicle_catalog_fixture.sql` by the
-same script; the local and staging seed and the database tests load it. The NHTSA part of the fixture is the recalls of the sample model years and the complaints of
-five of them (the annotations carried only part of the file; the workflow now gives the fixture parts a step of their
-own, since GitHub keeps 10 notices a step).
+same script; the local and staging seed and the database tests load it. The fixture's EPA and vPIC parts are from dry run 39743274775, its NHTSA
+part from 39759751479 (GitHub keeps 10 notices a step, so the fixture parts have a step of their own). vPIC refuses
+some calls with 403 under load, so the vPIC-only counts move a little between runs (1,738 models and 13,969 model years
+in 39743274775, 1,699 and 13,765 in 39759751479); the next import fills what a run missed.
 
 ## 3. The pages
 
