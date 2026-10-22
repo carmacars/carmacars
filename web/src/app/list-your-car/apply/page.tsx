@@ -48,7 +48,9 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
     owner.last_name ||= rest.join(' ');
   }
   const initial: ApplyState = { step: Math.min(3, Math.max(0, draft?.data?.step ?? 0)), owner, vehicles: draft?.data?.vehicles ?? [], active: draft?.data?.vehicles?.length ? -1 : 0 };
-  if (initial.step === 1 && !initial.vehicles.length) initial.step = 0;
+  // a draft with no car starts at step 1: an owner whose account opened without a car (an autosave can land after the
+  // account is open) comes back to add one, not to the review of the account they already have
+  if (initial.step > 0 && !initial.vehicles.length) initial.step = 0;
   return (
     <div className="ow-apply">
       <div className="wrap ow-apply__inner">

@@ -91,6 +91,8 @@ test('owner account without a car, then the first car from the owner portal', as
   await page.getByTestId('owner-add-first-car').click();
   await page.waitForURL(/\/list-your-car\/apply/);
   const toVehicles = page.getByRole('button', { name: 'Continue to vehicles' });
+  // step 1 (a draft without a car never reopens on the review), or the vehicles step
+  await expect(toVehicles.or(page.locator('#ap-v0-vin')).first()).toBeVisible({ timeout: 20_000 });
   if (await toVehicles.isVisible().catch(() => false)) {
     const lic = page.locator('#ap-lic');
     if (await lic.isVisible().catch(() => false) && !(await lic.inputValue())) await lic.fill('N1234-56789-01234');

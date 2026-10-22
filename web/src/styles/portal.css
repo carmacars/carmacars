@@ -220,3 +220,5 @@
 .sg-docs summary { cursor: pointer; font-weight: 600; }
 .sg-progress .ck-items li { flex-wrap: nowrap; align-items: flex-start; }
 .sg-progress .ck-dot { margin-top: 0.45em; }
+/* a long sign-in email (no spaces) wraps instead of widening the page at 375 */
+.pt__hello p, [data-testid="account-email"], [data-testid="no-access-email"] { overflow-wrap: anywhere; min-width: 0; }
