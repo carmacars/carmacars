@@ -893,7 +893,7 @@ declare
 begin
   perform app.assert_admin(p_admin);
   if v_slug is null or v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' then raise exception 'Give the term a web address: lower case words joined by hyphens' using errcode = '22023'; end if;
-  if concat_ws(' ', p ->> 'intent_note', p ->> 'title', p ->> 'phrase') ~ '[‒–—―]' then raise exception 'No long dashes: use a comma, a colon or a full stop' using errcode = '22023'; end if;
+  if concat_ws(' ', p ->> 'intent_note', p ->> 'title', p ->> 'phrase') ~ ('[' || chr(8210) || chr(8211) || chr(8212) || chr(8213) || ']') then raise exception 'No long dashes: use a comma, a colon or a full stop' using errcode = '22023'; end if;
   if concat_ws(' ', p ->> 'intent_note', p ->> 'title') ~* '18122211|canada inc' then raise exception 'Name CarmaCars, never the numbered company' using errcode = '22023'; end if;
   select * into t from place_terms where slug = v_slug;
   if t.slug is null then
@@ -933,7 +933,7 @@ create or replace function app.place_settings_save(p_admin uuid, p jsonb) return
 language plpgsql security definer set search_path = public, app as $$
 begin
   perform app.assert_admin(p_admin);
-  if coalesce(p ->> 'sale_disclaimer', '') ~ '[‒–—―]' then raise exception 'No long dashes in the notice' using errcode = '22023'; end if;
+  if coalesce(p ->> 'sale_disclaimer', '') ~ ('[' || chr(8210) || chr(8211) || chr(8212) || chr(8213) || ']') then raise exception 'No long dashes in the notice' using errcode = '22023'; end if;
   if p ? 'region' then
     update place_regions set is_enabled = coalesce((p ->> 'enabled')::boolean, is_enabled) where code = upper(p ->> 'region');
     if not found then raise exception 'Unknown region %', p ->> 'region' using errcode = '22023'; end if;

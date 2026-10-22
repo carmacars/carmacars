@@ -61,7 +61,7 @@ select test.ok('budget: the database size and the cap', (public.server_places_bu
 select test.eq('terms: rental 31, buying help 14, detailing 27, body shop 20',
   (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms group by vertical) x), 'bodyshop=20,detailing=27,rental=31,sale=14');
 select test.ok('terms: buying help always takes a request, never "served"', not exists (select 1 from place_terms where vertical = 'sale' and served <> 'request'));
-select test.ok('terms: no long dash in a seeded note', not exists (select 1 from place_terms where intent_note ~ '[‒–—―]'));
+select test.ok('terms: no long dash in a seeded note', not exists (select 1 from place_terms where intent_note ~ ('[' || chr(8210) || chr(8211) || chr(8212) || chr(8213) || ']')));
 select test.eq('services: detailing 4, body shop 4, none priced', (select count(*) filter (where vertical = 'detailing') || '/' || count(*) filter (where vertical = 'bodyshop') || '/' || count(from_price_cents) from shop_services), '4/4/0');
 
 -- ================================================================ 5. hubs
