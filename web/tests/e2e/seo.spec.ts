@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, carByHand, db, noOverflow } from './helpers';
+import { acceptCookies, aiAllowanceLock, carByHand, db, noOverflow } from './helpers';
 
 // Migration 0061 end to end (phone 375 and desktop 1440): a car added in Admin gets its page copy written by itself
 // (the plain copy at once, the written copy from the model, nobody types), an edited field is locked and kept; landing
@@ -49,8 +49,13 @@ async function ctx(browser: Browser) {
 
 test.describe.configure({ mode: 'serial' });
 
+// the AI allowance lock (helpers.ts) of a car copy test, let go when it ends, passed or not
+let unlockAi: (() => Promise<void>) | undefined;
+test.afterEach(async () => { await unlockAi?.(); unlockAi = undefined; });
+
 test('car copy: a car added in Admin gets its page copy by itself, nothing typed; an edited field is locked and kept', async ({ browser }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(400_000);
+  unlockAi = await aiAllowanceLock('shared');   // the AI copy: not while the usage guard tests use the allowance up
   const sql = db();
   const admin = await mkAdmin(sql);
   const page = await ctx(browser);

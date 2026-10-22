@@ -87,3 +87,13 @@ export async function carByHand(page: Page, prefix: string, c: { year: string; m
 export async function tapColour(page: Page, prefix: string, colour: string) {
   await page.getByTestId(`${prefix}-colour`).locator('label', { hasText: new RegExp(`^${colour}$`) }).click();
 }
+
+/** The day's AI allowance is shared by the whole site: the usage guard tests (assistant-usage.spec.ts) push it to the
+ *  cap for a while, and a car added meanwhile keeps its plain copy (the search job claims nothing past the cap). Those
+ *  tests take this lock alone; the tests that wait for a car's AI copy take it shared. A session lock on its own
+ *  connection, released when the connection ends. */
+export async function aiAllowanceLock(mode: 'alone' | 'shared'): Promise<() => Promise<void>> {
+  const c = db();
+  await c.unsafe(mode === 'alone' ? 'select pg_advisory_lock(73110087)' : 'select pg_advisory_lock_shared(73110087)');
+  return async () => { await c.end(); };
+}
