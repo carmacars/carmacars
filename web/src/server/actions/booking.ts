@@ -38,7 +38,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   if (!(await verifyTurnstile(input.token, meta.ip))) return { ok: false, code: 'turnstile', message: 'Our security check did not go through. Press Send again; if it keeps happening, try another browser. Your request is kept.' };
   if (!/^[A-Za-z0-9-]{8,100}$/.test(input.requestKey ?? '')) return { ok: false, code: 'invalid', message: 'Reload the page and try again.' };
   const [r, fleet, f, consent] = await Promise.all([rules(), getFleet(), getFacts(), consentTexts()]);
-  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s) }).safeParse(input.data);
+  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s),
+    insuranceIncluded: (s) => fleet.some((c) => c.slug === s && !!c.insurance_included) }).safeParse(input.data);
   if (!parsed.success) {
     const fe: Record<string, string> = {};
     for (const i of parsed.error.issues) { const k = i.path.join('.'); if (!(k in fe)) fe[k] = i.message; }

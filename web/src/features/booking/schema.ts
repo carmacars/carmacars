@@ -110,8 +110,8 @@ export function migrateExtras(v: RequestData): RequestData {
 }
 
 /** The zod schema the browser and the server both run: structure from requestShape, rules above. */
-export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean }) {
+export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean; insuranceIncluded?: (slug: string) => boolean }) {
   return requestShape.superRefine((v, c) => {
-    for (const [k, message] of Object.entries(checkRequest(v, r, { ...ctx, knownCar: ctx.knownCar(v.car) }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
+    for (const [k, message] of Object.entries(checkRequest(v, r, { todayIso: ctx.todayIso, nowMinutes: ctx.nowMinutes, knownCar: ctx.knownCar(v.car), insuranceIncluded: ctx.insuranceIncluded?.(v.car) ?? false }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
   });
 }

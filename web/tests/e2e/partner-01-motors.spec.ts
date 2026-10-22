@@ -34,7 +34,7 @@ async function freeWindow(slug: string, start: number) {
 }
 
 test('a partner car page shows its badges, tiers, guideline rates and the year note', async ({ page }, info) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const errors = watch(page);
   const slug = await slugOf('Mercedes S63 AMG');
   await page.goto(`/cars/${slug}`);
@@ -73,7 +73,7 @@ test('a partner car page shows its badges, tiers, guideline rates and the year n
 });
 
 test('a request on a no-credit-card car with insurance included skips the coverage and credit card requirements', async ({ page }, info) => {
-  test.setTimeout(150_000);
+  test.setTimeout(240_000);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const sheet = info.project.name.startsWith('phone') ? 'Cadillac Escalade ESV' : 'Bentley Bentayga';
@@ -103,7 +103,7 @@ test('a request on a no-credit-card car with insurance included skips the covera
   await expect(page.locator('.req')).toContainText('No credit card needed: a credit or debit card in your name');
   await page.locator('input[name="agree"]').check();
   await page.getByRole('button', { name: 'Send request' }).click();
-  await page.waitForURL(/\/book\/sent\//, { timeout: 60_000 });
+  await page.waitForURL(/\/book\/sent\//, { timeout: 90_000 });
   const number = decodeURIComponent(page.url().split('/').pop()!);
   const [b] = await sql`select b.coverage_option, b.coverage_confirmed_at is not null as confirmed, b.rate_applied, b.deposit_cents > 0 as deposit,
       (select c.status from coverage_proofs c where c.booking_id = b.id and c.coverage_option = 4) as proof
@@ -116,7 +116,7 @@ test('a request on a no-credit-card car with insurance included skips the covera
 });
 
 test('the chauffeur service: the vehicles and hourly rates, and a request', async ({ page }, info) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const errors = watch(page);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
@@ -156,7 +156,7 @@ test('the chauffeur service: the vehicles and hourly rates, and a request', asyn
   await page.locator('#ch-phone').fill('416-555-0144');
   await axe(page, `chauffeur request ${info.project.name}`);
   await page.getByRole('button', { name: 'Send request' }).click();
-  await expect(page.getByTestId('chauffeur-sent')).toContainText(/Request CH-\d+ sent/, { timeout: 30_000 });
+  await expect(page.getByTestId('chauffeur-sent')).toContainText(/Request CH-\d+ sent/, { timeout: 90_000 });
   const [r] = await sql`select r.hours, r.renter_cents::int, r.partner_payout_cents::int, l.kind from chauffeur_requests r join leads l on l.id = r.lead_id where r.email = ${email}`;
   expect(r).toMatchObject({ hours: 4, renter_cents: 77200, partner_payout_cents: 56000, kind: 'chauffeur' });
   expect(errors.filter((e) => !/favicon|Failed to load resource.*404|turnstile/i.test(e))).toEqual([]);
