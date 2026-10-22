@@ -248,7 +248,9 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     let pdf = await rp.request.get(await link.getAttribute('href') as string);
     let text = '';
     for (let i = 0; i < 20; i++) {
-      pdf = await rp.request.get(await link.getAttribute('href') as string);
+      // the signed copy is a new document: reload the page so the link points at it
+      if (i > 0) await rp.reload();
+      pdf = await rp.request.get(await rp.getByTestId('doc-rental_amendment').last().getAttribute('href') as string);
       if (pdf.status() === 200) { text = await pdfText(await pdf.body()); if (/Signed electronically for [^,]+, operating as CarmaCars/.test(text)) break; }
       await rp.waitForTimeout(1500);
     }
