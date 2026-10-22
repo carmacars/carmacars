@@ -1,4 +1,4 @@
--- 0092: vehicle pages (docs/changes/2026-10-21-vehicle-pages.md).
+-- 0097: vehicle pages (docs/changes/2026-10-21-vehicle-pages.md).
 --
 -- A page for every make, model, model year and Canadian trim the site covers, under the fleet's address:
 --   /cars/<make>, /cars/<make>/<model>, /cars/<make>/<model>/<year>, /cars/<make>/<model>/<year>/<trim>
@@ -173,7 +173,7 @@ alter table program_settings
   add column if not exists vpage_electricity_cents_per_kwh integer not null default 15 check (vpage_electricity_cents_per_kwh between 1 and 100),
   add column if not exists vpage_import_every_days integer not null default 30 check (vpage_import_every_days between 7 and 365),
   add column if not exists vpage_import_db_cap_mb integer not null default 6144 check (vpage_import_db_cap_mb between 100 and 100000);
-comment on column program_settings.vpage_index_mode is 'Vehicle pages (0092): "all" indexes every make, model, year and trim page (the default); "rules" indexes only the pages that pass the rules below, the rest noindex,follow with the canonical at the parent page.';
+comment on column program_settings.vpage_index_mode is 'Vehicle pages (0097): "all" indexes every make, model, year and trim page (the default); "rules" indexes only the pages that pass the rules below, the rest noindex,follow with the canonical at the parent page.';
 comment on column program_settings.vpage_model_min_years is 'Vehicle pages, rules only: a model page is indexed with at least this many model years of data, or one of our cars.';
 comment on column program_settings.vpage_popular_from_year is 'Vehicle pages, rules only: a model year of a popular model is indexed from this year on.';
 comment on column program_settings.vpage_year_min_cars is 'Vehicle pages, rules only: a model year page is indexed with this many of our cars of that year (or when the model is popular).';
@@ -981,7 +981,7 @@ begin
   end case;
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0092;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0097;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -990,7 +990,7 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.vpage_admin(p_user, p_call, p_name, coalesce(p, '{}'::jsonb));
   end if;
-  return app.door_pre0092(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0097(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 -- ================================================================ privileges
@@ -1002,7 +1002,7 @@ begin
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'app' and (p.proname like 'vehicle\_catalog\_%' or p.proname like 'vpage\_%' or p.proname in (
              'vehicle_trim_slug', 'vehicle_model_key', 'vehicle_make_slug', 'vehicle_trim_variants', 'vehicle_make_page', 'vehicle_model_page',
-             'vehicle_year_page', 'vehicle_trim_page', 'vehicle_sitemap_files', 'vehicle_sitemap', 'vehicle_hub_path', 'door_pre0092', 'door'))
+             'vehicle_year_page', 'vehicle_trim_page', 'vehicle_sitemap_files', 'vehicle_sitemap', 'vehicle_hub_path', 'door_pre0097', 'door'))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
@@ -1028,7 +1028,7 @@ grant execute on function public.vehicle_makes(), public.vehicle_make_page(text)
 --   /t/<term>/...  (the same tree, for each search term: "car hire", "financing", "ceramic coating"...)  a term's twin
 -- Places and terms are the local SEO release's (migration 0095, branch seolocal): `places` (every city, town,
 -- neighbourhood and airport of Canada, the US and Mexico, with the GTA, provinces, states and countries) and
--- `place_terms` (renting, sale, detailing and body shop terms). This migration runs before 0095 and does not create
+-- `place_terms` (renting, sale, detailing and body shop terms). This migration runs after 0095 and does not create
 -- them: it reads them when they are there (to_regclass, dynamic SQL), and until then the places are the location
 -- landing pages and the terms a default list. One Admin switch per tier, all on: places, colours, terms, sale,
 -- detailing, body shop. CarmaCars mostly rents: a page says a car is for sale only when an Admin flagged a matching
@@ -1082,6 +1082,17 @@ language sql immutable as $$
   select case k when 1 then 'country' when 2 then 'province' when 3 then 'region' when 4 then 'region' when 5 then 'city' when 6 then 'neighbourhood' when 7 then 'airport' else 'landmark' end
 $$;
 
+-- A term's name in a sentence: its phrase with a capital, each word keeping the title's own capitals where the title
+-- has them inside the word or the phrase has none to give ("doordash car rental" titled "DoorDash Car Rental" reads
+-- "DoorDash car rental"; "ppf" titled "PPF" reads "PPF"; "g2 driver" titled "G2 Driver" reads "G2 driver").
+create or replace function app.vpage_term_name(p_phrase text, p_title text) returns text
+language sql immutable as $$
+  with w as (select p.w pw, p.i, t.w tw from regexp_split_to_table(btrim(p_phrase), '\s+') with ordinality p(w, i)
+               left join regexp_split_to_table(btrim(coalesce(p_title, '')), '\s+') with ordinality t(w, i) on t.i = p.i),
+       x as (select i, case when tw is not null and lower(tw) = lower(pw) and (tw ~ '^.+[A-Z]' or (pw = lower(pw) and tw ~ '^[A-Z0-9]+$' and length(tw) > 1 and tw !~ '^[A-Z][a-z]')) then tw else pw end v from w)
+  select upper(left(s, 1)) || substr(s, 2) from (select string_agg(v, ' ' order by i) s from x) y
+$$;
+
 -- The search terms with a tree of their own: place_terms (0095) when it is here (active, not a synonym of another,
 -- "car-rental" being the /cars tree itself), else the default list. name: the phrase with a capital ("Car hire").
 create or replace function app.vpage_terms() returns table (slug text, name text, kind text, sort integer, lead text)
@@ -1089,7 +1100,7 @@ language plpgsql stable security definer set search_path = public, app as $$
 begin
   if app.vpage_has('place_terms') then
     return query execute $q$
-      select t.slug, upper(left(t.phrase, 1)) || substr(t.phrase, 2), t.vertical, t.sort_order, t.lead_kind
+      select t.slug, app.vpage_term_name(t.phrase, t.title), t.vertical, t.sort_order, t.lead_kind
         from place_terms t where t.is_active and t.canonical_slug is null and t.slug <> 'car-rental' order by t.vertical, t.sort_order, t.slug $q$;
   else
     return query select x.slug, x.name, x.kind, x.sort, x.lead from (values
@@ -1505,7 +1516,7 @@ insert into task_rules (task_type, queue, title, priority, due_kind, due_amount,
   ('bodyshop_lead', 'sales', 'A body shop request', 'normal', 'business_days', 1, null, null, 'Reply in 1 business day, and offer an insurance replacement rental while the car is repaired')
 on conflict (task_type) do nothing;
 
-alter function app.submit_lead(jsonb, text) rename to submit_lead_pre0092;
+alter function app.submit_lead(jsonb, text) rename to submit_lead_pre0097;
 create or replace function app.submit_lead(p jsonb, p_ip text default null) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -1521,7 +1532,7 @@ declare
   v_car text := nullif(btrim(p -> 'payload' ->> 'vehicle'), '');
   v_what text := nullif(btrim(p -> 'payload' ->> 'service'), '');
 begin
-  if v_kind not in ('buyer', 'finance', 'detailing', 'bodyshop') then return app.submit_lead_pre0092(p, p_ip); end if;
+  if v_kind not in ('buyer', 'finance', 'detailing', 'bodyshop') then return app.submit_lead_pre0097(p, p_ip); end if;
   if nullif(btrim(p_ip), '') is not null and not app.rate_limit('lead:ip:' || btrim(p_ip), v_set.lead_hourly_limit, interval '1 hour') then
     return jsonb_build_object('ok', false, 'error', 'rate_limited');
   end if;
@@ -1549,8 +1560,8 @@ begin
   if v_assignee is not null then update tasks set assigned_to = v_assignee where id = v_task; end if;
   return jsonb_build_object('ok', true, 'lead_id', v_id);
 end $$;
-revoke all on function app.submit_lead_pre0092(jsonb, text) from public, anon, authenticated;
-grant execute on function app.submit_lead_pre0092(jsonb, text) to service_role;
+revoke all on function app.submit_lead_pre0097(jsonb, text) from public, anon, authenticated;
+grant execute on function app.submit_lead_pre0097(jsonb, text) to service_role;
 revoke all on function app.submit_lead(jsonb, text) from public, anon, authenticated;
 grant execute on function app.submit_lead(jsonb, text) to service_role;
 
@@ -1569,7 +1580,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0092b;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0097b;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -1577,7 +1588,7 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.vpage_for_sale_set(p_user, coalesce(p, '{}'::jsonb));
   end if;
-  return app.door_pre0092b(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0097b(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 -- ---------------------------------------------------------------- IndexNow: every page, as fast as the engines allow
@@ -1600,7 +1611,7 @@ create table indexnow_sweep (
   last_at timestamptz,
   updated_at timestamptz not null default now()
 );
-comment on table indexnow_sweep is 'The IndexNow sweep of every vehicle page (0092): where it is in the sitemap index (file_i, and pos: the row of a level file or the pair of a tiers file last sent), the addresses sent today (every sender counts here), and the back-off after a 429 or 403.';
+comment on table indexnow_sweep is 'The IndexNow sweep of every vehicle page (0097): where it is in the sitemap index (file_i, and pos: the row of a level file or the pair of a tiers file last sent), the addresses sent today (every sender counts here), and the back-off after a 429 or 403.';
 insert into indexnow_sweep default values;
 alter table indexnow_sweep enable row level security;
 create policy admin_all on indexnow_sweep for select to authenticated using (app.is_admin());
@@ -1720,7 +1731,7 @@ begin
             where n.nspname = 'app' and p.proname in ('vpage_has', 'vpage_kind', 'vpage_terms', 'vpage_landing_places', 'vpage_place', 'vpage_place_near', 'vpage_place_within',
                     'vpage_place_links', 'vpage_place_max', 'vpage_places_range', 'vpage_place_count', 'vpage_delivery_from', 'vpage_tiers', 'vehicle_tier_page',
                     'vpage_tier_shape', 'vpage_trim_indexed', 'vehicle_tier_sitemap', 'vpage_trees', 'vpage_index_page', 'vpage_tier_counts', 'vehicle_catalog_number_trims',
-                    'vpage_settings_json', 'vpage_for_sale', 'vehicle_buy_extras', 'vpage_for_sale_set', 'door_pre0092b', 'door', 'server_indexnow_claim', 'server_indexnow_report',
+                    'vpage_settings_json', 'vpage_for_sale', 'vehicle_buy_extras', 'vpage_for_sale_set', 'door_pre0097b', 'door', 'server_indexnow_claim', 'server_indexnow_report',
                     'vpage_tree_path')
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

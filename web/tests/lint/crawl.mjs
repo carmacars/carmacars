@@ -3,7 +3,7 @@
 // is crawled (PLACE_SAMPLE per term, PLACE_CAP in all) and the rest is listed in `skipped` (the same template).
 export const PLACE_HUB = /^\/(car-rental|buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+$/;
 const PLACE_SAMPLE = 3; const PLACE_CAP = 150;
-// The vehicle pages' city and colour pages and their twins (0092, /cars/.../<trim>/<place>, /buy/..., /t/<term>/...) are
+// The vehicle pages' city and colour pages and their twins (0097, /cars/.../<trim>/<place>, /buy/..., /t/<term>/...) are
 // millions of pages of a few templates: SAMPLE of each shape (depth, and colour or not; one per term tree) are fetched;
 // the others are recorded as sampled (not fetched), so a link to them is not reported as uncrawled. Their addresses are
 // checked by the SEO audit's sitemap pass.

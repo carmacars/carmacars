@@ -113,7 +113,7 @@ jobs:
   full:
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
-    # 100: the vehicle pages (0092) add their sampled place, colour, /buy and term pages to the link check, the crawl and the SEO audit
+    # 100: the vehicle pages (0097) add their sampled place, colour, /buy and term pages to the link check, the crawl and the SEO audit
     timeout-minutes: 100
     defaults:
       run:

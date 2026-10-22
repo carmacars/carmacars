@@ -1,4 +1,4 @@
-// What the vehicle pages say (migration 0092), computed from the catalog's data and the program settings. Nothing is
+// What the vehicle pages say (migration 0097), computed from the catalog's data and the program settings. Nothing is
 // written by a model: every sentence is a fact of the page's own data, so no two pages say the same thing.
 // Pure functions (no imports beyond ./units.ts and the money format), unit-tested in content.test.ts.
 import { costPer100km, driveLabel, engineLabel, transLabel } from './units.ts';
@@ -251,7 +251,7 @@ export function dimRows(d: Dim[]): StatRow[] {
   return rows;
 }
 
-// ---------------------------------------------------------------- city and colour pages, and the /buy twins (0092)
+// ---------------------------------------------------------------- city and colour pages, and the /buy twins (0097)
 type Named = { make: string; model?: string; year?: number; trim?: string; city?: string; colour?: string };
 const nameOf = (o: Named) => [o.year, o.make, o.model, o.trim].filter(Boolean).join(' ');
 const nameNoMake = (o: Named) => [o.year, o.model, o.trim].filter(Boolean).join(' ');
@@ -297,25 +297,27 @@ export function buyDescriptionOptions(o: Named & { use?: string; recalls?: numbe
     `Buying ${an(n)} ${n}${where}? Specs${rc} and what to check before you buy. Rent one for a week first.`];
 }
 
-// ---------------------------------------------------------------- the term trees (/t/<term>/..., 0092)
+// ---------------------------------------------------------------- the term trees (/t/<term>/..., 0097)
 export type TermMode = 'rental' | 'sale' | 'detailing' | 'bodyshop';
 /** "Used" goes before the car; every other sale or rental term after it; a service before "for a". */
 const BEFORE = new Set(['used']);
 /** Titles of a page of a term's tree, longest first; every option keeps the term, the place and the colour. */
 export function termTitleOptions(o: Named & { mode: TermMode; term: { slug: string; name: string } }): string[] {
-  const c = o.colour ? `${low(o.colour)} ` : '', C = o.colour ? `${o.colour} ` : '';
-  const n = nameOf(o), m = nameNoMake(o), ph = low(o.term.name);
+  const c = o.colour ? `${low(o.colour)} ` : '';
+  const n = nameOf(o), m = nameNoMake(o);
   // the shortest forms: "PPF" for "Paint protection film (PPF)", "insurance replacement" for "... rental"
-  const short = /\(([^)]+)\)$/.exec(o.term.name)?.[1] ?? o.term.name.replace(/ rental$/i, ''), sph = /^[A-Z]{2,}$/.test(short) ? short : low(short);
+  const short = /\(([^)]+)\)$/.exec(o.term.name)?.[1] ?? o.term.name.replace(/ rental$/i, '');
   const where = o.city ? ` in ${o.city}` : '', sp = o.city ? ` in ${shortPlace(o.city)}` : '';
   if (o.mode === 'detailing' || o.mode === 'bodyshop') {
     return [`${o.term.name} for ${an(c + n)} ${c}${n}${where}`, `${o.term.name}, ${c}${n}${where}`, `${o.term.name}, ${c}${n}${sp}`, `${o.term.name}, ${c}${m}${sp}`,
       `${short}, ${c}${m}${sp}`, `${short}, ${c}${m}, ${o.city ? shortPlace(o.city) : ''}`.replace(/, $/, '')].map((x) => (o.city ? x : `${x} | {{brand}}`));
   }
   if (BEFORE.has(o.term.slug)) return [`${o.term.name} ${c}${n}${where}: specs and what to check`, `${o.term.name} ${c}${n}${where}`, `${o.term.name} ${c}${n}${sp}`, `${o.term.name} ${c}${m}${sp}`];
+  // the term first, as it is searched, in its own capitals ("DoorDash car rental: 2020 Toyota Corolla LE in Scarborough")
   const tail = o.mode === 'sale' ? ': specs and a test drive' : '';
-  return [`${C}${n} ${ph}${where}${o.city ? '' : ' | {{brand}}'}`, `${C}${n} ${ph}${where}${tail && !o.city ? tail : ''}`, `${C}${n} ${ph}${sp}`, `${C}${m} ${ph}${sp}`,
-    `${C}${m} ${sph}${sp}`, `${C}${m} ${sph}${o.city ? `, ${shortPlace(o.city)}` : ''}`].map((x) => cap(x));
+  const T = o.term.name, S = /^[A-Z]{2,}$/.test(short) ? short : cap(short);
+  return [`${T}: ${c}${n}${where}${o.city ? '' : ' | {{brand}}'}`, `${T}: ${c}${n}${where}${tail && !o.city ? tail : ''}`, `${T}: ${c}${n}${sp}`, `${T}: ${c}${m}${sp}`,
+    `${S}: ${c}${m}${sp}`, `${S}: ${c}${m}${o.city ? `, ${shortPlace(o.city)}` : ''}`].map((x) => cap(x));
 }
 export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
   const c = o.colour ? `${low(o.colour)} ` : '';

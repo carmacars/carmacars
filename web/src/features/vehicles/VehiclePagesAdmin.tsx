@@ -3,7 +3,7 @@ import { fieldsFrom } from '@/features/admin/fields';
 import { Card, Kv, Table, t } from '@/features/admin/ui';
 import { gateRules, type GateSettings } from './gate';
 
-// Admin > Settings > Vehicle pages (migration 0092): how many pages there are and how many are indexed, the settings
+// Admin > Settings > Vehicle pages (migration 0097): how many pages there are and how many are indexed, the settings
 // (indexing, gas and electricity prices, how often the catalog is imported), the popular list, the Canadian trims of
 // each model, the last import and Import now. Nothing here needs setting up: every page is indexed by default.
 type C = { total: number; indexed: number };

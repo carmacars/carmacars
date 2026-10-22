@@ -1,4 +1,4 @@
-// The vehicle catalog import (migration 0092, web/scripts/catalog/import.mjs): the US EPA fueleconomy.gov vehicles file
+// The vehicle catalog import (migration 0097, web/scripts/catalog/import.mjs): the US EPA fueleconomy.gov vehicles file
 // (public domain) read into makes, models, model years and their powertrains; NHTSA vPIC model names (public domain)
 // for coverage and names; the Canadian trims from the CarmaCars trim list (web/scripts/catalog/canada-trims.txt).
 // Pure functions: no imports beyond ./units.ts, nothing read or written here.

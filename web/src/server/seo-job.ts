@@ -50,7 +50,7 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
   return s;
 }
 
-/** The IndexNow sweep (0092): the next batch of vehicle addresses (up to 10,000, IndexNow's most per request) after the
+/** The IndexNow sweep (0097): the next batch of vehicle addresses (up to 10,000, IndexNow's most per request) after the
  *  cursor, sent, and the answer reported: 2xx moves the cursor, 429 and 403 back off (the database keeps the cursor,
  *  the day's count and the back-off, shared with every sender). Production only; nothing is rendered. */
 export async function runIndexNowSweep(o: { rounds?: number } = {}): Promise<{ sent: number; why?: string; status?: number }> {

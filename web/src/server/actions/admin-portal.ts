@@ -16,7 +16,7 @@ const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e
 
 // what the public site shows, by action: the pages to rebuild after the change
 const PUBLIC: Record<string, string[]> = {
-  // the vehicle pages (0092): the trims and the popular list change their pages and the sitemaps
+  // the vehicle pages (0097): the trims and the popular list change their pages and the sitemaps
   vehicle_pages_trims: ['/'], vehicle_pages_popular: ['/'],
   rate_card: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],
   bulk_rate_apply: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],

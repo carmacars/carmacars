@@ -6,7 +6,7 @@ import { rpc } from '@/lib/db/repo';
 import { fill, getTokens } from '@/lib/site';
 import '@/styles/vehicles.css';
 
-// The /buy tree's start (migration 0092): every make, each with its models, years and trims for buyers.
+// The /buy tree's start (migration 0097): every make, each with its models, years and trims for buyers.
 export const revalidate = 3600;
 export async function generateMetadata() {
   const t = await getTokens();

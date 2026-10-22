@@ -11,11 +11,11 @@ import { type Dim, dimRows, dimsFor, dollars, fit, fuelWord, list, priceBasis, p
 import { type TrimPage, vehicleMeta } from './data';
 import { CostBlock, type Inventory, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead } from './parts';
 
-// The figures people look up, on every trim page and its city, colour and /buy twins (migration 0092), and the city and
+// The figures people look up, on every trim page and its city, colour and /buy twins (migration 0097), and the city and
 // colour pages themselves. Only sourced figures: EPA and vPIC's Canadian specifications; no source, no row.
 
 export type Colour = { slug: string; name: string; hex: string };
-/** A place (0092): a city, town, neighbourhood or airport (local: a distance and a delivery price), or a region, province
+/** A place (0097): a city, town, neighbourhood or airport (local: a distance and a delivery price), or a region, province
  *  or country (the places within it instead). */
 export type City = { slug: string; name: string; kind: string; parent: string | null; facts: Record<string, unknown>; landing: string | null; km: number | null;
   delivery: { fee_cents: number | null; km: number | null; airport_code?: string | null; airport_name?: string | null; per_km_cents?: number | null; min_cents?: number | null } | null;

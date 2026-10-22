@@ -1,4 +1,4 @@
-// The vehicle pages' indexing gate (migration 0092, app.vpage_gate in SQL: the same rules, kept in step by
+// The vehicle pages' indexing gate (migration 0097, app.vpage_gate in SQL: the same rules, kept in step by
 // gate.test.ts and supabase/tests/55_vehicle_pages.sql). "all" (the owner's default, October 21, 2026) indexes every
 // page; "rules" indexes makes, models with enough years of data or one of our real cars, years with enough of our real
 // cars or of a popular model from the set year, and trims with enough of our real cars.

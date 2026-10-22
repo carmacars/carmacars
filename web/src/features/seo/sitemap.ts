@@ -22,7 +22,7 @@ function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: s
   const base = siteUrl();
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
-    // the model pages are in the vehicle sitemaps (0092: /cars/<make>/<model> replaced the model hubs)
+    // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
     case 'pages': return FIXED.map((p) => ({ loc: url(p), lastmod: null }));
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
@@ -32,7 +32,7 @@ function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: s
 
 const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=3600' };
 
-// The vehicle pages (migration 0092): files per tree ("" renting, "buy-" for sale, "t-<term>-" each search term): the
+// The vehicle pages (migration 0097): files per tree ("" renting, "buy-" for sale, "t-<term>-" each search term): the
 // makes, one per make and level (toyota-years, split in parts of 45,000 when bigger), and the place and colour files
 // tiers-1, tiers-2... (ranges of (trim, place) pairs, at most 50,000 addresses each). Only indexed pages. The index is
 // split every 50,000 sitemaps: /sitemap.xml, then /sitemap-index/2.xml..., all named in robots.txt. Every list comes from

@@ -1,6 +1,6 @@
 name: catalog
 
-# The vehicle catalog behind the vehicle pages (/cars/<make>/<model>/<year>/<trim>, migration 0092;
+# The vehicle catalog behind the vehicle pages (/cars/<make>/<model>/<year>/<trim>, migration 0097;
 # docs/changes/2026-10-21-vehicle-pages.md). web/scripts/catalog/import.mjs downloads the US EPA fueleconomy.gov vehicles
 # file (public domain) and NHTSA vPIC's model names (public domain), adds the Canadian trim names of
 # web/scripts/catalog/canada-trims.txt, and upserts the result into the vehicle_catalog_* tables in batches through the

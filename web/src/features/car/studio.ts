@@ -17,7 +17,7 @@ export const PAINT: Record<string, [string, string, string]> = {
   brown: ['#8F6A4E', '#553923', '#22160C'],
   orange: ['#F28C3A', '#C2560F', '#5C2606'],
   yellow: ['#F5D547', '#C9A50F', '#5E4C06'],
-  // the vehicle pages' twelfth colour (0092)
+  // the vehicle pages' twelfth colour (0097)
   gold: ['#E3C477', '#B8902F', '#5A4412']
 };
 

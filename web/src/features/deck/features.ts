@@ -113,6 +113,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     features: [
       { id: 'seo', title: 'Search pages for every model and need', what: 'Model pages, landing pages for areas and needs (airport, weekly, young drivers and more) and guide articles, each kept fresh with the cars and prices available. New pages are sent to search engines at once.',
         why: 'Renters searching in Toronto and the GTA find CarmaCars without paying for every click.', shots: [d('landing.jpg', 'A landing page for car rental')] },
+      { id: 'search-reach', title: 'Search reach: a page for every car, place and need', what: 'Every year, make, model and trim of car, in every city and neighbourhood across North America, in twelve colours, and again for every way people search: renting terms, buying, financing and leasing, detailing and body shop work. Hundreds of trillions of combinations, each rendered on demand when it is asked for, with no storage cost per page.',
+        why: 'The growth engine for organic demand: each page carries the car\'s real specs and our live inventory, with a request or lead form, so a search for one car in one place for one need lands on a page that can turn it into a rental or a lead.',
+        points: ['Real specs from public sources on every page', 'Our live cars and a request form below them', 'Listed in the sitemaps and sent to search engines'],
+        shots: [d('vehicle-pages.jpg', 'A car hire page for a 2024 Toyota Corolla LE in Scarborough')] },
       { id: 'chat', title: 'AI live chat, with a person behind it', what: 'Visitors ask questions in a chat that answers from our rules and prices. When it should, it hands the conversation to a person on our team.',
         why: 'Questions are answered at any hour, and real buyers reach a person.', shots: [d('chat.jpg', 'The live chat on the website')] },
       { id: 'signals', title: 'Live visitors and buying signals', what: 'With the visitor\'s consent, staff see who is browsing now, which cars they look at, and when a request was started and left, with follow-up tasks.',

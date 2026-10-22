@@ -250,7 +250,7 @@ async function seedSample(tx) {
   return { cars: n, bookings: bookingNo, shiftDays };
 }
 
-// The vehicle catalog fixture (0092), local and staging only: a small real subset of the EPA catalog with the Canadian
+// The vehicle catalog fixture (0097), local and staging only: a small real subset of the EPA catalog with the Canadian
 // trims (web/scripts/catalog/import.mjs --sql-out), so the vehicle pages work without the catalog workflow. Production
 // gets the whole catalog from that workflow.
 async function seedCatalog(tx) {

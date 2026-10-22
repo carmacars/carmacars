@@ -9,7 +9,7 @@ import { StatsBlock, TierLinks, vehicleProps } from './deep';
 import { CostBlock, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead, YearsTable, fromPrice } from './parts';
 import '@/styles/vehicles.css';
 
-// The four vehicle pages (migration 0092; docs/changes/2026-10-21-vehicle-pages.md). Every sentence comes from the
+// The four vehicle pages (migration 0097; docs/changes/2026-10-21-vehicle-pages.md). Every sentence comes from the
 // page's own data: the EPA powertrains, the Canadian trims, the other years and trims, our cars and the settings.
 
 const labelsOf = async () => Object.fromEntries((await getClasses()).map((c) => [c.code, c.label]));

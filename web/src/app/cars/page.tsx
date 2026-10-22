@@ -37,7 +37,7 @@ export default async function Fleet() {
       <Suspense fallback={<div className="wrap section--tight"><ul className="fleet-grid fleet-grid--skeleton" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <li key={i}><div className="skeleton sk-img"></div></li>)}</ul></div>}>
         <FleetBrowser cars={fleet} labels={labels} classes={used} maxDays={f.max_rental_days} />
       </Suspense>
-      {/* every make's vehicle page (migration 0092): its models, years and trims, with our cars */}
+      {/* every make's vehicle page (migration 0097): its models, years and trims, with our cars */}
       {(makes ?? []).length > 0 && (
         <section className="section--tight" aria-labelledby="h-makes" data-testid="fleet-makes">
           <div className="wrap"><h2 className="d3" id="h-makes">Browse by make</h2>

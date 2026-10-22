@@ -1,4 +1,4 @@
--- 55: vehicle pages (migration 0092). The catalog fixture (a real subset of the EPA catalog with the Canadian trims,
+-- 55: vehicle pages (migration 0097). The catalog fixture (a real subset of the EPA catalog with the Canadian trims,
 -- supabase/seed/vehicle_catalog_fixture.sql) through the import functions; the Canadian trims tied to their EPA
 -- powertrains; a fleet car matched to its trim; one read per page level; the gate (every page indexed by default, the
 -- rules when an Admin chooses them) flipping with our inventory; the sitemaps; the old model hubs; the Admin door.
@@ -276,8 +276,9 @@ select test.throws('a buyer lead needs an email or a phone', $$select app.submit
 select app.submit_lead(jsonb_build_object('kind', k, 'name', 'Vp ' || k, 'email', 'vp-' || k || '@example.com', 'payload', jsonb_build_object('vehicle', '2020 Volkswagen Jetta Sportline', 'service', 'Ceramic coating')))
   from unnest(array['finance', 'detailing', 'bodyshop']) k;
 select test.eq('detailing and body shop requests and financing questions are leads for Sales too',
-  (select string_agg(t.queue || ': ' || t.title, ' | ' order by l.kind) from leads l join tasks t on t.related_id = l.id where l.email in ('vp-finance@example.com', 'vp-detailing@example.com', 'vp-bodyshop@example.com')),
-  'sales: A body shop request | sales: A detailing request | sales: Someone asked about financing or leasing a car');
+  -- (the task titles are the local SEO release's where it defined the rule first, 0095)
+  (select string_agg(l.kind || ': ' || t.queue, ' | ' order by l.kind) from leads l join tasks t on t.related_id = l.id where l.email in ('vp-finance@example.com', 'vp-detailing@example.com', 'vp-bodyshop@example.com')),
+  'bodyshop: sales | detailing: sales | finance: sales');
 select test.ok('other enquiries still go the old way', (app.submit_lead('{"kind": "contact", "name": "Vp C", "email": "vp-c@example.com", "message": "hello there"}'::jsonb) ->> 'ok')::boolean);
 
 -- ---------------------------------------------------------------- who may call what

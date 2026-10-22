@@ -10,7 +10,7 @@ import type { CarRow } from '@/lib/types';
 import { Availability } from './Availability';
 import { type Spec, type YearRow, dollars, fuelWord, list, paintFor, priceBasis, shapeFor, tripCosts, ratingText } from './content';
 
-// The vehicle pages' parts (migration 0092): the head with the studio stand-in, the specs, the cost of driving, the
+// The vehicle pages' parts (migration 0097): the head with the studio stand-in, the specs, the cost of driving, the
 // years, similar models, our inventory with live availability and the request link, the questions.
 
 export type Inventory = { exact: CarRow[]; same_model: CarRow[]; similar: CarRow[]; real_exact: number; lastmod: string | null };

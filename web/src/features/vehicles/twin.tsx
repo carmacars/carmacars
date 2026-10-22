@@ -17,7 +17,7 @@ import { CityBlock, cityFaq, colourFirst, StatsBlock, type Term, type TierPage, 
 import { CostBlock, InventoryBlock, productLd, Questions, requestHref, SpecsTable, standIn, VehicleHead, YearsTable } from './parts';
 import '@/styles/vehicles.css';
 
-// The twins of the vehicle pages (migration 0092): every page of the /cars tree again under /buy (for sale) and under
+// The twins of the vehicle pages (migration 0097): every page of the /cars tree again under /buy (for sale) and under
 // /t/<term> for each search term: renting synonyms ("car hire"), sale ones ("used", "financing", "leasing"), detailing
 // ("ceramic coating") and body shop work ("bumper repair"). The same sourced figures; then what the term is about:
 // for sale, what to check (NHTSA recalls and complaints), "rent it for a week before you buy" and "Find me this car";

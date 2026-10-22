@@ -809,7 +809,7 @@ declare
   k text;
 begin
   select pg_get_constraintdef(oid) into d from pg_constraint where conrelid = 'leads'::regclass and conname = 'leads_kind_check';
-  -- the kinds in either form of the constraint (kind IN (...) or kind = ANY ('{...}'::text[]), as 0092 writes it)
+  -- the kinds in either form of the constraint (kind IN (...) or kind = ANY ('{...}'::text[]), as 0097 writes it)
   select array_agg(distinct m[1]) into v from regexp_matches(regexp_replace(regexp_replace(coalesce(d, ''), '::[a-z ]+(\[\])?', '', 'g'), '\mkind\M', '', 'g'), '([a-z_]+)', 'g') m;
   if v is null then v := array['owner_program', 'contact', 'insurer', 'launch_notice', 'other']; end if;
   foreach k in array array['buyer', 'finance', 'place_request', 'detailing', 'bodyshop'] loop

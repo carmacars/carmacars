@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { rpc } from '@/lib/db/repo';
 
 // The old model hubs (0022): /rent/<make-model> now answers 301 with the model's vehicle page, /cars/<make>/<model>
-// (migration 0092, public.vehicle_hub_path), so links and search results keep working.
+// (migration 0097, public.vehicle_hub_path), so links and search results keep working.
 export const revalidate = 3600;
 export const dynamicParams = true;
 export async function generateStaticParams() { return []; }

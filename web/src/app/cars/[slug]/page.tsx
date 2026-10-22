@@ -26,7 +26,7 @@ export const dynamicParams = true;
 export async function generateStaticParams() { return []; }
 
 type Params = { params: Promise<{ slug: string }> };
-// /cars/<slug> is a car of the fleet, or else a make's vehicle page (/cars/toyota, migration 0092): a car's address
+// /cars/<slug> is a car of the fleet, or else a make's vehicle page (/cars/toyota, migration 0097): a car's address
 // always carries its model, so it is never a make's.
 async function loadAny(slug: string): Promise<Car | MakePage> {
   const page = (await rpc('car_page', { p_slug: slug })) as unknown as (Car & { redirect?: string; status_code?: number }) | null;

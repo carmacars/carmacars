@@ -83,8 +83,8 @@ const PLACE_ONE = /^\/car-rental\/([a-z0-9-]+-[a-z]{2,3}|canada|united-states|me
 const shape = (u) => {
   if (PLACE_HUB.test(u.pathname)) return `/${u.pathname.split('/')[1]}/:term/:place`;
   if (PLACE_ONE.test(u.pathname)) return '/car-rental/:place';
-  // the vehicle pages (0092): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
-  // the city and colour pages and the /buy twins (0092): one shape per depth
+  // the vehicle pages (0097): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
+  // the city and colour pages and the /buy twins (0097): one shape per depth
   const deep = /^\/(cars|buy|t)((?:\/[^/]+)+)$/.exec(u.pathname);
   if (deep && (deep[1] !== 'cars' || deep[2].split('/').length > 5)) return `/${deep[1]}/:vehicle-${deep[2].split('/').length - 1}${deep[2].includes('/colour/') ? '-colour' : ''}`;
   const v = /^\/cars\/([^/]+)((?:\/[^/]+){0,3})$/.exec(u.pathname);

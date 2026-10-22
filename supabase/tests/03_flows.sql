@@ -402,10 +402,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'guide_reads',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs',
-                            -- the vehicle catalog (0092): reference data the catalog workflow imports in bulk from public sources (the
+                            -- the vehicle catalog (0097): reference data the catalog workflow imports in bulk from public sources (the
                             -- lists an Admin edits, trim lines and the popular list, are audited)
                             'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',
-                            -- the colour pages' fixed list and the IndexNow sweep's cursor (0092): no money, pricing or status
+                            -- the colour pages' fixed list and the IndexNow sweep's cursor (0097): no money, pricing or status
                             'vehicle_colours', 'indexnow_sweep',
                             -- the usage guard (0080): the hourly figures and the alert rows (allowances, decisions and the assistant's actions are audited)
                             'usage_readings', 'usage_alerts',

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// The vehicle pages (migration 0092) on the fixture catalog (supabase/seed/vehicle_catalog_fixture.sql): make, model,
+// The vehicle pages (migration 0097) on the fixture catalog (supabase/seed/vehicle_catalog_fixture.sql): make, model,
 // year and Canadian trim pages render with their own H1, specs, inventory and request link, at 375 and 1440, pass axe,
 // never scroll sideways, are indexed and self-canonical by default; under the rules a trim page with no car of ours is
 // noindex with its year as canonical and flips to indexed when our car of that trim is published; the vehicle sitemaps
@@ -23,8 +23,8 @@ let held: ReturnType<typeof db> | null = null;
 test.beforeEach(async ({}, info) => {
   info.setTimeout(info.timeout + 180_000);
   held = db();
-  if (SETTINGS_TESTS.test(info.title)) await held`select pg_advisory_lock(920092)`;
-  else await held`select pg_advisory_lock_shared(920092)`;
+  if (SETTINGS_TESTS.test(info.title)) await held`select pg_advisory_lock(920097)`;
+  else await held`select pg_advisory_lock_shared(920097)`;
 });
 test.afterEach(async () => { await held?.end(); held = null; });
 
@@ -175,7 +175,7 @@ test('under the rules a trim page with no car is noindex with its year as canoni
   }
 });
 
-// ---------------------------------------------------------------- city and colour pages, the /buy twins (0092)
+// ---------------------------------------------------------------- city and colour pages, the /buy twins (0097)
 const TIERS: Array<[string, string, RegExp]> = [
   ['city', '/cars/volkswagen/jetta/2020/sportline/mississauga', /^Rent a 2020 Volkswagen Jetta Sportline in Mississauga$/],
   ['city and colour', '/cars/volkswagen/jetta/2020/sportline/mississauga/black', /^Rent a black 2020 Volkswagen Jetta Sportline in Mississauga$/],

@@ -1,4 +1,7 @@
-# Vehicle pages: every make, model, year and trim, by place, colour and search term (migration 0092)
+# Vehicle pages: every make, model, year and trim, by place, colour and search term (migration 0097)
+
+First written as migration 0092; renumbered 0097 so that it runs after the local SEO release (0095) everywhere,
+in the tests as in production.
 
 The owner, October 21 and 22, 2026, in order:
 
@@ -177,11 +180,14 @@ province or state, region, area, city, neighbourhood and airport of Canada, the 
 `flags` with 1 for the GTA, `lat`, `lng`, `population`, `landing_slug`, `is_active`), `place_regions` (which regions are
 enabled and how many places each loaded), `app.place_enabled(places)`, and `place_terms` (`vertical` rental, sale,
 detailing or bodyshop; `phrase`; `canonical_slug` for a synonym; `lead_kind`; `sort_order`; `is_active`). This
-migration runs before 0095 and creates none of them: it reads them when they are there (`to_regclass` and dynamic SQL in
+migration (numbered 0097, after 0095) creates none of them: it reads them at every request, when they are there (`to_regclass` and dynamic SQL in
 `app.vpage_place`, `vpage_place_near`, `vpage_place_within`, `vpage_place_links`, `vpage_places_range`,
 `vpage_place_max`, `vpage_place_count`, `vpage_terms`), and until then the places are the active location landing
 pages and the terms the default list (23). A place's number in the sitemaps is its `places.id` (0095 loads the GTA
-first); ids without pages (a landmark, a place switched off, a region disabled) give no address. A term with a
+first); ids without pages (a landmark, a place switched off, a region disabled) give no address. Every term is read from `place_terms` at request time, so a row an Admin adds (or a later migration, such as 0098's
+renting terms) has its car pages, its `/t/<term>` tree and its sitemap files at once, with no deploy; its name keeps
+the title's own capitals ("DoorDash car rental: 2024 Toyota Corolla LE in Scarborough" at
+`/t/doordash-car-rental/toyota/corolla/2024/le/scarborough`). A term with a
 `canonical_slug` (a synonym) and "car-rental" itself (the `/cars` tree) have no tree of their own.
 
 The `/buy` catch-all is shared: `/buy/<sale term>/<place>` (exactly two segments, the first a sale term) is 0095's buying
@@ -190,7 +196,7 @@ on this branch alone a 404), every other `/buy` address is a vehicle page. No ma
 
 Merging with 0095: `leads_kind_check` is widened by a DO block that adds `buyer`, `finance`, `detailing` and
 `bodyshop` to whatever kinds the constraint already has (0095 adds its own the same way); the door chain renames
-`app.door` to `door_pre0092b` (0095 uses `door_pre0095`); `supabase/tests/03_flows.sql` exempts `vehicle_colours` and
+`app.door` to `door_pre0097b` (0095 uses `door_pre0095`); `supabase/tests/03_flows.sql` exempts `vehicle_colours` and
 `indexnow_sweep` from the audit trigger check (0095 adds its own tables to the same list). 0095's `sale_disclaimer` and
 this release's `vpage_finance_disclaimer` say the same thing; keep one at merge.
 
@@ -332,19 +338,13 @@ ticked.
    update usage_services set warn_bps = 7000 where service in ('workers_requests', 'workers_cpu');
    ```
 
-2. The investor deck (0083): a feature in `web/src/features/deck/features.ts`, group "For the business" (or a new group),
-   with the screenshot committed here as `web/public/deck/vehicle-pages.jpg`:
+2. The investor deck (0083, merged from release 2): the feature "Search reach: a page for every car, place and need"
+   is in `web/src/features/deck/features.ts` (group "Growth and marketing"), with the screenshot
+   `web/public/deck/vehicle-pages.jpg` (the car hire page of a 2024 Toyota Corolla LE in Scarborough). It promises no
+   page count beyond "hundreds of trillions of combinations" and shows no fleet figures.
 
-   ```ts
-   { id: 'search-reach', title: 'Search reach: a page for every car',
-     what: 'Every make, model, year and trim since 1981, for rent and for sale, in every place we serve and in twelve colours, and again for what people search: car hire, financing, ceramic coating, bumper repair. Each page carries the car\'s real figures (EPA fuel use and costs, Canadian dimensions, NHTSA recalls) and our live inventory below them, and asks for the booking, the purchase or the repair.',
-     why: 'Search is the cheapest renter there is. Every page is built from data on demand, costs nothing to keep, is listed in the sitemaps and sent to search engines, and turns a search into a rental: each one leads to our cars, a request, or an insurance replacement rental.',
-     points: ['A page for every car, place, colour and search', 'Real figures only, unique on every page', 'Our cars and a request on every page'],
-     shots: [d('vehicle-pages.jpg', 'A vehicle page: a 2020 Volkswagen Jetta Sportline in Mississauga, in black')] }
-   ```
-
-   No count of pages or cars is on the slide (the deck shows no fleet figures); `app.vpage_tier_counts` has the counts if
-   a later version wants them.
+3. No header, menu or home page link goes to the vehicle pages (the owner's rule): crawlers reach them through the
+   footer's Browse section (release 4), the sitemaps, IndexNow and the links between the pages themselves.
 
 ## Guides
 

@@ -9,7 +9,7 @@ import type { Dim, Settings, TrimRef, Variant, YearRow } from './content';
 import type { Inventory, SimilarModel } from './parts';
 import type { TierPage, Tiers } from './deep';
 
-// The vehicle pages' reads (migration 0092): one database call per page (public.vehicle_*_page), shared by the
+// The vehicle pages' reads (migration 0097): one database call per page (public.vehicle_*_page), shared by the
 // metadata and the page through React's cache. Unknown slugs are a 404; another spelling of a model answers 301.
 type Named = { slug: string; name: string };
 type Base = { path: string; inventory: Inventory; settings: Settings; indexable: boolean; canonical: string; lastmod: string | null; make: Named };
@@ -49,7 +49,7 @@ export const trimPage = cache(async (make: string, model: string, year: string, 
   return p;
 });
 
-/** A city, city and colour, or colour page (0092): its trim's read with the city and colour. */
+/** A city, city and colour, or colour page (0097): its trim's read with the city and colour. */
 export const tierPage = cache(async (make: string, model: string, year: string, trim: string, city: string | null, colour: string | null): Promise<TierPage> => {
   if (!ok(make, model, trim) || !/^(19|20)\d\d$/.test(year) || (city !== null && !ok(city)) || (colour !== null && !/^[a-z]{3,12}$/.test(colour)) || city === 'colour') notFound();
   const p = (await rpc('vehicle_tier_page', { p_make: make, p_model: model, p_year: Number(year), p_trim: trim, p_place: city as string, p_colour: colour as string })) as unknown as TierPage | null;

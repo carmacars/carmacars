@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { addDays, torontoInstant, torontoToday } from '@/lib/dates';
 
-// Live availability under each car of a vehicle page's inventory block (migration 0092): one public.search_available
+// Live availability under each car of a vehicle page's inventory block (migration 0097): one public.search_available
 // call per page view, for a day from tomorrow at 10:00, shared by every card. The page itself stays static and cached.
 let shared: Promise<Set<string> | null> | null = null;
 function freeTomorrow(): Promise<Set<string> | null> {

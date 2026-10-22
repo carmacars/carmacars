@@ -1,4 +1,4 @@
-// The vehicle pages (migration 0092): slugs, unit conversions, the gate, the catalog normaliser and the page text.
+// The vehicle pages (migration 0097): slugs, unit conversions, the gate, the catalog normaliser and the page text.
 //   node --test --experimental-strip-types src/features/vehicles/vehicles.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

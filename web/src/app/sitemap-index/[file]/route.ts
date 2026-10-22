@@ -1,5 +1,5 @@
 import { sitemapIndex } from '@/features/seo/sitemap';
-// The sitemap index files after the first (0092): /sitemap-index/2.xml holds sitemaps 50,001 to 100,000, and so on.
+// The sitemap index files after the first (0097): /sitemap-index/2.xml holds sitemaps 50,001 to 100,000, and so on.
 // robots.txt names every one. Read on each request, never at build.
 export const dynamic = 'force-dynamic';
 type P = { params: Promise<{ file: string }> };

@@ -25,7 +25,7 @@ export default async function Leads() {
       <div className="stack">
         <Card title="Owner leads"><Table rows={o.leads} testId="owner-leads" empty="No open owner leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' },
           { key: 'vehicle', label: 'Car' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'assignee_name', label: 'With' }, { key: 'act', label: '', render: actions }]} /></Card>
-        {/* buyer leads from the /buy pages' "Find me this car" (0092); each also raised a To do line for Sales */}
+        {/* buyer leads from the /buy pages' "Find me this car" (0097); each also raised a To do line for Sales */}
         <Card title="Buyer leads"><Table rows={buyers.rows} testId="buyer-leads" empty="No open buyer leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' },
           { key: 'car', label: 'Car', render: (r) => String((r.payload as R | null)?.vehicle ?? '') }, { key: 'budget', label: 'Budget', render: (r) => String((r.payload as R | null)?.budget ?? '') }, { key: 'when', label: 'When', render: (r) => String((r.payload as R | null)?.timeline ?? '') },
           { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'act', label: '', render: actions }]} /></Card>

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (d !== 0) return new NextResponse('Forbidden', { status: 403 });
   try {
     const s = await runSeoJobNow({ limit: 2, deadlineMs: 25_000 });
-    // then the next IndexNow batch of the vehicle pages (0092): one request of up to 10,000 addresses a run
+    // then the next IndexNow batch of the vehicle pages (0097): one request of up to 10,000 addresses a run
     const sweep = await runIndexNowSweep().catch((e) => ({ sent: 0, why: e instanceof Error ? e.message.slice(0, 120) : 'failed' }));
     return NextResponse.json({ ok: true, ...s, errors: s.errors.slice(0, 5), indexnow_sweep: sweep });
   } catch (e) {

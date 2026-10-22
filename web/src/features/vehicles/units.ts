@@ -1,4 +1,4 @@
-// The vehicle pages' (migration 0092) small rules, shared by the pages, the catalog import (web/scripts/catalog) and
+// The vehicle pages' (migration 0097) small rules, shared by the pages, the catalog import (web/scripts/catalog) and
 // the unit tests. No imports: it runs in Node with --experimental-strip-types and in the app.
 
 /** The same slug as app.slugify in SQL (0022): accents folded, anything but a-z and 0-9 becomes one hyphen. */

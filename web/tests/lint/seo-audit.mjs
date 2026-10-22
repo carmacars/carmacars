@@ -55,7 +55,7 @@ if (/<sitemapindex/.test(sm)) {
   report.sitemapParts = parts.map((m) => m[1]);
   if (parts.filter(([, l]) => !/sitemap-places/.test(l)).length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
   if (parts.length > 50000) bad('sitemap', `index lists ${parts.length} files (Google reads 50,000 at most)`);
-  // the term trees (/t/<term>, 0092) mirror the renting tree file for file: every file name is checked against it, and of
+  // the term trees (/t/<term>, 0097) mirror the renting tree file for file: every file name is checked against it, and of
   // each term's tree the makes and the first place and colour file are read (the rest are the same addresses under
   // another prefix); every other file is read whole
   const names = parts.map(([, loc]) => new URL(loc).pathname.replace(/^\/sitemap-vehicles\/|\.xml$/g, ''));
@@ -94,7 +94,7 @@ if (/<sitemapindex/.test(sm)) {
   smUrls.push(...[...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]));
 }
 const paths = smUrls.map((u) => new URL(u).pathname);
-// The city and colour pages and the /buy twins (0092) are tens of thousands of addresses of a few templates: every
+// The city and colour pages and the /buy twins (0097) are tens of thousands of addresses of a few templates: every
 // address is checked in the sitemaps (on the site, no duplicates, lastmod), and an even sample of each kind is audited
 // as a page (title, description, canonical, JSON-LD, uniqueness among the sample and with every other page).
 const heavy = (p) => /^\/(buy|t)\//.test(p) || /^\/cars\/[^/]+\/[^/]+\/\d{4}\/[^/]+\/.+/.test(p);
@@ -117,7 +117,7 @@ if (new Set(paths).size !== paths.length) bad('sitemap', 'duplicate entries');
 // 0035) and a model page of samples only are noindex and out of the sitemap; their content is checked all the same.
 const fleetHtml = (await get('/cars')).body;
 const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"/g)].map((m) => m[1]);
-// the vehicle pages (0092): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
+// the vehicle pages (0097): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
 const vehiclePaths = new Set();
 // (the renting tree's level files only: its pages are the ones linked up and down the tree)
 for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\/(?!buy-|t-)(?!tiers-)[a-z0-9-]+\.xml$/.test(loc)) {
@@ -146,7 +146,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   const indexable = !/noindex/.test(robotsMeta ?? '');
   if (!indexable) {
     if (inSitemap.has(p)) bad(p, 'in the sitemap but noindex');
-    // a vehicle page held out of search by the Admin's rules names its parent as canonical (0092); any other noindex page has none
+    // a vehicle page held out of search by the Admin's rules names its parent as canonical (0097); any other noindex page has none
     const parent = p.split('/').slice(0, -1).join('/');
     if (canon && !(/^\/cars\/[^/]+\/[^/]+/.test(p) && canon === SITE + parent)) bad(p, 'noindex page with a canonical link');
     report.noindex.push(p);
@@ -225,7 +225,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   for (let k = 1; k < hs.length; k++) if (hs[k] > hs[k - 1] + 1) { bad(p, `heading jumps from h${hs[k - 1]} to h${hs[k]}`); break; }
   for (const m of h.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) bad(p, `image without alt: ${m[0].slice(0, 100)}`);
   if (/[—–]/.test(h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ''))) bad(p, 'long dash in the page');
-  // vehicle pages (0092): every one indexed by the owner's decision, so no two may share their main body either
+  // vehicle pages (0097): every one indexed by the owner's decision, so no two may share their main body either
   if (vehiclePaths.has(p) || heavy(p)) {
     const h1 = decode((/<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(h)?.[1] ?? '').replace(/<[^>]+>/g, '').trim());
     if (h1) h1s.set(h1, [...(h1s.get(h1) ?? []), p]);
