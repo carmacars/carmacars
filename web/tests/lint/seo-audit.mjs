@@ -97,7 +97,7 @@ const hubHtml = (await get('/car-rental')).body + (await get('/guides')).body;
 const landing = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/car-rental\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/car-rental\/[^/]+$/.test(p)));
 const guides = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/guides\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/guides\/[^/]+$/.test(p)));
 report.noindex = [];
-const titles = new Map(); const descs = new Map();
+const titles = new Map(); const descs = new Map(); const bodies = new Map();
 const extra = ['/investors'];
 for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, ...guides])]) {
   const r = await get(p);
@@ -178,9 +178,17 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, .
   for (let k = 1; k < hs.length; k++) if (hs[k] > hs[k - 1] + 1) { bad(p, `heading jumps from h${hs[k - 1]} to h${hs[k]}`); break; }
   for (const m of h.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) bad(p, `image without alt: ${m[0].slice(0, 100)}`);
   if (/[—–]/.test(h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ''))) bad(p, 'long dash in the page');
+  // vehicle pages (0092): every one indexed by the owner's decision, so no two may share their main body either
+  if (vehiclePaths.has(p)) {
+    const main = (/<main\b[\s\S]*?<\/main>/.exec(h)?.[0] ?? h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    bodies.set(main, [...(bodies.get(main) ?? []), p]);
+  }
   rec.links = [...h.matchAll(/<a\b[^>]*\bhref="([^"#?]+)/g)].map((m) => m[1].replace(SITE, '').replace(BASE, ''));
 }
 for (const [t, ps] of titles) if (ps.length > 1) bad('titles', `"${t}" on ${ps.join(', ')}`);
+for (const [, ps] of bodies) if (ps.length > 1) bad('bodies', `the same main body on ${ps.join(', ')}`);
+if (report.sitemapParts && !report.sitemapParts.some((l) => /\/sitemap-vehicles\/makes\.xml$/.test(l))) bad('sitemap', 'index without the vehicle sitemaps (sitemap-vehicles/makes.xml)');
+report.vehiclePages = vehiclePaths.size;
 for (const [d, ps] of descs) if (ps.length > 1) bad('descriptions', `"${d.slice(0, 60)}..." on ${ps.join(', ')}`);
 
 // ------------------------------------------------------------------ internal linking
