@@ -11,6 +11,7 @@ import { dobIso, migrateExtras, requestSchema, type RequestData } from '@/featur
 import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
+import { captureDone, pendingAddBooking } from '@/server/capture';
 
 // Request to book (docs/blueprint/02-booking-and-renter.md section 3). The server validates with the
 // same schema as the browser, checks Turnstile, measures any delivery distance itself, and calls
@@ -37,8 +38,11 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const meta = await requestMeta();
   if (!(await verifyTurnstile(input.token, meta.ip))) return { ok: false, code: 'turnstile', message: 'Our security check did not go through. Press Send again; if it keeps happening, try another browser. Your request is kept.' };
   if (!/^[A-Za-z0-9-]{8,100}$/.test(input.requestKey ?? '')) return { ok: false, code: 'invalid', message: 'Reload the page and try again.' };
-  const [r, fleet, f, consent] = await Promise.all([rules(), getFleet(), getFacts(), consentTexts()]);
-  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s) }).safeParse(input.data);
+  const [r, fleet, f, consent, signedIn] = await Promise.all([rules(), getFleet(), getFacts(), consentTexts(), (async () => (await auth()).currentUser())()]);
+  // an account made by phone may send a request before it has an email (asked on the pay page; 0091)
+  const emailOptional = !!signedIn && !signedIn.email;
+  const parsed = requestSchema(r, { todayIso: torontoToday(), nowMinutes: torontoMinutesNow(), knownCar: (s) => fleet.some((c) => c.slug === s), emailOptional,
+    insuranceIncluded: (s) => fleet.some((c) => c.slug === s && !!c.insurance_included) }).safeParse(input.data);
   if (!parsed.success) {
     const fe: Record<string, string> = {};
     for (const i of parsed.error.issues) { const k = i.path.join('.'); if (!(k in fe)) fe[k] = i.message; }
@@ -56,7 +60,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   };
   const far = (k: string) => k === 'delivery' || k === 'airport';
   const lic = v.licClass === 'other' ? 'OTHER' : v.licClass;
-  const user = await (await auth()).currentUser();
+  const user = signedIn;
   const cookieRef = (await cookies()).get('cc-ref')?.value?.toUpperCase() ?? null;
 
   const request = {
@@ -100,6 +104,10 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     }
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
     if (input.draftId) await rpc('submit_form_draft', { p_draft: input.draftId, p_result: { booking_number: String(res.booking_number) } }, { role: 'service_role' }).catch(() => undefined);
+    // contact capture (0090): the request is visible to this browser's unverified session (if it has one), and the
+    // contact saved as it was typed is done
+    if (!user) await pendingAddBooking(String(res.booking_number));
+    await captureDone('booking_request');
     return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true } };
   } catch (e) {
     return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'We could not send the request. Please try again or call us.' };
@@ -130,4 +138,13 @@ export async function loadRequestDraft(token: string | null): Promise<ActionResu
   } catch {
     return { ok: true, data: null };
   }
+}
+
+/** The signed-in person's contact details for the request form (0091): an account made by phone has a verified
+ *  number and may have no email yet. */
+export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null }>> {
+  const user = await (await auth()).currentUser();
+  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null } };
+  const si = (await rpc('server_my_sign_in', { p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { email: string | null; phone: string | null } | null;
+  return { ok: true, data: { signedIn: true, email: si?.email ?? (user.email || null), phone: si?.phone ?? user.phone ?? null } };
 }

@@ -16,9 +16,28 @@ select test.eq('match: none of the rules', app.seo_match('{"taking_requests": tr
 select test.eq('match: a car not taking requests never matches', app.seo_match('{"taking_requests": false}', '{}'), false);
 insert into seo_pages (slug, kind, name, facts, match, copy, min_real_cars) values
   ('lp-flag', 'use', 'Lp flag', '{}', '{"flags": ["no_credit_card"]}', '{"seo_title": "x", "meta_description": "x", "h1": "x", "intro": "x", "sections": [], "faq": []}', 3);
-select test.eq('landing: a page for flagged cars stays out of search without three such real cars', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'), false);
-select test.eq('landing: the real-car count reads a flag the vehicles table does not have as false', app.seo_real_count('{"flags": ["no_credit_card"]}'), 0);
+-- the flags are the car's own columns (vehicles.no_credit_card and vehicles.insurance_included of 0093)
+create temp table lp_flagged as
+  select v.id, v.no_credit_card, v.insurance_included
+    from vehicle_listings l join vehicles v on v.id = l.vehicle_id join public_vehicle_listings pv on pv.vehicle_id = v.id
+   where l.status = 'published' and v.management_mode <> 'turo_only' and not v.is_sample;
+select test.eq('landing: the real-car count reads vehicles.no_credit_card', app.seo_real_count('{"flags": ["no_credit_card"]}'),
+  (select count(*)::integer from lp_flagged where no_credit_card));
+select test.eq('landing: the real-car count reads vehicles.insurance_included', app.seo_real_count('{"flags": ["insurance_included"]}'),
+  (select count(*)::integer from lp_flagged where insurance_included));
+select test.eq('landing: a page for flagged cars is in search only with three such real cars', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'),
+  (select count(*) >= 3 from lp_flagged where no_credit_card));
+update vehicles set no_credit_card = false where id in (select id from lp_flagged where no_credit_card);
+select test.eq('landing: without such cars the page stays out of search', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'), false);
+update vehicles set no_credit_card = true where id in (select id from lp_flagged where no_credit_card);
+select test.eq('landing: a car marked no credit card needed counts at once',
+  (select app.seo_real_count('{"flags": ["no_credit_card"]}') from (select 1) x), (select count(*)::integer from lp_flagged where no_credit_card));
 delete from seo_pages where slug = 'lp-flag';
+drop table lp_flagged;
+select test.eq('leads: every kind is still allowed after 0088, 0093 and 0095',
+  (select string_agg(k, ',' order by k) from unnest(array['owner_program', 'contact', 'insurer', 'launch_notice', 'other', 'chat', 'sample_car', 'phone', 'turo_guest',
+                                                          'chauffeur', 'buyer', 'finance', 'place_request', 'detailing', 'bodyshop']) k
+    where (select pg_get_constraintdef(oid) from pg_constraint where conrelid = 'leads'::regclass and conname = 'leads_kind_check') not like '%''' || k || '''%'), null);
 
 -- ================================================================ 2. one name, address and phone; the rating
 select test.eq('NAP: the business address is the street address the site shows',

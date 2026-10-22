@@ -173,6 +173,7 @@ while the switch is on. A refusal page (`/admin/no-access`, `/va/no-access`, `/f
 | Sign-in errors | An unknown address and a wrong password read the same ("That email and password do not match an account") with a pointer to set a password; an unconfirmed address says so and sends the confirmation again; too many tries says to wait |
 | Invitations | Admin > Portals (any role: Admin, staff with the functions they cover, field, an owner or investor on file), Admin > Staff (staff roles), Admin > Owners and Investors (one click per record without a sign-in). The branded invitation email lands on `/update-password`, then the portal. Someone who already signs in just gets the role. Every account row has "Send password link" |
 | Create account | An address already on file from a booking request gets a sign-in for that record and a link to choose the password (it used to leave a sign-in with no record) |
+| Phone sign-in (0091) | "Use my phone number instead": a 6-digit code texted from the CarmaCars Quo number through Supabase's Send SMS hook (`/api/webhooks/auth-sms`, `src/server/auth-sms.ts`); Canadian numbers (US behind an Admin setting); profiles add and verify a phone and choose phone or email sign-in. `../docs/changes/2026-10-21-phone-sign-in.md` |
 
 ### View as (`src/server/view-as.ts`)
 

@@ -49,7 +49,7 @@ export const dobIso = (y: string, m: string, d: string) => `${y.padStart(4, '0')
 const isEmail = (v: string) => email.safeParse(v).success;
 
 /** Checks the whole request; `issues` maps a field key (or dates, dob, drivers.N.x) to a message. */
-export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: boolean }): Record<string, string> {
+export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: boolean; emailOptional?: boolean; insuranceIncluded?: boolean }): Record<string, string> {
   const e: Record<string, string> = {};
   const set = (k: string, m: string) => { if (!(k in e)) e[k] = m; };
   // step 1
@@ -69,7 +69,8 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
   // step 2
   if (v.first.length < 1 || v.first.length > 60) set('first', 'Enter your first name as it appears on your licence.');
   if (v.last.length < 1 || v.last.length > 60) set('last', 'Enter your last name as it appears on your licence.');
-  if (!isEmail(v.email)) set('email', v.email ? 'Enter an email address like name@example.com.' : 'Enter your email so we can send the price.');
+  // signed in by phone without an email yet (0091): the email may wait until the pay page asks for it
+  if (!(ctx.emailOptional && !v.email) && !isEmail(v.email)) set('email', v.email ? 'Enter an email address like name@example.com.' : 'Enter your email so we can send the price.');
   if (!phone.safeParse(v.phone).success) set('phone', v.phone ? 'Enter a phone number with area code.' : 'Enter a mobile number we can reach you on.');
   const ref = /^\d{4}-\d{2}-\d{2}$/.test(v.from) ? v.from : ctx.todayIso;
   const age = ageOn(v.dobY, v.dobM, v.dobD, ref);
@@ -89,7 +90,8 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
   const classes = [...r.licenceClasses, ...(r.otherLicence ? ['other'] : [])];
   if (!classes.includes(v.licClass)) set('licClass', 'Choose your licence class.');
   if (v.licClass === 'other' && v.licIssuer.length < 2) set('licIssuer', 'Tell us which province, state or country issued it.');
-  if (!['1', '2', '3'].includes(v.coverage)) set('coverage', 'Choose how the car will be covered. You can change it before pickup.');
+  // 0093: a car with insurance included needs no choice (the database sets option 4)
+  if (!ctx.insuranceIncluded && !['1', '2', '3'].includes(v.coverage)) set('coverage', 'Choose how the car will be covered. You can change it before pickup.');
   if (v.notes.length > r.noteMax) set('notes', `Keep the note under ${r.noteMax} characters.`);
   // step 4: add-ons are checked by the database (notice, stock, the car)
   // step 5
@@ -109,8 +111,8 @@ export function migrateExtras(v: RequestData): RequestData {
 }
 
 /** The zod schema the browser and the server both run: structure from requestShape, rules above. */
-export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean }) {
+export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinutes: number; knownCar: (slug: string) => boolean; emailOptional?: boolean; insuranceIncluded?: (slug: string) => boolean }) {
   return requestShape.superRefine((v, c) => {
-    for (const [k, message] of Object.entries(checkRequest(v, r, { ...ctx, knownCar: ctx.knownCar(v.car) }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
+    for (const [k, message] of Object.entries(checkRequest(v, r, { todayIso: ctx.todayIso, nowMinutes: ctx.nowMinutes, knownCar: ctx.knownCar(v.car), emailOptional: ctx.emailOptional, insuranceIncluded: ctx.insuranceIncluded?.(v.car) ?? false }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
   });
 }

@@ -33,11 +33,22 @@ const LABELS: Record<string, string> = {
   visitor_pay_left_minutes: 'Follow-up: pay page left without paying, after (minutes)', visitor_request_stopped_minutes: 'Follow-up: booking request started and stopped, after (minutes)',
   visitor_followup_tasks: 'Raise follow-up tasks from the signals of known visitors', chat_enabled: 'Live chat on the site and portals',
   chat_ai_enabled: 'Live chat: the AI assistant answers first', chat_ai_model: 'Live chat: Workers AI model', chat_ai_daily_neurons: 'Live chat: AI neurons a day',
+  maint_due_soon_km: 'Maintenance: due soon this many km before (an item may set its own)', maint_due_soon_days: 'Maintenance: due soon this many days before (an item may set its own)',
+  maint_default_km_per_day: 'Maintenance: km a day assumed until a car has readings', maint_km_per_day_window_days: 'Maintenance: km a day from the readings of the last (days)',
+  maint_winter_on_reminder: 'Winter tires: reminder to put them on from (MM-DD)', maint_winter_on_by: 'Winter tires: on by (MM-DD)',
+  maint_winter_off_from: 'Winter tires: may come off from, reminder starts (MM-DD)', maint_winter_off_by: 'Winter tires: overdue to come off after (MM-DD)',
+  maint_tire_replace_mm: 'Tires: overdue at this tread depth (mm)', maint_tire_soon_mm: 'Tires: due soon at this tread depth (mm)',
+  maint_tasks_enabled: 'Maintenance: a Fleet task per car with what is due', maint_digest_enabled: 'Maintenance: one line in the morning digest',
+  maint_winter_addon_link: 'Offer the Winter tires add-on only on cars with a winter set (or no tire record yet)',
   chat_ai_total_daily_neurons: 'Live chat: stop the AI when all Workers AI use of the day reaches (neurons)', chat_ai_max_replies: 'Live chat: AI replies in one chat before a person takes it',
   chat_greeting_seconds: 'Live chat: greet visitors on a car page after (seconds, 0 is off)', chat_greeting_text: 'Live chat: the greeting',
   chat_shift_minutes: 'Live chat: staff count as on shift when active within (minutes)', chat_keep_days: 'Live chat: keep chats of visitors who are not customers (days)',
   default_km_allowance_per_day: 'Kilometres included a day on a new rate card (the default)', stale_request_expire: 'Expire a booking request whose pickup time passed without an offer',
   stale_request_email_renter: 'Email the renter when their request expires that way',
+  capture_enabled: 'Forms: save the name, email and phone typed into a form, sent or not, and open an account for a new email (on by default)',
+  capture_continue_minutes: 'Forms: "Continue your request" email and Admin follow-up after the form was left (minutes)',
+  capture_link_hours: 'Forms: the "Continue your request" link works for (hours)', capture_close_days: 'Forms: close an account opened from a form and never confirmed after (days)',
+  capture_rate_per_minute: 'Forms: saves one browser may make a minute', capture_followup_tasks: 'Forms: raise the To do "Unfinished request from <name>: follow up"',
   game_enabled: 'Discount games: show the game to visitors who browse (on by default)', game_max_discount_cents: 'Discount games: most a percentage code takes off one booking',
   game_code_valid_days: 'Discount games: a code is good for (days)', game_trigger_car_pages: 'Discount games: first game after this many car pages (0 is off)',
   game_trigger_seconds: 'Discount games: or after this many seconds on the site, whichever first (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers)',
@@ -60,6 +71,9 @@ const LABELS: Record<string, string> = {
   phone_sms_pickup_tomorrow: 'Booking text: pickup tomorrow', phone_sms_pickup_tomorrow_text: 'Booking text: pickup tomorrow, the text',
   phone_sms_return_reminder: 'Booking text: return reminder', phone_sms_return_reminder_text: 'Booking text: return reminder, the text',
   phone_sms_payment_link: 'Booking text: payment link', phone_sms_payment_link_text: 'Booking text: payment link, the text',
+  signin_phone_enabled: 'Sign-in by phone: people may sign in and verify a phone with a texted code', signin_phone_us_allowed: 'Sign-in by phone: also US numbers',
+  signin_phone_hourly_per_number: 'Sign-in by phone: codes per number an hour', signin_phone_hourly_per_ip: 'Sign-in by phone: codes per connection (IP) an hour',
+  signin_confirm_required: 'Accepting an offer, signing and paying need a confirmed account', signin_confirm_by_phone: 'A phone verified with a code confirms the account (like a confirmed email)',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
@@ -83,6 +97,8 @@ const HINTS: Record<string, string> = {
   visitor_events_keep_days: 'The privacy policy says 90 days. Change it only with the lawyer. The daily counts per car (no personal information) are kept.',
   default_km_allowance_per_day: 'Used when staff keep "Use the defaults" on a car\'s rates (200 by default). The extra kilometre rate comes from Fee defaults, Mileage overage, by class.',
   stale_request_email_renter: 'Off by default: the request expires with a note in the booking history only. On: the renter gets the "request declined" email saying the pickup time passed.',
+  capture_enabled: 'Only what the person typed, never used for offers without consent. A brand-new email gets an account that works on that device only until its email is confirmed; an email that already has an account only gets a sign-in link. See the privacy policy row "Forms you start".',
+  capture_close_days: 'Its unconfirmed sessions end and its sign-in without a password is removed; the lead is kept for follow-up.',
   game_max_discount_cents: 'Applies to percentage prizes only ($75 by default). A dollar prize is its own amount. Empty: no cap.',
   game_trigger_car_pages: 'On the first page of a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. Never on booking, pay, sign or sign-in pages, never for someone signed in (they get it in the request-to-book form only).',
   game_reshow_car_pages: 'Each time a game this visitor has not seen yet, all five before one repeats. Later visits start again. Never again after a claim.',
@@ -97,10 +113,13 @@ const HINTS: Record<string, string> = {
   phone_sms_return_reminder_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.', phone_sms_payment_link_text: 'Placeholders: {first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}. Keep it short (160 characters is one text), no long dashes, and name CarmaCars.',
   phone_keep_months: 'Calls and texts of renters and owners stay with the rental records. The privacy policy says 12 months for the others.',
   phone_ai_daily_neurons: 'A draft or a summary uses about 50 to 100 neurons. Also stopped when all Workers AI use of the day reaches the Live chat cap.',
+  signin_phone_us_allowed: 'Off until the CarmaCars Quo number is registered for US texting (A2P 10DLC, in Quo: Settings, Trust center). Without it US carriers block the codes. Canadian numbers always get codes.',
+  signin_phone_enabled: 'Codes come by text from the CarmaCars number (Quo), 6 digits, valid 5 minutes. Off: the phone choice disappears from the sign-in pages; email sign-in is unchanged.',
+  signin_confirm_by_phone: 'Off: only a confirmed email counts. An email is still needed before the first payment (for the receipts); the pay page asks for it.',
   chat_keep_days: 'Chats linked to a renter or booking are kept with the rental records. The privacy policy says 12 months for the others.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

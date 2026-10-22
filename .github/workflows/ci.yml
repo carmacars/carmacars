@@ -113,8 +113,7 @@ jobs:
   full:
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
-    # 100: the vehicle pages (0097) add their sampled place, colour, /buy and term pages to the link check, the crawl and the SEO audit
-    timeout-minutes: 100
+    timeout-minutes: 130   # releases 2 and 3: end to end alone runs about 45 minutes, more with maintenance, capture and phone sign-in
     defaults:
       run:
         working-directory: web
@@ -250,8 +249,8 @@ jobs:
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
       - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
         run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns images
-      - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender, owner debit, calendar sync
-        run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox debit calsync
+      - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender, owner debit, calendar sync, SMS hook secret
+        run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox debit calsync smshook
       - name: The Quo phone line (the key, our webhook for the CarmaCars number and its signing secret; never another account)
         if: inputs.environment == 'production'
         continue-on-error: true
@@ -316,7 +315,8 @@ jobs:
                  + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)
                  + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
-                 + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)' > "$f"
+                 + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
+                 + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)' > "$f"
           if [ "$DEPLOY_ENV" = staging ]; then
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --env staging --secrets-file "$f"
           else
@@ -335,6 +335,10 @@ jobs:
             [ "$code" = 200 ] && break; sleep 10
           done
           echo "::notice title=deploy::https://carmacars.ca answered $code; /cars $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/cars); photos $(curl -s -o /dev/null -w '%{http_code}' "$NEXT_PUBLIC_VEHICLE_PHOTOS_URL/.seeded/stand-in-photos-v1")"
+      - name: Sign-in by phone (Supabase Auth's phone provider and its Send SMS hook to the Worker; production only)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: $RUN "Phone sign-in" scripts/deploy/supabase.sh phoneauth
       - name: The stored guide PDFs (the committed PDFs, uploaded once where none is stored yet)
         if: inputs.environment == 'production'
         working-directory: web

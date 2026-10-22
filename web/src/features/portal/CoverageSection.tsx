@@ -63,6 +63,7 @@ export function CoverageSection({ number, c }: { number: string; c: RenterCovera
             hint="It helps our check: the page of your card's benefits that covers rental cars." />}
         </div>)}
 
+      {c.option === 4 && <p className="small" data-testid="coverage-included">Insurance is included with this car: no personal auto policy is needed and there is nothing to send.</p>}
       {c.option === 3 && <p className="small">{c.confirmed ? 'The CarmaCars Protection Plan is active for this rental.' : 'You chose the CarmaCars Protection Plan. We send you its terms before pickup.'}</p>}
 
       {c.can_change && !c.confirmed && (

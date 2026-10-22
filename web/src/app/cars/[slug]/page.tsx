@@ -40,6 +40,10 @@ async function loadAny(slug: string): Promise<Car | MakePage> {
 }
 const isMake = (x: Car | MakePage): x is MakePage => (x as MakePage).level === 'make';
 const name = (c: Car) => `${c.make} ${c.model}`;
+// 0093: a car whose year is not confirmed yet is named without it ("Year confirmed when you book")
+const yr = (c: Car) => (c.year ? `${c.year} ` : '');
+// 0093: the lowest price a day (a car priced in tiers is cheapest at 7 days or more)
+const fromDay = (c: Car) => Math.min(c.daily_rate_cents, c.long_term_rate_cents ?? c.daily_rate_cents);
 
 export async function generateMetadata({ params }: Params) {
   const x = await loadAny((await params).slug);
@@ -54,14 +58,17 @@ export async function generateMetadata({ params }: Params) {
   const locked = new Set(c.copy_locked ?? []);
   // 0074: a car that shares its year, make and model with another car on the site gets its distinguishing part (its
   // colour or a short code) in both, so no two cars have the same title or description
-  const nm = `${name(c)}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
+  // 0093: a partner fleet has several trims of one model (C300, C43 AMG, C63 S AMG): its cars are named with the trim,
+  // and the colour when another car shares it
+  const nm = c.guideline_rates ? `${name(c)}${c.trim ? ` ${c.trim}` : ''}${c.seo_mark && c.colour ? ` (${c.colour.toLowerCase()})` : ''}`
+    : `${name(c)}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
   const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
-    : fit(65, `Rent a ${c.year} ${nm} in {{city}} from ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}}, ${money(c.daily_rate_cents)} a day | {{brand}}`, `${c.year} ${nm} rental in {{city}} | {{brand}}`);
+    : fit(65, `Rent a ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}}, ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}} | {{brand}}`);
   const spec = [c.seats ? `${c.seats} seats` : '', (c.transmission ?? '').toLowerCase(), `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
   const description = locked.has('meta_description') && c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
-    : fit(160, `Rent the ${c.year} ${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}. Pickup or delivery, no payment to request.`,
-      `Rent the ${c.year} ${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
-      `Rent the ${c.year} ${nm} in {{city}} from ${money(c.daily_rate_cents)} a day, ${spec}. Request with no payment up front.`);
+    : fit(160, `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}${c.insurance_included ? ', insurance included' : ''}. Pickup or delivery, no payment to request.`,
+      `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
+      `Rent the ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day, ${spec}. Request with no payment up front.`);
   return seoMeta({
     title, description,
     path: c.canonical_path, image: c.photos[0] ? absUrl(c.photos[0].path) : null,
@@ -114,9 +121,9 @@ export default async function CarPage({ params }: Params) {
   const consumption = typeof c.specs.consumption === 'string' ? c.specs.consumption : null;
   const bags = typeof c.specs.luggage_bags === 'number' ? c.specs.luggage_bags : c.luggage ? Number(c.luggage) : null;
   const ld = {
-    '@type': ['Product', 'Car'], '@id': `${url}#car`, name: `${c.year} ${name(c)}${c.trim ? ' ' + c.trim : ''}`, description: c.description ?? undefined, url,
+    '@type': ['Product', 'Car'], '@id': `${url}#car`, name: `${yr(c)}${name(c)}${c.trim ? ' ' + c.trim : ''}`, description: c.description ?? undefined, url,
     image: c.photos.slice(0, 5).map((g) => abs(g.path)), brand: { '@type': 'Brand', name: c.make }, manufacturer: { '@type': 'Organization', name: c.make },
-    model: c.model, vehicleConfiguration: c.trim ?? undefined, vehicleModelDate: String(c.year), bodyType: c.body_style ?? undefined, color: c.colour ?? undefined,
+    model: c.model, vehicleConfiguration: c.trim ?? undefined, ...(c.year ? { vehicleModelDate: String(c.year) } : {}), bodyType: c.body_style ?? undefined, color: c.colour ?? undefined,
     fuelType: FUEL_LABEL[c.fuel] ?? c.fuel, vehicleTransmission: c.transmission ?? undefined,
     ...(drive && DRIVE[drive] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[drive]}` } : {}),
     seatingCapacity: c.seats ?? undefined, numberOfDoors: c.doors ?? undefined, itemCondition: 'https://schema.org/UsedCondition',
@@ -146,7 +153,13 @@ export default async function CarPage({ params }: Params) {
           <div className="car-top__info">
             <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
             <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}</h1>
-            <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `, ${c.colour}` : ''}. For rent in {s.city}.</p>
+            <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `${c.year || c.trim ? ', ' : ''}${c.colour}` : ''}{c.year || c.trim || c.colour ? '. ' : ''}For rent in {s.city}.{c.year_approximate ? ' Year confirmed when you book.' : ''}</p>
+            {(c.insurance_included || c.no_credit_card) && (
+              <ul className="car-top__perks" data-testid="car-perks">
+                {c.insurance_included && <li className="perk" data-testid="badge-insurance">Insurance included: no personal auto policy needed</li>}
+                {c.no_credit_card && <li className="perk" data-testid="badge-no-credit-card">No credit card needed: debit accepted</li>}
+              </ul>
+            )}
             {(c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
             <dl className="keyspecs">
               <div><dt>Seats</dt><dd className="num">{c.seats}</dd></div>
@@ -155,7 +168,8 @@ export default async function CarPage({ params }: Params) {
               <div><dt>Km a day</dt><dd className="num">{c.km_allowance_per_day}</dd></div>
             </dl>
             <div className="car-top__cta">
-              <p className="car-top__price"><span className="small muted">From</span> <b className="num">{money(c.daily_rate_cents)}</b> <span className="small muted">a day</span></p>
+              <p className="car-top__price"><span className="small muted">From</span> <b className="num" data-testid="car-from-price">{money(fromDay(c))}</b> <span className="small muted">a day</span></p>
+              {c.guideline_rates && <p className="small muted" data-testid="guideline-note">Guideline rates; final price confirmed after review.</p>}
               {c.car_code && <p className="small muted" data-testid="car-code">Car code <b className="num">{c.car_code}</b>: quote it when you call or chat with us.</p>}
               {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--warn"><span>Not taking requests right now.</span></p>}
               {c.is_sample
@@ -175,13 +189,26 @@ export default async function CarPage({ params }: Params) {
         <div className="car-body__main">
           <section id="rates" className="car-sec" aria-labelledby="h-rates">
             <h2 className="d2" id="h-rates">Rates</h2>
+            {c.multi_day_rate_cents ? (
+              // 0093: a car priced in tiers (a partner's rates): 1 to 2 days, 3 to 6 days, 7 days or more, a day
+              <dl className="rates" data-testid="rates-tiers">
+                <div><dt>1 to 2 days</dt><dd className="num">{money(c.daily_rate_cents)}</dd><dd className="rates__n">a day, any day of the week</dd></div>
+                <div><dt>3 to 6 days</dt><dd className="num">{money(c.multi_day_rate_cents)}</dd><dd className="rates__n">a day</dd></div>
+                <div><dt>7 days or more</dt><dd className="num">{money(c.long_term_rate_cents ?? Math.round(c.weekly_rate_cents / 7))}</dd><dd className="rates__n">{F(`a day; ${money(c.weekly_rate_cents)} a week`)}</dd></div>
+                <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{maxDays}} days, the longest single booking')}</dd></div>
+              </dl>
+            ) : (
             <dl className="rates">
               <div><dt>Daily</dt><dd className="num">{money(c.daily_rate_cents)}</dd><dd className="rates__n">Monday to Thursday, and Sunday</dd></div>
               <div><dt>Weekend day</dt><dd className="num">{money(c.weekend_rate_cents)}</dd><dd className="rates__n">Days starting Friday or Saturday</dd></div>
               <div><dt>Weekly</dt><dd className="num">{money(c.weekly_rate_cents)}</dd><dd className="rates__n">{F(`${money(Math.round(c.weekly_rate_cents / 7))} a day for {{weekFrom}} to {{maxDaysLess1}} days`)}</dd></div>
               <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{maxDays}} days, the longest single booking')}</dd></div>
             </dl>
-            <p className="small muted measure">{F('A day is 24 hours from your pickup time, and a part day counts as a day. Trips of 1 to {{weekFromLess1}} days are capped at the weekly rate, and {{weekFrom}} to {{maxDaysLess1}} days at the monthly rate. Rates are before {{hst}} HST.')}</p>
+            )}
+            <p className="small muted measure">{c.multi_day_rate_cents
+              ? F('A day is 24 hours from your pickup time, and a part day counts as a day. A trip is never charged more than the weekly rate for 6 days or less. Rates are before {{hst}} HST.')
+              : F('A day is 24 hours from your pickup time, and a part day counts as a day. Trips of 1 to {{weekFromLess1}} days are capped at the weekly rate, and {{weekFrom}} to {{maxDaysLess1}} days at the monthly rate. Rates are before {{hst}} HST.')}</p>
+            {c.guideline_rates && <p className="small measure" data-testid="guideline-rates">Guideline rates; final price confirmed after review. We check the driver, the car and how it will be used, and your offer shows the price before you pay anything.</p>}
           </section>
 
           {c.taking_requests && (
@@ -190,7 +217,7 @@ export default async function CarPage({ params }: Params) {
             <div id="dates">
             <Suspense fallback={<section className="car-sec"><h2 className="d2">Dates and price</h2><div className="skeleton sk-img" /></section>}>
               <CarBooking vehicleId={c.vehicle_id} slug={c.slug} name={name(c)} deliveryFee={c.delivery_fee_cents} pickupFee={c.pickup_fee_cents}
-                rates={{ daily: c.daily_rate_cents, weekend: c.weekend_rate_cents, weekly: c.weekly_rate_cents, monthly: c.monthly_rate_cents }}
+                rates={{ daily: c.daily_rate_cents, weekend: c.weekend_rate_cents, weekly: c.weekly_rate_cents, monthly: c.monthly_rate_cents, multi: c.multi_day_rate_cents ?? null }}
                 maxDays={f.max_rental_days} noticeMinutes={f.booking_min_notice_minutes} tokens={tokens} allowsYoung={c.allows_18_to_20} />
             </Suspense>
             </div>
@@ -200,7 +227,7 @@ export default async function CarPage({ params }: Params) {
             <h2 className="d2" id="h-specs">Specs</h2>
             <div className="grid specs-grid">
               <table className="spec c-6"><caption className="vh">Vehicle</caption><tbody>
-                <tr><th scope="row">Model year</th><td>{c.year}</td></tr>
+                <tr><th scope="row">Model year</th><td>{c.year ?? 'Confirmed when you book'}</td></tr>
                 {c.trim && <tr><th scope="row">Trim</th><td>{c.trim}</td></tr>}
                 {c.body_style && <tr><th scope="row">Body</th><td>{c.body_style}</td></tr>}
                 {c.colour && <tr><th scope="row">Colour</th><td>{c.colour}</td></tr>}
@@ -233,7 +260,8 @@ export default async function CarPage({ params }: Params) {
             <table className="spec"><tbody>
               <tr><th scope="row">Age</th><td>{F('{{minAge}} or older at pickup')}</td></tr>
               <tr><th scope="row">Licence</th><td>{F('Ontario {{licence}}, valid for the whole rental')}</td></tr>
-              <tr><th scope="row">Card</th><td>A credit card in your name</td></tr>
+              <tr><th scope="row">Card</th><td data-testid="need-card">{c.no_credit_card ? 'No credit card needed: a credit or debit card in your name' : 'A credit card in your name'}</td></tr>
+              {c.insurance_included && <tr><th scope="row">Insurance</th><td data-testid="need-insurance">Included: no personal auto policy needed</td></tr>}
               <tr><th scope="row">Young driver fee</th><td>{F(`${c.allows_18_to_20 && ydA !== null ? `${money(ydA)} a day for ages {{youngA}}, ` : ''}${ydB !== null ? `${money(ydB)} a day for ages {{youngB}}. ` : ''}No maximum.`)}</td></tr>
               {addPerDay !== null && <tr><th scope="row">Additional drivers</th><td>{F(`${money(addPerDay)} a day each ({{addDrvPct}} of the daily rate), no maximum. Each one meets the same rules and signs the agreement.`)}</td></tr>}
               <tr><th scope="row">At pickup</th><td>Your original licence and the card you paid with</td></tr>
@@ -243,8 +271,10 @@ export default async function CarPage({ params }: Params) {
 
           <section id="coverage" className="car-sec" aria-labelledby="h-cover">
             <h2 className="d2" id="h-cover">Coverage</h2>
-            <p className="measure">Third-party liability coverage is included in the rate. For damage to the {c.model} itself, have one of these in place before pickup.</p>
-            <ol className="cover__opts cover__opts--row">{cover.map((o, i) => <li key={o.title}><span className="cover__n">Option {i + 1}</span><h3>{o.title}</h3><p className="muted small">{F(o.body)}</p></li>)}</ol>
+            {c.insurance_included
+              ? <p className="measure" data-testid="coverage-included">Insurance is included with this car: you do not need a personal auto policy, the OPCF 27 endorsement or credit card coverage. We confirm the coverage and any deductible in your offer.</p>
+              : <><p className="measure">Third-party liability coverage is included in the rate. For damage to the {c.model} itself, have one of these in place before pickup.</p>
+            <ol className="cover__opts cover__opts--row">{cover.map((o, i) => <li key={o.title}><span className="cover__n">Option {i + 1}</span><h3>{o.title}</h3><p className="muted small">{F(o.body)}</p></li>)}</ol></>}
             <p className="small measure">{F('If the car is damaged: under {{deductible}} you are billed the repair at cost. At {{deductible}} or more we claim on our fleet policy and you pay the {{deductible}} deductible.')} <Link className="link" href="/requirements#coverage">More on coverage</Link>.</p>
           </section>
 

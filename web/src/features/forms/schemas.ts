@@ -7,14 +7,16 @@ export const phone = z.string().trim().refine((v) => v.replace(/\D/g, '').length
 const optPhone = z.string().trim().max(30).refine((v) => !v || v.replace(/\D/g, '').length >= 10, 'Enter a phone number with area code.');
 export const password = z.string().min(8, 'Use at least 8 characters.').max(200, 'Use at most 200 characters.');
 
+// an email or a mobile number (0091): we reply by text to someone who gives only a phone
+const optEmail = z.string().trim().max(200).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Enter an email address like name@example.com.');
 export const contactSchema = z.object({
   topic: z.enum(['car', 'booking', 'dates', 'owner', 'billing', 'other']),
   name: z.string().trim().min(2, 'Enter your name.').max(100),
-  email,
+  email: optEmail.optional().default(''),
   phone: optPhone.optional().default(''),
   ref: z.string().trim().max(40).optional().default(''),
   message: z.string().trim().min(10, 'Write a short message so we know how to help.').max(2000, 'Keep it under 2,000 characters.')
-});
+}).superRefine((v, c) => { if (!v.email && !v.phone) c.addIssue({ code: 'custom', path: ['email'], message: 'Enter your email or a mobile number so we can reply.' }); });
 
 export const ownerSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name.').max(100),

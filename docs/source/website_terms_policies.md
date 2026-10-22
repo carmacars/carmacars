@@ -80,6 +80,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
 | Trips booked through another platform (such as Turo): the name, and the phone or email if the platform gives them to us, of the guest who booked one of our cars there | To manage that trip with the guest, never for marketing |
 | Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
+| Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; never for offers without your consent. Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 
@@ -117,6 +118,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
 | Calls and texts with our phone number, with their recordings, transcripts and summaries | With your rental records if you are a customer; otherwise 12 months |
 | Discount game claims | 24 months after the code expires, unless you become a customer |
+| Contact details typed into a form you did not send | 24 months after you last typed them, unless you become a customer. An account opened for you that you do not confirm stops working after 30 days |
 | Details of guests who booked through another platform | 24 months after their last trip |
 | Marketing contact details | Until you unsubscribe |
 
@@ -147,6 +149,8 @@ Discount games are shown to visitors of the Site, and offered in the booking req
 Live chat is answered first by an automated assistant that uses our own information about cars, prices and policies, and then by our staff. The assistant does not make decisions about you; a person reviews anything it collects. Chat conversations are kept with your rental records if you are a customer, and otherwise for 12 months. If you give an email address in the chat, we can email you a copy of the conversation.
 
 Calls and texts to and from our phone number go through our business phone provider and are recorded: for a call, your number, the time and its length, and, when the call is recorded, the recording, a transcript and a short summary written by our provider or an automated tool; for a text, its content. We match your number to your booking or account so our staff see the conversation with your rental, and, if you gave the same number in live chat or a discount game, with your visit to the Site. If we miss your call, we text you once from the same number. Texts about your booking are not marketing; reply STOP to stop them. Calls and texts are kept with your rental records if you are a customer, and otherwise for 12 months.
+
+If you sign in or verify your phone number with us, we text a one-time sign-in code to the phone number you give.
 
 ### 11. Marketing messages
 

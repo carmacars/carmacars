@@ -22,7 +22,7 @@ async function renter(sql: Sql, tag: string) {
 }
 /** A closed booking of this renter: a request through the real function, then written as closed (a fixture). */
 async function closedBooking(sql: Sql, r: { id: string; email: string }) {
-  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
+  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.partner_id is null and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
   const start = 300 + Math.floor(Math.random() * 400);
   const req = {

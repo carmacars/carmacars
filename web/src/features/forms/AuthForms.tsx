@@ -2,17 +2,34 @@
 import { PasswordInput } from './PasswordInput';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useRef, useState, useTransition } from 'react';
+import { useRef, useState, useSyncExternalStore, useTransition } from 'react';
 import { requestReset, resendConfirmation, signIn, signUp, updatePassword } from '@/server/actions/auth';
 import { newPasswordSchema, resetSchema, signInSchema, signUpSchema } from './schemas';
 import { describedBy, Field } from './Field';
 import { Turnstile } from './Turnstile';
 import { useForm } from './useForm';
+import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
+import { PhoneSignInForm } from './PhoneSignIn';
+
+/** The sign-in this device used last (cc-signin, set at sign-in and from the profile page), or ?method=phone. */
+const noSubscribe = () => () => undefined;
+function useMethod(initial: string | null): ['email' | 'phone', (m: 'email' | 'phone') => void] {
+  const cookiePhone = useSyncExternalStore(noSubscribe, () => /(?:^|;\s*)cc-signin=phone(?:;|$)/.test(document.cookie), () => false);
+  const [chosen, setChosen] = useState<'email' | 'phone' | null>(initial === 'phone' || initial === 'email' ? initial : null);
+  return [chosen ?? (cookiePhone ? 'phone' : 'email'), setChosen];
+}
 
 const Err = ({ s }: { s: { ok: boolean; code?: string; message?: string } | null }) =>
   s && !s.ok && s.code !== 'invalid' ? <p className="alert alert--error" role="alert"><span>{s.message}</span></p> : null;
 
 export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?: string }) {
+  const sp = useSearchParams();
+  const [method, setMethod] = useMethod(sp.get('method'));
+  if (method === 'phone') return <PhoneSignInForm next={next ?? sp.get('next') ?? ''} onUseEmail={() => setMethod('email')} idPrefix={`${idPrefix}-ph`} />;
+  return <EmailSignInForm idPrefix={idPrefix} next={next} onUsePhone={() => setMethod('phone')} />;
+}
+
+function EmailSignInForm({ idPrefix, next, onUsePhone }: { idPrefix: string; next?: string; onUsePhone: () => void }) {
   const sp = useSearchParams();
   const { state, run, pending, errors: e, clear } = useForm(signInSchema, signIn);
   const n = next ?? sp.get('next') ?? '';
@@ -29,7 +46,8 @@ export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?
       <Field float id={`${idPrefix}-email`} label="Email" error={e.email}><input ref={email} className="input" placeholder=" " id={`${idPrefix}-email`} name="email" type="email" autoComplete="username" aria-invalid={!!e.email || undefined} aria-describedby={describedBy(`${idPrefix}-email`, e.email)} onInput={() => clear('email')} /></Field>
       <Field float id={`${idPrefix}-pass`} label="Password" error={e.password}><PasswordInput className="input" placeholder=" " id={`${idPrefix}-pass`} name="password" autoComplete="current-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy(`${idPrefix}-pass`, e.password)} onInput={() => clear('password')} /></Field>
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Signing in' : 'Sign in'}</button>
-      <p className="small"><Link className="link" href="/reset-password">Forgot your password?</Link></p>
+      <p className="row small" style={{ flexWrap: 'wrap', gap: 'var(--s-4)' }}><Link className="link" href="/reset-password">Forgot your password?</Link>
+        <button type="button" className="link" onClick={onUsePhone} data-testid="use-phone">Use my phone number instead</button></p>
     </form>
   );
 }
@@ -48,7 +66,17 @@ function ResendConfirmation({ email }: { email: () => string }) {
 }
 
 export function SignUpForm({ minAge }: { minAge: string }) {
+  const sp = useSearchParams();
+  const [method, setMethod] = useState<'email' | 'phone'>(sp.get('method') === 'phone' ? 'phone' : 'email');
+  if (method === 'phone') return <PhoneSignInForm signUp minAge={minAge} next={sp.get('next') ?? ''} onUseEmail={() => setMethod('email')} idPrefix="su-ph" />;
+  return <EmailSignUpForm minAge={minAge} onUsePhone={() => setMethod('phone')} />;
+}
+
+function EmailSignUpForm({ minAge, onUsePhone }: { minAge: string; onUsePhone: () => void }) {
   const { state, run, pending, errors: e, clear } = useForm(signUpSchema, signUp, (fd) => ({ agree: fd.get('agree') === 'on' }));
+  // contact capture (0090): the name and email are saved as each becomes valid, even if the account is not finished.
+  // Nothing is shown here: sending this form finishes the account, and it answers an existing address itself.
+  const cap = useCapture('signup');
   if (state?.ok) {
     const email = (state as { data?: { email?: string } }).data?.email;
     const onRecord = (state as { data?: { onRecord?: boolean } }).data?.onRecord;
@@ -57,7 +85,7 @@ export function SignUpForm({ minAge }: { minAge: string }) {
       : <>We sent a link to {email ?? 'your email address'} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours to confirm your email: it signs you in. It can take a minute to arrive; check spam if you do not see it.</>}</span></div>;
   }
   return (
-    <form className="stack-lg" onSubmit={run} noValidate aria-label="Create an account">
+    <form className="stack-lg" onSubmit={(ev) => { cap.cancel(); return run(ev); }} noValidate aria-label="Create an account" onBlur={(ev) => cap.onFormBlur(ev, { name: 'name', email: 'email' })}>
       <Err s={state as never} />
       <Field float id="su-name" label="Full name" error={e.name}><input className="input" placeholder=" " id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
       <Field float id="su-email" label="Email" error={e.email}><input className="input" placeholder=" " id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>
@@ -68,6 +96,8 @@ export function SignUpForm({ minAge }: { minAge: string }) {
       </div>
       <Turnstile action="sign_up" />
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Creating your account' : 'Create account'}</button>
+      <SavedAsYouType />
+      <p className="small"><button type="button" className="link" onClick={onUsePhone} data-testid="use-phone">Sign up with my phone number instead</button></p>
     </form>
   );
 }

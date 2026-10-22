@@ -5,6 +5,8 @@ import { auth } from '@/lib/auth';
 import { signOut } from '@/server/actions/auth';
 import { FieldButton } from '@/features/field/FieldButton';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
+import { SignInSettings } from '@/features/portal/SignInSettings';
+import { signInState } from '@/server/sign-in-settings';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/field/profile', noindex: true, description: 'Your details and sign-in.' });
@@ -14,7 +16,7 @@ type P = { name: string; email: string; phone: string | null; field_function: st
 // /field/profile (06-field.md section 10): name, phone, home address (0059), password, two-step sign-in, sign out.
 export default async function Profile() {
   const { user } = await requireStaff('field', '/field/profile');
-  const [p, factors, home] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field')]);
+  const [p, factors, home, si] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id)]);
   const twoStep = factors.some((f) => f.verified);
   return (
     <div className="stack">
@@ -25,6 +27,7 @@ export default async function Profile() {
         <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
+      {si && <SignInSettings state={si} className="fd-card stack" />}
       <section className="fd-card" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
         <p className="small">Two-step sign-in: {twoStep ? 'on, with your authenticator app.' : 'not set up.'}</p>
         {!twoStep && <Link prefetch={false} className="btn btn--ghost fd-wide" href="/two-step/setup?next=/field/profile">Set up two-step sign-in</Link>}

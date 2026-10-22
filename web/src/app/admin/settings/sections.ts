@@ -9,6 +9,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
+  ['maintenance', 'Maintenance', 'Service items and intervals by class and car, reminders, the winter tire dates, blocks, expense categories'],
   ['forms', 'Forms', 'The official ServiceOntario PDFs and what goes in each field'],
   ['discount-games', 'Discount games', 'The giveaway game for visitors: on or off, games, prizes and chances, code rules, when it shows, and its report'],
   ['vehicle-pages', 'Vehicle pages', 'A page for every make, model, year and Canadian trim: indexing, fuel prices, popular models, trim names, the catalog import'],

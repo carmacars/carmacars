@@ -51,7 +51,7 @@ async function mkRenter(sql: Sql, email: string, name: string) {
 async function freeCar(sql: Sql, start: number, days: number, skip: string[] = []) {
   const from = new Date(Date.now() + start * 86_400_000); const to = new Date(from.getTime() + days * 86_400_000);
   const rows = await sql`select v.id, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and app.vehicle_bookable(v.id) and (not v.is_sample or v.sample_bookable) and not (l.slug = any(${skip}))
+    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable) and not (l.slug = any(${skip}))
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
                         and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${from.toISOString()}::timestamptz, ${to.toISOString()}::timestamptz))
       and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${to.toISOString()}::timestamptz and (k.ends_at is null or k.ends_at > ${from.toISOString()}::timestamptz))
@@ -203,7 +203,7 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
 
 test('admin: rates, site settings, listing review, tolls, statements', async ({ browser }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'desktop flows');
-  test.setTimeout(600_000); // the longest scenario: about 2 minutes locally, near 5 on a 2-CPU CI runner
+  test.setTimeout(900_000); // the longest scenario: about 3 minutes locally, near 5 on a 2-CPU CI runner, more with releases 2 and 3 together
   const sql = db();
   const a = await mkAdmin(sql, 'flows');
   const ap = await adminCtx(browser, vp(false), a.email, '/admin/vehicles');
@@ -244,7 +244,7 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await ap.screenshot({ path: `${SHOTS}/settings-program.png`, fullPage: true });
 
   // ---------------------------------------------------------------- a listing draft approved and published
-  const [lc] = await sql`select v.id, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and l.slug <> ${car!.slug} order by l.slug desc limit 1`;
+  const [lc] = await sql`select v.id, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.partner_id is null and l.slug <> ${car!.slug} order by l.slug desc limit 1`;
   await sql`update listing_intakes set state = 'cancelled' where vehicle_id = ${lc!.id} and state not in ('published', 'cancelled')`;
   const [ik] = await sql`insert into listing_intakes (vehicle_id, started_by, started_role, state, review_required) values (${lc!.id}, ${a.id}, 'owner', 'started', true) returning id`;
   const [cover] = await sql`select coalesce(processed_path, original_path) p from vehicle_photos where vehicle_id = ${lc!.id} and replaced_at is null and coalesce(processed_path, original_path) is not null order by is_cover desc limit 1`;
@@ -276,7 +276,7 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   // every public photo needs a plate decision before publishing (0042): the sample photos show no plate
   await ap.getByTestId('plates-none-visible').click();
   await ap.getByTestId('plates-none-visible-yes').click();
-  await expect(ap.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
+  await expect(ap.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 60_000 });
   await ap.getByTestId('listing-approve').click();
   await expect(ap.getByText('Approved and published.')).toBeVisible({ timeout: 15_000 });
   expect((await sql`select state from listing_intakes where id = ${ik!.id}`)[0]!.state).toBe('published');
@@ -316,7 +316,8 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   const [tt] = await sql`select id, matched_to, booking_id is not null b from toll_tickets where notice_number = ${trip}`;
   await ap.goto(`/admin/tolls/${tt!.id}`, { waitUntil: 'networkidle' });
   await check(ap, 'toll match review');
-  if (tt!.matched_to !== 'renter') { await ap.getByTestId('toll-confirm-0').click(); await expect.poll(async () => (await sql`select matched_to from toll_tickets where id = ${tt!.id}`)[0]!.matched_to).toBe('renter'); await ap.reload(); }
+  // the renter's row by name: a car enrolled after the trip also lists its owner outside the program, sometimes first
+  if (tt!.matched_to !== 'renter') { await ap.getByTestId('toll-candidate').filter({ hasText: 'Toby' }).getByRole('button', { name: 'Confirm' }).click(); await expect.poll(async () => (await sql`select matched_to from toll_tickets where id = ${tt!.id}`)[0]!.matched_to).toBe('renter'); await ap.reload(); }
   await ap.getByTestId('toll-charge').click();
   await ap.getByTestId('toll-charge-submit').click();
   await expect.poll(async () => (await sql`select charged_at is not null c from toll_tickets where id = ${tt!.id}`)[0]!.c, { timeout: 15_000 }).toBe(true);

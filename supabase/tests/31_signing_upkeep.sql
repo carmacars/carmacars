@@ -93,14 +93,16 @@ update owners set user_id = test.id('su_cs') where id = (test.su('partner') ->> 
 select test.eq('checklist: a partner signs the partner agreement', public.server_my_signing_checklist(test.id('su_cs')) #>> '{items,0,code}', 'partner_agreement');
 
 -- ================================================================ 4. partner insurance reminders
+-- 0093: the partner fleet a migration imported (01 Motors, no insurance on file yet) has its own reminder first
+select app.partner_insurance_check();
 select app.vehicle_add(test.id('su_admin'), jsonb_build_object('supply_type', 'partner', 'partner_id', test.su('partner') ->> 'id', 'vin', '1SUPARTNER0000001', 'year', 2023, 'make', 'Kia', 'model', 'Rio'));
 select test.eq('insurance: an expired policy raises one Admin task', app.partner_insurance_check(), 1);
-select test.eq('insurance: the task names the partner, high priority', (select t.queue || '/' || t.priority || '/' || (t.title like 'Su Car Hire%expired%') from tasks t where t.task_type = 'partner_insurance'), 'admin/high/true');
+select test.eq('insurance: the task names the partner, high priority', (select t.queue || '/' || t.priority || '/' || (t.title like 'Su Car Hire%expired%') from tasks t where t.task_type = 'partner_insurance' and t.title like 'Su Car Hire%'), 'admin/high/true');
 select test.eq('insurance: not raised twice for the same expiry', app.partner_insurance_check(), 0);
 select app.partner_save(test.id('su_admin'), jsonb_build_object('id', test.su('partner') ->> 'id', 'insurance_expiry', (app.today() + 10)::text));
 select test.eq('insurance: a new expiry closes the old reminder', (select t.status from tasks t where t.task_type = 'partner_insurance' and t.dedupe_key like '%:2026-01-01'), 'done');
 select test.eq('insurance: an expiry within the warning days raises a new one (normal priority)', app.partner_insurance_check(), 1);
-select test.eq('insurance: the daily check runs it', (select count(*) from tasks t where t.task_type = 'partner_insurance' and t.status = 'open'), 1::bigint);
+select test.eq('insurance: the daily check runs it', (select count(*) from tasks t where t.task_type = 'partner_insurance' and t.status = 'open' and t.title like 'Su Car Hire%'), 1::bigint);
 select app.partner_save(test.id('su_admin'), jsonb_build_object('id', test.su('partner') ->> 'id', 'insurance_expiry', (app.today() + 200)::text));
 select test.eq('insurance: far enough ahead, nothing to do', app.partner_insurance_check(), 0);
 

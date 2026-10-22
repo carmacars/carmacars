@@ -432,6 +432,21 @@ def build():
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
     ])
 
+    g.task('A partner fleet on its own rates', 'Some partners send a price sheet of their own rates instead of sharing what the renter pays. '
+           '01 Motors works this way: its whole fleet is on the site, and staff manage its cars (it has no portal sign-in yet; add its email on the partner page and invite it later).')
+    g.steps([
+        f'{P("Owners and partners", "Partners")} > the partner. {B("Pricing")} shows how it is paid: the renter pays the partner\'s sheet rate plus the markup (10% unless you set another), rounded to the nearest dollar; '
+        f'CarmaCars keeps the markup plus its cut (20% of the sheet rate); the partner is owed the rest of its sheet rate. Press {B("Edit pricing")} to change the markup, the cut or the basis for every car at once.',
+        f'{B("Cars")} lists each car with its sheet rates a day (1 to 2 days, 3 or more, 7 or more) and the renter\'s rates. Press {B("Edit")} on a car to change a negotiated rate, give that car its own markup or cut, '
+        f'mark it {B("Insurance included")} or {B("No credit card needed")}, or confirm its model year. The renter\'s rates change at once.',
+        'The site shows these cars with their tiers (1 to 2 days, 3 to 6 days, 7 days or more) and "Guideline rates; final price confirmed after review". A car with insurance included needs no coverage choice from the renter '
+        '(coverage option 4, confirmed by itself); a car with no credit card needed takes a debit card for the payment and the deposit. The deposit, the licence and identity checks and the ages stay the same.',
+        'The price sheet has no years, VINs or plates. Until you confirm the year, the site leaves it out and says "Year confirmed when you book"; an offer waits until the year is confirmed (Edit on the car, Model year). '
+        'Add the plate and the VIN on the car\'s page before its first handover.',
+        f'Real photos: open the car (its name in Cars), {B("Photos")}, and add them. Once approved they replace the eight studio stand-ins.',
+    ])
+    g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
+
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
     g.steps([
         'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
@@ -457,7 +472,7 @@ def build():
 
     g.task('Sample cars on the site', f'{P("Cars", "Vehicles")}, or {P("Settings", "Site")}. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.')
     g.steps([
-        f'{B("Hide sample cars")} takes every sample car off the site in one click. Nothing stops it: not an enquiry, not an old request.',
+        f'{B("Hide sample cars")} asks first ("Hide all 20 sample cars from the site?"); press {B("Hide them")} to take every sample car off the site at once, or {B("Keep them")}. Nothing else stops it: not an enquiry, not an old request.',
         f'{B("Show sample cars")} puts the 20 back, with their photos and rates. Ones that were deleted are made again.',
         'On the site each one is marked "Example car". They never appear in search engines or the sitemap.',
         'A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.',
@@ -474,6 +489,29 @@ def build():
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
+    g.chapter('Chauffeur service',
+              'Visitors book a driver and a luxury car or van by the hour on carmacars.ca/chauffeur. The vehicles come from a partner\'s chauffeur price guide, each with a rate for 2 hours and a rate for 3 hours or more.',
+              blurb='Chauffeur requests: quote, confirm and close them; the vehicles and their hourly rates.')
+    g.flow([('Request', 'The visitor sends the date, hours and addresses'), ('Quote', 'You check with the partner and send the quote'),
+            ('Confirm', 'The client agrees and pays'), ('Done', 'Mark it completed after the trip')])
+    g.task('The requests', f'{P("Bookings", "Chauffeur")}. Each request has its number (CH-1001 and up), the vehicle, the date and start time, the hours, the pickup and drop-off addresses, the passengers, the occasion and the notes.')
+    g.steps([
+        f'The {B("Quote")} column is the price for the client: the hours at the 2-hour rate (exactly 2 hours) or the 3+ hour rate (3 hours or more), before HST, then HST and the total. The line under it is the quote line to send.',
+        f'{B("Partner, CarmaCars")} shows the partner\'s sheet amount, what the partner is owed (the sheet amount less the cut) and what CarmaCars keeps (the markup plus the cut).',
+        f'Check the vehicle and the driver with the partner for that time. To change the vehicle or the hours, press {B("Change")}: the quote is worked out again.',
+        f'Send the quote line by email or phone, then press {B("Quoted")} and say how you sent it. The task in the queue is done.',
+        f'When the client agrees, take the payment (a payment link, or at pickup), press {B("Confirm")} and note how it is paid.',
+        f'After the trip press {B("Completed")}. {B("Decline")} or {B("Cancel")} closes a request with the reason.',
+    ])
+    g.tip(f'To do has a line {B("Chauffeur requests to quote")} while any request is new, and the card Chauffeur today lists the confirmed trips of the day.')
+    g.task('The vehicles and their rates', f'{P("Owners and partners", "Partners")} > the partner, card Chauffeur vehicles.')
+    g.steps([
+        'Each vehicle shows the partner\'s rates an hour and the client\'s (the markup added, rounded to the nearest dollar).',
+        f'Press {B("Edit")} to change a rate, give it its own markup or cut, change the passengers, or take it off the site.',
+        'A vehicle the partner also rents (chauffeur / rental) links to its car pages on the public page.',
+    ])
+    g.tip('Booking requests for cars, offers and payments do not cover chauffeur trips: a chauffeur request is a quote that you send and confirm here.', label='Good to know')
 
     # ---------------------------------------------------------------- 6
     g.chapter('Owners and onboarding',
@@ -774,6 +812,9 @@ def build():
     g.para('In Program settings, "Live visitors and live chat": the chat on or off, the AI first or not, its model, the neurons it may use a day '
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
+    g.task('What a visitor typed')
+    g.para(f'A visitor who typed contact details into a form shows them on their line: "Typed into the booking request, not sent: Maya Chen, maya@example.com", '
+           f'with {B("Email not confirmed")} until they open the link we emailed, and {B("Renter page")}.')
 
     # ---------------------------------------------------------------- the phone line (0085)
     g.chapter('Texts and calls (the Quo phone line)',
@@ -821,6 +862,16 @@ def build():
         f'Press {B("Call")} or {B("Email")}, then {B("Contacted")} (it is yours). {B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
         'A visitor who viewed 3 cars or more also gets a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.',
     ])
+    g.task('Contact details typed into forms', f'{P("Bookings", "Leads")}, the card "Typed into forms" at the top.')
+    g.steps([
+        'When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.',
+        'Each line: when, the name (and "On the site now"), email and phone, the form, and Sent or Not sent. "Email not confirmed" means the account was opened from the form and the person has not opened the link we emailed them yet.',
+        'After 30 minutes without sending, To do shows "Unfinished request from Maya Chen: follow up" (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.',
+        'Only what they typed is saved, and never used for offers without their consent.',
+    ])
+    g.tip('A new email gets an account at once (no password, email not confirmed) and one email "Continue your request" 30 minutes later, between 9:00 and 21:00. '
+          'Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays. '
+          f'It is on by default; the times and the To do are in {P("Settings", "Program")}, the card "Forms left unfinished".', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
         'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
@@ -925,6 +976,7 @@ def build():
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
+        'Sign-in by phone: codes by text from the CarmaCars number (on), US numbers (off until the Quo number is registered for US texting, A2P 10DLC), codes per number and per connection an hour, and whether a verified phone confirms an account like a confirmed email. Accepting an offer, signing and paying need a confirmed account; an account made by phone gives its email on the pay page before its first payment.',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
@@ -1032,6 +1084,9 @@ def build():
         f'Press {B("Save deck settings")}. Every change is in the audit log.',
     ])
     g.para(f'To hide or show it in one click, use {B("Hide the deck from investors")} or {B("Show the deck to investors")} on Investors.')
+    g.para('How we make money is one slide with the seven revenue lines: our own cars, owners\' cars fully managed with coverage under our fleet policy, '
+           'coverage under our fleet policy for owners who manage their own cars, Turo management, brokering partner fleets with the chauffeur service, detailing, and the body shop. '
+           'The features include maintenance and service tracking, phone number sign-in, saving contacts from unfinished forms and smart Turo car matching.')
     g.tip('The deck shows no internal costs, fleet counts or staff pay. Every example is labelled as an illustration, with the forward-looking statements notice '
           'on every slide and in the PDF.', label='Good to know')
 
@@ -1077,6 +1132,64 @@ def build():
         f'Supabase egress is not readable automatically: press {B("Enter a figure")} with the number from the Supabase dashboard.',
         'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',
     ])
+
+    # ---------------------------------------------------------------- maintenance
+    g.chapter('Maintenance and service',
+              'Every real car has its service items: oil, tire rotation, brakes, tires, the seasonal swap, the safety inspection, '
+              'the registration, battery, wipers, filters, alignment, fluids and the annual inspection. Record a service once and '
+              'the bill is made and the timers reset by themselves.',
+              blurb='The fleet overview, recording a service and its bill, tires and swaps, the odometer, intervals, reminders and blocks.')
+    g.task('The fleet overview', f'Open {P("Cars", "Maintenance")}.')
+    g.steps([
+        'Every real car (sample cars are left out), most urgent first: overdue, then due soon, then cars with no record yet, then all OK.',
+        'Each car shows what is due next, its odometer, its km a day, the tires on it and the date of its last service.',
+        'Use Show, Service item, Sort and the search (car, plate or owner) to narrow the list, then press Apply.',
+        f'Press {B("Record a service")} on a car to record it without leaving the list.',
+    ])
+    g.table([
+        ['Overdue', 'Past its km or its date (whichever came first), or expired'],
+        ['Due soon', 'Within 1,000 km or 14 days of it (each item may have its own; inspections and registration: 30 days)'],
+        ['Unknown', 'No record yet: record the last time it was done'],
+        ['OK', 'Done, and not due soon'],
+    ], head=['Status', 'Means'])
+    g.task('Record a service in one step', f'From the overview, the car\'s {B("Maintenance")} tab, or a To do line.')
+    g.steps([
+        'Tick what was done. The items due are ticked already.',
+        'Check the date and the odometer (filled with the current reading). Type the shop, the cost before HST and the HST (worked out at 13%, change it to match the receipt).',
+        'Who pays: the owner (deducted on the owner\'s next statement, owner agreement 11.1; the default for an owner\'s car), CarmaCars (a company expense; the default for a company car), a claim (a repair cost on the claim), the renter (a charge at cost on the rental), or no charge.',
+        f'Leave {B("The bill is in: bill it now")} ticked to make the bill now, or untick it and press {B("Bill now")} on the record when the bill comes in. Add the receipt.',
+        f'Press {B("Record the service")}. Each item done is OK again, with its next date and km.',
+    ])
+    g.bullets([
+        'An inspection or the registration: type the new expiry date, or leave it empty for 12 months from the service.',
+        'Tires: type the tread depth measured, or tick New tires put on (the old set is retired as replaced).',
+        'Seasonal swap: choose the set that went on and where the removed set is stored.',
+        'An expense entered under Money, Expenses with a car and a service category (Car service: oil change, brakes, and so on) records the service too. Voiding either voids the other.',
+        f'{B("Void")} on a record sets the timers back. A company expense is voided and an open owner cost is waived; a cost already on a statement or a claim stays, and the void is refused with what to do.',
+    ])
+    g.task('Tires and the seasonal swap', f'On the car\'s {B("Maintenance")} tab, under Tires.')
+    g.steps([
+        f'{B("Add a tire set")}: kind (summer, all-season, winter or all-weather), size, brand, tread depth, made (DOT) and bought dates, where it is stored, and whether it is on the car.',
+        f'{B("Put on the car")} swaps sets and keeps the swap in the history.',
+        'Tires are due soon at 4 mm of tread or 5.5 years old, overdue at 3 mm or 6 years.',
+        'The swap follows Ontario: winter tires on by December 1 (reminder from November 1), off after April 1 (reminder from April 1, overdue after May 1). All-weather tires need no swap.',
+    ])
+    g.tip('The Winter tires add-on is offered only on cars with a winter set (on the car or stored), or with no tire record yet. A car on winter tires says so on the add-on.')
+    g.task('The odometer')
+    g.bullets([
+        'The current odometer is the highest reading from handover and return reports, field staff moves, the rental\'s odometer out and in, listing photos, the car record, services and readings added by hand.',
+        'Km a day comes from the readings of the last 90 days (else the rentals, else 60 km a day). It gives the date a km interval will be reached.',
+        f'{B("Add a reading")} on the car; a reading lower than the last one needs the tick. An Admin can void a wrong reading.',
+    ])
+    g.task('Intervals, reminders and blocks', f'Open {P("Settings", "Maintenance")}.')
+    g.bullets([
+        f'Each item\'s default interval: {B("Change")}. Whichever of km and months comes first is due; 0 or empty means not by that measure.',
+        f'{B("Add an interval")} for a class or one car. A car\'s own comes first, then its class\'s, then the default. On the car\'s tab, {B("Set an interval for this car")} does the same.',
+        'Which expense categories are a service, and the items each records.',
+        'Reminders: one Fleet task per car with what is due, To do lines (cars due, services to bill, cars with no record yet) and one line in the morning digest. No other email.',
+        'Handover is refused while a recorded safety inspection or registration has expired. Block new bookings when overdue is off for every item until you turn it on.',
+    ])
+    g.para('Cars that were in the fleet before maintenance came in start as unknown, with one task each to record the last service. Enter what you know once.')
 
     # ---------------------------------------------------------------- email
     g.chapter('Email, backups and site health',

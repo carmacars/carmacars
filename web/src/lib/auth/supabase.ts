@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { required } from '@/lib/env';
 import { readSession } from './session-cookie';
 import { verifyAccessToken } from './jwt-verify';
-import type { AuthAdapter, AuthResult, SessionUser } from './types';
+import type { AuthAdapter, AuthResult, PhoneCodeResult, SessionUser } from './types';
 
 // Who is signed in, per server render, from the session cookie: the access token is verified with the project's
 // public signing key (jwt-verify.ts), so a portal page neither builds a Supabase client nor waits for Supabase Auth.
@@ -60,6 +60,22 @@ async function gotrue(path: string, body: unknown, opts: { service?: boolean; qu
   return { ok: r.ok, status: r.status, data, err };
 }
 
+// Supabase Auth's answers to a code request in plain words (the hook's own refusal arrives as its message).
+const BAD_CODE = 'That code does not match or has expired. Check the newest text from CarmaCars, or ask for a new code.';
+function codeFailure(e: { message?: string; code?: string; status?: number } | null | undefined): PhoneCodeResult & { ok: false } {
+  const code = e?.code ?? '';
+  const m = e?.message ?? '';
+  if (code === 'over_sms_send_rate_limit' || code === 'over_request_rate_limit' || e?.status === 429 || /rate limit|seconds|too many/i.test(m)) {
+    return { ok: false, code: 'rate_limited', message: 'We texted a code a moment ago. Wait a minute before asking for another.' };
+  }
+  if (code === 'sms_send_failed' || code === 'hook_timeout' || code === 'hook_payload_invalid_content_type' || /hook|sms|provider|send/i.test(m)) {
+    return { ok: false, code: 'send_failed', message: 'We could not text a code right now. Try again in a minute, or sign in with your email.' };
+  }
+  if (code === 'phone_provider_disabled' || code === 'sms_provider_disabled') return { ok: false, code: 'refused', message: 'Sign-in by phone is not available right now. Sign in with your email.' };
+  return { ok: false, code: 'refused', message: 'We could not text a code to this number. Check it, or sign in with your email.' };
+}
+const plusPhone = (p: string | null | undefined) => (p ? (p.startsWith('+') ? p : `+${p}`) : null);
+
 export function supabaseAuth(): AuthAdapter {
   return {
     async currentUser() { return (await who())?.user ?? null; },
@@ -107,6 +123,33 @@ export function supabaseAuth(): AuthAdapter {
       await gotrue('/recover', { email: email.trim().toLowerCase() }, { query: { redirect_to: redirectTo } }).catch(() => undefined);
       return { ok: true, user: { id: userId, email }, needsConfirmation: true };
     },
+    async openForCapture(userId, email, fullName) {
+      // no password, email_confirm false, and Supabase sends nothing for an account made this way
+      const r = await gotrue('/admin/users', { id: userId, email: email.trim().toLowerCase(), email_confirm: false, user_metadata: { full_name: fullName } }, { service: true });
+      if (!r.ok) return failure(r.err, 'We could not create the sign-in.');
+      return { ok: true, user: { id: userId, email }, needsConfirmation: true };
+    },
+    async claimForCapture(userId, email, password) {
+      const e = email.trim().toLowerCase();
+      const got = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, undefined, { service: true, method: 'GET' });
+      const u = got.data as { email?: string; email_confirmed_at?: string | null };
+      if (!got.ok || (u.email ?? '').toLowerCase() !== e || u.email_confirmed_at) return { ok: false, code: 'exists', message: 'An account with this email already exists.' };
+      const r = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, { password }, { service: true, method: 'PUT' });
+      if (!r.ok) return failure(r.err, 'We could not set the password.');
+      const { env } = await import('@/lib/env');
+      await gotrue('/resend', { type: 'signup', email: e }, { query: { redirect_to: `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/auth/callback` } }).catch(() => undefined);
+      return { ok: true, user: { id: userId, email: e }, needsConfirmation: true };
+    },
+    async continueLink(email, next) {
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      // a magic link of an existing account: verifying it signs in and confirms the address (as a recovery link does)
+      const r = await gotrue('/admin/generate_link', { type: 'magiclink', email: email.trim().toLowerCase() }, { service: true });
+      const d = r.data as { hashed_token?: string; properties?: { hashed_token?: string } };
+      const token = d.hashed_token ?? d.properties?.hashed_token;
+      if (!r.ok || !token) return { ok: false, message: 'We could not make the sign-in link.' };
+      return { ok: true, link: `${base}/auth/callback?token_hash=${encodeURIComponent(token)}&type=magiclink&next=${encodeURIComponent(next)}` };
+    },
     async accountLink(email, fullName, next, userId) {
       const e = email.trim().toLowerCase();
       const { env } = await import('@/lib/env');
@@ -139,6 +182,43 @@ export function supabaseAuth(): AuthAdapter {
         return { ok: false, message: 'This link has expired or was already used. Ask for a new one below.' };
       }
       return { ok: true, user: { id: data.user.id, email: data.user.email ?? '' } };
+    },
+    async sendPhoneCode(phone) {
+      const r = await gotrue('/otp', { phone, create_user: true, channel: 'sms' }).catch(() => null);
+      if (!r) return { ok: false, code: 'send_failed', message: 'We could not text a code right now. Try again in a minute, or sign in with your email.' };
+      return r.ok ? { ok: true } : codeFailure(r.err);
+    },
+    async verifyPhoneCode(phone, code) {
+      const s = await supabaseServer();
+      const { data, error } = await s.auth.verifyOtp({ phone, token: code, type: 'sms' });
+      if (error || !data.user) {
+        if (error && (error.status === 429 || /rate limit|too many/i.test(error.message))) return { ok: false, code: 'rate_limited', message: 'Too many tries. Wait a few minutes, then ask for a new code.' };
+        return { ok: false, code: 'credentials', message: BAD_CODE };
+      }
+      return { ok: true, user: { id: data.user.id, email: data.user.email ?? '', phone: plusPhone(data.user.phone) } };
+    },
+    async startPhoneChange(phone) {
+      const s = await supabaseServer();
+      const { error } = await s.auth.updateUser({ phone });
+      if (!error) return { ok: true };
+      // another account's number: the same answer as a code sent (nobody learns the number has an account)
+      if (error.code === 'phone_exists' || (error.status === 422 && /already|exists|registered/i.test(error.message))) return { ok: true };
+      return codeFailure(error);
+    },
+    async verifyPhoneChange(phone, code) {
+      const s = await supabaseServer();
+      const { data, error } = await s.auth.verifyOtp({ phone, token: code, type: 'phone_change' });
+      if (error || !data.user) return { ok: false, code: 'credentials', message: BAD_CODE };
+      return { ok: true, user: { id: data.user.id, email: data.user.email ?? '', phone: plusPhone(data.user.phone) ?? phone } };
+    },
+    async setEmail(email) {
+      const s = await supabaseServer();
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      const { error } = await s.auth.updateUser({ email: email.trim().toLowerCase() }, { emailRedirectTo: `${base}/auth/callback?next=/account` });
+      if (!error) return { ok: true };
+      const f = failure(error, 'We could not save this email.');
+      return f.code === 'exists' ? { ok: false, code: 'exists', message: 'This email is already used by another account. Sign in with it instead, or use another email.' } : { ok: false, code: f.code, message: f.message };
     },
     async mfaFactors() {
       const s = await supabaseServer();

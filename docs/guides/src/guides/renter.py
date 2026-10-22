@@ -104,6 +104,15 @@ def build():
     ])
     g.para('A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.')
 
+    g.task('Carry on later')
+    g.bullets([
+        'Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.',
+        'Every form that saves as you type says so under it: "Saved as you type so you can pick up where you left off.", with a link to the privacy policy.',
+        f'On the same phone or computer, open {U("carmacars.ca/account")} (or the request page again) to carry on, no password needed.',
+        'We send you one email, "Continue your request". One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.',
+        'Already have an account? The form says "You have an account: we sent you a sign-in link".',
+    ])
+
     # ---------------------------------------------------------------- 2
     g.chapter('Your offer',
               'Our offer is the confirmed price for your car and dates, with every fee and HST. '
@@ -297,6 +306,17 @@ def build():
         f'{B("Profile")}: your contact details ({B("Save")}), drivers, your Card on File and your marketing choice.',
     ], shot=S('renter/15-documents-desktop', 0, 0, 1440, 560, pins=[(1, 1322, 200)]))
     g.tip('Your legal name is locked once you are verified. To change it or your email, call or message us.')
+
+    g.task('Sign in with your phone number', 'No password needed: we text you a 6-digit code from the CarmaCars number.')
+    g.steps([
+        f'On {U("carmacars.ca/sign-in")}, press {B("Use my phone number instead")}.',
+        f'Enter your mobile number and press {B("Text me a code")}. Codes go to Canadian mobile numbers.',
+        f'Type the 6-digit code from the text (on most phones it fills itself in), or press {B("Sign in")}. The code works for 5 minutes; {B("Send a new code")} after a minute if it did not arrive.',
+        f'To sign in by phone every time, open {B("Profile")}, press {B("Add and verify my phone number")}, enter the code we text you, then choose {B("My phone number (a code by text)")} under Sign in with. The sign-in page then opens on your phone number.',
+    ])
+    g.tip('New here? On Create account, press Sign up with my phone number instead: your name, your mobile number and the code. '
+          'An account made by phone has no email yet: you can send requests, accept offers and sign, and the pay page asks for your email '
+          'before your first payment, for the receipts. A booking request you sent earlier with the same mobile number is added to your account once the code is checked.')
 
     g.reference(
         nav_rows=[('Trips', 'Your next step first, then current, upcoming and past trips'),

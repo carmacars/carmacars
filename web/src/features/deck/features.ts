@@ -34,7 +34,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'addons', title: 'Add-ons with every trip', what: 'Flowers, baby, child and booster seats, a chauffeur, an umbrella, a phone charger, a prepaid full tank and winter tires. Chosen in the request, on the car page, by staff, or later from the renter portal.',
         why: 'Each add-on is extra revenue that belongs to CarmaCars, not shared with the car\'s owner.', shots: [d('addons.jpg', 'Add-ons on a booking')] },
       { id: 'reviews', title: 'Documents and reviews', what: 'Every receipt, agreement and statement is in the renter\'s documents. After the trip, a review request goes out; good reviews can be published on the site.',
-        why: 'Reviews build trust for the next renter, and documents mean fewer emails asking for a copy.', shots: [d('renter-review.jpg', 'Leaving a review after a trip')] }
+        why: 'Reviews build trust for the next renter, and documents mean fewer emails asking for a copy.', shots: [d('renter-review.jpg', 'Leaving a review after a trip')] },
+      { id: 'phone-sign-in', title: 'Sign in with a phone number', what: 'Renters and owners can sign in or open an account with their mobile number and a one-time code by text, no password to remember. The account\'s phone then fills the booking form.',
+        why: 'Fewer forgotten passwords and abandoned sign-ins, and a verified phone number on every account that uses it.',
+        points: ['Type the mobile number and get a code by text', 'Enter the code: signed in, or a new account opened', 'Limits on codes per number and per network stop abuse', 'The phone is remembered as this device\'s way to sign in'] }
     ]
   },
   {
@@ -79,6 +82,9 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         why: 'Every rental, wherever it comes from, is in one system with its money and its paperwork.', shots: [d('cs-quote.jpg', 'A new quote')] },
       { id: 'fleet', title: 'Fleet: field jobs and daily checks', what: 'Deliveries, pickups, cleanings and photo shoots become field jobs, assigned and tracked. Daily checks list what needs attention today.',
         why: 'Cars are ready on time, and nothing depends on someone remembering.', shots: [d('fleet-jobs.jpg', 'Field jobs for the fleet team')] },
+      { id: 'maintenance', title: 'Maintenance and service tracking', what: 'Every car has its service items: oil, tires, brakes, inspections, the registration and more, due by kilometres or by date. Recording a service resets its reminders and makes its bill in one step.',
+        why: 'Cars stay safe and on the road, owners are billed correctly, and a car with an expired inspection or registration cannot be handed over.',
+        points: ['The whole fleet sorted by what is overdue or due soon', 'Record a service once: timers reset and the bill is made', 'Tire sets, seasonal swaps and odometer readings', 'One task per car with what is due, and a line in the morning digest'] },
       { id: 'tolls', title: 'Tolls and tickets matched to the renter', what: 'Toll notices and statements are read from PDFs or photos, each line matched to the rental that was on the road at that time, and charged with an administration fee.',
         why: 'Post-trip charges that most small operators lose are recovered by the system.', shots: [d('tolls-read.jpg', 'Reading a toll notice')] },
       { id: 'sales', title: 'Sales: a scorecard and commission tiers', what: 'Staff mark the rentals they sourced. Each person sees their week against the targets and their progress to the next commission tier.',
@@ -97,6 +103,9 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         why: 'Professional listings for every car at almost no cost, without a photographer or a copywriter.', shots: [d('admin-plate-editor.jpg', 'Covering a licence plate on a listing photo')] },
       { id: 'sync', title: 'Turo and calendar sync', what: 'Turo trip emails are read by rules and AI and block the car here. Calendars sync both ways with Turo, Getaround and other platforms by private links, with the turnaround time added.',
         why: 'Cars can earn on several platforms at once without double bookings.', shots: [d('calendar-sync.jpg', 'Calendar sync with other platforms')] },
+      { id: 'turo-matching', title: 'Smart Turo car matching, with guest details', what: 'Each Turo trip email is matched to the right car by itself, with no setup per car: the Turo car id, VIN, plate, make, model, trim and colour, and the trips already on file. Every match teaches it the next one. The guest\'s name, and the phone or email when Turo gives them, are kept with the trip.',
+        why: 'Turo trips block the right car with no one checking emails by hand, and the team can reach the guest about the trip.',
+        points: ['No name to set up on each car', 'Every match, automatic or confirmed, is learned for the next email', 'Only an email it cannot place goes to a person, with the best guesses first', 'The guest\'s details are kept with the trip, never used for marketing'] },
       { id: 'emails', title: 'Automated emails, sent by rules', what: 'Confirmations, reminders, offers, receipts, statements, owner and staff notices, recovery emails and digests, each sent at the right time, with daily limits and quiet hours.',
         why: 'Customers always know what happens next, and staff are told when something needs them.', shots: [d('admin-email.jpg', 'The email outbox')] },
       { id: 'guides', title: 'Guides that update themselves', what: 'Each portal has a user guide with screenshots. After every release, the guides are checked against the code and rewritten where something changed.',
@@ -119,14 +128,21 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         shots: [d('vehicle-pages.jpg', 'A car hire page for a 2024 Toyota Corolla LE in Scarborough')] },
       { id: 'chat', title: 'AI live chat, with a person behind it', what: 'Visitors ask questions in a chat that answers from our rules and prices. When it should, it hands the conversation to a person on our team.',
         why: 'Questions are answered at any hour, and real buyers reach a person.', shots: [d('chat.jpg', 'The live chat on the website')] },
-      { id: 'signals', title: 'Live visitors and buying signals', what: 'With the visitor\'s consent, staff see who is browsing now, which cars they look at, and when a request was started and left, with follow-up tasks.',
-        why: 'The team follows up with people who are close to booking.' },
+      { id: 'signals', title: 'Live visitor signals and instant leads', what: 'With the visitor\'s consent, staff see who is on the site right now, what they are looking at and how close they are to booking, and can start a live chat with any of them. What a visitor types into a form is kept as a lead even if it is never sent (see Saving contacts from unfinished forms).',
+        why: 'The team reaches people while they are still choosing a car, not after they have left.',
+        points: ['Who is on the site now, the page and the car they are looking at', 'Buying signals: a viewing spree, a return to the same car, a request started and left', 'A live chat with any visitor in one click, with a suggested first message', 'Details typed into any form are saved and a brand-new visitor gets an account at once (more in Saving contacts from unfinished forms)'],
+        shots: [d('live-visitors.jpg', 'Live visitors: who is on the site now, their signals and a suggested chat')] },
       { id: 'games', title: 'Discount games', what: 'Visitors who browse a lot may get a short game (spin the wheel, scratch card, cups and more) that always wins a small discount, in exchange for their contact details.',
         why: 'Contact details from people who were about to leave, at a capped cost per code.' },
+      { id: 'capture', title: 'Saving contacts from unfinished forms', what: 'The name, email and phone typed into a booking request, the contact form, List your car, the owner application, Create an account, a discount game or the live chat are saved as they are typed, and each form says so. The person can pick up where they left off, and the team can follow up.',
+        why: 'A request left half way is no longer a lost lead: it becomes a follow-up with a name and a way to reach them.',
+        points: ['Saved as each field becomes valid, even if the form is never sent', 'One email with a link to confirm and continue on any device', 'Unfinished forms show up as follow-ups for the team', 'Explained under every form, with a link to the privacy policy'] },
       { id: 'recovery', title: 'Booking recovery emails', what: 'A request left unfinished, an offer not answered or a payment not completed gets a timely reminder.',
         why: 'Bookings that would have been lost come back on their own.' },
-      { id: 'partners', title: 'Partner fleets and a marketplace partner', what: 'Partner rental companies list their cars with us and we broker them on commission. A marketplace partner also lists our cars under our policy.',
-        why: 'More cars to offer without buying them, and more renters without more ad spend.' }
+      { id: 'partners', title: 'Partner fleets and chauffeur service', what: 'Partner rental companies list their whole fleets on CarmaCars. A partner rental fleet\'s exotic and luxury cars are on the site with their own pages, and a chauffeur service books a driver and a luxury car or van by the hour.',
+        why: 'More cars and a new hourly service to sell without buying a single car, and every booking earns a markup plus a cut of the partner\'s rates.',
+        points: ['Partner rental companies list their fleets on CarmaCars, and we earn a markup plus a cut of their rates', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum'],
+        shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] }
     ]
   }
 ];

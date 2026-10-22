@@ -415,6 +415,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- live visitor signals (0086): the signals of each visit, the actions taken (each also a chat, promo code or
                             -- task) and cars viewed together per day; the rules and settings Admins change are audited
                             'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily',
+                            -- contact capture (0090): what is typed into forms, saved on every blur (no money, pricing or status); the
+                            -- account it opens is a users row (audited), confirmation and closing are on capture_accounts and in users
+                            'contact_captures', 'capture_accounts', 'capture_sessions', 'capture_session_items',
                             -- places (0095): gazetteer data loaded by the places workflow (each run recorded in place_imports); the
                             -- regions, terms and services Admins change are audited
                             'places', 'places_staging', 'place_imports')

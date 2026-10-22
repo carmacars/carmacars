@@ -26,7 +26,7 @@ export default async function Fleet() {
   const used = classes.map((c) => c.code).filter((code) => fleet.some((car) => car.classes.includes(code)));
   return (
     <div className="p-fleet" data-page="fleet">
-      <JsonLd graph={[breadcrumbLd(trail, '/cars'), { '@type': 'ItemList', name: `${s.brand_name} fleet`, itemListElement: fleet.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${siteUrl()}/cars/${c.slug}`, name: `${c.year} ${c.make} ${c.model}` })) }]} />
+      <JsonLd graph={[breadcrumbLd(trail, '/cars'), { '@type': 'ItemList', name: `${s.brand_name} fleet`, itemListElement: fleet.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${siteUrl()}/cars/${c.slug}`, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}` })) }]} />
       <section className="page-head on-dark">
         <div className="wrap">
           <Crumbs trail={trail} />

@@ -28,17 +28,9 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
             {uses.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
             <li><Link prefetch={false} href="/guides">Guides</Link></li>
           </ul></nav>
-          <nav aria-label="Services"><h2>Services</h2><ul>
-            <li><Link prefetch={false} href="/car-rental/toronto">Car rental in Toronto</Link></li>
-            <li><Link prefetch={false} href="/car-rental/airport">Airport car rental</Link></li>
-            <li><Link prefetch={false} href="/car-rental/insurance-replacement">Insurance replacement rental</Link></li>
-            <li><Link prefetch={false} href="/detailing">Car detailing</Link></li>
-            <li><Link prefetch={false} href="/body-shop">Auto body shop</Link></li>
-          </ul></nav>
           {places.length > 0 && <nav aria-label="Locations"><h2>Locations</h2><ul>
             {places.map((l) => <li key={l.slug}><Link prefetch={false} href={l.path}>{l.name}</Link></li>)}
             <li><Link prefetch={false} href="/car-rental">All areas</Link></li>
-            <li><Link prefetch={false} href="/car-rental/ontario">Car rental across Ontario</Link></li>
           </ul></nav>}
           <div className="footer-contact"><h2>Talk to us</h2><ul>
             {s.phone && <li><a href={`tel:${s.phone}`}>{s.phone_display}</a><span>Phone and 24-hour roadside line</span></li>}
@@ -58,6 +50,15 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
             <li><CookiePrefsButton /></li>
           </ul></nav>
         </div>
+        {/* Browse (owner, October 22, 2026): the one quiet way into the place and service pages; they link on among themselves */}
+        <nav aria-label="Browse" className="footer-browse"><h2>Browse</h2><ul>
+          <li><Link prefetch={false} href="/car-rental/toronto">Car rental in {s.city}</Link></li>
+          <li><Link prefetch={false} href="/car-rental/gta">Car rental across the GTA</Link></li>
+          <li><Link prefetch={false} href="/car-rental">All rental areas and terms</Link></li>
+          <li><Link prefetch={false} href="/detailing">Car detailing</Link></li>
+          <li><Link prefetch={false} href="/body-shop">Auto body shop</Link></li>
+          <li><Link prefetch={false} href="/buy/cars-for-sale/toronto">Buying a car</Link></li>
+        </ul></nav>
         <div className="footer-legal">
           <span>{s.brand_name}. {s.service_area}, Canada.</span>
           <span>Prices in Canadian dollars, before HST unless stated.</span>

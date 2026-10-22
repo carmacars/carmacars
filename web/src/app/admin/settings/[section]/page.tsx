@@ -20,6 +20,7 @@ import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
+import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
+  ['Maintenance', (k) => k.startsWith('maint_')],
   ['Owners and fleet', (k) => /^(notice_period|free_retransfer|owner_|retransfer|total_loss|min_fleet|fleet_warning|safety_|fee_change|trackers_available|tracker_|plate_renewal|turo_|provisional_)/.test(k)],
   ['Tolls and damage', (k) => /^(toll_|damage_|incident_)/.test(k)],
   ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
@@ -53,8 +55,10 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Vehicle pages', (k) => k.startsWith('vpage_')],
+  ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
+  ['Sign-in by phone', (k) => k.startsWith('signin_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
@@ -105,6 +109,9 @@ export default async function Section({ params }: { params: Promise<{ section: s
           </details>))}</Card>))}
       <Card title="Add a block"><SaveForm table="site_content_blocks" label="Add" fields={[{ name: 'block_key', label: 'Key', required: true }, { name: 'page', label: 'Page', required: true }, { name: 'kind', label: 'Kind', type: 'select', options: [['text', 'Text'], ['rich_text', 'Rich text'], ['faq', 'FAQ'], ['list', 'List']], required: true, value: 'text' }, { name: 'body', label: 'Text', type: 'textarea' }, { name: 'is_published', label: 'Published', type: 'bool', value: true }]} /></Card>
     </>);
+  case 'maintenance':
+    // the maintenance tracker (0089): items, intervals by class and car, service categories, reminders
+    return (<>{head}<MaintenanceSettings s={await door<MaintSettings>(user.id, 'ops_read', 'maint_settings')} program={s.program} /></>);
   case 'addons': {
     // add-ons (0069): the catalogue, its prices and rules; Fleet sets stock from its own screen
     const data = await door<AddonsData>(user.id, 'ops_read', 'addons');

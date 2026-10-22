@@ -76,7 +76,7 @@ test('coverage option 2: the renter who paid with a credit card in their name co
   await sql`delete from app.rate_limit_hits`;
   const r = await account(sql, 'renter', 'Casey Card');
   const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and (not v.is_sample or v.sample_bookable)
-                            and app.vehicle_bookable(v.id) order by random() limit 1`;
+                            and app.vehicle_bookable(v.id) and v.partner_id is null order by random() limit 1`;
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
   const start = 500 + Math.floor(Math.random() * 300);
   const req = {

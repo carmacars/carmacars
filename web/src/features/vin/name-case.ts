@@ -11,7 +11,7 @@ export const BRANDS: Record<string, string> = {
 };
 export const ACRONYMS = ['SE', 'SEL', 'LE', 'XLE', 'XSE', 'LX', 'EX', 'EX-L', 'FE', 'GT', 'GTI', 'GLI', 'GTE', 'XLT', 'LT', 'LS', 'LTZ', 'RS', 'SR', 'SV',
   'SL', 'AMG', 'AWD', 'FWD', 'RWD', '4WD', 'SUV', 'TDI', 'TSI', 'EV', 'HEV', 'PHEV', 'ES', 'IS', 'UX', 'SE-R', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'CLA',
-  'CLS', 'EQB', 'EQE', 'EQS', 'TRD'];
+  'CLS', 'EQB', 'EQE', 'EQS', 'TRD', 'ESV', 'EXT'];
 export const SPECIAL: Record<string, string> = { 'R-LINE': 'R-Line', 'S-LINE': 'S-Line', XDRIVE: 'xDrive', SDRIVE: 'sDrive', SUPERCREW: 'SuperCrew', SUPERCAB: 'SuperCab' };
 
 const title = (w: string) => w.toLowerCase().replace(/(^|[^\p{L}\p{N}])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());

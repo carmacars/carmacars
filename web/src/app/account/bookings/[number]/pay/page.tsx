@@ -6,20 +6,27 @@ import { bookingPath, carName } from '@/features/portal/status';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { PayForm } from '@/features/portal/PayForm';
 import { myBooking } from '@/server/portal/data';
+import { rpc } from '@/lib/db/repo';
 import { PUSH_BACK } from '@/server/portal/payment';
+import { ReceiptEmail } from '@/features/portal/ReceiptEmail';
+import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Pay for your booking', path: '/account/bookings', noindex: true, description: 'Pay to confirm your booking.' });
 
 // Pay (02 section 6): the lines as stored, the deposit rule, and the card form.
 export default async function PayPage({ params }: { params: Promise<{ number: string }> }) {
-  const { b } = await myBooking((await params).number, 'pay');
+  const { b, user } = await myBooking((await params).number, 'pay');
   // a rental added while already underway with a payment link (0074) is paid here after signing, on trip
   const live = !!b.link_due;
   if (!live && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)) redirect(bookingPath(b.booking_number));
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
   if ((b.status === 'pending_payment' || live) && !b.agreement?.renter_signed_at) redirect(bookingPath(b.booking_number, 'sign'));
+  // 0093: a car marked "no credit card needed" takes a debit card
+  const debitOk = (await rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, { role: 'service_role' }).catch(() => false)) === true;
   const pushedBack = b.status === 'requested' && b.offers[b.offers.length - 1]?.status === 'withdrawn';
+  // a confirmed account, and an email for the receipts before the first payment (0091)
+  const gate = await accountGate(user.id, 'pay');
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -37,7 +44,9 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
       ) : (
         <div className="pt-split">
           <section className="pt-card" aria-labelledby="pt-pay"><h2 className="d4" id="pt-pay">Card</h2>
-            <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} />
+            {gate.ok ? <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
+              : gate.reason === 'email_needed' ? <ReceiptEmail path={bookingPath(b.booking_number, 'pay')} />
+              : <p className="alert alert--error" role="alert" data-testid="pay-unconfirmed"><span>{GATE_MESSAGE} <Link prefetch={false} className="link" href="/account/profile">Profile</Link></span></p>}
           </section>
           <aside className="pt-split__aside pt-first">
             <section className="pt-card" aria-labelledby="pt-sum"><h2 className="d4" id="pt-sum">What you pay now</h2>

@@ -19,6 +19,8 @@ import { adminOwners } from '@/server/admin/data';
 import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
 import { autoCardFields, autoSource } from '@/features/supply/auto-defaults';
 import '@/features/admin/todo/todo.css';
+import { CarMaintenancePanel } from '@/features/maintenance/Views';
+import type { CarMaintenance } from '@/features/maintenance/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', noindex: true, description: 'One vehicle: rates, fees, calendar, listing.' });
@@ -70,7 +72,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
-      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and coverage'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and coverage'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      {tab === 'maintenance' && <CarMaintenancePanel m={await door<CarMaintenance>(user.id, 'ops_read', 'maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Identity and status">

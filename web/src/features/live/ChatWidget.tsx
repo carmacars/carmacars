@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
 import { onBeaconReply, pageContext, sessionId, setChatOpen, visitorId, type BeaconReply } from './beacon';
+import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Live chat (migration 0060), the visitor's side: a button in the corner, loaded after the page. The CarmaCars
 // assistant answers first; "Talk to a person" (or anything it should not answer) brings a staff member, who can also
@@ -233,11 +234,14 @@ export function ChatWidget() {
 
 function ContactForm({ token, onDone }: { token: string; onDone: () => void }) {
   const [v, setV] = useState({ name: '', email: '', phone: '', transcript: true });
+  // contact capture (0090): the name, email and phone are saved as each becomes valid, as in every other form
+  const cap = useCapture('chat');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   return (
-    <form className="ccw-contact" data-testid="chat-contact" onSubmit={async (e) => {
+    <form className="ccw-contact" data-testid="chat-contact" onBlur={() => cap.capture({ name: v.name, email: v.email, phone: v.phone })} onSubmit={async (e) => {
       e.preventDefault();
+      cap.cancel();
       if (!v.email.trim() && !v.phone.trim()) { setErr('Give an email or a phone number.'); return; }
       setBusy(true); setErr('');
       const r = await post<{ ok: boolean; error?: string }>({ action: 'contact', token, ...v }).catch(() => ({ ok: false, error: 'Try again.' }));
@@ -251,6 +255,7 @@ function ContactForm({ token, onDone }: { token: string; onDone: () => void }) {
       <label className="check"><input type="checkbox" checked={v.transcript} onChange={(e) => setV({ ...v, transcript: e.target.checked })} /><span>Email me a copy of this chat</span></label>
       {err && <p className="ccw-error" role="alert">{err}</p>}
       <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>Send my details</button>
+      <SavedAsYouType />
     </form>
   );
 }

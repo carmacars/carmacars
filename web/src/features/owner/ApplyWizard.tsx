@@ -8,6 +8,7 @@ import { Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
 import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
+import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
@@ -85,6 +86,8 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
   }, [s, done]);
 
   const o = s.owner;
+  // contact capture (0090): the name, email and phone are saved as each becomes valid; the server finds this draft by its cookie
+  const cap = useCapture('owner_application');
   const setOwner = (p: Partial<ApplyOwner>) => setS((x) => ({ ...x, owner: { ...x.owner, ...p } }));
   const setVehicle = (i: number, p: Partial<ApplyVehicle>) => setS((x) => ({ ...x, vehicles: x.vehicles.map((v, k) => (k === i ? { ...v, ...p } : v)) }));
   const clearErr = (k: string) => setErrs((e) => (e[k] ? { ...e, [k]: '' } : e));
@@ -235,7 +238,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
       </div>
 
       {s.step === 0 && (
-        <section className="pt-card" aria-label="About you">
+        <section className="pt-card" aria-label="About you" onBlur={() => cap.capture({ name: [o.first_name, o.middle_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' '), email: o.email, phone: o.phone })}>
           {ownerOnFile && <p className="pt-note">You already have an owner account. These vehicles are added to it; details you change here update your record.</p>}
           <Choice name="ow_type" legend="I am enrolling as" value={o.owner_type} options={[['individual', 'An individual'], ['corporation', 'A corporation']] as const} onChange={(v) => { setOwner({ owner_type: v }); clearErr('owner_type'); }} err={errs.owner_type} />
           <div className="field-row field-row--3">
@@ -275,6 +278,8 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <Field id="ap-email" label="Email" err={errs.email}><input className="input" type="email" {...aria('ap-email', errs.email)} value={o.email} onChange={(e) => { setOwner({ email: e.target.value }); setResumeEmail(e.target.value); clearErr('email'); }} autoComplete="email" readOnly={signedIn && !!o.email} /></Field>
             <Field id="ap-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" {...aria('ap-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" /></Field>
           </div>
+          <CaptureNote reply={cap.reply} next="/list-your-car/apply" />
+          <SavedAsYouType />
           {o.owner_type === 'individual' && (
             <div className="field-row">
               <Field id="ap-lic" label="Driver's licence number" err={errs.licence_number} hint="It goes on the registry forms. Never saved in a draft: enter it again if you come back later."><input className="input" {...aria('ap-lic', errs.licence_number, 'hint')} value={o.licence_number} onChange={(e) => { setOwner({ licence_number: e.target.value.toUpperCase() }); clearErr('licence_number'); }} placeholder="A1234-12345-12345" autoComplete="off" /></Field>

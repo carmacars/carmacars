@@ -1,0 +1,32 @@
+/* The maintenance tracker (migration 0089): the fleet overview's car cards, chips and filters, the record pop-up. */
+.mt-tally { display: flex; flex-wrap: wrap; gap: var(--s-2); list-style: none; margin: 0; padding: 0; }
+.mt-tally__a { display: inline-flex; gap: 0.35rem; align-items: baseline; padding: 0.35rem 0.7rem; border: 1px solid var(--line-strong, var(--grey-300)); background: var(--surface, var(--white)); color: var(--text); text-decoration: none; min-height: 40px; align-items: center; }
+.mt-tally__a:hover, .mt-tally__a:focus-visible { border-color: var(--text); }
+.mt-filters { display: grid; gap: var(--s-2) var(--s-3); grid-template-columns: minmax(0, 1fr); align-items: end; }
+@media (min-width: 40rem) { .mt-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .mt-filters { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; } }
+.mt-filters .field { margin: 0; }
+.mt-filters .select, .mt-filters .input { min-height: 40px; }
+.mt-cars { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 64rem) { .mt-cars { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 90rem) { .mt-cars { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.mt-car { border: 1px solid var(--line, var(--grey-200)); border-left-width: 4px; background: var(--surface, var(--white)); padding: var(--s-3); display: grid; gap: var(--s-2); min-width: 0; }
+.mt-car.is-overdue { border-left-color: var(--red-600); }
+.mt-car.is-due_soon { border-left-color: #8a5a00; }
+.mt-car.is-unknown { border-left-style: dashed; border-left-color: var(--grey-500); }
+.mt-car p { margin: 0; overflow-wrap: anywhere; }
+.mt-car__head { display: flex; justify-content: space-between; gap: var(--s-2); align-items: flex-start; flex-wrap: wrap; }
+.mt-car__name { font-weight: 700; }
+.mt-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; list-style: none; margin: 0; padding: 0; }
+.mt-chips .ad-b { white-space: normal; }
+.mt-picks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 40rem) { .mt-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mt-picks .ad-b { margin-left: 0.25rem; }
+.mt-items { border: 0; padding: 0; margin: 0 0 var(--s-3); min-width: 0; }
+.mt-sub { margin: var(--s-2) 0 0 2.25rem; }
+.mt-summary { margin: var(--s-3) 0; }
+.mt-dialog { width: min(48rem, calc(100vw - 2rem)); }
+.mt-void { text-decoration: line-through; color: var(--text-2); }
+.mt-history { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.mt-history li { border-top: 1px solid var(--line, var(--grey-200)); padding-top: var(--s-2); }
+.mt-odo { margin: 0 0 var(--s-3); }

@@ -19,6 +19,7 @@ def build():
             f'Invited by us? Open the invitation email within 24 hours, choose a password and press {B("Save the new password")}.',
             f'Next time, go to {U("carmacars.ca/sign-in")}, enter your Email and Password and press {B("Sign in")}.',
             f'Forgot your password? Press {B("Forgot your password?")} on the sign-in page and follow the email.',
+            f'Rather use your phone? Press {B("Use my phone number instead")} on the sign-in page, enter your mobile number and the 6-digit code we text you. Add and verify your number first under {B("Profile")}, Sign-in, so it opens your owner portal.',
         ],
         shot=S('public/09-sign-in-phone', 0, 595, 390, 1180, pins=[(3, 372, 1041)]),
         note='Email links work for 24 hours, once. If a link has expired, the page it opens has '
@@ -83,6 +84,14 @@ def build():
               pins=[(1, 690, 351), (2, 1057, 476), (3, 335, 1145), (4, 1180, 992)]))
     g.para('While a car is being set up, its page also shows the onboarding checklist and the uploads it still needs: '
            'the ownership permit, the lender\'s permission and the insurance.')
+
+    g.task('Service and maintenance', 'On a car\'s page, under Service and maintenance.')
+    g.bullets([
+        'What is due on your car (oil change, tires, brakes, inspections, the registration) and the tires on it.',
+        'Every service we recorded: the date, the odometer, the shop, what was done and who paid.',
+        'You pay for maintenance and routine wear (your agreement, 11.1). A service we paid for shows its amount and is deducted on your next statement as an owner cost.',
+        'It is read only: call or message us about a service.',
+    ])
 
     g.task('Take new listing photos', 'Good photos get more bookings. You can shoot them yourself with your phone.')
     g.steps([

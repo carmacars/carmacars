@@ -4,6 +4,7 @@ import { contactSchema, fieldErrors, ownerSchema, placeLeadSchema, vehicleLeadSc
 import { consentTexts } from '@/server/booking-data';
 import { DbError, rpc } from '@/lib/db/repo';
 import { requestMeta } from '@/server/request';
+import { captureDone } from '@/server/capture';
 
 // Public enquiries go to public.submit_lead (0022) as the server, after Turnstile. The function
 // rate-limits by address, raises the right task and emits the owner program events.
@@ -15,6 +16,8 @@ async function submit(kind: 'contact' | 'owner_program' | 'buyer' | 'finance' | 
   try {
     const r = (await rpc('submit_lead', { p: { kind, source: 'web', source_url: meta.referer, ...p }, p_ip: meta.ip ?? undefined }, { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; lead_id?: string; error?: string };
     if (!r.ok) return { ok: false, code: r.error ?? 'refused', message: r.error === 'rate_limited' ? 'Too many messages from this connection. Please try again later or call us.' : 'We could not send that. Please try again.' };
+    // the form was sent: the contact saved as it was typed (0090) is done, its lead and follow-up close
+    await captureDone(kind === 'contact' ? 'contact' : 'owner_lead');
     return { ok: true, data: { leadId: r.lead_id! } };
   } catch (e) {
     return { ok: false, code: 'db', message: e instanceof DbError ? e.message : 'We could not send that. Please try again.' };
@@ -25,7 +28,7 @@ export async function submitContact(_: unknown, fd: FormData): Promise<ActionRes
   const parsed = contactSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   const v = parsed.data;
-  return submit('contact', { name: v.name, email: v.email, phone: v.phone || null, message: v.message, payload: { topic: TOPICS[v.topic], booking_number: v.ref || null } }, fd.get('cf-turnstile-response'));
+  return submit('contact', { name: v.name, email: v.email || null, phone: v.phone || null, message: v.message, payload: { topic: TOPICS[v.topic], booking_number: v.ref || null } }, fd.get('cf-turnstile-response'));
 }
 
 export async function submitOwnerApplication(_: unknown, fd: FormData): Promise<ActionResult<{ leadId: string }>> {
