@@ -1,0 +1,3 @@
+CA.08	Ontario	Ontario	6093943
+US.NY	New York	New York	5128638
+MX.14	Jalisco	Jalisco	4004156

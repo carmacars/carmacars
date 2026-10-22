@@ -56,3 +56,14 @@ export async function seoAct<T = Record<string, unknown>>(action: 'car_copy_edit
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
+
+// Admin > Settings > Search, places and terms (migration 0095): the tier switches, the quality gate, a region on or off,
+// the delivery reach, the size cap and the buying notice; a term or a service. The database checks it is an Admin.
+export async function placesAct(action: 'place_settings_save' | 'place_term_save' | 'shop_service_save', p: Record<string, unknown>): Promise<R> {
+  try {
+    const { user, aal } = await me();
+    const data = await door(user.id, 'admin_do', action, p, aal);
+    revalidatePath('/admin/settings/search');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}

@@ -47,3 +47,21 @@ export function fieldErrors(e: z.ZodError): FieldErrors {
   return out;
 }
 export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; code: string; message: string; fieldErrors?: FieldErrors };
+
+// A request from a place page, /detailing or /body-shop (migration 0095): a car to buy, financing or leasing, a car in a
+// place we do not serve yet, detailing or body work. The details depend on the kind; a way to reply is required.
+export const placeLeadSchema = z.object({
+  kind: z.enum(['buyer', 'finance', 'place_request', 'detailing', 'bodyshop']),
+  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  email,
+  phone: optPhone.optional().default(''),
+  vehicle: z.string().trim().max(120).optional().default(''),
+  service: z.string().trim().max(120).optional().default(''),
+  damage: z.string().trim().max(500).optional().default(''),
+  place: z.string().trim().max(120).optional().default(''),
+  date: z.string().trim().max(40).optional().default(''),
+  where: z.enum(['', 'mobile', 'drop_off']).optional().default(''),
+  insurance_claim: z.enum(['', 'yes', 'no']).optional().default(''),
+  term: z.string().trim().max(80).optional().default(''),
+  message: z.string().trim().max(2000, 'Keep it under 2,000 characters.').optional().default('')
+});

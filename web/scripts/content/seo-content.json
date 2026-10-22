@@ -1136,9 +1136,77 @@
    }
   },
   {
+   "slug": "airport",
+   "kind": "use",
+   "name": "Airport car rental",
+   "sort_order": 200,
+   "facts": {
+    "rule": "delivery to Toronto Pearson (YYZ) and Billy Bishop (YTZ) for the car's delivery fee; an airport surcharge may apply",
+    "airports": [
+     "Toronto Pearson (YYZ)",
+     "Billy Bishop (YTZ)"
+    ],
+    "pearson_terminals": [
+     "Terminal 1",
+     "Terminal 3"
+    ],
+    "highways": [
+     "401",
+     "427"
+    ],
+    "billy_bishop_meeting": "Eireann Quay at the foot of Bathurst Street",
+    "notice": "{{notice}}",
+    "nearby": [
+     "pearson-airport-yyz",
+     "billy-bishop-airport-ytz",
+     "car-delivery",
+     "union-station"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Toronto Airport Car Rental, YYZ and YTZ | CarmaCars",
+    "meta_description": "Airport car rental in Toronto: we meet you with the car at Pearson (YYZ) or Billy Bishop (YTZ) at the time you choose. No counter, prices confirmed first.",
+    "h1": "Airport car rental in Toronto: Pearson and Billy Bishop",
+    "intro": "CarmaCars brings your rental car to both Toronto airports: Toronto Pearson (YYZ), at Terminal 1 or Terminal 3, and Billy Bishop (YTZ), where we meet you at Eireann Quay on the mainland. There is no rental counter and no shuttle to a lot. Send a request with your flight and the time you land, and we confirm the car, the price and the meeting point before you pay anything. You can also end a rental at either airport before you fly. Each car's page shows its delivery fee, and an airport surcharge may apply.",
+    "sections": [
+     {
+      "heading": "Pearson or Billy Bishop",
+      "body": "Pearson is the main airport, west of the city near the 401 and the 427. We meet you at the terminal you fly into, Terminal 1 or Terminal 3, at the time agreed in your offer. Billy Bishop is on the Toronto Islands, and there are no cars on the island side: passengers cross to the mainland through the tunnel or on the ferry, and we meet you at Eireann Quay at the foot of Bathurst Street. Each airport has its own page with more detail."
+     },
+     {
+      "heading": "Flights that land late or early",
+      "body": "Handovers happen at any hour, so a flight that lands at midnight or at dawn is no problem. Put your airline and flight number in the request and send it at least {{notice}} ahead. Flights change, so message us if yours is early or late, and we plan the handover around the new time as agreed in your offer. Call or text us when you have your bags."
+     },
+     {
+      "heading": "Ending the rental before a flight",
+      "body": "Ending a rental at the airport works the same way in reverse. Choose the airport as the return place in your request, and we meet you at the terminal or at Eireann Quay at the agreed time. Leave enough time to walk around the car with us, and bring it back with the fuel or charge it had at pickup so that no fuel charge is added to your statement."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you have a rental counter at the airport?",
+      "answer": "No. We meet you with the car at your terminal at Pearson, or at Eireann Quay for Billy Bishop, at the time confirmed in your offer."
+     },
+     {
+      "question": "How much does airport delivery cost?",
+      "answer": "Each car's page shows its delivery fee, and an airport surcharge may apply. Your offer shows the full price before you pay."
+     },
+     {
+      "question": "Can I return the car at the airport?",
+      "answer": "Yes. Choose the airport as the return place in your request, and we collect the car from you there."
+     },
+     {
+      "question": "How much notice do you need?",
+      "answer": "At least {{notice}}. For a long weekend or a holiday, send the request as early as you can."
+     }
+    ]
+   }
+  },
+  {
    "slug": "monthly",
    "kind": "use",
-   "name": "Monthly car rental",
+   "name": "Monthly and long-term car rental",
    "sort_order": 210,
    "facts": {
     "rule": "one booking runs up to {{maxDays}} days and can be renewed with a new agreement",
@@ -1152,9 +1220,9 @@
    },
    "match": {},
    "copy": {
-    "seo_title": "Monthly Car Rental in Toronto | CarmaCars",
-    "meta_description": "Rent a car by the month in Toronto. Monthly rates on every car, delivery to your door, and a simple renewal when the month ends.",
-    "h1": "Monthly car rental in Toronto",
+    "seo_title": "Monthly and Long-Term Car Rental in Toronto | CarmaCars",
+    "meta_description": "Monthly and long-term car rental in Toronto: monthly rates on every car, delivery to your door, and a renewal each month for as long as you need.",
+    "h1": "Monthly and long-term car rental in Toronto",
     "intro": "A monthly rental fills the gap when you have just moved to Toronto, your own car is off the road, or you need a car for a work project. Every car below has a monthly rate for {{maxDays}} days, shown on its card and its page. You send a request with your dates, we confirm the car and the price, and we deliver the car to your door. When the month ends, you can renew it for another month.",
     "sections": [
      {
@@ -1298,9 +1366,73 @@
    }
   },
   {
+   "slug": "under-25",
+   "kind": "use",
+   "name": "Car rental under 25",
+   "sort_order": 235,
+   "facts": {
+    "rule": "drivers {{minAge}} and older can rent every car; drivers under {{fullAge}} pay a young driver fee for each day",
+    "bands": [
+     "{{youngA}}",
+     "{{youngB}}"
+    ],
+    "coverage_options": 3,
+    "toll_road": "407 ETR",
+    "example_age": 21,
+    "licence_classes": [
+     "G",
+     "G2"
+    ],
+    "nearby": [
+     "young-drivers",
+     "economy",
+     "monthly"
+    ]
+   },
+   "match": {},
+   "copy": {
+    "seo_title": "Car Rental Under 25 in Toronto | CarmaCars",
+    "meta_description": "Car rental in Toronto for drivers under 25. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent; a young driver fee applies each day.",
+    "h1": "Car rental under 25 in Toronto",
+    "intro": "Being under 25 does not keep you out of a rental car at CarmaCars. Every car in our fleet takes drivers {{minAge}} and older with an Ontario {{licence}} licence, and drivers under {{fullAge}} pay a young driver fee for each day of the rental. There is no maximum, and each car shows its own fee on its page, so you see the cost before you send a request. The full price, fee included, is in your offer before you pay anything.",
+    "sections": [
+     {
+      "heading": "The young driver fee",
+      "body": "There are two age bands, {{youngA}} and {{youngB}}. The usual fee is {{ydA}} a day for the first band and {{ydB}} a day for the second, and some cars have their own. It is added for each day of the rental as a separate line in your offer. An additional driver under {{fullAge}} pays it too, on top of the additional driver fee."
+     },
+     {
+      "heading": "What to bring",
+      "body": "Your Ontario {{licence}} licence, valid for the whole rental, and a credit card in your own name for the payment and the deposit. Before pickup you upload photos of your licence and a selfie, and at the handover we check the original licence and the card. For damage to the car you choose one of the three coverage options before pickup."
+     },
+     {
+      "heading": "Keeping the cost down",
+      "body": "A trip of {{weekFrom}} days or more uses the weekly rate, and shorter trips never cost more than it. Picking the car up from our location costs nothing, while delivery adds the car's delivery fee. Return the car with the fuel or charge it had, keep to the kilometres included, and avoid the 407 ETR unless you want to pay its tolls plus {{tollFee}} for each notice."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car in Toronto if I am under 25?",
+      "answer": "Yes. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and drivers under {{fullAge}} pay a young driver fee for each day."
+     },
+     {
+      "question": "How much is the fee under 25?",
+      "answer": "Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}, with no maximum. Each car's page shows its fee."
+     },
+     {
+      "question": "Can I rent at 21 with a G2?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car."
+     },
+     {
+      "question": "Is every car open to drivers under 25?",
+      "answer": "Every car takes drivers aged {{youngB}}. Most also take drivers aged {{youngA}}, and each car's page says so."
+     }
+    ]
+   }
+  },
+  {
    "slug": "young-drivers",
    "kind": "use",
-   "name": "Car rental for young drivers",
+   "name": "Car rental at 18 to 20",
    "sort_order": 240,
    "facts": {
     "rule": "drivers {{minAge}} and older with an Ontario {{licence}} licence; a young driver fee for each day under {{fullAge}}",
@@ -1315,15 +1447,20 @@
      "monthly",
      "weekly",
      "economy"
+    ],
+    "ages": [
+     "18",
+     "19",
+     "20"
     ]
    },
    "match": {
     "young": true
    },
    "copy": {
-    "seo_title": "Young Driver Car Rental in Toronto | CarmaCars",
-    "meta_description": "Rent a car in Toronto as a young driver. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, with a young driver fee for each day.",
-    "h1": "Car rental for young drivers in Toronto",
+    "seo_title": "Car Rental for 18 to 20 Year Olds in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto at 18, 19 or 20. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent the cars listed here, with a daily young driver fee.",
+    "h1": "Car rental for drivers aged 18 to 20 in Toronto",
     "intro": "Many rental companies turn away young drivers or limit them to a few cars. At CarmaCars, drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and almost every car in the fleet takes drivers aged {{youngA}}. Drivers under {{fullAge}} pay a young driver fee for each day of the rental, with no maximum, and each car's page shows its own fee. The cars below take drivers aged {{youngA}} too.",
     "sections": [
      {
@@ -1341,8 +1478,8 @@
     ],
     "faq": [
      {
-      "question": "Can I rent a car at {{minAge}} in Toronto?",
-      "answer": "Yes, on the cars whose page says drivers {{youngA}} are accepted, with an Ontario {{licence}} licence and a credit card in your name."
+      "question": "Can I rent a car at 18 in Toronto?",
+      "answer": "Yes, on the cars listed here, which take drivers aged {{youngA}}, with an Ontario {{licence}} licence and a credit card in your name."
      },
      {
       "question": "How much is the young driver fee?",
@@ -1355,6 +1492,108 @@
      {
       "question": "Can I use a debit card?",
       "answer": "No. The payment and the deposit need a credit card in the renter's name."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "no-credit-card",
+   "kind": "use",
+   "name": "Car rental with no credit card",
+   "sort_order": 245,
+   "min_real_cars": 3,
+   "facts": {
+    "rule": "only cars marked no credit card needed; on those a debit card in the renter's name pays and holds the deposit",
+    "min_cars": 3,
+    "nearby": [
+     "under-25",
+     "monthly",
+     "economy"
+    ]
+   },
+   "match": {
+    "flags": [
+     "no_credit_card"
+    ]
+   },
+   "copy": {
+    "seo_title": "Car Rental With No Credit Card in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto without a credit card: on the cars listed here, a debit card in your name pays and holds the deposit. Prices confirmed first.",
+    "h1": "Car rental with no credit card in Toronto",
+    "intro": "Most of our cars need a credit card in the renter's name for the payment and the deposit. The cars listed on this page are the exceptions: on each of them, a debit card in your own name pays for the rental and holds the deposit. Each car's page says \"no credit card needed\" when it applies. If no car is listed, none is available that way right now.",
+    "sections": [
+     {
+      "heading": "How it works with a debit card",
+      "body": "Choose one of the cars below and send a request with your dates. We confirm the car and the price in an offer, and you pay with a debit card in your name. The deposit shown on the car's page is taken from the same card about {{depLead}} before pickup and released after the return, so make sure the account can cover it."
+     },
+     {
+      "heading": "Everything else is the same",
+      "body": "You still need an Ontario {{licence}} licence valid for the whole rental, and you upload photos of it and a selfie before pickup. At the handover we check the original licence and the card you paid with. The young driver fee, the kilometres included and the rules for tolls and fuel are the same as on every other car."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car in Toronto without a credit card?",
+      "answer": "Yes, on the cars listed on this page: a debit card in your name pays and holds the deposit."
+     },
+     {
+      "question": "Is the deposit different with a debit card?",
+      "answer": "The deposit is the one shown on the car's page, taken from your debit card about {{depLead}} before pickup."
+     },
+     {
+      "question": "Can I use someone else's card?",
+      "answer": "No. The card must be in the renter's own name."
+     }
+    ]
+   }
+  },
+  {
+   "slug": "insurance-included",
+   "kind": "use",
+   "name": "Car rental with insurance included",
+   "sort_order": 247,
+   "min_real_cars": 3,
+   "facts": {
+    "rule": "only cars whose owner's insurance comes with the car; the renter needs no auto policy of their own for those cars",
+    "min_cars": 3,
+    "nearby": [
+     "no-credit-card",
+     "under-25",
+     "monthly"
+    ]
+   },
+   "match": {
+    "flags": [
+     "insurance_included"
+    ]
+   },
+   "copy": {
+    "seo_title": "Toronto Car Rental, Insurance Comes With the Car | CarmaCars",
+    "meta_description": "Rent a car in Toronto that comes with its owner's insurance: on the cars listed here you need no auto policy of your own. Prices confirmed before you pay.",
+    "h1": "Car rental in Toronto where the insurance comes with the car",
+    "intro": "On most of our cars you choose one of three coverage options for damage to the car before pickup. The cars listed on this page are different: each is insured by the business that owns it, under a policy that covers renters, so you do not need an auto policy of your own or a card benefit. Each car's page says so when it applies. If no car is listed, none is available that way right now.",
+    "sections": [
+     {
+      "heading": "What this means for you",
+      "body": "On these cars there is no coverage choice to make before pickup: the owner's policy applies to the rental, as confirmed on the car's page and in your offer. Third-party liability is part of every rental. Read the car's page for what you would pay if the car is damaged, and ask us if anything is unclear before you approve the offer."
+     },
+     {
+      "heading": "Everything else is the same",
+      "body": "You need an Ontario {{licence}} licence valid for the whole rental, and you upload photos of it and a selfie before pickup. The deposit shown on the car's page is taken about {{depLead}} before pickup and released after the return. The young driver fee, the kilometres included and the rules for tolls and fuel are the same as on every other car."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do I need my own auto insurance for these cars?",
+      "answer": "No. On the cars listed here the owner's policy covers the rental, and the car's page says so."
+     },
+     {
+      "question": "Is there still a deposit?",
+      "answer": "Yes. Each car's page shows its deposit, taken about {{depLead}} before pickup."
+     },
+     {
+      "question": "Why do other cars need a coverage option?",
+      "answer": "Most of our cars need one of three coverage options for damage to the car, because their owner's policy does not cover renters for that."
      }
     ]
    }
@@ -1503,8 +1742,17 @@
     ]
    },
    "match": {
-    "classes": [
-     "suv"
+    "any": [
+     {
+      "classes": [
+       "suv"
+      ]
+     },
+     {
+      "bodies": [
+       "suv"
+      ]
+     }
     ]
    },
    "copy": {
@@ -1547,6 +1795,73 @@
    }
   },
   {
+   "slug": "convertible",
+   "kind": "use",
+   "name": "Convertible rental",
+   "sort_order": 275,
+   "facts": {
+    "rule": "cars in the convertible class or with a convertible body",
+    "uses": [
+     "summer drives",
+     "weekends",
+     "occasions"
+    ],
+    "nearby": [
+     "weekend",
+     "luxury",
+     "exotic"
+    ]
+   },
+   "match": {
+    "any": [
+     {
+      "classes": [
+       "convertible"
+      ]
+     },
+     {
+      "bodies": [
+       "convertible",
+       "cabriolet",
+       "spyder",
+       "spider",
+       "roadster"
+      ]
+     }
+    ]
+   },
+   "copy": {
+    "seo_title": "Convertible Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a convertible in Toronto for a summer drive or a weekend. Each car shows its seats, luggage space, rates and deposit, delivered to your door.",
+    "h1": "Convertible rental in Toronto",
+    "intro": "A convertible turns a drive along the lake or up to cottage country into the reason for the trip. The convertibles listed here are in our fleet now, each with its own photos, seats, luggage space, rates and calendar. Send a request with your dates and we confirm the car and the price before you pay anything, then deliver it to your door or hand it over at our location.",
+    "sections": [
+     {
+      "heading": "Space and seats",
+      "body": "Most convertibles carry fewer people and less luggage than a sedan, because the roof folds into the trunk. Each car's page shows its seats and its luggage space, so check them before you plan a trip with bags. For a group or a long trip with luggage, an SUV or a sedan may suit you better."
+     },
+     {
+      "heading": "Weekends and the weather",
+      "body": "Convertibles are most popular on summer weekends, and a request does not hold the car until you approve the offer, sign and pay. A rental day that starts on a Friday or a Saturday uses the car's weekend day rate. We show you how the roof works at the handover, and the roof should be closed when the car is parked."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in a convertible?",
+      "answer": "It depends on the car. Each car's page shows its seats and its luggage space."
+     },
+     {
+      "question": "Is there a weekend rate?",
+      "answer": "Yes. A rental day that starts on a Friday or a Saturday uses the car's weekend day rate."
+     },
+     {
+      "question": "Can you deliver a convertible?",
+      "answer": "Yes, to your address in Toronto and the GTA, for the delivery fee shown on the car's page."
+     }
+    ]
+   }
+  },
+  {
    "slug": "luxury",
    "kind": "use",
    "name": "Luxury car rental",
@@ -1574,7 +1889,7 @@
    },
    "copy": {
     "seo_title": "Luxury Car Rental in Toronto | CarmaCars",
-    "meta_description": "Rent a luxury or premium car in Toronto for a wedding, a business trip or a weekend. Real photos, clear prices and delivery to your door.",
+    "meta_description": "Rent a luxury or premium car in Toronto for a wedding, a business trip or a weekend. Photos of the real car, its deposit shown, delivered to your door.",
     "h1": "Luxury car rental in Toronto",
     "intro": "Sometimes the car is part of the occasion: a wedding, an important client, an anniversary weekend or simply a car you have always wanted to drive. The premium and luxury cars below are in our fleet now, each with photos of that very car, its rates, its deposit and its calendar. Send a request, and we confirm the car and the price before you pay anything.",
     "sections": [
@@ -1612,9 +1927,60 @@
    }
   },
   {
+   "slug": "exotic",
+   "kind": "use",
+   "name": "Exotic car rental",
+   "sort_order": 285,
+   "facts": {
+    "rule": "cars in the exotic class",
+    "deposit": "shown on each car's page, taken about {{depLead}} before pickup",
+    "coverage_options": 3,
+    "nearby": [
+     "luxury",
+     "weekend",
+     "convertible"
+    ]
+   },
+   "match": {
+    "classes": [
+     "exotic"
+    ]
+   },
+   "copy": {
+    "seo_title": "Exotic Car Rental in Toronto | CarmaCars",
+    "meta_description": "Exotic car rental in Toronto: each exotic car with photos of that car, its rates and its deposit. Delivered to your door, prices confirmed before you pay.",
+    "h1": "Exotic car rental in Toronto",
+    "intro": "The exotic cars listed here are in our fleet now, each with photos of that very car, its own rates, its deposit and its calendar. When none is listed, none is available: we never show a car we cannot rent you. Send a request with your dates and we confirm the car and the full price before you pay anything. Exotic cars carry a higher deposit, taken about {{depLead}} before pickup and never when you book.",
+    "sections": [
+     {
+      "heading": "Before you book an exotic car",
+      "body": "Read the car's page for its deposit, its kilometres included and the driver rules that apply to it. You need an Ontario {{licence}} licence, a credit card in your name for the payment and the deposit, and one of the three coverage options for damage to the car before pickup. Some cars take only older drivers, and the page says so."
+     },
+     {
+      "heading": "Delivered in person",
+      "body": "We hand the car over in person at our location or wherever you are in Toronto and the GTA, with a walk-around and photos of its condition. Ask us how its features work before you set off. At the end we collect the car from you, or you bring it back to our location at no charge, and we check it together again."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is the deposit higher for an exotic car?",
+      "answer": "Yes. Each car's page shows its deposit. It is taken about {{depLead}} before pickup and released after the return."
+     },
+     {
+      "question": "Can I see the actual car?",
+      "answer": "Yes. The photos on each car's page are of that car."
+     },
+     {
+      "question": "Can young drivers rent an exotic car?",
+      "answer": "Drivers {{minAge}} and older can rent our cars, but some exotic cars take only older drivers. Each car's page says which drivers it takes."
+     }
+    ]
+   }
+  },
+  {
    "slug": "minivan",
    "kind": "use",
-   "name": "Minivan and 7-seater rental",
+   "name": "Van and minivan rental",
    "sort_order": 290,
    "facts": {
     "rule": "cars with seven or more seats",
@@ -1632,12 +1998,27 @@
     ]
    },
    "match": {
-    "seats_min": 7
+    "any": [
+     {
+      "seats_min": 7
+     },
+     {
+      "classes": [
+       "van"
+      ]
+     },
+     {
+      "bodies": [
+       "van",
+       "minivan"
+      ]
+     }
+    ]
    },
    "copy": {
-    "seo_title": "Minivan and 7-Seater Rental in Toronto | CarmaCars",
-    "meta_description": "Rent a minivan or a 7-seat car in Toronto for family trips, groups and airport runs. Delivery to your door, prices confirmed before you pay.",
-    "h1": "Minivan and 7-seater rental in Toronto",
+    "seo_title": "Van and Minivan Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a van, a minivan or a 7-seat car in Toronto for family trips, groups and airport runs. Delivery to your door, prices confirmed before you pay.",
+    "h1": "Van and minivan rental in Toronto",
     "intro": "When there are more than five of you, a minivan or a seven-seat car saves taking two cars. The cars below have seven or more seats, with room for luggage behind the third row in most of them. Send a request with your dates, we confirm the car and the price, and we deliver it to your door or you collect it from our location.",
     "sections": [
      {
@@ -1736,7 +2117,7 @@
   {
    "slug": "economy",
    "kind": "use",
-   "name": "Economy car rental",
+   "name": "Cheap and economy car rental",
    "sort_order": 310,
    "facts": {
     "rule": "cars in the economy and standard classes",
@@ -1755,9 +2136,9 @@
     ]
    },
    "copy": {
-    "seo_title": "Economy Car Rental in Toronto | CarmaCars",
-    "meta_description": "Rent an economy or compact car in Toronto at the lowest rates in our fleet. Easy to park, delivered to your door, prices confirmed before you pay.",
-    "h1": "Economy car rental in Toronto",
+    "seo_title": "Cheap and Economy Car Rental in Toronto | CarmaCars",
+    "meta_description": "Cheap car rental in Toronto: our economy and standard cars, lowest daily rate first. Easy to park, delivered to your door, prices confirmed first.",
+    "h1": "Cheap and economy car rental in Toronto",
     "intro": "An economy car does most of what people in Toronto need a car for: errands, commuting, a trip to see family and the drive back from IKEA. They are easy to park on city streets and in condo garages, and they cost the least to rent. The cars below are our economy and standard cars, lowest daily rate first. Send a request and we confirm the car and the price before you pay.",
     "sections": [
      {

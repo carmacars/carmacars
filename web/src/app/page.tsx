@@ -9,6 +9,9 @@ import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
+import { getBusinessFacts } from '@/features/seo/business-data';
+import { getPlaceRoots } from '@/features/places/data';
+import '@/styles/seo.css';
 import { getSeoLinks } from '@/features/seo/data';
 import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
@@ -17,9 +20,11 @@ export const revalidate = 3600;
 
 export async function generateMetadata() {
   const t = await getTokens();
+  // "No deposit surprises": every car's page shows its own deposit before you book, and it is taken about an hour
+  // before pickup, never at the request (Program settings take_deposit_lead_minutes)
   return seoMeta({
-    title: fill('{{brand}} | {{city}} car rental, pickup or delivery', t), path: '/',
-    description: fill('{{city}} car rental from {{minDaily}} a day, picked up or delivered. Send a request with no payment and pay once the price is confirmed. Drivers {{minAge}} and up.', t)
+    title: fill('Car Rental {{city}} | Delivered or Pickup, No Deposit Surprises', t), path: '/',
+    description: fill('Car rental in {{city}} from {{minDaily}} a day, delivered to your door or the airport, or picked up. Every car shows its deposit. No payment to request.', t)
   });
 }
 
@@ -28,10 +33,13 @@ type Row = { label: string; text: string };
 type Opt = { title: string; body: string };
 
 export default async function Home() {
-  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, links] = await Promise.all([
+  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, links, bf, roots] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), faqItems('home.faq'), listItems<Step>('home.how_steps'),
-    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'), getSeoLinks()
+    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'), getSeoLinks(),
+    getBusinessFacts(), getPlaceRoots().catch(() => null)
   ]);
+  const uses = links.filter((l) => l.kind === 'use');
+  const places = links.filter((l) => l.kind === 'location');
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const tagline = s.tagline ?? '';
@@ -39,14 +47,14 @@ export default async function Home() {
   const airportsShort = f.airports.map((a) => a.name.replace(/ (International|Toronto City) Airport$/, '')).join(' and ');
   return (
     <div className="p-home">
-      <JsonLd graph={[businessLd(s, siteUrl(), { areas: links.filter((l) => l.kind === 'location' && !/airport|station/i.test(l.slug)).map((l) => l.name) }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
+      <JsonLd graph={[businessLd(s, siteUrl(), { areas: bf.areas, price: bf.price, rating: bf.rating }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
       <section className="hero on-dark">
         <div className="hero__media"><SlotPicture p={hero} eager /></div>
         <div className="wrap hero__inner">
           <div className="hero__copy">
-            <p className="eyebrow">{s.city} car rental</p>
-            <h1 className="d-hero">{t1}{t2 && <> <br className="br-xl" />{t2}</>}</h1>
-            <p className="lead">Good cars for rent in {s.city}, picked up or brought to your door. Choose one, send a request, and pay only once the price is confirmed.</p>
+            <h1 className="eyebrow">Car rental in {s.city}</h1>
+            <p className="d-hero">{t1}{t2 && <> <br className="br-xl" />{t2}</>}</p>
+            <p className="lead">{s.brand_name} is car rental in {s.city} that comes to you: good cars picked up from us or delivered to your door, airports too. Choose one, send a request, and pay only once the price is confirmed.</p>
           </div>
           <SearchForm maxDays={f.max_rental_days} />
         </div>
@@ -133,6 +141,24 @@ export default async function Home() {
           <div className="c-8"><Reviews /></div>
         </div>
       </section>
+
+      {(uses.length > 0 || places.length > 0) && (
+        <section className="section" aria-labelledby="h-ways">
+          <div className="wrap stack-lg">
+            <h2 className="d2" id="h-ways">Ways to rent a car in {s.city}</h2>
+            <div className="landing__cols">
+              {uses.length > 0 && <nav aria-label="Ways to rent"><ul className="linklist">{uses.map((l) => <li key={l.slug}><Link prefetch={false} className="link" href={l.path}>{l.name} in {s.city}</Link></li>)}</ul></nav>}
+              {places.length > 0 && <nav aria-label="Areas we deliver to"><ul className="linklist">{places.map((l) => <li key={l.slug}><Link prefetch={false} className="link" href={l.path}>Car rental in {l.name}</Link></li>)}
+                {roots && roots.tops.some((x) => x.slug === 'gta') && <li><Link prefetch={false} className="link" href="/car-rental/gta">Car rental across the GTA</Link></li>}</ul></nav>}
+              <nav aria-label="More from CarmaCars"><ul className="linklist">
+                <li><Link prefetch={false} className="link" href="/car-rental">All car rental areas and ways to rent</Link></li>
+                <li><Link prefetch={false} className="link" href="/detailing">Car detailing in {s.city}</Link></li>
+                <li><Link prefetch={false} className="link" href="/body-shop">Auto body shop and collision repair</Link></li>
+              </ul></nav>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section on-grey" aria-labelledby="h-faq">
         <div className="wrap grid">

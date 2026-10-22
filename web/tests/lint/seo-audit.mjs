@@ -49,10 +49,12 @@ for (const p of ['/account', '/owner', '/admin', '/va', '/field', '/investor', '
 }
 const sm = (await get('/sitemap.xml')).body;
 const smUrls = [];
+const placeSample = new Set(); let placeCount = 0;
 if (/<sitemapindex/.test(sm)) {
   const parts = [...sm.matchAll(/<sitemap><loc>([^<]+)<\/loc>(?:<lastmod>([^<]+)<\/lastmod>)?<\/sitemap>/g)];
   report.sitemapParts = parts.map((m) => m[1]);
-  if (parts.length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
+  if (parts.filter(([, l]) => !/sitemap-places/.test(l)).length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
+  if (parts.length > 50000) bad('sitemap', `index lists ${parts.length} files (Google reads 50,000 at most)`);
   for (const [, loc, lastmod] of parts) {
     if (lastmod && Number.isNaN(Date.parse(lastmod))) bad('sitemap', `${loc} has an unreadable lastmod`);
     const part = await get(new URL(loc).pathname);
@@ -69,7 +71,10 @@ if (/<sitemapindex/.test(sm)) {
       }
     }
     for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);
-    smUrls.push(...[...part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&')));
+    const urls = [...part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&'));
+    // the place pages (0095): every file is read, two addresses of each are checked like any page (same template)
+    if (/\/sitemap-places\//.test(loc)) { placeCount += urls.length; for (const u of urls.slice(0, 2)) placeSample.add(new URL(u).pathname); smUrls.push(...urls.slice(0, 2)); continue; }
+    smUrls.push(...urls);
   }
 } else {
   bad('sitemap', '/sitemap.xml is not a sitemap index');
@@ -89,7 +94,7 @@ const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$
 const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
 // landing pages and guides: those in the sitemap and every one the hubs link to (a use page under the threshold is noindex)
 const hubHtml = (await get('/car-rental')).body + (await get('/guides')).body;
-const landing = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/car-rental\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/car-rental\/[^/]+$/.test(p)));
+const landing = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/car-rental\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/car-rental\/[^/]+$/.test(p) && !placeSample.has(p)));
 const guides = new Set([...paths, ...[...hubHtml.matchAll(/href="(\/guides\/[^"#?/]+)"/g)].map((m) => m[1])].filter((p) => /^\/guides\/[^/]+$/.test(p)));
 report.noindex = [];
 const titles = new Map(); const descs = new Map();
@@ -129,11 +134,25 @@ for (const p of [...new Set([...paths, ...extra, ...cars, ...hubs, ...landing, .
   for (const n of nodes) {
     const ty = [].concat(n['@type'] ?? []);
     if (!(n.aggregateRating || n.review)) continue;
+    // the business may carry the rating of its published reviews only where the page shows them (0095)
+    if (ty.includes('AutoRental')) { if (!/class="reviews__list"/.test(h) || Number(n.aggregateRating?.reviewCount ?? 0) < 1) bad(p, 'AutoRental rating without the reviews shown on the page'); continue; }
     if (!ty.includes('Car')) bad(p, `JSON-LD rating on ${ty.join('/')} (self-serving)`);
     else if (!/id="h-rv"/.test(h) || Number(n.aggregateRating?.reviewCount ?? 0) < 1) bad(p, 'Car rating without the reviews shown on the page');
   }
   if (/18122211|Canada Inc/i.test(h)) bad(p, 'numbered company name in the page');
   if (p === '/' && !types.includes('AutoRental')) bad(p, 'no AutoRental (business) node');
+  // one name, address and phone everywhere (0095): the business node, the footer and the contact page agree
+  const bizNode = nodes.find((n) => [].concat(n['@type']).includes('AutoRental'));
+  if (bizNode?.address?.streetAddress) {
+    const foot = decode(/data-testid="footer-address">([^<]+)</.exec(h)?.[1] ?? '');
+    if (!foot.includes(bizNode.address.streetAddress)) bad(p, `the footer address "${foot}" is not the business address "${bizNode.address.streetAddress}"`);
+    if (p === '/contact' && !decode(/data-testid="nap-address">([^<]+)</.exec(h)?.[1] ?? '').includes(bizNode.address.streetAddress)) bad(p, 'the contact page address is not the business address');
+    if (bizNode.telephone && !h.includes(`href="tel:${bizNode.telephone}"`)) bad(p, 'the business phone is not the phone the page links');
+  }
+  if (p === '/') {
+    if (!/^Car Rental /.test(title)) bad(p, `home title "${title}" does not lead with the search phrase`);
+    if (!/Car rental in /i.test(/<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(h)?.[1] ?? '')) bad(p, 'home h1 does not say "Car rental in"');
+  }
   if (p === '/') {
     const biz = nodes.find((n) => [].concat(n['@type']).includes('AutoRental'));
     if (biz && !(biz.address?.streetAddress && biz.address?.postalCode && biz.telephone)) bad(p, 'business node without the street address, postal code or phone');
@@ -233,6 +252,8 @@ for (const [src, want] of moved) {
 report.problems = problems;
 fs.mkdirSync('reports', { recursive: true });
 fs.writeFileSync('reports/seo.json', JSON.stringify(report, null, 2));
+report.places = { listed: placeCount, checked: placeSample.size };
+console.log(`seo: place pages: ${placeCount} in the sitemaps, ${placeSample.size} checked`);
 console.log(`seo: ${Object.keys(report.pages).length} pages (${cars.size} cars, ${hubs.size} model hubs, ${landing.size} landing pages, ${guides.size} guides), sitemap ${paths.length} entries in ${report.sitemapParts?.length ?? 1} files, ${report.noindex.length} noindex (sample cars, their model pages, landing pages under the threshold)`);
 if (problems.length) { console.log(problems.join('\n')); console.log(`seo: FAILED, ${problems.length} problems`); process.exit(1); }
 console.log('seo: 0 problems');

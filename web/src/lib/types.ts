@@ -45,6 +45,8 @@ export interface SiteSettings {
   // 0061: search engine verification and the business name, address and phone for the structured data
   google_site_verification?: string | null; bing_site_verification?: string | null;
   business?: { name: string; street: string | null; city: string | null; region: string | null; postal_code: string | null; country: string; latitude: number | null; longitude: number | null };
+  // the opening hours as data (0025): every day, or the days with their times
+  opening_hours?: { days: number[]; open: string; close: string; always_open: boolean } | null;
 }
 
 export interface Fee { label: string; unit: string; amount_cents: number | null; cap_cents: number | null; percent_bps: number | null; grace_minutes: number | null }

@@ -218,6 +218,10 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
           fee('fuel_service_fee') && `fuel service fee ${$(fee('fuel_service_fee'))} plus fuel`, fee('late_return_fee') && 'late returns by the hour', fee('lost_key_fee') && `lost key fee ${$(fee('lost_key_fee'))}`,
           fee('toll_admin_fee') && `${$(fee('toll_admin_fee'))} administration per toll invoice`, fee('ticket_admin_fee') && `${$(fee('ticket_admin_fee'))} administration per ticket`].filter(Boolean).join(', ')}.
         These are CarmaCars&apos; own revenue, never shared with the car&apos;s owner.</p></div>
+      <div className="dk-card" style={{ gridColumn: '1 / -1' }} data-testid="deck-services"><h3>Detailing and body shop</h3><p>
+        Detailing (interior and exterior, paint correction and ceramic coating, mobile detailing, window tint, PPF and wraps) and body work (collision repair,
+        dents and scratches, painting, windshield repair), priced per job. Both are CarmaCars&apos; own revenue, and each job is a customer who may need a rental car
+        while theirs is with us.</p></div>
     </div></div>
   </> });
 

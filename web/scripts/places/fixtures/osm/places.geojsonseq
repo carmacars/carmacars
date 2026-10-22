@@ -1,0 +1,4 @@
+{"type": "Feature", "id": "n101", "geometry": {"type": "Point", "coordinates": [-79.5857, 43.5517]}, "properties": {"name": "Port Credit", "place": "suburb"}}
+{"type": "Feature", "id": "n102", "geometry": {"type": "Point", "coordinates": [-79.421, 43.6376]}, "properties": {"name": "Liberty Village", "place": "neighbourhood"}}
+{"type": "Feature", "id": "n103", "geometry": {"type": "Point", "coordinates": [-79.6156, 43.5794]}, "properties": {"name": "Cooksville", "place": "suburb"}}
+{"type": "Feature", "id": "n104", "geometry": {"type": "Point", "coordinates": [-78.872, 42.9003]}, "properties": {"name": "Allentown", "place": "neighbourhood"}}

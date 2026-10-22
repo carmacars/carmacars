@@ -845,7 +845,7 @@ def build():
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
               'by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review '
               'anything. You can still change any line; what you change is kept.',
-              blurb='Car copy written by itself, landing pages, guides, search engines, business listings and IndexNow.')
+              blurb='Car copy written by itself, landing pages, place pages for every place and term, detailing and body shop, guides, business listings and IndexNow.')
     g.task('The copy of a car', f'{P("Cars", "Vehicles")}, then the car, then its Listing tab. The same card is on the listing review.')
     g.steps([
         'The card says who wrote the text: a plain copy from the car\'s facts while the written copy is prepared (usually minutes), then Workers AI.',
@@ -871,6 +871,28 @@ def build():
     ])
     g.tip('Changed pages are sent to IndexNow (Bing and the other engines that use it) by themselves. Google reads the sitemap: submit '
           'carmacars.ca/sitemap.xml once in Search Console.', label='Good to know')
+    g.task('Place pages',
+           'Every place we have, from a country down to a neighbourhood, gets a page for every term people search with: renting (car hire, '
+           'SUV rental, monthly car rental ...), buying help (used cars, car financing ...), detailing (ceramic coating, window tint ...) and '
+           'body work (collision repair, dent repair ...). Each page is written from real data only: the distance from us, the delivery price '
+           'within our reach, the nearest airport, the landmarks near it, our live cars and the places around it. A place far from Toronto '
+           f'says we serve the Toronto area and takes a request instead. {P("Settings", "All settings")}, then Search.')
+    g.steps([
+        'Place pages: four switches, one for each family, put the pages in search and in the sitemaps. All four are on.',
+        'Quality gate: off. On, only places within the delivery reach are in search, and rental pages only with a real matching car. Search engines can treat many similar pages as low value; the gate lowers that risk.',
+        'Delivery reach: places within this distance of our location are offered delivery. Database size cap: the places import stops before the database passes it.',
+        'Regions and places: every province, state and territory is on. Untick a region to take its pages and sitemaps off the site.',
+        'Terms and services: change a term\'s title or what is true about it, point a synonym to another term (its pages then leave search), switch a term off, or add one. Give a service a starting price, or leave it empty for "price on request".',
+    ])
+    g.tip('A region has pages once the places workflow has loaded it: GitHub, Actions, places, Run workflow, with the regions or all. '
+          'The run loads Ontario first and names any region it skipped because of the size cap.', label='Good to know')
+    g.task('Requests from the place pages',
+           f'The buying help, detailing and body shop pages, and the pages of places beyond our reach, have a request form. Each request is a lead with a task in {B("To do")}: '
+           'detailing and body shop requests are due within an hour of opening and show in Today. Buying help pages say plainly that CarmaCars does not sell, finance or '
+           'lease cars; the notice at the top is set under Place pages.')
+    g.task('One name, address and phone',
+           'The footer, the contact page, the structured data and every business listing show the business address of Site settings. '
+           'Keep it the address renters come to, and change it there only.')
 
     g.chapter('Settings',
               'Settings change the public site and the rules of the program at once. Program settings are kept '

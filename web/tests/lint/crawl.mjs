@@ -1,6 +1,17 @@
-// Crawls the running site from / and returns every internal page with its HTML.
+// Crawls the running site from / and returns every internal page with its HTML. The place pages of migration 0095
+// (/car-rental/<term>/<place>, /buy/..., /detailing/..., /body-shop/...) are a mesh of every place and term: a sample
+// is crawled (PLACE_SAMPLE per term, PLACE_CAP in all) and the rest is listed in `skipped` (the same template).
+export const PLACE_HUB = /^\/(car-rental|buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+$/;
+const PLACE_SAMPLE = 3; const PLACE_CAP = 150;
 export async function crawl(base, extra = []) {
   const seen = new Map(); const queue = ['/', ...extra];
+  const perTerm = new Map(); let hubs = 0; const skipped = new Set();
+  const sampled = (p) => {
+    if (!PLACE_HUB.test(p)) return true;
+    const k = p.split('/').slice(0, 3).join('/');
+    if (hubs >= PLACE_CAP || (perTerm.get(k) ?? 0) >= PLACE_SAMPLE) { skipped.add(p); return false; }
+    perTerm.set(k, (perTerm.get(k) ?? 0) + 1); hubs++; return true;
+  };
   while (queue.length) {
     const path = queue.shift();
     const key = path.split('#')[0];
@@ -16,8 +27,9 @@ export async function crawl(base, extra = []) {
       const u = new URL(h, base + key);
       if (u.origin !== new URL(base).origin) continue;
       const p = u.pathname + u.search;
-      if (!seen.has(p) && !queue.includes(p)) queue.push(p);
+      if (!seen.has(p) && !queue.includes(p) && !skipped.has(p) && sampled(p)) queue.push(p);
     }
   }
+  seen.skipped = skipped;
   return seen;
 }
