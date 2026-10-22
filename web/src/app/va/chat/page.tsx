@@ -17,7 +17,7 @@ export default async function VaChat({ searchParams }: { searchParams: Promise<R
   const openId = sp.id && ID.test(sp.id) ? sp.id : undefined;
   if (sp.view === 'phone') {
     const d = await read<PhoneInboxData>('phone_inbox');
-    return (<><PageHead title="Texts and calls" kicker={FN_LABEL[fn]} /><InboxTabs base="/va/chat" view="phone" unread={d.unread} /><PhoneInbox initial={d} portal="va" openId={openId} /></>);
+    return (<><PageHead title="Texts and calls" kicker={FN_LABEL[fn]} /><InboxTabs base="/va/chat" view="phone" unread={d.unread} /><PhoneInbox initial={d} portal="va" openId={openId} fn={fn} /></>);
   }
   const [d, ph] = await Promise.all([read<Inbox>('chat_inbox'), read<PhoneInboxData>('phone_inbox').catch(() => null)]);
   return (<><PageHead title="Live chat" kicker={FN_LABEL[fn]} /><InboxTabs base="/va/chat" view="chat" unread={ph?.unread} /><ChatInbox initial={d} portal="va" openId={openId} /></>);

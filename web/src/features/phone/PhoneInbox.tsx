@@ -11,7 +11,7 @@ import { phoneDo, phoneRead, CallBody, type PhoneInboxData, type PhoneThreadData
 // Unknown callers with Create lead and Link to a renter; the thread with calls and texts, the reply box (sent through
 // Quo from the CarmaCars number), Suggest a reply (an AI draft that only fills the box), and who the number is: their
 // record, bookings and, when they gave this phone in live chat or a game, their visit on the site.
-export function PhoneInbox({ initial, portal, openId }: { initial: PhoneInboxData; portal: 'admin' | 'va'; openId?: string }) {
+export function PhoneInbox({ initial, portal, openId, fn }: { initial: PhoneInboxData; portal: 'admin' | 'va'; openId?: string; fn?: string }) {
   const [inbox, setInbox] = useState(initial);
   const [view, setView] = useState<'all' | 'unknown'>('all');
   const [sel, setSel] = useState<string | null>(openId ?? initial.threads[0]?.id ?? null);
@@ -49,7 +49,7 @@ export function PhoneInbox({ initial, portal, openId }: { initial: PhoneInboxDat
                 </button>
               </li>))}</ul>)}
         </nav>
-        {sel ? <PhoneThread key={sel} id={sel} portal={portal} onChange={() => void refresh()} /> : <div className="lc-empty small muted">Choose a number.</div>}
+        {sel ? <PhoneThread key={sel} id={sel} portal={portal} fn={fn} onChange={() => void refresh()} /> : <div className="lc-empty small muted">Choose a number.</div>}
       </div>
     </div>
   );
@@ -57,7 +57,7 @@ export function PhoneInbox({ initial, portal, openId }: { initial: PhoneInboxDat
 
 const KIND_WORDS: Record<PhoneThreadRow['match_kind'], string> = { staff: 'Staff', renter: 'Renter', owner: 'Owner', lead: 'Lead', unknown: 'Unknown caller' };
 
-function PhoneThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'va'; onChange: () => void }) {
+function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin' | 'va'; fn?: string; onChange: () => void }) {
   const [t, setT] = useState<PhoneThreadData | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -140,7 +140,7 @@ function PhoneThread({ id, portal, onChange }: { id: string; portal: 'admin' | '
       </section>
       <aside className="lc-side" aria-label="Who this is">
         <h3 className="d4">Who this is</h3>
-        <Who t={t} portal={portal} bookingBase={bookingBase} onLinked={() => { void load(); onChange(); }} />
+        <Who t={t} portal={portal} fn={fn} bookingBase={bookingBase} onLinked={() => { void load(); onChange(); }} />
         {t.visit && (
           <div className="small" data-testid="phone-visit">
             <h4 className="small">On the site</h4>
@@ -157,7 +157,10 @@ function PhoneThread({ id, portal, onChange }: { id: string; portal: 'admin' | '
 const SMS_WORDS: Record<string, string> = { missed_call: 'Missed-call text', offer_sent: 'Booking text: offer', payment_confirmed: 'Booking text: confirmed', payment_received: 'Booking text: payment',
   pickup_tomorrow: 'Booking text: pickup tomorrow', return_reminder: 'Booking text: return', payment_link: 'Booking text: payment link' };
 
-function Who({ t, portal, bookingBase, onLinked }: { t: PhoneThreadData; portal: 'admin' | 'va'; bookingBase: string; onLinked: () => void }) {
+// Sales opens requests, offers and bookings waiting for payment only (app.va_booking): any other booking is named, not linked
+const SALES_OPENS = ['requested', 'offered', 'pending_payment'];
+
+function Who({ t, portal, fn, bookingBase, onLinked }: { t: PhoneThreadData; portal: 'admin' | 'va'; fn?: string; bookingBase: string; onLinked: () => void }) {
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Array<{ id: string; name: string; email: string | null; mobile: string | null }>>([]);
   const [name, setName] = useState(t.thread.name ?? '');
@@ -170,7 +173,7 @@ function Who({ t, portal, bookingBase, onLinked }: { t: PhoneThreadData; portal:
   return (
     <div className="small stack">
       {t.renter && <div><p><b>{t.renter.name}</b> <span className="muted">renter</span>{portal === 'admin' && <> · <Link prefetch={false} className="link" href={`/admin/renters/${t.renter.id}`}>Renter page</Link></>}</p>
-        {t.renter.bookings.length > 0 && <ul className="lc-bk">{t.renter.bookings.map((b) => <li key={b.number}><Link prefetch={false} className="link" href={`${bookingBase}${encodeURIComponent(b.number)}`}>{b.number}</Link> <span className="muted">{b.status.replace(/_/g, ' ')}</span></li>)}</ul>}</div>}
+        {t.renter.bookings.length > 0 && <ul className="lc-bk">{t.renter.bookings.map((b) => <li key={b.number}>{portal === 'va' && fn === 'sales' && !SALES_OPENS.includes(b.status) ? <span>{b.number}</span> : <Link prefetch={false} className="link" href={`${bookingBase}${encodeURIComponent(b.number)}`}>{b.number}</Link>} <span className="muted">{b.status.replace(/_/g, ' ')}</span></li>)}</ul>}</div>}
       {t.owner && <p><b>{t.owner.name}</b> <span className="muted">owner</span>{portal === 'admin' && <> · <Link prefetch={false} className="link" href={`/admin/owners/${t.owner.id}`}>Owner page</Link></>}</p>}
       {t.lead && <p><b>{t.lead.name ?? 'Lead'}</b> <span className="muted">lead ({t.lead.kind.replace(/_/g, ' ')}, {t.lead.status})</span></p>}
       {t.staff && <p><b>{t.staff.name}</b> <span className="muted">staff</span></p>}
