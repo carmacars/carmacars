@@ -46,6 +46,24 @@ const save = async (page, name, clip) => {
   console.log('deck shot', name);
 };
 
+// three visitors who accepted cookies browse a few cars each (a viewing spree, a return to one car), then Live visitors
+async function liveVisitors(staff) {
+  const cars = (await sql`select l.slug from vehicle_listings l join vehicles v on v.id = l.vehicle_id where l.status = 'published' and v.partner_id is null order by l.slug limit 8`).map((r) => r.slug);
+  const visits = [['google', 'toronto-suv', cars.slice(0, 6)], ['instagram', 'weekend', [cars[1], cars[2], cars[1]]], ['newsletter', 'october', [cars[3]]]];
+  for (const [src, camp, list] of visits) {
+    const v = await newPage();
+    await v.goto(`${BASE}/?utm_source=${src}&utm_campaign=${camp}`, { waitUntil: 'networkidle' });
+    await v.getByRole('button', { name: 'Accept all' }).first().click({ timeout: 60_000 }).catch(() => {});
+    for (const c of list) { await v.goto(`${BASE}/cars/${c}`, { waitUntil: 'load' }); await v.waitForTimeout(1500); }
+  }
+  await staff.goto(`${BASE}/admin/live`, { waitUntil: 'networkidle' });
+  await staff.getByTestId('live-visitors').waitFor({ timeout: 60_000 }).catch(() => {});
+  const later = staff.getByRole('button', { name: 'Not now' }).first();
+  if (await later.isVisible().catch(() => false)) await later.click().catch(() => {});
+  await staff.waitForTimeout(2000);
+  await save(staff, 'live-visitors.jpg');
+}
+
 const browser = await chromium.launch({ args: ['--no-proxy-server'] });
 // a dev server compiles each page on its first visit
 const newPage = async () => { const c = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' }); c.setDefaultTimeout(240_000); return c.newPage(); };
@@ -97,6 +115,9 @@ try {
   await save(a, 'calendar-sync.jpg');
   await a.goto(`${BASE}/admin/guide`, { waitUntil: 'networkidle' });
   await save(a, 'guide.jpg');
+
+  // live visitor signals (0086): three consenting visitors browse cars, then the Admin's Live visitors screen
+  await liveVisitors(a);
 
 } finally {
   await browser.close();
