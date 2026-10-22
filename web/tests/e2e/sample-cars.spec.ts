@@ -108,10 +108,16 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
     await expect(row).toContainText('sample photos');
   }
   await check(page, 'admin vehicles');
-  // hide: one click, the fleet has no example car; then show: they are back
+  // hide asks first (0094): Keep them changes nothing; Hide them takes them all off, the fleet has no example car; then show: they are back
   const hide = page.getByTestId('sample-cars-hide');
   await expect(hide).toBeVisible();
   await hide.click();
+  await page.getByTestId('sample-cars-hide-no').click();
+  await expect(hide).toBeVisible();
+  const kept = await sql`select count(*)::int n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.is_sample and l.status = 'published'`;
+  expect(kept[0]!.n).toBeGreaterThanOrEqual(20);
+  await hide.click();
+  await page.getByTestId('sample-cars-hide-yes').click();
   await expect(page.getByTestId('sample-cars-show')).toBeVisible({ timeout: 20_000 });
   const pub = await sql`select count(*)::int n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.is_sample and l.status = 'published'`;
   expect(pub[0]!.n).toBe(0);

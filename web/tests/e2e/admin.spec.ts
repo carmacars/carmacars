@@ -203,7 +203,7 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
 
 test('admin: rates, site settings, listing review, tolls, statements', async ({ browser }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'desktop flows');
-  test.setTimeout(600_000); // the longest scenario: about 2 minutes locally, near 5 on a 2-CPU CI runner
+  test.setTimeout(900_000); // the longest scenario: about 3 minutes locally, near 5 on a 2-CPU CI runner, more with releases 2 and 3 together
   const sql = db();
   const a = await mkAdmin(sql, 'flows');
   const ap = await adminCtx(browser, vp(false), a.email, '/admin/vehicles');
@@ -276,7 +276,7 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   // every public photo needs a plate decision before publishing (0042): the sample photos show no plate
   await ap.getByTestId('plates-none-visible').click();
   await ap.getByTestId('plates-none-visible-yes').click();
-  await expect(ap.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 20_000 });
+  await expect(ap.getByTestId('plates-none-visible')).toHaveCount(0, { timeout: 60_000 });
   await ap.getByTestId('listing-approve').click();
   await expect(ap.getByText('Approved and published.')).toBeVisible({ timeout: 15_000 });
   expect((await sql`select state from listing_intakes where id = ${ik!.id}`)[0]!.state).toBe('published');

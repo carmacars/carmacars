@@ -457,7 +457,7 @@ def build():
 
     g.task('Sample cars on the site', f'{P("Cars", "Vehicles")}, or {P("Settings", "Site")}. The 20 example cars the site started with, so the fleet never looks empty while the real cars are listed.')
     g.steps([
-        f'{B("Hide sample cars")} takes every sample car off the site in one click. Nothing stops it: not an enquiry, not an old request.',
+        f'{B("Hide sample cars")} asks first ("Hide all 20 sample cars from the site?"); press {B("Hide them")} to take every sample car off the site at once, or {B("Keep them")}. Nothing else stops it: not an enquiry, not an old request.',
         f'{B("Show sample cars")} puts the 20 back, with their photos and rates. Ones that were deleted are made again.',
         'On the site each one is marked "Example car". They never appear in search engines or the sitemap.',
         'A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.',
