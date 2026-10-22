@@ -72,11 +72,11 @@ select test.eq('samples: deleting a library photo returns its file to remove', t
 
 -- ================================================================ 3. To do and search
 select test.eq('to do: one list, every item with a count, a button and a page', (select count(*) filter (where i ? 'count' and i ? 'button' and i ->> 'href' like '/admin%')
-  from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i), 21::bigint);
+  from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i), 22::bigint);
 -- site problems and double bookings with other platforms come first, calendar links not working (0062), then Turo emails to check and Gmail forwarding to confirm (0063),
--- then the first and last month invoices to decide and the signed copies that could not be made (0077)
+-- then the first and last month invoices to decide and the signed copies that could not be made (0077), then the unfinished forms to follow up (0090)
 select test.eq('to do: the items, in order', (select string_agg(i ->> 'key', ',') from jsonb_array_elements(test.ar_read('ar_admin', 'admin_todo') -> 'items') i),
-  'site_alerts,calendar_conflicts,applications,requests,changes,payments,countersign,tolls,listings,plates,insurance,samples,commissions,commissions_pay,prices,claims,calendar_feeds,turo_emails,gmail_forwarding,first_last_decide,signed_copy_failed');
+  'site_alerts,calendar_conflicts,applications,requests,changes,payments,countersign,tolls,listings,plates,insurance,samples,commissions,commissions_pay,prices,claims,calendar_feeds,turo_emails,gmail_forwarding,first_last_decide,signed_copy_failed,capture_follow_up');
 select test.throws('to do: Admins only', $$select test.ar_read('ar_cs', 'admin_todo')$$, '');
 select test.eq('search: a plate finds the car', (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', jsonb_build_object('q', (select plate from vehicles where id = test.id('vehicle:ARS')))) -> 'groups') g where g ->> 'key' = 'cars'),
   '/admin/vehicles/' || test.id('vehicle:ARS'));

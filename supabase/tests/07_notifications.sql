@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '170/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '171/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -735,6 +735,10 @@ select app.emit_event('renter_game_code_reminder', 'game_claim', (select id from
 select test.flush();
 -- the proof of coverage reminder (0070)
 select app.emit_event('renter_coverage_needed', 'booking', test.id('booking:NT-9'), '{"hours": 24}', 'renter_coverage_needed:nt');
+select test.flush();
+-- the "Continue your request" email of contact capture (0090)
+select app.capture_contact(jsonb_build_object('visitor_id', test.id('nt_cap_vid'), 'form', 'contact', 'name', 'Nina Capture', 'email', 'nt.capture@example.test'));
+select app.capture_send_continue((select id from users where email = 'nt.capture@example.test'), (select id from contact_captures where email = 'nt.capture@example.test'));
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

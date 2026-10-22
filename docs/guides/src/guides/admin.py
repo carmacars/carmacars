@@ -670,6 +670,9 @@ def build():
     g.para('In Program settings, "Live visitors and live chat": the chat on or off, the AI first or not, its model, the neurons it may use a day '
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
            'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
+    g.task('What a visitor typed')
+    g.para(f'A visitor who typed contact details into a form shows them on their line: "Typed into the booking request, not sent: Maya Chen, maya@example.com", '
+           f'with {B("Email not confirmed")} until they open the link we emailed, and {B("Renter page")}.')
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount games and leads',
@@ -692,6 +695,15 @@ def build():
         f'Press {B("Call")} or {B("Email")}, then {B("Contacted")} (it is yours). {B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
         'A visitor who viewed 3 cars or more also gets a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.',
     ])
+    g.task('Contact details typed into forms', f'{P("Bookings", "Leads")}, the card "Typed into forms" at the top.')
+    g.steps([
+        'When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.',
+        'Each line: when, the name (and "On the site now"), email and phone, the form, and Sent or Not sent. "Email not confirmed" means the account was opened from the form and the person has not opened the link we emailed them yet.',
+        'After 30 minutes without sending, To do shows "Unfinished request from Maya Chen: follow up" (not raised from 23:00 to 07:00, the quiet hours of the site alerts). Call or email them; the task closes by itself when they send the form.',
+        'Only what they typed is saved, and never used for offers without their consent.',
+    ])
+    g.tip('A new email gets an account at once (no password, email not confirmed) and one email "Continue your request" 30 minutes later, between 9:00 and 21:00. '
+          'Until they open its link they cannot accept an offer, sign, pay or upload documents. An account never confirmed closes after 30 days; the lead stays.', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
         'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2 car pages, 60 seconds, exit intent), the days before it shows again after closing (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
