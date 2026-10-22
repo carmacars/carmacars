@@ -551,3 +551,65 @@ begin
     'neurons', app.seo_neurons_today(),
     'min_real_cars', (app.settings()).seo_landing_min_real_cars);
 end $$;
+
+-- ================================================================ 9. the car just asked for is written first
+-- "Asked for first" (0061, 0082) took the asked cars oldest first. A car added straight in the database (an import,
+-- a test) is asked for with no job right after it, and since every car added now goes on the site at once (section 2)
+-- those asked rows piled up ahead of the car a person had just added, which then waited for the five-minute ticks.
+-- The most recent ask comes first; older asks follow, as before.
+create or replace function app.server_seo_claim(p_worker text, p_limit integer default 3) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  ps program_settings := app.settings();
+  b jsonb;
+  v_ai boolean;
+  v_cars jsonb := '[]'::jsonb;
+  v_pages jsonb := '[]'::jsonb;
+  v_articles jsonb := '[]'::jsonb;
+  v_n integer;
+  r record;
+begin
+  v_n := app.car_copy_scan();
+  b := app.seo_neurons_today();
+  v_ai := (b ->> 'seo')::numeric < ps.seo_ai_daily_neurons and (b ->> 'all')::numeric < ps.chat_ai_total_daily_neurons;
+  if v_ai then
+    for r in select cc.vehicle_id from car_copy cc
+              where (cc.status = 'pending' or (cc.status = 'failed' and cc.next_attempt_at <= now())) and cc.next_attempt_at <= now()
+                and app.car_copy_eligible(cc.vehicle_id)
+              order by cc.asked_at desc nulls last, (cc.source = 'template') desc, cc.next_attempt_at
+              limit greatest(coalesce(p_limit, 3), 0) for update skip locked loop
+      update car_copy set status = 'running', locked_at = now(), worker = p_worker, asked_at = null where vehicle_id = r.vehicle_id;
+      v_cars := v_cars || jsonb_build_object('vehicle_id', r.vehicle_id, 'slug', (select l.slug from vehicle_listings l where l.vehicle_id = r.vehicle_id and l.status in ('published', 'paused')),
+        'facts', (select facts from car_copy where vehicle_id = r.vehicle_id),
+        'locked', (select to_jsonb(locked) from car_copy where vehicle_id = r.vehicle_id),
+        'current', (select copy from car_copy where vehicle_id = r.vehicle_id),
+        'others', (select coalesce(jsonb_agg(o.copy ->> 'intro'), '[]'::jsonb) from car_copy o join vehicles ov on ov.id = o.vehicle_id, vehicles v
+                    where v.id = r.vehicle_id and o.vehicle_id <> r.vehicle_id and o.source = 'ai'
+                      and app.slugify(ov.make || ' ' || ov.model) = app.slugify(v.make || ' ' || v.model)),
+        'all_intros', (select coalesce(jsonb_agg(o.copy ->> 'intro'), '[]'::jsonb) from car_copy o where o.vehicle_id <> r.vehicle_id and o.source = 'ai'));
+    end loop;
+    for r in select p.slug from seo_pages p
+              where p.is_active and (p.status = 'pending' or (p.status = 'failed' and p.next_attempt_at <= now())) and p.next_attempt_at <= now()
+              order by p.next_attempt_at limit 1 for update skip locked loop
+      update seo_pages set status = 'running', locked_at = now() where slug = r.slug;
+      v_pages := v_pages || (select jsonb_build_object('slug', p.slug, 'kind', p.kind, 'name', p.name, 'facts', p.facts, 'copy', p.copy,
+                                     'locked', to_jsonb(p.locked), 'counts', app.seo_page_counts(p), 'city', (select city from site_settings limit 1))
+                               from seo_pages p where p.slug = r.slug);
+    end loop;
+    for r in select a.slug from articles a
+              where (a.status = 'pending' or (a.status = 'failed' and a.next_attempt_at <= now())) and a.next_attempt_at <= now()
+              order by a.next_attempt_at limit 1 for update skip locked loop
+      update articles set status = 'running', locked_at = now() where slug = r.slug;
+      v_articles := v_articles || (select jsonb_build_object('slug', a.slug, 'title', a.title, 'description', a.description, 'brief', a.brief,
+                                           'body_md', a.body_md, 'faq', a.faq, 'locked', to_jsonb(a.locked)) from articles a where a.slug = r.slug);
+    end loop;
+  end if;
+  update seo_pages set status = 'pending', locked_at = null where status = 'running' and locked_at < now() - interval '10 minutes';
+  update articles set status = 'pending', locked_at = null where status = 'running' and locked_at < now() - interval '10 minutes';
+  return jsonb_build_object('cars', v_cars, 'pages', v_pages, 'articles', v_articles, 'scanned', v_n, 'budget', b, 'ai', v_ai,
+    'max_attempts', ps.seo_copy_max_attempts, 'similarity_max_bps', ps.seo_copy_similarity_max_bps, 'banned', to_jsonb(ps.listing_banned_phrases),
+    'indexnow', jsonb_build_object('enabled', ps.indexnow_enabled, 'key', (select indexnow_key from site_settings limit 1),
+      'paths', (select coalesce(jsonb_agg(q.path order by q.queued_at), '[]'::jsonb) from (select path, queued_at from indexnow_queue where sent_at is null and attempts < 5 order by queued_at limit 500) q)),
+    'due', jsonb_build_object('cars', (select count(*) from car_copy where status = 'pending'), 'pages', (select count(*) from seo_pages where status = 'pending'),
+                              'articles', (select count(*) from articles where status = 'pending')));
+end $$;
