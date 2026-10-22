@@ -21,7 +21,7 @@ export type VpData = {
 };
 const LEVELS: Array<[string, string]> = [['make', 'Makes'], ['model', 'Models'], ['year', 'Model years'], ['trim', 'Trims']];
 const KEYS = ['vpage_index_mode', 'vpage_place_index', 'vpage_colour_index', 'vpage_term_index', 'vpage_buy_index', 'vpage_detailing_index', 'vpage_bodyshop_index', 'vpage_finance_disclaimer',
-  'vpage_import_db_cap_mb', 'indexnow_daily_max', 'indexnow_batch', 'vpage_model_min_years', 'vpage_popular_from_year', 'vpage_year_min_cars', 'vpage_trim_min_cars',
+  'db_plan', 'db_cap_pro_mb', 'db_cap_free_mb', 'indexnow_daily_max', 'indexnow_batch', 'vpage_model_min_years', 'vpage_popular_from_year', 'vpage_year_min_cars', 'vpage_trim_min_cars',
   'vpage_gas_cents_per_litre', 'vpage_premium_extra_cents', 'vpage_electricity_cents_per_kwh', 'vpage_import_every_days'];
 
 export function VehiclePagesAdmin({ d, program }: { d: VpData; program: Record<string, unknown> }) {
@@ -55,7 +55,7 @@ export function VehiclePagesAdmin({ d, program }: { d: VpData; program: Record<s
     </Card>
     <Card title="Settings" testId="vp-settings">
       <p className="small muted">One switch per tier takes it out of search at once (the pages stay up with noindex and leave the sitemaps): places, colours, renting searches, for sale (with the sale searches), detailing and body shop. All are on by default. Index everything is the default. Choose rules to index only the pages that pass them; the others stay visible with noindex,follow and their canonical at the parent page. Saving writes a new dated row of the program settings.</p>
-      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { vpage_index_mode: [['all', 'Index every page'], ['rules', 'Only pages that pass the rules']] })} />
+      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { vpage_index_mode: [['all', 'Index every page'], ['rules', 'Only pages that pass the rules']], db_plan: [['pro', 'Pro (8 GB included)'], ['free', 'Free (500 MB included)']] })} />
     </Card>
     <Card title={`Popular models (${d.popular.length})`} testId="vp-popular">
       <p className="small muted">Used by the rules only: a model year of a popular model from the set year on is indexed. One model per line, most popular first, for example &ldquo;Toyota RAV4&rdquo;. Models the catalog does not have are left out.</p>

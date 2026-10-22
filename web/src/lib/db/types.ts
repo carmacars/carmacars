@@ -10501,6 +10501,9 @@ export type Database = {
           indexnow_daily_max: number;
           indexnow_batch: number;
           chat_greeting_topic_text: string;
+          db_plan: string;
+          db_cap_free_mb: number;
+          db_cap_pro_mb: number;
         };
         Insert: {
           id?: string;
@@ -10907,6 +10910,9 @@ export type Database = {
           indexnow_daily_max?: number;
           indexnow_batch?: number;
           chat_greeting_topic_text?: string;
+          db_plan?: string;
+          db_cap_free_mb?: number;
+          db_cap_pro_mb?: number;
         };
         Update: {
           id?: string;
@@ -11313,6 +11319,9 @@ export type Database = {
           indexnow_daily_max?: number;
           indexnow_batch?: number;
           chat_greeting_topic_text?: string;
+          db_plan?: string;
+          db_cap_free_mb?: number;
+          db_cap_pro_mb?: number;
         };
         Relationships: [];
       };

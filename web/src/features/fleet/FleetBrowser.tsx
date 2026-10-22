@@ -109,7 +109,8 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
       name: (x, y) => `${x.c.make} ${x.c.model}`.localeCompare(`${y.c.make} ${y.c.model}`),
       seats: (x, y) => (y.c.seats ?? 0) - (x.c.seats ?? 0) || x.sortPrice - y.sortPrice, featured: (x, y) => x.i - y.i
     };
-    return list.sort((x, y) => Number(x.busy) - Number(y.busy) || (by[sort] ?? by.featured!)(x, y));
+    // real cars always before the sample cars (0104), whatever the sort
+    return list.sort((x, y) => Number(x.busy) - Number(y.busy) || Number(!!x.c.is_sample) - Number(!!y.c.is_sample) || (by[sort] ?? by.featured!)(x, y));
   }, [cars, cls, seats, trans, max, avail, hasDates, sort, words, labels]);
 
   const shown = rows.filter((r) => r.ok && (!r.busy || showBooked));

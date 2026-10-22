@@ -13,15 +13,26 @@ import { runSeoJob, type SeoClaim, type SeoSummary } from '@/features/seo/worker
 // (production only: a local or staging site never tells search engines about itself).
 const SR = { role: 'service_role' as const };
 
-/** IndexNow (api.indexnow.org shares each submission with Bing, Yandex and the other IndexNow engines). */
-export async function sendIndexNow(key: string, paths: string[]): Promise<{ status: number; error?: string }> {
+/** IndexNow, sent to Bing's endpoint (every IndexNow engine shares what one receives). api.indexnow.org answered 429 to
+ *  every submission from the Worker's shared addresses (audit of October 22, 2026). At most 10,000 addresses a request
+ *  (the protocol's limit). A 429's Retry-After is passed on, so the queue waits exactly that long (0104). */
+export const INDEXNOW_ENDPOINT = 'https://www.bing.com/indexnow';
+export async function sendIndexNow(key: string, paths: string[]): Promise<{ status: number; error?: string; retryAfter?: number }> {
   const base = siteUrl();
   const host = new URL(base).host;
-  const r = await fetch('https://api.indexnow.org/indexnow', {
+  const r = await fetch(INDEXNOW_ENDPOINT, {
     method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ host, key, keyLocation: `${base}/${key}.txt`, urlList: paths.map((p) => base + p) })
+    body: JSON.stringify({ host, key, keyLocation: `${base}/${key}.txt`, urlList: paths.slice(0, 10_000).map((p) => base + p) })
   });
-  return { status: r.status, error: r.ok ? undefined : (await r.text().catch(() => '')).slice(0, 200) || r.statusText };
+  return { status: r.status, error: r.ok ? undefined : (await r.text().catch(() => '')).slice(0, 200) || r.statusText, retryAfter: retryAfterSeconds(r.headers.get('retry-after')) };
+}
+
+/** Retry-After in seconds: a number of seconds or an HTTP date; undefined when absent or unreadable. */
+export function retryAfterSeconds(h: string | null, now = Date.now()): number | undefined {
+  if (!h) return undefined;
+  if (/^\d+$/.test(h.trim())) return Number(h.trim()) || undefined;
+  const t = Date.parse(h);
+  return Number.isFinite(t) && t > now ? Math.ceil((t - now) / 1000) : undefined;
 }
 
 export function indexNowOn(): boolean {
@@ -36,7 +47,7 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
     text,
     tokens: async () => getTokens(),
     indexNow: indexNowOn() ? sendIndexNow : null,
-    sent: (paths, status, error) => rpc('server_indexnow_sent', { p: { paths, status, error } as unknown as Json }, SR)
+    sent: (paths, status, error, retryAfter) => rpc('server_indexnow_sent', { p: { paths, status, error, retry_after: retryAfter ?? null } as unknown as Json }, SR)
   }, o);
   // the landing pages' cars and prices (0068): one read of the fleet; pg_cron also does it every 10 minutes
   try { await rpc('server_seo_snapshots', {}, SR); } catch { /* the next run or pg_cron */ }
@@ -60,7 +71,7 @@ export async function runIndexNowSweep(o: { rounds?: number } = {}): Promise<{ s
     const c = (await rpc('server_indexnow_claim', { p_limit: 10_000 }, SR)) as unknown as { paths: string[]; cursor?: unknown; files?: number; why?: string; key?: string };
     if (!c.paths?.length || !c.key) return { sent, why: c.why ?? 'no key' };
     const r = await sendIndexNow(c.key, c.paths);
-    await rpc('server_indexnow_report', { p: { status: r.status, count: c.paths.length, cursor: c.cursor, files: c.files, error: r.error } as unknown as Json }, SR);
+    await rpc('server_indexnow_report', { p: { status: r.status, count: c.paths.length, cursor: c.cursor, files: c.files, error: r.error, retry_after: r.retryAfter ?? null } as unknown as Json }, SR);
     if (r.status < 200 || r.status >= 300) return { sent, status: r.status };
     sent += c.paths.length;
   }

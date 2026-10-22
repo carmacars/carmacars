@@ -13,7 +13,9 @@ export async function textGenerator(model?: string, timeoutMs?: number): Promise
       const ai = (cf as unknown as { AI?: import('./workers-ai').AiBinding }).AI;
       if (ai) {
         const { workersAi } = await import('./workers-ai');
-        return workersAi(ai, model, timeoutMs);
+        // every call goes through the usage guard (0080, 0104): nothing is asked while Workers AI is paused
+        const [{ guardText }, { workersAiPaused }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
+        return guardText(workersAi(ai, model, timeoutMs), workersAiPaused);
       }
     } catch { /* not running in the Worker */ }
   }

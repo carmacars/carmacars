@@ -135,13 +135,17 @@ if (REWRITE && APPLY) {
       paths.length ? `Its menu paths do not match the menu (${paths.slice(0, 3).join('; ')})` : '', pending ? 'A screenshot in this section changed since its text was last checked' : '', s.retry ? 'The last run could not rewrite it' : ''].filter(Boolean).join('; ');
     targets.push({ s, missing, reason });
   }
+  let paused = false;
   for (const { s, missing, reason } of targets.slice(0, MAX)) {
+    // Workers AI paused for the day (the usage guard, 0104): no more calls this run; the next run takes them
+    if (paused) { report.kept.push({ portal: s.portal, slug: s.slug, result: 'paused', summary: 'Workers AI is paused for today: the next run takes it', problems: [] }); continue; }
     const screen = [...new Set([...screenLabels(facts, sectionAddresses(s.body_md)).filter((l) => !l.startsWith('~')), ...navOf(s.portal).flatMap((g) => [g.group, ...g.links])])];
     const pool = screen.length > 20 ? screen : plain;
     const sectionFacts = { portal: s.portal, nav: navOf(s.portal).map((g) => ({ group: g.group, links: g.links })), screen_labels: screen,
       missing: missing.map((label) => ({ label, closest: closestLabels(label, pool).length ? closestLabels(label, pool) : closestLabels(label, plain) })) };
     try {
       const r = await job('/api/jobs/guide-rewrite', { method: 'POST', body: JSON.stringify({ section_id: s.id, run: RUN, reason, facts: sectionFacts, labels }) });
+      if (r.paused) paused = true;
       const item = { portal: s.portal, slug: s.slug, result: r.result ?? (r.ok ? 'unknown' : 'model'), attempts: r.attempts ?? 1, labels_only: !!r.labels_only, summary: r.summary ?? r.message ?? '', problems: r.problems ?? [] };
       if (r.result !== 'same') (r.result === 'updated' ? report.rewritten : report.kept).push(item);
     } catch (e) { report.kept.push({ portal: s.portal, slug: s.slug, result: 'error', summary: String(e.message ?? e).slice(0, 200), problems: [] }); }

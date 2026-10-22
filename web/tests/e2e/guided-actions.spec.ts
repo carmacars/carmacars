@@ -48,6 +48,8 @@ async function onboardingCar(sql: Sql, ownerId: string, step = 'terms_set') {
   return { id, name: `2021 Volkswagen ${model}` };
 }
 const prompt = (page: Page, key: string) => page.getByTestId(`prompt-${key}`);
+// three or more lines of one kind of work are one line whose button opens the list (0104)
+async function openGroup(page: Page, group: string) { if (await page.getByTestId(`prompt-group:${group}`).count()) await page.getByTestId(`group:${group}-open`).click(); }
 async function today(page: Page) { await page.goto('/admin', { waitUntil: 'networkidle' }); await expect(page.getByTestId('todo-prompts')).toBeVisible(); }
 
 test('Insurer confirmed: from Today for one car, for several at once, and on the car checklist', async ({ page }) => {
@@ -211,6 +213,7 @@ test('a chat waiting for a person opens the chat; an assistant task with nobody 
   await today(page);
   await expect(prompt(page, `chat:${c!.id}`)).toContainText(`asked for a person in live chat ${c!.number}: reply`);
   if (!staffed) {
+    await openGroup(page, 'task:check_owner_document');
     const line = prompt(page, `task:${t!.id}`);
     await expect(line).toContainText('no assistant holds that function yet');
     await line.getByTestId(`todo-act-task:${t!.id}`).click();
@@ -218,6 +221,7 @@ test('a chat waiting for a person opens the chat; an assistant task with nobody 
     await page.getByTestId(`todo-act-task:${t!.id}-done`).click();
     await page.getByTestId(`todo-act-task:${t!.id}-done-submit`).click();
     await expect(prompt(page, `task:${t!.id}`)).toHaveCount(0, { timeout: 20_000 });
+    await today(page);   // the list of a group closes with the page
   }
   await prompt(page, `chat:${c!.id}`).getByTestId(`todo-act-chat:${c!.id}`).click();
   await page.waitForURL((u) => u.pathname === '/admin/chat' && u.searchParams.get('id') === c!.id);
