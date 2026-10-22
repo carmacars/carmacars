@@ -63,6 +63,6 @@ select app.vin_fill_missing(test.id('vehicle:cfforte'));
 select test.eq('confirmed: the decoder never changes them again', (select transmission from vehicle_listings where vehicle_id = test.id('vehicle:cfforte')), 'Automatic (CVT)');
 
 -- ---------------------------------------------------------------- 3. the games: sooner again after a close
-select test.eq('games: the re-show settings the browser reads', (select jsonb_build_object('p', c -> 'reshow_pages', 's', c -> 'reshow_seconds', 'v', c -> 'per_visit', 'd', c -> 'per_day') from app.game_cfg() c),
-  '{"p": 2, "s": 60, "v": 3, "d": 6}'::jsonb);
+select test.eq('games: the re-show settings the browser reads (0100, the owner''s defaults: 3rd page view or 2 minutes, 4 a visit, no daily cap)', (select jsonb_build_object('p', c -> 'reshow_pages', 's', c -> 'reshow_seconds', 'v', c -> 'per_visit', 'd', c -> 'per_day') from app.game_cfg() c),
+  '{"p": 3, "s": 120, "v": 4, "d": 0}'::jsonb);
 select test.throws('games: at most 50 a day', $$update program_settings set game_max_per_day = 51$$, 'check');

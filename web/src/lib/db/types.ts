@@ -9955,6 +9955,7 @@ export type Database = {
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
           game_max_per_day: number;
+          chat_greeting_topic_text: string;
         };
         Insert: {
           id?: string;
@@ -10331,6 +10332,7 @@ export type Database = {
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
           game_max_per_day?: number;
+          chat_greeting_topic_text?: string;
         };
         Update: {
           id?: string;
@@ -10707,6 +10709,7 @@ export type Database = {
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
           game_max_per_day?: number;
+          chat_greeting_topic_text?: string;
         };
         Relationships: [];
       };
@@ -17499,6 +17502,7 @@ export type Database = {
       calc_total_loss: { Args: { p_settlement_cents: number; p_lender_due_cents: number; p_owner_owes_cents: number }; Returns: { lender_cents: number; company_cents: number; owner_cents: number }[] };
       calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
+      chat_greeting: { Args: { p_page: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
