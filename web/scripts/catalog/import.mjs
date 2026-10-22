@@ -62,25 +62,44 @@ async function epaCsv() {
   return readFileSync(join(dir, 'vehicles.csv'), 'utf8');
 }
 
-/** vPIC's model names per make and year (passenger cars, multipurpose vehicles and light trucks). */
-async function vpicNames(makes) {
+/** vPIC's model names: every model of each make (its spelling, "F-150" over EPA's "F150"), and the models of the current
+ *  and next model year (coverage EPA does not have yet). About 150 calls, six at a time, within a time budget: vPIC
+ *  answering slowly never holds up the import (the catalog is then built from EPA alone). */
+async function vpicNames() {
   const out = {};
-  const want = [...new Set(Object.values(CANADA_MAKES))];
-  const queue = [];
-  for (const make of want) for (let y = YEARS[0]; y <= YEARS[1]; y++) queue.push([make, y]);
-  let failed = 0;
-  const work = async () => {
-    for (let job = queue.shift(); job; job = queue.shift()) {
-      const [make, y] = job;
-      if (makes && !makes.has(slugify(make))) continue;
+  const t0 = Date.now(), BUDGET = 8 * 60_000;
+  const jobs = [];
+  for (const make of [...new Set(Object.values(CANADA_MAKES))]) {
+    jobs.push([make, null]);
+    for (const y of [YEARS[1] - 1, YEARS[1]]) jobs.push([make, y]);
+  }
+  let failed = 0, done = 0;
+  const one = async (url) => {
+    for (let i = 0; i < 2; i++) {
       try {
-        const j = await get(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeYear/make/${encodeURIComponent(make)}/modelyear/${y}?format=json`, 'json');
+        const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30_000) });
+        if (r.ok) return await r.json();
+      } catch { /* retried once */ }
+    }
+    throw new Error('vPIC did not answer');
+  };
+  const work = async () => {
+    for (let job = jobs.shift(); job; job = jobs.shift()) {
+      if (Date.now() - t0 > BUDGET) { failed++; continue; }
+      const [make, y] = job;
+      const url = y ? `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeYear/make/${encodeURIComponent(make)}/modelyear/${y}?format=json`
+        : `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/${encodeURIComponent(make)}?format=json`;
+      try {
+        const j = await one(url);
         const names = [...new Set((j.Results ?? []).map((r) => String(r.Model_Name ?? '').trim()).filter(Boolean))];
-        if (names.length) ((out[slugify(make)] ??= {})[y] = names);
+        // the make's whole list stands for its spellings: filed under year 0, which adds names but no model year
+        if (names.length) ((out[slugify(make)] ??= {})[y ?? 0] = names);
+        done++;
       } catch { failed++; }
     }
   };
   await Promise.all(Array.from({ length: 6 }, work));
+  console.log(`vpic: ${done} calls answered, ${failed} not, ${Math.round((Date.now() - t0) / 1000)} s`);
   return { names: out, failed };
 }
 const toMap = (o) => new Map(Object.entries(o).map(([m, ys]) => [m, new Map(Object.entries(ys).map(([y, n]) => [Number(y), n]))]));
@@ -110,12 +129,14 @@ async function management(sql) {
 // ---------------------------------------------------------------- main
 const t0 = Date.now();
 const csv = await epaCsv();
+console.log(`epa: ${csv.length} bytes in ${Math.round((Date.now() - t0) / 1000)} s`);
 const rows = parseCsv(csv);
+console.log(`epa: ${rows.length} rows parsed`);
 const trimLines = parseTrimList(readFileSync(join(HERE, 'canada-trims.txt'), 'utf8'));
 const popular = parsePopular(readFileSync(join(HERE, 'popular.txt'), 'utf8'));
 let vpic = null, vpicFailed = 0;
 if (arg('--vpic-json')) vpic = JSON.parse(readFileSync(arg('--vpic-json'), 'utf8'));
-else if (flag('--vpic')) { const v = await vpicNames(null); vpic = v.names; vpicFailed = v.failed; }
+else if (flag('--vpic')) { const v = await vpicNames(); vpic = v.names; vpicFailed = v.failed; }
 const catalog = buildCatalog(rows, { years: YEARS, vpic: vpic ? toMap(vpic) : undefined, trimLines, popular });
 
 const trimCount = catalog.trim_lines.reduce((n, t) => n + t.trims.length * (t.to - t.from + 1), 0);
@@ -147,7 +168,7 @@ if (arg('--fixture-out')) {
   const vp = {};
   for (const [mk, md, a, b] of FIXTURE_MODELS) {
     const ms = slugify(mk);
-    for (let y = a; y <= b; y++) {
+    for (const y of [0, ...Array.from({ length: b - a + 1 }, (_, i) => a + i)]) {
       const names = (vpic?.[ms]?.[y] ?? []).filter((n) => slugify(n).replace(/-/g, '') === slugify(md).replace(/-/g, '') || slugify(n).startsWith(slugify(md)));
       if (names.length) ((vp[ms] ??= {})[y] = names);
     }

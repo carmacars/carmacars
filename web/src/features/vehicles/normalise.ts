@@ -137,15 +137,18 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
   for (const [make, byYear] of opts.vpic ?? []) {
     if (!makes.has(make)) continue;
     for (const [year, names] of byYear) {
-      if (year < opts.years[0] || year > opts.years[1]) continue;
+      // year 0: the make's whole list of model names, for their spelling only (no model year, no new model)
+      const nameOnly = year === 0;
+      if (!nameOnly && (year < opts.years[0] || year > opts.years[1])) continue;
       for (const name of names) {
         const key = modelKey(name);
         const mk = `${make}|${key}`;
         const m = models.get(mk) ?? [...models.values()].find((o) => o.make === make && o.aliases.has(key));
-        if (!m && !named.has(mk)) continue;
+        if (!m && (nameOnly || !named.has(mk))) continue;
         const mm = m ?? (() => { const n = { make, name, key, aliases: new Set<string>(), vclass: [], sources: new Set(['vpic']) }; models.set(mk, n); return n; })();
         mm.sources.add('vpic');
         if (mm.key === key && /[-\s]/.test(name) && !/[-\s]/.test(mm.name)) mm.name = name; // "F-150", "CR-V", "CX-5"
+        if (nameOnly) continue;
         const yk = `${make}|${mm.key}|${year}`;
         const y = years.get(yk);
         if (y) { if (!y.sources.includes('vpic')) y.sources.push('vpic'); }
