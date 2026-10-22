@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ConfCoverage, ConfEmail, ConfName, ConfRows } from '@/features/booking/Confirmation';
 import { pageMeta } from '@/features/seo/meta';
 import { fill, getFacts, getSettings, getTokens } from '@/lib/site';
+import { rpc } from '@/lib/db/repo';
 
 // The request received page (docs/blueprint/02-booking-and-renter.md, /book/sent/[bookingNumber]).
 export const revalidate = 3600;
@@ -18,13 +19,17 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
   const F = (x: string) => fill(x, t);
   const bookings = f.email_aliases.bookings;
   // a request on a sample car (0065) is an enquiry: EQ-1001, answered with a similar real car
+  // 0102: a real car was free for the enquiry's dates (kept on the enquiry): we say so, rather than implying we have none
+  const hasMatch = /^EQ-/i.test(number) ? !!(await rpc('enquiry_has_match', { p_reference: number }).catch(() => false)) : false;
   if (/^EQ-/i.test(number)) return (
     <div className="p-conf" data-page="confirmation">
       <section className="page-head on-dark conf-head">
         <div className="wrap">
           <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your enquiry number</span></p>
           <h1 className="d1" data-testid="enquiry-sent">Enquiry sent<ConfName number={number} />.</h1>
-          <p className="lead">The car you chose is an example of the cars we rent. A person at {s.brand_name} is finding a similar real car for your dates. Nothing is booked or charged.</p>
+          {hasMatch
+            ? <p className="lead" data-testid="enquiry-match">The car you chose is an example of the cars we rent. We have a similar car for your dates; we’ll confirm it within 2 hours. Nothing is booked or charged.</p>
+            : <p className="lead">The car you chose is an example of the cars we rent. A person at {s.brand_name} is finding a similar real car for your dates. Nothing is booked or charged.</p>}
         </div>
       </section>
       <section className="section">
@@ -32,7 +37,7 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
           <div className="c-7 stack-lg">
             <h2 className="d2">What happens next</h2>
             <ol className="seq">
-              <li><div><h3>We find a similar real car</h3><p>{F('The same kind of car at a similar price, free for your dates. {{reply}}, day or night.')}</p><span className="seq__who">{s.brand_name}</span></div></li>
+              <li><div><h3>{hasMatch ? 'We confirm the similar car' : 'We find a similar real car'}</h3><p>{F('The same kind of car at a similar price, free for your dates. {{reply}}, day or night.')}</p><span className="seq__who">{s.brand_name}</span></div></li>
               <li><div><h3>You get the car and its price</h3><p>By email<ConfEmail number={number} /> or by phone, with every fee and HST. If you like it, we send the offer to approve.</p><span className="seq__who">{s.brand_name}</span></div></li>
               <li><div><h3>You decide</h3><p>Nothing is booked until you approve, sign and pay. If it is not right, tell us and we look again.</p><span className="seq__who">You</span></div></li>
             </ol>

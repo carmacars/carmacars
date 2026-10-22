@@ -480,7 +480,7 @@ def build():
         f'{B("Hide sample cars")} asks first ("Hide all 20 sample cars from the site?"); press {B("Hide them")} to take every sample car off the site at once, or {B("Keep them")}. Nothing else stops it: not an enquiry, not an old request.',
         f'{B("Show sample cars")} puts the 20 back, with their photos and rates. Ones that were deleted are made again.',
         'On the site each one is marked "Example car". They never appear in search engines or the sitemap.',
-        'A request on a sample car is never a booking. It becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car.',
+        'A request on a sample car is never a booking. When the person picks dates, the car page and the request form show a real car free for them (the same make and model first, else the same class and body at a similar price) with one tap to switch to it. If they keep the sample car, it becomes an enquiry (number EQ-1001 and up) and customer service gets the task Suggest a similar real car, naming the free real car.',
     ])
     g.tip('Hide the sample cars once enough real cars are on the site. Delete all sample cars removes them for good.')
 

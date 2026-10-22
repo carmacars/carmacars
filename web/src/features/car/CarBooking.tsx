@@ -11,12 +11,15 @@ import { addDays, shortDate, torontoMinutesNow, torontoToday, validIso, validTim
 import { money } from '@/lib/format';
 import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice } from '@/features/addons/model';
+import { SampleMatch } from '@/features/booking/SampleMatch';
 
 export interface CarBookingProps {
   vehicleId: string; slug: string; name: string; deliveryFee: number; pickupFee: number;
   rates: { daily: number; weekend: number; weekly: number; monthly: number; multi?: number | null };
   maxDays: number; noticeMinutes: number; tokens: LabelTokens & { notice: string; turnaround: string; offerHours: string; hst: string; fullAge: string; youngA: string; youngB: string };
   allowsYoung: boolean;
+  /** 0102: a sample (example) car offers the best real car free for the chosen dates */
+  isSample?: boolean;
 }
 
 export const AGE_BANDS = { '26_plus': 'fullAge', '21_to_25': 'youngB', '18_to_20': 'youngA' } as const;
@@ -125,6 +128,8 @@ export function CarBooking(p: CarBookingProps) {
         </div>
         <div className="booking__est">
           <h3 className="d4">Your estimate</h3>
+          {p.isSample && ready && <SampleMatch vehicleId={p.vehicleId} name={p.name} from={from} to={to} tf={tf} tt={tt}
+            href={(slug) => `/book/${slug}?${new URLSearchParams({ from, to, tf, tt }).toString()}`} />}
           <Estimate q={q} error={error} loading={loading} from={ready ? from : ''} to={ready ? to : ''} tf={tf} tt={tt} rates={p.rates} hst={p.tokens.hst} maxDays={p.maxDays} labels={p.tokens} problem={problem} />
           <Link className="btn btn--primary btn--lg btn--block" href={href} data-book><span>Request to book</span></Link>
           <p className="small muted booking__assure"><b>No payment now.</b> We confirm the car and send the final price as an offer, open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for it first, we offer another car or other dates.</p>

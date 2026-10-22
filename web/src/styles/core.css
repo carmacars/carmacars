@@ -88,6 +88,8 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
   .menu-btn { display: none; }
   .site-header .header-signin { display: inline-flex; }
 }
+/* 0102: at 64 to 80rem the full menu is 1px wider than the window (1024: the header's button overflowed) */
+@media (min-width: 64rem) and (max-width: 79.99rem) { .nav { gap: var(--s-4); margin-left: var(--s-5); } }
 .menu-panel { position: fixed; inset: var(--header-h) 0 0 0; z-index: 49; background: var(--black); color: var(--white); padding: var(--s-5) var(--gutter) var(--s-7); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s-6); visibility: hidden; opacity: 0; transform: translateY(-8px); transition: opacity var(--t-2) var(--ease), transform var(--t-2) var(--ease), visibility 0s var(--t-2); }
 .menu-panel.is-open { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
 .menu-panel__links a { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4); padding: 0.42em 0; border-bottom: 1px solid var(--grey-800); font: 700 clamp(1.625rem, 7vw, 2.125rem)/1.15 var(--font-display); letter-spacing: -0.03em; text-decoration: none; color: var(--white); }

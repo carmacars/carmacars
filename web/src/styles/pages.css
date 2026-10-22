@@ -335,8 +335,9 @@ body:has(.p-car) .site-footer { padding-bottom: 5.5rem; }
 .dob--2 { grid-template-columns: 1.6fr 1.2fr; max-width: 20rem; }
 .dob > div { display: grid; gap: 0.25rem; }
 .req__seat { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); padding: var(--s-4); border: var(--bw) solid var(--grey-300); border-radius: var(--r-2); margin-top: var(--s-4); }
-.req__review td:last-child { text-align: right; width: 1%; }
-.req__review button { background: none; border: 0; padding: 0; }
+/* 0102: the Edit links stay on one line (the cell's overflow-wrap: anywhere broke "Edit" into a letter a line beside the summary) */
+.req__review td:last-child { text-align: right; width: 1%; white-space: nowrap; overflow-wrap: normal; padding-left: var(--s-3); }
+.req__review button { background: none; border: 0; padding: 0; white-space: nowrap; }
 .field > fieldset, fieldset.field > .stack { margin-top: 0.25rem; }
 @media (max-width: 63.99rem) { .p-request .req__sum:not([open]) + * { display: none; } }
 @media (min-width: 64rem) {

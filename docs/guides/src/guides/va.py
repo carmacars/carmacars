@@ -105,8 +105,8 @@ def build():
 
     g.task('An enquiry on an example car', 'Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.')
     g.steps([
-        'The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact.',
-        f'Find a real car of the same kind and price that is free for those dates, and make a {B("New quote")} for it.',
+        f'The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact. When a real car was free for those dates, the task names it after {B("Free:")} (the same make and model first, else the same class and body at a similar price), and the person was told we have a similar car and will confirm it within 2 hours.',
+        f'Check the named car is still right for them (or find a real car of the same kind and price that is free for those dates), and make a {B("New quote")} for it.',
         'Call or email the person with the car and the price, then mark the task done.',
     ])
     g.tip('Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.')
