@@ -23,7 +23,7 @@ export default async function VaTuro() {
     <Card title="Trips" testId="turo-trips">
       <Table rows={v.trips} empty="No Turo trips recorded." cols={[{ key: 'turo_trip_ref', label: 'Trip' }, { key: 'vehicle', label: 'Car', render: (r) => `${String(r.vehicle)} ${String(r.plate ?? '')}` },
         { key: 'ends_at', label: 'Ended', render: (r) => t(r.ends_at) }, { key: 'gross_cents', label: 'Gross', num: true, render: (r) => $(r.gross_cents) }, { key: 'turo_fees_cents', label: 'Turo fees', num: true, render: (r) => $(r.turo_fees_cents) },
-        { key: 'revenue_share_cents', label: 'Revenue Share', num: true, render: (r) => `${$(r.revenue_share_cents)} (${Number(r.revenue_share_bps) / 100}%)` }, { key: 'owner_payout_cents', label: 'Owner', num: true, render: (r) => $(r.owner_payout_cents) },
+        { key: 'revenue_share_cents', label: 'Management fee (Revenue Share)', num: true, render: (r) => `${$(r.revenue_share_cents)} (${Number(r.revenue_share_bps) / 100}%)` }, { key: 'owner_payout_cents', label: 'Owner', num: true, render: (r) => $(r.owner_payout_cents) },
         { key: 'statement_month', label: 'Statement', render: (r) => `${d(r.statement_month)}${r.on_statement ? ' (on statement)' : ''}` }]} />
     </Card>
     <Card title="Import from a CSV"><TuroImport /></Card>

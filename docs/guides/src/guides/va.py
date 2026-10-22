@@ -185,7 +185,7 @@ def build():
     g.steps([
         'Failed payments: each with the purpose, amount and the bank\'s reason.',
         'Deposits to take before pickup, and deposits due back.',
-        f'Refunds in progress. Press {B("Request the refund")}; above your limit it waits for an Admin. Then {B("Issue the refund")}.',
+        f'Refunds in progress. Press {B("Request the refund")} and choose What it refunds (the rental charge, delivery or pickup, kilometres, add-ons or other charges); above your limit it waits for an Admin. Then {B("Issue the refund")}.',
         'Owner invoices that failed, and owner statements to prepare.',
     ], shot=S('va-finance/02-money-desktop', 210, 120, 1440, 1180, pins=[(1, 340, 190), (2, 360, 324), (3, 340, 727), (4, 370, 896)]), fig_w=4.0)
 
@@ -244,7 +244,7 @@ def build():
     g.para(f'After each return, the field photo set waits under {B("Photo reviews")}. Compare it with the pickup set. '
            f'Press {B("Review done")}, or {B("Ask for a re-shoot")} if a photo is missing or unclear.')
 
-    g.task('Similar cars', 'A possible duplicate listing stops publishing until you decide.')
+    g.task('Similar cars', 'A possible duplicate never keeps a car off the site: it shows on the car\'s checklist until you decide. Only Same car takes it off.')
     g.steps([
         'Each flag shows the car, what it looks like (same VIN, plate, photo or specs) and the other car.',
         'Compare the permit, the plate and the photos.',
@@ -269,7 +269,14 @@ def build():
         f'Choose {B("A CarmaCars plate")}, {B("Pixelation")} or {B("Blur")}, then {B("Save the covered photo")}.',
         f'No plate in the shot? {B("No plate visible on this photo")}.',
     ], shot=S('admin/11-plate-editor-phone', 0, 0, 390, 776, hdr=True, pins=[(3, 205, 612), (4, 195, 340), (5, 240, 482), (6, 168, 716)]))
-    g.warn('Publishing waits until every public photo is covered or marked. The covered photo replaces the public one; the original is kept privately.')
+    g.warn('The plate check never holds a car back: a photo whose plate is not checked stays private, and goes public by itself once it is covered or marked. The covered photo replaces the public one; the original is kept privately.')
+    g.task('Publish now', 'Customer service and fleet publish a car themselves; nothing has to be finished first.')
+    g.steps([
+        f'Open the car from Listings or Field jobs. Its listing says why it is not on the site yet; press {B("Publish now")}. With no rates yet it uses the suggested rates (similar cars, else the class defaults).',
+        'What is still open (paperwork, details, photos, No VIN yet for a car added by its plate, a possible duplicate) shows as warnings after Publish now and on the car. None of them stops publishing.',
+        'New cars with their rates usually go on the site by themselves (Publish new cars automatically, on by default). A car taken off the site by staff waits for Publish now.',
+    ])
+    g.tip('A car not on the fleet insurance policy yet can be requested, offered and paid for, but never handed over until the insurer confirms it. Requests and offers for such a car show a warning.')
 
     g.task('Calendar sync with Turo and other platforms', f'{P("Cars", "Calendar sync")}: a car listed on Turo or Getaround must never be booked twice.')
     g.steps([
@@ -351,7 +358,7 @@ def build():
     g.table([
         ['Sales', 'Commission only, with no base pay and no set hours. By the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all of that month\'s rentals'],
         ['Customer service, finance, fleet', '10%'],
-        ['How much', 'The rate on the rental charge before tax, after discounts, less refunds'],
+        ['How much', 'The rate on the rental charge before tax, after discounts, with late extra days; never on delivery, kilometres, add-ons or anything else bought. Only a refund of the rental charge comes off'],
         ['When earned', 'When the rental is completed and paid in full. Never on a cancelled, refunded, unpaid or charged-back rental, or on your own or a household rental'],
         ['Your home address', 'It must be in your profile. Until it is, a commission waits as not earned yet, and you cannot add a rental or mark I sourced this client'],
         ['Paid', 'After an Admin approves it, by transfer or on your pay statement. My sales shows each step: not earned yet, pending approval, approved, paid, reversed'],
@@ -433,6 +440,11 @@ def build():
         'Use the arrows, Today and the range to move around, or search by plate, booking or name.',
         f'Fleet and customer service can remove a cleaning block from its side panel ({B("Remove the block")}) when a car is ready sooner.',
     ], shot=S('va-cs/09-calendar-desktop', 210, 60, 1440, 860, pins=[(1, 950, 330), (2, 560, 200)]))
+    g.task('Find a car', f'{P("My work", "Find a car")}. A renter quotes the car code on the car\'s page (like CC-7F3A).')
+    g.steps([
+        'Type the car code, a plate, a VIN or the name. Each car shows its code, plate, status and its page on the site.',
+        'In Add a rental, type the car code or plate in the box above Car to choose it.',
+    ])
     g.task('Find a renter')
     g.steps([
         'Search by name, email, phone or booking number.',

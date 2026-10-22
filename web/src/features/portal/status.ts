@@ -22,7 +22,9 @@ export const awaitingSignature = (b: MyBooking | BookingSummary) => b.status ===
 
 export interface NextStep { title: string; note: string; href?: string; cta?: string; urgent?: boolean }
 
-export const carName = (b: Pick<BookingSummary, 'vehicle_year' | 'vehicle_make' | 'vehicle_model'>) => `${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`;
+// with its car code (0079) when known, so the renter can quote it to staff
+export const carName = (b: Pick<BookingSummary, 'vehicle_year' | 'vehicle_make' | 'vehicle_model'> & { car_code?: string | null }) =>
+  `${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}${b.car_code ? ` (car code ${b.car_code})` : ''}`;
 export const bookingPath = (n: string, sub = '') => `/account/bookings/${encodeURIComponent(n)}${sub ? `/${sub}` : ''}`;
 
 export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextStep {

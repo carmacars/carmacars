@@ -22,7 +22,7 @@ export interface ChangeRequest { id: string; status: string; note: string | null
 export interface Readiness { drivers?: Array<{ name?: string; verified?: boolean }>; coverage_confirmed?: boolean; missing: string[]; ready_for_handover: boolean; [k: string]: unknown }
 
 export interface BookingSummary {
-  id: string; booking_number: string; status: BookingStatus; booking_type: string; vehicle_id: string; vehicle_year: number; vehicle_make: string; vehicle_model: string;
+  id: string; booking_number: string; status: BookingStatus; booking_type: string; vehicle_id: string; vehicle_year: number; vehicle_make: string; vehicle_model: string; car_code?: string | null;
   vehicle_colour: string | null; slug: string | null; pickup_at: string; return_at: string; pickup_place: string | null; return_place: string | null;
   pickup_method: string; return_method: string; billable_days: number; offer_expires_at: string | null; current_offer_version: number | null;
   offer_approved_version: number | null; total_due_at_booking_cents: number; renter_due_at_booking_cents: number; deposit_cents: number;

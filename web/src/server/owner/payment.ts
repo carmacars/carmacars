@@ -1,4 +1,5 @@
 import 'server-only';
+import { intentOpened } from '@/server/portal/intent-log';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { payments, type Intent } from '@/integrations/payments';
@@ -35,12 +36,15 @@ export async function invoiceIntent(f: InvoiceFacts, method: 'card' | 'acss_debi
     ?? (await p.createCustomer({ email: f.owner_email ?? '', name: f.owner_name, ownerId: f.owner_id, idempotencyKey: `owner-customer:${f.owner_id}` })).id;
   const attempt = f.payments.filter((x) => x.status === 'failed').length;
   const terms = (await debitTerms());
-  return p.createInvoiceIntent({
+  const i = await p.createInvoiceIntent({
     invoiceId: f.id, invoiceNumber: f.invoice_number, ownerId: f.owner_id, amountCents: f.balance_cents, customerId, method,
     transactionType: ownerType === 'corporation' ? 'business' : 'personal', intervalDescription: terms.interval_description, recurring,
     description: `CarmaCars invoice ${f.invoice_number}, ${f.vehicle_name}`,
     idempotencyKey: `owner-invoice:${f.id}:${method}:${f.balance_cents}:${attempt}${method === 'acss_debit' && !recurring ? ':once' : ''}`
   });
+  // the payment form opened, on record before anything is paid (0079)
+  await intentOpened({ payment_id: i.id, purpose: 'owner_invoice', owner_invoice_id: f.id, amount_cents: i.amountCents });
+  return i;
 }
 
 export const publishableKey = () => env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null;

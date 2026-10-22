@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Booster seat">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f7"/><stop offset="0.72" stop-color="#ececec"/><stop offset="1" stop-color="#dedede"/></linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b4f"/><stop offset="1" stop-color="#26272a"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2343d"/><stop offset="1" stop-color="#a80d16"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <rect x="0" y="610" width="800" height="190" fill="#e2e2e3"/>
+  <ellipse cx="400" cy="616" rx="230" ry="22" fill="url(#shadow)"/>
+  <rect x="60" y="640" width="680" height="5" fill="#D0111B"/>
+  <g>
+    <path d="M280 470 L300 250 Q305 210 345 205 L455 205 Q495 210 500 250 L520 470 Z" fill="url(#paint)" stroke="#26272a" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M318 460 L333 270 Q336 245 360 243 L440 243 Q464 245 467 270 L482 460 Z" fill="#3a3b3f"/>
+    <rect x="360" y="215" width="80" height="12" rx="6" fill="#a9b4bd"/>
+    <path d="M200 600 L600 600 L590 470 Q590 450 570 450 L230 450 Q210 450 210 470 Z" fill="url(#paint)" stroke="#26272a" stroke-width="8" stroke-linejoin="round"/>
+    <rect x="200" y="420" width="90" height="60" rx="20" fill="#4a4b4f" stroke="#26272a" stroke-width="6"/>
+    <rect x="510" y="420" width="90" height="60" rx="20" fill="#4a4b4f" stroke="#26272a" stroke-width="6"/>
+    <rect x="230" y="438" width="40" height="10" rx="5" fill="#D0111B"/>
+    <rect x="530" y="438" width="40" height="10" rx="5" fill="#D0111B"/>
+    <rect x="270" y="500" width="260" height="14" rx="7" fill="#D0111B"/>
+  </g>
+  <text x="740" y="740" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#6b6c70" text-anchor="end">Booster seat</text>
+</svg>

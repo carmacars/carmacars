@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Full tank of gas (prepaid)">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f7"/><stop offset="0.72" stop-color="#ececec"/><stop offset="1" stop-color="#dedede"/></linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b4f"/><stop offset="1" stop-color="#26272a"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2343d"/><stop offset="1" stop-color="#a80d16"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <rect x="0" y="610" width="800" height="190" fill="#e2e2e3"/>
+  <ellipse cx="400" cy="616" rx="230" ry="22" fill="url(#shadow)"/>
+  <rect x="60" y="640" width="680" height="5" fill="#D0111B"/>
+  <g>
+    <path d="M150 470 A250 250 0 0 1 650 470" fill="none" stroke="url(#paint)" stroke-width="40" stroke-linecap="round"/>
+    <path d="M520 255 A250 250 0 0 1 650 470" fill="none" stroke="#D0111B" stroke-width="40" stroke-linecap="round"/>
+    <g stroke="#26272a" stroke-width="8" stroke-linecap="round"><path d="M195 470 L225 470"/><path d="M575 470 L605 470"/><path d="M400 265 L400 295"/><path d="M255 325 L276 346"/><path d="M545 325 L524 346"/></g>
+    <text x="215" y="545" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#26272a">E</text>
+    <text x="560" y="545" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#D0111B">F</text>
+    <path d="M400 470 L585 395" stroke="#D0111B" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="400" cy="470" r="34" fill="url(#paint)" stroke="#26272a" stroke-width="4"/>
+    <g transform="translate(345 505)">
+      <rect x="0" y="0" width="80" height="96" rx="10" fill="url(#paint)"/>
+      <rect x="14" y="14" width="52" height="30" rx="4" fill="#e9e9ea"/>
+      <path d="M80 30 L100 30 L100 80 Q100 92 110 92 Q120 92 120 80 L120 40 L108 22" fill="none" stroke="#26272a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+  <text x="740" y="740" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#6b6c70" text-anchor="end">Full tank of gas (prepaid)</text>
+</svg>

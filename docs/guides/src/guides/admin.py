@@ -51,7 +51,7 @@ def build():
     g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
     g.task('Search', 'The search box sits at the top of the menu, on every page.')
     g.steps([
-        'Type a booking number (CC-1042), a plate, a VIN, or a name or email address.',
+        'Type a booking number (CC-1042), a car code (CC-7F3A, on every car page and fleet card), a plate, a VIN, or a name or email address.',
         f'Press {B("Search")} (or Enter). Results come in groups: bookings, cars, owners, partners and renters. Open one to go to its page.',
     ], shot=S('admin/32-search-desktop', 0, 0, 1440, 420, pins=[(1, 107, 190), (2, 1368, 197)]))
     g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box.')
@@ -303,7 +303,7 @@ def build():
     g.steps([
         'Type the four rates. Only the daily rate is needed: an empty weekend rate is the daily rate, an empty weekly rate is 6 days at the daily rate, and an empty monthly rate is 22 days.',
         f'Kilometres: keep {B("Use the defaults")} (the kilometres a day in Settings, Kilometre choices, and the extra kilometre rate in Fee defaults for the car\'s class), or choose {B("Custom for this car")} and type them.',
-        'Check the deposit (the class default is filled in), and the delivery and pickup fees (0: not offered).',
+        'Check the deposit (the class default is filled in), and the delivery and pickup fees: each is one way, an empty pickup fee is the delivery fee, and 0 means not offered.',
         f'Read What renters pay under the fields: real prices for a weekend, a few weekdays, a week and a month, worked out the way bookings are priced. Press {B("Save the rates")}.',
     ])
     g.table([
@@ -350,8 +350,8 @@ def build():
         f'On the car itself, the Listing tab has {B("Publish now")}; each open item of its checklist has a button to where it is done.',
         f'From a listing review: press {B("Approve and publish")}, {B("Approve, publish later")}, or {B("Send back")} with what to fix.',
     ])
-    g.warn('Publishing waits for a plate decision on every public photo ("Cover the licence plate or mark it not visible on every '
-           'public photo first"). Listings already live show "Plate not checked" until someone checks them.')
+    g.warn('The plate check never holds a car back: a real photo whose plate is not checked stays private (the other photos, or the sample photos, '
+           'show instead) and goes public by itself once its plate is covered or marked not visible. Listings already live show "Plate not checked" on such photos.')
 
     g.task('A listing without photos yet: sample photos', 'A car can be listed before its photos are taken. Until then the site shows a sample photo.')
     g.steps([
@@ -368,6 +368,31 @@ def build():
         f'Cars using sample photos lists the cars still waiting for real photos. Each real car showing sample photos is also a line on To do, with {B("Add photos")}.',
     ], shot=S('admin/36-sample-photos-desktop', 0, 160, 1440, 900, pins=[(4, 386, 323)]))
 
+    g.task('Publish now, and new cars published by themselves', 'Nothing between a new car and the site has to be finished first: the car goes on the site, and what is still open shows on its checklist.')
+    g.steps([
+        f'{P("Settings", "Program")}, {B("Publish new cars automatically")} (on by default): a new real car goes on the site by itself as soon as it has its year, make and model and its rates, when it is added with rates, when its rates are saved, when it is added for an owner, or when an owner\'s application is approved.',
+        f'Otherwise open the car: its Listing tab says why it is not on the site and has {B("Publish now")}. A car with no rates yet is published with the suggested rates (similar cars, else the class defaults in Program settings); change them later on the Rates tab.',
+        'Every real car has its listing from the moment it is added, as a draft. It shows in Listings and in Not on the site yet until it is published.',
+        'An owner\'s own application waits for your decision before its car is published by itself; Publish now still works.',
+        f'A car taken off the site by staff, or scheduled for a later date, is never published by itself: press {B("Publish now")}.',
+    ])
+    g.task('The checklist: what is still open on a listed car', 'Open items never stop publishing. They show as warnings on the car\'s Listing tab and after Publish now.')
+    g.table([
+        ['Paperwork', 'Ownership permit, registry forms, agreements signed, Forms C and D, upfront payment, registry visit, tracker, safety certificate'],
+        ['Insurance', 'Not on the fleet insurance policy yet: the car can be booked, but not handed over'],
+        ['Details', 'Colour, body, seats, gearbox: the car page leaves out what is missing'],
+        ['Photos', 'No real photos: sample photos stand in. A photo whose plate is not checked stays private until it is'],
+        ['No VIN yet', 'A car added by its plate alone: add the VIN when you have it'],
+        ['Possible duplicate', 'An open flag in Similar cars. Only Same car keeps the car off the site'],
+        ['Owner terms', 'The management fee (Revenue Share) and fees not set: a request uses the owner\'s terms or the standard grid'],
+    ], head=['Item', 'What it means'])
+    g.task('The fleet policy rule at handover', 'A program owner\'s car is listed and can be requested, offered and paid for while its paperwork is open. It is never handed over until the insurer confirms in writing that it is on the fleet insurance policy.')
+    g.bullets([
+        'Staff see a warning on a request and an offer for a car not on the policy yet.',
+        'The handover refuses the car until the insurer\'s confirmation is recorded (Owners and onboarding). The field app says so on the job.',
+        'Only real states keep a car off the site: retired, left the program, out of service, Turo only, bookings turned off, a self-managed owner in arrears, or a paused listing.',
+    ])
+
     # ---------------------------------------------------------------- 5b
     g.chapter('Partners, company cars and rentals added by hand',
               'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. '
@@ -378,7 +403,7 @@ def build():
         B("A program owner's car") + ': choose the owner. The car starts its onboarding (terms, agreements, registry) as if the owner had applied.',
         f'{B("CarmaCars-owned (company fleet)")}: no owner. All of its revenue is CarmaCars\' and it shows in the company statement as company fleet.',
         B("A partner rental company's car") + ': choose the partner. Leave the commission empty to use the partner\'s, or type one for this car.',
-        f'Type the VIN, the plate and the details.',
+        f'Type the plate or the VIN (a car can be added by its plate alone; No VIN yet stays on its checklist until you add it), then the details.',
         f'Under Rates and kilometres, type the rates now (only the daily rate is needed) and keep the default kilometres, or leave the rates empty and set them later on the car\'s Rates tab. What renters pay shows as you type. Press {B("Add the car")}.',
     ])
     g.tip('The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
@@ -450,7 +475,7 @@ def build():
     g.task('Decide on an application', 'One page holds everything: the owner, the car, the uploads, the four checks and the notes.')
     g.steps([
         'Check the driver\'s licence, the ownership, the insurance and the lender or lessor. Mark each one Checked, fine, Problem or Not needed.',
-        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, Revenue Share, Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
+        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, management fee (Revenue Share), Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
         'Choose the invoices: First and last month, Registration fee (any exact amount), Tracker install (only once trackers are available) and Another invoice. For each one choose Send now, Save as draft or Already paid. Already paid asks how (e-Transfer, cash, cheque, bank transfer or other), the date and the reference: it is recorded like Record payment and the owner gets the receipt, not an invoice.',
         f'Press {B("Approve")} at the bottom of the step. Nothing is set or sent before that. The owner becomes active, the documents open for one signature in their portal, only the invoices you chose are made, and the owner gets one email.',
         f'Missing something? Press {B("Ask for something")}, tick what you need (for example the ownership permit or the insurance slip), add a message if you like, and press {B("Send to the owner")}. The owner gets an email and a task in their portal; the application shows Waiting on owner until they answer.',
@@ -491,6 +516,19 @@ def build():
         f'"Enter the terms agreed with <owner>": their cars still use the standard grid. Press {B("Enter the terms")}: the Management fee (Revenue Share), the Insurance Fee, the Tracker Fee, the Install Fee and the first and last month are filled in from the grid. Type what you agreed for the owner, and open a car to give it its own. A car whose schedule is signed gets an updated schedule for the owner to sign.',
         f'Nothing to change? Press {B("Not needed")} or {B("These are correct")}: the line does not come back.',
     ])
+    g.task('A shareholder\'s own car', f'On the owner\'s page, each car has {B("Shareholder\u2019s own car")}.')
+    g.steps([
+        'A shareholder\'s own car is split 90/10 (the share in Program settings) and pays no Insurance Fee, Tracker Fee, first and last month or tracker install.',
+        f'Press {B("Shareholder\u2019s own car")}, say why (it is kept in the audit log) and confirm. Press it again to undo. Bookings already made keep their split.',
+        'A first and last month or a tracker install invoice is refused for such a car, from any screen.',
+    ])
+    g.task('Cancellation refunds', f'{P("Settings", "Program")}: the refund for each cancellation tier.')
+    g.table([
+        ['Within 24 hours of booking, 48 hours or more before the start', '95%'],
+        ['48 hours or more before the start', '75%'],
+        ['24 to 48 hours before the start', '50%'],
+        ['Under 24 hours, or after the start', '0%'],
+    ], head=['When the renter cancels', 'Refund (default)'])
     g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
         'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',
@@ -600,7 +638,7 @@ def build():
     g.table([
         ['Sales', 'By rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all that month\'s rentals'],
         ['Customer service, finance, fleet, field staff', '10% (also the field referral fee)'],
-        ['Base', 'The rental charge before tax, after discounts, less refunds'],
+        ['Base', 'The rental charge before tax, after discounts, with late extra days; never delivery, kilometres, add-ons or anything else bought. Only a refund of the rental charge comes off'],
         ['On the owner statement', 'An owner\'s car: deducted with the kickbacks before Owner Revenue, its own line on the statement. A partner\'s car: from CarmaCars\' commission. A CarmaCars-owned car: a CarmaCars expense'],
     ], head=['', 'Commission'])
     g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
@@ -866,6 +904,7 @@ def build():
     ])
     g.task('The money')
     g.bullets([
+        f'An add-on a renter adds with no card on file waits for payment: the renter pays it on the booking ({B("Pay for your add-ons")}), and the Finance task closes by itself. Paid another way, record it on the booking.',
         'Add-on revenue is CarmaCars\' own: never Owner Revenue or a partner\'s share, and never in a commission or kickback base.',
         'The company statement shows Add-ons as its own income line (account 4150).',
         'A cancellation refunds add-ons by the booking\'s tier, except one marked Not refunded once its notice has started.',

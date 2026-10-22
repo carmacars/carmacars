@@ -5,7 +5,7 @@
 // so the unit tests run it with a stub model and stub tools (agent.test.ts).
 import { centsIn, checkReply, escalationFor, ESCALATION_WORDS, money, tidy, type Escalation, type ReplyContext } from './guardrails.ts';
 
-export interface FleetCar { slug: string; name: string; class: string; seats: number; transmission: string; fuel: string; area?: string; daily_rate_cents: number; weekly_rate_cents?: number; deposit_cents: number; km_per_day?: number; young_18_20?: boolean; vehicle_id: string; taking_requests?: boolean; sample?: boolean }
+export interface FleetCar { slug: string; name: string; class: string; seats: number; transmission: string; fuel: string; area?: string; daily_rate_cents: number; weekly_rate_cents?: number; deposit_cents: number; km_per_day?: number; young_18_20?: boolean; vehicle_id: string; taking_requests?: boolean; sample?: boolean; code?: string | null }
 export interface ChatFacts {
   today: string; weekday: string;
   site: { brand?: string; city?: string; phone?: string; email?: string | null; hours?: string; reply?: string; service_area?: string; delivery_area?: string | null };
@@ -56,7 +56,7 @@ const pct = (bps?: number) => (typeof bps === 'number' ? `${bps / 100}%` : '');
 export function factsText(f: ChatFacts): string {
   const r = f.rules, c = r.cancellation ?? {};
   const cars = f.fleet.filter((x) => x.taking_requests !== false).map((x) =>
-    `${x.slug} | ${x.name} | ${x.class}, ${x.seats} seats, ${x.transmission}, ${x.fuel} | from ${money(x.daily_rate_cents)} a day | Deposit ${money(x.deposit_cents)}${x.km_per_day ? ` | ${x.km_per_day} km a day included` : ''}${x.young_18_20 ? ' | drivers 18 to 20 allowed' : ''}${x.area ? ` | ${x.area}` : ''}${x.sample ? ' | EXAMPLE CAR (a sample, not a real car: never quote or promise it; take a request and say we will suggest a similar real car)' : ''}`).join('\n');
+    `${x.slug}${x.code ? ` (car code ${x.code})` : ''} | ${x.name} | ${x.class}, ${x.seats} seats, ${x.transmission}, ${x.fuel} | from ${money(x.daily_rate_cents)} a day | Deposit ${money(x.deposit_cents)}${x.km_per_day ? ` | ${x.km_per_day} km a day included` : ''}${x.young_18_20 ? ' | drivers 18 to 20 allowed' : ''}${x.area ? ` | ${x.area}` : ''}${x.sample ? ' | EXAMPLE CAR (a sample, not a real car: never quote or promise it; take a request and say we will suggest a similar real car)' : ''}`).join('\n');
   const fees = Object.values(r.fees ?? {}).filter((x) => typeof x.amount_cents === 'number')
     .map((x) => `${x.label}: ${money(x.amount_cents!)}${x.unit === 'per_day' ? ' a day' : ''}${x.cap_cents ? `, up to ${money(x.cap_cents)}` : ''}`).join('; ');
   return [
@@ -69,6 +69,7 @@ export function factsText(f: ChatFacts): string {
     `Delivery: pickup at our location or delivery for a fee shown in the quote; airports: ${(r.airports ?? []).map((a) => a.name).join(', ')}.`,
     `Protection Plan: optional, offered with the booking; its price is in the offer. Call it only "the Protection Plan". Do not explain what it pays for: a person answers those questions.`,
     `Fees: ${fees}. Prices on the site and in quotes are before HST (${pct(r.hst_bps)}) unless the quote says the total.`,
+    `Each car has a short car code (like CC-7F3A) shown on its page: a visitor may name a car by it.`,
     `Cars (slug | name | details | price from | deposit):\n${cars}`
   ].join('\n');
 }
@@ -88,10 +89,21 @@ function transcript(history: Turn[]): string {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^\d{2}:\d{2}$/;
+const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+/** The car a visitor names by its car code (migration 0079), with or without the CC- and the dash, in any case. */
+export function carByCode(f: Pick<ChatFacts, 'fleet'>, s?: string | null): FleetCar | undefined {
+  if (!s) return undefined;
+  const k = norm(s);
+  if (k.length < 4) return undefined;
+  return f.fleet.find((c) => c.code && (norm(c.code) === k || norm(c.code) === `CC${k}`));
+}
+/** Car codes written in a message (CC-7F3A, cc 7f3a); a car code always has a letter. */
+export const codesIn = (text: string) => [...text.matchAll(/\bCC[\s-]?([A-Z0-9]{4,8})\b/gi)].map((m) => m[1]!.toUpperCase())
+  .filter((c) => /[A-Z]/.test(c)).map((c) => `CC-${c}`); // a booking number (CC-10057) is digits only
 const carBy = (f: ChatFacts, s?: string) => {
   if (!s) return undefined;
   const k = s.toLowerCase().trim();
-  return f.fleet.find((c) => c.slug === k) ?? f.fleet.find((c) => c.name.toLowerCase().includes(k) || k.includes(c.name.toLowerCase().replace(/^\d{4} /, '')));
+  return f.fleet.find((c) => c.slug === k) ?? carByCode(f, s) ?? f.fleet.find((c) => c.name.toLowerCase().includes(k) || k.includes(c.name.toLowerCase().replace(/^\d{4} /, '')));
 };
 
 /** The amounts and percentages the assistant may repeat: the fleet's rates and deposits, the fees, and every amount
@@ -127,6 +139,10 @@ export async function runAgent(deps: AgentDeps, input: AgentInput): Promise<Agen
   const known = [input.name && `name ${input.name}`, input.email && `email ${input.email}`, input.phone && `phone ${input.phone}`].filter(Boolean).join(', ');
   const last = input.history[input.history.length - 1];
   const history = last && last.sender === 'visitor' && last.body.trim() === input.text.trim() ? input.history : [...input.history, { sender: 'visitor' as const, body: input.text }];
+  for (const code of codesIn(input.text)) {
+    const c = carByCode(f, code);
+    notes.push(c ? `The visitor wrote car code ${code}: that is ${c.slug} (${c.name}).` : `The visitor wrote car code ${code}: no car on the site has it. Ask them to check it.`);
+  }
   const base = `FACTS:\n${factsText(f)}\n\nThe visitor is on: ${input.page ?? 'the site'}${input.car ? ` (car ${input.car})` : ''}.${known ? ` Known: ${known}.` : ''}\n\nCONVERSATION:\n${transcript(history)}`;
 
   for (let i = 0; i < 3; i++) {

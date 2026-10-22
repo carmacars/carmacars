@@ -2,6 +2,7 @@ import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { payments } from '@/integrations/payments';
 import { settleIntent } from '@/server/portal/payment';
+import { settleAddonIntent } from '@/server/portal/addon-payment';
 import { settleDebitIntent, settleInvoiceIntent, verifyDebitSetup } from '@/server/owner/payment';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
@@ -37,6 +38,9 @@ export async function POST(req: Request): Promise<Response> {
       } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
         result = { noted: event.type };
       }
+    } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'addon_unpaid') {
+      // add-ons paid on the booking's add-on pay page (0079), when the browser did not finish
+      if (event.type === 'payment_intent.succeeded') result = await settleAddonIntent(obj.id, null);
     } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'owner_invoice' && obj.metadata?.debit_attempt_id) {
       // the automatic monthly debit (migration 0037): the attempt settles, fails (late fee, retry or arrears) or is canceled
       if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {

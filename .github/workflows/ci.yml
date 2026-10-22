@@ -93,6 +93,9 @@ jobs:
       - name: Text check
         working-directory: .
         run: scripts/check-text.sh
+      - name: Each change record names the guide chapters it changed (or "No guide change" and why)
+        working-directory: .
+        run: node scripts/check-change-guides.mjs
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck

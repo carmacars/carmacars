@@ -8394,6 +8394,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_intents_opened: {
+        Row: {
+          id: string;
+          processor: string;
+          processor_payment_id: string;
+          purpose: string;
+          booking_id: string | null;
+          owner_invoice_id: string | null;
+          amount_cents: number;
+          opened_by: string | null;
+          opened_at: string;
+          times_opened: number;
+          last_opened_at: string;
+        };
+        Insert: {
+          id?: string;
+          processor?: string;
+          processor_payment_id: string;
+          purpose: string;
+          booking_id?: string | null;
+          owner_invoice_id?: string | null;
+          amount_cents: number;
+          opened_by?: string | null;
+          opened_at?: string;
+          times_opened?: number;
+          last_opened_at?: string;
+        };
+        Update: {
+          id?: string;
+          processor?: string;
+          processor_payment_id?: string;
+          purpose?: string;
+          booking_id?: string | null;
+          owner_invoice_id?: string | null;
+          amount_cents?: number;
+          opened_by?: string | null;
+          opened_at?: string;
+          times_opened?: number;
+          last_opened_at?: string;
+        };
+        Relationships: [];
+      };
       payment_method_secrets: {
         Row: {
           payment_method_id: string;
@@ -9214,6 +9256,10 @@ export type Database = {
           listing_default_daily_rate_cents: Json;
           coverage_proof_max_pages: number;
           coverage_reminder_hours: number[];
+          cancel_refund_within_24h_of_booking_bps: number;
+          cancel_refund_48h_plus_bps: number;
+          cancel_refund_24_to_48h_bps: number;
+          cancel_refund_under_24h_bps: number;
         };
         Insert: {
           id?: string;
@@ -9518,6 +9564,10 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          cancel_refund_within_24h_of_booking_bps?: number;
+          cancel_refund_48h_plus_bps?: number;
+          cancel_refund_24_to_48h_bps?: number;
+          cancel_refund_under_24h_bps?: number;
         };
         Update: {
           id?: string;
@@ -9822,6 +9872,10 @@ export type Database = {
           listing_default_daily_rate_cents?: Json;
           coverage_proof_max_pages?: number;
           coverage_reminder_hours?: number[];
+          cancel_refund_within_24h_of_booking_bps?: number;
+          cancel_refund_48h_plus_bps?: number;
+          cancel_refund_24_to_48h_bps?: number;
+          cancel_refund_under_24h_bps?: number;
         };
         Relationships: [];
       };
@@ -10223,6 +10277,7 @@ export type Database = {
           paid_at: string | null;
           note: string | null;
           created_at: string;
+          refund_of: string | null;
         };
         Insert: {
           id?: string;
@@ -10240,6 +10295,7 @@ export type Database = {
           paid_at?: string | null;
           note?: string | null;
           created_at?: string;
+          refund_of?: string | null;
         };
         Update: {
           id?: string;
@@ -10257,6 +10313,7 @@ export type Database = {
           paid_at?: string | null;
           note?: string | null;
           created_at?: string;
+          refund_of?: string | null;
         };
         Relationships: [];
       };
@@ -14182,6 +14239,7 @@ export type Database = {
           retired_reason: string | null;
           added_by: string | null;
           sample_bookable: boolean;
+          car_code: string | null;
         };
         Insert: {
           id?: string;
@@ -14234,6 +14292,7 @@ export type Database = {
           retired_reason?: string | null;
           added_by?: string | null;
           sample_bookable?: boolean;
+          car_code?: string | null;
         };
         Update: {
           id?: string;
@@ -14286,6 +14345,7 @@ export type Database = {
           retired_reason?: string | null;
           added_by?: string | null;
           sample_bookable?: boolean;
+          car_code?: string | null;
         };
         Relationships: [];
       };
@@ -15649,6 +15709,7 @@ export type Database = {
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
+      server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
@@ -15702,6 +15763,7 @@ export type Database = {
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
+      server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
@@ -15723,6 +15785,7 @@ export type Database = {
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
       server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
+      server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
@@ -15745,6 +15808,7 @@ export type Database = {
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
       server_user_by_email: { Args: { p_email: string }; Returns: string };
+      server_vehicle_by_code: { Args: { p_code: string }; Returns: Json };
       server_verify_accounts: { Args: { p: Json }; Returns: Json };
       server_verify_signup: { Args: { p: Json }; Returns: Json };
       server_verify_signup_cleanup: { Args: { p_user: string }; Returns: Json };

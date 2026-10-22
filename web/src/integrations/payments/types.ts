@@ -83,6 +83,15 @@ export interface DebitSetup {
   lastError: string | null;
 }
 
+/** Add-ons bought after booking with no card on file (migration 0079): one card payment, captured at once. */
+export interface AddonIntentRequest {
+  bookingId: string;
+  bookingNumber: string;
+  amountCents: number;
+  customerId: string;
+  description: string;
+  idempotencyKey: string;
+}
 export interface BookingIntentRequest {
   bookingId: string;
   bookingNumber: string;
@@ -136,6 +145,8 @@ export interface PaymentsAdapter {
   retrieveDebitSetup(id: string): Promise<DebitSetup>;
   /** A card-only PaymentIntent with manual capture that saves the card for off-session use. */
   createBookingIntent(r: BookingIntentRequest): Promise<Intent>;
+  /** A card PaymentIntent for the add-ons a renter owes (0079): captured at once, the card not saved. */
+  createAddonIntent(r: AddonIntentRequest): Promise<Intent>;
   retrieveIntent(id: string): Promise<Intent>;
   captureIntent(id: string, idempotencyKey: string): Promise<Intent>;
   /** Voids an authorization: nothing is charged. */

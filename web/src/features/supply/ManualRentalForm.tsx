@@ -13,7 +13,7 @@ import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/ad
 // a payment link or the saved card, the renter's details typed) and refuses with the reason. Staff choose "I sourced
 // this client" or "Entered for CarmaCars". The dates decide the case (0074): upcoming, already underway (recorded as on
 // trip) or past (an Admin's, kept as completed); the form says which, with nothing to tick.
-type Car = { id: string; name: string; plate: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null;
+type Car = { id: string; name: string; plate: string | null; car_code?: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null;
   has_rates?: boolean; listing_finished?: boolean; listing_status?: string; needs_policy_confirm?: boolean; status?: string };
 type Renter = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; card: { brand: string; last4: string } | null; bookings: number };
 type Line = { description: string; amount_cents: number; hst_cents: number; charge_type: string };
@@ -162,8 +162,13 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <fieldset className="stack"><legend className="d4">1. The car and the dates</legend>
         <div className="ad-fields">
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor={id('vehicle_id')}>Car</label>
+            <input className="input" type="search" aria-label="Find the car by its car code or plate" placeholder="Car code (CC-7F3A) or plate" data-testid="mr-car-find"
+              onChange={(e) => { const k = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (k.length < 4) return;
+                const hit = cars.find((c) => { const code = (c.car_code ?? '').replace(/[^A-Z0-9]/g, ''); const plate = (c.plate ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                  return code === k || code === `CC${k}` || plate === k; });
+                if (hit) set('vehicle_id')({ target: { value: hit.id } }); }} />
             <select className="select" id={id('vehicle_id')} value={f.vehicle_id} onChange={set('vehicle_id')} data-testid="mr-vehicle_id"><option value="">Choose the car</option>
-              {cars.filter((c) => past || !c.retired || c.id === f.vehicle_id).map((c) => <option key={c.id} value={c.id}>{c.name}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates yet'}{c.retired ? ' · retired' : !c.bookable ? ' · closed to new bookings' : c.listing_finished === false ? ' · Listing not finished' : ''}</option>)}</select>
+              {cars.filter((c) => past || !c.retired || c.id === f.vehicle_id).map((c) => <option key={c.id} value={c.id}>{c.name}{c.car_code ? `, ${c.car_code}` : ''}{c.plate ? `, ${c.plate}` : ''} · {c.supply_type === 'company' ? 'CarmaCars-owned' : c.supply_type === 'partner' ? 'partner' : 'owner'}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates yet'}{c.retired ? ' · retired' : !c.bookable ? ' · closed to new bookings' : c.listing_finished === false ? ' · Listing not finished' : ''}</option>)}</select>
             {car && !car.bookable && !car.retired && phase === 'upcoming' && <p className="hint" data-testid="mr-closed-car">This car is closed to new bookings: it takes a rental already underway (pickup in the past), not an upcoming one.</p>}
             {(() => { const c = cars.find((x) => x.id === f.vehicle_id); return c && c.listing_finished === false ? <p className="hint" data-testid="mr-unlisted-tag"><span className="ad-flag">Listing not finished</span> The car stays off the public site. {c.has_rates === false ? 'It has no rates yet: you type the rental charge with the reason. ' : ''}{c.needs_policy_confirm ? (isAdmin ? 'It is not on the fleet insurance policy yet: you confirm it is insured before adding the rental.' : 'It is not on the fleet insurance policy yet: only an Admin can add its rentals.') : ''}</p> : null; })()}</div>
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}

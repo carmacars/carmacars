@@ -42,6 +42,8 @@ export function PortalAddons({ number, data }: { number: string; data: MyAddons 
           {chosen && opt && <p className="small" data-testid="portal-addon-price">{opt.name}: {addonPrice(opt)}{opt.hst_applies ? ', plus HST' : ''}.{opt.needs_confirmation ? ' We confirm it first and charge your card then.' : ''}</p>}
           <p><button className="btn btn--primary btn--sm" type="button" disabled={!chosen || pending} onClick={add} data-testid="portal-addon-add">{pending ? 'Adding' : opt?.needs_confirmation ? 'Ask for it' : 'Add and pay'}</button></p>
         </details>)}
+      {data.items.some((a) => a.after_booking && !a.paid && a.status === 'confirmed') && (
+        <p><a className="btn btn--primary btn--sm" href={`/account/bookings/${encodeURIComponent(number)}/addons/pay`} data-testid="portal-addons-pay">Pay for your add-ons</a></p>)}
       {!data.can_add && data.items.length === 0 && <p className="small muted">Add-ons can be added until {data.cutoff_hours} hours before pickup. Call us if you need something.</p>}
       {msg && <p className={`small ${msg.ok ? '' : 'error'}`} role="status">{msg.text}</p>}
     </section>

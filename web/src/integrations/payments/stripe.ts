@@ -163,6 +163,13 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
         expand
       }, r.idempotencyKey));
     },
+    async createAddonIntent(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method_types: ['card'], description: r.description,
+        metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, purpose: 'addon_unpaid' },
+        expand
+      }, r.idempotencyKey));
+    },
     async retrieveIntent(id) {
       return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
     },

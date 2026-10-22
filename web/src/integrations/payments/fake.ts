@@ -98,6 +98,11 @@ export function fakePayments(): FakePayments {
       return once(r.idempotencyKey, () => blank(r.amountCents,
         { booking_id: r.bookingId, booking_number: r.bookingNumber, offer_version: String(r.offerVersion), purpose: 'booking_total' }, r.customerId));
     },
+    async createAddonIntent(r) {
+      const i = once(r.idempotencyKey, () => blank(r.amountCents, { booking_id: r.bookingId, booking_number: r.bookingNumber, purpose: 'addon_unpaid' }, r.customerId));
+      ledger().auto.add(i.id);
+      return i;
+    },
     async createInvoiceIntent(r) {
       const i = once(r.idempotencyKey, () => {
         const x = blank(r.amountCents, { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice',
