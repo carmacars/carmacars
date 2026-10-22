@@ -126,14 +126,15 @@ Results: see the CI run in section 10.
 
 ## 8. Guides
 
-| Guide | Section |
-| --- | --- |
-| Admin | New chapter "Text alerts: email, text or both" (who gets what, a person's channel, STOP, START and quiet hours, the settings and the texts, texts a day); "Booking texts" and "The settings" of the Quo chapter point to it |
-| Renter | "Texts or email: how we reach you" (after Sign in with your phone number), with the tip on the request and the phone sign-up |
-| Owner | "Texts or email" (Notices, profile and leaving) |
-| Investor | "Texts or email" (after Emails you get from us) |
-| Assistants | "Email, text or both" (Texts and calls) |
-| Field staff | "Texts or email" (Profile) |
+| Guide | Chapter | Section |
+| --- | --- | --- |
+| Admin | `admin/text-alerts-email-text-or-both` (new) | Who gets what, a person's channel, STOP, START and quiet hours, the settings and the texts, texts a day |
+| Admin | `admin/texts-and-calls-the-quo-phone-line` | "Booking texts" and "The settings" point to Text alerts |
+| Renter | `renter/after-your-trip` | "Texts or email: how we reach you" (after Sign in with your phone number), with the tip on the request and the phone sign-up |
+| Owner | `owner/notices-profile-and-leaving` | "Texts or email" |
+| Investor | `investor/how-your-returns-work` | "Texts or email" (after Emails you get from us) |
+| Assistants | `va/texts-and-calls` | "Email, text or both" |
+| Field staff | `field/report-rentals-referrals-and-profile` | "Texts or email" |
 
 Source `docs/guides/src/guides/*.py`; `docs/guides/content/*.json` regenerated with `export.py` (only these sections
 changed), the HTML and PDFs rebuilt with `build.py`. The portals' stored guides pick them up through the guides workflow
