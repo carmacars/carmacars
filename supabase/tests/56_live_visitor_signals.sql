@@ -119,6 +119,8 @@ select test.eq('on a phone late at night', test.sgwhy('night', 'late_night'), 'O
 update visitor_sessions set last_seen_at = app.local_midnight(app.local_date(now())) + interval '14 hours' where id = test.sgsid('night');
 select app.visitor_live_eval(test.sgsid('night'));
 select test.eq('not in the afternoon', position('late_night' in test.sgk('night')), 0);
+-- the visit back in the past: just after local midnight, 2 pm today is still ahead and the job test below would count it
+update visitor_sessions set last_seen_at = least(last_seen_at, now() - interval '2 minutes') where id = test.sgsid('night');
 select public.track_ingest(jsonb_build_object('sid', test.sgsid('local'), 'vid', md5('sg-vid:local')::uuid, 'consent', 'analytics', 'landing', '/car-rental/mississauga',
   'events', jsonb_build_array(test.ev('page_view', null, null, '/car-rental/mississauga'))), '{}');
 select test.eq('came from a local page', test.sgwhy('local', 'local_search'), 'Landed on Car Rental (/car-rental/mississauga)');
