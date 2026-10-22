@@ -30,6 +30,9 @@ export function taskHref(t: Task): string {
   if (t.task_type === 'account_link_review') return '/va/renters';
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/va/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/va/fleet#expiry';
+  // maintenance (0089): the car's Maintenance with the record pop-up open
+  if (['maintenance_due', 'maintenance_backfill'].includes(t.task_type) && t.vehicle_id) return `/va/vehicles/${t.vehicle_id}?record=1#maintenance`;
+  if (t.task_type === 'maintenance_bill' && t.vehicle_id) return `/va/vehicles/${t.vehicle_id}#maintenance`;
   return `/va/tasks/${t.id}`;
 }
 

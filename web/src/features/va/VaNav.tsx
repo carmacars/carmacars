@@ -21,10 +21,10 @@ export const VA_GROUPS: Record<Fn, NavGroup[]> = {
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owner leads' }] }],
   finance: [WORK,
-    { key: 'money', label: 'Money', links: [{ href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }] },
+    { key: 'money', label: 'Money', links: [{ href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }, { href: '/va/maintenance', label: 'Maintenance bills' }] },
     { key: 'renters', label: 'Renters and bookings', links: [{ href: '/va/renters', label: 'Find a renter' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] }, SELL],
   fleet: [WORK,
-    { key: 'field', label: 'Field work', links: [{ href: '/va/fleet', label: 'Field jobs' }, { href: '/va/checks', label: 'Daily checks' }, { href: '/va/reviews', label: 'Photo reviews' }] },
+    { key: 'field', label: 'Field work', links: [{ href: '/va/fleet', label: 'Field jobs' }, { href: '/va/maintenance', label: 'Maintenance' }, { href: '/va/checks', label: 'Daily checks' }, { href: '/va/reviews', label: 'Photo reviews' }] },
     { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }, { href: '/va/calendar-sync', label: 'Calendar sync' }, { href: '/va/addons', label: 'Add-ons' }, { href: '/va/owners/add-car', label: 'Add a car for an owner' }] },
     { key: 'renters', label: 'Renters', links: [{ href: '/va/renters', label: 'Find a renter' }] }, SELL]
 };

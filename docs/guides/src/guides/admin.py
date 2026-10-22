@@ -1036,6 +1036,64 @@ def build():
         'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',
     ])
 
+    # ---------------------------------------------------------------- maintenance
+    g.chapter('Maintenance and service',
+              'Every real car has its service items: oil, tire rotation, brakes, tires, the seasonal swap, the safety inspection, '
+              'the registration, battery, wipers, filters, alignment, fluids and the annual inspection. Record a service once and '
+              'the bill is made and the timers reset by themselves.',
+              blurb='The fleet overview, recording a service and its bill, tires and swaps, the odometer, intervals, reminders and blocks.')
+    g.task('The fleet overview', f'Open {P("Cars", "Maintenance")}.')
+    g.steps([
+        'Every real car (sample cars are left out), most urgent first: overdue, then due soon, then cars with no record yet, then all OK.',
+        'Each car shows what is due next, its odometer, its km a day, the tires on it and the date of its last service.',
+        'Use Show, Service item, Sort and the search (car, plate or owner) to narrow the list, then press Apply.',
+        f'Press {B("Record a service")} on a car to record it without leaving the list.',
+    ])
+    g.table([
+        ['Overdue', 'Past its km or its date (whichever came first), or expired'],
+        ['Due soon', 'Within 1,000 km or 14 days of it (each item may have its own; inspections and registration: 30 days)'],
+        ['Unknown', 'No record yet: record the last time it was done'],
+        ['OK', 'Done, and not due soon'],
+    ], head=['Status', 'Means'])
+    g.task('Record a service in one step', f'From the overview, the car\'s {B("Maintenance")} tab, or a To do line.')
+    g.steps([
+        'Tick what was done. The items due are ticked already.',
+        'Check the date and the odometer (filled with the current reading). Type the shop, the cost before HST and the HST (worked out at 13%, change it to match the receipt).',
+        'Who pays: the owner (deducted on the owner\'s next statement, owner agreement 11.1; the default for an owner\'s car), CarmaCars (a company expense; the default for a company car), a claim (a repair cost on the claim), the renter (a charge at cost on the rental), or no charge.',
+        f'Leave {B("The bill is in: bill it now")} ticked to make the bill now, or untick it and press {B("Bill now")} on the record when the bill comes in. Add the receipt.',
+        f'Press {B("Record the service")}. Each item done is OK again, with its next date and km.',
+    ])
+    g.bullets([
+        'An inspection or the registration: type the new expiry date, or leave it empty for 12 months from the service.',
+        'Tires: type the tread depth measured, or tick New tires put on (the old set is retired as replaced).',
+        'Seasonal swap: choose the set that went on and where the removed set is stored.',
+        'An expense entered under Money, Expenses with a car and a service category (Car service: oil change, brakes, and so on) records the service too. Voiding either voids the other.',
+        f'{B("Void")} on a record sets the timers back. A company expense is voided and an open owner cost is waived; a cost already on a statement or a claim stays, and the void is refused with what to do.',
+    ])
+    g.task('Tires and the seasonal swap', f'On the car\'s {B("Maintenance")} tab, under Tires.')
+    g.steps([
+        f'{B("Add a tire set")}: kind (summer, all-season, winter or all-weather), size, brand, tread depth, made (DOT) and bought dates, where it is stored, and whether it is on the car.',
+        f'{B("Put on the car")} swaps sets and keeps the swap in the history.',
+        'Tires are due soon at 4 mm of tread or 5.5 years old, overdue at 3 mm or 6 years.',
+        'The swap follows Ontario: winter tires on by December 1 (reminder from November 1), off after April 1 (reminder from April 1, overdue after May 1). All-weather tires need no swap.',
+    ])
+    g.tip('The Winter tires add-on is offered only on cars with a winter set (on the car or stored), or with no tire record yet. A car on winter tires says so on the add-on.')
+    g.task('The odometer')
+    g.bullets([
+        'The current odometer is the highest reading from handover and return reports, field staff moves, the rental\'s odometer out and in, listing photos, the car record, services and readings added by hand.',
+        'Km a day comes from the readings of the last 90 days (else the rentals, else 60 km a day). It gives the date a km interval will be reached.',
+        f'{B("Add a reading")} on the car; a reading lower than the last one needs the tick. An Admin can void a wrong reading.',
+    ])
+    g.task('Intervals, reminders and blocks', f'Open {P("Settings", "Maintenance")}.')
+    g.bullets([
+        f'Each item\'s default interval: {B("Change")}. Whichever of km and months comes first is due; 0 or empty means not by that measure.',
+        f'{B("Add an interval")} for a class or one car. A car\'s own comes first, then its class\'s, then the default. On the car\'s tab, {B("Set an interval for this car")} does the same.',
+        'Which expense categories are a service, and the items each records.',
+        'Reminders: one Fleet task per car with what is due, To do lines (cars due, services to bill, cars with no record yet) and one line in the morning digest. No other email.',
+        'Handover is refused while a recorded safety inspection or registration has expired. Block new bookings when overdue is off for every item until you turn it on.',
+    ])
+    g.para('Cars that were in the fleet before maintenance came in start as unknown, with one task each to record the last service. Enter what you know once.')
+
     # ---------------------------------------------------------------- email
     g.chapter('Email, backups and site health',
               'Keep an eye on email use against the daily limit, the nightly backup and the occasional error page.',

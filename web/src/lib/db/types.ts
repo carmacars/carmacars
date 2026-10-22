@@ -6294,6 +6294,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      maintenance_categories: {
+        Row: {
+          category_code: string;
+          item_codes: string[];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          category_code: string;
+          item_codes?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          category_code?: string;
+          item_codes?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       manual_payments: {
         Row: {
           id: string;
@@ -9734,6 +9755,19 @@ export type Database = {
           fleet_number_first: number;
           young_driver_classes: string[];
           car_defaults_rates_on_add: boolean;
+          maint_due_soon_km: number;
+          maint_due_soon_days: number;
+          maint_default_km_per_day: number;
+          maint_km_per_day_window_days: number;
+          maint_winter_on_reminder: string;
+          maint_winter_on_by: string;
+          maint_winter_off_from: string;
+          maint_winter_off_by: string;
+          maint_tire_replace_mm: number;
+          maint_tire_soon_mm: number;
+          maint_tasks_enabled: boolean;
+          maint_digest_enabled: boolean;
+          maint_winter_addon_link: boolean;
         };
         Insert: {
           id?: string;
@@ -10084,6 +10118,19 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          maint_due_soon_km?: number;
+          maint_due_soon_days?: number;
+          maint_default_km_per_day?: number;
+          maint_km_per_day_window_days?: number;
+          maint_winter_on_reminder?: string;
+          maint_winter_on_by?: string;
+          maint_winter_off_from?: string;
+          maint_winter_off_by?: string;
+          maint_tire_replace_mm?: number;
+          maint_tire_soon_mm?: number;
+          maint_tasks_enabled?: boolean;
+          maint_digest_enabled?: boolean;
+          maint_winter_addon_link?: boolean;
         };
         Update: {
           id?: string;
@@ -10434,6 +10481,19 @@ export type Database = {
           fleet_number_first?: number;
           young_driver_classes?: string[];
           car_defaults_rates_on_add?: boolean;
+          maint_due_soon_km?: number;
+          maint_due_soon_days?: number;
+          maint_default_km_per_day?: number;
+          maint_km_per_day_window_days?: number;
+          maint_winter_on_reminder?: string;
+          maint_winter_on_by?: string;
+          maint_winter_off_from?: string;
+          maint_winter_off_by?: string;
+          maint_tire_replace_mm?: number;
+          maint_tire_soon_mm?: number;
+          maint_tasks_enabled?: boolean;
+          maint_digest_enabled?: boolean;
+          maint_winter_addon_link?: boolean;
         };
         Relationships: [];
       };
@@ -11388,6 +11448,108 @@ export type Database = {
           snapshot_stamp?: string | null;
           snapshot_at?: string | null;
           cars_changed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      service_item_rules: {
+        Row: {
+          id: string;
+          item_code: string;
+          vehicle_class: Database["public"]["Enums"]["vehicle_class"] | null;
+          vehicle_id: string | null;
+          interval_km: number | null;
+          interval_months: number | null;
+          due_soon_km: number | null;
+          due_soon_days: number | null;
+          block_bookings_when_overdue: boolean | null;
+          active: boolean | null;
+          note: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          item_code: string;
+          vehicle_class?: Database["public"]["Enums"]["vehicle_class"] | null;
+          vehicle_id?: string | null;
+          interval_km?: number | null;
+          interval_months?: number | null;
+          due_soon_km?: number | null;
+          due_soon_days?: number | null;
+          block_bookings_when_overdue?: boolean | null;
+          active?: boolean | null;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          item_code?: string;
+          vehicle_class?: Database["public"]["Enums"]["vehicle_class"] | null;
+          vehicle_id?: string | null;
+          interval_km?: number | null;
+          interval_months?: number | null;
+          due_soon_km?: number | null;
+          due_soon_days?: number | null;
+          block_bookings_when_overdue?: boolean | null;
+          active?: boolean | null;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      service_items: {
+        Row: {
+          code: string;
+          label: string;
+          kind: string;
+          interval_km: number | null;
+          interval_months: number | null;
+          due_soon_km: number | null;
+          due_soon_days: number | null;
+          block_bookings_when_overdue: boolean;
+          block_handover_when_expired: boolean;
+          excluded_fuels: Database["public"]["Enums"]["fuel_type"][];
+          active: boolean;
+          sort_order: number;
+          help: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          code: string;
+          label: string;
+          kind: string;
+          interval_km?: number | null;
+          interval_months?: number | null;
+          due_soon_km?: number | null;
+          due_soon_days?: number | null;
+          block_bookings_when_overdue?: boolean;
+          block_handover_when_expired?: boolean;
+          excluded_fuels?: Database["public"]["Enums"]["fuel_type"][];
+          active?: boolean;
+          sort_order?: number;
+          help?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          code?: string;
+          label?: string;
+          kind?: string;
+          interval_km?: number | null;
+          interval_months?: number | null;
+          due_soon_km?: number | null;
+          due_soon_days?: number | null;
+          block_bookings_when_overdue?: boolean;
+          block_handover_when_expired?: boolean;
+          excluded_fuels?: Database["public"]["Enums"]["fuel_type"][];
+          active?: boolean;
+          sort_order?: number;
+          help?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };
@@ -14478,6 +14640,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_odometer_readings: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          read_at: string;
+          km: number;
+          source: string;
+          source_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          read_at?: string;
+          km: number;
+          source: string;
+          source_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          read_at?: string;
+          km?: number;
+          source?: string;
+          source_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Relationships: [];
+      };
       vehicle_onboardings: {
         Row: {
           id: string;
@@ -15042,6 +15246,168 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_service_items: {
+        Row: {
+          vehicle_id: string;
+          item_code: string;
+          last_done_on: string | null;
+          last_done_km: number | null;
+          last_record_id: string | null;
+          expires_on: string | null;
+          expires_source: string | null;
+          next_due_on: string | null;
+          next_due_km: number | null;
+          projected_due_on: string | null;
+          status: string;
+          detail: string | null;
+          status_changed_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          item_code: string;
+          last_done_on?: string | null;
+          last_done_km?: number | null;
+          last_record_id?: string | null;
+          expires_on?: string | null;
+          expires_source?: string | null;
+          next_due_on?: string | null;
+          next_due_km?: number | null;
+          projected_due_on?: string | null;
+          status?: string;
+          detail?: string | null;
+          status_changed_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          item_code?: string;
+          last_done_on?: string | null;
+          last_done_km?: number | null;
+          last_record_id?: string | null;
+          expires_on?: string | null;
+          expires_source?: string | null;
+          next_due_on?: string | null;
+          next_due_km?: number | null;
+          projected_due_on?: string | null;
+          status?: string;
+          detail?: string | null;
+          status_changed_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_service_record_items: {
+        Row: {
+          record_id: string;
+          item_code: string;
+          expires_on: string | null;
+          tread_mm: number | null;
+          tire_set_id: string | null;
+        };
+        Insert: {
+          record_id: string;
+          item_code: string;
+          expires_on?: string | null;
+          tread_mm?: number | null;
+          tire_set_id?: string | null;
+        };
+        Update: {
+          record_id?: string;
+          item_code?: string;
+          expires_on?: string | null;
+          tread_mm?: number | null;
+          tire_set_id?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_service_records: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          done_on: string;
+          odometer_km: number | null;
+          odometer_estimated: boolean;
+          shop: string | null;
+          notes: string | null;
+          cost_cents: number;
+          hst_cents: number;
+          payer: string;
+          billing_status: string;
+          company_expense_id: string | null;
+          owner_deduction_id: string | null;
+          claim_id: string | null;
+          claim_entry_id: string | null;
+          booking_id: string | null;
+          booking_line_item_id: string | null;
+          receipt_document_id: string | null;
+          source: string;
+          created_by: string | null;
+          created_at: string;
+          billed_at: string | null;
+          billed_by: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          done_on: string;
+          odometer_km?: number | null;
+          odometer_estimated?: boolean;
+          shop?: string | null;
+          notes?: string | null;
+          cost_cents?: number;
+          hst_cents?: number;
+          payer: string;
+          billing_status: string;
+          company_expense_id?: string | null;
+          owner_deduction_id?: string | null;
+          claim_id?: string | null;
+          claim_entry_id?: string | null;
+          booking_id?: string | null;
+          booking_line_item_id?: string | null;
+          receipt_document_id?: string | null;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          billed_at?: string | null;
+          billed_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          done_on?: string;
+          odometer_km?: number | null;
+          odometer_estimated?: boolean;
+          shop?: string | null;
+          notes?: string | null;
+          cost_cents?: number;
+          hst_cents?: number;
+          payer?: string;
+          billing_status?: string;
+          company_expense_id?: string | null;
+          owner_deduction_id?: string | null;
+          claim_id?: string | null;
+          claim_entry_id?: string | null;
+          booking_id?: string | null;
+          booking_line_item_id?: string | null;
+          receipt_document_id?: string | null;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          billed_at?: string | null;
+          billed_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Relationships: [];
+      };
       vehicle_term_changes: {
         Row: {
           id: string;
@@ -15129,6 +15495,105 @@ export type Database = {
           signed_text_sha256?: string | null;
           countersignature?: string | null;
           cancelled_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_tire_sets: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          season: string;
+          size: string | null;
+          brand: string | null;
+          model: string | null;
+          tread_mm: number | null;
+          tread_measured_on: string | null;
+          made_on: string | null;
+          purchased_on: string | null;
+          storage_location: string | null;
+          on_car: boolean;
+          retired_on: string | null;
+          retired_reason: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          season: string;
+          size?: string | null;
+          brand?: string | null;
+          model?: string | null;
+          tread_mm?: number | null;
+          tread_measured_on?: string | null;
+          made_on?: string | null;
+          purchased_on?: string | null;
+          storage_location?: string | null;
+          on_car?: boolean;
+          retired_on?: string | null;
+          retired_reason?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          season?: string;
+          size?: string | null;
+          brand?: string | null;
+          model?: string | null;
+          tread_mm?: number | null;
+          tread_measured_on?: string | null;
+          made_on?: string | null;
+          purchased_on?: string | null;
+          storage_location?: string | null;
+          on_car?: boolean;
+          retired_on?: string | null;
+          retired_reason?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_tire_swaps: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          from_set_id: string | null;
+          to_set_id: string;
+          swapped_on: string;
+          odometer_km: number | null;
+          record_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          from_set_id?: string | null;
+          to_set_id: string;
+          swapped_on: string;
+          odometer_km?: number | null;
+          record_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          from_set_id?: string | null;
+          to_set_id?: string;
+          swapped_on?: string;
+          odometer_km?: number | null;
+          record_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
