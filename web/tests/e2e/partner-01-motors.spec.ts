@@ -39,7 +39,11 @@ test('a partner car page shows its badges, tiers, guideline rates and the year n
   const slug = await slugOf('Mercedes S63 AMG');
   await page.goto(`/cars/${slug}`);
   await acceptCookies(page);
-  await expect(page.locator('h1')).toHaveText('Mercedes-Benz S-Class');
+  // 0104: a partner car's heading carries its trim (several trims of one model), and a mark only when a twin shares it
+  const q = db();
+  const [mk] = await q`select app.listing_seo_mark(l.vehicle_id) m from vehicle_listings l where l.slug = ${slug}`;
+  await q.end();
+  await expect(page.locator('h1')).toHaveText(`Mercedes-Benz S-Class S63 AMG${mk!.m ? ` (${mk!.m})` : ''}`);
   await expect(page.getByTestId('badge-insurance')).toHaveText('Insurance included: no personal auto policy needed');
   await expect(page.getByTestId('badge-no-credit-card')).toHaveText('No credit card needed: debit accepted');
   await expect(page.locator('.car-top .lead')).toContainText('Year confirmed when you book.');

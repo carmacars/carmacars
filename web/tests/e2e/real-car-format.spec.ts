@@ -59,7 +59,10 @@ test('a real car without photos looks like a sample car', async ({ page, request
     expect(real.gallery).toBe(8);
     expect(real.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x))).toEqual(sample.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x)));
 
-    await expect(page.locator('h1')).toHaveText('Chevrolet Malibu');
+    // 0104: no mark on a car without a twin; only real published cars count as twins (never a sample Malibu), so a
+    // mark shows only when another real 2022 Malibu is on the site (another test's, or the other width's)
+    const [mk] = await sql`select app.listing_seo_mark(${vid}) m`;
+    await expect(page.locator('h1')).toHaveText(`Chevrolet Malibu${mk!.m ? ` (${mk!.m})` : ''}`);
     await expect(page.locator('.car-top').getByTestId('example-car-badge')).toHaveCount(0);
     await expect(page.getByTestId('example-car-note')).toHaveCount(0);
     await expect(page.locator('.keyspecs')).toContainText('Auto');

@@ -64,9 +64,17 @@ test('fleet: dates ask the database which cars are free; filters and sort', asyn
   await expect(page.locator('.fleet-results__head .d3')).toContainText('free');
   await expect(page.locator('#fleet-grid .car-card__price span').first()).toContainText('before HST');
   await page.locator('#fl-sort').selectOption('price-desc');
-  const prices = await page.locator('#fleet-grid .car-card__price b').allTextContents();
-  const n = prices.map((p) => Number(p.replace(/[^0-9.]/g, '')));
-  expect([...n].sort((a, b) => b - a)).toEqual(n);
+  // real cars always come before the sample cars (0104), whatever the sort; each group is sorted on its own
+  const cards = await page.locator('#fleet-grid .car-card').evaluateAll((els) => els.map((e) => ({
+    sample: !!e.querySelector('[data-testid="example-car-badge"]'),
+    price: Number((e.querySelector('.car-card__price b')?.textContent ?? '').replace(/[^0-9.]/g, ''))
+  })));
+  const firstSample = cards.findIndex((c) => c.sample);
+  if (firstSample >= 0) expect(cards.slice(firstSample).every((c) => c.sample)).toBe(true);
+  for (const group of [cards.filter((c) => !c.sample), cards.filter((c) => c.sample)]) {
+    const n = group.map((c) => c.price);
+    expect([...n].sort((a, b) => b - a)).toEqual(n);
+  }
   expect(errors).toEqual([]);
 });
 
