@@ -38,7 +38,9 @@ test('home: "Car Rental Toronto" title, the h1 and first paragraph, one name, ad
   expect(biz.areaServed.length).toBeGreaterThan(3);
   expect(biz.aggregateRating, 'no rating while there are fewer published reviews than the threshold').toBeUndefined();
   await expect(page.getByTestId('footer-address')).toContainText('1570 Midland Ave');
-  await expect(page.getByRole('navigation', { name: 'Areas we deliver to' }).first()).toBeVisible();
+  // no link section on the home page (owner, October 22): the footer's quiet Browse links lead to the place pages
+  await expect(page.locator('#h-ways')).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Browse' })).toBeVisible();
   await expect(page.locator('a[href="/car-rental/gta"]').first()).toBeVisible();
   await check(page, 'home');
   await page.goto('/contact', { waitUntil: 'networkidle' });

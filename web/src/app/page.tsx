@@ -10,9 +10,6 @@ import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
 import { getBusinessFacts } from '@/features/seo/business-data';
-import { getPlaceRoots } from '@/features/places/data';
-import '@/styles/seo.css';
-import { getSeoLinks } from '@/features/seo/data';
 import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 
@@ -33,13 +30,11 @@ type Row = { label: string; text: string };
 type Opt = { title: string; body: string };
 
 export default async function Home() {
-  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, links, bf, roots] = await Promise.all([
+  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, bf] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), faqItems('home.faq'), listItems<Step>('home.how_steps'),
-    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'), getSeoLinks(),
-    getBusinessFacts(), getPlaceRoots().catch(() => null)
+    listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'),
+    getBusinessFacts()
   ]);
-  const uses = links.filter((l) => l.kind === 'use');
-  const places = links.filter((l) => l.kind === 'location');
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const tagline = s.tagline ?? '';
@@ -141,24 +136,6 @@ export default async function Home() {
           <div className="c-8"><Reviews /></div>
         </div>
       </section>
-
-      {(uses.length > 0 || places.length > 0) && (
-        <section className="section" aria-labelledby="h-ways">
-          <div className="wrap stack-lg">
-            <h2 className="d2" id="h-ways">Ways to rent a car in {s.city}</h2>
-            <div className="landing__cols">
-              {uses.length > 0 && <nav aria-label="Ways to rent"><ul className="linklist">{uses.map((l) => <li key={l.slug}><Link prefetch={false} className="link" href={l.path}>{l.name} in {s.city}</Link></li>)}</ul></nav>}
-              {places.length > 0 && <nav aria-label="Areas we deliver to"><ul className="linklist">{places.map((l) => <li key={l.slug}><Link prefetch={false} className="link" href={l.path}>Car rental in {l.name}</Link></li>)}
-                {roots && roots.tops.some((x) => x.slug === 'gta') && <li><Link prefetch={false} className="link" href="/car-rental/gta">Car rental across the GTA</Link></li>}</ul></nav>}
-              <nav aria-label="More from CarmaCars"><ul className="linklist">
-                <li><Link prefetch={false} className="link" href="/car-rental">All car rental areas and ways to rent</Link></li>
-                <li><Link prefetch={false} className="link" href="/detailing">Car detailing in {s.city}</Link></li>
-                <li><Link prefetch={false} className="link" href="/body-shop">Auto body shop and collision repair</Link></li>
-              </ul></nav>
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="section on-grey" aria-labelledby="h-faq">
         <div className="wrap grid">
