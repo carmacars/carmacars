@@ -22,4 +22,4 @@
 .pt-empty { grid-template-columns: minmax(0, 1fr); }
 .pt-empty p { max-width: 100%; overflow-wrap: anywhere; }
 /* the footer with the Locations column (0061): six columns on a wide screen */
-@media (min-width: 72rem) { .footer-grid:has(> nav[aria-label="Locations"]) { grid-template-columns: 1.5fr repeat(5, 1fr); } }
+@media (min-width: 72rem) { .footer-grid:has(> nav[aria-label="Locations"]) { grid-template-columns: 1.5fr repeat(6, 1fr); } }

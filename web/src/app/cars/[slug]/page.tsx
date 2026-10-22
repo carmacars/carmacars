@@ -290,7 +290,7 @@ export default async function CarPage({ params }: Params) {
 
       <section className="section on-grey" aria-labelledby="h-sim">
         <div className="wrap">
-          {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : l.name}</Link></li>)}</ul></nav>}
+          {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : `${l.name} in ${s.city}`}</Link></li>)}</ul></nav>}
           <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} /></li>)}</ul>
         </div>

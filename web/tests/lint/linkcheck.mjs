@@ -22,6 +22,7 @@ for (const [path, page] of pages) {
     const u = new URL(h, base + path);
     const target = u.pathname + u.search;
     const t = pages.get(target);
+    if (!t && pages.skipped?.has(target)) continue; // a place page outside the sample (same template)
     if (!t) problems.push(`${path}: link not crawled ${h}`);
     else if (t.status >= 400) problems.push(`${path}: broken link ${h} (${t.status})`);
     if (u.hash) { anchors++; const html = target === path ? page.html : t?.html ?? ''; if (!ids(html).has(decodeURIComponent(u.hash.slice(1)))) problems.push(`${path}: missing anchor ${h}`); }
@@ -47,6 +48,6 @@ for (const p of emailPaths) {
   else if (hash && !ids(t.html).has(hash)) problems.push(`email link ${p}: missing anchor #${hash}`);
 }
 const htmlPages = [...pages.values()].filter((p) => p.html).length;
-console.log(`linkcheck: ${htmlPages} pages, ${links} links, ${anchors} anchors, ${assets} assets checked, ${emailPaths.length} email paths, ${external.size} external links (not fetched)`);
+console.log(`linkcheck: ${htmlPages} pages (${pages.skipped?.size ?? 0} more place pages not crawled: a sample of each term is), ${links} links, ${anchors} anchors, ${assets} assets checked, ${emailPaths.length} email paths, ${external.size} external links (not fetched)`);
 if (problems.length) { console.log(problems.join('\n')); console.log(`FAILED: ${problems.length} broken`); process.exit(1); }
 console.log('linkcheck: 0 broken');

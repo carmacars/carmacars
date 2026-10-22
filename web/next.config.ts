@@ -26,6 +26,9 @@ const config: NextConfig = {
   // Images come pre-sized from the photo pipeline (docs/blueprint/09-listing-pipeline.md); no runtime
   // resizing in the Worker.
   images: { unoptimized: true },
+  // The styles go inside the page instead of a separate file the browser must fetch before it paints (0095 speed: the
+  // render-blocking stylesheet request was the longest chain before the hero image on a phone).
+  experimental: { inlineCss: true },
   env: {
     NEXT_PUBLIC_DATA_BACKEND: process.env.DATA_BACKEND ?? 'local',
     NEXT_PUBLIC_TURNSTILE_PROVIDER: process.env.TURNSTILE_PROVIDER ?? 'fake'

@@ -136,8 +136,19 @@ select test.throws('only an Admin', $$select app.door(test.id('vp_cs'), 'aal2', 
 insert into seo_pages (slug, kind, name, sort_order, facts, copy) values
   ('vp-town', 'location', 'Vptown', 10, '{"lat": 43.59, "lng": -79.64, "nearby": ["vp-port"], "transit": ["Line 9"]}', '{"h1": "x"}'),
   ('vp-port', 'location', 'Vp Airport (VPA)', 20, '{"airport_code": "VPA", "lat": 43.68, "lng": -79.62, "terminals": ["Terminal 1"]}', '{"h1": "x"}');
-select test.ok('without the places table (migration 0095), the places are the active location landing pages', (select count(*) from app.vpage_landing_places() where slug in ('vp-town', 'vp-port')) = 2
-  and app.vpage_place('vp-town') ->> 'kind' = 'city' and app.vpage_place('vp-port') ->> 'kind' = 'airport');
+-- with the local SEO release's places table (0095) the two are places of their own (in Ontario, under one parent)
+do $do$
+declare r integer; par integer;
+begin
+  if to_regclass('public.places') is null then return; end if;
+  execute $q$select id from place_regions where code = 'CA-ON'$q$ into r;
+  execute $q$insert into places (kind, region_id, flags, slug, name, country) values (3, $1, 1, 'vp-county', 'Vp County', 'CA') returning id$q$ into par using r;
+  execute $q$insert into places (parent_id, kind, region_id, flags, lat, lng, population, slug, name, country, iata, landing_slug) values
+    ($1, 5, $2, 1, 43.59, -79.64, 700000, 'vp-town', 'Vptown', 'CA', null, 'vp-town'),
+    ($1, 7, $2, 1, 43.68, -79.62, null, 'vp-port', 'Vp Airport (VPA)', 'CA', 'VPA', 'vp-port')$q$ using par, r;
+end $do$;
+select test.ok('the places: the places table (0095) or, without it, the active location landing pages', app.vpage_place('vp-town') ->> 'kind' = 'city' and app.vpage_place('vp-port') ->> 'kind' = 'airport'
+  and (to_regclass('public.places') is not null or (select count(*) from app.vpage_landing_places() where slug in ('vp-town', 'vp-port')) = 2));
 select test.eq('twelve colours', (select count(*) from vehicle_colours), 12::bigint);
 select test.ok('without place_terms (0095), the default terms: renting, sale, detailing and body shop, each with its lead', (select count(distinct kind) from app.vpage_terms()) = 4
   and not exists (select 1 from app.vpage_terms() where kind <> 'rental' and lead is null));
@@ -211,7 +222,7 @@ select test.ok('a pair is at most 13 addresses, a file at most 50,000', (select 
   and (select max(n) from (select count(*) n from vp_all group by f) x) <= 50000);
 select test.eq('every trim has its place pages, place and colour pages and colour pages, each once',
   (select count(*) || '/' || count(distinct path) from vp_all),
-  (select n || '/' || n from (select (select count(*) from vehicle_catalog_trims) * ((select count(*) from app.vpage_landing_places()) * 13 + 12) n) x));
+  (select n || '/' || n from (select (select count(*) from vehicle_catalog_trims) * ((select count(*) from app.vpage_places_range(1, app.vpage_place_max())) * 13 + 12) n) x));
 select test.ok('no file past the last', not exists (select 1 from app.vehicle_tier_sitemap(public.vehicle_tier_files_count() + 1, -1, 4000)));
 select test.ok('the index: every tree has the level files and the tiers files', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer
   = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files()) + public.vehicle_tier_files_count()));

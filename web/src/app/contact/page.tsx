@@ -5,7 +5,8 @@ import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
 import { waLink } from '@/components/Footer';
 import { ContactForm } from '@/features/forms/ContactForm';
-import { businessLd } from '@/features/seo/business';
+import { businessLd, napAddress } from '@/features/seo/business';
+import { getBusinessFacts } from '@/features/seo/business-data';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { fill, getFacts, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
 
@@ -21,12 +22,13 @@ export async function generateMetadata() {
 const Mail = ({ a }: { a?: string | null }) => (a ? <a className="link" href={`mailto:${a}`}>{a}</a> : null);
 
 export default async function Contact() {
-  const [s, f, t, photo] = await Promise.all([getSettings(), getFacts(), getTokens(), slotPhoto('contact.city')]);
+  const [s, f, t, photo, bf] = await Promise.all([getSettings(), getFacts(), getTokens(), slotPhoto('contact.city'), getBusinessFacts()]);
+  const nap = napAddress(s);
   const E = f.email_aliases;
   const tel = (e164: string | null, d: string | null) => (e164 ? <a className="link" href={`tel:${e164}`}>{d}</a> : null);
   return (
     <div className="p-contact">
-      <JsonLd graph={[breadcrumbLd(trail, '/contact'), businessLd(s, siteUrl())]} />
+      <JsonLd graph={[breadcrumbLd(trail, '/contact'), businessLd(s, siteUrl(), { areas: bf.areas, price: bf.price })]} />
       <PageHead trail={trail} h1="Talk to a person." lead={`Questions about a car, a booking or listing your own. ${t.reply}.`} />
       <section className="section">
         <div className="wrap grid">
@@ -37,7 +39,7 @@ export default async function Contact() {
               <tr><th scope="row">Email</th><td><Mail a={E.contact ?? s.public_email} /></td></tr>
               {s.roadside_phone && <tr><th scope="row">On a rental right now</th><td>Call the 24-hour incident and roadside line, {tel(s.roadside_phone, s.roadside_phone_display)}</td></tr>}
               <tr><th scope="row">Hours</th><td>{s.opening_hours_text}. {t.reply}.</td></tr>
-              {s.street_address && <tr><th scope="row">Location</th><td>{s.street_address}</td></tr>}
+              {nap.street && <tr><th scope="row">Location</th><td data-testid="nap-address">{nap.line}</td></tr>}
               <tr><th scope="row">Where we rent</th><td>{fill('{{serviceArea}}. Delivery anywhere, including {{airports}}', t)}</td></tr>
             </tbody></table>
             <table className="spec"><caption className="small strong">Write to the right desk</caption><tbody>

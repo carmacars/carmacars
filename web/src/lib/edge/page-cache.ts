@@ -40,7 +40,7 @@ const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'investor',
 export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7})$/;
 export const PROGRAMMATIC_TTL_S = 21_600;
 export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=21600, stale-while-revalidate=86400';
-const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml|sitemap-index\/\d+\.xml)$/;
+const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml|sitemap-index\/\d+\.xml|sitemap-places\/[a-z0-9.-]+\.xml)$/;
 
 export interface EdgeRequestLike { method: string; url: string; headers: { get(name: string): string | null } }
 
@@ -64,9 +64,18 @@ export function edgeKey(req: EdgeRequestLike, version: string): string | null {
   return `https://edge.cache/${encodeURIComponent(version)}/${u.host}${path}${rsc ? `?rsc=1&seg=${encodeURIComponent(segment)}` : ''}`;
 }
 
+// The place pages (migration 0095) and the landing pages they share a route with: rendered on demand (dynamic, never in
+// OpenNext's page cache, so no cache write per page), and kept here only, for PLACE_TTL_S. Browsers get a short public
+// cache time. A rebuild on demand (an Admin's edit) retires the copies through the generation number as for any page.
+export const PLACE_PAGE = /^\/(car-rental\/[a-z0-9-]+(\/[a-z0-9-]+)?|(buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+)$/;
+export const PLACE_TTL_S = 21_600;
+export const PLACE_BROWSER_CC = 'public, max-age=300';
+export const isPlacePage = (pathname: string) => PLACE_PAGE.test(pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname);
+
 /** Seconds to keep this answer, or 0 for not at all. */
 export function edgeTtl(pathname: string, status: number, headers: { get(name: string): string | null }): number {
   if (status !== 200 || headers.get('set-cookie')) return 0;
+  if (isPlacePage(pathname) && /text\/html|text\/x-component/.test(headers.get('content-type') ?? '')) return PLACE_TTL_S;
   if (PROGRAMMATIC.test(pathname)) return PROGRAMMATIC_TTL_S;
   const cc = headers.get('cache-control') ?? '';
   if (/no-store|private/.test(cc)) return 0;
@@ -171,8 +180,9 @@ export function edgeKeep(key: string, pathname: string, res: Response, d: EdgeDe
   if (!ttl || !res.body) return res;
   const [a, b] = res.body.tee();
   const headers = new Headers(res.headers);
-  const programmatic = PROGRAMMATIC.test(pathname);
-  const cc = programmatic ? PROGRAMMATIC_CC : headers.get('cache-control');
+  const place = isPlacePage(pathname);
+  const programmatic = !place && PROGRAMMATIC.test(pathname);
+  const cc = place ? PLACE_BROWSER_CC : programmatic ? PROGRAMMATIC_CC : headers.get('cache-control');
   if (cc) headers.set(ORIGINAL_CC, cc);
   // the copy is found by its key alone (the RSC headers are in the key); the browser still gets OpenNext's Vary
   const vary = headers.get('vary');
@@ -181,8 +191,10 @@ export function edgeKeep(key: string, pathname: string, res: Response, d: EdgeDe
   headers.set(STORED, String((d.now?.() ?? Date.now()) - STORE_MARGIN_MS));
   headers.delete('set-cookie');
   d.waitUntil(d.cache().then((c) => c.put(key, new Response(b, { status: 200, headers }))).catch(() => undefined));
-  if (programmatic) { const out = new Headers(res.headers); out.set('cache-control', PROGRAMMATIC_CC); return new Response(a, { status: res.status, statusText: res.statusText, headers: out }); }
-  return new Response(a, { status: res.status, statusText: res.statusText, headers: res.headers });
+  const out = new Headers(res.headers);
+  if (place) out.set('cache-control', PLACE_BROWSER_CC);
+  else if (programmatic) out.set('cache-control', PROGRAMMATIC_CC);
+  return new Response(a, { status: res.status, statusText: res.statusText, headers: out });
 }
 
 // ------------------------------------------------------------------ requests nobody should render

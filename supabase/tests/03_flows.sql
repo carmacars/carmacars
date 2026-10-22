@@ -414,7 +414,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'quo_config', 'phone_threads', 'phone_activity', 'phone_outbox', 'phone_webhook_log',
                             -- live visitor signals (0086): the signals of each visit, the actions taken (each also a chat, promo code or
                             -- task) and cars viewed together per day; the rules and settings Admins change are audited
-                            'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily')
+                            'visitor_live_signals', 'visitor_actions', 'vehicle_pairs_daily',
+                            -- places (0095): gazetteer data loaded by the places workflow (each run recorded in place_imports); the
+                            -- regions, terms and services Admins change are audited
+                            'places', 'places_staging', 'place_imports')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

@@ -76,7 +76,13 @@ const ROLES = Object.keys(HOME).filter((r) => !ONLY.length || ONLY.includes(r));
 const PORTALS = ['/account', '/owner', '/investor', '/admin', '/va', '/field'];
 
 // ------------------------------------------------------------------ helpers
+// the place pages (0095): every place and term is the same template, so they are one shape each (two segments: one per
+// family; one segment: a place's own page, its slug ending in its region's code, a country, a province, the GTA or an airport)
+const PLACE_HUB = /^\/(car-rental|buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+$/;
+const PLACE_ONE = /^\/car-rental\/([a-z0-9-]+-[a-z]{2,3}|canada|united-states|mexico|ontario|gta|[a-z0-9-]+-airport)$/;
 const shape = (u) => {
+  if (PLACE_HUB.test(u.pathname)) return `/${u.pathname.split('/')[1]}/:term/:place`;
+  if (PLACE_ONE.test(u.pathname)) return '/car-rental/:place';
   // the vehicle pages (0092): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
   // the city and colour pages and the /buy twins (0092): one shape per depth
   const deep = /^\/(cars|buy|t)((?:\/[^/]+)+)$/.exec(u.pathname);

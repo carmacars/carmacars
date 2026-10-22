@@ -6,7 +6,7 @@ import { siteUrl } from '@/lib/site';
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/list-your-car', '/terms', '/privacy', '/cancellation-policy'];
+export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/list-your-car', '/detailing', '/body-shop', '/place-data', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 export const SITEMAPS = ['pages', 'cars', 'landing', 'guides'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
@@ -42,19 +42,32 @@ const BASE_FILE = /^(makes|tiers-\d+|[a-z0-9]+(-[a-z0-9]+)*-(models|years|trims)
 type VIndex = { total: number; files: Array<{ file: string; lastmod: string | null }> };
 const vIndex = (offset: number, limit: number) => rpc('vehicle_sitemap_index', { p_offset: offset, p_limit: limit }) as unknown as Promise<VIndex>;
 
-/** How many index files there are (robots.txt names each). */
-export async function indexCount(): Promise<number> {
-  const v = await vIndex(0, 1);
-  return Math.max(1, Math.ceil((SITEMAPS.length + (v?.total ?? 0)) / INDEX_SIZE));
+// the place pages (0095): one file per term and range of places, listed by the database without reading the pages
+type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };
+async function placeFiles(): Promise<PlaceFile[]> {
+  try { return ((await rpc('place_sitemap_files', {})) ?? []) as unknown as PlaceFile[]; } catch { return []; }
 }
-/** Index file n (1 is /sitemap.xml): the site's sitemaps first, then the vehicle files in the database's order. */
-export async function sitemapIndex(n = 1): Promise<Response> {
-  const site = n === 1 ? await (async () => { const all = await rows(); return SITEMAPS.map((name) => {
+/** The site's own sitemaps and the place files (at most 49,000), first in the index. */
+async function siteEntries(): Promise<string[]> {
+  const [all, places] = await Promise.all([rows(), placeFiles()]);
+  return [...SITEMAPS.map((name) => {
     const e = entries(name, all);
     const last = e.map((x) => x.lastmod).filter(Boolean).sort().pop();
     return `<sitemap><loc>${esc(`${siteUrl()}/sitemap-${name}.xml`)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
-  }); })() : [];
-  const offset = n === 1 ? 0 : (n - 1) * INDEX_SIZE - SITEMAPS.length;
+  }), ...places.slice(0, 49_000).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-places/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`)];
+}
+
+/** How many index files there are (robots.txt names each). */
+export async function indexCount(): Promise<number> {
+  const [site, v] = await Promise.all([siteEntries(), vIndex(0, 1)]);
+  return Math.max(1, Math.ceil((site.length + (v?.total ?? 0)) / INDEX_SIZE));
+}
+/** Index file n (1 is /sitemap.xml): the site's sitemaps and the place files first, then the vehicle files in the
+ *  database's order. */
+export async function sitemapIndex(n = 1): Promise<Response> {
+  const all = await siteEntries();
+  const site = n === 1 ? all : [];
+  const offset = n === 1 ? 0 : (n - 1) * INDEX_SIZE - all.length;
   const v = await vIndex(offset, INDEX_SIZE - site.length);
   const files = (v?.files ?? []).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-vehicles/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`);
   if (!site.length && !files.length) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
@@ -116,4 +129,14 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
   const rowsV = ((await rpc('vehicle_sitemap', { p_file: f.base })) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
   if (!rowsV.length) return NOT_FOUND();
   return new Response(HEAD + rowsV.map((r) => url(base, { path: f.to(r.path), lastmod: r.lastmod })).join('') + '</urlset>\n', { headers: XML });
+}
+
+/** One file of place pages: /sitemap-places/<vertical>.<term>.<page>.xml (a primary key range of places, 0095). */
+export async function placeSitemapFile(file: string): Promise<Response> {
+  const m = /^(rental|sale|detailing|bodyshop)\.([a-z0-9-]+)\.(\d{1,6})\.xml$/.exec(file);
+  if (!m) return new Response('Not found', { status: 404 });
+  const rowsP = ((await rpc('place_sitemap', { p_vertical: m[1]!, p_term: m[2]!, p_page: Number(m[3]) })) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
+  const base = siteUrl();
+  const body = rowsP.map((x) => `<url><loc>${esc(base + x.path)}</loc>${x.lastmod ? `<lastmod>${x.lastmod.slice(0, 10)}</lastmod>` : ''}</url>`).join('\n');
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, { headers: XML });
 }
