@@ -206,6 +206,10 @@ const worker = {
     if (geo && !new RegExp(`(^|;\\s*)cc_geo=${geo}(;|$)`).test(request.headers.get('cookie') ?? '')) {
       headers.append('set-cookie', `cc_geo=${geo}; Path=/; Max-Age=86400; SameSite=Lax${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}`);
     }
+    // a page is never reused by the browser without asking first: OpenNext's stale-while-revalidate let Safari show a
+    // page kept from a previous deploy, whose style files are gone (home loaded unstyled on phones, Oct 21). The
+    // data centre's copy above is unaffected (it is kept before this line).
+    headers.set('cache-control', 'no-cache');
     const nonce = newNonce();
     headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true }));
     const out = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
