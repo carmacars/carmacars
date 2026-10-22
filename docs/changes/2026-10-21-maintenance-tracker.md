@@ -145,6 +145,15 @@ service (at the first daily watch). The 9 real cars on the live site at this rel
 - End to end: `web/tests/e2e/maintenance.spec.ts` at 375 and 1440 (the overview and the pop-up as an Admin with the
   company expense, the car's tab and a tire set; Fleet from a task link with a receipt above the limit, the Admin's Bill now).
 
+## CI fixes on this branch
+
+- Finance opens a car (`/va/vehicles/[id]`) for its maintenance only; the crawl found the overview's links answering 404.
+- The odometer line of the car's Maintenance tab is a block: the record pop-up cannot sit in a paragraph (hydration error).
+- A car not taking requests no longer lists "Dates and price" in its On this page links (the link check found the
+  missing `#dates` anchor on closed cars).
+- The Admin tolls test confirms the renter's row by name: a car enrolled after the trip also lists its owner outside
+  the program, sometimes first.
+
 ## Guides
 
 Admin: `admin/maintenance-and-service` (new chapter). VA: `va/car-maintenance` (new chapter). Owner:
