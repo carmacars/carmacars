@@ -235,10 +235,12 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   rec.links = [...h.matchAll(/<a\b[^>]*\bhref="([^"#?]+)/g)].map((m) => m[1].replace(SITE, '').replace(BASE, ''));
 }
 for (const [t, ps] of titles) if (ps.length > 1) bad('titles', `"${t}" on ${ps.join(', ')}`);
+// the makes of the /buy tree: /buy/<sale term>/<place> (two segments, the first not a make) is 0095's buying help page
+const buyMakes = new Set([...((await get('/buy')).body ?? '').matchAll(/href="\/buy\/([a-z0-9-]+)"/g)].map((m) => m[1]));
 for (const p of auditPaths.filter(heavy)) {
   const links = new Set(report.pages[p]?.links ?? []);
   if (!report.pages[p] || report.pages[p].status !== 200) continue;
-  if (p.startsWith('/buy/') && !links.has('/cars/' + p.slice(5))) bad('linking', `${p} does not link to its rental twin`);
+  if (p.startsWith('/buy/') && buyMakes.has(p.split('/')[2]) && !links.has('/cars/' + p.slice(5))) bad('linking', `${p} does not link to its rental twin`);
   if (p.startsWith('/cars/') && ![...links].some((l) => p.startsWith(l + '/') && l.split('/').length === 6)) bad('linking', `${p} does not link to its trim page`);
 }
 for (const [x, ps] of h1s) if (ps.length > 1) bad('h1', `"${x}" on ${ps.join(', ')}`);
