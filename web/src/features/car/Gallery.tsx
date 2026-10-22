@@ -15,6 +15,12 @@ const srcSetOf = (g: Photo) => {
 export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
   const track = useRef<HTMLUListElement>(null);
   const [cur, setCur] = useState(0);
+  // Live visitors (0086): how many different photos were looked at, told to the beacon at 3, 6 and 10 (and all)
+  const seen = useRef(new Set<number>([0]));
+  useEffect(() => {
+    const s = seen.current; if (s.has(cur)) return; s.add(cur);
+    if ([3, 6, 10, photos.length].includes(s.size)) window.dispatchEvent(new CustomEvent('cc:track', { detail: { k: 'photos', d: { n: String(s.size) } } }));
+  }, [cur, photos.length]);
   useEffect(() => {
     const t = track.current; if (!t) return;
     let tk = false;

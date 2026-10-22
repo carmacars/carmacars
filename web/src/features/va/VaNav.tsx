@@ -32,10 +32,10 @@ export const VA_GROUPS: Record<Fn, NavGroup[]> = {
 export const VA_NAV: Record<Fn, Array<[string, string]>> = Object.fromEntries(
   (Object.keys(VA_GROUPS) as Fn[]).map((f) => [f, VA_GROUPS[f].flatMap((g) => g.links).filter((l) => !['/va', '/va/today'].includes(l.href)).map((l) => [l.href, l.label] as [string, string])])) as Record<Fn, Array<[string, string]>>;
 
-export function VaNav({ fn, open, chat = 0 }: { fn: Fn; open: number; chat?: number }) {
+export function VaNav({ fn, open, chat = 0, hot = 0 }: { fn: Fn; open: number; chat?: number; hot?: number }) {
   return (
     <Suspense fallback={<nav className="gn" aria-label="Assistant" />}>
-      <GroupNav groups={VA_GROUPS[fn]} counts={{ '/va': open, '/va/chat': chat }} label="Assistant" testId="va-nav" />
+      <GroupNav groups={VA_GROUPS[fn]} counts={{ '/va': open, '/va/chat': chat, '/va/live': hot }} label="Assistant" testId="va-nav" />
     </Suspense>
   );
 }

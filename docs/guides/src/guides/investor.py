@@ -89,6 +89,28 @@ def build():
     g.tip('Our investor emails are servicing notices about your existing investment. They are not an offer or a solicitation. '
           'CarmaCars gives no tax advice.')
 
+    # ---------------------------------------------------------------- the investor deck (0083)
+    g.chapter('The investor deck',
+              'The investor deck tells the CarmaCars story in slides: the problem we solve, how the business makes money, every feature of the platform '
+              'with its real screen, the investment offer, its risks, and how your Return builds.',
+              blurb='What CarmaCars built, how it makes money, and a calculator for your Return.')
+    g.task('Open the deck')
+    g.steps([
+        f'On {B("Investments")}, press {B("Open the deck")}, or press {B("Investor deck")} in the menu.',
+        f'Move with {B("Previous")} and {B("Next")}, the arrow keys, or a swipe left or right on a phone. The list at the top jumps to any slide.',
+        f'Press {B("Download PDF")} to save or print it: each slide prints on its own landscape page.',
+    ])
+    g.task('The calculator')
+    g.steps([
+        f'Enter an amount (at least the minimum investment) and choose {B("Paid monthly")}, {B("Reinvested")} or {B("Reinvest, then paid")}.',
+        'Choose how many years to show and the Investment Date.',
+        'You see when the lockup ends, your first payment date, what a full month pays, what is paid to you for the period, and your Invested Amount at the end, with a chart and a month-by-month table.',
+    ])
+    g.para('The calculator follows your agreement exactly: no Return for the lockup, then one twelfth of the Yearly Percentage on the Invested Amount each month, '
+           'by days for a part month, paid on the 15th of the next month or added to the Invested Amount at month end.')
+    g.tip('The examples use the yearly percentage of our current offer. Your own percentage is the one in your agreement. Every example and figure in the deck '
+          'is an illustration, not a forecast or a promise, and is not part of any offering memorandum.', label='Good to know')
+
     g.chapter('Statements',
               'One statement per month, as a page and a PDF. We also email each statement with its PDF attached.',
               blurb='Monthly statements, PDFs and yearly downloads.')

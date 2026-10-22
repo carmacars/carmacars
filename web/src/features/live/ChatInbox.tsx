@@ -159,6 +159,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
           <div><dt>Started on</dt><dd>{c.page ?? 'the site'}{c.car ? `: ${c.car}` : ''}</dd></div>
           {s && <div><dt>Now</dt><dd suppressHydrationWarning>{c.online ? `${s.current_page ?? 'the site'}${s.car ? `: ${s.car}` : ''}` : `left ${agoWords(s.last_seen_at)}`}</dd></div>}
           {s && <div><dt>This visit</dt><dd>{s.page_views} pages, visit {s.visit_number}{s.city ? `, ${s.city}` : ''}{s.device ? `, ${s.device}` : ''}</dd></div>}
+          {s && typeof s.score === 'number' && <div><dt>Likely to book</dt><dd data-testid="chat-score">{s.score} of 100{(s.reasons?.length ?? 0) > 0 ? `: ${s.reasons!.map((r) => r.why || r.label).join(', ')}` : ''}</dd></div>}
         </dl>
         {s && s.signals.length > 0 && <p className="lv-badges">{s.signals.map((g, i) => <span key={i} className={`lv-badge lv-badge--${g.kind}`}>{g.label}</span>)}</p>}
         {t.renter && (

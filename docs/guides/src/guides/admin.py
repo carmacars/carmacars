@@ -694,14 +694,38 @@ def build():
               'See who is on the site right now and what they look at, with buying signals, and answer the live chat. '
               'The CarmaCars assistant answers the chat first; you take over whenever you want, and it hands over by itself '
               'for complaints, damage, payments and anything it should not answer.',
-              blurb='Who is on the site now, signals and follow-ups, interest per car, the chat inbox, take over and hand back.')
-    g.task('Live visitors', 'Visitors who accepted analytics, known customers on their own booking pages and anyone in a chat.')
+              blurb='Who is on the site now, how likely each visitor is to book and why, one-click actions, follow-ups, interest per car, the chat inbox.')
+    g.task('Live visitors', 'Visitors who accepted analytics (or got the notice in Canada outside Quebec and the US), known customers on their own booking pages and anyone in a chat.')
     g.steps([
-        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, known customers, visits and chats today.',
-        'Each visitor shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on; the pages and cars of this visit; their visit number, device, city and the site or campaign that sent them.',
-        'Badges are buying signals: "Viewing spree: 6 cars in 10 minutes", "Opened offer CC-1042, not answered", "Opened the change proposal twice", "Left the pay page", "Returning visitor, 3rd visit this week", "Started a request and stopped".',
-        f'Press {B("Pages")} for every page and event of the visit, or {B("Start a chat")} to write to the visitor. They see your message in a bubble and reply from it.',
-        'Below: the signals of the last 24 hours and the most viewed cars of the week. The page refreshes by itself every few seconds.',
+        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, hot visitors now, known customers, visits and chats today. The menu shows how many hot visitors are on the site.',
+        'Each visitor shows a booking likelihood from 0 to 100, with Hot (60 or more), Warm (30 or more) or Cold. The list is sorted by it; choose "Most recent" in Sort, or tick "Hot and warm only".',
+        '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Reached step 3 of the request form · Tapped to call". The badges are all the signals of the visit; the dots say how strong each is.',
+        'Each visitor also shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on, and how many others look at that car now; the device, city, the site or campaign that sent them and "from an ad".',
+        f'Suggested: the best next step and the message to send. Press {B("Invite to chat with this message")} to send it at once, {B("Edit the message")} to change it first, {B("Offer a 10% discount code")}, {B("Assign to Sales")} or, when their dates are taken, {B("Suggest a similar free car")}.',
+        f'Press {B("Pages")} for every page and event of the visit with each signal\'s points, or {B("Start a chat")} to write your own message. They see it in a bubble and reply from it.',
+        'Below: hot visitors today (and whether someone acted), the signals of the last 24 hours, and the most viewed cars of the week with prices shown and the car most compared with each. The page refreshes by itself every few seconds.',
+    ])
+    g.task('The signals', 'Each signal adds points to the booking likelihood. They come from what the visitor does on the site, never from what they type.')
+    g.bullets([
+        'Intent: dates searched again and again, saw the full price, reached the booking form (and which step), came back for the same car on another day, comparing two or three cars, read the cancellation policy, read about the deposit, insurance or requirements, tapped to call, text or WhatsApp us or copied our number, checked delivery, looked through many photos or stayed long on one car.',
+        'Urgency: pickup within 72 hours, weekend or holiday dates, on a phone late at night, came from a city or model page or a "near me" search.',
+        'Value: a weekly or monthly rental, a premium car, SUV or van, adding a driver, asked about young drivers, a business email.',
+        'Hesitation: watching the price (sorted by lowest price, lowered the price limit), left after seeing the price, unsure about the deposit, trouble with a form, the car not free for their dates.',
+        'Context: came from an ad, a past renter, an offer or payment waiting, a game code not used yet, a popular car. The signals of known customers (offer opened, pay page left, change proposal, request stopped, returning visitor, viewing spree) count too.',
+    ])
+    g.task('Hot visitors and the actions')
+    g.bullets([
+        'When a visitor turns hot, everyone with Live visitors open sees an alert at the top of the page. Turn on desktop alerts in Live chat to get one on your computer too; none come in the quiet hours (11 pm to 7 am). No email is sent.',
+        'A discount code is single use, 10% off the rental charge (at most $75), valid 3 days, one per visitor a week and 10 a day per person. Admins and Sales send them; the code goes in the chat with the message.',
+        'Assign to Sales gives the visitor to the Sales person on shift (or to you if you work Sales) and raises a task with the reasons and the contact when we know who they are.',
+        'Each action shows on the visitor ("Invited by Lena, 2 min ago") so two people do not write to the same visitor.',
+    ])
+    g.task('Signal settings')
+    g.steps([
+        f'Open {P("Today", "Live visitors")} and press {B("Signal settings")}.',
+        'Score and actions: from how many points a visitor is hot or warm, when a signal is strong or medium, the hot alert, and the discount code (percent, most off a booking, days valid, codes a day per person, whether customer service may send codes, and the message).',
+        'Each signal: on or off, its points, its thresholds (for example 72 hours for "Pickup soon", 3 searches for "Searching dates again and again"), the suggested action and the message. {car}, {days}, {pickup} and the other words in braces are filled in from the visit.',
+        f'Press {B("Save the signals")}. The next look at each visit uses them.',
     ])
     g.task('Follow-up tasks', 'Signals of known visitors become tasks with a suggested action, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours".')
     g.bullets([
@@ -720,7 +744,7 @@ def build():
     ])
     g.task('Interest in a car')
     g.para(f'{P("Cars", "Vehicles")}, a car, Overview: "Interest on the site" shows who is looking now, views today and in 7 days, '
-           'conversion over 30 days (requests from the people who viewed it) and the last 14 days. The Vehicles list has "Most viewed cars this week".')
+           'the people who saw the price for their dates, conversion over 30 days (requests from the people who viewed it), the cars most often compared with it, and the last 14 days. The Vehicles list has "Most viewed cars this week".')
     g.task('A renter\'s visits', 'On a renter\'s page (People > Renters, the name) and on a booking\'s History tab, "On the site" lists when they viewed the offer, opened the change proposal, viewed or left the pay page, which cars they looked at, and their chats.')
     g.task('Live chat')
     g.steps([
@@ -937,6 +961,25 @@ def build():
         'A cancellation refunds add-ons by the booking\'s tier, except one marked Not refunded once its notice has started.',
         'Removing a paid add-on after booking creates a refund for it, waiting for approval.',
     ])
+
+    # ---------------------------------------------------------------- the investor deck (0083)
+    g.chapter('The investor deck',
+              f'The investor deck is a slide deck in the investor portal at {U("/investor/deck")}. Signed-in investors see it while it is shown; Admins always see it. '
+              'Its figures come from the database when it opens: the owner fee tiers, the partner commission, the real cars\' public rates, delivery, add-ons and renter fees, '
+              'the deductible and deposits, and the investment terms of Program settings.',
+              blurb='Preview the deck, show or hide it, and set its multiplier and percentage.')
+    g.task('Preview and settings')
+    g.steps([
+        f'Go to {B("Investors")} and press {B("Investor deck")}. The button says whether investors see it now.',
+        'The page shows the settings, then the whole deck as investors see it.',
+        f'{B("Show the deck to investors")}: on, investors see it under Investor deck and on their Investments page; off, only Admins see it.',
+        f'{B("Multiplier on the money we invest (x)")}: the company\'s own figure, shown large on the profitability slide with its footnote (internal, not audited).',
+        f'{B("Yearly percentage of the current offer (%)")}: used by the worked examples and the calculator. Each investor\'s own percentage is the one in their agreement.',
+        f'Press {B("Save deck settings")}. Every change is in the audit log.',
+    ])
+    g.para(f'To hide or show it in one click, use {B("Hide the deck from investors")} or {B("Show the deck to investors")} on Investors.')
+    g.tip('The deck shows no internal costs, fleet counts or staff pay. Every example is labelled as an illustration, with the forward-looking statements notice '
+          'on every slide and in the PDF.', label='Good to know')
 
     # ---------------------------------------------------------------- the assistant (0080)
     g.chapter('Assistant',

@@ -15,6 +15,14 @@ export interface Quote {
 }
 export interface QuoteInput { vehicleId: string; from: string; to: string; tf: string; tt: string; options: Record<string, unknown> }
 
+/** Live visitors (0086): the price shown for their dates, for the beacon (sent only with analytics consent). */
+function priceShown(q: Quote) {
+  const d: Record<string, string> = { days: String(q.billable_days), total: String(Math.round(q.total_cents / 100)), avail: q.available ? '1' : '0' };
+  if (q.lines.some((l) => l.charge_type === 'delivery')) d.deliv = '1';
+  if (q.lines.some((l) => l.charge_type === 'additional_driver')) d.xdrv = '1';
+  window.dispatchEvent(new CustomEvent('cc:track', { detail: { k: 'quote_seen', d } }));
+}
+
 export function useQuote(input: QuoteInput | null) {
   const [res, setRes] = useState<{ key: string; q: Quote | null; error: string } | null>(null);
   const key = input ? JSON.stringify(input) : '';
@@ -23,7 +31,7 @@ export function useQuote(input: QuoteInput | null) {
     let live = true;
     const t = setTimeout(() => {
       browserRpc<Quote>('quote_booking', { p_vehicle: input.vehicleId, p_pickup: torontoInstant(input.from, input.tf), p_return: torontoInstant(input.to, input.tt), p_options: input.options })
-        .then((r) => { if (live) setRes({ key, q: r, error: '' }); })
+        .then((r) => { if (live) { setRes({ key, q: r, error: '' }); priceShown(r); } })
         .catch((e: Error) => { if (live) setRes({ key, q: null, error: e.message }); });
     }, 300);
     return () => { live = false; clearTimeout(t); };

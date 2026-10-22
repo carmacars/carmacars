@@ -369,12 +369,15 @@ def build():
     g.chapter('Live visitors and live chat',
               'Customer service and Sales see who is on the site now and answer the live chat. The CarmaCars assistant '
               'answers first; you take over whenever you want.',
-              blurb='Who is on the site, buying signals, follow-ups, the chat inbox, take over and hand back.')
+              blurb='Who is on the site, how likely each visitor is to book, one-click actions, follow-ups, the chat inbox.')
     g.task('Live visitors')
     g.steps([
-        f'Open {P("My work", "Live visitors")}. Each visitor shows a name when known, otherwise "Visitor from Toronto, phone", the page and car they are on, and this visit\'s pages.',
-        'Badges are buying signals: "Viewing spree: 6 cars in 10 minutes", "Opened offer CC-1042, not answered", "Left the pay page", "Started a request and stopped" and more.',
-        f'Press {B("Pages")} for the whole visit. Press {B("Start a chat")}, write a short friendly message and press {B("Send")}: the visitor sees it in a bubble.',
+        f'Open {P("My work", "Live visitors")}. The menu shows how many hot visitors are on the site. Each visitor shows a booking likelihood from 0 to 100 (Hot, Warm or Cold); the most likely to book come first.',
+        '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Saw $320 for 3 days · Tapped to call". The badges are all the signals; the dots say how strong each is.',
+        'Each visitor shows a name when known, otherwise "Visitor from Toronto, phone", the page and car they are on, how many others look at that car now, and this visit\'s pages.',
+        f'Suggested: the next step and a message. Press {B("Invite to chat with this message")}, or {B("Edit the message")} first. Sales can {B("Offer a 10% discount code")} (one per visitor a week). {B("Assign to Sales")} hands the visitor to Sales with a task. When their dates are taken, {B("Suggest a similar free car")} writes the message for you.',
+        f'Press {B("Pages")} for the whole visit. Press {B("Start a chat")} to write your own short friendly message and press {B("Send")}: the visitor sees it in a bubble.',
+        'A hot visitor raises an alert at the top of the page. Each action shows on the visitor ("Invited by Lena, 2 min ago"), so check it before writing.',
     ])
     g.task('Follow-ups', 'Signals of known visitors raise tasks on To do with what to do, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours". Call or message, then mark the task done. A task closes by itself when the renter answers or pays. Follow-ups done count in My sales.')
     g.para('Renters also get one polite reminder email (and at most one more) when they leave an offer, the pay page or a change unanswered. '
