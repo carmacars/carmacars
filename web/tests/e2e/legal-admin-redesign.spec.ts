@@ -267,7 +267,13 @@ test('legal: a rental added with the saved card is charged only when the renter 
   const [rid] = await sql`select id from renters where user_id = ${renter.id}`;
   const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit) values (${rid!.id}, 'visa', '4242', ${renter.name}, 12, 2031, true) returning id`;
   await sql`insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id) values (${pm!.id}, 'stripe', 'cus_fake_lr', 'pm_fake_lr')`;
-  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.retired_at is null and (not v.is_sample or v.sample_bookable) order by v.created_at desc limit 1`;
+  // a car that takes a rental now: published, on the fleet policy, bookings on, with rates and no maintenance block (the
+  // newest car of the run may be one another test just added, still waiting for its insurer or its rates)
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+    where l.status = 'published' and v.retired_at is null and v.bookings_enabled and (not v.is_sample or v.sample_bookable)
+      and app.vehicle_on_policy(v.id) and app.maint_booking_block(v.id) is null
+      and exists (select 1 from rate_cards r where r.vehicle_id = v.id and r.effective_from <= now() and (r.effective_to is null or r.effective_to > now()))
+    order by v.sample_bookable desc, v.created_at desc limit 1`;
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
@@ -290,7 +296,10 @@ test('legal: a rental added with the saved card is charged only when the renter 
   await page.getByTestId('mr-do-not-email').check();
   await check(page, 'add a rental with the saved card');
   await page.getByTestId('mr-submit').click();
-  await expect(page.getByTestId('mr-charge-on-sign')).toBeVisible({ timeout: 30_000 });
+  // a refusal is shown as written: fail with it rather than with a missing line
+  await expect(page.getByTestId('mr-charge-on-sign').or(page.getByTestId('mr-error'))).toBeVisible({ timeout: 30_000 });
+  expect(await page.getByTestId('mr-error').allInnerTexts()).toEqual([]);
+  await expect(page.getByTestId('mr-charge-on-sign')).toBeVisible();
   const number = (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
   const paid = async () => (await sql`select count(*)::int n from payments p join bookings b on b.id = p.booking_id where b.booking_number = ${number} and p.status = 'succeeded' and p.kind = 'charge'`)[0]!.n;
   expect(await paid()).toBe(0);

@@ -8,7 +8,8 @@ select test.mk_user('cf_admin', 'admin');
 select test.mk_user('cf_cs', 'va', 'cs');
 select test.mk_owner('cf_owner');
 create or replace function test.cf_prompts() returns jsonb language sql as $$ select app.door(test.id('cf_admin'), '', 'ops_read', 'todo_prompts', '{}') $$;
-create or replace function test.cf_prompt(p_key text) returns jsonb language sql as $$ select x from jsonb_array_elements(test.cf_prompts()) x where x ->> 'key' = p_key $$;
+create or replace function test.cf_prompt(p_key text) returns jsonb language sql as $$ select x from jsonb_array_elements(test.cf_prompts() -> 'prompts') x where x ->> 'key' = p_key $$;
+select test.ok('Today: still the prompts and who is staffed', test.cf_prompts() ? 'prompts' and test.cf_prompts() ? 'staffed');
 
 -- ---------------------------------------------------------------- 1. a trim that is a list
 select test.eq('a list of trims: each once, in order', app.trim_list('S, Final Edition SE, Final Edition SEL, SE'), array['S', 'Final Edition SE', 'Final Edition SEL', 'SE']);

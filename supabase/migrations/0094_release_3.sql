@@ -225,7 +225,8 @@ begin
       from vehicles v join vehicle_listings l on l.vehicle_id = v.id
      where not coalesce(v.is_sample, false) and v.retired_at is null and v.status not in ('exited', 'total_loss', 'declined')
        and (nullif(btrim(l.transmission), '') is null or l.seats is null or coalesce(l.spec_sources #>> '{seats,source}', '') = 'body_default')) s;
-  return (select coalesce(jsonb_agg(x order by (x ->> 'priority')::int, x ->> 'since'), '[]'::jsonb) from jsonb_array_elements(v_all || v_new) x);
+  return v_all || jsonb_build_object('prompts', (select coalesce(jsonb_agg(x order by (x ->> 'priority')::int, x ->> 'since' nulls last), '[]'::jsonb)
+                                                   from jsonb_array_elements(coalesce(v_all -> 'prompts', '[]'::jsonb) || v_new) x));
 end $$;
 
 alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0094;
