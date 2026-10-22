@@ -67,7 +67,7 @@ export function vinMessage(s: VinState): string | null {
 
 // ---------------------------------------------------------------- the decoder's answer (NHTSA vPIC DecodeVinValues)
 export interface VinDecode {
-  ok: boolean; year?: string; make?: string; model?: string; trim?: string; body_class?: string; fuel?: string; drivetrain?: string; transmission?: string;
+  ok: boolean; year?: string; make?: string; model?: string; trim?: string; trim_candidates?: string[] | null; body_class?: string; fuel?: string; drivetrain?: string; transmission?: string;
   doors?: string; seats?: string; engine?: string; error_code?: string; raw?: Record<string, unknown>;
 }
 
@@ -89,8 +89,49 @@ export function makeName(make: string): string {
   return nameCase(m.toUpperCase(), 'make');
 }
 
-/** vPIC lists every trim a VIN may be when the VIN does not say ("S, SE, SEL"): no trim then, rather than a list. */
-export const trimOf = (t: string) => { const x = (t ?? '').trim(); return /,|\s\/\s/.test(x) ? '' : x; };
+/** vPIC lists every trim a VIN may be when the VIN does not say ("S, SE, SEL", "S / SE / R-Line", "FE or LXS"): no trim
+ *  then, rather than a list (0094: the database keeps the list as vehicles.trim_candidates and asks which one). */
+export const TRIM_LIST = /,|\s\/\s|\sor\s/i;
+export const trimOf = (t: string) => { const x = (t ?? '').trim(); return TRIM_LIST.test(x) ? '' : x; };
+/** The trims of such a list, in order, each once; null when it is not a list. */
+export function trimCandidates(t: string | null | undefined): string[] | null {
+  const x = (t ?? '').trim();
+  if (!TRIM_LIST.test(x)) return null;
+  const out: string[] = [];
+  for (const p of x.split(/\s*,\s*|\s+\/\s+|\s+or\s+/i)) { const y = p.trim(); if (y && !out.includes(y)) out.push(y); }
+  return out.length > 1 ? out : null;
+}
+
+// ---------------------------------------------------------------- the gearbox (0094)
+/** The four gearbox words of the listings (app.listing_norm_transmission). */
+export const GEARBOXES = ['Automatic', 'Automatic (CVT)', 'Automatic (dual-clutch)', 'Manual'] as const;
+export type Gearbox = (typeof GEARBOXES)[number];
+/** A gearbox as vPIC or a person wrote it, as one of the four; null when it says nothing. */
+export function gearboxOf(raw: string | null | undefined): Gearbox | null {
+  const p = (raw ?? '').trim();
+  if (!p) return null;
+  if (/automated manual|dual.?clutch|dct|\(am/i.test(p)) return 'Automatic (dual-clutch)';
+  if (/continuously|cvt|\(av|variable/i.test(p)) return 'Automatic (CVT)';
+  if (/manual|^man\b/i.test(p)) return 'Manual';
+  if (/auto/i.test(p)) return 'Automatic';
+  return null;
+}
+/** EPA's transmission words for a year, make and model (fueleconomy.gov menu options: "Auto (S6), 4 cyl, 2.0 L, Turbo",
+ *  "Man 6-spd", "Auto (AV-S7)", "Auto (AM-S7)"): the one gearbox they all share, 'mixed' when they differ, null when none. */
+export function epaGearbox(texts: string[]): Gearbox | 'mixed' | null {
+  const kinds = new Set<Gearbox>();
+  for (const t of texts) { const g = gearboxOf(t.split(',')[0] ?? ''); if (g) kinds.add(g); }
+  if (!kinds.size) return null;
+  return kinds.size === 1 ? [...kinds][0]! : 'mixed';
+}
+/** The gearbox to store (0094): EPA's when one type covers every EPA row for the car; vPIC's only when vPIC states it
+ *  for this VIN (a style and its number of speeds) and EPA does not say otherwise; else none, and staff confirm it. */
+export function chooseGearbox(epa: Gearbox | 'mixed' | null, vpic: { style: string; speeds: string }): { gearbox: Gearbox | null; source: 'epa' | 'vpic_explicit' | 'none' } {
+  const v = vpic.style && vpic.speeds ? gearboxOf(vpic.style) : null;
+  if (epa === 'mixed') return { gearbox: null, source: 'none' };
+  if (epa) return v && v !== epa ? { gearbox: null, source: 'none' } : { gearbox: epa, source: 'epa' };
+  return v ? { gearbox: v, source: 'vpic_explicit' } : { gearbox: null, source: 'none' };
+}
 
 const n = (s: unknown) => { const x = String(s ?? '').trim(); return x && x !== 'Not Applicable' && x !== '0' ? x : ''; };
 
@@ -104,7 +145,8 @@ export function mapVpic(x: Record<string, unknown>): VinDecode {
   const speeds = n(x.TransmissionSpeeds);
   const style = n(x.TransmissionStyle);
   return {
-    ok: !!(year && make && model), year, make, model, trim: nameCase(trimOf(n(x.Trim) || n(x.Series)), 'trim'), body_class: n(x.BodyClass),
+    ok: !!(year && make && model), year, make, model, trim: nameCase(trimOf(n(x.Trim) || n(x.Series)), 'trim'),
+    trim_candidates: trimCandidates(n(x.Trim) || n(x.Series))?.map((t) => nameCase(t, 'trim')) ?? null, body_class: n(x.BodyClass),
     fuel: fuelOf(n(x.FuelTypePrimary), n(x.ElectrificationLevel), n(x.FuelTypeSecondary)), drivetrain: n(x.DriveType),
     transmission: style ? (speeds && !/continuously/i.test(style) ? `${style}, ${speeds} speeds` : style) : '',
     doors: n(x.Doors), seats: n(x.Seats), engine,
@@ -117,6 +159,8 @@ export function mapVpic(x: Record<string, unknown>): VinDecode {
 export interface DecodedCar {
   year: number | null; make: string | null; model: string | null; trim: string | null; body: string | null; fuel: string | null;
   drivetrain: string | null; transmission: string | null; doors: number | null; seats: number | null; engine: string | null;
+  /** 0094: the trims the VIN may be when the decoder lists several; the add-a-car form asks which one */
+  trim_candidates?: string[] | null;
   /** the decoder's own words for the body ("Sport Utility Vehicle (SUV)/Multi-Purpose Vehicle (MPV)") */
   body_class?: string | null;
 }

@@ -146,7 +146,7 @@ select test.qev(jsonb_build_object('event_id', 'ev-v1', 'type', 'call.voicemail.
   'voicemail_text', 'Call me back about a weekend rental', 'voicemail_url', 'https://recordings.example.com/v.mp3'));
 select test.eq('a voicemail lands on its missed call', (select voicemail_text from phone_activity where quo_id = 'AC-qp-m1'), 'Call me back about a weekend rental');
 
--- ================================================================ 6. booking texts (since 0096: text alerts, suite 66; a verified phone and the person's channel)
+-- ================================================================ 6. booking texts (since 0096: text alerts, suite 67; a verified phone and the person's channel)
 create or replace function test.qmail(p_code text, p_key text, p_category text default 'transactional') returns void language sql as $$
   insert into notification_outbox (code, category, priority, audience, booking_id, renter_id, payload, dedupe_key)
   values (p_code, p_category, 2, 'renter', test.id('booking:QP-1'), test.id('renter:qp_rita'), '{"first_name": "Rita", "amount": "$113.00"}', p_key) $$;

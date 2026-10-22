@@ -9981,6 +9981,7 @@ export type Database = {
           signin_phone_hourly_per_ip: number;
           signin_confirm_required: boolean;
           signin_confirm_by_phone: boolean;
+          game_max_per_day: number;
           sms_alerts_enabled: boolean;
           sms_default_with_phone: string;
           sms_default_phone_only: string;
@@ -10364,6 +10365,7 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          game_max_per_day?: number;
           sms_alerts_enabled?: boolean;
           sms_default_with_phone?: string;
           sms_default_phone_only?: string;
@@ -10747,6 +10749,7 @@ export type Database = {
           signin_phone_hourly_per_ip?: number;
           signin_confirm_required?: boolean;
           signin_confirm_by_phone?: boolean;
+          game_max_per_day?: number;
           sms_alerts_enabled?: boolean;
           sms_default_with_phone?: string;
           sms_default_phone_only?: string;
@@ -16020,6 +16023,7 @@ export type Database = {
           sample_bookable: boolean;
           car_code: string | null;
           auto_defaults: Json;
+          trim_candidates: string[] | null;
         };
         Insert: {
           id?: string;
@@ -16074,6 +16078,7 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          trim_candidates?: string[] | null;
         };
         Update: {
           id?: string;
@@ -16128,6 +16133,7 @@ export type Database = {
           sample_bookable?: boolean;
           car_code?: string | null;
           auto_defaults?: Json;
+          trim_candidates?: string[] | null;
         };
         Relationships: [];
       };

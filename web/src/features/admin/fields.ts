@@ -49,9 +49,9 @@ const LABELS: Record<string, string> = {
   game_enabled: 'Discount games: show the game to visitors who browse (on by default)', game_max_discount_cents: 'Discount games: most a percentage code takes off one booking',
   game_code_valid_days: 'Discount games: a code is good for (days)', game_trigger_car_pages: 'Discount games: first game after this many car pages (0 is off)',
   game_trigger_seconds: 'Discount games: or after this many seconds on the site, whichever first (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers)',
-  game_reshow_car_pages: 'Discount games: after a close, the next game after this many more car pages (0 is off)',
-  game_reshow_seconds: 'Discount games: or this many seconds after the close, whichever first (0 is off)',
-  game_max_per_visit: 'Discount games: most games shown in one visit', game_booking_offer: 'Discount games: offer the game in the request-to-book form (signed-in renters too)',
+  game_reshow_car_pages: 'Discount games: after a close, the next game on this page view after the close, any page (0 is off)',
+  game_reshow_seconds: 'Discount games: or this many seconds on the site after the close, whichever first (0 is off)',
+  game_max_per_visit: 'Discount games: most games shown in one visit', game_max_per_day: 'Discount games: most games shown in one day in one browser', game_booking_offer: 'Discount games: offer the game in the request-to-book form (signed-in renters too)',
   game_dismiss_days: 'Discount games: a visitor keeps the same prize for (days)', game_task_min_cars: 'Discount games: Sales task when the visitor viewed this many cars (0: every claim)',
   game_reminder_hours: 'Discount games: reminder email before an unused code expires (hours, 0 is off)',
   game_prizes: 'Discount games: prize table (edit it under Settings, Discount games)', game_weights: 'Discount games: games and their weights (edit it under Settings, Discount games)',
@@ -124,7 +124,7 @@ const HINTS: Record<string, string> = {
   sms_generic_text: '{{subject}} is the email\'s subject and {{link}} the page. Keep CarmaCars and {{link}}; no long dashes.'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [1, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

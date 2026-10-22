@@ -119,7 +119,7 @@ on the first text, whether "Message and data rates may apply" is wanted.
 | Suite | What |
 | --- | --- |
 | Unit `web/src/features/phone/alerts.test.ts` | Every template of the migration (parsed from the SQL): no long dash, names CarmaCars, has the link, at most 110 fixed characters, plain GSM characters, two texts at most with a long car name, the link and the STOP line (most fit in one); the renderer tidies empty values like the database; what an Admin may not save; the words of each screen |
-| Database `supabase/tests/66_text_alerts.sql` (74 assertions) | See the README row; 55 updated for the new rules (a verified phone, the new texts, a sign-in email instead of a moment with no text), 03 lists the two new log tables among those not audited |
+| Database `supabase/tests/67_text_alerts.sql` (73 assertions) | See the README row; 55 updated for the new rules (a verified phone, the new texts, a sign-in email instead of a moment with no text), 03 lists the two new log tables among those not audited |
 | End to end `web/tests/e2e/text-alerts.spec.ts` (375 and 1440, Quo mocked: `QUO_PROVIDER=fake`) | The profile: Both by default with a verified phone, Text saved, the quiet hours and STOP, the card after a STOP; a booking request with Text: the choice on the account and the renter record, the request email skipped, the text queued with its link and the STOP line (held to 8 am in the quiet hours), sent by the phone job through the fake line; the phone sign-up with Text chosen; the Admin's card (default, Change, audit log), Settings > Text alerts and Site health; axe, overflow and the copy rules on every page |
 
 Results: see the CI run in section 10.
