@@ -1,9 +1,9 @@
--- 69: Live visitors heartbeat (migration 0103). A visitor reading one page keeps counting as on the site: the tab's
+-- 70: Live visitors heartbeat (migration 0103). A visitor reading one page keeps counting as on the site: the tab's
 -- heartbeat updates the session (last seen, the page) with one UPDATE and no event, at most once every 10 seconds; it
 -- never creates a session, follows the session's consent, ends the session when the tab closes, and carries a staff
 -- invite. "On the site now" is 5 minutes by default; the heartbeat interval is a setting sent to the browser. Live
 -- visitors counts visitors today and the browsers that chose necessary cookies only. Fixtures start with "hb".
-select test.suite('69 live visitors heartbeat');
+select test.suite('70 live visitors heartbeat');
 
 select test.mk_user('hb_admin', 'admin');
 create or replace function test.hbsid(p text) returns uuid language sql immutable as $$ select md5('hb-sid:' || p)::uuid $$;

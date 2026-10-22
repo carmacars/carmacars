@@ -1,4 +1,4 @@
--- 69: text alerts (migration 0096). Each person's channel (Email, Text or Both) and its default; who can be texted (a
+-- 71: text alerts (migration 0096). Each person's channel (Email, Text or Both) and its default; who can be texted (a
 -- verified phone, STOP, the US gate, numbers outside Canada and the US, switched off); routing of every customer
 -- notification (text only skips the email, both sends both, documents always emailed, sign-in emails never texted,
 -- marketing only with consent, staff notices untouched, a phone-only account); the texts (template, generic, link,
@@ -7,7 +7,7 @@
 -- channel (profile, the booking request, staff with the audit log, who may); Settings and Site health reads;
 -- privileges; the privacy policy; every customer email has its own text; the STOP and START confirmation texts; a
 -- driver's link texted to the driver. Fixtures start with "ta".
-select test.suite('69 text alerts');
+select test.suite('71 text alerts');
 
 select test.mk_user('ta_admin', 'admin');
 select test.mk_user('ta_cs', 'va', 'cs');
