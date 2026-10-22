@@ -4,6 +4,8 @@ import { door, requireInvestor } from '@/server/door';
 import { Requests } from '@/features/investor/Requests';
 import { money } from '@/lib/format';
 import { auth } from '@/lib/auth';
+import { notifyReach } from '@/server/sign-in-settings';
+import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile and notices', path: '/investor/profile', noindex: true, description: 'Contact details and notices.' });
@@ -17,6 +19,7 @@ export default async function Profile() {
   const { user } = await requireInvestor('/investor/profile');
   const [h, docs, factors] = await Promise.all([door<Home>(user.id, 'investor_read', 'home'), door<Array<{ id: string; kind: string; title: string | null; created_at: string }>>(user.id, 'investor_read', 'documents'),
     (await auth()).mfaFactors().catch(() => [])]);
+  const nc = await notifyReach(user.id);
   const twoStep = factors.some((f) => f.verified);
   const eff = new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${h.election_effective_month}T12:00:00Z`));
   return (
@@ -27,6 +30,7 @@ export default async function Profile() {
           <div><dt>Address</dt><dd>{h.investor.address ?? ''}</dd></div><div><dt>Bank account</dt><dd>{h.bank_last4 ? `ending ${h.bank_last4}` : 'none on file'}</dd></div></dl>
         <p className="small">To update these, ask us; we confirm by phone.</p>
       </section>
+      {nc && <NotifyChannelCard reach={nc} />}
       <Requests investments={h.investments.map((x) => ({ id: x.id, label: `${money(x.invested_amount_cents, { cents: true })} from ${x.investment_date}` }))} effective={eff} />
       <section className="pt-card" aria-labelledby="dc-t"><h2 className="d4" id="dc-t">Documents</h2>{docs.length ? <ul className="small">{docs.map((d) => <li key={d.id}>{d.title ?? d.kind.replace(/_/g, ' ')}</li>)}</ul> : <p className="small">No documents yet.</p>}</section>
       <section className="pt-card" aria-labelledby="ts-t" data-testid="two-step-offer"><h2 className="d4" id="ts-t">Two-step sign-in</h2>

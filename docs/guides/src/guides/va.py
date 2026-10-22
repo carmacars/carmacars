@@ -446,6 +446,8 @@ def build():
     g.task('Unknown callers', f'Press {B("Unknown callers")}. Type the name if they told you and press {B("Create lead")}, or find the renter and press {B("Link to")} their name.')
     g.task('Missed calls', 'A missed call gives you the task "Missed call from ..." when you have Live chat or Texts and calls open; otherwise it waits in the customer service queue. Call back with the Call button, or text, then mark the task done. Quo itself texts the caller back, so do not send the same message again.')
     g.tip('A number that texted STOP gets no texts from us, booking texts included, until they text START. Prices go in a quote, never in a text from memory.')
+    g.task('Email, text or both', 'Each renter and owner chooses how we reach them. Their page in Admin shows it under How we reach them; ask an Admin, or change it there if you can open the page. '
+           'Texts need a phone they verified with a code. Your own choice is on your Profile, under Messages.')
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount game leads',

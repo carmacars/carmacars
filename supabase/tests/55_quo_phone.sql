@@ -146,33 +146,35 @@ select test.qev(jsonb_build_object('event_id', 'ev-v1', 'type', 'call.voicemail.
   'voicemail_text', 'Call me back about a weekend rental', 'voicemail_url', 'https://recordings.example.com/v.mp3'));
 select test.eq('a voicemail lands on its missed call', (select voicemail_text from phone_activity where quo_id = 'AC-qp-m1'), 'Call me back about a weekend rental');
 
--- ================================================================ 6. booking texts
+-- ================================================================ 6. booking texts (since 0096: text alerts, suite 67; a verified phone and the person's channel)
 create or replace function test.qmail(p_code text, p_key text, p_category text default 'transactional') returns void language sql as $$
   insert into notification_outbox (code, category, priority, audience, booking_id, renter_id, payload, dedupe_key)
   values (p_code, p_category, 2, 'renter', test.id('booking:QP-1'), test.id('renter:qp_rita'), '{"first_name": "Rita", "amount": "$113.00"}', p_key) $$;
-delete from phone_outbox where kind = 'booking';
+delete from phone_outbox where kind in ('booking', 'notify');
+update users set phone = '+14165550101', phone_verified_at = now() where id = test.id('qp_rita');
+update program_settings set sms_quiet_hours = false, sms_alerts_enabled = true;
 select test.qmail('renter_offer_ready', 'qp-mail-1');
-select test.eq('an offer email: a text to the renter''s mobile, with the booking link and the STOP line on the first one',
-  (select format('%s|%s|%s', to_number, status, body) from phone_outbox where dedupe_key = 'sms:qp-mail-1'),
-  format('+14165550101|queued|Hi Rita, your CarmaCars offer QP-1 for the %s is ready. Review and pay: %s/account/bookings/QP-1 Reply STOP to opt out.',
-         app.vehicle_name(test.id('vehicle:qp_car')), rtrim((select site_url from site_settings limit 1), '/')));
+select test.eq('an offer email: a text to the renter''s verified phone, with the booking link and the STOP line on the first one',
+  (select format('%s|%s|%s', to_number, status, body like format('CarmaCars: your offer for the %s is ready. Review and accept: %s/account/bookings/QP-1/offer Reply STOP to opt out.',
+     app.vehicle_name(test.id('vehicle:qp_car')), (app.settings()).notify_base_url)) from phone_outbox where dedupe_key = 'sms:qp-mail-1'),
+  '+14165550101|queued|t');
 select test.qmail('renter_payment_receipt', 'qp-mail-2');
 select test.eq('the next text has no STOP line; the amount comes from the email', (select body from phone_outbox where dedupe_key = 'sms:qp-mail-2'),
-  'Hi Rita, we received your payment of $113.00 for booking QP-1. Thank you. CarmaCars');
-select test.qmail('renter_review_request', 'qp-mail-3');
-select test.eq('an email with no booking text makes none', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-3'), 0::bigint);
+  format('CarmaCars: payment of $113.00 received for booking QP-1. Receipt: %s/account/bookings/QP-1', (app.settings()).notify_base_url));
+select test.qmail('account_password_reset', 'qp-mail-3');
+select test.eq('an email with no text (a sign-in email) makes none', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-3'), 0::bigint);
 select test.qmail('renter_offer_ready', 'qp-mail-4', 'marketing');
-select test.eq('a marketing email never makes a text (CASL)', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-4'), 0::bigint);
-update program_settings set phone_sms_offer_sent = false;
+select test.eq('a marketing email without consent never makes a text (CASL)', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-4'), 0::bigint);
+update sms_templates set enabled = false where code = 'renter_offer_ready';
 select test.qmail('renter_offer_ready', 'qp-mail-5');
-select test.eq('a moment switched off makes no text', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-5'), 0::bigint);
-update program_settings set phone_sms_offer_sent = true;
+select test.eq('a text switched off makes no text', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-5'), 0::bigint);
+update sms_templates set enabled = true where code = 'renter_offer_ready';
 update renters set sms_opt_out_at = now() where id = test.id('renter:qp_rita');
 select test.qmail('renter_booking_reminder', 'qp-mail-6');
-select test.eq('a renter who asked for no texts: skipped, with the reason', (select status || ': ' || status_reason from phone_outbox where dedupe_key = 'sms:qp-mail-6'), 'skipped: The renter asked for no texts');
+select test.eq('a renter who asked for no texts gets the email only', (select count(*) from phone_outbox where dedupe_key = 'sms:qp-mail-6') || ' ' || (select status from notification_outbox where dedupe_key = 'qp-mail-6'), '0 queued');
 update renters set sms_opt_out_at = null where id = test.id('renter:qp_rita');
 update renters set mobile = null where id = test.id('renter:qp_ron');
-select test.eq('a renter without a mobile gets no text', (select count(*) from phone_outbox where renter_id = test.id('renter:qp_ron')), 0::bigint);
+select test.eq('a renter without a verified phone gets no text', (select count(*) from phone_outbox where renter_id = test.id('renter:qp_ron')), 0::bigint);
 -- the quiet hours: 23:00 to 7:00
 update program_settings set uptime_quiet_from_hour = 23, uptime_quiet_until_hour = 7;
 select test.eq('the quiet hours end at 7:00 the next morning (from 23:30) or the same morning (from 2:00)',

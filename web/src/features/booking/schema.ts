@@ -23,6 +23,8 @@ export const requestShape = z.object({
   winter: z.boolean().default(false), babySeats: z.number().int().min(0).default(0), notes: z.string().default(''),
   addons: z.array(z.object({ code: z.string().trim().regex(/^[a-z0-9_]{2,40}$/), quantity: z.number().int().min(0).max(20), hours: z.number().min(0).max(24).nullable().optional() })).max(30).default([]),
   agree: z.boolean().default(false), marketing: z.boolean().default(false),
+  // 0096: how we reach the renter about this request (empty: the default, Both with a verified phone, otherwise Email)
+  notifyChannel: z.enum(['', 'email', 'text', 'both']).default(''),
   // a promo code (a discount game's prize, a come-back code): checked by the quote and again when the request is sent
   promo: z.string().trim().max(40).regex(/^[A-Za-z0-9-]*$/, 'A promo code has letters, numbers and dashes only.').default('')
 });
@@ -32,7 +34,7 @@ export const emptyRequest = (): RequestData => requestShape.parse({});
 /** Which step each field belongs to, so the wizard can check one step at a time. */
 export const STEP_OF: Record<string, number> = {
   car: 1, dates: 1, from: 1, to: 1, tf: 1, tt: 1, pickupAt: 1, pickupAddress: 1, pickupAirport: 1, returnAt: 1, returnAddress: 1, returnAirport: 1,
-  first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2,
+  first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2, notifyChannel: 2,
   licClass: 3, licIssuer: 3, coverage: 3, bookingType: 3, notes: 3, addons: 4, winter: 4, babySeats: 4, agree: 5, marketing: 5, promo: 5
 };
 

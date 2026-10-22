@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { requestPhoneCode, savePhoneName, verifyPhoneCode } from '@/server/actions/phone-auth';
+import { ChannelChoice } from '@/features/portal/NotifyChannel';
+import type { Channel } from '@/features/phone/alerts';
 import { cleanCode } from '@/features/auth/phone';
 import { describedBy, Field } from './Field';
 import { Turnstile, freshTurnstileToken } from './Turnstile';
@@ -49,6 +51,8 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [agree, setAgree] = useState(false);
+  // 0096: how we reach a new account made by phone (Text by default: it has no email yet)
+  const [channel, setChannel] = useState<Channel>('text');
   const [err, setErr] = useState<{ field?: string; message: string } | null>(null);
   const [pending, start] = useTransition();
   const [left, restart] = useCountdown();
@@ -71,7 +75,7 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
     setErr(null);
     if (!sentTo) return;
     if (!cleanCode(value)) { setErr({ field: 'code', message: 'Enter the 6 digits from the text.' }); return; }
-    const r = await verifyPhoneCode({ phone: sentTo.phone, code: value, purpose: 'sign_in', next: next ?? null, name: signUp ? name : null });
+    const r = await verifyPhoneCode({ phone: sentTo.phone, code: value, purpose: 'sign_in', next: next ?? null, name: signUp ? name : null, channel: signUp ? channel : null });
     // on success the action moves on to the next page; it comes back only to ask the name, or with an error
     if (!r) return;
     if (!r.ok) { setErr({ field: r.fieldErrors?.code ? 'code' : undefined, message: r.message }); return; }
@@ -97,6 +101,7 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
           <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} aria-invalid={!!fieldErr('agree') || undefined} aria-describedby={fieldErr('agree') ? `${idPrefix}-agree-err` : undefined} /><span className="small">I am {minAge ?? '21'} or older and agree to the <Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
           <p className="error" role="alert" id={`${idPrefix}-agree-err`}>{fieldErr('agree') ?? ''}</p>
         </div>}
+        {signUp && <ChannelChoice name={`${idPrefix}-channel`} value={channel} onChange={setChannel} testId="signup-channel" hint="Texts come from the CarmaCars number. Reply STOP to any text to stop them. You can change this in your profile." />}
         <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending} data-testid="phone-send">{pending ? 'Sending the code' : 'Text me a code'}</button>
         <p className="small muted">We text the code from the CarmaCars number. Message and data rates may apply.</p>
       </>}

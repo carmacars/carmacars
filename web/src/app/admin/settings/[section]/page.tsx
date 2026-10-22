@@ -21,6 +21,7 @@ import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type List
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
+import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +58,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Discount games', (k) => k.startsWith('game_')],
+  ['Text alerts', (k) => k.startsWith('sms_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Sign-in by phone', (k) => k.startsWith('signin_')],
   ['Staff, privacy and housekeeping', () => true]
@@ -195,13 +197,22 @@ export default async function Section({ params }: { params: Promise<{ section: s
       <Card title="Last 30 days"><GameReportTiles r={r} /></Card>
     </>);
   }
+  case 'text-alerts': {
+    // text alerts (0096): the defaults and quiet hours, and the text of each notification
+    const keys = ['sms_alerts_enabled', 'sms_default_with_phone', 'sms_default_phone_only', 'sms_quiet_hours', 'sms_quiet_from_hour', 'sms_quiet_until_hour', 'sms_stop_line', 'sms_generic_text', 'signin_phone_us_allowed'];
+    const ch: Array<[string, string]> = [['both', 'Both'], ['text', 'Text'], ['email', 'Email']];
+    return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
+      form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);
+  }
   case 'forms':
     return (<>{head}<OfficialForms d={await door<FormsData>(user.id, 'ops_read', 'form_templates')} /></>);
   case 'program': {
     // turnaround_block_minutes always equals the turnaround (0042): one setting is shown; owner_debit_show_legal_name is no
     // longer used (0053: the payee is always the legal name, operating as CarmaCars)
     // staff_agreement_defaults has its own form below, by function (0057)
-    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults'].includes(k));
+    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults'].includes(k)
+      // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)
+      && !k.startsWith('phone_sms_'));
     const used = new Set<string>();
     return (<>{head}
       <p className="small muted">Saving writes a new dated row from today; the rows before it stay as they were. In force since {d(s.program.effective_from)}; {s.program_rows.length} dated rows.</p>

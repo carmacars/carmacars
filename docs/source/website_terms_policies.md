@@ -152,6 +152,8 @@ Calls and texts to and from our phone number go through our business phone provi
 
 If you sign in or verify your phone number with us, we text a one-time sign-in code to the phone number you give.
 
+If you choose to get our messages by text, we text you service messages about your bookings, account, payments and documents from our phone number, instead of or as well as email. Legal documents, statements and receipts are still emailed when we have your email address. You can reply STOP at any time to stop texts, and START to turn them back on; we then reach you by email. Message and data rates may apply.
+
 ### 11. Marketing messages
 
 We send promotional emails and texts only if you opted in, or where Canada's anti-spam law otherwise allows. Every message identifies us and lets you unsubscribe. We act on an unsubscribe within 10 business days. Messages about your booking, payments or safety are not marketing and are always sent.

@@ -4,7 +4,8 @@ import { vaPage, FN_LABEL } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
 import { SignInSettings } from '@/features/portal/SignInSettings';
-import { signInState } from '@/server/sign-in-settings';
+import { notifyReach, signInState } from '@/server/sign-in-settings';
+import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/va/profile', noindex: true, description: 'Your details, your home address and sign-in.' });
@@ -13,7 +14,7 @@ export const metadata = pageMeta({ title: 'Profile', path: '/va/profile', noinde
 // commission), and sign-in.
 export default async function VaProfile() {
   const { user, roles } = await vaPage('/va/profile');
-  const [home, si] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id)]);
+  const [home, si, nc] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id), notifyReach(user.id)]);
   return (
     <>
       <PageHead title="Profile" />
@@ -22,6 +23,7 @@ export default async function VaProfile() {
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         {si && <SignInSettings state={si} className="pt-card stack" />}
+        {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
           <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/va/profile">Set up two-step sign-in</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/reset-password">Change my password</Link></p></section>

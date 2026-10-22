@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { ReachCard } from '@/features/admin/ReachCard';
+import type { Reach } from '@/features/phone/alerts';
 import { pageMeta } from '@/features/seo/meta';
 import { money, pct } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
@@ -64,6 +66,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
   const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
   const calls = await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { owner_id: id }).catch(() => null);
+  const reach = await door<Reach>(user.id, 'admin_read', 'notify_reach', { owner_id: id }).catch(() => null);
   const [checklist, paper, manual] = await Promise.all([
     door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
@@ -129,6 +132,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           </section>
         </div>
         <aside className="pt-split__aside stack-lg">
+          <ReachCard reach={reach} who={{ owner_id: id }} />
           <section className="pt-card" aria-labelledby="ad-up"><h2 className="d4" id="ad-up">Upfront invoices</h2>
             <p className="small">The first and last month amount agreed on each car&apos;s terms, with HST, one invoice per vehicle whose terms are set. For other amounts or to choose what is sent, use the Invoices tab. The Tracker Install Fee is a separate invoice, issued per vehicle when trackers arrive{d.trackers_available ? '' : ' (trackers are not available yet)'}. Registry costs are never billed.</p>
             <IssueInvoices ownerId={o.id} count={issuable} />

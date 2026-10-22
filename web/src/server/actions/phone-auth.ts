@@ -54,7 +54,7 @@ export async function requestPhoneCode(input: { phone: string; purpose: PhonePur
 
 /** Checks the texted code. Signing in: the session is the number's account, then the page asked for (or the name, for
  *  a new account without one). Adding: the number is now the signed-in account's. */
-export async function verifyPhoneCode(input: { phone: string; code: string; purpose: PhonePurpose; next?: string | null; name?: string | null }): Promise<R<{ needsName?: boolean; phone?: string }>> {
+export async function verifyPhoneCode(input: { phone: string; code: string; purpose: PhonePurpose; next?: string | null; name?: string | null; channel?: 'email' | 'text' | 'both' | null }): Promise<R<{ needsName?: boolean; phone?: string }>> {
   const phone = toE164(input.phone);
   const code = cleanCode(input.code);
   if (!phone) return { ok: false, code: 'invalid', message: 'Ask for a code again.' };
@@ -81,6 +81,8 @@ export async function verifyPhoneCode(input: { phone: string; code: string; purp
     // the number the sign-in service verified (never what was typed): the account's row, then what the number links to
     const done = (await rpc('server_phone_signed_in', { p_user: r.user.id, p_phone: r.user.phone ?? phone, p_name: (input.name ?? '').trim() || undefined }, { ...SR, requestId: meta.requestId })) as unknown as { needs_name?: boolean };
     needsName = !!done.needs_name;
+    // 0096: the channel chosen on the phone sign-up (Text by default for an account without an email)
+    if (input.channel && ['email', 'text', 'both'].includes(input.channel)) await rpc('server_set_notify_channel', { p_user: r.user.id, p_channel: input.channel }, SR).catch(() => undefined);
   } catch (e) {
     if (!(e instanceof DbError)) throw e;
     return { ok: false, code: 'refused', message: e.message };

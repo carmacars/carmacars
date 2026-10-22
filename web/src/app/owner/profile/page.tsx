@@ -3,14 +3,15 @@ import { Dl } from '@/features/portal/Blocks';
 import { OwnerProfileForm } from '@/features/owner/OwnerForms';
 import { requireOwner } from '@/server/owner/data';
 import { SignInSettings } from '@/features/portal/SignInSettings';
-import { signInState } from '@/server/sign-in-settings';
+import { notifyReach, signInState } from '@/server/sign-in-settings';
+import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/owner/profile', noindex: true, description: 'Your owner details.' });
 
 export default async function OwnerProfilePage() {
   const { home, user } = await requireOwner('/owner/profile');
-  const si = await signInState(user.id);
+  const [si, nc] = await Promise.all([signInState(user.id), notifyReach(user.id)]);
   const o = home.owner;
   return (
     <>
@@ -21,6 +22,7 @@ export default async function OwnerProfilePage() {
         </section>
         <aside className="pt-split__aside stack-lg">
           {si && <SignInSettings state={si} />}
+          {nc && <NotifyChannelCard reach={nc} />}
           <section className="pt-card" aria-labelledby="ow-legal"><h2 className="d4" id="ow-legal">On your agreements</h2>
             <Dl rows={[['Legal name', o.legal_name], ['Enrolled as', o.owner_type === 'corporation' ? 'A corporation' : 'An individual'], ['Corporation', o.corporation_name ? `${o.corporation_name}${o.corporation_number ? `, no. ${o.corporation_number}` : ''}` : ''], ['Signing officer', o.signing_officer_name ? `${o.signing_officer_name}, ${o.signing_officer_title ?? ''}` : '']]} />
             <p className="small muted">A change of legal name or corporation changes your agreements: call or message us and we prepare them again.</p>

@@ -5,6 +5,8 @@ import { page } from '@/server/admin/api';
 import { Badge, BookingLink, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import { ReachCard } from '@/features/admin/ReachCard';
+import type { Reach } from '@/features/phone/alerts';
 import type { PhoneTimelineData } from '@/features/phone/client';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +23,7 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read } = await page(`/admin/renters/${id}`);
   const [r, calls] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null), read<PhoneTimelineData>('phone_timeline', { renter_id: id }).catch(() => null)]);
+  const reach = await read<Reach>('notify_reach', { renter_id: id }).catch(() => null);
   if (!r) notFound();
   return (
     <>
@@ -38,6 +41,7 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
             { key: 'car', label: 'Car' }, { key: 'status', label: 'Status', render: (b) => <Badge s={b.status} /> }, { key: 'pickup_at', label: 'Pickup', render: (b) => t(b.pickup_at) }]} /></Card>
         </div>
         <div className="stack">
+          <ReachCard reach={reach} who={{ renter_id: id }} />
           <Card title="Calls and texts" testId="renter-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
           <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/chat" /></Card>
         </div>

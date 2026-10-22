@@ -16,6 +16,8 @@ interface Health {
   checks: Array<{ key: string; label: string; kind: string; status: 'ok' | 'failing' | 'unknown' | 'waiting'; checked_at: string | null; ok_at: string | null; detail: string | null; failures: number; day: { checks: number; failed: number } }>;
   open: Array<{ id: string; label: string; opened_at: string; detail: string | null; emailed: boolean; real?: boolean; held?: string | null; advice: string }>;
   recent: Array<{ label: string; opened_at: string; resolved_at: string; detail: string | null }>;
+  // text alerts (0096): texts a day from the CarmaCars number
+  sms?: { days: Array<{ day: string; sent: number; alerts: number; failed: number; skipped: number; codes: number }>; waiting_quiet: number; queued_due: number; opted_out: number; quiet_from: number; quiet_until: number };
 }
 
 // The home page (the owner's request of October 16, 2026): one list of what needs you, most urgent first. Each piece of
@@ -106,8 +108,26 @@ function SiteHealth({ h }: { h: Health }) {
         </li>))}</ul>
       {r && <p className="small muted" data-testid="site-health-rules">Emails only for a real outage: a page down {r.page_minutes} minutes, emails failing {r.email_minutes} minutes, Stripe failing {r.stripe_minutes} minutes, or the backup failing.
         At most {r.max_emails} a day ({r.emailed_today} today), none from {hourWords(r.quiet_from)} to {hourWords(r.quiet_until)} unless the site is down over {r.quiet_outage_minutes} minutes. Short problems go in the morning digest.</p>}
+      {h.sms && <SmsVolume s={h.sms} />}
       {h.recent.length > 0 && <details className="todo__clear"><summary className="small muted">{h.recent.length} resolved in the last 7 days</summary>
         <ul className="small muted">{h.recent.map((r, i) => <li key={i}>{r.label}: {r.detail} ({t(r.opened_at)} to {t(r.resolved_at)})</li>)}</ul></details>}
     </Card>
+  );
+}
+
+// Texts a day (migration 0096): sent (and how many were notifications), failed, not sent (STOP, the US gate, a changed
+// choice) and sign-in codes, the last 7 Toronto days; texts waiting for the quiet hours to end.
+const dayWords = (iso: string) => new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`));
+function SmsVolume({ s }: { s: NonNullable<Health['sms']> }) {
+  const today = s.days[0];
+  return (
+    <details className="todo__clear" data-testid="sms-volume">
+      <summary className="small">Texts today: {today ? `${today.sent} sent${today.failed ? `, ${today.failed} failed` : ''}, ${today.codes} sign-in codes` : 'none'}{s.waiting_quiet ? `; ${s.waiting_quiet} waiting for ${hourWords(s.quiet_until)}` : ''}</summary>
+      <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="Texts a day">
+        <table className="ad-table ad-table--dense"><thead><tr><th scope="col">Day</th><th scope="col" className="num">Sent</th><th scope="col" className="num">Alerts</th><th scope="col" className="num">Failed</th><th scope="col" className="num">Not sent</th><th scope="col" className="num">Sign-in codes</th></tr></thead>
+          <tbody>{s.days.map((d) => <tr key={d.day}><td>{dayWords(d.day)}</td><td className="num">{d.sent}</td><td className="num">{d.alerts}</td><td className="num">{d.failed}</td><td className="num">{d.skipped}</td><td className="num">{d.codes}</td></tr>)}</tbody></table>
+      </div>
+      <p className="small muted">Not sent: the number replied STOP ({s.opted_out} numbers now), a US number before A2P 10DLC, or the person chose email meanwhile; their email went instead. Quiet hours {hourWords(s.quiet_from)} to {hourWords(s.quiet_until)}.</p>
+    </details>
   );
 }

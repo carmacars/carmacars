@@ -839,13 +839,37 @@ def build():
     g.task('Missed calls', 'A missed call raises the task "Missed call from ..." for the person on duty in customer service (whoever has Live chat or Texts and calls open), otherwise the customer service queue, and the Admins when nobody holds that function. In the quiet hours (11 pm to 7 am) the task is due at 7 am. One open task per number.')
     g.tip('Quo itself texts back missed callers (its own auto-reply). The platform can do it instead (Program settings, "Missed call: text the caller back"), once per number in 12 hours: turn off Quo\'s own auto-reply first, or callers get two texts.')
     g.task('Calls and texts on records', 'A booking\'s History tab, a renter\'s page and an owner\'s page have "Calls and texts": the texts, calls, missed calls, voicemails and summaries with that person. Calls are not recorded on the line for now, so there is no transcript or recording to show.')
-    g.task('Booking texts')
-    g.para('Renters with a mobile number get a short text beside some emails: the offer, the booking confirmed, a payment received, the pickup tomorrow, the return reminder and the payment link after they left the pay page. '
-           'The first one ends "Reply STOP to opt out." They are about the booking only, never marketing, and wait for the end of the quiet hours.')
+    g.task('Booking texts', f'Since October 22, 2026 these are text alerts: each person chooses Email, Text or Both (the chapter Text alerts, below, and {P("Settings", "All settings")}, {B("Text alerts")}).')
     g.task('The settings')
     g.para('Program settings, "Phone and texts (Quo)": the line on or off, calls and texts kept, the missed-call text and its task, who calls back, AI suggestions and summaries with their daily neurons, '
-           'the visit of a caller, each booking text on or off with its wording ({first_name}, {booking}, {car}, {pickup}, {return}, {amount}, {link}; short, no long dashes, naming CarmaCars), '
-           'and how long calls and texts of people who are not customers are kept (12 months).')
+           'the visit of a caller, and how long calls and texts of people who are not customers are kept (12 months).')
+
+    # ---------------------------------------------------------------- text alerts (0096)
+    g.chapter('Text alerts: email, text or both',
+              'Every renter, owner, investor and staff member chooses how we reach them: Email, Text or Both. Texts go only to a phone they verified with a code, '
+              'from the CarmaCars number, and each has a link to the page. It is on by default; nothing needs setting up.',
+              blurb='Each person\'s channel, what is always emailed, STOP and START, quiet hours, US numbers, the texts and the daily count.')
+    g.task('Who gets what')
+    g.bullets([
+        f'{B("Email")}: emails only. {B("Text")}: a short text instead of the email. {B("Both")}: a text and the email.',
+        'Not chosen yet: Both for someone with a verified phone and an email, Text for an account made by phone without an email, otherwise Email.',
+        'No verified phone, a number that replied STOP, a US number while US texting waits for A2P 10DLC, or a number outside Canada and the US: email only.',
+        'Signed agreements, statements, receipts, invoices and notices are always emailed when there is an email address. Someone on Text also gets a text with a link to view or download it in their portal.',
+        'Every customer email has its own short text: renters, owners, investors, additional drivers, co-signers and leads. Only the sign-in and security emails (password reset, sign-in link, security notice, "Continue your request") are never texts. A review request or a come-back offer is texted only when its email may go (marketing consent).',
+        'An additional driver\'s or a co-signer\'s link is texted to that person (their own account with a verified phone), never to the renter or owner.',
+    ])
+    g.task('A person\'s channel', f'Open the renter, owner or investor under People. The card {B("How we reach them")} shows what they chose, what is used now and why, their verified phone, texts in the last 30 days and any STOP or START. Press {B("Change")} to set it (recorded in the audit log). Customer service and Sales can change a renter\'s or owner\'s; an investor\'s only Admins.')
+    g.task('STOP, START and quiet hours')
+    g.bullets([
+        'A reply STOP (or OPT OUT, UNSUBSCRIBE, CANCEL, END, QUIT) stops texts to the number at once; texts waiting are not sent and their emails go instead. START turns texts back on. Every STOP and START is logged.',
+        'Quo sends no confirmation, so we do: one text right away (quiet hours do not apply), "CarmaCars: you\'re unsubscribed and won\'t get more texts. Reply START to resubscribe." after STOP, and "CarmaCars: texts are back on. Reply STOP to opt out." after START. Once per change; the card How we reach them shows it as confirmed by text. A STOP or START you set by hand, or a carrier block, sends nothing.',
+        'The first automated text to a number, and the first after START, ends "Reply STOP to opt out."',
+        'Quiet hours, 9 pm to 8 am Toronto time: texts that are not urgent wait and go at 8 am. Urgent: late return notices, pickup and return details on the day, breakdown, accident and a disabled car.',
+        'A text that is not sent after all (STOP, Quo refuses it, the person chose email meanwhile) sends the email it replaced.',
+    ])
+    g.task('The settings and the texts', f'{P("Settings", "All settings")}, {B("Text alerts")}: on or off, the defaults, the quiet hours, the STOP line, US numbers, and the text of each notification with a preview (edit, switch off, mark urgent). '
+           'A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. The two confirmation texts (after STOP and START) are in the same settings. The generic text built from the email\'s subject is only for an email added later without its own text.')
+    g.task('Texts a day', f'Site health on {B("To do")} has {B("Texts today")}: sent, notifications among them, failed, not sent and sign-in codes for the last 7 days, and the texts waiting for 8 am.')
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount games and leads',

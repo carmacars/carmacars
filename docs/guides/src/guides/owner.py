@@ -276,6 +276,8 @@ def build():
         'On your agreements shows your legal name and how you are enrolled. A change to these means new agreements, so call or message us.',
     ], shot=S('owner/15-profile-desktop', 0, 280, 1440, 1080, pins=[(1, 175, 947), (2, 1057, 393)]))
 
+    g.task('Texts or email', f'On {B("Profile")}, under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}: new bookings, payouts, invoices and documents to sign by a short text with a link. Texts need a phone you verified with a code. Statements, invoices and signed documents are always emailed too. Reply STOP to any text to stop them.')
+
     g.task('Take a car out of the program', 'You give 30 days\' notice for that car only. Your other cars stay in.')
     g.steps([
         'Open Vehicles and the car. Read Leaving: when the notice ends and what happens to your last fees.',

@@ -3,7 +3,7 @@
 The owner's report: Live visitors showed 0 while there were visitors on the site.
 
 Migration `0103_live_visitors_heartbeat.sql` (0102 is taken by the performance branch). Tests
-`supabase/tests/69_live_visitors_heartbeat.sql`, `web/src/features/live/heartbeat.test.ts`, `web/src/lib/track/shared.test.ts`,
+`supabase/tests/70_live_visitors_heartbeat.sql`, `web/src/features/live/heartbeat.test.ts`, `web/src/lib/track/shared.test.ts`,
 end to end `web/tests/e2e/live-heartbeat.spec.ts` (375 and 1440). Guides generator `supabase/seed/0103_gen_guides.mjs`.
 No applied migration was edited. Schema marker `0103`.
 
@@ -71,7 +71,7 @@ a third as often.
 
 ## 4. Tests
 
-- Database (`69_live_visitors_heartbeat.sql`, 40 checks): the settings and defaults; a heartbeat-only visitor whose last
+- Database (`70_live_visitors_heartbeat.sql`, 40 checks): the settings and defaults; a heartbeat-only visitor whose last
   page view is 10 minutes old is live again, with no new event and page views unchanged; the 10-second limit; end and
   coming back; no session created, another browser's id refused, bad ids; consent (no session without it; an essential
   session's page not recorded); the staff invite; tracking off; visitors and untracked today; privileges. 39, 48, 56,
