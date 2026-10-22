@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { expectedCheckDigit } from '../../src/features/vin/vin';
-import { acceptCookies, db, fillYmm, noOverflow, tapColour } from './helpers';
+import { acceptCookies, aiAllowanceLock, db, fillYmm, noOverflow, tapColour } from './helpers';
 
 // Migration 0082 end to end, at 375 and 1440 pixels: a car added from its VIN alone at every entry point (Admin > Add a
 // car, Add a car for an owner by an Admin and by customer service, the owner's own application). The fake decoder
@@ -66,8 +66,13 @@ const startRate = async (sql: Sql, cls: string, make: string, model: string) => 
 };
 
 
+// the AI allowance lock (helpers.ts) of a car copy test, let go when it ends, passed or not
+let unlockAi: (() => Promise<void>) | undefined;
+test.afterEach(async () => { await unlockAi?.(); unlockAi = undefined; });
+
 test('Admin > Add a car from the VIN alone: one summary line, the class and the rate from it, the colour in one tap; the copy is written right after', async ({ browser }) => {
   test.setTimeout(1_500_000);
+  unlockAi = await aiAllowanceLock('shared');   // the AI copy is written right after: not while the allowance is used up
   const sql = db();
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
