@@ -295,6 +295,24 @@ begin
      and app.vehicle_trim_slug(t.name) is not null
      and (l.source = 'admin' or not exists (select 1 from vehicle_catalog_trim_lines a where a.make_slug = l.make_slug and a.model_slug = l.model_slug and a.source = 'admin'))
    order by l.make_slug, l.model_slug, y.year, app.vehicle_trim_slug(t.name), l.sort, l.id, t.ord;
+  -- a performance trim EPA does not separate in some years ("Jetta" with the GLI's 2.0L in 2020, "Jetta GLI" in 2019 and
+  -- 2021): when exactly one trim of the year is named by a word EPA uses for this model in another year, and every
+  -- trim of the year has the same powertrains with two or more engine sizes, that trim takes the largest engine and the
+  -- others the rest
+  with yr as (select n.make_slug, n.model_slug, n.year from vpage_new_trims n group by 1, 2, 3
+               having count(distinct n.variant_ids) = 1 and count(*) > 1),
+       words as (select y.make_slug, y.model_slug, w from vehicle_catalog_years y, jsonb_array_elements(y.variants) v, jsonb_array_elements_text(v -> 'special') w0,
+                        unnest(string_to_array(w0, '|')) w group by 1, 2, 3),
+       perf as (select n.make_slug, n.model_slug, n.year, min(n.slug) slug from vpage_new_trims n join yr using (make_slug, model_slug, year)
+                 where exists (select 1 from words w where (w.make_slug, w.model_slug) = (n.make_slug, n.model_slug) and w.w = app.vehicle_model_key(n.name))
+                 group by 1, 2, 3 having count(*) = 1),
+       sizes as (select p.make_slug, p.model_slug, p.year, p.slug, max((v ->> 'displ')::numeric) big, count(distinct (v ->> 'displ')) n
+                   from perf p join vehicle_catalog_years y using (make_slug, model_slug, year), jsonb_array_elements(y.variants) v group by 1, 2, 3, 4)
+  update vpage_new_trims n
+     set variant_ids = coalesce((select array_agg((v ->> 'id')::integer order by (v ->> 'id')::integer) from vehicle_catalog_years y, jsonb_array_elements(y.variants) v
+                                  where (y.make_slug, y.model_slug, y.year) = (n.make_slug, n.model_slug, n.year) and (v ->> 'id')::integer = any (n.variant_ids)
+                                    and case when n.slug = z.slug then (v ->> 'displ')::numeric = z.big else (v ->> 'displ')::numeric < z.big end), n.variant_ids)
+    from sizes z where (z.make_slug, z.model_slug, z.year) = (n.make_slug, n.model_slug, n.year) and z.n >= 2;
   -- ranks again without gaps after the duplicates went
   update vpage_new_trims n set rank = r.rk from (
     select make_slug, model_slug, year, slug, (row_number() over (partition by make_slug, model_slug, year order by rank))::smallint rk from vpage_new_trims) r
@@ -729,28 +747,31 @@ end $$;
 -- ================================================================ the sitemaps
 -- Every page with its level, make, whether it is indexed now and its lastmod (the catalog row's date, or the last
 -- change of our matching cars). Set-based: the admin counts and the sitemaps.
-create or replace function app.vpage_all() returns table (level text, make_slug text, path text, lastmod timestamptz, indexable boolean)
+create or replace function app.vpage_all(p_make text default null) returns table (level text, make_slug text, path text, lastmod timestamptz, indexable boolean)
 language sql stable security definer set search_path = public, app as $$
   with s as (select app.settings() s),
        cars as materialized (select c.make_slug, c.model_slug, c.year, c.trim_slug, c.content_updated_at from app.vpage_cars() c where not c.is_sample),
        ym as (select y.make_slug, y.model_slug, count(*) filter (where y.powertrains > 0) n, max(y.updated_at) upd from vehicle_catalog_years y group by 1, 2)
   select 'make', mk.slug, app.vpage_path(mk.slug), greatest(mk.updated_at, (select max(c.content_updated_at) from cars c where c.make_slug = mk.slug)), true
-    from vehicle_catalog_makes mk
+    from vehicle_catalog_makes mk where p_make is null or mk.slug = p_make
   union all
   select 'model', m.make_slug, app.vpage_path(m.make_slug, m.slug), greatest(m.updated_at, ym.upd, x.upd),
          app.vpage_gate('model', coalesce(ym.n, 0)::integer, coalesce(x.n, 0)::integer, false, null, (select s from s))
     from vehicle_catalog_models m left join ym on ym.make_slug = m.make_slug and ym.model_slug = m.slug
     left join lateral (select count(*) n, max(c.content_updated_at) upd from cars c where c.make_slug = m.make_slug and c.model_slug = m.slug) x on true
+   where p_make is null or m.make_slug = p_make
   union all
   select 'year', y.make_slug, app.vpage_path(y.make_slug, y.model_slug, y.year), greatest(y.updated_at, x.upd),
          app.vpage_gate('year', 0, coalesce(x.n, 0)::integer, p.make_slug is not null, y.year, (select s from s))
     from vehicle_catalog_years y left join vehicle_catalog_popular p on p.make_slug = y.make_slug and p.model_slug = y.model_slug
     left join lateral (select count(*) n, max(c.content_updated_at) upd from cars c where c.make_slug = y.make_slug and c.model_slug = y.model_slug and c.year = y.year) x on true
+   where p_make is null or y.make_slug = p_make
   union all
   select 'trim', t.make_slug, app.vpage_path(t.make_slug, t.model_slug, t.year, t.slug), greatest(t.updated_at, x.upd),
          app.vpage_gate('trim', 0, coalesce(x.n, 0)::integer, false, t.year, (select s from s))
     from vehicle_catalog_trims t
     left join lateral (select count(*) n, max(c.content_updated_at) upd from cars c where c.make_slug = t.make_slug and c.model_slug = t.model_slug and c.year = t.year and c.trim_slug = t.slug) x on true
+   where p_make is null or t.make_slug = p_make
 $$;
 
 -- The vehicle sitemaps: one of the makes, then one per make and level ("toyota-models", "toyota-years", "toyota-trims"),
@@ -763,7 +784,7 @@ $$;
 
 create or replace function app.vehicle_sitemap(p_file text) returns table (path text, lastmod timestamptz)
 language sql stable security definer set search_path = public, app as $$
-  select a.path, a.lastmod from app.vpage_all() a
+  select a.path, a.lastmod from app.vpage_all(case when p_file = 'makes' then null else substring(p_file from '^(.*)-(models|years|trims)$') end) a
    where a.indexable and (case when a.level = 'make' then 'makes' else a.make_slug || '-' || a.level || 's' end) = p_file
    order by a.path
 $$;

@@ -111,9 +111,20 @@ the largest a few hundred addresses, far under 50,000), each address with its la
 ## 5. Performance
 
 Rendered on demand with ISR (an hour) and the edge copy, never at build time (`generateStaticParams` returns nothing).
-Measured on the local stack (fixture catalog, 20 sample cars): see the change record's tests section and the final
-report for the numbers of this run. Indexes: makes and models by key and alias (GIN), years by class and year, trims by
-model and slug.
+Measured on the local stack (PostgreSQL 16, `next start`, the fixture catalog plus a synthetic production-size catalog
+of 10,580 pages inside a rolled-back transaction):
+
+| Read | Time |
+| --- | --- |
+| `vehicle_make_page`, `vehicle_model_page`, `vehicle_year_page`, `vehicle_trim_page` | 40 to 58 ms each, one call per page (most of it is reading the 20 sample cars for the inventory block) |
+| `vehicle_sitemap_files` (the index), 10,580 pages | 70 ms |
+| one vehicle sitemap (`<make>-years`) | 25 ms (filtered by make before the gate is computed) |
+| a page rendered (cache miss), CPU of the Node server | about 57 ms per page (10 trim pages: 570 ms) |
+| a page from the page cache (hit), CPU | about 0.3 ms per page (30 hits: 90 ms); on Cloudflare the edge copy answers without loading the app |
+| wall time, miss then hit | 0.5 to 1.25 s, then 5 to 35 ms |
+
+Indexes: makes and models by key and alias (GIN), years by class and year, trims by model and slug. No RPC is called
+from the browser except the existing `search_available` (already in `BROWSER_FUNCTIONS`) for the live availability.
 
 ## 6. Admin
 

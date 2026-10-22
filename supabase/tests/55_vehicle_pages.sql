@@ -27,6 +27,10 @@ create function test.vp_models(p_make text, p_model text, p_year integer, p_trim
 select test.ok('Camry LE: gas only', test.vp_models('toyota', 'camry', 2023, 'le') !~* 'hybrid' and test.vp_models('toyota', 'camry', 2023, 'le') ~ 'LE');
 select test.ok('Camry Hybrid SE: the hybrid (SE/XLE/XSE is one word with alternatives)', test.vp_models('toyota', 'camry', 2023, 'hybrid-se') ~* 'hybrid');
 select test.ok('Jetta GLI 2021: the GLI powertrain only', test.vp_models('volkswagen', 'jetta', 2021, 'gli') = 'Jetta GLI');
+select test.ok('Jetta GLI 2020 (EPA lists it as "Jetta"): the largest engine; the Sportline the others',
+  test.vp_models('volkswagen', 'jetta', 2020, 'gli') = 'Jetta' and (select count(*) from vehicle_catalog_trims t, vehicle_catalog_years y, jsonb_array_elements(y.variants) v
+   where (t.make_slug, t.model_slug, t.year) = (y.make_slug, y.model_slug, y.year) and t.make_slug = 'volkswagen' and t.year = 2020 and t.slug = 'sportline'
+     and (v ->> 'id')::integer = any (t.variant_ids) and (v ->> 'displ')::numeric >= 2) = 0);
 select test.ok('Jetta Comfortline 2021: never the GLI', test.vp_models('volkswagen', 'jetta', 2021, 'comfortline') !~ 'GLI');
 select test.ok('Elantra N Line: a package, not the N', test.vp_models('hyundai', 'elantra', 2023, 'n-line') !~ 'Elantra N');
 select test.ok('Tesla Long Range: its own powertrain', test.vp_models('tesla', 'model-3', 2023, 'long-range') = 'Model 3 Long Range AWD');

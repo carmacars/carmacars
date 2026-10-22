@@ -24,12 +24,12 @@ async function check(page: Page, where: string) {
   expect(text, `${where}: never the numbered company`).not.toMatch(/18122211|Canada Inc/);
   expect(text, `${where}: brand spelling`).not.toMatch(/\bCarma Cars\b|\bCarmacars\b/);
 }
-const meta = async (page: Page) => ({
-  robots: await page.locator('meta[name="robots"]').getAttribute('content').catch(() => null),
-  canonical: await page.locator('link[rel="canonical"]').getAttribute('href').catch(() => null),
-  title: await page.title(),
-  description: await page.locator('meta[name="description"]').getAttribute('content')
-});
+const meta = async (page: Page) => page.evaluate(() => ({
+  robots: document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? null,
+  canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? null,
+  title: document.title,
+  description: document.querySelector('meta[name="description"]')?.getAttribute('content') ?? null
+}));
 
 const PAGES: Array<[string, string, string]> = [
   ['make', '/cars/volkswagen', 'Rent a Volkswagen in Toronto'],
@@ -38,30 +38,47 @@ const PAGES: Array<[string, string, string]> = [
   ['trim', '/cars/volkswagen/jetta/2020/sportline', 'Rent a 2020 Volkswagen Jetta Sportline in Toronto']
 ];
 
-test('make, model, year and trim pages render, indexed and self-canonical, with inventory and the request link', async ({ page }) => {
-  test.setTimeout(120_000);
-  const seen = new Map<string, string>();
-  for (const [level, url, h1] of PAGES) {
+for (const [level, url, h1] of PAGES) {
+  test(`the ${level} page renders, indexed and self-canonical, with inventory and the request link`, async ({ page }) => {
+    test.setTimeout(120_000);
     const res = await page.goto(url);
     expect(res?.status(), url).toBe(200);
-    if (level === 'make') await acceptCookies(page);
+    await acceptCookies(page);
     await expect(page.locator('h1')).toHaveText(h1);
     const m = await meta(page);
     expect(m.robots ?? '', `${url} robots`).not.toContain('noindex');
     expect(m.canonical, `${url} canonical`).toMatch(new RegExp(`${url.replace(/\//g, '\\/')}$`));
-    for (const k of ['title', 'description'] as const) { expect(seen.has(m[k]!), `${url}: ${k} unique`).toBe(false); seen.set(m[k]!, url); }
     expect(m.title).toContain('CarmaCars');
-    const inv = page.getByTestId('vp-inventory');
-    await expect(inv).toBeVisible();
+    await expect(page.getByTestId('vp-inventory')).toBeVisible();
     await expect(page.getByTestId('vp-request').getByRole('link', { name: 'Request it' })).toHaveAttribute('href', /\/contact\?topic=car&car=/);
     // breadcrumbs up the tree, and JSON-LD with the breadcrumb and the questions
-    const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
-    expect(ld.join(' ')).toContain('BreadcrumbList');
-    expect(ld.join(' ')).toContain('FAQPage');
+    await expect(page.locator('nav.crumbs a').first()).toBeVisible();
+    const ld = (await page.locator('script[type="application/ld+json"]').allInnerTexts()).join(' ');
+    expect(ld).toContain('BreadcrumbList');
+    expect(ld).toContain('FAQPage');
     await check(page, url);
+  });
+}
+
+test('every level has its own title and description', async ({ request }, info) => {
+  test.skip(info.project.name.startsWith('phone'), 'once is enough');
+  const seen = new Map<string, string>();
+  for (const url of [...PAGES.map((x) => x[1]), '/cars/volkswagen/jetta/2021', '/cars/volkswagen/jetta/2020/highline']) {
+    const html = await (await request.get(url)).text();
+    for (const k of [/<title>(.*?)<\/title>/, /<meta name="description" content="(.*?)"/]) {
+      const v = k.exec(html)?.[1] ?? '';
+      expect(v, `${url}: ${k}`).not.toBe('');
+      expect(seen.get(v), `${url}: shares "${v}"`).toBeUndefined();
+      seen.set(v, url);
+    }
   }
+});
+
+test('the year and trim pages carry their own data', async ({ page }) => {
+  test.setTimeout(90_000);
   // the year page: specs, the Canadian trims, the other years
   await page.goto('/cars/volkswagen/jetta/2020');
+  await acceptCookies(page);
   await expect(page.getByTestId('vp-specs')).toContainText('L/100 km');
   await expect(page.getByTestId('vp-trims')).toContainText('Sportline');
   await expect(page.getByTestId('vp-trims')).toContainText('Execline');
@@ -69,6 +86,7 @@ test('make, model, year and trim pages render, indexed and self-canonical, with 
   // the trim page: how it compares, the siblings, the cost to drive
   await page.goto('/cars/volkswagen/jetta/2020/sportline');
   await expect(page.getByTestId('vp-diffs')).toContainText('trim 3 of 5');
+  await expect(page.getByTestId('vp-diffs')).toContainText('The GLI has the 2.0L');
   await expect(page.getByTestId('vp-siblings')).toContainText('Comfortline');
   await expect(page.getByTestId('vp-cost')).toContainText('100 km');
   // no Jetta of ours: similar cars instead of an empty block
@@ -131,7 +149,8 @@ test('under the rules a trim page with no car is noindex with its year as canoni
               values (${car}, ${o!.id}, 2021, 'Volkswagen', 'Jetta', 'Execline', 'White', ${'VP' + randomBytes(2).toString('hex').toUpperCase()}, 'standard', 'available', 'managed', 'transfer', 'Sedan')`;
     await sql`select app.ensure_listing(${car})`;
     await sql`update vehicle_listings set status = 'published', slug = app.listing_slug(${car}), first_published_at = now(), seats = 5, transmission = 'Automatic', body_style = 'Sedan' where vehicle_id = ${car}`;
-    await expect.poll(async () => { await page.goto(url); return (await meta(page)).robots ?? 'index'; }, { timeout: 45_000, intervals: [2_000] }).not.toContain('noindex');
+    // the fleet signature's rebuild (the Worker's cron tick; scripts/serve.mjs every 10 s), asked for at once here
+    await expect.poll(async () => { await rebuild(); await page.goto(url); return (await meta(page)).robots ?? 'index'; }, { timeout: 60_000, intervals: [3_000] }).not.toContain('noindex');
     expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021\/execline$/);
     await expect(page.getByTestId('vp-inventory').locator('.car-card').first()).toContainText('Jetta');
     expect(await (await request.get('/sitemap-vehicles/volkswagen-trims.xml')).text()).toContain(`${url}<`);
