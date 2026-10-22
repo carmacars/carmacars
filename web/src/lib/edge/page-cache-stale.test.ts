@@ -144,7 +144,7 @@ test('first visit, nothing kept: a 5xx becomes the busy page that retries; an RS
   assert.match(body, /Busy for a moment, retrying/);
   assert.match(body, /location\.reload\(\)/);
   assert.doesNotMatch(body, /Internal server error/i);
-  assert.doesNotMatch(body, /—/, 'no em dash');
+  assert.doesNotMatch(body, /\u2014/, 'no em dash');
   assert.equal(s.c.m.size, 0, 'the busy page is never kept');
   const rr = req(car + '?_rsc=x', { rsc: '1' });
   assert.equal((await serveEdge(rr, null, staleKey(rr), '/cars/vw-jetta-2020', s.d)).status, 500);
