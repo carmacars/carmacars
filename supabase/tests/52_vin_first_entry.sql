@@ -170,6 +170,7 @@ update program_settings set ai_vision_enabled = true;
 insert into vehicle_photos (id, vehicle_id, angle, original_path, processed_path, status, is_cover, is_public, variants)
 values (test.id('photo:VF10'), test.id('vehicle:VF10'), 'front_left', 'o/vf10.jpg', 'p/vf10.webp', 'approved', true, true,
         '[{"width": 1600, "format": "webp", "path": "p/vf10-1600.webp"}, {"width": 800, "format": "jpg", "path": "p/vf10-800.jpg"}, {"width": 480, "format": "jpg", "path": "p/vf10-480.jpg"}]');
+select test.ok('copy: a public photo with no shot type does not stop the template (release 2)', app.car_copy_template('{"car": {"year": 2015, "make": "Kia", "model": "Forte"}, "photos": [null, "front"]}'::jsonb) ? 'h1');
 select test.eq('colour: a car with no colour and a cover photo is due, its smallest JPEG of 400 px or more',
   (select c ->> 'path' from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VF10')), 'p/vf10-480.jpg');
 select test.ok('colour: a car whose colour a person entered is not', not exists (select 1 from jsonb_array_elements(app.colour_read_due(100000) -> 'cars') c where (c ->> 'vehicle_id')::uuid = (test.vf_scar()).id));

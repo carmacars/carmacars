@@ -518,6 +518,17 @@ language sql stable security invoker set search_path = public, app as $$ select 
 create or replace function public.server_colour_read_record(p jsonb) returns jsonb
 language sql volatile security invoker set search_path = public, app as $$ select app.colour_read_record(p) $$;
 
+-- A public photo whose shot type was never set (the column allows it) gave the template a null photo name, and
+-- jsonb_build_object refused it: one such car stopped car_copy_scan and with it the whole server_jobs_due gate. Every
+-- car now gets its copy queued at once, so the template skips nameless photos (release 2 integration).
+alter function app.car_copy_template(jsonb) rename to car_copy_template_pre0082;
+create or replace function app.car_copy_template(p_facts jsonb) returns jsonb
+language sql immutable as $$
+  select app.car_copy_template_pre0082(case when jsonb_typeof(p_facts -> 'photos') = 'array'
+    then jsonb_set(p_facts, '{photos}', coalesce((select jsonb_agg(x) from jsonb_array_elements(p_facts -> 'photos') x where jsonb_typeof(x) = 'string'), '[]'::jsonb))
+    else p_facts end)
+$$;
+
 -- ================================================================ privileges
 alter table vehicle_class_rules enable row level security;
 alter table vehicle_colour_reads enable row level security;
@@ -553,7 +564,8 @@ begin
   -- the wrapped ones: the new function gets the privileges the old one had
   for r in select p.oid, m.new_name, oidvectortypes(p.proargtypes) as args
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             join (values ('add_owner_vehicle_pre0082', 'add_owner_vehicle'), ('vehicle_add_core_pre0082', 'vehicle_add_core'), ('server_jobs_due_pre0082', 'server_jobs_due')) m(old_name, new_name)
+             join (values ('add_owner_vehicle_pre0082', 'add_owner_vehicle'), ('vehicle_add_core_pre0082', 'vehicle_add_core'), ('server_jobs_due_pre0082', 'server_jobs_due'),
+                         ('car_copy_template_pre0082', 'car_copy_template')) m(old_name, new_name)
                on m.old_name = p.proname
             where n.nspname = 'app' loop
     v_new := format('app.%I(%s)', r.new_name, r.args)::regprocedure;
