@@ -14,6 +14,15 @@ import { jobsToRun } from './src/lib/edge/cron-gate';
 import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetSignature } from './src/lib/edge/fleet-sig';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
+/** The deployment last rebuilt for (a number from the Worker's version id), in the tag store next to the fleet's signature. */
+const DEPLOY_SEEN_KEY = 'carmacars/deploy-seen';
+function deployNumber(version: string | null): number {
+  if (!version) return 0;
+  let h = 0;
+  for (let i = 0; i < version.length; i++) h = (Math.imul(h, 31) + version.charCodeAt(i)) | 0;
+  return Math.abs(h) || 1;
+}
+
 type Env = Record<string, unknown>;
 
 class NonceAdder {
@@ -123,15 +132,19 @@ const worker = {
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
     if (env.NEXT_TAG_CACHE_KV || env.NEXT_TAG_CACHE_D1) ctx.waitUntil((async () => {
-      const [sig, seen, pending] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY), readNumber(env, FLEET_SIG_CONFIRM_KEY)]);
+      const [sig, seen, pending, deploySeen] = await Promise.all([fleetSignature(env), readNumber(env, FLEET_SIG_KEY), readNumber(env, FLEET_SIG_CONFIRM_KEY), readNumber(env, DEPLOY_SEEN_KEY)]);
       if (sig === null || seen === null) return;
       // after a change the pages are rebuilt twice, five minutes apart, so a page regenerated while the change was
       // being written cannot keep a stale list (the second pass is the confirm)
       const confirming = sig === seen && pending === sig;
-      if (sig === seen && !confirming) return;
+      // the first tick after a deploy rebuilds them too: a page kept in the page cache by the previous build names that
+      // build's style and script files, which are gone (the home page loaded without its styles on Oct 21)
+      const deployed = deployNumber(deploymentOf(env));
+      const newDeploy = deployed !== 0 && deploySeen !== deployed;
+      if (sig === seen && !confirming && !newDeploy) return;
       const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/jobs/public-rebuild`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' }), env, ctx);
       await r.text();
-      if (r.ok) { await writeNumber(env, FLEET_SIG_KEY, sig); await writeNumber(env, FLEET_SIG_CONFIRM_KEY, confirming ? 0 : sig); }
+      if (r.ok) { await writeNumber(env, FLEET_SIG_KEY, sig); await writeNumber(env, FLEET_SIG_CONFIRM_KEY, confirming ? 0 : sig); if (newDeploy) await writeNumber(env, DEPLOY_SEEN_KEY, deployed); }
     })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
     if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
