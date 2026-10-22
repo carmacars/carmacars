@@ -9,12 +9,20 @@
 // to call, text, WhatsApp or email us or a copied phone number, photos looked through (from Gallery), sorting and
 // filters on the fleet list, dates changed without a page load, repeated taps, and a flag when the visit came from an
 // ad click (the click id never leaves the browser). Never what a visitor types.
+// 0103: a visitor reading one page stayed on Live visitors only 3 minutes. While the page is visible a heartbeat
+// (heartbeat.ts, every 45 seconds, an Admin setting) updates the session alone (/api/t answers it with one UPDATE, no
+// event); it stops while the tab is hidden, and when the page closes navigator.sendBeacon sends its last events with
+// "end", so the session ends. Heartbeats follow the same consent as page beacons: only a visitor who may be shown.
+// A batch the network lost is sent again once; a heartbeat that finds no session sends the page view again.
+import { beatMs, createHeartbeat } from './heartbeat';
 
 type Ev = { k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> };
-export interface BeaconReply { ok?: boolean; invite?: { token: string; number: string; message: string; from?: string } | null; cfg?: { chat: boolean; greet_after: number; greet_text: string } }
+export interface BeaconReply { ok?: boolean; invite?: { token: string; number: string; message: string; from?: string } | null; cfg?: { chat: boolean; greet_after: number; greet_text: string; beat?: number };
+  /** a heartbeat's answer (0103): written, and whether the database has the session */
+  seen?: boolean; known?: boolean }
 
 const SID = 'cc_sid', VID = 'cc_vid', CHOICE = 'cc_cookie_choice', AD = 'cc_ad';
-const IDLE_MS = 30 * 60 * 1000, FLUSH_MS = 4000, BEAT_MS = 30_000;
+const IDLE_MS = 30 * 60 * 1000, FLUSH_MS = 4000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const readCookie = (n: string) => document.cookie.split('; ').find((c) => c.startsWith(n + '='))?.split('=').slice(1).join('=');
@@ -58,6 +66,9 @@ let current = { path: '', at: 0, slug: undefined as string | undefined, bn: unde
 let lastBookSlug: string | undefined;
 let chatOpen = false;
 export function setChatOpen(v: boolean) { chatOpen = v; }
+let beatEvery = beatMs(undefined);
+let resent = false;
+const hb = createHeartbeat({ visible: () => document.visibilityState === 'visible', beat: () => void beat(), intervalMs: () => beatEvery });
 
 function batch(events: Ev[]) {
   const ref = document.referrer && !document.referrer.startsWith(location.origin) ? new URL(document.referrer).host : undefined;
@@ -75,16 +86,63 @@ function allowed(e: Ev): boolean {
   return e.k === 'email_link_opened' || e.k === 'pay_left' || (e.k === 'page_view' && Boolean(e.bn)) || e.k === 'chat_opened';
 }
 
+/** The visitor may be shown on Live visitors: analytics consent, a known customer's booking page, or an open chat. */
+const shown = () => analyticsOn() || chatOpen || Boolean(current.bn);
+function heard(j: BeaconReply) {
+  if (j.cfg?.beat && beatMs(j.cfg.beat) !== beatEvery) { beatEvery = beatMs(j.cfg.beat); hb.reset(); }
+  for (const f of listeners) f(j);
+}
+
 async function send(keepalive = false) {
   if (timer) { clearTimeout(timer); timer = undefined; }
   const events = queue.filter(allowed);
   queue = [];
-  // a heartbeat (no events) only matters when the visitor may be shown: consent, a known customer page, or an open chat
-  if (!events.length && !analyticsOn() && !chatOpen && !current.bn) return;
+  if (!events.length && !shown()) return;
+  hb.reset();
   try {
     const r = await fetch('/api/t', { method: 'POST', keepalive, headers: { 'content-type': 'application/json' }, body: JSON.stringify(batch(events)), credentials: 'same-origin' });
-    if (!keepalive && r.ok) { const j = (await r.json()) as BeaconReply; for (const f of listeners) f(j); }
-  } catch { /* the next batch carries on */ }
+    // 204: the database is slow and the batch is being stored in the background
+    if (!keepalive && r.status === 200) heard((await r.json()) as BeaconReply);
+    else if (r.status >= 500) requeue(events);
+  } catch { requeue(events); }
+}
+/** A batch the network lost goes once more with the next one (marked, so it is never sent a third time). */
+function requeue(events: Ev[]) {
+  const again = events.filter((e) => !(e as Ev & { again?: 1 }).again).slice(0, 20).map((e) => ({ ...e, again: 1 as const }));
+  if (!again.length) return;
+  queue = [...again, ...queue].slice(0, 30);
+  if (!timer) timer = setTimeout(() => void send(), FLUSH_MS * 2);
+}
+
+/** The heartbeat: the session's last seen and page, nothing else. Events waiting go as a batch instead. */
+async function beat() {
+  if (!shown()) return;
+  if (queue.some(allowed)) { void send(); return; }
+  try {
+    const r = await fetch('/api/t', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ beat: 1, sid: sessionId(), vid: visitorId(), path: location.pathname }) });
+    if (r.status !== 200) return;
+    const j = (await r.json()) as BeaconReply;
+    heard(j);
+    // the database has no session for this tab (its first batch was lost): the page view once more
+    if (j.seen === false && j.known === false && !resent && current.path) {
+      resent = true;
+      push({ k: 'page_view', path: current.path, slug: current.slug, bn: current.bn });
+      void send();
+    }
+  } catch { /* the next beat carries on */ }
+}
+
+/** The page is closing: its last events and the end of the session, with sendBeacon (it survives the page). */
+function final() {
+  if (timer) { clearTimeout(timer); timer = undefined; }
+  hb.stop();
+  const events = queue.filter(allowed);
+  queue = [];
+  if (!events.length && !shown()) return;
+  const body = JSON.stringify(events.length ? { ...batch(events), end: '1' } : { beat: 1, end: '1', sid: sessionId(), vid: visitorId() });
+  try { if (navigator.sendBeacon?.('/api/t', body)) return; } catch { /* below */ }
+  void fetch('/api/t', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body, credentials: 'same-origin' }).catch(() => undefined);
 }
 function push(e: Ev, soon = true) {
   queue.push(e);
@@ -93,13 +151,13 @@ function push(e: Ev, soon = true) {
 }
 export function track(k: string, extra: Omit<Ev, 'k'> = {}) { push({ k, path: location.pathname, ...extra }); }
 
-function leave(final: boolean) {
+function leave(closing: boolean) {
   if (!current.path) return;
   const ms = Date.now() - current.at;
   push({ k: 'page_leave', path: current.path, slug: current.slug, bn: current.bn, ms }, false);
   if (current.kind === 'book' && current.requestStarted) push({ k: 'request_abandoned', path: current.path, slug: current.slug }, false);
   if (current.kind === 'pay') push({ k: 'pay_left', path: current.path, bn: current.bn, ms }, false);
-  if (final) void send(true);
+  if (closing) final();
 }
 
 // ---------------------------------------------------------------- 0086: what changes on the page without a load
@@ -156,6 +214,7 @@ function view() {
   // leaving the form for the "sent" page is a submission, not an abandoned request
   if (current.path && !(current.kind === 'book' && ctx.kind === 'sent')) leave(false);
   current = { path, at: Date.now(), slug: ctx.slug, bn: ctx.bn, kind: ctx.kind, requestStarted: false };
+  resent = false;
   if (ctx.kind === 'book') lastBookSlug = ctx.slug;
   push({ k: 'page_view', path, slug: ctx.kind === 'sent' ? lastBookSlug : ctx.slug, bn: ctx.bn });
   const q = new URLSearchParams(location.search);
@@ -213,9 +272,15 @@ export function startBeacon() {
     if (t && t.closest('form') && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) { current.requestStarted = true; track('request_started', { slug: current.slug }); }
   });
   addEventListener('pagehide', () => leave(true));
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') void send(true); });
+  // back from the back-forward cache: the session lives again (the page's end is undone by the next write)
+  addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) { hb.start(); void beat(); } });
+  document.addEventListener('visibilitychange', () => {
+    // hidden: what is waiting goes now (the tab may never come back); the heartbeat stops
+    if (document.visibilityState === 'hidden' && queue.some(allowed)) void send(true);
+    hb.visibility();
+  });
   addEventListener('cc:consent', () => { void send(); });
   view();
   void send();
-  setInterval(() => { if (document.visibilityState === 'visible') void send(); }, BEAT_MS);
+  hb.start();
 }

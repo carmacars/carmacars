@@ -411,7 +411,7 @@ def build():
               blurb='Who is on the site, how likely each visitor is to book, one-click actions, follow-ups, the chat inbox.')
     g.task('Live visitors')
     g.steps([
-        f'Open {P("My work", "Live visitors")}. The menu shows how many hot visitors are on the site. Each visitor shows a booking likelihood from 0 to 100 (Hot, Warm or Cold); the most likely to book come first.',
+        f'Open {P("My work", "Live visitors")}. "Live now" counts who is on the site now, "Visitors today" the people seen today. The page refreshes by itself every 15 seconds; the menu shows how many hot visitors are on the site. Each visitor shows a booking likelihood from 0 to 100 (Hot, Warm or Cold); the most likely to book come first.',
         '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Saw $320 for 3 days · Tapped to call". The badges are all the signals; the dots say how strong each is.',
         'Each visitor shows a name when known, otherwise "Visitor from Toronto, phone", the page and car they are on, how many others look at that car now, and this visit\'s pages.',
         f'Suggested: the next step and a message. Press {B("Invite to chat with this message")}, or {B("Edit the message")} first. Sales can {B("Offer a 10% discount code")} (one per visitor a week). {B("Assign to Sales")} hands the visitor to Sales with a task. When their dates are taken, {B("Suggest a similar free car")} writes the message for you.',

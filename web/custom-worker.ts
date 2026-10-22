@@ -7,7 +7,7 @@ import { cspHeader, newNonce, securityHeaders } from './src/lib/security/csp';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from './src/lib/security/view-as-guard';
 import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
-import { MAX_BEACON_BYTES, cleanBeacon, emailLinkCookie, ipKey, isBot } from './src/lib/track/shared';
+import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, deploymentOf, edgeKeep, edgeKey, edgeMatch, isProbe } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
@@ -64,11 +64,16 @@ async function workerToken(secret: string): Promise<string> {
 // views costs well under a millisecond of the Worker's time and one call to the database. Bots are dropped; the city
 // comes from Cloudflare; the network address only feeds a salted rate-limit key; the signed-in user's own token goes
 // with the call (an expired one falls back to an anonymous call).
-async function track(request: Request, env: Env): Promise<Response | null> {
+// 0103: the beacon never holds the browser. The database call runs under waitUntil; a batch waits for it at most
+// 2 seconds (its answer can carry a staff invite to chat) and a heartbeat 1.5 seconds, then the Worker answers 204 and
+// the call finishes in the background. The last batch of a page (pagehide, sendBeacon) is answered 204 at once, and
+// its session is ended after its events are stored. A slow or failing database is a 204, never a 502.
+async function track(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response | null> {
   const sbUrl = env.NEXT_PUBLIC_SUPABASE_URL, sbKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (typeof sbUrl !== 'string' || typeof sbKey !== 'string' || !sbUrl) return null;
   const headers = { 'content-type': 'application/json', 'cache-control': 'no-store', ...securityHeaders() };
   const reply = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers });
+  const none = () => new Response(null, { status: 204, headers: { 'cache-control': 'no-store', ...securityHeaders() } });
   const origin = request.headers.get('origin');
   if (origin && new URL(origin).host !== new URL(request.url).host) return reply({ ok: false }, 403);
   const ua = request.headers.get('user-agent');
@@ -77,18 +82,38 @@ async function track(request: Request, env: Env): Promise<Response | null> {
   if (text.length > MAX_BEACON_BYTES) return reply({ ok: false }, 413);
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { return reply({ ok: false }, 400); }
+  const rpc = (fn: string, args: unknown, bearer: string) => fetch(`${sbUrl.replace(/\/$/, '')}/rest/v1/rpc/${fn}`, {
+    method: 'POST', headers: { apikey: sbKey, authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
+    body: JSON.stringify(args), signal: AbortSignal.timeout(BEACON_GIVE_UP_MS) });
+  const background = <T>(p: Promise<T>) => { ctx.waitUntil(p.catch(() => undefined)); return p; };
+  // the heartbeat of an open page: one UPDATE, anonymous (the session already says who it is)
+  if (isBeat(raw)) {
+    const beat = cleanBeat(raw);
+    if (!beat) return reply({ ok: false }, 400);
+    const p = background(rpc('track_beat', { p: beat }, sbKey).then(async (r) => (r.ok ? await r.text() : null)));
+    if (beat.end) return none();
+    const out = await within(p, BEAT_WAIT_MS);
+    return out ? new Response(out, { status: 200, headers }) : none();
+  }
   const b = cleanBeacon(raw, ua);
   if (!b) return reply({ ok: false }, 400);
+  const { end, ...batch } = b;
   const cf = ((request as unknown as { cf?: Record<string, unknown> }).cf ?? {});
   const geo = { city: cf.city ?? null, region: cf.regionCode ?? null, country: cf.country ?? null,
     ip_key: await ipKey(request.headers.get('cf-connecting-ip'), sbKey.slice(-24)) };
   const token = readSession(parseCookieHeader(request.headers.get('cookie')))?.session.access_token;
-  const call = (bearer: string) => fetch(`${sbUrl.replace(/\/$/, '')}/rest/v1/rpc/track_ingest`, {
-    method: 'POST', headers: { apikey: sbKey, authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ p: b, p_geo: geo }) });
-  let r = await call(token ?? sbKey);
-  if (token && (r.status === 401 || r.status === 403)) r = await call(sbKey);
-  return new Response(r.ok ? await r.text() : JSON.stringify({ ok: false }), { status: r.ok ? 200 : 502, headers });
+  const ingest = async () => {
+    let r = await rpc('track_ingest', { p: batch, p_geo: geo }, token ?? sbKey);
+    if (token && (r.status === 401 || r.status === 403)) r = await rpc('track_ingest', { p: batch, p_geo: geo }, sbKey);
+    const t = r.ok ? await r.text() : null;
+    // the page closed: its session ends once its last events are in
+    if (end) await rpc('track_beat', { p: { sid: b.sid, vid: b.vid, end: '1' } }, sbKey).then((x) => x.text());
+    return t;
+  };
+  const p = background(ingest());
+  if (end) return none();
+  const out = await within(p, BEACON_WAIT_MS);
+  return out ? new Response(out, { status: 200, headers }) : none();
 }
 
 // Turo by email (migration 0063): Cloudflare Email Routing hands every message sent to trips@in.carmacars.ca (a
@@ -168,7 +193,7 @@ const worker = {
     // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
     // on a fresh isolate)
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
-    if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env); if (t) return t; }
+    if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());

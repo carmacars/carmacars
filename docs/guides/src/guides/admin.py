@@ -752,13 +752,14 @@ def build():
               blurb='Who is on the site now, how likely each visitor is to book and why, one-click actions, follow-ups, interest per car, the chat inbox.')
     g.task('Live visitors', 'Visitors who accepted analytics (or got the notice in Canada outside Quebec and the US), known customers on their own booking pages and anyone in a chat.')
     g.steps([
-        f'Open {P("Today", "Live visitors")}. The tiles count who is on the site now, hot visitors now, known customers, visits and chats today. The menu shows how many hot visitors are on the site.',
+        f'Open {P("Today", "Live visitors")}. "Live now" counts who is on the site now (seen in the last 5 minutes; an open page says it is still there every 45 seconds, so someone reading one page stays on the list). "Visitors today" counts people, with their visits below. The other tiles count hot visitors now, known customers now and chats today. The menu shows how many hot visitors are on the site.',
+        'Visitors who chose necessary cookies only are never recorded: a line under the tiles says how many chose that today. Closing the tab takes a visitor off the list at once.',
         'Each visitor shows a booking likelihood from 0 to 100, with Hot (60 or more), Warm (30 or more) or Cold. The list is sorted by it; choose "Most recent" in Sort, or tick "Hot and warm only".',
         '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Reached step 3 of the request form · Tapped to call". The badges are all the signals of the visit; the dots say how strong each is.',
         'Each visitor also shows their name when known (signed in, or arrived from one of our emails), otherwise "Visitor from Toronto, phone"; the page and car they are on, and how many others look at that car now; the device, city, the site or campaign that sent them and "from an ad".',
         f'Suggested: the best next step and the message to send. Press {B("Invite to chat with this message")} to send it at once, {B("Edit the message")} to change it first, {B("Offer a 10% discount code")}, {B("Assign to Sales")} or, when their dates are taken, {B("Suggest a similar free car")}.',
         f'Press {B("Pages")} for every page and event of the visit with each signal\'s points, or {B("Start a chat")} to write your own message. They see it in a bubble and reply from it.',
-        'Below: hot visitors today (and whether someone acted), the signals of the last 24 hours, and the most viewed cars of the week with prices shown and the car most compared with each. The page refreshes by itself every few seconds.',
+        'Below: hot visitors today (and whether someone acted), the signals of the last 24 hours, and the most viewed cars of the week with prices shown and the car most compared with each. The page refreshes by itself every 15 seconds.',
     ])
     g.task('The signals', 'Each signal adds points to the booking likelihood. They come from what the visitor does on the site, never from what they type.')
     g.bullets([
@@ -788,7 +789,7 @@ def build():
         'The pay page left without paying: after 30 minutes, customer service. The change proposal opened twice: customer service.',
         'A booking request started and stopped, or a viewing spree, by a known visitor: Sales.',
         'A task closes by itself when the renter answers the offer, pays or answers the proposal. Each signal raises one task only.',
-        f'The thresholds are in {P("Settings", "Program")}, group "Live visitors and live chat". Follow-ups done count in My sales.',
+        f'The thresholds are in {P("Settings", "Program")}, group "Live visitors and live chat", with how long "on the site now" lasts (5 minutes) and how often an open page says it is still there (45 seconds). Follow-ups done count in My sales.',
     ])
     g.task('Recovery emails', 'Known renters who stop before finishing get one polite reminder, and at most one more a day later.')
     g.bullets([
