@@ -3,7 +3,7 @@
 // shape (depth, and colour or not) are fetched and checked; the others are recorded as sampled (not fetched), so a
 // link to them is not reported as uncrawled. Their addresses are checked by the SEO audit's sitemap pass.
 const SAMPLE = Number(process.env.CRAWL_SAMPLE ?? 6);
-const family = (p) => { const m = /^\/(cars|buy)((?:\/[^/?]+)+)/.exec(p); if (!m || (m[1] === 'cars' && m[2].split('/').length <= 5)) return null; return `${m[1]}:${m[2].split('/').length}:${m[2].includes('/colour/')}`; };
+const family = (p) => { const m = /^\/(cars|buy|t)((?:\/[^/?]+)+)/.exec(p); if (!m || (m[1] === 'cars' && m[2].split('/').length <= 5)) return null; return m[1] === 't' ? `t:${m[2].split('/')[1]}:${m[2].split('/').length}` : `${m[1]}:${m[2].split('/').length}:${m[2].includes('/colour/')}`; };
 export async function crawl(base, extra = []) {
   const seen = new Map(); const queue = ['/', ...extra]; const shapes = new Map();
   while (queue.length) {
@@ -11,7 +11,7 @@ export async function crawl(base, extra = []) {
     const key = path.split('#')[0];
     if (seen.has(key)) continue;
     const f = family(key);
-    if (f) { const n = shapes.get(f) ?? 0; if (n >= SAMPLE) { seen.set(key, { status: 200, html: '', sampled: true }); continue; } shapes.set(f, n + 1); }
+    if (f) { const n = shapes.get(f) ?? 0; if (n >= (f.startsWith('t:') ? 1 : SAMPLE)) { seen.set(key, { status: 200, html: '', sampled: true }); continue; } shapes.set(f, n + 1); }
     const res = await fetch(base + key, { redirect: 'manual' });
     const html = res.headers.get('content-type')?.includes('text/html') ? await res.text() : '';
     seen.set(key, { status: res.status, html, location: res.headers.get('location') });

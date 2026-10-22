@@ -131,10 +131,12 @@ select test.throws('only an Admin', $$select app.door(test.id('vp_cs'), 'aal2', 
 -- ---------------------------------------------------------------- city and colour pages (the owner, October 22)
 insert into seo_pages (slug, kind, name, sort_order, facts, copy) values
   ('vp-town', 'location', 'Vptown', 10, '{"lat": 43.59, "lng": -79.64, "nearby": ["vp-port"], "transit": ["Line 9"]}', '{"h1": "x"}'),
-  ('vp-port', 'location', 'Vp Airport (VPA)', 20, '{"lat": 43.68, "lng": -79.62, "terminals": ["Terminal 1"]}', '{"h1": "x"}');
-select test.ok('without the place table, the places are the active location landing pages', (select count(*) from app.vpage_places() where slug in ('vp-town', 'vp-port')) = 2);
+  ('vp-port', 'location', 'Vp Airport (VPA)', 20, '{"airport_code": "VPA", "lat": 43.68, "lng": -79.62, "terminals": ["Terminal 1"]}', '{"h1": "x"}');
+select test.ok('without the places table (migration 0095), the places are the active location landing pages', (select count(*) from app.vpage_landing_places() where slug in ('vp-town', 'vp-port')) = 2
+  and app.vpage_place('vp-town') ->> 'kind' = 'city' and app.vpage_place('vp-port') ->> 'kind' = 'airport');
 select test.eq('twelve colours', (select count(*) from vehicle_colours), 12::bigint);
-select test.ok('the search terms: renting, sale, detailing and body shop', (select count(distinct kind) from search_terms where is_active) = 4);
+select test.ok('without place_terms (0095), the default terms: renting, sale, detailing and body shop, each with its lead', (select count(distinct kind) from app.vpage_terms()) = 4
+  and not exists (select 1 from app.vpage_terms() where kind <> 'rental' and lead is null));
 select test.ok('every trim is numbered (the sitemaps take ranges of it)', not exists (select 1 from vehicle_catalog_trims where ord is null)
   and (select count(distinct ord) from vehicle_catalog_trims) = (select count(*) from vehicle_catalog_trims));
 select test.eq('a place page: its trim with the place', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'path', '/cars/volkswagen/jetta/2020/sportline/vp-town');
@@ -146,29 +148,73 @@ select test.ok('unknown place, colour or trim: 404', public.vehicle_tier_page('v
 select test.ok('indexed and self-canonical by default', (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-port', 'red') ->> 'indexable')::boolean
   and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-port', 'red') ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline/vp-port/red');
 
--- the place table, once filled (the local SEO release's gazetteer), replaces the landing pages; a region lists its places
-insert into places (id, slug, name, kind, parent_id, lat, lng) values (9001, 'vp-canada', 'Vpcanada', 'country', null, null, null), (9002, 'vp-gta', 'Vp GTA', 'region', 9001, null, null),
-  (9003, 'vp-borough', 'Vp Borough', 'city', 9002, 43.6, -79.6), (9004, 'vp-corner', 'Vp Corner', 'neighbourhood', 9003, 43.61, -79.61);
-select test.eq('the place table is the place list', (select string_agg(slug, ',' order by slug) from app.vpage_places()), 'vp-borough,vp-canada,vp-corner,vp-gta');
-select test.ok('a neighbourhood page names its city; a region page lists its places', public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-corner', null) -> 'city' ->> 'parent' = 'Vp Borough'
-  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'within' -> 0 ->> 'slug' = 'vp-borough'
-  and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'delivery' = 'null'::jsonb);
-delete from places where id between 9001 and 9004;
+-- The local SEO release's places and terms (0095), once there, replace the landing pages and the default terms. Their
+-- shape is simulated here (only when 0095 is not applied) and removed after.
+do $do$
+begin
+  if to_regclass('public.places') is not null then return; end if;
+  create table places (id integer primary key, parent_id integer, kind smallint not null, region_id integer, flags integer not null default 0, lat real, lng real,
+    population integer, src_id text, slug text not null unique, name text not null, country text not null default 'CA', iata text, landing_slug text,
+    is_active boolean not null default true, updated_on date not null default current_date);
+  create table place_regions (code text primary key, country text, name text, is_enabled boolean not null default true, places integer not null default 0);
+  create table place_terms (slug text primary key, vertical text not null, phrase text not null, canonical_slug text, lead_kind text, sort_order integer not null default 0, is_active boolean not null default true);
+  create function app.place_enabled(p places) returns boolean language sql stable as 'select p.is_active';
+  insert into places (id, parent_id, kind, flags, lat, lng, population, slug, name) values
+    (1, null, 1, 0, null, null, 40000000, 'vp-canada', 'Vpcanada'), (2, 1, 4, 1, null, null, null, 'vp-gta', 'Vp GTA'),
+    (3, 2, 5, 1, 43.6, -79.6, 50000, 'vp-borough', 'Vp Borough'), (4, 3, 6, 1, 43.61, -79.61, null, 'vp-corner', 'Vp Corner'),
+    (5, 3, 8, 1, 43.62, -79.62, null, 'vp-tower', 'Vp Tower'), (7, 3, 5, 1, 43.7, -79.7, 900, 'vp-off', 'Vp Off');
+  update places set is_active = false where id = 7;
+  insert into place_regions values ('ON', 'CA', 'Ontario', true, 3);
+  insert into place_terms values ('car-rental', 'rental', 'car rental', null, null, 10), ('car-hire', 'rental', 'car hire', null, null, 20),
+    ('rent-a-car', 'rental', 'rent a car', 'car-rental', null, 30), ('used', 'sale', 'used', null, 'buyer', 10), ('ppf', 'detailing', 'ppf', null, 'detailing', 10);
+  perform test.eq('place_terms: active, not a synonym, not car rental itself', (select string_agg(slug || ':' || coalesce(lead, '-'), ',' order by slug) from app.vpage_terms()), 'car-hire:-,ppf:detailing,used:buyer');
+  perform test.ok('a neighbourhood page names its city; a region page lists its places; no page for a landmark or a place switched off',
+    public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-corner', null) -> 'city' ->> 'parent' = 'Vp Borough'
+    and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'within' -> 0 ->> 'slug' = 'vp-borough'
+    and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-gta', null) -> 'city' -> 'delivery' = 'null'::jsonb
+    and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-tower', null) is null
+    and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-off', null) is null
+    and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) is null);
+  perform test.eq('the sitemaps number the places by id; a landmark or a place switched off has no pages',
+    (select string_agg(r.slug, ',' order by r.ord) from app.vpage_places_range(1, app.vpage_place_max()) r), 'vp-canada,vp-gta,vp-borough,vp-corner');
+  drop function app.place_enabled(places);
+  drop table places, place_regions, place_terms;
+end $do$;
 
--- the sitemaps: no file over 50,000, the slices read by keyset, every page once
-select test.ok('tiers files listed', exists (select 1 from app.vehicle_tier_files()));
+-- the sitemaps: no file over 50,000, the slices read by keyset within one trim, every page once
+create function pg_temp.vp_all_tiers() returns table (f integer, g bigint, path text) language plpgsql as $f$
+declare n integer; a bigint; k integer; r record;
+begin
+  n := public.vehicle_tier_files_count();
+  for i in 1 .. n loop
+    a := -1;
+    loop
+      k := 0;
+      for r in select * from app.vehicle_tier_sitemap(i, a, 4000) loop
+        k := k + 1; a := greatest(a, r.g);
+        if r.path is not null then f := i; g := r.g; path := r.path; return next; end if;
+      end loop;
+      exit when k = 0;
+    end loop;
+  end loop;
+end $f$;
+create temp table vp_all as select * from pg_temp.vp_all_tiers();
 create temp table vp_slices as select * from app.vehicle_tier_sitemap(1, -1, 3);
 insert into vp_slices select * from app.vehicle_tier_sitemap(1, (select max(g) from vp_slices), 3);
-select test.ok('the next slice starts after the last pair read (keyset), no address twice', (select count(*) from vp_slices) = (select count(distinct path) from vp_slices)
-  and (select count(distinct g) from vp_slices) = 6);
-select test.ok('a pair is at most 13 addresses, so a file is at most 50,000', (select max(n) from (select count(*) n from app.vehicle_tier_sitemap(1, -1, 4000) group by g) x) <= 13
-  and (select count(*) from app.vehicle_tier_sitemap(1, -1, 4000)) <= 50000);
-select test.eq('every trim has its place pages, place and colour pages and colour pages once',
-  (select count(*) from app.vehicle_tier_sitemap(1, -1, 4000)) + coalesce((select sum(1) from generate_series(1, 0)), 0),
-  (select count(*) from vehicle_catalog_trims) * ((select count(*) from app.vpage_places()) * 13 + 12));
-select test.ok('the index: the renting tree, /buy and every term''s tree', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer
-  = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files()) + (select count(*) from app.vehicle_tier_files())));
+select test.ok('the next slice starts after the last pair read (keyset), no address twice', (select count(path) from vp_slices) = (select count(distinct path) from vp_slices)
+  and (select count(path) from vp_slices) > 13);
+select test.ok('a pair is at most 13 addresses, a file at most 50,000', (select max(n) from (select count(*) n from vp_all group by g) x) <= 13
+  and (select max(n) from (select count(*) n from vp_all group by f) x) <= 50000);
+select test.eq('every trim has its place pages, place and colour pages and colour pages, each once',
+  (select count(*) || '/' || count(distinct path) from vp_all),
+  (select n || '/' || n from (select (select count(*) from vehicle_catalog_trims) * ((select count(*) from app.vpage_landing_places()) * 13 + 12) n) x));
+select test.ok('no file past the last', not exists (select 1 from app.vehicle_tier_sitemap(public.vehicle_tier_files_count() + 1, -1, 4000)));
+select test.ok('the index: every tree has the level files and the tiers files', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer
+  = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files()) + public.vehicle_tier_files_count()));
 select test.ok('every tree is allowed by default', public.vehicle_sitemap_tree('') and public.vehicle_sitemap_tree('buy-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-ceramic-coating-'));
+-- (earlier suites send IndexNow batches too: one quota, one sweep; start from a clean cursor)
+update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, day = (now() at time zone 'America/Toronto')::date;
+update program_settings set indexnow_enabled = true where id = (app.settings()).id;
 select test.ok('IndexNow: a batch of at most 10,000 addresses from the sitemaps, the cursor after it', (select jsonb_array_length(c -> 'paths') between 1 and 10000 and (c -> 'cursor' ->> 'file_i') is not null
   from app.server_indexnow_claim(10000) c));
 select app.server_indexnow_report('{"status": 200, "count": 10, "cursor": {"file_i": 3, "pos": 5}}');
@@ -183,13 +229,14 @@ update program_settings set vpage_place_index = false, vpage_buy_index = false, 
 select test.ok('place switch off: noindex, canonical at the trim; the colour pages stay', not (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'indexable')::boolean
   and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline'
   and (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'gold') ->> 'indexable')::boolean
-  and not exists (select 1 from app.vehicle_tier_sitemap(1, -1, 4000) where path !~ '/colour/'));
+  and not exists (select 1 from pg_temp.vp_all_tiers() where path !~ '/colour/'));
 select test.ok('/buy and detailing switches off: those trees leave the sitemaps', not public.vehicle_sitemap_tree('buy-') and not public.vehicle_sitemap_tree('t-used-')
   and not public.vehicle_sitemap_tree('t-ceramic-coating-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-bumper-repair-'));
 update program_settings set vpage_place_index = true, vpage_buy_index = true, vpage_detailing_index = true where id = (app.settings()).id;
 
 -- ---------------------------------------------------------------- the /buy twins: for sale only when a car really is
 select test.eq('no car flagged: nothing for sale', jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'for_sale'), 0);
+update vehicle_catalog_years set recalls = '[]', complaints = '{}' where make_slug = 'volkswagen' and model_slug = 'jetta' and year = 2020;
 select test.eq('recalls unknown until NHTSA is imported: null, never "none"', public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'recalls', 'null'::jsonb);
 update vehicle_catalog_years set recalls = '[{"campaign": "20V000000", "date": "2020-05-01", "component": "AIR BAGS", "summary": "x"}]', complaints = '{"total": 7, "components": [{"component": "ENGINE", "n": 4}]}'
  where make_slug = 'volkswagen' and model_slug = 'jetta' and year = 2020;

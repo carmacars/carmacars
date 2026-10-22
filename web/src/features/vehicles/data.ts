@@ -57,7 +57,7 @@ export const tierPage = cache(async (make: string, model: string, year: string, 
   return p;
 });
 /** The cities and colours a trim page links to. */
-export const tiers = cache(async (): Promise<Tiers> => ((await rpc('vehicle_tiers', {})) as unknown as Tiers | null) ?? { settings: {}, places: [], place_count: 0, colours: [], terms: [] });
+export const tiers = cache(async (): Promise<Tiers> => ((await rpc('vehicle_tiers', {})) as unknown as Tiers | null) ?? { settings: {}, places: [], colours: [], terms: [] });
 
 /** Metadata: the page's own canonical when it is indexed; noindex,follow with the canonical at the parent when not. */
 export async function vehicleMeta(o: { title: string; description: string; path: string; indexable: boolean; canonical: string; image: string; imageAlt: string }): Promise<Metadata> {

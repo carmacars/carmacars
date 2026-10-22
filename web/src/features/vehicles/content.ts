@@ -305,14 +305,17 @@ const BEFORE = new Set(['used']);
 export function termTitleOptions(o: Named & { mode: TermMode; term: { slug: string; name: string } }): string[] {
   const c = o.colour ? `${low(o.colour)} ` : '', C = o.colour ? `${o.colour} ` : '';
   const n = nameOf(o), m = nameNoMake(o), ph = low(o.term.name);
+  // the shortest forms: "PPF" for "Paint protection film (PPF)", "insurance replacement" for "... rental"
+  const short = /\(([^)]+)\)$/.exec(o.term.name)?.[1] ?? o.term.name.replace(/ rental$/i, ''), sph = /^[A-Z]{2,}$/.test(short) ? short : low(short);
   const where = o.city ? ` in ${o.city}` : '', sp = o.city ? ` in ${shortPlace(o.city)}` : '';
   if (o.mode === 'detailing' || o.mode === 'bodyshop') {
-    return [`${o.term.name} for ${an(c + n)} ${c}${n}${where}`, `${o.term.name}, ${c}${n}${where}`, `${o.term.name}, ${c}${n}${sp}`, `${o.term.name}, ${c}${m}${sp}`]
-      .map((x) => (o.city ? x : `${x} | {{brand}}`));
+    return [`${o.term.name} for ${an(c + n)} ${c}${n}${where}`, `${o.term.name}, ${c}${n}${where}`, `${o.term.name}, ${c}${n}${sp}`, `${o.term.name}, ${c}${m}${sp}`,
+      `${short}, ${c}${m}${sp}`, `${short}, ${c}${m}, ${o.city ? shortPlace(o.city) : ''}`.replace(/, $/, '')].map((x) => (o.city ? x : `${x} | {{brand}}`));
   }
   if (BEFORE.has(o.term.slug)) return [`${o.term.name} ${c}${n}${where}: specs and what to check`, `${o.term.name} ${c}${n}${where}`, `${o.term.name} ${c}${n}${sp}`, `${o.term.name} ${c}${m}${sp}`];
   const tail = o.mode === 'sale' ? ': specs and a test drive' : '';
-  return [`${C}${n} ${ph}${where}${o.city ? '' : ' | {{brand}}'}`, `${C}${n} ${ph}${where}${tail && !o.city ? tail : ''}`, `${C}${n} ${ph}${sp}`, `${C}${m} ${ph}${sp}`].map((x) => cap(x));
+  return [`${C}${n} ${ph}${where}${o.city ? '' : ' | {{brand}}'}`, `${C}${n} ${ph}${where}${tail && !o.city ? tail : ''}`, `${C}${n} ${ph}${sp}`, `${C}${m} ${ph}${sp}`,
+    `${C}${m} ${sph}${sp}`, `${C}${m} ${sph}${o.city ? `, ${shortPlace(o.city)}` : ''}`].map((x) => cap(x));
 }
 export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
   const c = o.colour ? `${low(o.colour)} ` : '';
@@ -327,6 +330,6 @@ export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug
     const rc = o.recalls === null || o.recalls === undefined ? '' : o.recalls === 0 ? ', no NHTSA recalls' : `, ${o.recalls} NHTSA recall${o.recalls === 1 ? '' : 's'}`;
     return [`${cap(ph)}: the ${n}${where}. ${o.use || 'Specs'}${rc} and what to check. ${cap(sale)}.`, `${cap(ph)}: the ${n}${where}. Specs${rc} and what to check. ${cap(sale)}.`, `${cap(ph)}: the ${n}${where}. Specs and a week-long test drive.`];
   }
-  const have = (o.cars ?? 0) > 0 ? `${o.cars} like it to rent now` : 'request one, or rent a similar car now';
+  const have = (o.cars ?? 0) > 0 ? `${o.cars} like it to rent now in {{city}}` : 'request one, or rent a similar car now';
   return [`${cap(ph)}: the ${n}${where}. ${o.use || 'Specs'} and cost per 100 km; ${have}.`, `${cap(ph)}: the ${n}${where}. ${o.use || 'Specs'}; ${have}.`, `${cap(ph)}: the ${n}${where}. Specs, fuel use and our cars.`];
 }

@@ -401,7 +401,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'pdf_jobs',
                             -- the vehicle catalog (0092): reference data the catalog workflow imports in bulk from public sources (the
                             -- lists an Admin edits, trim lines and the popular list, are audited)
-                            'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports')
+                            'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',
+                            -- the colour pages' fixed list and the IndexNow sweep's cursor (0092): no money, pricing or status
+                            'vehicle_colours', 'indexnow_sweep')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

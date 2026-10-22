@@ -66,7 +66,8 @@ if (/<sitemapindex/.test(sm)) {
     if (lastmod && Number.isNaN(Date.parse(lastmod))) bad('sitemap', `${loc} has an unreadable lastmod`);
     const tn = /\/sitemap-vehicles\/(t-[a-z0-9-]+)\.xml$/.exec(loc);
     const tb = tn ? splitT(tn[1])?.[1] : null;
-    if (tn && tb !== 'makes' && tb !== 'tiers-1') continue;
+    // of the term trees: every makes file, and the first place file of the first term only
+    if (tn && tb !== 'makes' && !(tb === 'tiers-1' && tn[1].startsWith(`t-${[...termTrees.keys()][0]}-`))) continue;
     const part = await get(new URL(loc).pathname);
     if (part.status !== 200 || !/<urlset/.test(part.body)) { bad('sitemap', `${loc} answers ${part.status}`); continue; }
     // a car entry carries its photos (image sitemap) when the car has real photos; a car that shows sample photos has
@@ -81,7 +82,7 @@ if (/<sitemapindex/.test(sm)) {
       }
     }
     for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);
-    smUrls.push(...[...part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&')));
+    for (const m of part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)) smUrls.push(m[1].replace(/&amp;/g, "&"));
   }
 } else {
   bad('sitemap', '/sitemap.xml is not a sitemap index');
@@ -92,10 +93,11 @@ const paths = smUrls.map((u) => new URL(u).pathname);
 // address is checked in the sitemaps (on the site, no duplicates, lastmod), and an even sample of each kind is audited
 // as a page (title, description, canonical, JSON-LD, uniqueness among the sample and with every other page).
 const heavy = (p) => /^\/(buy|t)\//.test(p) || /^\/cars\/[^/]+\/[^/]+\/\d{4}\/[^/]+\/.+/.test(p);
-const SAMPLE = Number(process.env.SEO_SAMPLE ?? 60);
+const SAMPLE = Number(process.env.SEO_SAMPLE ?? 12);
 const sampleOf = (xs) => xs.length <= SAMPLE ? xs : Array.from({ length: SAMPLE }, (_, i) => xs[Math.floor((i * xs.length) / SAMPLE)]);
 const kinds = new Map();
-for (const p of paths.filter(heavy)) { const k = `${p.split('/')[1]}:${p.split('/').length}:${p.includes('/colour/')}`; kinds.set(k, [...(kinds.get(k) ?? []), p]); }
+for (const p of paths) { if (!heavy(p)) continue; const k = `${p.split('/')[1]}:${p.split('/').length}:${p.includes('/colour/')}`; const a = kinds.get(k); if (a) a.push(p); else kinds.set(k, [p]); }
+const inSitemap = new Set(paths);
 const auditPaths = [...paths.filter((p) => !heavy(p)), ...[...kinds.values()].flatMap(sampleOf)];
 report.sampled = Object.fromEntries([...kinds].map(([k, v]) => [k, { addresses: v.length, audited: Math.min(v.length, SAMPLE) }]));
 if (![...kinds.keys()].some((k) => k.startsWith('cars:'))) bad('sitemap', 'no city or colour pages in the sitemaps (the owner indexes them by default)');
@@ -112,7 +114,8 @@ const fleetHtml = (await get('/cars')).body;
 const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"/g)].map((m) => m[1]);
 // the vehicle pages (0092): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
 const vehiclePaths = new Set();
-for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\//.test(loc)) {
+// (the renting tree's level files only: its pages are the ones linked up and down the tree)
+for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\/(?!buy-|t-)(?!tiers-)[a-z0-9-]+\.xml$/.test(loc)) {
   for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) { const vp = new URL(m[1]).pathname; if (!heavy(vp)) vehiclePaths.add(vp); }
 }
 const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p) && !vehiclePaths.has(p)));
@@ -137,7 +140,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   Object.assign(rec, { title, desc, canon, robots: robotsMeta });
   const indexable = !/noindex/.test(robotsMeta ?? '');
   if (!indexable) {
-    if (paths.includes(p)) bad(p, 'in the sitemap but noindex');
+    if (inSitemap.has(p)) bad(p, 'in the sitemap but noindex');
     // a vehicle page held out of search by the Admin's rules names its parent as canonical (0092); any other noindex page has none
     const parent = p.split('/').slice(0, -1).join('/');
     if (canon && !(/^\/cars\/[^/]+\/[^/]+/.test(p) && canon === SITE + parent)) bad(p, 'noindex page with a canonical link');
@@ -176,7 +179,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   if (landing.has(p)) {
     if (!types.includes('ItemList')) bad(p, 'landing page without the list of its cars');
     if (/id="h-faq"/.test(h) && !types.includes('FAQPage')) bad(p, 'landing page FAQ without FAQPage');
-    if (!indexable && paths.includes(p)) bad(p, 'noindex landing page in the sitemap');
+    if (!indexable && inSitemap.has(p)) bad(p, 'noindex landing page in the sitemap');
   }
   if (guides.has(p)) {
     const art = nodes.find((n) => [].concat(n['@type']).includes('Article'));

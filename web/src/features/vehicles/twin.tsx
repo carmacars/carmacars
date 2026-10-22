@@ -241,7 +241,7 @@ export async function TwinView(tw: Twin) {
   const dims = 'dims' in p ? dimsFor(p.dims, o.model ?? '', o.trim) : [];
   const where = o.city ? ` in ${o.city}` : '';
   const inv = colourFirst(p.inventory, isTier(p) ? p.colour?.slug ?? null : null);
-  const finance = mode === 'sale' && !!tree.term && FINANCE.test(tree.term.slug);
+  const finance = mode === 'sale' && !!tree.term && (tree.term.lead === 'finance' || FINANCE.test(tree.term.slug));
   const disclaimer = String((p.settings as unknown as Record<string, unknown>).finance_disclaimer ?? '');
   const lead = mode === 'sale'
     ? [x.for_sale.length ? `${x.for_sale.length === 1 ? 'One' : x.for_sale.length} for sale by us now, from ${money(Math.min(...x.for_sale.map((c) => c.asking_price_cents)))}.` : `None for sale by us right now: rent one for a week first, or ask us to find one.`,

@@ -9012,36 +9012,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      places: {
-        Row: {
-          id: number;
-          slug: string;
-          name: string;
-          kind: string;
-          parent_id: number | null;
-          lat: number | null;
-          lng: number | null;
-        };
-        Insert: {
-          id: number;
-          slug: string;
-          name: string;
-          kind: string;
-          parent_id?: number | null;
-          lat?: number | null;
-          lng?: number | null;
-        };
-        Update: {
-          id?: number;
-          slug?: string;
-          name?: string;
-          kind?: string;
-          parent_id?: number | null;
-          lat?: number | null;
-          lng?: number | null;
-        };
-        Relationships: [];
-      };
       program_settings: {
         Row: {
           id: string;
@@ -10833,33 +10803,6 @@ export type Database = {
           uploaded_by?: string | null;
           created_at?: string;
           updated_at?: string;
-        };
-        Relationships: [];
-      };
-      search_terms: {
-        Row: {
-          id: number;
-          slug: string;
-          name: string;
-          kind: string;
-          sort_order: number;
-          is_active: boolean;
-        };
-        Insert: {
-          id?: number;
-          slug: string;
-          name: string;
-          kind: string;
-          sort_order?: number;
-          is_active?: boolean;
-        };
-        Update: {
-          id?: number;
-          slug?: string;
-          name?: string;
-          kind?: string;
-          sort_order?: number;
-          is_active?: boolean;
         };
         Relationships: [];
       };
@@ -16324,6 +16267,7 @@ export type Database = {
       vehicle_sitemap_files: { Args: never; Returns: Json };
       vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
       vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
+      vehicle_tier_files_count: { Args: never; Returns: number };
       vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_place: string; p_colour: string }; Returns: Json };
       vehicle_tier_sitemap: { Args: { p_file: number; p_after: number; p_limit: number }; Returns: Json };
       vehicle_tiers: { Args: never; Returns: Json };

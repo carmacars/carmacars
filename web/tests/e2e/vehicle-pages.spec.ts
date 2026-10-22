@@ -15,6 +15,19 @@ const jobToken = () => {
   return createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
 };
 
+// Two tests change the site-wide index settings for a while (the rules, the tier switches); every other test here reads
+// pages whose indexing they change. A Postgres advisory lock keeps them apart across the workers: the settings tests
+// hold it alone, the others share it (each on its own connection, released when the test ends).
+const SETTINGS_TESTS = /^under the rules|^the Admin switches/;
+let held: ReturnType<typeof db> | null = null;
+test.beforeEach(async ({}, info) => {
+  info.setTimeout(info.timeout + 180_000);
+  held = db();
+  if (SETTINGS_TESTS.test(info.title)) await held`select pg_advisory_lock(920092)`;
+  else await held`select pg_advisory_lock_shared(920092)`;
+});
+test.afterEach(async () => { await held?.end(); held = null; });
+
 async function check(page: Page, where: string) {
   await noOverflow(page);
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

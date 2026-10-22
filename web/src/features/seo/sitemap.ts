@@ -82,8 +82,8 @@ export function splitFile(file: string, terms: string[]): { prefix: string; base
 }
 
 /** One vehicle sitemap (/sitemap-vehicles/<file>.xml); 404 for a file that does not exist or a tree switched off. A
- *  place and colour file is streamed: its pairs are read 600 at a time (about 8,000 addresses) by keyset (the pair
- *  after the last one read), never by offset. */
+ *  place and colour file is streamed: its pairs are read up to 600 at a time within one trim (about 8,000
+ *  addresses) by keyset (the pair after the last one read), never by offset. */
 export async function vehicleSitemapFile(file: string): Promise<Response> {
   if (!/^[a-z0-9-]{1,120}$/.test(file)) return NOT_FOUND();
   const terms = (((await rpc('vehicle_tiers', {})) as unknown as { terms?: Array<{ slug: string }> } | null)?.terms ?? []).map((t) => t.slug);
@@ -93,17 +93,18 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
   const tier = /^tiers-(\d+)$/.exec(f.base);
   if (tier) {
     const n = Number(tier[1]);
-    type T = { g: number; path: string; lastmod: string | null };
+    type T = { g: number; path: string | null; lastmod: string | null };
     const slice = async (after: number) => ((await rpc('vehicle_tier_sitemap', { p_file: n, p_after: after, p_limit: 600 })) ?? []) as unknown as T[];
+    // a file past the last is a 404; a file whose places have no pages (a region switched off) is an empty list
+    if (n < 1 || n > Number(await rpc('vehicle_tier_files_count', {}))) return NOT_FOUND();
     const first = await slice(-1);
-    if (!first.length) return NOT_FOUND();
     const enc = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(c) {
         c.enqueue(enc.encode(HEAD));
         let rowsT = first;
         while (rowsT.length) {
-          c.enqueue(enc.encode(rowsT.map((r) => url(base, { path: f.to(r.path), lastmod: r.lastmod })).join('')));
+          c.enqueue(enc.encode(rowsT.flatMap((r) => (r.path ? [url(base, { path: f.to(r.path), lastmod: r.lastmod })] : [])).join('')));
           rowsT = await slice(Math.max(...rowsT.map((r) => r.g)));
         }
         c.enqueue(enc.encode('</urlset>\n'));

@@ -67,6 +67,11 @@ jobs:
           echo "::notice title=catalog stats::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
           echo "::notice title=catalog coverage::$(jq -c '.coverage' "$RUNNER_TEMP/stats.json" | head -c 3900)"
           echo "::notice title=catalog unmatched::$(jq -r '.unmatched | join(", ")' "$RUNNER_TEMP/stats.json" | head -c 3500)"
+      # GitHub keeps at most 10 notices per step: the fixture parts get a step of their own
+      - name: Fixture parts
+        if: steps.due.outputs.mode == 'dry'
+        run: |
+          set -euo pipefail
           # the fixture subset, readable through the annotations API (gzip, base64, in parts)
           tar -C "$RUNNER_TEMP/fixture" -czf "$RUNNER_TEMP/fixture.tgz" .
           base64 -w0 "$RUNNER_TEMP/fixture.tgz" > "$RUNNER_TEMP/fixture.b64"

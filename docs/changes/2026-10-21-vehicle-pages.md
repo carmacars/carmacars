@@ -57,9 +57,36 @@ trims; vPIC VIN decoding gives US trims and needs a VIN per trim). The trims are
 powertrains by `app.vehicle_trim_variants`; a model year without a trim line is the leaf page. Admins add lines in
 Admin > Settings > Vehicle pages.
 
-Coverage (catalog workflow dry run COVERAGE_RUN, October 22):
+Coverage (catalog workflow dry run 39743274775 at 4f0cd9b, October 22):
 
-COVERAGE_TABLE
+| Figure | Trim pages with it | Model years with it |
+| --- | --- | --- |
+| L/100 km or kWh/100 km | 99.8% | 87.4% |
+| MPG (US) | 99.8% | 87.4% |
+| annual fuel cost (EPA) | 99.8% | 87.3% |
+| CO2 g/km | 99.8% | 87.3% |
+| displacement and cylinders | 98.5% | 84.8% |
+| transmission | 99.8% | 87.4% |
+| drive | 99.8% | 86.3% |
+| EV range | 13.6% | 5.8% |
+| battery kWh | 0% | 0.1% |
+| charge time 240 V | 13.6% | 5.7% |
+| luggage volume | 34.9% | 48.5% |
+| length, width, height, wheelbase | 6.2% | 5.4% |
+| curb weight | 6.2% | 5.3% |
+| NHTSA recalls (one or more) | 93.1% | 60.3% |
+| NHTSA complaints (one or more) | 98.8% | 68.4% |
+| horsepower, torque, 0 to 100 km/h, top speed, fuel tank, towing | 0% | 0% |
+
+The run: 50,407 EPA rows; 144 makes; 1,738 models (180 from vPIC only: heavy-duty pickups, vans and models EPA does
+not rate); 13,969 model years from 1981 to 2027 (186 before 1984, from vPIC; 1,755 from vPIC only, with the facts vPIC
+gives and no fuel figures); 2,490 trim pages from 113 Canadian trim lines (1 line unmatched); 18,341 level pages per
+tree. vPIC answered most calls (7,128 failed after back-off, 348 of them 403s: those makes and years keep EPA's models);
+the Canadian specifications attached 3,377 bodies (1,636 calls failed); NHTSA: 155,647 recall rows (31,546 recall
+campaigns attached to model years), 2,171,064 complaint rows (1,418,787 attached). 2,781 seconds. Unmatched to the
+catalog (popular list): Mercedes-Benz GLC, Volkswagen Golf, Buick Encore GX, Mitsubishi Outlander Sport, Mercedes-Benz
+GLE and CLA, Range Rover Evoque (EPA names them differently; a later line in `popular.txt` can alias them).
+Every class is in: cars, SUVs, crossovers, minivans, vans, pickups (EPA size classes and vPIC's car, MPV and truck types).
 
 The import (`web/scripts/catalog/import.mjs`, pure normaliser `web/src/features/vehicles/normalise.ts`) runs only in
 GitHub Actions (`.github/workflows/catalog.yml`): the workspace network blocks these hosts. A push that changes the
@@ -72,7 +99,9 @@ is refused, and so is one that would bring the database over the Admin's cap (se
 production from this branch.
 
 The committed fixture (`web/scripts/catalog/fixture/`) is turned into `supabase/seed/vehicle_catalog_fixture.sql` by the
-same script; the local and staging seed and the database tests load it.
+same script; the local and staging seed and the database tests load it. The NHTSA part of the fixture is the recalls of the sample model years and the complaints of
+five of them (the annotations carried only part of the file; the workflow now gives the fixture parts a step of their
+own, since GitHub keeps 10 notices a step).
 
 ## 3. The pages
 
@@ -96,7 +125,7 @@ Each page is one database read (`public.vehicle_make_page`, `_model_page`, `_yea
   page, recalls and complaints by year); the fuel cost of a year (EPA's and ours); "Rent it for a week before you buy";
   "Find me this car" (a buyer lead). A financing or leasing page shows the Admin's disclaimer ("CarmaCars is not a
   lender, dealer or lessor...") and its form is a finance lead.
-- Renting terms ("car rental", "car hire", "cars for hire", "vehicle rental", "insurance replacement rental"): the rental
+- Renting terms ("car hire", "cars for hire", "vehicle rental", "insurance replacement rental"): the rental
   page's content under the term's title and H1.
 - Detailing (car, interior, exterior, mobile detailing, paint correction, ceramic coating, window tint, PPF, vinyl wrap)
   and body shop (collision repair, auto body, dent, bumper and scratch repair, car painting): first "Rent a car while
@@ -123,18 +152,46 @@ and says which figures no free source publishes.
 
 | Figure | Source | Share of trim pages with it (dry run) |
 | --- | --- | --- |
-COVERAGE_ROWS
+| L/100 km or kWh/100 km | EPA (converted from MPG / kWh per 100 mi, labelled) | 99.8% |
+| MPG (US) | EPA | 99.8% |
+| annual fuel cost (EPA) | EPA (US dollars, labelled); ours at the Admin price | 99.8% |
+| CO2 g/km | EPA (g/mi converted, labelled) | 99.8% |
+| displacement and cylinders | EPA | 98.5% |
+| transmission | EPA | 99.8% |
+| drive | EPA | 99.8% |
+| EV range | EPA (km from miles, labelled) | 13.6% |
+| battery kWh | EPA (named for few models) | 0% |
+| charge time 240 V | EPA | 13.6% |
+| luggage volume | EPA (litres from cubic feet, labelled) | 34.9% |
+| length, width, height, wheelbase | vPIC Canadian specifications | 6.2% |
+| curb weight | vPIC Canadian specifications | 6.2% |
+| NHTSA recalls (one or more) | NHTSA FLAT_RCL | 93.1% |
+| NHTSA complaints (one or more) | NHTSA FLAT_CMPL | 98.8% |
+| horsepower, torque, 0 to 100 km/h, top speed, fuel tank, towing | no licence-clean source: never shown | 0% |
 
 ## 5. Places, terms, tiers and the switches
 
-`places (id, slug, name, kind: province|region|city|neighbourhood|airport|country, parent_id, lat, lng)` is created
-`if not exists` with the definition the local SEO release (branch seolocal) uses; whichever migration runs first creates
-it. Until that release fills it (its GitHub Actions gazetteer import, GeoNames or StatCan with attribution), the places
-are the active location landing pages. The places are numbered with the GTA first (a place under the region slugged
-`gta` or `greater-toronto-area`), so the sitemaps and IndexNow reach the GTA first. `search_terms (id, slug, name, kind:
-rental|sale|detailing|bodyshop, sort_order, is_active)` is created the same way, with the defaults above; the seolocal
-branch owns both tables (their Admin editing and the gazetteer) and must keep these columns. Coordinate at merge: if its
-definitions differ, keep one.
+The places and the terms belong to the local SEO release (migration 0095, branch seolocal): `places` (every country,
+province or state, region, area, city, neighbourhood and airport of Canada, the US and Mexico; `kind` 1 to 8, `parent_id`,
+`flags` with 1 for the GTA, `lat`, `lng`, `population`, `landing_slug`, `is_active`), `place_regions` (which regions are
+enabled and how many places each loaded), `app.place_enabled(places)`, and `place_terms` (`vertical` rental, sale,
+detailing or bodyshop; `phrase`; `canonical_slug` for a synonym; `lead_kind`; `sort_order`; `is_active`). This
+migration runs before 0095 and creates none of them: it reads them when they are there (`to_regclass` and dynamic SQL in
+`app.vpage_place`, `vpage_place_near`, `vpage_place_within`, `vpage_place_links`, `vpage_places_range`,
+`vpage_place_max`, `vpage_place_count`, `vpage_terms`), and until then the places are the active location landing
+pages and the terms the default list (23). A place's number in the sitemaps is its `places.id` (0095 loads the GTA
+first); ids without pages (a landmark, a place switched off, a region disabled) give no address. A term with a
+`canonical_slug` (a synonym) and "car-rental" itself (the `/cars` tree) have no tree of their own.
+
+The `/buy` catch-all is shared: `/buy/<sale term>/<place>` (exactly two segments, the first a sale term) is 0095's buying
+help page (`PlaceHubRoute` from `@/features/places/route`, wired at merge in `web/src/features/vehicles/sale-hub.tsx`;
+on this branch alone a 404), every other `/buy` address is a vehicle page. No make is named like a sale term.
+
+Merging with 0095: `leads_kind_check` is widened by a DO block that adds `buyer`, `finance`, `detailing` and
+`bodyshop` to whatever kinds the constraint already has (0095 adds its own the same way); the door chain renames
+`app.door` to `door_pre0092b` (0095 uses `door_pre0095`); `supabase/tests/03_flows.sql` exempts `vehicle_colours` and
+`indexnow_sweep` from the audit trigger check (0095 adds its own tables to the same list). 0095's `sale_disclaimer` and
+this release's `vpage_finance_disclaimer` say the same thing; keep one at merge.
 
 | Switch (Admin > Settings > Vehicle pages, all on) | Off |
 | --- | --- |
@@ -151,9 +208,24 @@ definitions differ, keep one.
 
 A tree (renting, for sale, or one term) has the level pages and, for each trim, its place pages, place-and-colour pages
 and colour pages: `B + T x P x 13 + T x 12` (B level pages, T trims, P places, 12 colours). There are `2 + R + S + D + Y`
-trees (renting, /buy, and the active terms: 5 renting, 4 sale, 9 detailing, 6 body shop by default, 26 trees).
+trees (renting, /buy, and the active terms: 4 renting, 4 sale, 9 detailing, 6 body shop by default, 25 trees).
 
-COUNTS_TABLE
+With the dry run's catalog (B = 18,341 level pages including the 2,490 trim pages; T = 2,490):
+
+| Places (P) | Level pages | Place pages | Place and colour | Colour pages | One tree | 25 trees (defaults) | 93 trees (0095's terms) | Sitemaps (93 trees) | Index files |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| now: the 22 location landing pages | 18,341 | 54,780 | 657,360 | 29,880 | 760,361 | 19,009,025 | 70,713,573 | 41,664 | 1 |
+| 10,000 places (Ontario and the GTA neighbourhoods) | 18,341 | 24,900,000 | 298,800,000 | 29,880 | 323,748,221 | 8,093,705,525 | 30,108,584,553 | 642,444 | 13 |
+| 100,000 places | 18,341 | 249,000,000 | 2,988,000,000 | 29,880 | 3,237,048,221 | 80,926,205,525 | 301,045,484,553 | 6,061,461 | 122 |
+| 1,000,000 places (Canada, the US and Mexico) | 18,341 | 2,490,000,000 | 29,880,000,000 | 29,880 | 32,370,048,221 | 809,251,205,525 | 3,010,414,484,553 | 60,250,980 | 1,206 |
+
+Every one indexed by default. Per tier at P = 22 and the default 25 trees: renting 760,361; /buy 760,361; 4 sale terms
+3,041,444; 4 renting terms 3,041,444; 9 detailing terms 6,843,249; 6 body shop terms 4,562,166. With the local SEO
+release's term list (migration 0095 at 06ecf37: 31 renting terms without "car rental" itself, 14 sale, 27 detailing,
+20 body shop, none a synonym) there are 93 trees: renting 31 (`/cars` and 30 terms), sale 15 (`/buy` and 14 terms),
+detailing 27, body shop 20.
+With every place of North America that is about 3 trillion addresses; the Admin panel shows the live counts per tier
+(`app.vpage_tier_counts`), from the places the regions have loaded.
 
 ## 7. Sitemaps and IndexNow
 
@@ -196,11 +268,26 @@ whole list); the order (popular models, newest years, GTA first) decides what is
   Supabase Pro's 8 GB). The panel shows the database size and each catalog table's.
 - The budget alarm lives in the usage guard of release 2 (migration 0080, not on this branch): see Integration.
 
-DB_SIZE
+Measured: the full catalog of the dry run projects to 29.3 MB (38.0 MB of import JSON at 0.75, plus 300 bytes a trim):
+under 0.5% of the 6,144 MB cap. The places and terms are the local SEO release's tables; the colours are 12 rows and
+the IndexNow sweep one row. Pages, sitemaps and IndexNow batches store nothing.
 
 ## 9. Performance
 
-PERF
+Measured locally (Node 22, production build, the fixture catalog plus a synthetic 48,000 model years):
+
+| What | Measure |
+| --- | --- |
+| A place and colour page, cold (no edge copy) | about 61 ms CPU in Node (render and the one database read's JSON); the database read 150 to 240 ms wall on the synthetic catalog, which waits on I/O and is not Worker CPU |
+| A /buy page, cold | about 38 ms CPU |
+| Any page, warm (the edge copy) | no render: the Cache API hit, a few ms |
+| A tiers sitemap file (about 50,000 addresses, streamed) | about 0.5 s of database time in slices, the Worker streaming |
+| A sitemap index page (50,000 files) | about 1.1 s of database time, arithmetic |
+
+The cold render of a place and colour page is above the 50 ms target in Node; on the Worker the edge copy serves
+repeat requests for 6 hours, so CPU per request averages well under it once a page is warm. A crawler reaching
+millions of cold pages pays the cold figure each time: at 61 ms, 30 million CPU-ms a month covers about 490,000 cold
+renders; the 70% alarm (Integration) fires before that.
 
 ## 10. Admin
 
@@ -232,7 +319,7 @@ ticked.
 
 - Trims beyond the curated list (no licence-clean source); power, torque, acceleration, top speed, fuel tank and towing
   (no licence-clean source); the makers' colour names; drive times (no maps key, so straight-line distances).
-- The gazetteer of every North American place: the seolocal release imports it into `places`.
+- The gazetteer of every North American place: the local SEO release (0095) imports it into `places`.
 
 ## Integration (for release 2)
 
