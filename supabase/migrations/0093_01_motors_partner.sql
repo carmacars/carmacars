@@ -515,6 +515,29 @@ begin
     'long_term_rate_cents', case when rc.multi_day_rate_cents is not null then round(rc.weekly_rate_cents / 7.0)::bigint end);
 end $$;
 
+-- the fleet: each car's public row worked out once (0022's SQL form mentioned the row three times; Postgres pulled the
+-- subquery up and ran app.public_listing_row for each mention, about 1 s for the 82 cars of the partner fleet)
+create or replace function app.public_fleet(p_filters jsonb default '{}'::jsonb) returns setof jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  return query
+  select q.r from (
+    select app.public_listing_row(l.vehicle_id) r, l.is_featured, l.first_published_at
+      from vehicle_listings l join vehicles v on v.id = l.vehicle_id
+     where l.status = 'published' and v.management_mode <> 'turo_only'
+       and (p_filters ->> 'class' is null or app.vehicle_in_classes(v.id, array[p_filters ->> 'class']))
+       and (jsonb_typeof(p_filters -> 'classes') is distinct from 'array'
+            or app.vehicle_in_classes(v.id, array(select jsonb_array_elements_text(p_filters -> 'classes'))))
+       and (p_filters ->> 'make' is null or app.slugify(v.make) = app.slugify(p_filters ->> 'make'))
+       and (p_filters ->> 'model' is null or app.slugify(v.model) = app.slugify(p_filters ->> 'model'))
+       and (p_filters ->> 'fuel' is null or v.fuel::text = p_filters ->> 'fuel')
+       and (p_filters ->> 'body_style' is null or lower(coalesce(l.body_style, v.body_type)) = lower(p_filters ->> 'body_style'))
+       and (not coalesce((p_filters ->> 'featured')::boolean, false) or l.is_featured)
+     offset 0) q
+   where q.r is not null
+   order by q.is_featured desc, (q.r ->> 'daily_rate_cents')::bigint nulls last, q.first_published_at;
+end $$;
+
 -- ================================================================ 7. the partner's rates in Admin
 -- The renter's rate card from a car's sheet rates and markup: the 1-2 day rate is the daily and weekend rate, the 3+
 -- day rate the multi-day rate, the 7+ day rate a day the weekly (7 days) and monthly (30 days) rates. The deposit,
