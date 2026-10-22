@@ -414,6 +414,34 @@ def build():
     ])
     g.para('Add-on revenue is CarmaCars\' own. It is never in a commission: your commission stays on the rental charge.')
 
+    # ---------------------------------------------------------------- maintenance
+    g.chapter('Car maintenance',
+              'Fleet keeps every car serviced: oil, tires, brakes, inspections and the registration. Finance bills what Fleet '
+              'records. Recording a service resets its reminders and makes its bill.',
+              blurb='The maintenance list, recording a service in one step, tires and swaps, readings, and billing.')
+    g.task('What is due', f'Open {P("Field work", "Maintenance")} (Finance: {P("Money", "Maintenance bills")}).')
+    g.steps([
+        'Every car, most urgent first: overdue (red), due soon, no record yet (dashed), all OK.',
+        'Your To do has one Service due task per car listing what is due. Open it: the car opens with the record pop-up.',
+        'A car with no record yet has one task to record its last service. Enter what you know once.',
+    ])
+    g.task('Record a service')
+    g.steps([
+        f'Press {B("Record a service")} on the car (or {B("Record")} on one item of the car\'s Maintenance).',
+        'Tick what was done, check the date and the odometer, type the shop, the cost before HST and the HST, and add the receipt.',
+        'Who pays: the owner for an owner\'s car (deducted on their statement), CarmaCars for a company car, a claim, the renter, or no charge.',
+        f'Leave {B("The bill is in: bill it now")} ticked, or untick it and press {B("Bill now")} on the record later.',
+        f'Press {B("Record the service")}. The items done are OK again.',
+    ])
+    g.warn('Above your single limit the service is recorded and the timers reset, but an Admin bills it: you see "An Admin bills it".')
+    g.task('Tires, swaps and readings')
+    g.bullets([
+        f'Under Tires: {B("Add a tire set")} (kind, size, brand, tread, made and bought dates, where it is stored), {B("Put on the car")} to swap.',
+        'Ontario: winter tires on by December 1 (reminder from November 1), off after April 1. Tires are due soon at 4 mm of tread, overdue at 3 mm.',
+        f'{B("Add a reading")} when you see the odometer. Handover, return and move readings come in by themselves.',
+        'A car whose recorded safety inspection or registration has expired cannot be handed over until the renewal is recorded.',
+    ])
+
     # ---------------------------------------------------------------- shared
     g.chapter('Shared tools',
               'Every function has the calendar and Find a renter. Use them to answer questions fast.',

@@ -82,6 +82,14 @@ def build():
     g.para('While a car is being set up, its page also shows the onboarding checklist and the uploads it still needs: '
            'the ownership permit, the lender\'s permission and the insurance.')
 
+    g.task('Service and maintenance', 'On a car\'s page, under Service and maintenance.')
+    g.bullets([
+        'What is due on your car (oil change, tires, brakes, inspections, the registration) and the tires on it.',
+        'Every service we recorded: the date, the odometer, the shop, what was done and who paid.',
+        'You pay for maintenance and routine wear (your agreement, 11.1). A service we paid for shows its amount and is deducted on your next statement as an owner cost.',
+        'It is read only: call or message us about a service.',
+    ])
+
     g.task('Take new listing photos', 'Good photos get more bookings. You can shoot them yourself with your phone.')
     g.steps([
         f'On the car\'s page, press {B("Add listing photos")} (or {B("Take new photos")} for a car already live).',

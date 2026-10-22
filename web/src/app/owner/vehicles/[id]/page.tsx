@@ -13,6 +13,8 @@ import { door } from '@/server/door';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
 import { ListingProgress, type Progress } from '@/features/listing/ListingProgress';
 import { StartListing } from '@/features/listing/StartListing';
+import { ServiceHistory } from '@/features/maintenance/OwnerHistory';
+import type { OwnerHistory } from '@/features/maintenance/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -31,6 +33,8 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   const [cap, prog] = current?.open
     ? await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: current.intake_id }), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: current.intake_id })])
     : [null, null];
+  // the car's service history (0089), read only, while the car is with us
+  const service = !['declined', 'exited', 'total_loss'].includes(v.status) ? await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: id }).catch(() => null) : null;
   return (
     <>
       <Back href="/owner/vehicles">Vehicles</Back>
@@ -61,6 +65,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
               : <p className="muted small">No bookings yet.</p>}
             <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>
+          {service && <ServiceHistory h={service} />}
           <section className="pt-card" aria-labelledby="ow-inv"><h2 className="d4" id="ow-inv">Invoices</h2><InvoiceRows items={home.invoices.filter((i) => i.vehicle_id === id)} /></section>
         </div>
         <aside className="pt-split__aside stack-lg">

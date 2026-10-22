@@ -18,7 +18,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const aal = await sessionAal();
   type D = { bucket: string; path: string; mime_type: string | null } | null;
   const d = (await door<D>(user.id, roles.admin ? 'admin_read' : 'va_read', 'form_document', { document: id }, aal).catch(() => null))
-    ?? (await door<D>(user.id, 'ops_read', 'staff_document', { document: id }, aal).catch(() => null));
+    ?? (await door<D>(user.id, 'ops_read', 'staff_document', { document: id }, aal).catch(() => null))
+    // a service receipt for Fleet and Finance (0089)
+    ?? (await door<D>(user.id, 'ops_read', 'maint_receipt', { document: id }, aal).catch(() => null));
   if (!d) return nf();
   const bytes = await (await storage()).get(d.bucket as 'documents', d.path);
   return bytes ? fileResponse({ bytes, fileName: d.path.split('/').pop() ?? 'form', contentType: d.mime_type ?? 'application/octet-stream' }) : nf();
