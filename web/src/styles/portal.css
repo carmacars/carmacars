@@ -3,6 +3,8 @@
 .pt { background: var(--grey-50); border-top: var(--bw) solid var(--black); }
 .pt__top { padding-block: var(--s-5) 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .pt__hello { display: flex; justify-content: space-between; align-items: end; gap: var(--s-3); flex-wrap: wrap; }
+.pt__hello > * { min-width: 0; }
+.pt__hello p { overflow-wrap: anywhere; }
 .pt__nav { display: flex; gap: var(--s-5); overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--grey-200); margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); }
 .pt__nav::-webkit-scrollbar { display: none; }
 .pt__nav a { position: relative; flex: none; padding: var(--s-3) 0; min-height: 44px; display: inline-flex; align-items: center; gap: 0.4em; font-weight: 600; font-size: var(--fs-sm); color: var(--text-2); text-decoration: none; }

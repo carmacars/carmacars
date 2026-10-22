@@ -147,3 +147,6 @@ Published by the migration (`supabase/seed/0090_gen_guides.mjs`); the Python sou
 - Retention: 24 months (job step 5), with the policy row.
 - Tests: DB 62 now 65 assertions (sign-up, retention, the policy rows); e2e `contact-capture.spec.ts` 6 of 6 with the
   sign-up test; `signup.spec.ts` 8 of 8 (375 and 1440).
+- Found by the full CI run: a car page not taking requests listed "Dates and price" in its menu with no `#dates` on the
+  page (since 0d6abe3 the anchor exists only with the booking box): the menu leaves it out there. A long email in the
+  portal header ("Signed in as", "Owner portal ·") pushed the page 7px wider than a 375 screen: it now wraps.
