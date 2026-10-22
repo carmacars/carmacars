@@ -316,7 +316,8 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   const [tt] = await sql`select id, matched_to, booking_id is not null b from toll_tickets where notice_number = ${trip}`;
   await ap.goto(`/admin/tolls/${tt!.id}`, { waitUntil: 'networkidle' });
   await check(ap, 'toll match review');
-  if (tt!.matched_to !== 'renter') { await ap.getByTestId('toll-confirm-0').click(); await expect.poll(async () => (await sql`select matched_to from toll_tickets where id = ${tt!.id}`)[0]!.matched_to).toBe('renter'); await ap.reload(); }
+  // the renter's row by name: a car enrolled after the trip also lists its owner outside the program, sometimes first
+  if (tt!.matched_to !== 'renter') { await ap.getByTestId('toll-candidate').filter({ hasText: 'Toby' }).getByRole('button', { name: 'Confirm' }).click(); await expect.poll(async () => (await sql`select matched_to from toll_tickets where id = ${tt!.id}`)[0]!.matched_to).toBe('renter'); await ap.reload(); }
   await ap.getByTestId('toll-charge').click();
   await ap.getByTestId('toll-charge-submit').click();
   await expect.poll(async () => (await sql`select charged_at is not null c from toll_tickets where id = ${tt!.id}`)[0]!.c, { timeout: 15_000 }).toBe(true);
