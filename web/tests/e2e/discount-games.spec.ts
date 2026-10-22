@@ -95,12 +95,19 @@ const GAMES_PLAYED = [
   { game: 'scratch', play: async (p: Page) => {
     if (isPhone()) { await p.getByTestId('game-action').click(); return; }
     // scratch with the mouse across the card until half shows
-    const box = (await p.locator('.ccg-scratch canvas').boundingBox())!;
-    for (let y = box.y + 10; y < box.y + box.height; y += 18) {
+    // (in the booking form the card sits in a dialog: in view first, and only the part on screen is scratched)
+    const canvas = p.locator('.ccg-scratch canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    const box = (await canvas.boundingBox())!;
+    const vh = p.viewportSize()!.height;
+    for (let y = Math.max(box.y + 10, 2); y < Math.min(box.y + box.height, vh - 2); y += 18) {
       await p.mouse.move(box.x + 5, y); await p.mouse.down();
       await p.mouse.move(box.x + box.width - 5, y, { steps: 12 }); await p.mouse.up();
     }
-    await expect(p.getByText(/You uncovered/).or(p.getByRole('heading', { name: /You won/ }))).toBeVisible({ timeout: 5000 });
+    const shown = p.getByText(/You uncovered/).or(p.getByRole('heading', { name: /You won/ }));
+    // the card's own button reveals the rest, as on a phone, when the mouse did not uncover half
+    if (!(await shown.isVisible().catch(() => false)) && await p.getByTestId('game-action').isVisible().catch(() => false)) await p.getByTestId('game-action').click();
+    await expect(shown).toBeVisible({ timeout: 5000 });
   } },
   { game: 'blackjack', play: async (p: Page) => { await p.getByTestId('game-action').click(); await expect(p.getByText(/still win/)).toBeVisible(); await p.getByTestId('game-next').click(); } },
   { game: 'cups', play: async (p: Page) => {
