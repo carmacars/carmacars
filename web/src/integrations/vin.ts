@@ -1,6 +1,6 @@
 import 'server-only';
 import { env } from '@/lib/env';
-import { mapVpic, type VinDecode } from '@/features/vin/vin';
+import { chooseGearbox, epaGearbox, mapVpic, type Gearbox, type VinDecode } from '@/features/vin/vin';
 
 // VIN decoding for every place a car is added and for the listing worker. NHTSA vPIC (free, no key) in production;
 // sample answers locally (VIN_DECODER=fake). The answer is stored once per VIN (public.server_record_vin_decode), in the
@@ -28,7 +28,15 @@ export async function decodeVin(vin: string): Promise<{ provider: string; result
   try {
     const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`, { signal: AbortSignal.timeout(6000) });
     const j = (await r.json()) as { Results?: Array<Record<string, string>> };
-    return { provider: 'vpic', result: mapVpic(j.Results?.[0] ?? {}) };
+    const x = j.Results?.[0] ?? {};
+    const result = mapVpic(x);
+    // the gearbox (0094): vPIC often fills one in by default; EPA's data for the model decides, vPIC only when explicit
+    if (result.ok) {
+      const g = chooseGearbox(await epaFor(Number(result.year), result.make ?? '', result.model ?? ''), { style: String(x.TransmissionStyle ?? '').trim(), speeds: String(x.TransmissionSpeeds ?? '').trim() });
+      result.transmission = g.gearbox ?? '';
+      result.raw = { ...(result.raw ?? {}), _transmission_source: g.source };
+    }
+    return { provider: 'vpic', result };
   } catch {
     return { provider: 'vpic', result: { ok: false, error_code: 'unreachable' } };
   }
@@ -55,4 +63,30 @@ export async function modelsFor(make: string, year: number): Promise<string[]> {
     if (out.length) modelCache.set(key, out);
     return out;
   } catch { return []; }
+}
+
+// ---------------------------------------------------------------- EPA (fueleconomy.gov), for the gearbox (0094)
+const EPA = 'https://www.fueleconomy.gov/ws/rest/vehicle/menu';
+type MenuItem = { text?: string; value?: string };
+async function epaMenu(path: string): Promise<MenuItem[]> {
+  const r = await fetch(`${EPA}/${path}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+  if (!r.ok) return [];
+  const j = (await r.json().catch(() => null)) as { menuItem?: MenuItem | MenuItem[] } | null;
+  const m = j?.menuItem;
+  return Array.isArray(m) ? m : m ? [m] : [];
+}
+/** EPA's gearbox for a year, make and model: its own model name, or the models that start with it ("GLA-Class": GLA250,
+ *  GLA45); null when EPA does not know the car or cannot be reached. */
+export async function epaFor(year: number, make: string, model: string): Promise<Gearbox | 'mixed' | null> {
+  if (!year || !make || !model) return null;
+  try {
+    const q = (m: string) => epaMenu(`options?year=${year}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(m)}`);
+    let texts = (await q(model)).map((o) => o.text ?? '');
+    if (!texts.length) {
+      const base = model.replace(/-class$/i, '').toLowerCase();
+      const models = (await epaMenu(`model?year=${year}&make=${encodeURIComponent(make)}`)).map((o) => o.value ?? '').filter((m) => m.toLowerCase().startsWith(base)).slice(0, 4);
+      for (const m of models) texts = texts.concat((await q(m)).map((o) => o.text ?? ''));
+    }
+    return epaGearbox(texts);
+  } catch { return null; }
 }

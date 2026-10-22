@@ -7,6 +7,7 @@ import { ManualPaymentForm, PaperSignatureForm } from '@/features/manual/ManualR
 import { paperDocs, type ChecklistItem } from '@/features/manual/OwnerChecklist';
 import { adminTaskHref } from '@/features/va/tasks';
 import { Pop } from './Pop';
+import { SpecsConfirm, TrimPick } from './CarFacts';
 import { TASK_PROMPTS } from './registry';
 import type { Prompt } from './types';
 import './todo.css';
@@ -86,6 +87,10 @@ function Control({ p }: { p: Prompt }) {
           {go(`/admin/settings/forms#${encodeURIComponent(p.form_code ?? '')}`, 'Preview it', `${tid}-preview`, 'ghost')}
         </span>
       );
+    case 'trim':
+      return <TrimPick p={p} testId={tid} />;
+    case 'specs':
+      return <SpecsConfirm p={p} testId={tid} />;
     case 'plates':
       return go(`/admin/vehicles/${p.vehicle_id}?tab=listing`, 'Check the plates', tid);
     case 'photos':

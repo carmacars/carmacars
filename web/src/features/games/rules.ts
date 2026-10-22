@@ -6,14 +6,22 @@
 export type GameKind = 'wheel' | 'scratch' | 'blackjack' | 'cups' | 'plinko' | 'pack';
 export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack'];
 /** The browser's settings (app.game_cfg): the first show (car pages, seconds, exit intent), the re-show after a close
- *  (more car pages, seconds since the close), the most shows in one visit, and the offer in the request-to-book form. */
-export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; booking: boolean }
+ *  (page views since the close, any page, or seconds since the close: 0094), the most shows in one visit and in one day
+ *  in this browser (0094), and the offer in the request-to-book form. */
+export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number; booking: boolean }
 /** What this browser remembers (localStorage, the visitor's own device only): a claim, a refusal from the server, the
  *  games shown in the current round, the code. dismissedAt is from 0069 and no longer read. */
-export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; dismissedAt?: number; code?: string; codeUntil?: string }
+export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number }
 /** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, and when the
  *  last one was closed (with the car pages seen by then). */
-export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number }
+export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number }
+
+/** The browser's day (Toronto), for the most games in one day (0094). */
+export const gameDay = (now: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now));
+/** How many games this browser showed today (0094). */
+export const shownToday = (m: GameMemory, now: number) => (m.day === gameDay(now) ? m.dayShows ?? 0 : 0);
+/** The memory after one more game shown today. */
+export const countShown = (m: GameMemory, now: number): Partial<GameMemory> => ({ day: gameDay(now), dayShows: shownToday(m, now) + 1 });
 export type Trigger = 'pages' | 'time' | 'exit';
 /** Why a game shows, and whether as the small slide-in (the first page of a phone visit from a search engine). */
 export interface Fire { why: Trigger; slim: boolean }
@@ -65,16 +73,18 @@ export function bookingIneligible(a: { cfg: GameCfg | null; mem: GameMemory; pat
 }
 
 /** Which rule fires now. The first game of a visit: enough car pages, enough time, or exit intent (computers only),
- *  whichever first. After a close: more car pages or more time since the close, whichever first. On the first page of
+ *  whichever first. After a close: more page views or more time since the close, whichever first (0094). On the first page of
  *  a phone visit from a search engine there is no interstitial: the game waits for the second page, or comes
  *  SEARCH_LANDING_DELAY after its rule as the small slide-in that covers almost nothing. */
-export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean }): Fire | null {
+export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean; today?: number }): Fire | null {
   const { cfg, visit: v, now } = a;
   const shows = v.shows ?? 0;
   if (shows >= Math.max(1, cfg.per_visit)) return null;
+  if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
   if (shows > 0) {
     if (v.closedAt === undefined) return null; // one is open
-    if (cfg.reshow_pages > 0 && v.cars.length - (v.carsAtClose ?? v.cars.length) >= cfg.reshow_pages) return { why: 'pages', slim: false };
+    // 0094: page views since the close, on any page (the 2nd by default), or the seconds since the close, whichever first
+    if (cfg.reshow_pages > 0 && v.pages - (v.pagesAtClose ?? v.pages) >= cfg.reshow_pages) return { why: 'pages', slim: false };
     if (cfg.reshow_seconds > 0 && now - v.closedAt >= cfg.reshow_seconds * 1000) return { why: 'time', slim: false };
     return null;
   }
@@ -92,10 +102,11 @@ export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boo
 }
 
 /** When to look again (ms from now), so a timer can fire the time rule on time; null when no time rule is pending. */
-export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: boolean }): number | null {
+export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: boolean; today?: number }): number | null {
   const { cfg, visit: v, now } = a;
   const shows = v.shows ?? 0;
   if (shows >= Math.max(1, cfg.per_visit)) return null;
+  if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
   let at: number | null = null;
   if (shows > 0) { if (v.closedAt !== undefined && cfg.reshow_seconds > 0) at = v.closedAt + cfg.reshow_seconds * 1000; }
   else {
@@ -108,8 +119,8 @@ export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: b
 }
 
 /** The visit after a game is shown, and after it is closed. */
-export const shown = (v: Visit): Visit => ({ ...v, shows: (v.shows ?? 0) + 1, closedAt: undefined, carsAtClose: undefined });
-export const closed = (v: Visit, now: number): Visit => ({ ...v, closedAt: now, carsAtClose: v.cars.length });
+export const shown = (v: Visit): Visit => ({ ...v, shows: (v.shows ?? 0) + 1, closedAt: undefined, carsAtClose: undefined, pagesAtClose: undefined });
+export const closed = (v: Visit, now: number): Visit => ({ ...v, closedAt: now, carsAtClose: v.cars.length, pagesAtClose: v.pages });
 
 /** The games this browser has shown in the current round, with one more: once every game on was shown, a new round
  *  starts with the one just shown (so the next is never the same twice in a row). */
