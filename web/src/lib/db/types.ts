@@ -9730,6 +9730,10 @@ export type Database = {
           phone_sms_return_reminder_text: string;
           phone_sms_payment_link: boolean;
           phone_sms_payment_link_text: string;
+          fleet_number_prefix: string;
+          fleet_number_first: number;
+          young_driver_classes: string[];
+          car_defaults_rates_on_add: boolean;
         };
         Insert: {
           id?: string;
@@ -10076,6 +10080,10 @@ export type Database = {
           phone_sms_return_reminder_text?: string;
           phone_sms_payment_link?: boolean;
           phone_sms_payment_link_text?: string;
+          fleet_number_prefix?: string;
+          fleet_number_first?: number;
+          young_driver_classes?: string[];
+          car_defaults_rates_on_add?: boolean;
         };
         Update: {
           id?: string;
@@ -10422,6 +10430,10 @@ export type Database = {
           phone_sms_return_reminder_text?: string;
           phone_sms_payment_link?: boolean;
           phone_sms_payment_link_text?: string;
+          fleet_number_prefix?: string;
+          fleet_number_first?: number;
+          young_driver_classes?: string[];
+          car_defaults_rates_on_add?: boolean;
         };
         Relationships: [];
       };
@@ -10654,6 +10666,7 @@ export type Database = {
           set_by_owner: boolean;
           created_at: string;
           km_uses_defaults: boolean;
+          auto_defaults: Json;
         };
         Insert: {
           id?: string;
@@ -10673,6 +10686,7 @@ export type Database = {
           set_by_owner?: boolean;
           created_at?: string;
           km_uses_defaults?: boolean;
+          auto_defaults?: Json;
         };
         Update: {
           id?: string;
@@ -10692,6 +10706,7 @@ export type Database = {
           set_by_owner?: boolean;
           created_at?: string;
           km_uses_defaults?: boolean;
+          auto_defaults?: Json;
         };
         Relationships: [];
       };
@@ -15128,6 +15143,7 @@ export type Database = {
           added_by: string | null;
           sample_bookable: boolean;
           car_code: string | null;
+          auto_defaults: Json;
         };
         Insert: {
           id?: string;
@@ -15181,6 +15197,7 @@ export type Database = {
           added_by?: string | null;
           sample_bookable?: boolean;
           car_code?: string | null;
+          auto_defaults?: Json;
         };
         Update: {
           id?: string;
@@ -15234,6 +15251,7 @@ export type Database = {
           added_by?: string | null;
           sample_bookable?: boolean;
           car_code?: string | null;
+          auto_defaults?: Json;
         };
         Relationships: [];
       };

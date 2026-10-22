@@ -97,8 +97,10 @@ select test.ok('setting off: still a fleet number', (select fleet_number is not 
 update program_settings set car_defaults_rates_on_add = true;
 
 -- ================================================================ 6. the cars on file (the backfill)
+-- a car as it was on file before 0087 (no audit row of a person's change: the triggers are off for this one update)
+set session_replication_role = replica;
 update vehicles set fleet_number = null, allows_18_to_20 = false where id = test.s58v('off');
-delete from audit_log where entity_table = 'vehicles' and entity_id = test.s58v('off')::text and action = 'UPDATE';
+set session_replication_role = origin;
 select app.apply_car_defaults(test.s58v('off'), null, '{}'::jsonb, true);
 select test.eq('backfill: the empty fleet number, a rate card, young drivers on where nobody switched them off',
   (select format('%s %s %s', v.fleet_number is not null, exists (select 1 from rate_cards r where r.vehicle_id = v.id), v.allows_18_to_20) from vehicles v where v.id = test.s58v('off')),
@@ -110,6 +112,6 @@ select test.eq('backfill: a person''s choices are kept (young drivers switched o
   (select format('%s %s', v.allows_18_to_20, (select max(deposit_cents) from rate_cards r where r.vehicle_id = v.id)) from vehicles v where v.id = test.s58v('second')), 'f 123400');
 
 -- ================================================================ 7. sample cars and privileges
-select test.ok('a sample car keeps its own number (none given)', not exists (select 1 from vehicles where is_sample and auto_defaults ? 'fleet_number'));
+select test.ok('a sample car keeps its own number (none given)', not exists (select 1 from vehicles where is_sample and vin like 'SAMPLE%' and auto_defaults ? 'fleet_number'));
 select test.throws('the defaults are the server''s: not callable by a signed-in person',
   format($$set local role authenticated; select app.apply_car_defaults(%L)$$, test.s58v('plain')), 'permission denied');

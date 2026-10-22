@@ -18,7 +18,8 @@ export default async function Applications({ searchParams }: { searchParams: Pro
   const status = sp.status ?? 'new';
   const r = await door<{ rows: Row[]; counts: Record<string, number> }>(user.id, 'ops_read', 'applications', { status: status === 'all' ? '' : status });
   const chips: Array<[string, string]> = [['new', `New (${r.counts.new ?? 0})`], ['waiting_on_owner', `Waiting on owner (${r.counts.waiting_on_owner ?? 0})`],
-    ['approved', `Approved (${r.counts.approved ?? 0})`], ['declined', `Declined (${r.counts.declined ?? 0})`], ['all', 'All']];
+    ['approved', `Approved (${r.counts.approved ?? 0})`], ['declined', `Declined (${r.counts.declined ?? 0})`],
+    ['account_only', `Account only: no car yet (${r.counts.account_only ?? 0})`], ['all', 'All']];
   return (
     <>
       <PageHead title="Owner applications" kicker="From List your car on the website">
@@ -30,7 +31,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
         { key: 'application_number', label: 'Application', render: (x) => <Link prefetch={false} className="link" href={`/admin/applications/${x.id}`}>{x.application_number}</Link> },
         { key: 'status', label: 'Status', render: (x) => <Badge s={x.status === 'new' ? 'requested' : x.status === 'waiting_on_owner' ? 'sent' : x.status}>{APP_STATUS[x.status]}</Badge> },
         { key: 'owner', label: 'Owner', render: (x) => <>{x.owner}{x.is_test ? <span className="muted small"> (test)</span> : null}</> },
-        { key: 'vehicles', label: 'Car', className: 'wrap', render: (x) => x.vehicles.join(', ') },
+        { key: 'vehicles', label: 'Car', className: 'wrap', render: (x) => (x.vehicles.length ? x.vehicles.join(', ') : <span className="muted">No car yet</span>) },
         { key: 'checks_done', label: 'Checks', render: (x) => `${x.checks_done} of 4` },
         { key: 'created_at', label: 'Applied', render: (x) => d(x.created_at) },
         { key: 'owner_replied_at', label: 'Owner answered', render: (x) => (x.owner_replied_at ? d(x.owner_replied_at) : '') }

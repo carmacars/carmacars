@@ -18,7 +18,9 @@ export interface ApplyOwner {
   address: string; address_line1: string; address_line2: string; city: string; province: string; postal_code: string;
   email: string; phone: string; hst_number: string; licence_number: string; date_of_birth: string; referred_by: string;
 }
-export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number }
+export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number;
+  /** "I'll add my car later" (0088): the account and the owner record now, the first car from the owner portal */
+  later?: boolean }
 
 export const blankVehicle = (key: string): ApplyVehicle => ({
   key, vin: '', year: '', make: '', model: '', trim: '', colour: '', fuel: '', plate: '', odometer_km: '', current_insurer: '', branded: '', damage: '', damage_details: '',

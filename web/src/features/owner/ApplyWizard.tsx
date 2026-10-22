@@ -118,12 +118,15 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     if (Object.keys(e).length) { focusFirstError(); return false; }
     return true;
   };
-  const addVehicle = () => { if (s.active >= 0 && !saveVehicle(s.active)) return; setS((x) => ({ ...x, vehicles: [...x.vehicles, blankVehicle(uid())], active: x.vehicles.length })); };
+  const addVehicle = () => { if (s.active >= 0 && !saveVehicle(s.active)) return; setS((x) => ({ ...x, later: false, vehicles: [...x.vehicles, blankVehicle(uid())], active: x.vehicles.length })); };
+  // "I'll add my car later" (0088): no car and no plan now; the review creates the account and the owner portal asks for the first car
+  const addLater = () => { setS((x) => ({ ...x, later: true, vehicles: [], active: -1 })); go(3); };
+  const addCarNow = () => { setS((x) => ({ ...x, later: false, vehicles: x.vehicles.length ? x.vehicles : [blankVehicle(uid())], active: 0 })); go(1); };
   const nextFromVehicles = () => {
     if (s.active >= 0 && !saveVehicle(s.active)) return;
     const bad = s.vehicles.findIndex((_, i) => Object.keys(vehicleErr(i)).length);
     if (bad >= 0) { setS((x) => ({ ...x, active: bad })); saveVehicle(bad); return; }
-    setS((x) => ({ ...x, active: -1 }));
+    setS((x) => ({ ...x, active: -1, later: false }));
     go(2);
   };
   const nextFromPlan = () => {
@@ -201,15 +204,15 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
   if (done) {
     return (
       <div className="pt-card pt-card--next" tabIndex={-1} ref={top} data-testid="apply-done">
-        <p className="pt-kicker">Application {done.applicationNumber}</p>
-        <h2 className="d2">Application received</h2>
-        <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>
+        <p className="pt-kicker">{done.accountOnly ? 'Owner account' : 'Application'} {done.applicationNumber}</p>
+        <h2 className="d2">{done.accountOnly ? 'Your owner account is open' : 'Application received'}</h2>
+        {done.accountOnly ? <p data-testid="apply-account-only">Add your first car from your owner portal whenever you are ready. We will also be in touch to help.</p> : <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>}
         {done.declined > 0 && <p className="ow-warn">{done.declined} vehicle{done.declined === 1 ? ' was' : 's were'} not accepted: a rebuilt, salvage or irreparable brand is not eligible (Enrollment Agreement 3.1).</p>}
         {done.checkEmail
           ? <p className="pt-note" data-testid="apply-check-email">We already had your email from an earlier booking request, so your sign-in is set up on that record. Open the email we just sent and choose your password: your owner portal and your earlier requests are there. The link works for 24 hours.</p>
           : done.confirmEmail
             ? <div className="pt-note" data-testid="apply-confirm-email"><p><strong>One more step: confirm your email.</strong> We sent a link to {done.confirmEmail} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours: it confirms your email and opens your owner portal.</p><p className="small">No email after a few minutes? Check spam, or go to <Link className="link" href="/sign-in">Sign in</Link>, enter your email and password, and press &quot;Send a new confirmation link&quot;.</p></div>
-            : <p><Link className="btn btn--primary" href="/owner?applied=1">Go to your owner portal</Link></p>}
+            : <p><Link className="btn btn--primary" href={done.accountOnly ? '/owner?account=1' : '/owner?applied=1'}>Go to your owner portal</Link></p>}
       </div>
     );
   }
@@ -352,6 +355,10 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <button className="btn btn--ghost" type="button" onClick={addVehicle}>Add another vehicle</button>
             <button className="btn btn--primary btn--lg" type="button" onClick={nextFromVehicles} disabled={!s.vehicles.length}>Continue</button>
           </div>
+          {!ownerOnFile && (
+            <p className="small" data-testid="apply-later-row">No car to add right now? <button type="button" className="btn btn--quiet btn--sm" onClick={addLater} data-testid="apply-later">I&apos;ll add my car later</button>
+              <span className="muted"> Your owner account opens now; add your first car from your owner portal when you are ready.</span></p>
+          )}
         </section>
       )}
 
@@ -429,6 +436,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <p className="small">{o.owner_type === 'corporation' ? `For ${o.corporation_name} (no. ${o.corporation_number}), as ${o.signing_officer_title}. ` : ''}{[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}. {o.email}, {o.phone}.</p>
             {o.owner_type === 'individual' && !o.licence_number && <p className="ow-warn">Enter your driver&apos;s licence number again in step 1 (it is never kept in a saved draft).</p>}
           </section>
+          {s.later && !s.vehicles.length && (
+            <section className="pt-card" aria-label="Your car" data-testid="apply-review-later">
+              <div className="pt-card__head"><h3 className="d4">No car yet</h3><button type="button" className="btn btn--quiet btn--sm" onClick={addCarNow}>Add a car now</button></div>
+              <p className="small">Your owner account opens with this step. Add your first car from your owner portal whenever you are ready: we set its terms then.</p>
+            </section>
+          )}
           {s.vehicles.map((v, i) => (
             <section key={v.key} className="pt-card" aria-label={vName(v)}>
               <div className="pt-card__head"><h3 className="d4">{vName(v)}</h3><button type="button" className="btn btn--quiet btn--sm" onClick={() => { setS((x) => ({ ...x, active: i })); go(1); }}>Edit</button></div>
@@ -447,8 +460,8 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
           <Turnstile action="owner_application" />
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
           <div className="ow-actions">
-            <button className="btn btn--ghost" type="button" onClick={() => go(2)}>Back</button>
-            <button className="btn btn--primary btn--lg" type="submit" disabled={busy}>{busy ? 'Sending' : 'Submit application'}</button>
+            <button className="btn btn--ghost" type="button" onClick={() => go(s.later && !s.vehicles.length ? 1 : 2)}>Back</button>
+            <button className="btn btn--primary btn--lg" type="submit" disabled={busy}>{busy ? 'Sending' : s.later && !s.vehicles.length ? 'Open my owner account' : 'Submit application'}</button>
           </div>
         </form>
       )}
