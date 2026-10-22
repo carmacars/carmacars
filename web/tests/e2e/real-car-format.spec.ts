@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, aiAllowanceLock, db, noOverflow } from './helpers';
 
 // Migration 0073 end to end: a real car (a 2022 Chevrolet Malibu LS like the owner's first) published without photos
 // renders exactly like a sample car: the same sections and menu, the samples' heading and key specs, no "Example car",
@@ -23,8 +23,13 @@ async function layout(page: Page) {
   };
 }
 
+// the AI allowance lock (helpers.ts) of a car copy test, let go when it ends, passed or not
+let unlockAi: (() => Promise<void>) | undefined;
+test.afterEach(async () => { await unlockAi?.(); unlockAi = undefined; });
+
 test('a real car without photos looks like a sample car', async ({ page, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(300_000);
+  unlockAi = await aiAllowanceLock('shared');   // the AI copy: not while the usage guard tests use the allowance up
   const sql = db();
   const vid = randomUUID(); const admin = randomUUID(); const v = vin();
   await sql`insert into users (id, email, full_name) values (${admin}, ${`admin.realfmt.${Date.now()}@example.test`}, 'Rae Admin')`;

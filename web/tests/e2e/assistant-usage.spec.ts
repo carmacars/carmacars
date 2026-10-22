@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { db, noOverflow } from './helpers';
+import { aiAllowanceLock, db, noOverflow } from './helpers';
 
 // Migration 0080 end to end, at 375 and 1440, with the deterministic stub model (LLM_PROVIDER=fake). The usage guard:
 // Workers AI used up shows the card on Admin > To do with "Allow paid usage" and its cost; allowing up to $1 today opens
@@ -67,6 +67,10 @@ async function askIt(page: Page, text: string) {
 test.describe.configure({ mode: 'serial' });
 
 test.afterAll(async () => { const sql = db(); await neurons(sql, 0); await sql.end(); });
+// each test moves the day's AI figure: no car copy test runs meanwhile (helpers.ts, aiAllowanceLock)
+let unlock: (() => Promise<void>) | null = null;
+test.beforeEach(async () => { unlock = await aiAllowanceLock('alone'); });
+test.afterEach(async () => { const sql = db(); await neurons(sql, 0); await sql.end(); await unlock?.(); unlock = null; });
 
 test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to a cap, and Settings > Usage', async ({ browser }) => {
   test.setTimeout(300_000);
