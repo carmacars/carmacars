@@ -110,7 +110,8 @@ jobs:
   full:
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # 80: the vehicle pages (0092) add a few hundred public pages to the link check and the SEO audit
+    timeout-minutes: 80
     defaults:
       run:
         working-directory: web

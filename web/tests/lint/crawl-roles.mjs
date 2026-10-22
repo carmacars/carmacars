@@ -77,6 +77,9 @@ const PORTALS = ['/account', '/owner', '/investor', '/admin', '/va', '/field'];
 
 // ------------------------------------------------------------------ helpers
 const shape = (u) => {
+  // the vehicle pages (0092): one shape per level (/cars/<make>, /<model>, /<year>, /<trim>), thousands of addresses
+  const v = /^\/cars\/([^/]+)((?:\/[^/]+){0,3})$/.exec(u.pathname);
+  if (v && (v[2] || !/\d/.test(v[1]))) return ['/cars/:make', '/cars/:make/:model', '/cars/:make/:model/:year', '/cars/:make/:model/:year/:trim'][v[2].split('/').length - 1];
   const segs = u.pathname.split('/').map((s) => (/\d/.test(s) && !/^(two-step)$/.test(s) ? ':id' : s));
   // filters multiply (queue x tab x type): a shape keeps the tab's value and only the names of the others
   const qs = [...u.searchParams.entries()].map(([k, v]) => (k === 'tab' || k === 'section' ? `${k}=${v}` : k)).sort().join('&');
