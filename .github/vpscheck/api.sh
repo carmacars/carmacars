@@ -31,6 +31,7 @@ notify pgrst, 'reload schema';
 select 'dropped', count(*) = 0 from pg_proc where proname = 'vpscheck_sleep';
 SQL
 
+flush api-rest
 say "== site through the Worker"
 curl -sS --max-time 30 "$SITE/sitemap.xml" -o "$RUNNER_TEMP/sm.xml"
 grep -oE '<loc>[^<]+</loc>' "$RUNNER_TEMP/sm.xml" | sed -E 's#</?loc>##g' > "$RUNNER_TEMP/sm-list.txt"
@@ -38,17 +39,18 @@ say "sitemap.xml: $(wc -l < "$RUNNER_TEMP/sm-list.txt") locs; child sitemaps:"
 : > "$RUNNER_TEMP/urls-all.txt"
 while read -r u; do
   if [[ "$u" == *.xml* ]]; then
-    res=$(curl -sS --max-time 30 -o "$RUNNER_TEMP/c.xml" -w '%{http_code} %{time_total}s' "$u")
+    res=$(curl -sS --max-time 25 -o "$RUNNER_TEMP/c.xml" -w '%{http_code} %{time_total}s' "$u")
     n=$(grep -c '<loc>' "$RUNNER_TEMP/c.xml" || true)
     say "  $res $n locs ${u#"$SITE"}"
     grep -oE '<loc>[^<]+</loc>' "$RUNNER_TEMP/c.xml" | sed -E 's#</?loc>##g' | shuf -n 4 --random-source=<(yes) >> "$RUNNER_TEMP/urls-all.txt" || true
   else echo "$u" >> "$RUNNER_TEMP/urls-all.txt"; fi
-done < "$RUNNER_TEMP/sm-list.txt"
+done < <(head -15 "$RUNNER_TEMP/sm-list.txt")
+flush api-sitemaps
 { printf '%s\n' "$SITE/" "$SITE/cars" "$SITE/robots.txt" "$SITE/sign-in" "$SITE/list-your-car" "$SITE/investors" "$SITE/no-such-page-vpscheck"; cat "$RUNNER_TEMP/urls-all.txt"; } | awk '!s[$0]++' | head -45 > "$RUNNER_TEMP/urls.txt"
 say "== $(wc -l < "$RUNNER_TEMP/urls.txt") URLs: status time cf-cache path"
 slow=0; bad=0
 while read -r u; do
-  r=$(curl -sS -o "$RUNNER_TEMP/p.html" -D "$RUNNER_TEMP/h.txt" -w '%{http_code} %{time_total}' --max-time 30 "$u" 2>/dev/null || echo "000 30")
+  r=$(curl -sS -o "$RUNNER_TEMP/p.html" -D "$RUNNER_TEMP/h.txt" -w '%{http_code} %{time_total}' --max-time 20 "$u" 2>/dev/null || echo "000 30")
   cc=$(grep -i '^cf-cache-status' "$RUNNER_TEMP/h.txt" | awk '{print $2}' | tr -d '\r')
   old=$(grep -c 'supabase\.co' "$RUNNER_TEMP/p.html" 2>/dev/null || true)
   newimg=$(grep -o 'api\.carmacars\.ca/storage/v1/object/public/vehicle-public/[^"? )]*' "$RUNNER_TEMP/p.html" | head -1)

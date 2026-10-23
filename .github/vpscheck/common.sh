@@ -27,6 +27,7 @@ flush() { # title: the collected lines as up to 6 notice annotations of ~6000 ch
     echo "::notice title=$t ($i)::$chunk"
   done
   rm -f "$RUNNER_TEMP"/part.*
+  : > "$OUT"
 }
 keys() {
   ANON=$(vps_secret ANON_KEY); SERVICE=$(vps_secret SERVICE_ROLE_KEY); JWT_SECRET=$(vps_secret JWT_SECRET)
