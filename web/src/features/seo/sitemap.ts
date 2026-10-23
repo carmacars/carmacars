@@ -3,6 +3,10 @@ import { rpc } from '@/lib/db/repo';
 import { absUrl } from '@/features/seo/meta';
 import { siteUrl } from '@/lib/site';
 
+// The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
+// visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
+const SR = { role: 'service_role' as const };
+
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
@@ -18,7 +22,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
 
 async function rows(): Promise<Row[]> {
-  return ((await rpc('sitemap_all', {})) ?? []) as unknown as Row[];
+  return ((await rpc('sitemap_all', {}, SR)) ?? []) as unknown as Row[];
 }
 
 function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
@@ -44,12 +48,12 @@ const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control':
 export const INDEX_SIZE = 50_000;
 const BASE_FILE = /^(makes|tiers-\d+|[a-z0-9]+(-[a-z0-9]+)*-(models|years|trims)(-\d+)?)$/;
 type VIndex = { total: number; files: Array<{ file: string; lastmod: string | null }> };
-const vIndex = (offset: number, limit: number) => rpc('vehicle_sitemap_index', { p_offset: offset, p_limit: limit }) as unknown as Promise<VIndex>;
+const vIndex = (offset: number, limit: number) => rpc('vehicle_sitemap_index', { p_offset: offset, p_limit: limit }, SR) as unknown as Promise<VIndex>;
 
 // the place pages (0095): one file per term and range of places, listed by the database without reading the pages
 type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };
 async function placeFiles(): Promise<PlaceFile[]> {
-  try { return ((await rpc('place_sitemap_files', {})) ?? []) as unknown as PlaceFile[]; } catch { return []; }
+  try { return ((await rpc('place_sitemap_files', {}, SR)) ?? []) as unknown as PlaceFile[]; } catch { return []; }
 }
 /** The site's own sitemaps and the place files (at most 49,000), first in the index. */
 async function siteEntries(): Promise<string[]> {
@@ -111,17 +115,17 @@ export function splitFile(file: string, terms: string[]): { prefix: string; base
  *  addresses) by keyset (the pair after the last one read), never by offset. */
 export async function vehicleSitemapFile(file: string): Promise<Response> {
   if (!/^[a-z0-9-]{1,120}$/.test(file)) return NOT_FOUND();
-  const terms = (((await rpc('vehicle_tiers', {})) as unknown as { terms?: Array<{ slug: string }> } | null)?.terms ?? []).map((t) => t.slug);
+  const terms = (((await rpc('vehicle_tiers', {}, SR)) as unknown as { terms?: Array<{ slug: string }> } | null)?.terms ?? []).map((t) => t.slug);
   const f = splitFile(file, terms);
-  if (!f || !(await rpc('vehicle_sitemap_tree', { p_prefix: f.prefix }))) return NOT_FOUND();
+  if (!f || !(await rpc('vehicle_sitemap_tree', { p_prefix: f.prefix }, SR))) return NOT_FOUND();
   const base = siteUrl();
   const tier = /^tiers-(\d+)$/.exec(f.base);
   if (tier) {
     const n = Number(tier[1]);
     type T = { g: number; path: string | null; lastmod: string | null };
-    const slice = async (after: number) => ((await rpc('vehicle_tier_sitemap', { p_file: n, p_after: after, p_limit: 600 })) ?? []) as unknown as T[];
+    const slice = async (after: number) => ((await rpc('vehicle_tier_sitemap', { p_file: n, p_after: after, p_limit: 600 }, SR)) ?? []) as unknown as T[];
     // a file past the last is a 404; a file whose places have no pages (a region switched off) is an empty list
-    if (n < 1 || n > Number(await rpc('vehicle_tier_files_count', {}))) return NOT_FOUND();
+    if (n < 1 || n > Number(await rpc('vehicle_tier_files_count', {}, SR))) return NOT_FOUND();
     const first = await slice(-1);
     const enc = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
@@ -138,7 +142,7 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
     });
     return new Response(stream, { headers: XML });
   }
-  const rowsV = ((await rpc('vehicle_sitemap', { p_file: f.base })) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
+  const rowsV = ((await rpc('vehicle_sitemap', { p_file: f.base }, SR)) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
   if (!rowsV.length) return NOT_FOUND();
   return new Response(HEAD + rowsV.map((r) => url(base, { path: f.to(r.path), lastmod: r.lastmod })).join('') + '</urlset>\n', { headers: XML });
 }
@@ -147,7 +151,7 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
 export async function placeSitemapFile(file: string): Promise<Response> {
   const m = /^(rental|sale|detailing|bodyshop)\.([a-z0-9-]+)\.(\d{1,6})\.xml$/.exec(file);
   if (!m) return new Response('Not found', { status: 404 });
-  const rowsP = ((await rpc('place_sitemap', { p_vertical: m[1]!, p_term: m[2]!, p_page: Number(m[3]) })) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
+  const rowsP = ((await rpc('place_sitemap', { p_vertical: m[1]!, p_term: m[2]!, p_page: Number(m[3]) }, SR)) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
   const base = siteUrl();
   const body = rowsP.map((x) => `<url><loc>${esc(base + x.path)}</loc>${x.lastmod ? `<lastmod>${x.lastmod.slice(0, 10)}</lastmod>` : ''}</url>`).join('\n');
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, { headers: XML });
