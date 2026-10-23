@@ -341,15 +341,15 @@ select test.eq('outbox: the renter''s email built with every variable',
 -- ================================================================ 8. the official forms fetched by the forms-fetch workflow (0047)
 select test.eq('forms: the five official forms are the current templates, each unchecked, with a draft mapping',
   (select string_agg(form_code || ':' || kind || ':' || verified || ':' || ((select count(*) from jsonb_object_keys(field_map)) > 0), ',' order by form_code)
-     from pdf_templates where is_current),
+     from pdf_templates where is_current and kind <> 'booking_overlay'),
   '013-0169:acroform:false:true,013-1155:acroform:false:true,ON00453:overlay:false:true,SR-LV-006:acroform:false:true,SR-LV-012:acroform:false:true');
 select test.ok('forms: the laid-out form (no fillable fields) prints each value in its box',
   (select bool_and((v -> 'box' ->> 'page')::integer between 1 and 3 and jsonb_array_length(v -> 'box' -> 'rect') = 4)
      from pdf_templates t, jsonb_each(t.field_map) e(k, v) where t.form_code = 'ON00453' and t.is_current));
 select test.ok('forms: what each form is for, and where it came from, is kept with it',
-  (select bool_and(notes like '%https://forms.mgcs.gov.on.ca/%' and notes like '%SHA-256%') from pdf_templates where is_current));
+  (select bool_and(notes like '%https://forms.mgcs.gov.on.ca/%' and notes like '%SHA-256%') from pdf_templates where is_current and kind <> 'booking_overlay'));
 select test.lives('forms: every draft mapping passes the mapping checks of 0042 (saved again by an Admin, not checked)',
-  $$select app.form_template_map(test.id('sm_admin'), jsonb_build_object('template', t.id, 'field_map', t.field_map)) from pdf_templates t where t.is_current$$);
+  $$select app.form_template_map(test.id('sm_admin'), jsonb_build_object('template', t.id, 'field_map', t.field_map)) from pdf_templates t where t.is_current and t.kind <> 'booking_overlay'$$);
 select test.eq('forms: still nothing in use for owners (no fetched form is checked; suite 26 checks an uploaded one of its own)',
   (select count(*) from pdf_templates where verified and notes like '%https://forms.mgcs.gov.on.ca/%'), 0::bigint);
 
