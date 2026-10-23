@@ -25,7 +25,7 @@ Migration 0121. Two owner decisions of October 23, 2026.
 
 ## Checks
 
-Text check, typecheck, lint, unit tests (place copy: an auto service page never says we do the work and has no questions), `scripts/test.sh`, and end to end: seo-coverage, local-seo, visitor-history, legal pages, one worker.
+Text check, typecheck, lint, unit tests (place copy: an auto service page never says we do the work and has no questions), `scripts/test.sh` (6,359 passed), and end to end at 375 and 1440, one worker: seo-coverage, local-seo, visitor-history (with /privacy), and the legal pages (/terms, /privacy, /cancellation-policy in pages.spec). Run against `next dev` on the local stack: the machine's memory did not allow `next build` that day. The signing flows of legal-admin-redesign.spec could not run there (the dev server ran out of memory on the PDF routes); they touch nothing this change does.
 
 ## Guides
 
