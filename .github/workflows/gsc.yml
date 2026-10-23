@@ -15,7 +15,7 @@ on:
         type: string
         default: '480'
   schedule:
-    - cron: '17 9 * * *'
+    - cron: '17 */3 * * *'
 
 jobs:
   gsc:
@@ -54,5 +54,15 @@ jobs:
             done
             echo "::notice title=gsc submitted::$n sitemaps submitted to $SITE, $fail failed"
           fi
+          list=$(curl -sS "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps")
+          # Google's first fetch of a batch of index files can fail while it fetches hundreds at once: resubmit up to 40
+          # failed ones a run, one every 20 s, so each is fetched again on its own
+          retry=$(jq -r '[.sitemap[]? | select((.errors|tonumber? // 0) > 0) | .path][0:40][]' <<<"$list")
+          r=0
+          for u in $retry; do
+            curl -sS -o /dev/null -X PUT "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')" && r=$((r+1))
+            sleep 20
+          done
+          [ "$r" -gt 0 ] && echo "::notice title=gsc retried::$r sitemaps with errors resubmitted"
           list=$(curl -sS "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps")
           echo "::notice title=gsc status::$(jq -c '{count: (.sitemap|length), errors: ([.sitemap[]?|select((.errors|tonumber? // 0)>0)]|length), pending: ([.sitemap[]?|select(.isPending)]|length), first: ([.sitemap[]?|select(.path|endswith("/sitemap.xml"))][0] | {path, lastDownloaded, isPending, errors, warnings, contents})}' <<<"$list")"
