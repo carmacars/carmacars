@@ -8,6 +8,7 @@
 #   copy.sh reset       the server's database starts over empty (bin/db-reset; refused when live)
 #   copy.sh restore     extensions, roles + schema, then the data fitted to the server's schema (filter-data.py) with
 #                       session_replication_role = replica, the reserved roles' settings (anon's statement timeout...)
+#   copy.sh migrations  the migration history (supabase_migrations; the CLI's data dump leaves it out); part of restore
 #   copy.sh vault       every vault secret re-created from its decrypted value, so it decrypts with the server's key
 #   copy.sh cron        every pg_cron job re-created PAUSED, the Edge Function address changed to the server's Kong;
 #                       the hosted jobs' states are kept on the server for the cutover (state/cron-hosted.json)
@@ -169,6 +170,7 @@ restore() {
   [ -z "$missing" ] || die "the server has no table for: $(tr '\n' ' ' <<<"$missing") (the schema restore did not create them)"
   psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -c 'SET session_replication_role = replica' -f "$W/data.fit.sql" > /dev/null 2> "$W/data.err" \
     || { grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
+  migrations
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
         left join pg_roles r on r.oid = s.setrole
@@ -201,6 +203,24 @@ restore() {
   } | tee "$W/restore-summary.md" | summary
   note "restore: $(grep '^- ' "$W/restore-summary.md" | sed 's/^- //' | paste -sd ';' - | cut -c1-3500)"
   jq -e '.columns_dropped | length == 0' "$f" > /dev/null || warn "some columns of the hosted project were dropped (see the summary); check them before the cutover"
+}
+
+migrations() {
+  vps_tunnel
+  # 3b. the migration history (the CLI's data dump leaves supabase_migrations out; without it the deploy would run every
+  #     migration after the baseline again)
+  local t mig; t=$(tag); mig=$(mktemp)
+  hq "select coalesce(json_agg(m), '[]') as m from supabase_migrations.schema_migrations m" \
+    | jq -r --arg t "$t" '.[0].m | (if type == "string" then fromjson else . end) | tojson as $j
+        | ("$" + $t + "$") as $d | if ($j | contains($d)) then error("tag") else
+          "insert into supabase_migrations.schema_migrations select * from json_populate_recordset(null::supabase_migrations.schema_migrations, \($d)\($j)\($d)::json) on conflict (version) do nothing;" end' > "$mig"
+  vps_sql_file "$mig" > /dev/null || { rm -f "$mig"; die "copying the migration history failed"; }
+  rm -f "$mig"
+  local mh mv
+  mh=$(hq "select count(*) as n from supabase_migrations.schema_migrations" | jq -r '.[0].n | tostring')
+  mv=$(vps_sql "select count(*) as n from supabase_migrations.schema_migrations" | jq -r '.[0].n | tostring')
+  [ "$mh" = "$mv" ] || die "migration history: $mh rows on the hosted project, $mv on the server"
+  note "migrations: $mv rows of history copied"
 }
 
 vault() {
@@ -396,7 +416,7 @@ verify() {
 }
 
 for step in "$@"; do
-  case "$step" in preflight|dump|reset|restore|vault|cron|auth|functions|storage|verify) ;; *) die "unknown step $step" ;; esac
+  case "$step" in preflight|dump|reset|restore|migrations|vault|cron|auth|functions|storage|verify) ;; *) die "unknown step $step" ;; esac
   say "== $step"
   "$step"
 done
