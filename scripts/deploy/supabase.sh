@@ -12,6 +12,8 @@
 #                                        schedule it hourly
 #   scripts/deploy/supabase.sh calsync   deploy the calendar-sync Edge Function (Turo and other calendar links) and
 #                                        schedule it every 5 minutes
+#   scripts/deploy/supabase.sh fnsync    the three Edge Functions and their secrets only: no pg_cron change and no call
+#                                        (infra/vps: the copy to the company's server, before its cutover)
 #   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
 #                                        has no R2: STORAGE_PROVIDER=supabase); vehicle-public is public
 #   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
@@ -201,52 +203,71 @@ job_token() { # vault_name description
   printf '%s' "$token"
 }
 
-outbox() {
-  local token dir
-  token=$(job_token outbox_job_token "Bearer token pg_cron sends to the send-outbox Edge Function")
-  : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"
-  mask "$RESEND_API_KEY"
-  : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"
-  mask "$LINK_SIGNING_KEY"
-  # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
-  sb_fn_secrets "$(jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
-    '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]')"
+# The files of each Edge Function, as deployed (index.ts and what it imports), into a directory.
+fn_files() { # slug dir
+  case "$1" in
+    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs" ;;
+    owner-debit) cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$2/" ;;
+    calendar-sync) cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$2/index.ts"
+                   cp "$ROOT/web/src/features/calendar/ical.ts" "$2/ical.ts"
+                   cp "$ROOT/web/src/features/calendar/sync-run.ts" "$2/run.ts" ;;
+    *) die "unknown function $1" ;;
+  esac
+}
+# The secrets of each function (JSON for sb_fn_secrets); the job tokens are made once in the vault.
+fn_secrets_json() { # slug
+  local token
+  case "$1" in
+    send-outbox)
+      token=$(job_token outbox_job_token "Bearer token pg_cron sends to the send-outbox Edge Function")
+      : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"; mask "$RESEND_API_KEY"
+      # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
+      : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"; mask "$LINK_SIGNING_KEY"
+      jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
+        '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]' ;;
+    owner-debit)
+      token=$(job_token debit_job_token "Bearer token pg_cron sends to the owner-debit Edge Function")
+      : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"; mask "$STRIPE_SECRET_KEY"
+      jq -n --arg t "$token" --arg s "$STRIPE_SECRET_KEY" '[{name: "DEBIT_JOB_TOKEN", value: $t}, {name: "STRIPE_SECRET_KEY", value: $s}]' ;;
+    calendar-sync)
+      token=$(job_token calsync_job_token "Bearer token pg_cron sends to the calendar-sync Edge Function")
+      jq -n --arg t "$token" '[{name: "CALSYNC_JOB_TOKEN", value: $t}]' ;;
+  esac
+}
+deploy_fn() { # slug job schedule timeout_ms token_name label
+  local dir
+  sb_fn_secrets "$(fn_secrets_json "$1")"
   dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/send-outbox/index.ts" "$dir/index.ts"
-  cp "$ROOT/emails/src/engine.mjs" "$dir/engine.mjs"
-  cron_function send-outbox carmacars-send-outbox '* * * * *' 30000 outbox_job_token "Outbox sender" "$dir"
+  fn_files "$1" "$dir"
+  cron_function "$1" "$2" "$3" "$4" "$5" "$6" "$dir"
   rm -rf "$dir"
 }
+
+outbox() { deploy_fn send-outbox carmacars-send-outbox '* * * * *' 30000 outbox_job_token "Outbox sender"; }
 
 # The automatic monthly owner debit (docs/changes/2026-10-14-owner-debit.md): the owner-debit Edge Function, its
 # secrets (a job token in the vault, the Stripe key) and the hourly pg_cron call. The function decides itself whether
 # anything is due (the debit day and hour are Program settings), so an hourly call is safe.
-debit() {
-  local token dir
-  token=$(job_token debit_job_token "Bearer token pg_cron sends to the owner-debit Edge Function")
-  : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"
-  mask "$STRIPE_SECRET_KEY"
-  sb_fn_secrets "$(jq -n --arg t "$token" --arg s "$STRIPE_SECRET_KEY" '[{name: "DEBIT_JOB_TOKEN", value: $t}, {name: "STRIPE_SECRET_KEY", value: $s}]')"
-  dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$dir/"
-  cron_function owner-debit carmacars-owner-debit '28 * * * *' 60000 debit_job_token "Owner debit" "$dir"
-  rm -rf "$dir"
-}
+debit() { deploy_fn owner-debit carmacars-owner-debit '28 * * * *' 60000 debit_job_token "Owner debit"; }
 
 # Calendar sync (docs/changes/2026-10-19-calendar-sync-recovery-uptime.md): the calendar-sync Edge Function with the
 # site's own reader (web/src/features/calendar/ical.ts and sync-run.ts, copied beside index.ts), its job token in the
 # vault, and the pg_cron call every 5 minutes. The database decides which calendar links are due
 # (calendar_sync_minutes, 10 by default), so a call with nothing due costs one query.
-calsync() {
-  local token dir
-  token=$(job_token calsync_job_token "Bearer token pg_cron sends to the calendar-sync Edge Function")
-  sb_fn_secrets "$(jq -n --arg t "$token" '[{name: "CALSYNC_JOB_TOKEN", value: $t}]')"
-  dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$dir/index.ts"
-  cp "$ROOT/web/src/features/calendar/ical.ts" "$dir/ical.ts"
-  cp "$ROOT/web/src/features/calendar/sync-run.ts" "$dir/run.ts"
-  cron_function calendar-sync carmacars-calendar-sync '*/5 * * * *' 120000 calsync_job_token "Calendar sync" "$dir"
-  rm -rf "$dir"
+calsync() { deploy_fn calendar-sync carmacars-calendar-sync '*/5 * * * *' 120000 calsync_job_token "Calendar sync"; }
+
+# The three functions and their secrets only: no pg_cron change, no call (the vps-copy workflow, before the cutover:
+# the copied jobs stay paused until then).
+fnsync() {
+  local slug dir out
+  for slug in send-outbox owner-debit calendar-sync; do
+    sb_fn_secrets "$(fn_secrets_json "$slug")"
+    dir=$(mktemp -d); fn_files "$slug" "$dir"
+    out=$(sb_fn_deploy "$slug" "$dir") || die "$slug deploy failed"
+    rm -rf "$dir"
+    log "$slug deployed: $out; without a token it answers $(curl -sS -o /dev/null -w '%{http_code}' -X POST "$(sb_fn_test_url "$slug")") (403 expected)"
+  done
+  notice "Edge Functions: send-outbox, owner-debit, calendar-sync and their secrets deployed ($DB_BACKEND); pg_cron unchanged"
 }
 
 service_key() {

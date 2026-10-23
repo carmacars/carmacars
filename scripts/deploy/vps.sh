@@ -121,4 +121,4 @@ vps_psql_url() {
 }
 
 # The server is the live backend (the cutover is done): the copy and reset workflows refuse to run.
-vps_is_live() { vps_ssh test -f "$VPS_DIR/state/live"; }
+vps_is_live() { vps_ssh sudo test -f "$VPS_DIR/state/live"; }

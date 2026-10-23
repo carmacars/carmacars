@@ -1,0 +1,70 @@
+name: vps-copy
+
+# A full copy of the hosted Supabase project onto the company's server (infra/vps/CUTOVER.md, step 3, the rehearsal;
+# the final copy during the cutover is vps-cutover's final-copy). Every run starts the server's database over and
+# copies everything again, so it can be run as often as wanted until the cutover; after it (the server is live) the
+# script refuses. The hosted project is only read. The copied pg_cron jobs stay paused on the server, and its Edge
+# Functions are never called with their tokens, so nothing is emailed, debited or synced twice.
+#
+# Steps: preflight, dump (supabase db dump: roles, schema, data), reset, restore (extensions, schema, data fitted to
+# the server, the reserved roles' settings), vault (decrypted values re-created), cron (paused, function address on
+# the server), auth (config/auth into GoTrue), functions, storage (bucket by bucket), verify (row counts and more).
+# Nothing of the data leaves the runner except into the server: no artifact is uploaded (the repository is public).
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: Steps to run (space separated), or all
+        type: string
+        default: all
+      skip_buckets:
+        description: Storage buckets not copied (space separated; the hosted nightly backups are not needed there)
+        type: string
+        default: backups
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-ops
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SKIP_BUCKETS: ${{ inputs.skip_buckets }}
+      COPY_MODE: rehearsal
+      APP_URL: https://carmacars.ca
+      STEPS: ${{ inputs.steps }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: PostgreSQL 17 client and the Supabase CLI
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -q postgresql-client-17 > /dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      # the CLI's db dump leaves out Supabase's own schemas and reserved roles (Supabase's guide for this move); it runs
+      # pg_dump in Docker. The newest CLI follows the hosted platform's internals.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Copy
+        run: |
+          s="$STEPS"
+          if [ "$s" = all ]; then s="preflight dump reset restore vault cron auth functions storage verify"; fi
+          # shellcheck disable=SC2086 # the step names are words; copy.sh refuses any other
+          COPY_DIR="$RUNNER_TEMP/copy" infra/vps/scripts/copy.sh $s
+      - name: Remove the dump from the runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/copy"

@@ -13,6 +13,12 @@
 #   4. Folders older than BACKUP_KEEP_DAYS (30) are deleted.
 #   5. The run is recorded in job_runs ('backup-nightly'); a failure shows on Admin > Today (no email).
 # Prints the stamp on the last line. BACKUP_DIR keeps the files (for the restore test in the same job).
+#
+# DB_BACKEND=vps (the company's own server, infra/vps/CUTOVER.md; run by .github/workflows/vps-backup.yml): the dump
+# is read through the SSH tunnel, and the encrypted parts go to the S3-compatible backup bucket instead of Supabase
+# Storage: s3://$BACKUP_S3_BUCKET/logical/nightly/<stamp>/ (BACKUP_S3_ENDPOINT, BACKUP_S3_REGION,
+# BACKUP_S3_ACCESS_KEY_ID, BACKUP_S3_SECRET_ACCESS_KEY; the aws CLI of the GitHub runner). The server also archives
+# its WAL and takes nightly base backups with wal-g into the same bucket (infra/vps/bin/walg-base).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=../deploy/lib.sh
@@ -38,12 +44,23 @@ command -v pg_dump >/dev/null || fail "pg_dump is not installed"
 command -v age >/dev/null || fail "age is not installed"
 log "$(pg_dump --version)"
 
-# ---------------------------------------------------------------- connection (session pooler, IPv4)
-pool=$(sbapi GET "/config/database/pooler")
-export PGHOST PGUSER PGPORT=5432 PGDATABASE=postgres PGSSLMODE=require PGCONNECT_TIMEOUT=20 PGAPPNAME=carmacars-backup
-PGHOST=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host' <<<"$pool")
-PGUSER=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_user' <<<"$pool")
-export PGPASSWORD="${SUPABASE_DB_PASSWORD:?SUPABASE_DB_PASSWORD is needed}"
+# ---------------------------------------------------------------- connection (session pooler, IPv4; or the tunnel)
+if [ "$DB_BACKEND" = vps ]; then
+  export PGHOST=127.0.0.1 PGPORT="$VPS_PG_PORT" PGUSER=postgres PGDATABASE=postgres PGSSLMODE=disable PGCONNECT_TIMEOUT=20 PGAPPNAME=carmacars-backup
+  PGPASSWORD=$(vps_secret POSTGRES_PASSWORD); export PGPASSWORD
+  for v in BACKUP_S3_ENDPOINT BACKUP_S3_BUCKET BACKUP_S3_ACCESS_KEY_ID BACKUP_S3_SECRET_ACCESS_KEY; do
+    [ -n "${!v:-}" ] || fail "$v is not set (repository secret; infra/vps/CUTOVER.md, Backups)"
+  done
+  export AWS_ACCESS_KEY_ID="$BACKUP_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}"
+  S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
+  S3_BASE="s3://$BACKUP_S3_BUCKET/logical/nightly"
+else
+  pool=$(sbapi GET "/config/database/pooler")
+  export PGHOST PGUSER PGPORT=5432 PGDATABASE=postgres PGSSLMODE=require PGCONNECT_TIMEOUT=20 PGAPPNAME=carmacars-backup
+  PGHOST=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host' <<<"$pool")
+  PGUSER=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_user' <<<"$pool")
+  export PGPASSWORD="${SUPABASE_DB_PASSWORD:?SUPABASE_DB_PASSWORD is needed}"
+fi
 mask "$PGPASSWORD"
 
 RECIPIENT="${BACKUP_AGE_RECIPIENT:-$(vault_get backup_age_recipient)}"
@@ -101,37 +118,53 @@ jq -n --arg stamp "$STAMP" --arg server "$server" --arg pgdump "$(pg_dump --vers
     encrypted: {sha256: $enc_sha, bytes: $enc_bytes}, plain: {sha256: $plain_sha, bytes: $plain_bytes},
     consistent_counts: $consistent, tables_with_data: $toc_tables, row_counts: $counts}' > "$OUT/manifest.json"
 
-# ---------------------------------------------------------------- upload to the private bucket
-KEY=$(curl -sS "$SB_API/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
-[ -n "$KEY" ] || fail "no service role key"
-mask "$KEY"
-ST="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
-H=(-H "Authorization: Bearer $KEY" -H "apikey: $KEY")
-curl -sS -o /dev/null -X POST "$ST/bucket" "${H[@]}" -H 'content-type: application/json' \
-  --data '{"id":"backups","name":"backups","public":false,"file_size_limit":52428800}' || true
-[ "$(curl -sS "$ST/bucket/backups" "${H[@]}" | jq -r '.public')" = "false" ] || fail "the backups bucket is missing or public"
-for f in $(jq -r '.parts[]' "$OUT/manifest.json") manifest.json; do
-  ct=application/octet-stream; [ "$f" = manifest.json ] && ct=application/json
-  code=$(curl -sS -o "$OUT/up.txt" -w '%{http_code}' -X POST "$ST/object/backups/nightly/$STAMP/$f" "${H[@]}" \
-    -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$OUT/$f")
-  [ "${code:0:1}" = 2 ] || fail "upload of $f answered $code: $(head -c 300 "$OUT/up.txt")"
-done
-log "uploaded nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
+# ---------------------------------------------------------------- upload to the backup bucket (S3) on the server's backend
+if [ "$DB_BACKEND" = vps ]; then
+  for f in $(jq -r '.parts[]' "$OUT/manifest.json") manifest.json; do
+    "${S3[@]}" cp "$OUT/$f" "$S3_BASE/$STAMP/$f" || fail "upload of $f to the backup bucket failed"
+  done
+  log "uploaded logical/nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
+  cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
+  folders=$("${S3[@]}" ls "$S3_BASE/" | awk '$1 == "PRE" {sub("/$", "", $2); print $2}')
+  removed=0
+  for d in $folders; do
+    [[ "$d" < "$cutoff" ]] || continue
+    "${S3[@]}" rm --recursive "$S3_BASE/$d/" && removed=$((removed + 1))
+  done
+  kept=$(( $(wc -w <<<"$folders") - removed ))
+else
+  KEY=$(curl -sS "$SB_API/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+  [ -n "$KEY" ] || fail "no service role key"
+  mask "$KEY"
+  ST="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+  H=(-H "Authorization: Bearer $KEY" -H "apikey: $KEY")
+  curl -sS -o /dev/null -X POST "$ST/bucket" "${H[@]}" -H 'content-type: application/json' \
+    --data '{"id":"backups","name":"backups","public":false,"file_size_limit":52428800}' || true
+  [ "$(curl -sS "$ST/bucket/backups" "${H[@]}" | jq -r '.public')" = "false" ] || fail "the backups bucket is missing or public"
+  for f in $(jq -r '.parts[]' "$OUT/manifest.json") manifest.json; do
+    ct=application/octet-stream; [ "$f" = manifest.json ] && ct=application/json
+    code=$(curl -sS -o "$OUT/up.txt" -w '%{http_code}' -X POST "$ST/object/backups/nightly/$STAMP/$f" "${H[@]}" \
+      -H "content-type: $ct" -H 'x-upsert: true' --data-binary "@$OUT/$f")
+    [ "${code:0:1}" = 2 ] || fail "upload of $f answered $code: $(head -c 300 "$OUT/up.txt")"
+  done
+  log "uploaded nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
 
-# ---------------------------------------------------------------- keep 30 days
-cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
-folders=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
-  --data '{"prefix":"nightly/","limit":1000,"sortBy":{"column":"name","order":"asc"}}' | jq -r '.[] | select(.id == null) | .name')
-removed=0
-for d in $folders; do
-  [[ "$d" < "$cutoff" ]] || continue
-  files=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
-    --data "$(jq -nc --arg p "nightly/$d/" '{prefix: $p, limit: 100}')" | jq -c --arg p "nightly/$d/" '[.[] | select(.id != null) | $p + .name]')
-  [ "$files" != "[]" ] || continue
-  curl -sS -o /dev/null -X DELETE "$ST/object/backups" "${H[@]}" -H 'content-type: application/json' --data "{\"prefixes\": $files}"
-  removed=$((removed + 1))
-done
-kept=$(( $(wc -w <<<"$folders") - removed ))
+  # ---------------------------------------------------------------- keep 30 days
+  cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
+  folders=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
+    --data '{"prefix":"nightly/","limit":1000,"sortBy":{"column":"name","order":"asc"}}' | jq -r '.[] | select(.id == null) | .name')
+  removed=0
+  for d in $folders; do
+    [[ "$d" < "$cutoff" ]] || continue
+    files=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
+      --data "$(jq -nc --arg p "nightly/$d/" '{prefix: $p, limit: 100}')" | jq -c --arg p "nightly/$d/" '[.[] | select(.id != null) | $p + .name]')
+    [ "$files" != "[]" ] || continue
+    curl -sS -o /dev/null -X DELETE "$ST/object/backups" "${H[@]}" -H 'content-type: application/json' --data "{\"prefixes\": $files}"
+    removed=$((removed + 1))
+  done
+  kept=$(( $(wc -w <<<"$folders") - removed ))
+
+fi
 
 record succeeded "$(jq -c --argjson removed "$removed" --argjson kept "$kept" '{folder: ("nightly/" + .stamp), parts: (.parts | length), encrypted_bytes: .encrypted.bytes, tables: (.row_counts | length), rows: ([.row_counts[]] | add), consistent_counts, removed: $removed, kept: $kept}' "$OUT/manifest.json")"
 trap - EXIT
