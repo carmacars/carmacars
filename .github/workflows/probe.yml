@@ -8,7 +8,9 @@ jobs:
     steps:
       - run: |
           G="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-          seq 100 129 | xargs -P 30 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" | sort -n > out.txt
-          echo "::notice title=parallel 30::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' out.txt)"
-          seq 200 209 | xargs -P 10 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" > o2.txt
-          echo "::notice title=parallel 10::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' o2.txt)"
+          seq 300 329 | xargs -P 30 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" > o.txt
+          echo "::notice title=parallel 30 cold::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' o.txt)"
+          seq 300 329 | xargs -P 30 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" > o.txt
+          echo "::notice title=parallel 30 again::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' o.txt)"
+          b=$(curl -s -m 30 https://carmacars.ca/sign-in); echo "::notice title=sign-in::google button $(grep -c 'Continue with Google' <<<"$b")"
+          curl -s -o /dev/null -m 30 -w "::notice title=oauth start::%{http_code} -> %{redirect_url}\n" "https://carmacars.ca/auth/oauth?provider=google&intent=signin" | sed 's/code_challenge=[^&]*/code_challenge=x/; s/state=[^&]*/state=x/' | cut -c1-200
