@@ -301,10 +301,17 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await sql`update owners set user_id = ${pu.id} where id = (select owner_id from partners where id = ${partnerId})`;
   const page = await ctx(browser);
   await signIn(page, pu.email, '/owner');
-  await expect(page.locator('.pt__nav')).toContainText('Partner agreement');
-  await expect(page.locator('.pt__nav')).not.toContainText('Invoices');
+  // six tabs since October 23, 2026: the partner agreement is under Documents, and Money has no invoices for a partner
+  await expect(page.locator('.pt__nav')).toContainText('Documents');
+  await expect(page.locator('.pt__nav, .pt__subnav')).not.toContainText('Invoices');
   await check(page, 'partner home');
-  await page.goto('/owner/partner-agreement', { waitUntil: 'networkidle' });
+  await page.goto('/owner/statements', { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('owner-subnav')).toContainText('Payouts');
+  await expect(page.getByTestId('owner-subnav')).not.toContainText('Invoices');
+  await page.goto('/owner/documents', { waitUntil: 'networkidle' });
+  await page.getByTestId('owner-subnav').getByRole('link', { name: 'Partner agreement' }).click();
+  await page.waitForURL(/\/owner\/partner-agreement/);
+  await page.waitForLoadState('networkidle');
   // the approved text (the legal review, 0053): no draft banner, sections 3 to 11
   await expect(page.locator('#partner-agreement')).not.toContainText('Draft for lawyer review');
   for (const h of ['3. Bookings and renters', '4. Money', '5. Insurance and condition', '6. Damage and claims', '7. Tolls and tickets',

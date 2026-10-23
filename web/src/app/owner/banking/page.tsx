@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { PageHeader } from '@/features/portal/Chrome';
 import { Dl } from '@/features/portal/Blocks';
 import { day } from '@/features/owner/Blocks';
 import { PayoutForm } from '@/features/owner/OwnerForms';
@@ -18,7 +19,7 @@ export default async function OwnerBanking() {
   const label = (a: (typeof home.payout_accounts)[number]) => (a.method === 'e_transfer' ? `e-Transfer to ${a.e_transfer_email}` : `Bank account ending ${a.account_last4}`);
   return (
     <>
-      <h1 className="d2">Banking</h1>
+      <PageHeader title="Banking" purpose="Where we pay you, and how your fees are paid." />
       <div className="pt-split">
         <section className="pt-card" aria-labelledby="ow-payout"><h2 className="d4" id="ow-payout">Where we pay you</h2>
           {current ? <Dl rows={[['In use', label(current)], ['Verified', current.verified_at ? day(current.verified_at) : '']]} /> : <p className="small muted">No payout account in use yet.</p>}
