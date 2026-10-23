@@ -138,18 +138,24 @@ restore() {
   mask "$pg"; mask "$admin"
   [ -s "$W/extensions.json" ] || hq "select e.extname as name, e.extversion as version, n.nspname as schema from pg_extension e join pg_namespace n on n.oid = e.extnamespace order by 1" > "$W/extensions.json"
   # 1. the hosted project's extensions, in the same schemas (Supabase's restore guide, step 3)
-  local name schema
+  local name schema sql
   while IFS=$'\t' read -r name schema; do
     [ "$name" = plpgsql ] && continue
-    if ! psql "$admin" -X -q -v ON_ERROR_STOP=1 -c "create schema if not exists \"$schema\"; create extension if not exists \"$name\" with schema \"$schema\" cascade" > /dev/null 2> "$W/ext.err"; then
+    # pg_cron and the like live in pg_catalog, which is no schema to name (their control file decides)
+    if [[ "$schema" == pg_* ]]; then sql="create extension if not exists \"$name\" cascade"
+    else sql="create schema if not exists \"$schema\"; create extension if not exists \"$name\" with schema \"$schema\" cascade"; fi
+    if ! psql "$admin" -X -q -v ON_ERROR_STOP=1 -c "$sql" > /dev/null 2> "$W/ext.err"; then
       warn "extension $name ($schema) could not be created on the server: $(head -c 300 "$W/ext.err")"
     fi
   done < <(jq -r '.[] | [.name, .schema] | @tsv' "$W/extensions.json")
   psql "$pg" -X -q -v ON_ERROR_STOP=1 -c "create schema if not exists supabase_migrations;
     create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);" > /dev/null
-  # 2. roles and schema, one transaction
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$W/roles.sql" -f "$W/schema.sql" > "$W/schema.out" 2> "$W/schema.err" \
-    || { tail -n 20 "$W/schema.err" >&2; die "restoring the roles and schema failed (above); nothing of it was kept"; }
+  # 2. the hosted project's own roles (as supabase_admin: the file also sets reserved roles' options; a refusal is
+  #    reported, not fatal), then the schema in one transaction as postgres (the owner, as on the hosted project)
+  psql "$admin" -X -q -f "$W/roles.sql" > /dev/null 2> "$W/roles.err" || true
+  if grep -q 'ERROR' "$W/roles.err"; then warn "roles.sql: $(grep 'ERROR' "$W/roles.err" | head -n 5 | tr '\n' ' ')"; fi
+  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$W/schema.sql" > "$W/schema.out" 2> "$W/schema.err" \
+    || { grep -v 'supautils' "$W/schema.err" | tail -n 20 >&2; die "restoring the schema failed (above); nothing of it was kept"; }
   # 3. the data, fitted to the server's tables, one transaction with triggers off
   vps_sql "select json_build_object(
       'tables', (select json_object_agg(c.table_schema || '.' || c.table_name, c.cols) from
