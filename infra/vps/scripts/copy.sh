@@ -15,6 +15,7 @@
 #   copy.sh auth        the hosted Auth settings (config/auth) into the server's GoTrue (auth.env, templates)
 #   copy.sh functions   the three Edge Functions and their secrets (scripts/deploy/supabase.sh fnsync)
 #   copy.sh storage     every stored file not already on the server with the same size (bucket by bucket)
+#   copy.sh basebackup  a wal-g base backup of the copy (when the backup bucket is configured)
 #   copy.sh verify      row counts table by table, vault, cron, Auth, Storage, functions and RPC answers compared
 #
 # Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD (dump), VPS_SSH_KEY; COPY_DIR (work folder,
@@ -415,8 +416,16 @@ verify() {
   note "verify: the server matches ($COPY_MODE)"
 }
 
+basebackup() {
+  if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
+    note "base backup: $(vps_ssh sudo /opt/carmacars/bin/walg-base | tail -n 1)"
+  else
+    note "base backup: the backup bucket is not configured (vps-backup configure)"
+  fi
+}
+
 for step in "$@"; do
-  case "$step" in preflight|dump|reset|restore|migrations|vault|cron|auth|functions|storage|verify) ;; *) die "unknown step $step" ;; esac
+  case "$step" in preflight|dump|reset|restore|migrations|vault|cron|auth|functions|storage|verify|basebackup) ;; *) die "unknown step $step" ;; esac
   say "== $step"
   "$step"
 done

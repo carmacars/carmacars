@@ -11,3 +11,8 @@ rm -rf "$D/supabase/volumes/db/data"
 mkdir -p "$D/supabase/volumes/db/data"
 rm -f "$D/wal-spool/"* 2>/dev/null || true
 "$D/bin/stack-up"
+# a new cluster: the bucket's base backups and WAL belong to the old one (same file names, different system id)
+if [ -f "$D/backup/enabled-flag/enabled" ]; then
+  "$D/bin/walg" delete everything FORCE --confirm > /dev/null 2>&1 || true
+  echo "db-reset: the old cluster's wal-g backups were removed; the copy takes a new base backup at its end"
+fi

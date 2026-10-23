@@ -67,7 +67,7 @@ jobs:
       - name: Copy
         run: |
           s="$STEPS"
-          if [ "$s" = all ]; then s="preflight dump reset restore vault cron auth functions storage verify"; fi
+          if [ "$s" = all ]; then s="preflight dump reset restore vault cron auth functions storage verify basebackup"; fi
           # shellcheck disable=SC2086 # the step names are words; copy.sh refuses any other
           COPY_DIR="$RUNNER_TEMP/copy" infra/vps/scripts/copy.sh $s
       - name: Remove the dump from the runner
