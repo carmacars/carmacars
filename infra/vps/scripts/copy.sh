@@ -184,6 +184,10 @@ restore() {
   if [ "$archiving" = yes ]; then vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled; fi
   local load_s=$(( $(date +%s) - tl ))
   migrations
+  # every sequence at least at its column's max: on the October 23, 2026 cutover the dump's setval lines did not reach
+  # the server and audited writes failed with duplicate keys until the sequences were set (scripts/sequences.sql)
+  local seqs; seqs=$(vps_sql_file "$HERE/sequences.sql") || die "setting the sequences to their tables' max failed"
+  note "sequences moved up to their tables' max: $(jq -r 'length' <<<"$seqs") ($(jq -r 'map(.seq) | join(", ")' <<<"$seqs" | cut -c1-300))"
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
         left join pg_roles r on r.oid = s.setrole

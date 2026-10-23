@@ -11,13 +11,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        section: [diag, functions, webhooks, auth2]
+        section: [fix1, outbox]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       PHONE: '+12893125991'
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: ${{ matrix.section }}
