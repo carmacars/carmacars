@@ -68,6 +68,7 @@ EOF
 if ! [ -s /home/ubuntu/.ssh/authorized_keys ]; then
   echo "refusing to lock SSH down: /home/ubuntu/.ssh/authorized_keys is empty" >&2; exit 1
 fi
+install -d -m 755 /run/sshd   # Ubuntu 24.04 starts sshd by socket: the directory may not exist yet
 sshd -t
 systemctl reload ssh 2>/dev/null || systemctl restart ssh
 say "SSH: keys only"
