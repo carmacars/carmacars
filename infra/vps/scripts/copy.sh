@@ -156,7 +156,9 @@ restore() {
   #    reported, not fatal), then the schema in one transaction as postgres (the owner, as on the hosted project)
   psql "$admin" -X -q -f "$W/roles.sql" > /dev/null 2> "$W/roles.err" || true
   if grep -q 'ERROR' "$W/roles.err"; then warn "roles.sql: $(grep 'ERROR' "$W/roles.err" | head -n 5 | tr '\n' ' ')"; fi
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$W/schema.sql" > "$W/schema.out" 2> "$W/schema.err" \
+  local ts; ts=$(date +%s)
+  # inside the server as well: thousands of statements one by one through the tunnel took about 10 minutes
+  zstd -q -3 -c "$W/schema.sql" | vps_ssh sudo /opt/carmacars/bin/sql-load postgres 2> "$W/schema.err" \
     || { grep -v 'supautils' "$W/schema.err" | tail -n 20 >&2; die "restoring the schema failed (above); nothing of it was kept"; }
   # 3. the data, fitted to the server's tables, one transaction with triggers off
   vps_sql "select json_build_object(
@@ -206,7 +208,7 @@ restore() {
   psql "$admin" -X -q -c "vacuum analyze" > /dev/null 2>&1 || warn "vacuum analyze did not finish"
   local f; f="$W/filter.json"
   { echo "### Restore"; echo
-    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s (the data itself $load_s s); $n role/database settings copied, $failed failed"
+    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s (schema $(( tl - ts )) s, data $load_s s); $n role/database settings copied, $failed failed"
     echo "- role settings left to the image's defaults (compare by hand): ${left[*]:-none}"
     echo "- left to their own step: $(jq -r '.skipped_by_rule | to_entries | map("\(.key) (\(.value))") | join(", ")' "$f")"
     echo "- tables the server does not have (Auth/Storage versions): $(jq -r '.missing_on_server | to_entries | map("\(.key) (\(.value) rows)") | join(", ") | if . == "" then "none" else . end' "$f")"
