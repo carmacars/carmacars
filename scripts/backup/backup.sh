@@ -52,7 +52,7 @@ if [ "$DB_BACKEND" = vps ]; then
     [ -n "${!v:-}" ] || fail "$v is not set (repository secret; infra/vps/CUTOVER.md, Backups)"
   done
   export AWS_ACCESS_KEY_ID="$BACKUP_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}"
-  S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors)
+  S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT")
   S3_BASE="s3://$BACKUP_S3_BUCKET/logical/nightly"
 else
   pool=$(sbapi GET "/config/database/pooler")
@@ -75,7 +75,12 @@ COUNTS_SQL="select coalesce(json_object_agg(t.table_schema || '.' || t.table_nam
 consistent=true
 coproc PSQL { psql -X -q -At -v ON_ERROR_STOP=1 2>&1; }
 echo "begin isolation level repeatable read read only; select pg_export_snapshot();" >&"${PSQL[1]}"
-read -r -t 60 snap <&"${PSQL[0]}" || snap=""
+# the snapshot id, past any server warnings printed when the session starts
+snap=""
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  read -r -t 60 line <&"${PSQL[0]}" || break
+  if [[ "$line" =~ ^[0-9A-F]+-[0-9A-F]+-[0-9A-F-]+$ ]]; then snap="$line"; break; fi
+done
 dump_args=(--format=custom --compress=6 --no-comments --verbose)
 for s in "${SCHEMAS[@]}"; do dump_args+=(--schema="$s"); done
 if [[ "$snap" =~ ^[0-9A-F-]+$ ]]; then
@@ -121,7 +126,7 @@ jq -n --arg stamp "$STAMP" --arg server "$server" --arg pgdump "$(pg_dump --vers
 # ---------------------------------------------------------------- upload to the backup bucket (S3) on the server's backend
 if [ "$DB_BACKEND" = vps ]; then
   for f in $(jq -r '.parts[]' "$OUT/manifest.json") manifest.json; do
-    "${S3[@]}" cp "$OUT/$f" "$S3_BASE/$STAMP/$f" || fail "upload of $f to the backup bucket failed"
+    "${S3[@]}" cp --only-show-errors "$OUT/$f" "$S3_BASE/$STAMP/$f" || fail "upload of $f to the backup bucket failed"
   done
   log "uploaded logical/nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
   cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
@@ -129,7 +134,7 @@ if [ "$DB_BACKEND" = vps ]; then
   removed=0
   for d in $folders; do
     [[ "$d" < "$cutoff" ]] || continue
-    "${S3[@]}" rm --recursive "$S3_BASE/$d/" && removed=$((removed + 1))
+    "${S3[@]}" rm --only-show-errors --recursive "$S3_BASE/$d/" && removed=$((removed + 1))
   done
   kept=$(( $(wc -w <<<"$folders") - removed ))
 else
