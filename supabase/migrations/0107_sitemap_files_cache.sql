@@ -50,7 +50,7 @@ begin
 end $$;
 
 revoke all on function app.vehicle_sitemap_files_stored(), app.vehicle_sitemap_files_refresh() from public, anon, authenticated;
-grant execute on function app.vehicle_sitemap_files_refresh() to service_role;
+grant execute on function app.vehicle_sitemap_files_stored(), app.vehicle_sitemap_files_refresh() to service_role;
 
 do $$
 begin
