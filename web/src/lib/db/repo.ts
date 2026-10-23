@@ -78,7 +78,8 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
   if (role === 'anon' && !accessToken && process.env.NEXT_PHASE === 'phase-production-build') {
     const key = `${fn}:${JSON.stringify(a)}`;
     let p = buildReads.get(key);
-    if (!p) { p = b.call(fn, a, { ...rest, role }); buildReads.set(key, p); p.catch(() => buildReads.delete(key)); }
+    // a busy database cancels a public read after 2.5 s (0106): the build waits and tries again instead of failing
+    if (!p) { p = buildRetry(() => b.call(fn, a, { ...rest, role })); buildReads.set(key, p); p.catch(() => buildReads.delete(key)); }
     return (await p) as ReturnsOf<F>;
   }
   // Site-wide public reads (settings, facts, footer links, sitemap lists): the same answer for every visitor, so each
@@ -91,6 +92,14 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
   return (await b.call(fn, a, { ...rest, role, accessToken })) as ReturnsOf<F>;
 }
 const buildReads = new Map<string, Promise<unknown>>();
+async function buildRetry(load: () => Promise<unknown>): Promise<unknown> {
+  for (let i = 0; ; i++) {
+    try { return await load(); } catch (e) {
+      if (i >= 7) throw e;
+      await new Promise((r) => setTimeout(r, Math.min(30_000, 2_000 * 2 ** i)));
+    }
+  }
+}
 
 const SHARED_READS = new Set<string>([
   'site_settings_public', 'site_facts', 'site_content', 'vehicle_classes', 'seo_links', 'seo_pages_public', 'articles_public',
