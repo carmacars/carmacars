@@ -265,31 +265,36 @@ jobs:
           t0=$(date +%s)
           vps_ssh "sudo systemd-run --quiet --unit=carmacars-reboot-$t0 --on-active=3 /bin/systemctl reboot"
           SAY "reboot in 3 s"
-          ssh "${VPS_SSH_OPTS[@]}" -O exit "$VPS_USER@$(vps_host)" 2>/dev/null || true
-          # a fresh connection each time (the shared one died with the server; in ssh the first -o wins)
+          vps_ssh_close
+          # ---- back: one SSH attempt every 10 s (the firewall drops more than 6 new connections in 30 s); the first that
+          # works becomes the shared connection (ControlMaster) every later command goes through
           host=$(vps_host)
-          S1=(ssh -o ControlMaster=no -o ControlPath=none -o ConnectTimeout=8 "${VPS_SSH_OPTS[@]}" "$VPS_USER@$host")
-          s1() { "${S1[@]}" "$@"; }
           boot1=""
-          for _ in $(seq 1 180); do
-            sleep 5
-            boot1=$(timeout 20 "${S1[@]}" cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
+          for _ in $(seq 1 90); do
+            sleep 10
+            boot1=$(timeout 25 ssh "${VPS_SSH_OPTS[@]}" "$VPS_USER@$host" cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
             if [ -n "$boot1" ] && [ "$boot1" != "$boot0" ]; then break; fi
           done
           if [ -z "$boot1" ] || [ "$boot1" = "$boot0" ]; then echo "::error title=reboot::the server did not come back on SSH within 15 minutes"; exit 1; fi
           t_ssh=$(date +%s); SAY "SSH back after $((t_ssh - t0)) s"
+          # from here every step records its failure and goes on, so the summary is always printed
+          fail=0; problems=()
           # ---- the stack comes back by itself (restart: unless-stopped)
           back=false
-          for _ in $(seq 1 60); do
+          for _ in $(seq 1 36); do
             # shellcheck disable=SC2016 # expanded on the server
-            if timeout 30 "${S1[@]}" 'for c in supabase-db supabase-auth supabase-rest supabase-storage supabase-kong supabase-edge-functions supabase-meta supabase-caddy; do [ "$(sudo docker inspect -f "{{.State.Running}}" "$c" 2>/dev/null)" = true ] || exit 1; done' 2>/dev/null; then back=true; break; fi
-            sleep 5
+            if vps_ssh 'for c in supabase-db supabase-auth supabase-rest supabase-storage supabase-kong supabase-edge-functions supabase-meta supabase-caddy; do [ "$(sudo docker inspect -f "{{.State.Running}}" "$c" 2>/dev/null)" = true ] || exit 1; done' < /dev/null 2>/dev/null; then back=true; break; fi
+            sleep 10
           done
           t_stack=$(date +%s); SAY "containers running by themselves: $back after $((t_stack - t0)) s"
           # ---- the db container recreated (the compose file's command: log_min_messages=error), then everything up and healthy
-          s1 "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 600 --force-recreate --no-deps db" 2>&1 | tail -n 5
-          s1 "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 900" 2>&1 | tail -n 15
-          lvl=$(s1 "sudo docker exec supabase-db psql -U supabase_admin -d postgres -XAtc 'show log_min_messages'")
+          if ! vps_ssh "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 600 --force-recreate --no-deps db" < /dev/null 2>&1 | tail -n 5; then
+            problems+=("the db container could not be recreated"); fail=1
+          fi
+          if ! vps_ssh "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 900" < /dev/null 2>&1 | tail -n 15; then
+            problems+=("docker compose up --wait did not finish healthy"); fail=1
+          fi
+          lvl=$(vps_ssh "sudo docker exec supabase-db psql -U supabase_admin -d postgres -XAtc 'show log_min_messages'" < /dev/null || echo unknown)
           t_db=$(date +%s); SAY "db recreated, every service healthy after $((t_db - t0)) s; log_min_messages=$lvl"
           # ---- the public API answers (auth health and an anonymous database read)
           ok=false
@@ -298,7 +303,7 @@ jobs:
             sleep 3
           done
           t_up=$(date +%s)
-          [ "$ok" = true ] || { echo "::error title=reboot::$API/auth/v1/health and rest did not answer 200 within 6 minutes of the stack being up"; }
+          [ "$ok" = true ] || { problems+=("$API/auth/v1/health and rest did not answer 200 within 6 minutes of the stack being up"); fail=1; }
           sleep 6
           kill "$PROBE" 2>/dev/null || true
           # downtime: from the first failed probe after the reboot to the last one (2 s resolution)
@@ -307,16 +312,16 @@ jobs:
           # ---- health-local (problems that were not there before are failures)
           after=""; new=""
           for _ in 1 2 3 4; do
-            after=$(s1 sudo /opt/carmacars/bin/health-local || true)
+            after=$(vps_ssh sudo /opt/carmacars/bin/health-local < /dev/null || true)
             new=$(jq -r '.problems[]?' <<<"$after" 2>/dev/null | grep -vxF -f "$RUNNER_TEMP/before-problems.txt" || true)
             jq -e 'type == "object"' <<<"$after" > /dev/null 2>&1 || new="health-local gave no report"
             [ -n "$new" ] || break
-            sleep 20
+            sleep 30
           done
           echo "$after" | jq -c '{ok, problems, disk_pct, mem_available_mb, load1, connections, wal_spool_files, cron_jobs_failing}' || true
           # shellcheck disable=SC2016
-          info1=$(s1 'echo "kernel $(uname -r), reboot-required: $([ -f /var/run/reboot-required ] && echo yes || echo no)"')
-          echo "::notice title=after::$info1; containers back by themselves: $back; log_min_messages=$lvl; health-local ok: $(jq -r '.ok' <<<"$after"), problems: $(jq -r '.problems | if length == 0 then "none" else join("; ") end' <<<"$after")"
+          info1=$(vps_ssh 'echo "kernel $(uname -r), reboot-required: $([ -f /var/run/reboot-required ] && echo yes || echo no)"' < /dev/null || echo "kernel unknown (SSH did not answer)")
+          echo "::notice title=after::$info1; containers back by themselves: $back; log_min_messages=$lvl; health-local ok: $(jq -r '.ok // "unknown"' <<<"$after" 2>/dev/null || echo unknown), problems: $(jq -r '.problems // [] | if length == 0 then "none" else join("; ") end' <<<"$after" 2>/dev/null || echo unknown)"
           summary="downtime ${down} s seen from outside ($fails failed probes of auth/v1/health + rest); SSH back $((t_ssh - t0)) s, stack running $((t_stack - t0)) s, db recreated and all healthy $((t_db - t0)) s, API 200 at $((t_up - t0)) s after the reboot command"
           echo "::notice title=reboot::$summary"
           {
@@ -324,10 +329,9 @@ jobs:
             echo "- Before: $info0"; echo "- After: $info1"; echo "- $summary"
             echo "- Containers back by themselves: $back; log_min_messages: $lvl"
             echo "- Compose file: $(head -n 1 "$RUNNER_TEMP/sync.txt")"
-            echo "- health-local: ok $(jq -r '.ok' <<<"$after"); problems: $(jq -r '.problems | if length == 0 then "none" else join("; ") end' <<<"$after")"
+            echo "- health-local: ok $(jq -r '.ok // "unknown"' <<<"$after" 2>/dev/null || echo unknown); problems: $(jq -r '.problems // [] | if length == 0 then "none" else join("; ") end' <<<"$after" 2>/dev/null || echo unknown)"
           } >> "$GITHUB_STEP_SUMMARY"
-          fail=0
-          [ "$ok" = true ] || fail=1
+          for p in "${problems[@]}"; do echo "::error title=reboot::$p"; done
           [ "$lvl" = error ] || { echo "::error title=reboot::log_min_messages is '$lvl' (expected error)"; fail=1; }
           if [ -n "$new" ]; then while IFS= read -r p; do echo "::error title=health after reboot::$p"; done <<<"$new"; fail=1; fi
           exit $fail
