@@ -28,7 +28,8 @@ browser ─┐
 - **Sessions survive.** The refresh tokens are in the copied database. The Worker now refreshes a token from another
   issuer at once (`web/src/lib/auth/edge-refresh.ts`), and the deploy keeps the cookie name `sb-<ref>-auth-token`
   (`NEXT_PUBLIC_SUPABASE_AUTH_COOKIE`), so nobody is signed out by the switch.
-- **One switch for every script.** `DB_BACKEND` (a repository variable, `supabase` when unset) decides whether the
+- **One switch for every script.** The committed file `infra/vps/backend` (`supabase` or `vps`; a repository variable
+  `DB_BACKEND`, if one is ever set, wins) decides whether the
   deploy and every workflow use the Management API and `<ref>.supabase.co`, or the server over SSH
   (`scripts/deploy/lib.sh`, `scripts/deploy/vps.sh`, `scripts/deploy/sb.sh`).
 - **Left out:** Realtime, Analytics, Vector and imgproxy (the app uses none of them). Supavisor is there but off
@@ -65,8 +66,8 @@ On the server: `/opt/carmacars/supabase/.env` (secrets, mode 600, written by `ma
 | `RESEND_API_KEY` (optional: health alerts still go out when the server itself is down) | repository secret | optional |
 
 The workflows are `workflow_dispatch` workflows: GitHub only offers them once they are on the default branch. Merge
-branch `vps` into `main` first. That is safe: with `DB_BACKEND` unset everything works as before, and the new
-schedules (vps-health, vps-backup) do nothing until `DB_BACKEND=vps`.
+branch `vps` into `main` first (done). That is safe: with `infra/vps/backend` = `supabase` everything works as before,
+and the new schedules (vps-health, vps-backup) do nothing until it says `vps`.
 
 ## Step by step
 
@@ -119,7 +120,7 @@ Run it as often as wanted. To try the stack with real data without risk, open St
 
 After the cutover these run by themselves: logical backup nightly at 07:23 UTC (30 days), base backup nightly at
 06:10 UTC (7 kept, so point-in-time recovery over the last week), WAL within 5 minutes, PITR test on Mondays.
-The hosted project's `backup.yml` backup and check jobs stop by themselves once `DB_BACKEND=vps`.
+The hosted project's `backup.yml` backup and check jobs stop by themselves once `infra/vps/backend` says `vps`.
 
 ### 5. Cutover day (a quiet hour, e.g. 02:00 Toronto; about 30 to 60 minutes)
 All in **vps-cutover** unless said otherwise; every switch but `status` needs `confirm: CUTOVER`.
@@ -129,9 +130,9 @@ All in **vps-cutover** unless said otherwise; every switch but `status` needs `c
 | 1 | `status` | both sides' state (read only) |
 | 2 | `freeze-hosted` | hosted pg_cron jobs paused (their states kept on the server), the hosted database read-only by default, the API's pools closed. The site still reads; writes (bookings, sign-ups, uploads) fail until step 6 |
 | 3 | `final-copy` | the full copy of the frozen project; verify requires exact counts (sign-in tables excepted when only the API role could be frozen) |
-| 4 | `go-live` | the server's jobs that were active on the hosted project resume; the server is marked live (copy and reset refuse from now on) |
-| 5 | Settings > Secrets and variables > Actions > Variables: **DB_BACKEND = vps** | every workflow now uses the server |
-| 6 | workflow **ci**: deploy on, environment production (checks off saves time) | the Worker is rebuilt with `NEXT_PUBLIC_SUPABASE_URL=https://api.carmacars.ca`, the same keys and cookie name; functions, Auth settings, the SMS hook and the Stripe webhook secret are applied to the server |
+| 4 | `go-live` (deploy on) | the server's jobs that were active on the hosted project resume; the server is marked live (copy and reset refuse from now on); `infra/vps/backend` becomes `vps` on main (committed by the workflow) and it starts **ci** with deploy (production, checks off) |
+| 5 | the **ci** run go-live started (about 15 minutes) | the Worker is rebuilt with `NEXT_PUBLIC_SUPABASE_URL=https://api.carmacars.ca`, the same keys and cookie name; functions, Auth settings, the SMS hook and the Stripe webhook secret are applied to the server |
+| 6 | (nothing) | every workflow now reads `vps` from `infra/vps/backend`; vps-health and vps-backup schedules start |
 | 7 | smoke tests (below) | |
 | 8 | workflow **vps-health** by hand, then **verify** | from now on vps-health runs every 5 minutes and emails on trouble |
 
@@ -148,7 +149,7 @@ Smoke tests (a phone and a laptop):
 ### 6. Rollback
 - **Before go-live** (steps 2 to 3 went wrong): `unfreeze-hosted`. Nothing else changed; the site is back as before.
 - **After go-live**: `rollback` (the server's jobs paused, not live, the hosted project unfrozen with its jobs
-  resumed), set `DB_BACKEND=supabase` (or delete the variable) and run ci with deploy. **Data written on the server
+  resumed); with deploy on, the workflow also sets `infra/vps/backend` back to `supabase` and deploys the site. **Data written on the server
   after go-live is not carried back**: before the rollback, list what changed (`created_at`/`updated_at` after the
   go-live time in bookings, payments, users and the outbox, from Studio on the server) and re-enter or script it on
   the hosted project. Roll back only for a failure found within the first hour.
@@ -185,6 +186,30 @@ Smoke tests (a phone and a laptop):
 The Supabase compute prices are the published ones (Medium US$60, Large US$110, XL US$210, minus the US$10 credit);
 check supabase.com/pricing and the OVHcloud order page before deciding. GitHub Actions minutes are free while the
 repository is public (vps-health every 5 minutes, the nightly backup).
+
+## Status (October 23, 2026)
+Server 54.39.111.152 (OVHcloud VPS-4, Beauharnois) is provisioned; host key pinned in `known_hosts`; DNS-only
+`api.carmacars.ca` with a Let's Encrypt certificate. Backups go to the Cloudflare R2 bucket `carmacars-backups`
+(settings read from the vault's `deploy_backup_*`). Proven on the server:
+- vps-provision: every health check, inside and over https.
+- vps-copy rehearsal: verify "the server matches" (327 tables, about 588,000 rows, 24 vault secrets that decrypt,
+  45 pg_cron jobs paused, 1,317 stored files, Auth settings and RPC answers identical, Google sign-in carried).
+- vps-backup: configure (wal-g on R2), logical backup + restore test (334 of 334 tables equal), PITR test
+  (base backup + archived WAL replayed, ok).
+Found and fixed on the way: COPY through the SSH tunnel ran under 1 MB/s (21 min), so schema and data now load inside the server from a compressed stream; the platform's own Postgres image (17.11.0.003) does not set up the self-hosted roles
+(the stack uses the official self-hosted 17.6.1.136); the CLI's data dump leaves out the migration history (copied
+separately, else the deploy would re-run migrations); a HEAD on Storage answers from the database row (files are
+now checked by reading their first byte).
+
+Left before the cutover:
+- Google sign-in: `https://api.carmacars.ca/auth/v1/callback` is registered on the Google OAuth client (done).
+- The freeze window: the last rehearsal's whole copy took about 6 minutes (dump 2 to 3.5 min, restore 35 s inside the
+  server, 1,332 files about 1 min, verify, base backup). Plan 15 minutes of read-only site for steps 2 to 4.
+- Role settings: the copy now carries list settings too (`search_path`, `session_preload_libraries`; a preload
+  library the server lacks is tried with a login and undone) and verify compares every setting of anon,
+  authenticated, service_role, authenticator, postgres and the database with the hosted project.
+- Hosted settings GoTrue has no variable for (listed by the copy's auth step: the security notification emails,
+  `mfa_phone_*`, `rate_limit_web3`, `custom_oauth_max_providers`); none is used by the site today.
 
 ## Tested and not tested
 Tested here (no server exists yet): `docker compose config` with the env files (including the quoting of JSON keys

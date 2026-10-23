@@ -4,11 +4,11 @@
 # deploy_backup_s3_access_key_id, deploy_backup_s3_secret_access_key, deploy_backup_walg_key): first the vault of the
 # live backend (repository variable DB_BACKEND: the hosted project until the cutover), then the other one (vps-copy
 # copies the vault to the server). Values are masked and exported to the job (GITHUB_ENV); never printed.
-# Env: VPS_SSH_KEY, SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF; LIVE_BACKEND (vars.DB_BACKEND, default supabase).
+# Env: VPS_SSH_KEY, SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF; LIVE_BACKEND (vars.DB_BACKEND; else infra/vps/backend).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SB="$ROOT/scripts/deploy/sb.sh"
-live="${LIVE_BACKEND:-supabase}"; [ "$live" = vps ] || live=supabase
+live="${LIVE_BACKEND:-}"; [ -n "$live" ] || live=$(DB_BACKEND="" "$ROOT/infra/vps/scripts/backend.sh"); [ "$live" = vps ] || live=supabase
 other=vps; [ "$live" = vps ] && other=supabase
 from_vault() { # vault name -> value from the first backend that has it
   local b v

@@ -13,8 +13,15 @@
 # SB_PUBLIC_URL the address the site and browsers use.
 set -euo pipefail
 
-DB_BACKEND="${DB_BACKEND:-supabase}"
+# DB_BACKEND from the environment (the repository variable, when one is set), else the committed file infra/vps/backend
+# (one line: supabase or vps; flipped by the vps-cutover workflow), else supabase.
+if [ -z "${DB_BACKEND:-}" ]; then
+  _bf="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/infra/vps/backend"
+  DB_BACKEND=$( { grep -v '^[[:space:]]*#' "$_bf" 2>/dev/null || true; } | tr -d '[:space:]')
+  DB_BACKEND="${DB_BACKEND:-supabase}"
+fi
 case "$DB_BACKEND" in supabase|vps) ;; *) echo "DB_BACKEND must be supabase or vps (got $DB_BACKEND)" >&2; exit 1 ;; esac
+export DB_BACKEND
 SB_API="https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF:-}"
 CF_API="https://api.cloudflare.com/client/v4"
 if [ "$DB_BACKEND" = vps ]; then
