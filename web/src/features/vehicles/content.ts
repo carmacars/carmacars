@@ -7,6 +7,8 @@ export type Variant = {
   id: number; epa_model: string; special?: string[]; displ: number | null; cyl: number | null; turbo: boolean; super: boolean; drive: string | null; trans: string | null;
   fuel: string; vclass: string | null; l100_city: number | null; l100_hwy: number | null; l100_comb: number | null; kwh100: number | null; ev_range_km: number | null; co2_g_km: number | null;
   mpg_city?: number | null; mpg_hwy?: number | null; mpg_comb?: number | null; fuel_cost_usd?: number | null; charge240_h?: number | null; luggage_cuft?: number | null; battery_kwh?: number | null;
+  /** 'nrcan': Natural Resources Canada's figures (0115), on a model year EPA has none for */
+  src?: 'nrcan';
 };
 /** A body's Canadian dimensions (vPIC): cm and kg. */
 export type Dim = { body: string; length_cm: number | null; width_cm: number | null; height_cm: number | null; wheelbase_cm: number | null; curb_kg: number | null };
@@ -26,7 +28,7 @@ export const list = (xs: string[], join = 'and') => (xs.length < 2 ? xs.join('')
 export type Spec = { key: string; ids: number[]; engine: string; drive: string | null; trans: string | null; fuel: string; fuelWord: string;
   l100_city: number | null; l100_hwy: number | null; l100_comb: number | null; kwh100: number | null; ev_range_km: number | null; co2_g_km: number | null; cost100: number | null;
   displ: number | null; cyl: number | null; mpg_city: number | null; mpg_hwy: number | null; mpg_comb: number | null; fuel_cost_usd: number | null; charge240_h: number | null;
-  luggage_cuft: number | null; battery_kwh: number | null };
+  luggage_cuft: number | null; battery_kwh: number | null; src?: 'nrcan' };
 
 const avgInt = (xs: Array<number | null>) => { const ok = xs.filter((x): x is number => typeof x === 'number'); return ok.length ? Math.round(ok.reduce((a, b) => a + b, 0) / ok.length) : null; };
 const maxOf = (xs: Array<number | null>) => { const ok = xs.filter((x): x is number => typeof x === 'number'); return ok.length ? Math.max(...ok) : null; };
@@ -52,6 +54,7 @@ export function specs(variants: Variant[], s: Pick<Settings, 'gas_cents' | 'prem
       mpg_city: avgInt(vs.map((x) => x.mpg_city ?? null)), mpg_hwy: avgInt(vs.map((x) => x.mpg_hwy ?? null)), mpg_comb: avgInt(vs.map((x) => x.mpg_comb ?? null)),
       fuel_cost_usd: avgInt(vs.map((x) => x.fuel_cost_usd ?? null)), charge240_h: avg(vs.map((x) => x.charge240_h ?? null)),
       luggage_cuft: maxOf(vs.map((x) => x.luggage_cuft ?? null)), battery_kwh: maxOf(vs.map((x) => x.battery_kwh ?? null)),
+      ...(vs.some((x) => x.src === 'nrcan') ? { src: 'nrcan' as const } : {}),
       cost100: costPer100km({ l100: l100, kwh100: kwh, gasCents: s.gas_cents, elecCents: s.elec_cents, premium: v.fuel === 'premium', premiumExtraCents: s.premium_extra_cents })
     };
   }).sort((a, b) => (a.l100_comb ?? a.kwh100 ?? 99) - (b.l100_comb ?? b.kwh100 ?? 99) || a.key.localeCompare(b.key));

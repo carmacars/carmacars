@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPlaces, cityRadius, parseCensusLine, parseGeonamesLine, parseOsmLine, regionCode, slugify, toCsv } from './gazetteer.ts';
+import { buildPlaces, cityRadius, osmSrcId, parseCensusLine, parseGeonamesLine, parseOsmLine, regionCode, ringCentre, slugify, toCsv } from './gazetteer.ts';
 
 const FIX = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../scripts/places/fixtures');
 const lines = (f: string) => fs.readFileSync(path.join(FIX, f), 'utf8').split('\n').filter(Boolean);
@@ -67,4 +67,25 @@ test('build: only the regions asked for; the CSV quotes names with commas', () =
   assert.equal(cityRadius(5_000_000), 30);
   assert.equal(Math.round(cityRadius(2_600_000)), 25);
   assert.equal(cityRadius(1000), 3);
+});
+
+test('OpenStreetMap areas (0115): neighbourhoods mapped as ways and relations, at their middle, with ids of their own', () => {
+  const area = (id: string, place: string, geometry: unknown) => JSON.stringify({ type: 'Feature', id, geometry, properties: { name: 'Leslieville', place } });
+  const sq = { type: 'Polygon', coordinates: [[[-79.34, 43.66], [-79.32, 43.66], [-79.32, 43.67], [-79.34, 43.67], [-79.34, 43.66]]] };
+  const w = parseOsmLine(area('w1001', 'neighbourhood', sq))!;
+  assert.deepEqual([w.type, w.id, Math.round(w.lat * 1000) / 1000, Math.round(w.lng * 1000) / 1000], ['w', 1001, 43.665, -79.33]);
+  const r = parseOsmLine(area('r77', 'suburb', { type: 'MultiPolygon', coordinates: [sq.coordinates, [[[0, 0], [1, 1], [0, 0]]]] }))!;
+  assert.deepEqual([r.type, r.id], ['r', 77], 'the larger ring of a multipolygon');
+  assert.deepEqual([parseOsmLine(area('a2002', 'quarter', sq))!.type, parseOsmLine(area('a2002', 'quarter', sq))!.id], ['w', 1001], "osmium's area id of a way");
+  assert.deepEqual([parseOsmLine(area('a155', 'quarter', sq))!.type, parseOsmLine(area('a155', 'quarter', sq))!.id], ['r', 77], "osmium's area id of a relation");
+  assert.equal(parseOsmLine(area('w5', 'city', sq)), null, 'cities stay nodes only');
+  const ids = [osmSrcId({ id: 1001, type: 'n' }), osmSrcId({ id: 1001, type: 'w' }), osmSrcId({ id: 1001, type: 'r' })];
+  assert.equal(new Set(ids).size, 3);
+  assert.ok(ids.every((x) => x < 0 && x > -1e13), 'never in the Census range (minus 10^13 and beyond)');
+  // an area with the name of a node close by is the same place
+  const node = parseOsmLine(JSON.stringify({ type: 'Feature', id: 'n9', geometry: { type: 'Point', coordinates: [-79.331, 43.664] }, properties: { name: 'Leslieville', place: 'neighbourhood' } }))!;
+  const out = buildPlaces({ geonames: [{ id: 6167865, name: 'Toronto', lat: 43.7, lng: -79.42, fclass: 'P', fcode: 'PPLA', cc: 'CA', admin1: '08', admin2: '3520', population: 2_600_000 }],
+    osm: [node, w], regions: ['CA-ON'], fixture: true });
+  assert.equal(out.places.filter((p) => p.name === 'Leslieville').length, 1);
+  assert.equal(ringCentre({ type: 'Point', coordinates: [0, 0] }), null);
 });

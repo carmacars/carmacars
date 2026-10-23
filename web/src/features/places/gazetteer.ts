@@ -80,19 +80,42 @@ export function parseGeonamesLine(line: string): GnFeature | null {
   if (!id || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return { id, name: c[1]!, lat, lng, fclass: c[6]!, fcode: c[7]!, cc: c[8]!, admin1: c[10] ?? '', admin2: c[11] ?? '', population: Number(c[14]) || 0 };
 }
-export interface OsmNode { id: number; name: string; place: string; lat: number; lng: number; population: number }
-/** One line of `osmium export -f geojsonseq` of place nodes (with --add-unique-id=type_id). */
+export interface OsmNode { id: number; name: string; place: string; lat: number; lng: number; population: number; type?: 'n' | 'w' | 'r' }
+/** The src_id of an OpenStreetMap place: minus the node id, as before 0115; a way or relation (a neighbourhood mapped
+ *  as an area, 0115) minus 2*10^12 or 3*10^12 plus its id, so the three never meet each other or the Census ids. */
+export const osmSrcId = (o: Pick<OsmNode, 'id' | 'type'>) => -((o.type === 'w' ? 2e12 : o.type === 'r' ? 3e12 : 0) + o.id);
+/** The middle of an area: the mean of its outer ring's points (the largest ring of a multipolygon), close enough for a
+ *  neighbourhood's distance and its nearest city. */
+export function ringCentre(g: { type: string; coordinates: unknown }): [number, number] | null {
+  let ring: Array<[number, number]> | undefined;
+  if (g.type === 'Polygon') ring = (g.coordinates as Array<Array<[number, number]>>)[0];
+  else if (g.type === 'MultiPolygon') ring = (g.coordinates as Array<Array<Array<[number, number]>>>).map((p) => p[0] ?? []).sort((a, b) => b.length - a.length)[0];
+  else if (g.type === 'LineString') ring = g.coordinates as Array<[number, number]>;
+  if (!ring || !ring.length) return null;
+  const pts = ring.length > 1 && ring[0]![0] === ring[ring.length - 1]![0] && ring[0]![1] === ring[ring.length - 1]![1] ? ring.slice(0, -1) : ring;
+  const lng = pts.reduce((a, p) => a + p[0], 0) / pts.length, lat = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  return Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : null;
+}
+/** One line of `osmium export -f geojsonseq` of place nodes (with --add-unique-id=type_id) and, since 0115, of the
+ *  neighbourhoods, suburbs, quarters and boroughs mapped as areas (ways and multipolygon relations, "w123", "r123", or
+ *  osmium's area ids "a246": twice the way id, twice the relation id plus one), placed at their middle. */
 export function parseOsmLine(line: string): OsmNode | null {
   const t = line.replace(/^\x1e/, '').trim();
   if (!t) return null;
   try {
-    const f = JSON.parse(t) as { id?: string | number; geometry?: { type: string; coordinates: [number, number] }; properties?: Record<string, string> };
-    if (f.geometry?.type !== 'Point') return null;
+    const f = JSON.parse(t) as { id?: string | number; geometry?: { type: string; coordinates: unknown }; properties?: Record<string, string> };
     const p = f.properties ?? {};
     const name = p['name:en'] && /^[\x20-\x7e]+$/.test(p['name:en']) && !p.name ? p['name:en'] : p.name;
-    const id = Number(String(f.id ?? p['@id'] ?? '').replace(/^n/, ''));
-    if (!name || !p.place || !id) return null;
-    return { id, name, place: p.place, lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], population: Number(String(p.population ?? '').replace(/[^0-9]/g, '')) || 0 };
+    const raw = String(f.id ?? p['@id'] ?? '');
+    let type: 'n' | 'w' | 'r' = 'n'; let id = Number(raw.replace(/^[nwra]/, ''));
+    if (/^w/.test(raw)) type = 'w'; else if (/^r/.test(raw)) type = 'r';
+    else if (/^a/.test(raw)) { type = id % 2 === 0 ? 'w' : 'r'; id = type === 'w' ? id / 2 : (id - 1) / 2; }
+    if (!name || !p.place || !id || !f.geometry) return null;
+    let at: [number, number] | null = null;
+    if (f.geometry.type === 'Point') { if (type !== 'n') return null; at = f.geometry.coordinates as [number, number]; }
+    else if (type !== 'n' && OSM_HOOD.has(p.place)) at = ringCentre(f.geometry);
+    if (!at) return null;
+    return { id, type, name, place: p.place, lng: at[0], lat: at[1], population: Number(String(p.population ?? '').replace(/[^0-9]/g, '')) || 0 };
   } catch { return null; }
 }
 export interface CensusPlace { geoid: number; usps: string; name: string; active: boolean; lat: number; lng: number }
@@ -184,7 +207,7 @@ export function buildPlaces(inp: BuildInput): BuildResult {
     if (dup) { dup.flags |= FLAG.osm; dup.population = Math.max(dup.population, o.population); mergedOsm++; continue; }
     const near = nearestAny(o.lat, o.lng, null);
     if (!near || !want(near.region_code) || km(o.lat, o.lng, near.lat, near.lng) > 60) continue;
-    const x: Work = { src_id: -o.id, kind: hood ? 6 : 5, flags: base | FLAG.osm, cc: near.cc, country: near.country, admin1: near.admin1, admin2: near.admin2, region_code: near.region_code,
+    const x: Work = { src_id: osmSrcId(o), kind: hood ? 6 : 5, flags: base | FLAG.osm, cc: near.cc, country: near.country, admin1: near.admin1, admin2: near.admin2, region_code: near.region_code,
       lat: o.lat, lng: o.lng, population: o.population, name: o.name, iata: null, fcode: `osm:${o.place}`, seat: false, incorporated: false, parent: null };
     all.push(x); placesGrid.add(x);
   }

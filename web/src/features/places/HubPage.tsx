@@ -20,7 +20,10 @@ export async function hubMeta(h: Hub) {
   const t = await getTokens();
   const c = hubCopy(h, { fill: (s) => fill(s, t) });
   // a synonym pointing to another term's page: that page is the canonical one, this one is not indexed
-  return seoMeta({ title: c.title, description: c.description, path: h.term.canonical_path ?? h.path, noindex: !h.indexable || !!h.term.canonical_path });
+  const m = await seoMeta({ title: c.title, description: c.description, path: h.term.canonical_path ?? h.path, noindex: !h.indexable || !!h.term.canonical_path });
+  // 0115: the synonym's page names its term's page as the canonical (noindex alone would leave it without one)
+  if (h.term.canonical_path) m.alternates = { canonical: siteUrl() + h.term.canonical_path };
+  return m;
 }
 
 export function hubTrail(h: Hub): Trail {

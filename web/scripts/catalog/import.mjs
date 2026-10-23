@@ -14,6 +14,17 @@
 //     --fixture-out <dir>   write the fixture subset (the EPA rows and vPIC names of FIXTURE_MODELS) for the tests
 //     --stats <file>        write the counts (makes, models, years, trims) as JSON
 //     --run-url <url>       recorded with the import (the workflow run)
+//   Further sources (0115; docs/seo/coverage-2026-10-23.md). Off unless asked; the catalog workflow passes the ones
+//   Program settings vpage_extra_sources lists (empty until the database has moved off the 1 GB server):
+//     --vpic-export <csv>   NHTSA's vPIC database exported as make,model,year,vehicle_type,trim (the query is in the doc):
+//                           the makes, models and years EPA does not rate, and the trims the VIN patterns name
+//     --vpic-export-types <list>  car,mpv,truck by default; add motorcycle, bus, lsv, offroad as wanted
+//     --vpic-export-known-makes   only the makes EPA has (no new make)
+//     --nrcan <csv,...|download>  Natural Resources Canada's Fuel Consumption Ratings (Open Government Licence - Canada):
+//                           Canadian-market models and years from 1995, with their figures where EPA has none
+//     --nrcan-url <url>     a ratings file to download (repeatable; replaces the default list)
+//     --wikidata <json|download>  car models before 1981 from Wikidata (CC0), names and production years only
+//     --wikidata-new-makes  let Wikidata add makes EPA does not have (Studebaker, Packard); off: only known makes
 //
 // Sources: EPA (US Department of Energy and EPA, fueleconomy.gov: public domain); vPIC (US DOT NHTSA: public domain);
 // the Canadian trim names of web/scripts/catalog/canada-trims.txt (compiled by CarmaCars from the makers' Canadian
@@ -25,7 +36,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
-import { attachDims, attachSafety, batches, buildCatalog, makeName, parseCsv, parsePopular, parseTrimList } from '../../src/features/vehicles/normalise.ts';
+import { attachDims, attachSafety, batches, buildCatalog, makeName, parseCsv, parseNrcanCsv, parsePopular, parseTrimList, parseVpicExport, parseWikidata } from '../../src/features/vehicles/normalise.ts';
 import { slugify } from '../../src/features/vehicles/units.ts';
 import { beforeBatch } from '../../src/lib/import-pace.ts';
 import { Readable } from 'node:stream';
@@ -210,6 +221,63 @@ async function nhtsaComplaints() {
   });
   return { map: out, ok, bad, url: src.url };
 }
+// ---------------------------------------------------------------- further sources (0115)
+const args = (k) => argv.flatMap((a, i) => (a === k ? [argv[i + 1]] : [])).filter(Boolean);
+/** NRCan's ratings files (open.canada.ca dataset 98f1a129-f628-4ce4-b24d-6f16bf24dd64). The names change when NRCan adds a
+ *  year: a file that does not answer is reported and skipped (the dry run lists each one's status). */
+export const NRCAN_URLS = [
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY1995-2004%20Fuel%20Consumption%20Ratings%205-cycle.csv',
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY2005-2014%20Fuel%20Consumption%20Ratings%205-cycle.csv',
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY2015-2024%20Fuel%20Consumption%20Ratings.csv',
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY2025%20Fuel%20Consumption%20Ratings.csv',
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY2012-2024%20Battery%20Electric%20Vehicles.csv',
+  'https://natural-resources.canada.ca/sites/nrcan/files/oee/files/csv/MY2012-2024%20Fuel%20Consumption%20Ratings%20(PHEVs).csv'
+];
+/** Wikidata's car models (Q3231690, an automobile model, and its subclasses) with the brand (else the manufacturer) and
+ *  the production years, first produced before 1981. */
+export const WIKIDATA_SPARQL = `SELECT ?model ?modelLabel ?makeLabel (MIN(?s) AS ?start) (MAX(?e) AS ?end) WHERE {
+  ?model wdt:P31/wdt:P279* wd:Q3231690 .
+  OPTIONAL { ?model wdt:P1716 ?brand } OPTIONAL { ?model wdt:P176 ?mfr }
+  BIND(COALESCE(?brand, ?mfr) AS ?make) FILTER(BOUND(?make))
+  { ?model wdt:P571 ?s } UNION { ?model wdt:P2031 ?s }
+  OPTIONAL { { ?model wdt:P576 ?e } UNION { ?model wdt:P2032 ?e } }
+  FILTER(YEAR(?s) < 1981)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+} GROUP BY ?model ?modelLabel ?makeLabel`;
+const decode = (bytes) => { const u = new TextDecoder('utf-8').decode(bytes); return u.includes('\uFFFD') ? new TextDecoder('latin1').decode(bytes) : u; };
+async function extraSources() {
+  const out = []; const report = {};
+  const ve = arg('--vpic-export');
+  if (ve) {
+    const types = new Set(String(arg('--vpic-export-types', 'car,mpv,truck')).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean));
+    const rows = parseVpicExport(readFileSync(ve, 'utf8'), types);
+    out.push({ source: 'vpicdb', rows, newMakes: !flag('--vpic-export-known-makes'), years: YEARS });
+    report.vpicdb = { rows: rows.length, types: [...types] };
+  }
+  const nr = arg('--nrcan');
+  if (nr) {
+    const rows = []; const files = {};
+    const urls = nr === 'download' ? (args('--nrcan-url').length ? args('--nrcan-url') : NRCAN_URLS) : nr.split(',');
+    for (const u of urls) {
+      try { const text = /^https?:/.test(u) ? decode(await get(u, 'bytes')) : readFileSync(u, 'utf8'); const r = parseNrcanCsv(text); rows.push(...r); files[u] = r.length; }
+      catch (e) { files[u] = `skipped: ${String(e?.message ?? e).slice(0, 120)}`; }
+    }
+    out.push({ source: 'nrcan', rows, newMakes: false, years: [1995, YEARS[1]] });
+    report.nrcan = { rows: rows.length, files };
+  }
+  const wd = arg('--wikidata');
+  if (wd) {
+    let json;
+    if (wd === 'download') {
+      json = await get(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(WIKIDATA_SPARQL)}`, 'json');
+    } else json = JSON.parse(readFileSync(wd, 'utf8'));
+    const rows = parseWikidata(json, YEARS[0] - 1);
+    out.push({ source: 'wikidata', rows, newMakes: flag('--wikidata-new-makes'), years: [1900, YEARS[0] - 1] });
+    report.wikidata = { rows: rows.length, models: json?.results?.bindings?.length ?? 0 };
+  }
+  return { sources: out, report };
+}
+
 const toMap = (o) => new Map(Object.entries(o).map(([m, ys]) => [m, new Map(Object.entries(ys).map(([y, n]) => [Number(y), n]))]));
 
 // ---------------------------------------------------------------- SQL
@@ -272,7 +340,9 @@ else if (flag('--vpic')) {
   }
   const v = await vpicNames(spans); vpic = v.names; vpicFailed = v.failed;
 }
-const catalog = buildCatalog(rows, { years: YEARS, vpic: vpic ? toMap(vpic) : undefined, trimLines, popular });
+const extra = await extraSources();
+if (extra.sources.length) console.log(`extra: ${JSON.stringify(extra.report)}`);
+const catalog = buildCatalog(rows, { years: YEARS, vpic: vpic ? toMap(vpic) : undefined, trimLines, popular, extra: extra.sources });
 
 // the Canadian dimensions (vPIC) and NHTSA's recalls and complaints, each year's
 let cvs = null, cvsFailed = 0, nh = { recalls: null, complaints: null };
@@ -310,6 +380,11 @@ const stats = {
   nhtsa_recall_rows: nh.recalls?.ok ?? null, nhtsa_recall_rows_skipped: nh.recalls?.bad ?? null, nhtsa_complaint_rows: nh.complaints?.ok ?? null, nhtsa_complaint_rows_skipped: nh.complaints?.bad ?? null,
   nhtsa_recalls_url: nh.recalls?.url ?? null, nhtsa_complaints_url: nh.complaints?.url ?? null,
   coverage: coverage(catalog, trimPages),
+  extra: extra.report, ...Object.fromEntries(['vpicdb', 'nrcan', 'wikidata'].filter((k) => extra.report[k]).map((k) => [`by_${k}`, {
+    makes_new: catalog.makes.filter((m) => catalog.models.filter((x) => x.make === m.slug).every((x) => x.sources.length === 1 && x.sources[0] === k)).length,
+    models: catalog.models.filter((m) => m.sources.includes(k)).length, models_only: catalog.models.filter((m) => m.sources.length === 1 && m.sources[0] === k).length,
+    model_years_only: catalog.years.filter((y) => y.sources.length === 1 && y.sources[0] === k).length,
+    model_years_with_its_figures: k === 'nrcan' ? catalog.years.filter((y) => y.variants.some((v) => v.src === 'nrcan')).length : undefined }])),
   popular: catalog.popular.length, popular_unmatched: popular.length - catalog.popular.length, vpic_failed_calls: vpicFailed, seconds: Math.round((Date.now() - t0) / 1000)
 };
 const unmatched = [...trimLines.filter((t) => !catalog.trim_lines.some((c) => c.make === t.make && c.from === t.from && c.trims.join() === t.trims.join())).map((t) => `${t.make}/${t.model}`),
