@@ -115,6 +115,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Tracker data | 12 months |
 | Rental, payment and owner records, including condition reports and messages | 7 years |
 | Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
+| Site visit summaries (date, the site or campaign that sent you, first and last page, device, approximate city, number of pages, whether you sent a request or gave contact details) | 13 months; daily totals without personal information are kept |
 | Live chat conversations | With your rental records if you are a customer; otherwise 12 months |
 | Calls and texts with our phone number, with their recordings, transcripts and summaries | With your rental records if you are a customer; otherwise 12 months |
 | Discount game claims | 24 months after the code expires, unless you become a customer |
