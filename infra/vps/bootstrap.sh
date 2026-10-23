@@ -23,6 +23,9 @@ say() { echo "[bootstrap] $*"; }
 . /etc/os-release
 [ "${ID:-}" = ubuntu ] && [ "${VERSION_ID:-}" = 24.04 ] || say "WARNING: written for Ubuntu 24.04, this is ${PRETTY_NAME:-unknown}"
 export DEBIAN_FRONTEND=noninteractive
+# a fresh install runs cloud-init and unattended-upgrades first: wait for them instead of failing on the apt lock
+cloud-init status --wait > /dev/null 2>&1 || true
+apt-get() { command apt-get -o DPkg::Lock::Timeout=900 "$@"; }
 
 # ---------------------------------------------------------------- 1. clock, packages, upgrades
 timedatectl set-timezone UTC

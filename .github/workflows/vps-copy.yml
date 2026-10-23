@@ -29,6 +29,11 @@ concurrency:
   group: vps-ops
   cancel-in-progress: false
 
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-copy bash --noprofile --norc -eo pipefail {0}
+
 jobs:
   copy:
     runs-on: ubuntu-24.04

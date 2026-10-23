@@ -29,6 +29,11 @@ concurrency:
   group: vps-health
   cancel-in-progress: true
 
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-health bash --noprofile --norc -eo pipefail {0}
+
 jobs:
   health:
     if: github.event_name == 'workflow_dispatch' || vars.DB_BACKEND == 'vps' || vars.VPS_HEALTH == 'on'
@@ -43,6 +48,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
+            .github
             infra/vps
             scripts/deploy
       - name: Check

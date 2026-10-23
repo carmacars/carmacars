@@ -32,6 +32,11 @@ concurrency:
   group: vps-ops
   cancel-in-progress: false
 
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-provision bash --noprofile --norc -eo pipefail {0}
+
 jobs:
   provision:
     runs-on: ubuntu-24.04
@@ -62,6 +67,7 @@ jobs:
           vps_ssh 'echo "$(hostname) $(. /etc/os-release; echo "$PRETTY_NAME"), $(nproc) vCPU, $(free -g | awk "/Mem:/ {print \$2}") GB RAM, $(df -h / | awk "NR==2 {print \$2}") disk"' | sed 's/^/::notice title=server::/'
           if [ ! -s infra/vps/known_hosts ]; then
             line=$(ssh-keyscan -T 15 -t ed25519 "$host" 2>/dev/null | head -n 1)
+            echo "::notice title=known_hosts::$line"
             { echo "### Pin the server's host key"; echo; echo "Commit this line as \`infra/vps/known_hosts\` (then every run checks it):"; echo; echo '```'; echo "$line"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Bootstrap (hardening, Docker, swap, sysctl, UTC, wal-g, the stack's files)

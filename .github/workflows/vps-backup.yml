@@ -50,6 +50,11 @@ env:
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
   LIVE_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
 
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-backup bash --noprofile --norc -eo pipefail {0}
+
 jobs:
   configure:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'configure'
