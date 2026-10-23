@@ -7,11 +7,22 @@
 set -euo pipefail
 D=/opt/carmacars
 in=$(cat)
-jq -e '(.endpoint | test("^https://")) and (.bucket | test("^[a-z0-9][a-z0-9.-]+$")) and (.access_key_id | length > 0)
-       and (.secret_access_key | length > 0) and (.walg_key | test("^[0-9a-fA-F]{64}$"))' <<<"$in" > /dev/null \
-  || { echo "backup-configure: need endpoint (https://...), bucket, access_key_id, secret_access_key, walg_key (64 hex)" >&2; exit 2; }
 v() { jq -r --arg k "$1" '.[$k] // empty' <<<"$in"; }
-for k in endpoint region bucket access_key_id secret_access_key walg_key; do
+bad=()
+endpoint=$(v endpoint); [ -n "$endpoint" ] && [[ "$endpoint" != http*://* ]] && endpoint="https://$endpoint"
+endpoint="${endpoint%/}"
+[[ "$endpoint" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/.*)?$ ]] || bad+=("endpoint (https://host)")
+[[ "$(v bucket)" =~ ^[a-z0-9][a-z0-9.-]+$ ]] || bad+=(bucket)
+[ -n "$(v access_key_id)" ] || bad+=(access_key_id)
+[ -n "$(v secret_access_key)" ] || bad+=(secret_access_key)
+# wal-g's libsodium key: 64 hex characters, base64 of 32 bytes, or 32 plain characters
+key=$(v walg_key); transform=""
+if [[ "$key" =~ ^[0-9a-fA-F]{64}$ ]]; then transform=hex
+elif [ "$(printf '%s' "$key" | base64 -d 2>/dev/null | wc -c)" = 32 ]; then transform=base64
+elif [ "${#key}" = 32 ]; then transform=none
+else bad+=("walg_key (64 hex, base64 of 32 bytes, or 32 characters; got ${#key} characters)"); fi
+if [ "${#bad[@]}" -gt 0 ]; then echo "backup-configure: not usable: ${bad[*]}" >&2; exit 2; fi
+for k in region bucket access_key_id secret_access_key walg_key; do
   case "$(v "$k")" in *"'"*|*$'\n'*) echo "backup-configure: $k holds a quote or newline" >&2; exit 2 ;; esac
 done
 install -d -m 700 "$D/backup"
@@ -19,13 +30,13 @@ t=$(mktemp -p "$D/backup"); chmod 600 "$t"
 cat > "$t" <<CONF
 # wal-g settings (infra/vps/bin/backup-configure). Secret.
 WALG_S3_PREFIX='s3://$(v bucket)/walg'
-AWS_ENDPOINT='$(v endpoint)'
+AWS_ENDPOINT='$endpoint'
 AWS_REGION='$(v region)'
 AWS_S3_FORCE_PATH_STYLE='true'
 AWS_ACCESS_KEY_ID='$(v access_key_id)'
 AWS_SECRET_ACCESS_KEY='$(v secret_access_key)'
 WALG_LIBSODIUM_KEY='$(v walg_key)'
-WALG_LIBSODIUM_KEY_TRANSFORM='hex'
+WALG_LIBSODIUM_KEY_TRANSFORM='$transform'
 WALG_COMPRESSION_METHOD='zstd'
 WALG_UPLOAD_CONCURRENCY='4'
 WALG_DOWNLOAD_CONCURRENCY='4'

@@ -19,11 +19,12 @@ from_vault() { # vault name -> value from the first backend that has it
   done
 }
 missing=()
-for pair in ENDPOINT:s3_endpoint REGION:s3_region BUCKET:s3_bucket ACCESS_KEY_ID:s3_access_key_id SECRET_ACCESS_KEY:s3_secret_access_key WALG_KEY:walg_key; do
+for pair in S3_ENDPOINT:s3_endpoint S3_REGION:s3_region S3_BUCKET:s3_bucket S3_ACCESS_KEY_ID:s3_access_key_id S3_SECRET_ACCESS_KEY:s3_secret_access_key WALG_KEY:walg_key; do
   var="BACKUP_${pair%%:*}"; name="deploy_backup_${pair##*:}"
   val="${!var:-}"; src=secret
   if [ -z "$val" ]; then val=$(from_vault "$name"); src=vault; fi
   if [ -z "$val" ]; then missing+=("$var ($name)"); continue; fi
+  if [ "$var" = BACKUP_S3_ENDPOINT ] && [[ "$val" != http*://* ]]; then val="https://$val"; fi
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::add-mask::$val" >&2; fi
   export "$var=$val"
   if [ -n "${GITHUB_ENV:-}" ]; then d="EOF_$(openssl rand -hex 8)"; printf '%s<<%s\n%s\n%s\n' "$var" "$d" "$val" "$d" >> "$GITHUB_ENV"; fi
