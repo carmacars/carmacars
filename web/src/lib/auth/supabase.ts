@@ -5,6 +5,7 @@ import { required } from '@/lib/env';
 import { readSession } from './session-cookie';
 import { verifyAccessToken } from './jwt-verify';
 import type { AuthAdapter, AuthResult, PhoneCodeResult, SessionUser } from './types';
+import { OAUTH_PROVIDERS } from './oauth';
 
 // Who is signed in, per server render, from the session cookie: the access token is verified with the project's
 // public signing key (jwt-verify.ts), so a portal page neither builds a Supabase client nor waits for Supabase Auth.
@@ -219,6 +220,41 @@ export function supabaseAuth(): AuthAdapter {
       if (!error) return { ok: true };
       const f = failure(error, 'We could not save this email.');
       return f.code === 'exists' ? { ok: false, code: 'exists', message: 'This email is already used by another account. Sign in with it instead, or use another email.' } : { ok: false, code: f.code, message: f.message };
+    },
+    async oauthStart(provider, redirectTo) {
+      const s = await supabaseServer();
+      // PKCE: supabase-js writes the code verifier to its cookie on this browser; the code comes back to redirectTo
+      const { data, error } = await s.auth.signInWithOAuth({
+        provider: OAUTH_PROVIDERS[provider].supabase,
+        options: { redirectTo, skipBrowserRedirect: true, ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}) }
+      });
+      if (error || !data.url) return { ok: false, message: error?.message ?? 'The sign-in service did not answer.' };
+      return { ok: true, url: data.url };
+    },
+    async oauthExchange(code) {
+      const s = await supabaseServer();
+      const { data, error } = await s.auth.exchangeCodeForSession(code);
+      if (error || !data.user) return { ok: false, message: error?.message ?? 'The code was refused.' };
+      const u = data.user;
+      const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+      const name = [meta.full_name, meta.name].find((v) => typeof v === 'string' && v.trim()) as string | undefined;
+      const ids = u.identities ?? [];
+      // made by this sign-in: the provider's identity only, created moments ago
+      const fresh = ids.length === 1 && ids[0]!.provider !== 'email' && ids[0]!.provider !== 'phone' && Date.now() - Date.parse(u.created_at) < 10 * 60_000;
+      return { ok: true, user: { id: u.id, email: u.email ?? '' }, emailVerified: !!u.email_confirmed_at, name: name ?? null, fresh };
+    },
+    async relinkToRecord(freshId, recordId, email, fullName) {
+      const got = await gotrue(`/admin/users/${encodeURIComponent(freshId)}`, undefined, { service: true, method: 'GET' });
+      const u = got.data as { identities?: Array<{ provider?: string }>; created_at?: string };
+      // never removes an account that holds anything: only the one this sign-in just made
+      if (!got.ok || (u.identities ?? []).length > 1 || Date.now() - Date.parse(u.created_at ?? '') > 10 * 60_000) return false;
+      // the record already has a sign-in (another address): staff link those by hand
+      const taken = await gotrue(`/admin/users/${encodeURIComponent(recordId)}`, undefined, { service: true, method: 'GET' });
+      if (taken.ok) return false;
+      const del = await gotrue(`/admin/users/${encodeURIComponent(freshId)}`, undefined, { service: true, method: 'DELETE' });
+      if (!del.ok) return false;
+      const made = await gotrue('/admin/users', { id: recordId, email: email.trim().toLowerCase(), email_confirm: true, user_metadata: { full_name: fullName } }, { service: true });
+      return made.ok;
     },
     async mfaFactors() {
       const s = await supabaseServer();

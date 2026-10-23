@@ -50,7 +50,10 @@ const schema = z.object({
   QUO_WEBHOOK_SECRET: z.string().optional(),
   /** Sign-in by phone (migration 0091): the Standard Webhooks secret ("v1,whsec_...") of Supabase Auth's Send SMS hook,
    *  made by the deploy (scripts/deploy/supabase.sh smshook) and kept in the vault. Locally the stand-in's fixed secret. */
-  AUTH_SMS_HOOK_SECRET: z.string().optional()
+  AUTH_SMS_HOOK_SECRET: z.string().optional(),
+  /** Sign-in with a provider (src/lib/auth/oauth.ts): a comma list of google, microsoft, apple, facebook. Unset: none
+   *  (no buttons). Each needs its provider switched on in Supabase Auth first; locally the stand-in fakes them. */
+  AUTH_OAUTH_PROVIDERS: z.string().default('')
 });
 
 export type ServerEnv = z.infer<typeof schema>;

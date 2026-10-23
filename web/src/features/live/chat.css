@@ -22,11 +22,11 @@
 .ccw-msg { max-width: 85%; display: flex; flex-direction: column; gap: 2px; }
 .ccw-msg--me { align-self: flex-end; align-items: flex-end; }
 .ccw-msg--them { align-self: flex-start; }
-.ccw-name { font-size: var(--fs-2xs); color: var(--text-2); font-weight: 600; }
+.ccw-name { font-size: var(--fs-2xs); color: var(--text); font-weight: 600; }
 .ccw-text { margin: 0; padding: 9px 12px; border-radius: 14px; font-size: var(--fs-sm); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ccw-msg--me .ccw-text { background: var(--black); color: var(--white); border-bottom-right-radius: 4px; }
 .ccw-msg--them .ccw-text { background: var(--white); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
-.ccw-time { font-size: var(--fs-2xs); color: var(--text-2); }
+.ccw-time { font-size: var(--fs-2xs); color: var(--text); }
 .ccw-sys { align-self: center; text-align: center; margin: 0; font-size: var(--fs-xs); color: var(--text-2); max-width: 90%; }
 .ccw-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--line); }
 .ccw-input { flex: 1 1 auto; min-height: 44px; max-height: 120px; resize: none; padding: 10px 12px; border: 1px solid var(--grey-400); border-radius: 10px; font: inherit; font-size: 16px; }

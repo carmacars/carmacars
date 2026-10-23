@@ -18,13 +18,14 @@ import { captureDone, pendingAddBooking } from '@/server/capture';
 // public.submit_booking_request once as the server, with the idempotency key from the browser.
 // No card and no payment at this step.
 
-async function distance(placeId: string): Promise<number | null> {
+const TOKEN = /^[A-Za-z0-9_-]{8,64}$/;
+async function distance(placeId: string, session?: string): Promise<number | null> {
   if (!placeId) return null;
   try {
     const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
     if (!origin) return null;
     const m = await maps();
-    const p = await m.place(placeId, crypto.randomUUID());
+    const p = await m.place(placeId, session && TOKEN.test(session) ? session : crypto.randomUUID());
     return p ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }) : null;
   } catch {
     return null;
@@ -52,10 +53,16 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const car = fleet.find((c) => c.slug === v.car)!;
   const airport = (code: string) => f.airports.find((a) => a.code === code);
   const returnAddress = v.returnAt === 'delivery' ? (v.returnAddress.label.trim() ? v.returnAddress : v.pickupAddress) : v.returnAddress;
-  const loc = async (kind: string, addr: { label: string; placeId: string }, ap: string) => {
+  // a delivery and a return to the same place ask Google once (each lookup counts against the daily cap, 0113)
+  const distances = new Map<string, Promise<number | null>>();
+  const distanceOnce = (addr: { placeId: string; session?: string }) => {
+    if (!distances.has(addr.placeId)) distances.set(addr.placeId, distance(addr.placeId, addr.session));
+    return distances.get(addr.placeId)!;
+  };
+  const loc = async (kind: string, addr: { label: string; placeId: string; session?: string }, ap: string) => {
     if (kind === 'owner') return { kind: 'owner_location' };
     if (kind === 'airport') return { kind: 'airport', airport_code: ap };
-    if (kind === 'delivery') return { kind: 'delivery', address: addr.label, distance_km: await distance(addr.placeId) };
+    if (kind === 'delivery') return { kind: 'delivery', address: addr.label, distance_km: await distanceOnce(addr) };
     return { kind: 'our_location' };
   };
   const far = (k: string) => k === 'delivery' || k === 'airport';

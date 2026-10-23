@@ -1,3 +1,4 @@
+import type { OAuthExchange, OAuthProvider } from './oauth';
 export interface SessionUser { id: string; email: string; phone?: string | null }
 export type AuthResult = { ok: true; user: SessionUser; needsConfirmation?: boolean } | { ok: false; message: string; code?: AuthFailure };
 /** Why a sign-in or an invitation failed, where the page says more than the message (never "no such account"). */
@@ -62,4 +63,12 @@ export interface AuthAdapter {
   mfaEnroll(): Promise<{ ok: true; factorId: string; secret: string; uri: string; qr: string | null } | { ok: false; message: string }>;
   /** Checks a code for a factor (enrolment or sign-in); on success the session is aal2. */
   mfaVerify(factorId: string, code: string): Promise<{ ok: true } | { ok: false; message: string }>;
+  /** Sign-in with a provider (src/lib/auth/oauth.ts): the address to send the browser to. Supabase: the provider's
+   *  page through Supabase Auth (PKCE, the verifier in Supabase's cookie); local: the stand-in's own consent page. */
+  oauthStart(provider: OAuthProvider, redirectTo: string, state: string): Promise<{ ok: true; url: string } | { ok: false; message: string }>;
+  /** The provider's code (at /auth/callback) becomes this browser's session. */
+  oauthExchange(code: string, state: string): Promise<OAuthExchange>;
+  /** Server only: removes the sign-in just made by a provider (fresh, holding nothing) and makes one for a record on
+   *  file with the same address, the address confirmed (the provider verified it), so the next provider sign-in links. */
+  relinkToRecord(freshId: string, recordId: string, email: string, fullName: string): Promise<boolean>;
 }

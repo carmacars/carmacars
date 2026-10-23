@@ -64,7 +64,7 @@ select test.eq('the browser''s settings (0100, the owner''s defaults: the 2nd pa
   '{"on": true, "exit": true, "booking": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 4, "reshow_pages": 3, "reshow_seconds": 120}'::jsonb);
 
 -- ================================================================ 2. who may play
-select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in ('pct5', 'pct10', 'pct15', 'amt50'))
+select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in (select t.x ->> 'key' from jsonb_array_elements((app.settings()).game_prizes) t(x)))
   || ' ' || jsonb_array_length(r -> 'prizes') || ' ' || length(r ->> 'token') || ' ' || ((r ->> 'terms') like 'Prizes:%') || ' ' || ((r ->> 'consent') like 'Yes, send me%') from (select test.gstart('a') as r) x), 'true true true 7 64 true true');
 select test.eq('the same visitor again: the same play (no new draw by reloading)', (select count(distinct x ->> 'token') from (select test.gstart('a') as x from generate_series(1, 5)) y), 1::bigint);
 select test.eq('one play recorded, with the device, page and trigger', (select count(*) || ' ' || min(device) || ' ' || min(path) || ' ' || min(trigger) from game_plays where visitor_id = test.vid('a')), '1 phone /cars/dg-car pages');

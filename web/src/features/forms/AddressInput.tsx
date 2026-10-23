@@ -4,27 +4,47 @@ import { useEffect, useRef, useState } from 'react';
 // Address lookup while typing (prototype input[data-addr-lookup]): an ARIA combobox that asks the
 // maps module through /api/address (Google Places Autocomplete in production, sample landmarks
 // locally). Arrow keys and Enter choose; Escape closes. The chosen place id goes with the form.
-export interface AddressValue { label: string; placeId: string }
+// Google calls are capped a day (0113), so the field asks sparingly: from 3 characters, 350 ms after the last key, never
+// twice for the same text, and a slower answer to an older text is dropped. One session token covers every suggestion
+// of one lookup and goes with the chosen place (session), so the Place Details call at submit closes the same session.
+export interface AddressValue { label: string; placeId: string; session?: string }
+const MIN_CHARS = 3;
+const DEBOUNCE_MS = 350;
+type Item = { id: string; label: string };
 
 export function AddressInput({ id, name, value, onChange, invalid, describedBy, required }: { id: string; name: string; value: AddressValue; onChange: (v: AddressValue) => void; invalid?: boolean; describedBy?: string; required?: boolean }) {
-  const [items, setItems] = useState<{ id: string; label: string }[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [idx, setIdx] = useState(-1);
   const session = useRef('');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const search = (q: string) => {
+  const inflight = useRef<AbortController | undefined>(undefined);
+  const seen = useRef(new Map<string, Item[]>());
+  useEffect(() => () => { clearTimeout(timer.current); inflight.current?.abort(); }, []);
+  const search = (raw: string) => {
     clearTimeout(timer.current);
-    if (q.trim().length < 2) { setItems([]); return; }
+    inflight.current?.abort();
+    const q = raw.trim().replace(/\s+/g, ' ').toLowerCase();
+    if (q.length < MIN_CHARS) { setItems([]); return; }
+    const known = seen.current.get(q);
+    if (known) { setItems(known); setIdx(-1); return; }
     session.current ||= crypto.randomUUID();
     timer.current = setTimeout(async () => {
+      const ac = new AbortController();
+      inflight.current = ac;
       try {
-        const r = await fetch(`/api/address?q=${encodeURIComponent(q)}&s=${session.current}`);
-        const j = (await r.json()) as { items?: { id: string; label: string }[] };
-        setItems(j.items ?? []); setIdx(-1);
-      } catch { setItems([]); }
-    }, 200);
+        const r = await fetch(`/api/address?q=${encodeURIComponent(q)}&s=${session.current}`, { signal: ac.signal });
+        const j = (await r.json()) as { items?: Item[] };
+        const got = j.items ?? [];
+        seen.current.set(q, got);
+        setItems(got); setIdx(-1);
+      } catch (e) { if ((e as Error).name !== 'AbortError') setItems([]); }
+    }, DEBOUNCE_MS);
   };
-  const choose = (i: number) => { const it = items[i]; if (!it) return; onChange({ label: it.label, placeId: it.id }); setItems([]); setIdx(-1); session.current = ''; };
+  const choose = (i: number) => {
+    const it = items[i]; if (!it) return;
+    onChange({ label: it.label, placeId: it.id, session: session.current || undefined });
+    setItems([]); setIdx(-1); session.current = ''; seen.current.clear();
+  };
   const open = items.length > 0;
   return (
     <>

@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
+import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 
 // A quote from a phone, email or WhatsApp lead (05-va.md section 5, /va/sales/quotes/new): the staff request
 // form. It becomes a request (the database prices it and checks the car, the ages and the licence), then
@@ -24,7 +25,8 @@ export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: strin
         vehicle_id: fd.get('vehicle_id'), pickup_at: iso('pickup_at'), return_at: iso('return_at'), source: fd.get('source'),
         full_name: fd.get('full_name'), email: fd.get('email'), mobile: fd.get('mobile'), date_of_birth: fd.get('date_of_birth'), licence_class: fd.get('licence_class'),
         coverage_option: fd.get('coverage_option') ? Number(fd.get('coverage_option')) : null, note: fd.get('note'), sales_choice: choice,
-        rental_charge_cents: price ? Math.round(Number(price) * 100) : null, price_reason: String(fd.get('price_reason') ?? '').trim() || null });
+        rental_charge_cents: price ? Math.round(Number(price) * 100) : null, price_tax: price ? String(fd.get('price_tax') ?? 'plus') : null,
+        price_reason: String(fd.get('price_reason') ?? '').trim() || null });
       if (!r.ok) { setErr(r.message); return; }
       router.push(`/va/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`);
     }); }}>
@@ -42,6 +44,8 @@ export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: strin
       <div className="field"><label className="label" htmlFor="q-cov">Damage cover</label><select className="select" id="q-cov" name="coverage_option" defaultValue=""><option value="">Not chosen yet</option><option value="1">Option 1: their own policy</option><option value="2">Option 2: their credit card</option></select></div>
       <div className="field"><label className="label" htmlFor="q-price">Rental charge typed by hand ($, optional)</label><input className="input" id="q-price" name="rental_charge" inputMode="decimal" autoComplete="off" aria-describedby="q-price-hint" data-testid="quote-price" />
         <p className="hint" id="q-price-hint">Empty: the rate sheet. A price far under the rate sheet is flagged for an Admin, not refused.</p></div>
+      <div className="field"><label className="label" htmlFor="q-tax">Tax</label><select className="select" id="q-tax" name="price_tax" defaultValue="plus" data-testid="quote-price-tax">
+        {PRICE_TAX_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
       <div className="field"><label className="label" htmlFor="q-reason">Reason for the price</label><input className="input" id="q-reason" name="price_reason" autoComplete="off" data-testid="quote-price-reason" /></div>
       <div className="field ad-field--wide"><SourcedChoice id="q" value={choice} onChange={setChoice} /></div>
       <div className="field ad-field--wide"><label className="label" htmlFor="q-note">Note (places, extras, what they asked)</label><textarea className="input ad-textarea" id="q-note" name="note" rows={3} maxLength={1000} /></div>

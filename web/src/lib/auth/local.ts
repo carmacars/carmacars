@@ -6,6 +6,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { env, required } from '@/lib/env';
 import { localSql } from '@/lib/db/local';
 import type { AuthAdapter, SessionUser } from './types';
+import type { OAuthProvider } from './oauth';
 import { checkCode, newSecret, otpauthUri } from './totp';
 import { deliverSignInCode } from '@/server/auth-sms';
 import { smsCodeText } from '@/features/auth/sms-hook';
@@ -41,6 +42,18 @@ async function setSession(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1') {
   // readable by the page (no secret in it): the site's own scripts tell a signed-in visitor apart, as they can with
   // Supabase's session cookie (the discount game never shows to someone signed in)
   (await cookies()).set(HINT, '1', { httpOnly: false, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 });
+}
+
+// Sign-in with a provider, faked (src/app/auth/oauth/fake/route.ts stands in for Google's consent page): the "code" is
+// a 2-minute token signed with LOCAL_AUTH_SECRET naming the address the tester typed, whether the provider verified it,
+// and the flow's state (so it only works in the browser that started the flow, as PKCE makes Supabase's code). Each
+// code works once. The linking rules are Supabase Auth's: a verified address joins the account that has it (an
+// unconfirmed account loses its password: its other identities are removed); a new address makes a new account.
+const OAUTH_AUD = 'local-oauth';
+const usedCodes = new Set<string>();
+export async function localOAuthCode(c: { provider: OAuthProvider; email: string; name: string; verified: boolean; state: string }): Promise<string> {
+  return new SignJWT({ email: c.email.trim().toLowerCase(), name: c.name, verified: c.verified, provider: c.provider, state: c.state, jti: randomUUID() })
+    .setProtectedHeader({ alg: 'HS256' }).setAudience(OAUTH_AUD).setSubject(`${c.provider}:${c.email.trim().toLowerCase()}`).setIssuedAt().setExpirationTime('2m').sign(key());
 }
 
 const CODE_MINUTES = 5;
@@ -111,6 +124,45 @@ export function localAuth(): AuthAdapter {
       await sql`update local_auth.factors set verified_at = coalesce(verified_at, now()) where id = ${factorId}`;
       await setSession(u, 'aal2');
       return { ok: true as const };
+    },
+    // ---------------------------------------------------------------- sign-in with a provider (faked)
+    async oauthStart(provider, _redirectTo, state) {
+      return { ok: true, url: `/auth/oauth/fake?provider=${provider}&state=${encodeURIComponent(state)}` };
+    },
+    async oauthExchange(code, state) {
+      let c: { email?: unknown; name?: unknown; verified?: unknown; state?: unknown; jti?: unknown };
+      try { c = (await jwtVerify(code, key(), { audience: OAUTH_AUD })).payload as typeof c; } catch { return { ok: false, message: 'The code was refused.' }; }
+      if (c.state !== state || typeof c.jti !== 'string' || usedCodes.has(c.jti) || typeof c.email !== 'string') return { ok: false, message: 'The code was refused.' };
+      usedCodes.add(c.jti);
+      const e = c.email.trim().toLowerCase();
+      const verified = c.verified === true;
+      const name = typeof c.name === 'string' && c.name.trim() ? c.name.trim() : null;
+      const found = (await sql`select id, email_confirmed_at from local_auth.users where email = ${e}`)[0];
+      let id: string; let fresh = false;
+      if (found && verified) {
+        id = found.id as string;
+        // Supabase removes the unconfirmed identities of the account it links to: a password chosen without confirming
+        // the address no longer signs in (pre-account takeover)
+        if (!found.email_confirmed_at) await sql`update local_auth.users set password_hash = ${'oauth$' + randomBytes(16).toString('hex')}, email_confirmed_at = now() where id = ${id}`;
+      } else if (found) {
+        return { ok: false, message: 'An account with this email exists; the provider did not verify the address.' };
+      } else {
+        id = randomUUID(); fresh = true;
+        await sql`insert into local_auth.users (id, email, password_hash, email_confirmed_at) values (${id}, ${e}, ${'oauth$' + randomBytes(16).toString('hex')}, ${verified ? new Date() : null})`;
+      }
+      await sql`update local_auth.users set last_sign_in_at = now() where id = ${id}`;
+      const user = { id, email: e };
+      await setSession(user);
+      return { ok: true, user, emailVerified: verified, name, fresh };
+    },
+    async relinkToRecord(freshId, recordId, email) {
+      const e = email.trim().toLowerCase();
+      const taken = await sql`select 1 from local_auth.users where id = ${recordId}`;
+      if (taken.length) return false;
+      const gone = await sql`delete from local_auth.users where id = ${freshId} and password_hash like 'oauth$%' and created_at > now() - interval '10 minutes' returning id`;
+      if (!gone.length) return false;
+      await sql`insert into local_auth.users (id, email, password_hash, email_confirmed_at) values (${recordId}, ${e}, ${'oauth$' + randomBytes(16).toString('hex')}, now())`;
+      return true;
     },
     // ---------------------------------------------------------------- phone (0091), as Supabase's phone provider
     async sendPhoneCode(phone) {
