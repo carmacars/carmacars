@@ -10,12 +10,14 @@ const SR = { role: 'service_role' as const };
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/chauffeur', '/faq', '/contact', '/list-your-car', '/detailing', '/body-shop', '/place-data', '/terms', '/privacy', '/cancellation-policy'];
+export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/delivery', '/chauffeur', '/faq', '/contact', '/list-your-car', '/detailing', '/body-shop', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 // 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
 // to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the
 // 47 model pages were in no sitemap. A page in both files is harmless.
-export const SITEMAPS = ['pages', 'cars', 'landing', 'guides', 'hubs'] as const;
+// 0115: 'priority', first in the index: the pages most worth crawling first (the fleet's cars, the landing pages, the
+// make pages, the popular models from the newest years, the place pages nearest us for the first terms), at most 50,000.
+export const SITEMAPS = ['priority', 'pages', 'cars', 'landing', 'guides', 'hubs'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -25,12 +27,22 @@ async function rows(): Promise<Row[]> {
   return ((await rpc('sitemap_all', {}, SR)) ?? []) as unknown as Row[];
 }
 
-function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
+type Prio = Array<{ path: string; lastmod: string | null }>;
+async function priorityRows(): Promise<Prio> {
+  try { return ((await rpc('sitemap_priority', {}, SR)) ?? []) as unknown as Prio; } catch { return []; }
+}
+
+function entries(name: SitemapName, all: Row[], prio: Prio = []): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
   const base = siteUrl();
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
     // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
     case 'pages': return FIXED.map((p) => ({ loc: url(p), lastmod: null }));
+    case 'priority': {
+      const seen = new Set<string>();
+      return [...all.filter((r) => r.kind === 'car' || r.kind === 'landing'), ...prio.map((r) => ({ ...r, kind: 'priority' }))]
+        .filter((r) => !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    }
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
@@ -73,9 +85,9 @@ async function placeFiles(): Promise<PlaceFile[]> {
 }
 /** The site's own sitemaps and the place files (at most 49,000), first in the index. */
 async function siteEntries(): Promise<string[]> {
-  const [all, places] = await Promise.all([rows(), placeFiles()]);
+  const [all, places, prio] = await Promise.all([rows(), placeFiles(), priorityRows()]);
   return [...SITEMAPS.map((name) => {
-    const e = entries(name, all);
+    const e = entries(name, all, prio);
     const last = e.map((x) => x.lastmod).filter(Boolean).sort().pop();
     return `<sitemap><loc>${esc(`${siteUrl()}/sitemap-${name}.xml`)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
   }), ...places.slice(0, 49_000).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-places/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`)];
@@ -107,7 +119,8 @@ export async function sitemapIndex(n = 1): Promise<Response> {
 }
 
 export async function sitemapFile(name: SitemapName): Promise<Response> {
-  const e = entries(name, await rows());
+  const [all, prio] = await Promise.all([rows(), name === 'priority' ? priorityRows() : Promise.resolve([] as Prio)]);
+  const e = entries(name, all, prio);
   const img = name === 'cars';
   const body = e.map((x) => `<url><loc>${esc(x.loc)}</loc>${x.lastmod ? `<lastmod>${x.lastmod}</lastmod>` : ''}${(x.images ?? []).map((i) => `<image:image><image:loc>${esc(i)}</image:loc></image:image>`).join('')}</url>`).join('\n');
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${img ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>\n${body}\n</urlset>\n`, { headers: XML });

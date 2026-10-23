@@ -34,3 +34,56 @@ test('chauffeur terms take a request; body repair never promises mechanical work
   await expect(page.locator('body')).toContainText('We do not do mechanical work');
   await noOverflow(page);
 });
+
+const locs = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!.replace(/&amp;/g, '&')).pathname);
+
+test('crawl priority: the priority sitemap is first in the index, under 50,000 addresses, with cars, makes and place pages', async ({ request }) => {
+  test.skip(test.info().project.name !== 'desktop-1440', 'one width is enough for files');
+  const idx = locs(await (await request.get('/sitemap.xml')).text());
+  expect(idx[0]).toBe('/sitemap-priority.xml');
+  const res = await request.get('/sitemap-priority.xml');
+  expect(res.status()).toBe(200);
+  const urls = locs(await res.text());
+  expect(urls.length).toBeGreaterThan(0);
+  expect(urls.length).toBeLessThanOrEqual(50_000);
+  expect(new Set(urls).size).toBe(urls.length);
+  const cars = locs(await (await request.get('/sitemap-cars.xml')).text());
+  expect(cars.length).toBeGreaterThan(0);
+  expect(cars.every((c) => urls.includes(c)), 'every car of the fleet').toBe(true);
+  expect(urls.some((u) => /^\/car-rental\/[a-z0-9-]+$/.test(u)), 'a place page nearest us').toBe(true);
+});
+
+test('click depth: footer Browse leads to every place (directory) and every make and model, in plain links', async ({ page }) => {
+  await page.goto('/');
+  const browse = page.getByRole('navigation', { name: 'Browse' });
+  await expect(browse.getByRole('link', { name: 'Every place we cover' })).toHaveAttribute('href', '/places');
+  await expect(browse.getByRole('link', { name: 'Every make and model' })).toHaveAttribute('href', '/makes');
+  await page.goto('/places');
+  const first = page.getByTestId('directory-pages').getByRole('link').first();
+  await expect(first).toBeVisible();
+  await first.click();
+  await expect(page.locator('h1')).toHaveText(/^Places, page \d+$/);
+  const place = page.locator('a.chip[href^="/car-rental/"]').first();
+  const href = await place.getAttribute('href');
+  await page.goto(href!);
+  // the place page links to every term's page for it: four clicks from home
+  const all = page.getByTestId('hub-all-terms');
+  await expect(all.locator(`a[href^="/detailing/"][href$="${href!.split('/').pop()}"]`).first()).toBeVisible();
+  await expect(all.locator(`a[href^="/buy/"]`).first()).toBeVisible();
+  await page.goto('/makes');
+  const model = page.locator('a.chip[href^="/cars/"]').first();
+  await expect(model).toBeVisible();
+  expect((await page.goto((await model.getAttribute('href'))!))?.status()).toBe(200);
+  await noOverflow(page);
+});
+
+test('structured data: a rental page for a place we deliver to has its Service; a far one does not; no rating without reviews', async ({ page, request }) => {
+  const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
+  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/car-rental\/(?!toronto$)[a-z0-9-]+$/.test(u));
+  expect(near).toBeTruthy();
+  await page.goto(near!);
+  expect(await ld()).toContain('"serviceType":"Car rental"');
+  await page.goto('/car-rental/loaner-car/kingston-on');
+  expect(await ld()).not.toContain('"serviceType":"Car rental"');
+  expect(await ld()).not.toContain('AggregateRating');
+});

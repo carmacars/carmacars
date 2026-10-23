@@ -198,3 +198,176 @@ alter table program_settings
   add column if not exists vpage_extra_sources text[] not null default '{}'
     check (vpage_extra_sources <@ array['vpicdb', 'nrcan', 'wikidata']::text[]);
 comment on column program_settings.vpage_extra_sources is 'Further sources the catalog workflow adds to the vehicle catalog (0115): vpicdb (the vPIC database export: heavy trucks, buses, low-volume makes, trims from the VIN patterns), nrcan (Natural Resources Canada Fuel Consumption Ratings: Canadian-market models and figures), wikidata (models before 1981). Empty until the database has moved off the 1 GB server; once on, keep them on (each import replaces the whole catalog). docs/seo/coverage-2026-10-23.md';
+
+-- ================================================================ 4. crawl priority and click depth (owner, October 23:
+-- "speed up the crawl and get as many pages indexed as possible")
+-- 4a. The priority sitemap (/sitemap-priority.xml, first in /sitemap.xml, at most 50,000 addresses): the make pages and
+-- the popular models (vehicle_catalog_popular) with their years and trims from vpage_popular_from_year, as the stored
+-- vehicle sitemap lists them (indexed pages only); then the Ontario cities and neighbourhoods nearest our location
+-- (the delivery reach first) for the first rental, buying, detailing and body shop terms. The fleet's car pages and the
+-- landing pages are added by the app from sitemap_all. Stored by a job (every 30 minutes) so the file is one read;
+-- lastmod: the vehicle page's stored date, the place's own date (as the place sitemaps).
+create table if not exists app.sitemap_priority_cache (
+  path text primary key,
+  lastmod timestamptz,
+  sort integer not null
+);
+alter table app.sitemap_priority_cache enable row level security;
+revoke all on app.sitemap_priority_cache from public, anon, authenticated;
+
+create or replace function app.sitemap_priority_refresh() returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare
+  s program_settings := app.settings();
+  o jsonb := app.place_origin();
+  v_vehicles integer;
+  v_terms integer;
+  v_per integer;
+  n integer;
+begin
+  perform set_config('statement_timeout', '120s', true);
+  create temp table if not exists _spc (path text primary key, lastmod timestamptz, sort integer) on commit drop;
+  truncate _spc;
+  -- the vehicles: every make, then the popular models in their order, model page first, newest years first
+  insert into _spc (path, lastmod, sort)
+    select c.path, c.lastmod, row_number() over (order by c.path)::integer from app.vehicle_sitemap_paths_cache c where c.base = 'makes'
+    on conflict do nothing;
+  insert into _spc (path, lastmod, sort)
+    select x.path, x.lastmod, 10000 + row_number() over (order by x.psort, x.yr desc nulls first, x.path)::integer
+      from (select c.path, c.lastmod, p.sort psort, nullif(split_part(c.path, '/', 5), '')::integer yr
+              from vehicle_catalog_popular p
+              join app.vehicle_sitemap_paths_cache c on c.base in (p.make_slug || '-models', p.make_slug || '-years', p.make_slug || '-trims')
+               and (c.path = app.vpage_path(p.make_slug, p.model_slug) or c.path like app.vpage_path(p.make_slug, p.model_slug) || '/%')) x
+     where x.yr is null or x.yr >= s.vpage_popular_from_year
+     order by x.psort, x.yr desc nulls first, x.path
+     limit 15000
+    on conflict do nothing;
+  select count(*) into v_vehicles from _spc;
+  -- the place pages: the first terms of each family whose pages are in search, for the Ontario places nearest us
+  create temp table if not exists _spt on commit drop as select vertical, slug, sort_order, landing_slug from place_terms limit 0;
+  truncate _spt;
+  insert into _spt
+    select t.vertical, t.slug, t.sort_order, t.landing_slug from (
+      select t.*, row_number() over (partition by t.vertical order by t.sort_order, t.slug) rn from place_terms t
+       where t.is_active and t.canonical_slug is null
+         and case t.vertical when 'rental' then s.place_hubs_index when 'sale' then s.sale_hubs_index when 'bodyshop' then s.bodyshop_hubs_index else s.detailing_hubs_index end
+         and (not s.place_quality_gate or t.vertical <> 'rental' or t.served = 'request' or app.seo_real_count(t.match) >= 1)) t
+     where t.rn <= case t.vertical when 'rental' then 12 when 'sale' then 3 else 4 end;
+  select count(*) into v_terms from _spt;
+  v_per := case when v_terms > 0 then greatest(0, (49000 - v_vehicles - 500) / v_terms) else 0 end;
+  insert into _spc (path, lastmod, sort)
+    select app.place_hub_path(t.vertical, t.slug, p.slug), p.updated_on::timestamptz,
+           100000 + (row_number() over (order by p.rk, t.vertical <> 'rental', t.sort_order, t.slug))::integer
+      from (select p.*, row_number() over (order by (p.lat - (o ->> 'lat')::real) ^ 2 + ((p.lng - (o ->> 'lng')::real) * cos(radians((o ->> 'lat')::numeric)::real)) ^ 2, p.id) rk
+              from places p join place_regions r on r.id = p.region_id and r.is_enabled and r.code = 'CA-ON'
+             where p.is_active and p.kind in (4, 5, 6) and p.lat is not null
+               and (not s.place_quality_gate or app.distance_km((o ->> 'lat')::numeric, (o ->> 'lng')::numeric, p.lat::numeric, p.lng::numeric) <= s.place_delivery_reach_km)) p
+      cross join _spt t
+     where p.rk <= v_per
+       and not (t.vertical = 'rental' and t.slug = 'car-rental' and p.landing_slug is not null)
+       and not (t.vertical = 'rental' and p.slug = 'toronto' and t.landing_slug is not null)
+    on conflict do nothing;
+  delete from app.sitemap_priority_cache c where not exists (select 1 from _spc x where x.path = c.path);
+  insert into app.sitemap_priority_cache (path, lastmod, sort) select path, lastmod, sort from _spc
+    on conflict (path) do update set lastmod = excluded.lastmod, sort = excluded.sort
+    where (app.sitemap_priority_cache.lastmod, app.sitemap_priority_cache.sort) is distinct from (excluded.lastmod, excluded.sort);
+  select count(*) into n from app.sitemap_priority_cache;
+  return n;
+end $$;
+
+create or replace function public.sitemap_priority() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('path', c.path, 'lastmod', c.lastmod) order by c.sort, c.path), '[]'::jsonb)
+    from (select * from app.sitemap_priority_cache order by sort, path limit 49500) c
+$$;
+
+-- 4b. The place directory (/places and /places/<n>): every place with pages, a thousand a page by id (a primary key
+-- range, like the place sitemaps), so any place page is three clicks from the home page (footer Browse, the directory,
+-- a page of it) and any term page four. The index of pages (which regions each page holds) is stored by the same job.
+create table if not exists app.place_directory_cache (
+  page integer primary key,
+  places integer not null,
+  regions text[] not null default '{}',
+  first_name text,
+  last_name text
+);
+alter table app.place_directory_cache enable row level security;
+revoke all on app.place_directory_cache from public, anon, authenticated;
+
+create or replace function app.place_directory_listable(p places) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select p.is_active and p.kind <> 8 and app.place_enabled(p)
+$$;
+
+create or replace function app.place_directory_refresh() returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare n integer;
+begin
+  perform set_config('statement_timeout', '120s', true);
+  create temp table if not exists _pdc (page integer primary key, places integer, regions text[], first_name text, last_name text) on commit drop;
+  truncate _pdc;
+  insert into _pdc
+    select (p.id - 1) / 1000 + 1, count(*), array_agg(distinct coalesce(r.name, case p.country when 'CA' then 'Canada' when 'US' then 'United States' else 'Mexico' end)),
+           (array_agg(p.name order by p.id))[1], (array_agg(p.name order by p.id desc))[1]
+      from places p left join place_regions r on r.id = p.region_id
+     where p.is_active and p.kind <> 8 and (r.is_enabled or (p.kind = 1 and exists (select 1 from place_regions x where x.country = p.country and x.is_enabled)))
+     group by 1;
+  delete from app.place_directory_cache c where not exists (select 1 from _pdc x where x.page = c.page);
+  insert into app.place_directory_cache (page, places, regions, first_name, last_name) select page, places, regions, first_name, last_name from _pdc
+    on conflict (page) do update set places = excluded.places, regions = excluded.regions, first_name = excluded.first_name, last_name = excluded.last_name
+    where (app.place_directory_cache.places, app.place_directory_cache.regions, app.place_directory_cache.first_name, app.place_directory_cache.last_name)
+          is distinct from (excluded.places, excluded.regions, excluded.first_name, excluded.last_name);
+  select count(*) into n from app.place_directory_cache;
+  return n;
+end $$;
+
+-- the stored index; before the first refresh (a new database, a first load) the live grouping
+create or replace function public.place_directory_index() returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if not exists (select 1 from app.place_directory_cache) then
+    return (select coalesce(jsonb_agg(jsonb_build_object('page', x.page, 'places', x.n, 'regions', x.regions, 'first', x.first_name, 'last', x.last_name) order by x.page), '[]'::jsonb)
+              from (select (p.id - 1) / 1000 + 1 page, count(*) n, array_agg(distinct coalesce(r.name, p.country)) regions,
+                           (array_agg(p.name order by p.id))[1] first_name, (array_agg(p.name order by p.id desc))[1] last_name
+                      from places p left join place_regions r on r.id = p.region_id
+                     where app.place_directory_listable(p) group by 1) x);
+  end if;
+  return (select coalesce(jsonb_agg(jsonb_build_object('page', c.page, 'places', c.places, 'regions', c.regions, 'first', c.first_name, 'last', c.last_name) order by c.page), '[]'::jsonb)
+            from app.place_directory_cache c);
+end $$;
+
+-- one page: its places with their parent's name, by id range (the primary key); null past the last page
+create or replace function public.place_directory_page(p_page integer) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select case when p_page between 1 and 100000 then
+    (select coalesce(jsonb_agg(jsonb_build_object('slug', p.slug, 'name', p.name, 'kind', app.place_kind(p.kind), 'country', p.country,
+                                                  'region', (select r.code from place_regions r where r.id = p.region_id),
+                                                  'region_name', (select r.name from place_regions r where r.id = p.region_id),
+                                                  'parent', (select q.name from places q where q.id = p.parent_id)) order by p.id), '[]'::jsonb)
+       from places p where p.id > (p_page - 1) * 1000 and p.id <= p_page * 1000 and app.place_directory_listable(p)) end
+$$;
+
+-- 4c. Every make with its models, for /makes (two clicks to any model page, three to a year, four to a trim)
+create or replace function public.vehicle_make_index() returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('slug', mk.slug, 'name', mk.name,
+           'models', (select coalesce(jsonb_agg(jsonb_build_object('slug', m.slug, 'name', m.name) order by m.name), '[]'::jsonb) from vehicle_catalog_models m where m.make_slug = mk.slug))
+         order by mk.name), '[]'::jsonb)
+    from vehicle_catalog_makes mk
+$$;
+
+revoke all on function app.sitemap_priority_refresh(), app.place_directory_refresh() from public, anon, authenticated;
+grant execute on function app.sitemap_priority_refresh(), app.place_directory_refresh() to service_role;
+revoke all on function public.sitemap_priority() from public, anon, authenticated;
+grant execute on function public.sitemap_priority() to service_role;
+grant execute on function public.place_directory_index(), public.place_directory_page(integer), public.vehicle_make_index() to anon, authenticated, service_role;
+
+do $$
+begin
+  if to_regclass('cron.job') is not null then
+    perform cron.schedule('carmacars-sitemap-priority', '12,42 * * * *', 'select app.sitemap_priority_refresh()');
+    perform cron.schedule('carmacars-place-directory', '17 * * * *', 'select app.place_directory_refresh()');
+  end if;
+end $$;
+select app.sitemap_priority_refresh();
+select app.place_directory_refresh();

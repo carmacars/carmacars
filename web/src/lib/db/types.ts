@@ -10545,6 +10545,7 @@ export type Database = {
           db_plan: string;
           db_cap_free_mb: number;
           db_cap_pro_mb: number;
+          vpage_extra_sources: string[];
         };
         Insert: {
           id?: string;
@@ -10965,6 +10966,7 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          vpage_extra_sources?: string[];
         };
         Update: {
           id?: string;
@@ -11385,6 +11387,7 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          vpage_extra_sources?: string[];
         };
         Relationships: [];
       };
@@ -18740,6 +18743,8 @@ export type Database = {
       partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
+      place_directory_index: { Args: never; Returns: Json };
+      place_directory_page: { Args: { p_page: number }; Returns: Json };
       place_hub: { Args: { p_vertical: string; p_term: string; p_place: string }; Returns: Json };
       place_roots: { Args: never; Returns: Json };
       place_sitemap: { Args: { p_vertical: string; p_term: string; p_page: number }; Returns: Json };
@@ -18954,6 +18959,7 @@ export type Database = {
       site_file: { Args: { p_name: string }; Returns: string };
       site_settings_public: { Args: never; Returns: Json };
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
+      sitemap_priority: { Args: never; Returns: Json };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
       submit_chauffeur_request: { Args: { p: Json; p_ip?: string }; Returns: Json };
@@ -18970,6 +18976,7 @@ export type Database = {
       vehicle_classes: { Args: never; Returns: Json };
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
+      vehicle_make_index: { Args: never; Returns: Json };
       vehicle_make_page: { Args: { p_make: string }; Returns: Json };
       vehicle_makes: { Args: never; Returns: Json };
       vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };

@@ -80,3 +80,30 @@ select test.lives('catalog: a model year from 1900 is taken (Wikidata''s older m
 delete from vehicle_catalog_years where year = 1900 and sources = '{wikidata}';
 select test.eq('catalog: the further sources are off until the database has moved', (app.settings()).vpage_extra_sources, '{}'::text[]);
 select test.throws('catalog: only the known further sources', $q$update program_settings set vpage_extra_sources = '{epa2}'$q$, 'vpage_extra_sources');
+
+-- ================================================================ 4. crawl priority and click depth
+select test.ok('priority sitemap: the refresh runs and the file reads the store',
+  app.sitemap_priority_refresh() >= 0 and jsonb_typeof(public.sitemap_priority()) = 'array');
+select test.ok('priority sitemap: at most 49,500 addresses, no synonym, every make page first',
+  jsonb_array_length(public.sitemap_priority()) <= 49500
+  and not exists (select 1 from jsonb_array_elements(public.sitemap_priority()) e join place_terms t on t.canonical_slug is not null
+                   and (e ->> 'path') like '%/' || t.slug || '/%')
+  and coalesce((select min(c.sort) from app.sitemap_priority_cache c where c.path !~ '^/cars/[a-z0-9-]+$'), 2147483647)
+      > coalesce((select max(c.sort) from app.sitemap_priority_cache c where c.path ~ '^/cars/[a-z0-9-]+$'), 0));
+select test.eq('priority sitemap: only the stored vehicle pages (indexed ones)',
+  (select count(*)::integer from app.sitemap_priority_cache c where c.path like '/cars/%' and not exists (select 1 from app.vehicle_sitemap_paths_cache v where v.path = c.path)), 0);
+select test.ok('priority sitemap: the Ontario place pages for the first terms of each family',
+  not exists (select 1 from app.sitemap_priority_cache c where c.path ~ '^/(car-rental|buy|detailing|body-shop)/' and c.lastmod is null)
+  and (select count(*) from places p join place_regions r on r.id = p.region_id and r.code = 'CA-ON' where p.kind in (5, 6) and p.is_active) = 0
+   or exists (select 1 from app.sitemap_priority_cache c where c.path ~ '^/car-rental/'));
+select test.ok('directory: the refresh runs; the index lists pages of a thousand places by id',
+  app.place_directory_refresh() >= 0 and not exists (select 1 from jsonb_array_elements(public.place_directory_index()) e where (e ->> 'places')::integer > 1000));
+select test.eq('directory: a page lists the places with pages in its id range, never a landmark or a region switched off',
+  (select count(*)::integer from jsonb_array_elements(public.place_directory_page(1)) e join places p on p.slug = e ->> 'slug' where p.kind = 8 or not app.place_enabled(p) or p.id > 1000), 0);
+select test.eq('directory: past the last page, nothing', jsonb_array_length(public.place_directory_page(99999)), 0);
+select test.eq('directory: a page number out of range is null', public.place_directory_page(0), null::jsonb);
+select test.eq('make index: every make with its models',
+  (select count(*)::integer from jsonb_array_elements(public.vehicle_make_index()) e), (select count(*)::integer from vehicle_catalog_makes));
+select test.eq('make index: anonymous may read the directory and the make index',
+  (select bool_and(has_function_privilege('anon', f, 'execute')) from unnest(array['public.place_directory_index()', 'public.place_directory_page(integer)', 'public.vehicle_make_index()']) f), true);
+select test.eq('priority sitemap: only the server reads it', has_function_privilege('anon', 'public.sitemap_priority()', 'execute'), false);
