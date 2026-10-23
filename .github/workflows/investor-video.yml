@@ -223,7 +223,7 @@ jobs:
             echo "- Scenes: $(jq -r '[.scenes[] | "\(.n) \(.dur|floor)s"] | join(", ")' "$OUT/timeline.json")"
           } | tee -a "$GITHUB_STEP_SUMMARY" | grep '^- ' | sed 's/^- /::notice title=qa::/'
           size=$(stat -c %s "$V")
-          [ "$size" -le 62914560 ] || { echo "::error title=investor video::the 1080p file is $size bytes (over 60 MB)"; exit 1; }
+          [ "$size" -le 50000000 ] || { echo "::error title=investor video::the 1080p file is $size bytes (over 50 MB, the Storage upload limit)"; exit 1; }
           awk -v d="$dur" 'BEGIN { exit !(d > 120 && d < 330) }' || { echo "::error title=investor video::duration $dur s is outside 2 to 5.5 minutes"; exit 1; }
           echo "::notice title=investor video::$(printf '%.0f' "$dur") s, 1080p $(( size / 1048576 )) MB, voice $(jq -r .model "$OUT/voice/durations.json")"
       - name: Keep the outputs for three days
