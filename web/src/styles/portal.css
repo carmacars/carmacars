@@ -225,8 +225,8 @@
 
 /* ---------- Portal cleanup (October 23, 2026): a calmer frame, one page header, one attention list ---------- */
 .pt__top { gap: var(--s-3); padding-top: var(--s-4); }
-.pt__hello { flex-wrap: nowrap; align-items: center; }
-.pt__hello > p { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pt__hello { align-items: center; }
+.pt__hello > p { flex: 1 1 auto; min-width: 9rem; overflow-wrap: anywhere; }
 .pt__hello .gd-frame-links { flex: none; flex-wrap: nowrap; }
 .pt__nav { gap: var(--s-4); }
 /* a tab's own pages (Money: invoices, statements, payouts) as a row of chips under the tabs */
@@ -265,7 +265,7 @@
   .ad-table--cards tbody { display: grid; gap: var(--s-2); }
   .ad-table--cards tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2) var(--s-3); background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-3); }
   .ad-table--cards tbody tr:hover { background: var(--white); }
-  .ad-table--cards td, .ad-table--cards tbody th { display: flex; flex-direction: column; gap: 1px; padding: 0 !important; border: 0; white-space: normal !important; min-width: 0 !important; text-align: left !important; overflow-wrap: anywhere; font-weight: 400; }
+  .ad-table--cards td, .ad-table--cards tbody th { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 0 !important; border: 0; white-space: normal !important; min-width: 0 !important; text-align: left !important; overflow-wrap: anywhere; font-weight: 400; }
   .ad-table--cards tr > :first-child { grid-column: 1 / -1; font-size: var(--fs-sm); font-weight: 600; padding-bottom: var(--s-2) !important; border-bottom: 1px solid var(--grey-100); }
   .ad-table--cards td::before, .ad-table--cards tbody th::before { content: attr(data-label); color: var(--text-2); font-weight: 600; font-size: var(--fs-2xs); letter-spacing: 0.04em; text-transform: uppercase; }
   .ad-table--cards tr > :first-child::before { display: none; }

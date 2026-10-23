@@ -356,8 +356,8 @@ a.ad-tile:hover { border-color: var(--black); }
 /* ---------- Portal cleanup (October 23, 2026) ---------- */
 /* the frame's first line on a phone: who is signed in (two lines if need be), then Guide and Sign out on one line */
 @media (max-width: 63.99rem) {
-  .ad__who { flex-wrap: nowrap; padding-block: var(--s-2); }
-  .ad__who > .muted { flex: 1 1 7.5rem; min-width: 0; overflow-wrap: anywhere; }
+  .ad__who { flex-wrap: wrap; padding-block: var(--s-2); row-gap: 0; }
+  .ad__who > .muted { flex: 1 1 9rem; min-width: 9rem; overflow-wrap: anywhere; }
   .ad__who .gd-frame-links { flex: none; flex-wrap: nowrap; }
 }
 /* a long group of the menu in a few labelled parts */
