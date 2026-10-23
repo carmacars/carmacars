@@ -57,7 +57,7 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>
             <li><Link prefetch={false} href="/list-your-car">List your car</Link></li><li><Link prefetch={false} href="/faq">FAQ</Link></li>
-            <li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
+            <li><Link prefetch={false} href="/about">About</Link></li><li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
             {socials.map(([k, v]) => <li key={k}><a href={v} rel="noopener">{SOCIAL[k]}</a></li>)}
           </ul></nav>
           <nav aria-label="Legal"><h2>Legal</h2><ul>

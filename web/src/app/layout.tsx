@@ -12,7 +12,7 @@ import { Effects } from '@/components/Effects';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
-import { websiteLd } from '@/features/seo/business';
+import { businessLd, websiteLd } from '@/features/seo/business';
 import { getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
 
@@ -45,7 +45,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>
         <Footer s={s} reply={replyText(s)} links={links} />
-        <JsonLd graph={[websiteLd(s, siteUrl())]} />
+        {/* the business on every page (settings only), so every #business reference resolves (2026-10-23-ai-search) */}
+        <JsonLd graph={[websiteLd(s, siteUrl()), businessLd(s, siteUrl(), { lite: true })]} />
         <Effects />
         <SiteAssist />
       </body>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import type { ChauffeurServices } from '@/features/chauffeur/schema';
@@ -40,6 +41,12 @@ export default async function Chauffeur() {
     <div className="p-chauffeur" data-page="chauffeur">
       <JsonLd graph={[breadcrumbLd(trail, '/chauffeur'), ld]} />
       <PageHead trail={trail} h1="A driver, by the hour." lead={fill('A professional chauffeur and a luxury car or van for weddings, airport runs, nights out and business in {{city}}. Two hours minimum.', t)} />
+      {c.vehicles.length > 0 && (() => {
+        const low = Math.min(...c.vehicles.map((v) => v.rate_3plus_cents));
+        return <AnswerBlock lead={`${s.brand_name} offers chauffeur service in ${s.city}: a professional driver with a luxury car or van, from ${money(low)} an hour before HST, ${c.min_hours} hours minimum. Request online with no payment${s.phone_display ? ` or call ${s.phone_display}` : ''}.`}
+          rows={[['Vehicles', c.vehicles.map((v) => `${v.name} (up to ${v.passengers})`).join(', ')], ['Price from', `${money(low)} an hour for 3 hours or more, before HST`], ['Minimum', `${c.min_hours} hours`],
+            ['How to book', 'Send a request with the date, time and route. We confirm the vehicle and the price before you pay.'], ...(s.phone_display ? [['Phone', s.phone_display] as [string, string]] : [])]} />;
+      })()}
       <section className="section" aria-labelledby="ch-list">
         <div className="wrap stack-lg">
           <div className="section-head"><h2 className="d2" id="ch-list">Vehicles and hourly rates</h2>

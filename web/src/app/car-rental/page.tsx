@@ -1,7 +1,10 @@
 import Link from 'next/link';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { getSeoPages } from '@/features/seo/data';
+import { getEntityFacts } from '@/features/seo/facts';
+import { keyFacts, summary } from '@/features/seo/llms';
 import { getPlaceRoots } from '@/features/places/data';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
@@ -20,7 +23,7 @@ export async function generateMetadata() {
 }
 
 export default async function CarRentalHub() {
-  const [pages, t, roots] = await Promise.all([getSeoPages(), getTokens(), getPlaceRoots().catch(() => null)]);
+  const [pages, t, roots, ef] = await Promise.all([getSeoPages(), getTokens(), getPlaceRoots().catch(() => null), getEntityFacts()]);
   const live = pages.filter((p) => p.indexable);
   const places = live.filter((p) => p.kind === 'location');
   const uses = live.filter((p) => p.kind === 'use');
@@ -35,6 +38,7 @@ export default async function CarRentalHub() {
       <JsonLd graph={[breadcrumbLd(trail, '/car-rental'), { '@type': 'ItemList', name: 'Car rental in Toronto and the GTA',
         itemListElement: live.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + p.path, name: p.name })) }]} />
       <PageHead trail={trail} h1="Car rental in Toronto and the GTA" lead={fill('We deliver to any address in the city and the suburbs, and to {{airports}}. Pick your area or the way you want to rent.', t)} />
+      <AnswerBlock lead={summary(ef)} rows={keyFacts(ef)} updated={ef.updated} />
       <section className="section--tight" aria-labelledby="h-places"><div className="wrap stack">
         <h2 className="d2" id="h-places">Where we deliver</h2>
         <ul className="hub-grid">{places.map(card)}</ul>

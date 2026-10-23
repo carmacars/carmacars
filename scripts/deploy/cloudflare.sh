@@ -19,6 +19,9 @@
 #                                            enables Email Routing and never touches the root domain's mail (Google
 #                                            Workspace MX): the subdomain is turned on once in the dashboard
 #                                            (docs/changes/2026-10-19-turo-email-quiet-alerts.md, owner steps)
+#   scripts/deploy/cloudflare.sh crawlers    read only: whether Cloudflare blocks AI crawlers or rewrites robots.txt
+#                                            (Bot Fight Mode, "Block AI bots", managed robots.txt) and what the live
+#                                            site answers a few crawlers (docs/changes/2026-10-23-ai-search.md)
 #
 # Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID; DEPLOY_ENV (production | staging), DOMAIN (carmacars.ca).
 set -euo pipefail
@@ -257,6 +260,35 @@ email() {
   else
     notice "Turo by email: the rule for $addr now sends it to the Worker $worker"
   fi
+}
+
+# AI crawlers (docs/changes/2026-10-23-ai-search.md). Read only: the owner wants every search and AI answer engine to read
+# the public pages, and the zone's bot settings can override robots.txt (Security > Bots: "Block AI bots", Bot Fight Mode;
+# AI Crawl Control; the managed robots.txt, which adds Disallow lines for AI crawlers). This reports them and what the
+# live site answers each crawler; a block is a warning with the dashboard steps, never changed here.
+crawlers() {
+  [ "$DEPLOY_ENV" = production ] || { log "crawlers: production only"; return 0; }
+  local zone bm steps ua code robots
+  steps="Cloudflare dashboard > $DOMAIN > Security > Bots (and AI Crawl Control): set 'Block AI bots' to do not block, turn off the managed robots.txt, and allow the AI crawlers"
+  zone=$(cfapi GET "/zones?name=$DOMAIN" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""
+  if [ -z "$zone" ]; then warn "AI crawlers: the token cannot read the zone $DOMAIN; check by hand. $steps"
+  elif bm=$(cfapi GET "/zones/$zone/bot_management" 2>/dev/null); then
+    log "crawlers: bot settings $(jq -c '.result | {ai_bots_protection, crawler_protection, is_robots_txt_managed, fight_mode, enable_js}' <<<"$bm")"
+    if jq -e '.result | (.ai_bots_protection // "disabled") != "disabled" or (.is_robots_txt_managed // false) or (.crawler_protection // "disabled") == "enabled"' <<<"$bm" >/dev/null; then
+      warn "AI crawlers: Cloudflare blocks or disallows some AI crawlers on $DOMAIN ($(jq -r '.result | "Block AI bots: \(.ai_bots_protection // "unknown"), managed robots.txt: \(.is_robots_txt_managed // "unknown")"' <<<"$bm")). $steps"
+    else notice "AI crawlers: Cloudflare does not block them on $DOMAIN (Block AI bots off, managed robots.txt off)"; fi
+    if jq -e '.result.fight_mode == true' <<<"$bm" >/dev/null; then warn "AI crawlers: Bot Fight Mode is on; it can challenge crawlers that are not verified bots. $steps"; fi
+  else warn "AI crawlers: the token cannot read the zone's bot settings (Zone > Bot Management > Read); check by hand. $steps"; fi
+  # the live answers: robots.txt as served, and the home page for a few crawlers (a 403 or 402 is Cloudflare, not the site)
+  robots=$(curl -sS -m 20 "https://$DOMAIN/robots.txt" || true)
+  if grep -qiE 'Cloudflare Managed|Content-Signal' <<<"$robots"; then warn "AI crawlers: robots.txt on $DOMAIN carries Cloudflare's managed lines. $steps"; fi
+  grep -q 'OAI-SearchBot' <<<"$robots" || warn "AI crawlers: robots.txt on $DOMAIN does not name OAI-SearchBot yet (this deploy's robots.ts)"
+  for ua in 'Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)' 'Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)' \
+            'Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)' 'Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)'; do
+    code=$(curl -sS -o /dev/null -m 20 -w '%{http_code}' -A "$ua" "https://$DOMAIN/" || echo 000)
+    case "$code" in 200|304) log "crawlers: ${ua#*compatible; } -> $code" ;; *) warn "AI crawlers: https://$DOMAIN/ answers $code to ${ua#*compatible; }. $steps" ;; esac
+  done
+  return 0
 }
 
 for step in "$@"; do "$step"; done

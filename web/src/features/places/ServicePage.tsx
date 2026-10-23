@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { Crumbs } from '@/components/Crumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';
@@ -50,6 +51,14 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
         <p className="lead muted">{c.lead} We work in the Toronto area, within about {d.reach_km} km of {d.origin.label === 'our location' ? 'our location' : 'central Toronto'}.</p>
         <p className="row landing__cta"><a className="btn btn--primary btn--lg" href="#request">Send a request</a><Link prefetch={false} className="btn btn--ghost btn--lg" href={c.rent[2]}>Rent a car meanwhile</Link></p>
       </div></section>
+      {(() => {
+        const priced = d.services.map((x) => x.from_price_cents).filter((x): x is number => !!x);
+        const price = priced.length ? `From ${money(Math.min(...priced))}; other work priced on request` : 'Price on request, for your car and the work';
+        const names = d.services.map((x) => x.name.toLowerCase());
+        return <AnswerBlock lead={`${s.brand_name} offers ${c.label.toLowerCase()} in Toronto: ${names.join(', ')}. ${price}. We work within about ${d.reach_km} km of ${d.origin.label === 'our location' ? 'our location' : 'central Toronto'}, and can deliver a rental car while yours is with us. Send a request below${s.phone_display ? ` or call ${s.phone_display}` : ''}.`}
+          rows={[['Services', d.services.map((x) => x.name).join(', ')], ['Price', price], ['Where', `The Toronto area, within about ${d.reach_km} km`], ['How to book', 'Send a request with your car and the work. We reply with a price before any work.'],
+            ...(s.phone_display ? [['Phone', s.phone_display] as [string, string]] : [])]} />;
+      })()}
       <section className="section--tight on-red cta-band" aria-labelledby="h-rent">
         <div className="wrap cta-band__in"><div><h2 className="d2" id="h-rent">{c.rent[0]}</h2><p className="lead">{c.rent[1]}</p></div>
           <Link prefetch={false} className="btn btn--light btn--lg" href={c.rent[2]}>Rent a car</Link></div>

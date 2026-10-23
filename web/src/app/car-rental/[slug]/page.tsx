@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
 import { CtaBand } from '@/components/Blocks';
 import { Faq } from '@/components/Faq';
 import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
-import { businessLd } from '@/features/seo/business';
+import { businessLd, napAddress } from '@/features/seo/business';
 import { getArticles, getSeoLinks, getSeoPage, paras } from '@/features/seo/data';
 import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
@@ -86,6 +87,9 @@ export default async function LandingPage({ params }: Params) {
           {p.min_delivery_cents !== null && <div><dt>{p.airport ? 'Airport delivery from' : 'Delivery from'}</dt><dd><span className="num">{money(p.min_delivery_cents)}</span>{p.delivery_per_km_cents > 0 ? ' plus distance' : ''}{p.airport?.surcharge_cents ? ` plus ${money(p.airport.surcharge_cents)}` : ''}</dd></div>}
         </dl></div>
       </section>
+      <AnswerBlock lead={`${F(p.copy.h1)}: ${p.car_count} ${p.car_count === 1 ? 'car' : 'cars'}${p.min_daily_cents !== null ? ` from ${money(p.min_daily_cents)} a day` : ''} with ${s.brand_name}, picked up at ${napAddress(s).line} or delivered${p.kind === 'location' ? ` to ${p.name.replace(/ \(.*\)$/, '')}` : ' across the area'}. Send a request online with no payment${s.phone_display ? `, or call ${s.phone_display}` : ''}.`}
+        rows={[['How to book', 'Choose a car below and send a request. You pay only once we confirm the car and the price.'], ...(s.phone_display ? [['Phone', s.phone_display] as [string, string]] : [])]}
+        updated={p.lastmod} />
 
       <section className="section--tight" id="cars" aria-labelledby="h-cars">
         <div className="wrap">
