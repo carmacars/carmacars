@@ -15,7 +15,7 @@ select test.eq('terms: the new own terms are in, each in its vertical',
   || 'car-rental-pickup:rental:yes,car-repair:bodyshop:yes,car-service:rental:request,car-subscription:rental:yes,courtesy-car:rental:yes,executive-car-service:rental:request,'
   || 'limo-service:rental:request,loaner-car:rental:yes,new-cars:sale:request,rent-to-own-cars:sale:request,rental-car-while-car-is-in-the-shop:rental:yes,'
   || 'replacement-car-rental:rental:yes,short-term-car-lease:rental:yes,suvs-for-sale:sale:request,trucks-for-sale:sale:request,uber-black-car-rental:rental:yes');
-select test.eq('terms: the synonyms of 0115', (select count(*)::integer from place_terms where canonical_slug is not null), 97);
+select test.eq('terms: the synonyms of 0115 (0121''s mechanical work aside, suite 78)', (select count(*)::integer from place_terms where canonical_slug is not null and lead_kind is distinct from 'auto_service'), 97);
 select test.eq('terms: a synonym points to an own term of its own vertical (no chain, no other vertical)',
   (select count(*)::integer from place_terms s left join place_terms t on t.slug = s.canonical_slug
     where s.canonical_slug is not null and (t.slug is null or t.canonical_slug is not null or t.vertical <> s.vertical)), 0);
@@ -39,15 +39,17 @@ select test.ok('terms: leasing and subscriptions on the rental side say there is
   (select bool_and(intent_note ~* 'do not lease|no subscription contract') from place_terms where slug in ('car-subscription', 'short-term-car-lease')));
 select test.ok('terms: body repair terms say we do not do mechanical work',
   (select bool_and(intent_note ~* 'do not do mechanical') from place_terms where slug in ('car-repair', 'auto-repair')));
-select test.eq('terms: no page for work we do not do (mechanical repair, oil changes, tires, towing)',
-  (select string_agg(slug, ',') from place_terms where slug ~ '(mechanic|oil-change|brake|tire-shop|tire-change|towing|tow-truck|engine-repair|transmission-repair)'), null);
+-- 0121: mechanical work has pages now, never as work we do: a request we arrange (suite 78)
+select test.eq('terms: mechanical work is only ever a request we arrange, never served as ours',
+  (select string_agg(slug, ',') from place_terms where slug ~ '(mechanic|oil-change|brake|tire-shop|tire-change|towing|tow-truck|engine-repair|transmission-repair)'
+     and (served <> 'request' or lead_kind is distinct from 'auto_service')), null);
 select test.eq('terms: brand names keep their capitals',
   (select string_agg(phrase, '|' order by slug) from place_terms where slug in ('uber-eats-rental-car', 'doordash-rental-car', 'amazon-flex-car-rental', 'uber-black-car-rental', 'lyft-car-rental')),
   'Amazon Flex car rental|DoorDash rental car|Lyft car rental|Uber Black car rental|Uber Eats rental car');
 select test.eq('terms: every term naming a brand says CarmaCars is not affiliated',
   (select string_agg(slug, ',') from place_terms where phrase ~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon)' and intent_note !~ 'not affiliated'), null);
 select test.eq('terms: phrases lower case except the brand words, titles short',
-  (select string_agg(slug, ',') from place_terms where (phrase <> lower(phrase) and phrase !~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon|Flex|Eats|Black|SUV|PPF|PDR|G2|DUI|Canada)')
+  (select string_agg(slug, ',') from place_terms where (phrase <> lower(phrase) and phrase !~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon|Flex|Eats|Black|SUV|PPF|PDR|G2|DUI|Canada|AC|Ontario)')
      or char_length(title) > 60), null);
 select test.eq('terms: no em or en dash in what a page says',
   (select count(*)::integer from place_terms where (phrase || title || intent_note || faq::text) ~ ('[' || chr(8211) || chr(8212) || ']')), 0);

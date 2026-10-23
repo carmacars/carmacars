@@ -21,6 +21,9 @@ export function placeLabel(h: Pick<Hub, 'place' | 'ancestors'>): string {
   return region ? `${p.name}, ${region}` : p.name;
 }
 
+/** 0121: a term for mechanical work CarmaCars does not do, only arranges (a request of the auto_service kind). */
+export const isAutoService = (t: { lead_kind?: string | null }) => t.lead_kind === 'auto_service';
+const clip = (description: string, usd: string) => { const d = T(description + usd); return d.length <= 170 ? d : T(description).slice(0, 170); };
 const isWide = (h: Pick<Hub, 'place'>) => ['country', 'province', 'area', 'region'].includes(h.place.kind);
 const kmText = (n: number | null | undefined) => (n === null || n === undefined ? '' : `${Math.round(n).toLocaleString('en-CA')} km`);
 
@@ -60,6 +63,16 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
   } else if (term.vertical === 'sale') {
     description = `${term.title} in ${where}? ${BRAND} does not sell, finance or lease cars. Rent the model first, or tell us what you need and we will help.`;
     lead.push(note, `${/\brent/i.test(note) ? '' : 'Renting the car you are thinking of buying, for a day or a week, is a real test drive on your own roads.'}${near ? ` We deliver rental cars to ${where}.` : ''}`);
+  } else if (isAutoService(term)) {
+    // 0121: mechanical work we arrange, never ours: a request, a trusted shop, and a rental while the car is in
+    if (near || isWide(h)) {
+      description = `${term.title} in ${where}: request it and we arrange it with a trusted shop or connect you with one, and keep you moving with a rental car while yours is in.`;
+      lead.push(note, `${BRAND} does not do this work itself. Send a request and a person replies: we arrange it with a trusted shop or connect you with one, and we can deliver a rental car to you while yours is in.`);
+    } else {
+      description = `${term.title} for ${where}: ${BRAND} works in the Toronto area, about ${kmText(h.delivery.km)} away, and does not do this work itself. Send a request and a person replies.`;
+      lead.push(`${BRAND} works in the Toronto area and has no location in ${where}, about ${kmText(h.delivery.km)} from ${from}.`,
+        `${note} If you need it in ${where}, send a request and we will tell you honestly whether we know a shop there.`);
+    }
   } else {
     const what = h.service ? h.service.name.toLowerCase() : term.phrase;
     const price = h.service?.from_price_cents ? `from ${money(h.service.from_price_cents)}` : 'price on request';
@@ -73,8 +86,9 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
     }
   }
 
-  // questions answered from the data
+  // questions answered from the data (none on the mechanical work we arrange: those pages carry no questions)
   const faq: Array<{ question: string; answer: string }> = [];
+  if (isAutoService(term)) return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq };
   if (!isWide(h)) {
     faq.push({ question: `Does ${BRAND} have a location in ${where}?`, answer: `No. ${BRAND} has one location, in Toronto${near ? `, and we deliver to ${where}` : ''}.` });
     if (h.delivery.km !== null) faq.push({ question: `How far is ${where} from ${BRAND}?`, answer: `About ${kmText(h.delivery.km)} in a straight line from ${from}.` });
@@ -93,6 +107,5 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
     faq.push({ question: `Can I have a car while mine is in the shop?`, answer: term.vertical === 'bodyshop' ? `Yes. Rent a car delivered to you; after a collision your insurer may pay for a replacement rental when your adjuster approves it.` : `Yes. Rent one of our cars, delivered to your door, for as long as the work takes.` });
   }
   for (const q of term.faq ?? []) faq.push({ question: t.fill(q.question), answer: t.fill(q.answer) });
-  const d = T(description + usd);
-  return { title: T(title), description: d.length <= 170 ? d : T(description).slice(0, 170), h1: T(h1), lead: lead.map(T).filter(Boolean), faq: faq.slice(0, 6) };
+  return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq: faq.slice(0, 6) };
 }

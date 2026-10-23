@@ -66,7 +66,7 @@ export const vehicleLeadSchema = z.object({
 // A request from a place page, /detailing or /body-shop (migration 0095): a car to buy, financing or leasing, a car in a
 // place we do not serve yet, detailing or body work. The details depend on the kind; a way to reply is required.
 export const placeLeadSchema = z.object({
-  kind: z.enum(['buyer', 'finance', 'place_request', 'detailing', 'bodyshop']),
+  kind: z.enum(['buyer', 'finance', 'place_request', 'detailing', 'bodyshop', 'auto_service']),
   name: z.string().trim().min(2, 'Enter your name.').max(100),
   email,
   phone: optPhone.optional().default(''),

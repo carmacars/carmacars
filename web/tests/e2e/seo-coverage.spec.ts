@@ -87,3 +87,43 @@ test('structured data: a rental page for a place we deliver to has its Service; 
   expect(await ld()).not.toContain('"serviceType":"Car rental"');
   expect(await ld()).not.toContain('AggregateRating');
 });
+
+// 0121: mechanical work has pages, never as our work: a request we arrange, a rental meanwhile, no questions, no Service
+test('mechanical work we arrange: a request, never our work, no questions; synonyms point to their term', async ({ page, request }) => {
+  const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
+  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/body-shop\/oil-change\/[a-z0-9-]+$/.test(u));
+  expect(near, 'an oil change page in the priority sitemap').toBeTruthy();
+  await page.goto(near!);
+  await expect(page.locator('h1')).toHaveText(/^Oil Change in /);
+  await expect(page.locator('body')).toContainText('does not do this work itself');
+  await expect(page.locator('body')).toContainText('trusted shop');
+  await expect(page.locator('#h-faq')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Request the work' })).toBeVisible();
+  await expect(page.getByTestId('auto-service-note')).toBeVisible();
+  await expect(page.locator('#h-rent')).toContainText('Keep moving with a rental');
+  await expect(page.locator('#h-rent')).not.toContainText('insurance');
+  expect(await ld()).not.toContain('FAQPage');
+  expect(await ld()).not.toContain('"@type":"Service"');
+  await expect(page.locator('nav[aria-label^="Auto services we arrange"]').first()).toBeVisible();
+  await noOverflow(page);
+  // the request goes to the team
+  await page.locator('#pl-request-name').fill('Auto Service Test');
+  await page.locator('#pl-request-email').fill(`auto-${Date.now()}@example.com`);
+  await page.locator('#pl-request-vehicle').fill('2019 Honda Civic');
+  await page.getByRole('button', { name: 'Send the request' }).click();
+  await expect(page.getByTestId('place-lead-sent')).toBeVisible();
+
+  await page.goto('/body-shop/towing/kingston-on');
+  await expect(page.locator('h1')).toHaveText('Towing in Kingston');
+  await expect(page.locator('body')).toContainText('call 911 first');
+  await expect(page.locator('body')).toContainText('honestly whether we know a shop there');
+  await page.goto('/body-shop/tow-truck/kingston-on');
+  expect(await robots(page)).toMatch(/noindex/);
+  expect(await canonical(page)).toMatch(/\/body-shop\/towing\/kingston-on$/);
+
+  await page.goto('/body-shop');
+  await expect(page.getByTestId('arranged-terms').getByRole('link', { name: 'Oil Change in Toronto' })).toHaveAttribute('href', '/body-shop/oil-change/toronto');
+  // no vehicle page tree for it
+  expect((await request.get('/sitemap.xml')).ok()).toBe(true);
+  expect(await (await request.get('/sitemap.xml')).text()).not.toContain('t-oil-change');
+});

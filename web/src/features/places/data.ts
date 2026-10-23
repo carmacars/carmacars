@@ -33,7 +33,7 @@ export function hubPath(vertical: Vertical, term: string, place: string): string
   return `${VERTICAL_ROOT[vertical]}/${term}/${place}`;
 }
 
-export interface TermRow { slug: string; vertical: Vertical; phrase: string; title: string; landing_slug: string | null; service_code: string | null }
+export interface TermRow { slug: string; vertical: Vertical; phrase: string; title: string; landing_slug: string | null; service_code: string | null; lead_kind?: string | null }
 export const getTerms = cache(async () => ((await rpc('place_terms_public', {})) ?? []) as unknown as TermRow[]);
 /** The slugs among these that are places with pages (a landing page links to its place pages only once the place is loaded). */
 export const placesKnown = cache(async (slugs: string[]) => (slugs.length ? (((await rpc('places_known', { p_slugs: slugs })) ?? []) as unknown as string[]) : []));

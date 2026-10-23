@@ -4,7 +4,8 @@ import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { getSettings, replyText, siteUrl } from '@/lib/site';
-import { getPlaceRoots, getShopServices, hubPath, placesKnown } from './data';
+import { isAutoService } from './copy';
+import { getPlaceRoots, getShopServices, getTerms, hubPath, placesKnown } from './data';
 import { PlaceLeadForm } from './PlaceLeadForm';
 import '@/styles/seo.css';
 
@@ -29,7 +30,9 @@ export async function serviceMeta(v: 'detailing' | 'bodyshop') {
 }
 
 export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
-  const [d, roots, s, known] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings(), placesKnown(['toronto']).catch(() => [] as string[])]);
+  const [d, roots, s, known, terms] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings(), placesKnown(['toronto']).catch(() => [] as string[]), getTerms()]);
+  // 0121: the mechanical work we arrange with a trusted shop (never ours), linked from the body shop page
+  const arranged = v === 'bodyshop' ? terms.filter(isAutoService) : [];
   // the place pages for Toronto only once the places are loaded (an empty places table has none)
   const home = known.includes('toronto') ? 'toronto' : null;
   const c = COPY[v];
@@ -59,6 +62,15 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
             {home && x.terms.length > 0 && <p>{x.terms.slice(0, 4).map((t, i) => <span key={t.slug}>{i > 0 ? ', ' : ''}<Link prefetch={false} className="link" href={hubPath(vert, t.slug, home)}>{t.title} in Toronto</Link></span>)}</p>}
           </div></li>))}</ul>
       </div></section>
+      {home && arranged.length > 0 && (
+        <section className="section--tight" aria-labelledby="h-arranged"><div className="wrap stack">
+          <h2 className="d2" id="h-arranged">Mechanical work we arrange</h2>
+          <p className="measure">CarmaCars does not do mechanical work. Request it and we arrange it with a trusted shop or connect you with one, and you can rent a car from us while yours is in.</p>
+          <nav aria-label="Mechanical work we arrange in Toronto"><ul className="linklist" data-testid="arranged-terms">
+            {arranged.map((t) => <li key={t.slug}><Link prefetch={false} className="link" href={hubPath('bodyshop', t.slug, home)}>{t.title} in Toronto</Link></li>)}
+          </ul></nav>
+        </div></section>
+      )}
       <div className="wrap landing__body">
         <section className="car-sec" id="request" aria-label="Send a request">
           <PlaceLeadForm kind={v} services={d.services.map((x) => x.name)} reply={replyText(s)} />

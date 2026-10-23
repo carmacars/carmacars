@@ -245,8 +245,8 @@ select test.eq('visitor typing shows to staff', 'true'
 update tasks set status = 'done', completed_at = now(), completed_by = test.id('lv_sales') where task_type = 'chat_request';
 select test.eq('my sales: follow-ups done this week', (app.door(test.id('lv_sales'), '', 'va_read', 'my_followups', '{}') ->> 'done'), '1');
 
--- ================================================================ 6. retention
-update program_settings set visitor_sessions_keep_days = 395 where id = (app.settings()).id;
+-- ================================================================ 6. retention (visit summaries 13 months by default since 0121, as the privacy policy says)
+select test.eq('retention: visit summaries are kept 395 days by default', (app.settings()).visitor_sessions_keep_days, 395);
 update visitor_events set at = now() - interval '91 days' where session_id = test.sid('a')::uuid;
 update visitor_sessions set last_seen_at = now() - interval '91 days' where id = test.sid('a')::uuid;
 select app.job_visitor_housekeeping(now());
@@ -257,7 +257,6 @@ select test.eq('retention: events older than 90 days are deleted, the visit kept
 update visitor_sessions set last_seen_at = now() - interval '400 days' where id = test.sid('a')::uuid;
 select app.job_visitor_housekeeping(now());
 select test.eq('retention: the visit goes after 13 months', (select count(*) from visitor_sessions where id = test.sid('a')::uuid), 0::bigint);
-update program_settings set visitor_sessions_keep_days = 90 where id = (app.settings()).id;
 update chat_conversations set closed_at = now() - interval '400 days', last_message_at = now() - interval '400 days', renter_id = null where token = test.tok('c2');
 select app.job_visitor_housekeeping(now());
 select test.eq('retention: a chat of a visitor who is not a customer goes after the days set', (select count(*) from chat_conversations where token = test.tok('c2')), 0::bigint);

@@ -8,8 +8,9 @@ import { useForm } from '@/features/forms/useForm';
 
 // The request on a place page and the service pages (migration 0095): what we need to reply, by kind. A request is a
 // lead with a task for the team, never a booking or a payment.
-type Kind = 'buyer' | 'finance' | 'place_request' | 'detailing' | 'bodyshop';
-const TITLE: Record<Kind, string> = { buyer: 'Find me this car', finance: 'Ask about financing or lease options', place_request: 'Request a car', detailing: 'Request detailing', bodyshop: 'Request body work' };
+// auto_service (0121): mechanical work we arrange with a trusted shop, never do ourselves.
+export type Kind = 'buyer' | 'finance' | 'place_request' | 'detailing' | 'bodyshop' | 'auto_service';
+const TITLE: Record<Kind, string> = { buyer: 'Find me this car', finance: 'Ask about financing or lease options', place_request: 'Request a car', detailing: 'Request detailing', bodyshop: 'Request body work', auto_service: 'Request the work' };
 
 export function PlaceLeadForm({ kind, place, term, services = [], heading, id = 'request', reply = '' }: { kind: Kind; place?: string; term?: string; services?: string[]; heading?: string; id?: string; reply?: string }) {
   const { state, run, pending, errors: e, clear } = useForm(placeLeadSchema, submitPlaceLead);
@@ -34,9 +35,11 @@ export function PlaceLeadForm({ kind, place, term, services = [], heading, id = 
       {state && !state.ok && state.code !== 'invalid' && <p className="alert alert--error" role="alert"><span>{state.message}</span></p>}
       <input type="hidden" name="kind" value={kind} />
       {term && <input type="hidden" name="term" value={term} />}
+      {kind === 'auto_service' && services[0] && <input type="hidden" name="service" value={services[0]} />}
+      {kind === 'auto_service' && <p className="small muted" data-testid="auto-service-note">CarmaCars does not do this work itself. We arrange it with a trusted shop or connect you with one, and can deliver a rental car while yours is in.</p>}
       <div className="field-row">{input('name', 'Your name', false, 'text', 'name')}{input('email', 'Email', false, 'email', 'email')}</div>
       {input('phone', 'Phone', true, 'tel', 'tel')}
-      {(kind === 'buyer' || kind === 'detailing' || kind === 'bodyshop' || kind === 'finance') && input('vehicle', kind === 'buyer' ? 'The car you are looking for' : 'Your car (year, make and model)')}
+      {(kind === 'buyer' || kind === 'detailing' || kind === 'bodyshop' || kind === 'finance' || kind === 'auto_service') && input('vehicle', kind === 'buyer' ? 'The car you are looking for' : 'Your car (year, make and model)')}
       {(kind === 'detailing' || kind === 'bodyshop') && services.length > 0 && (
         <div className="field"><label className="label" htmlFor={`${p}-service`}>Service</label>
           <select className="select" id={`${p}-service`} name="service" defaultValue={services[0]}>{services.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
@@ -55,7 +58,7 @@ export function PlaceLeadForm({ kind, place, term, services = [], heading, id = 
       <Field float id={`${p}-place`} label="Where you are (city or neighbourhood)" optional error={e.place}>
         <input className="input" placeholder=" " id={`${p}-place`} name="place" defaultValue={place ?? ''} aria-invalid={!!e.place || undefined} />
       </Field>
-      {(kind === 'detailing' || kind === 'bodyshop' || kind === 'place_request') && input('date', 'The date you have in mind', true, 'date')}
+      {(kind === 'detailing' || kind === 'bodyshop' || kind === 'place_request' || kind === 'auto_service') && input('date', 'The date you have in mind', true, 'date')}
       <Field float id={`${p}-msg`} label="Anything else" optional error={e.message}>
         <textarea className="textarea" placeholder=" " id={`${p}-msg`} name="message" aria-invalid={!!e.message || undefined} aria-describedby={describedBy(`${p}-msg`, e.message)} onInput={() => clear('message')} />
       </Field>

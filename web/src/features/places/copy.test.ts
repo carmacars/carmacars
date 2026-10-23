@@ -53,3 +53,20 @@ test('outside Canada: the state in the label; a short description says the price
   assert.equal(placeLabel(h), 'Buffalo, NY');
   assert.match(hubCopy({ ...h, term: { ...h.term, slug: 'used-cars', vertical: 'sale', title: 'Used Cars', phrase: 'used cars' } }, fill).description, /Canadian dollars|does not sell/);
 });
+
+test('0121: mechanical work we arrange never says CarmaCars does it, offers a rental, and has no questions', () => {
+  const term = { slug: 'oil-change', vertical: 'bodyshop' as const, phrase: 'oil change', title: 'Oil Change', served: 'request' as const, landing_slug: null, lead_kind: 'auto_service',
+    service_code: null, intent_note: 'An oil and filter change, done by a trusted shop we arrange, not by CarmaCars.', faq: [], canonical_path: null, landing_path: null };
+  const near = hubCopy(base({ term, vertical: 'bodyshop' }), fill);
+  assert.equal(near.h1, 'Oil Change in Port Credit, Mississauga');
+  assert.match(words(near), /does not do this work itself/);
+  assert.match(words(near), /trusted shop/);
+  assert.match(near.description, /rental car while yours is in/);
+  assert.doesNotMatch(words(near), /CarmaCars (does|do) oil|we (do|change|repair|fix)\b|Does CarmaCars have a location/);
+  assert.equal(near.faq.length, 0);
+  assert.ok(near.description.length <= 170, near.description);
+  const far = hubCopy(base({ term, vertical: 'bodyshop', km: 500, inReach: false, kind: 'city' }), fill);
+  assert.match(words(far), /has no location in/);
+  assert.match(words(far), /honestly whether we know a shop there/);
+  assert.equal(far.faq.length, 0);
+});

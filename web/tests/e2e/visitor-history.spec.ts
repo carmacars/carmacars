@@ -143,3 +143,13 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await sql.end();
   }
 });
+
+// 0121: the lawyer approved the 13 months; the privacy policy says so, with its new date
+test('privacy policy: visit summaries kept 13 months, last updated October 23, 2026', async ({ page }) => {
+  await page.goto('/privacy');
+  const row = page.locator('tr').filter({ hasText: 'Site visit summaries' });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('13 months; daily totals without personal information are kept');
+  await expect(page.locator('body')).toContainText('Last updated October 23, 2026.');
+  await check(page, '/privacy');
+});

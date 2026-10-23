@@ -77,8 +77,8 @@ select test.eq('finish: the airport is the place of the landing page with its co
 select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 6144::bigint * 1048576);
 
 -- ================================================================ 4. terms
-select test.eq('terms with pages of their own: rental 31, 36 more (0098) and 15 more (0115), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115); synonyms are counted in suite 77',
-  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=22,detailing=27,rental=82,sale=18');
+select test.eq('terms with pages of their own: rental 31, 36 more (0098) and 15 more (0115), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78',
+  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=42,detailing=27,rental=82,sale=18');
 select test.ok('terms: buying help always takes a request, never "served"', not exists (select 1 from place_terms where vertical = 'sale' and served <> 'request'));
 select test.ok('terms (0098): every rideshare and delivery page says the companies named are not affiliated',
   not exists (select 1 from place_terms where slug in ('uber-rental-car', 'lyft-rental-car', 'rideshare-car-rental', 'uber-eats-car-rental', 'doordash-car-rental',
