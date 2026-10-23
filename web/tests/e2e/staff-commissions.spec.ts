@@ -138,6 +138,12 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
   await fp.goto('/va/bookings/new', { waitUntil: 'networkidle' });
   await fillRental(fp, carId, days + 10);
+  // a price typed tax included (0112): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)
+  await fp.getByTestId('mr-rental_charge').fill('339');
+  await fp.getByTestId('mr-price_tax').selectOption('included');
+  await fp.getByTestId('mr-price_reason').fill('All-in price agreed by phone');
+  await fp.getByTestId('mr-check').click();
+  await expect(fp.getByTestId('mr-price-tax')).toHaveText('Tax included: $300.00 before tax and $39.00 HST, $339.00 in all.');
   await fp.getByTestId('choice-for_carmacars').check();
   await check(fp, 'finance add a rental, for CarmaCars');
   await fp.getByTestId('mr-submit').click();
@@ -146,6 +152,10 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   const n2 = await doneNumber(fp);
   const [b2] = await sql`select b.sales_sourced, b.sales_choice, (b.sales_staff_id = ${fin.id}) mine, (select count(*)::int from staff_commissions c where c.booking_id = b.id) n from bookings b where b.booking_number = ${n2}`;
   expect(`${b2!.sales_sourced}/${b2!.sales_choice}/${b2!.mine}/${b2!.n}`).toBe('false/for_carmacars/true/0');
+  const [t2] = await sql`select b.price_tax, b.price_with_tax_cents::int w, b.rental_charge_cents::int rc, b.total_due_at_booking_cents::int t,
+    (select li.description || ' ' || li.hst_cents from booking_line_items li where li.booking_id = b.id and li.charge_type = 'rental_charge' and li.voided_at is null) line
+    from bookings b where b.booking_number = ${n2}`;
+  expect(`${t2!.price_tax}/${t2!.w}/${t2!.rc}/${t2!.t}/${t2!.line}`).toBe('included/33900/30000/33900/Rental charge ($339.00 tax included) 3900');
   await fp.context().close();
 
   // field staff: from the field portal, a payment link, "I sourced this client"

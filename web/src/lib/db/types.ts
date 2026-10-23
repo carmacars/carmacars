@@ -1576,6 +1576,8 @@ export type Database = {
           partner_sheet_rental_cents: number | null;
           partner_cut_bps: number | null;
           partner_markup_bps: number | null;
+          price_tax: string | null;
+          price_with_tax_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -1715,6 +1717,8 @@ export type Database = {
           partner_sheet_rental_cents?: number | null;
           partner_cut_bps?: number | null;
           partner_markup_bps?: number | null;
+          price_tax?: string | null;
+          price_with_tax_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -1854,6 +1858,8 @@ export type Database = {
           partner_sheet_rental_cents?: number | null;
           partner_cut_bps?: number | null;
           partner_markup_bps?: number | null;
+          price_tax?: string | null;
+          price_with_tax_cents?: number | null;
         };
         Relationships: [];
       };

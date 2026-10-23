@@ -8,6 +8,7 @@ import { toLocalInput } from './Act';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
+import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -30,6 +31,8 @@ export interface B {
   /** 0066 */
   addons?: BookingAddon[];
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
+  /** 0112: the price typed is plus tax or tax included (then the amount typed) */
+  price_tax?: 'plus' | 'included' | null; price_with_tax_cents?: number | null;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
 
@@ -72,7 +75,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
-    rental_charge_cents: '', price_reason: '', staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
+    rental_charge_cents: '', price_tax: b.price_tax === 'included' ? 'included' : 'plus', price_reason: '', staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
     pickup_kind: b.pickup_location_kind ?? (b.pickup_method === 'delivered' ? 'delivery' : 'our_location'), pickup_address: b.pickup_place ?? '', pickup_km: b.pickup_distance_km?.toString() ?? '',
     return_kind: b.return_location_kind ?? (b.return_method === 'picked_up' ? 'delivery' : 'our_location'), return_address: b.return_place ?? '', return_km: b.return_distance_km?.toString() ?? '',
     coverage: dollars(coverageLine?.amount_cents ?? null), promo_code: b.promo_code ?? '',
@@ -108,7 +111,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     if (changed('return_at') && v.return_at) ch.return_at = new Date(String(v.return_at)).toISOString();
     if (changed('booking_type')) ch.booking_type = v.booking_type;
     for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? 0;
-    if (String(v.rental_charge_cents).trim()) { ch.rental_charge_cents = cents(String(v.rental_charge_cents)); ch.price_reason = String(v.price_reason).trim() || null; }
+    if (String(v.rental_charge_cents).trim()) { ch.rental_charge_cents = cents(String(v.rental_charge_cents)); ch.price_tax = v.price_tax; ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
     for (const k of ['bill_to', 'insurer_id', 'insurer_claim_number', 'insurer_adjuster_name', 'insurer_adjuster_email', 'insurer_adjuster_phone', 'insurer_authorized_until']) if (changed(k)) ch[k] = String(v[k]).trim() || null;
@@ -213,11 +216,14 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Rates and fees</legend>
           {va && <p className="hint ad-field--wide">Rates, fees, discounts and the Deposit are set by an Admin. You may type the rental charge with its reason: the rate sheet stays beside it, and a price far under it is flagged for an Admin.</p>}
-          {va && <><F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rate sheet" /><F k="price_reason" l="Reason for the price" /></>}
-          {b.custom_price_reason && <p className="small ad-field--wide" data-testid="review-custom-price">Price typed by hand: {money(b.rental_charge_cents, { cents: true })} (rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })}). {b.custom_price_reason}{b.price_flags?.length ? ' Flagged for an Admin.' : ''}</p>}
+          {va && <><F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rate sheet" /><S k="price_tax" l="Tax" options={PRICE_TAX_OPTIONS} /><F k="price_reason" l="Reason for the price" /></>}
+          {b.custom_price_reason && <p className="small ad-field--wide" data-testid="review-custom-price">Price typed by hand: {b.price_tax === 'included'
+            ? <>{money(b.price_with_tax_cents ?? 0, { cents: true })} tax included ({money(b.rental_charge_cents, { cents: true })} before tax; rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })})</>
+            : <>{money(b.rental_charge_cents, { cents: true })} plus tax (rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })})</>}. {b.custom_price_reason}{b.price_flags?.length ? ' Flagged for an Admin.' : ''}</p>}
           {!va && <><F k="daily_rate_cents" l="Daily" money /><F k="weekend_rate_cents" l="Weekend" money />
           <F k="weekly_rate_cents" l="Weekly" money /><F k="monthly_rate_cents" l="Monthly" money />
           <F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rates" />
+          <S k="price_tax" l="Tax" options={PRICE_TAX_OPTIONS} />
           <F k="price_reason" l="Reason for the price" />
           <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />

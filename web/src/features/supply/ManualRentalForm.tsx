@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
+import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 
@@ -22,6 +23,8 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
   has_rates?: boolean; listing_finished?: boolean; needs_policy_confirm?: boolean; notes?: string[]; price_typed_cents?: number | null;
+  /** The price typed, split by the database (0112): plus tax or tax included. */
+  price_tax?: PriceTaxSplit | null;
   quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
 
 const MODE: Record<string, [string, string]> = {
@@ -62,7 +65,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
-    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
+    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', price_tax: 'plus', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) });
   const [flags, setFlags] = useState({ do_not_email: false, new_renter: field, policy: false });
   // add-ons (0066): the car's, with what is left for the dates; priced in the check below
@@ -90,6 +93,11 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   const phase = phaseOf(f.pickup_at, f.return_at, now);
   const past = phase === 'past';
+  // the price typed, as the database split it at the last check (0112); tax included: flagged on its amount before tax
+  const typed = cents(f.rental_charge ?? '');
+  const split = quote?.price_tax && typed !== undefined && quote.price_tax.tax === f.price_tax
+    && (f.price_tax === 'included' ? quote.price_tax.with_tax_cents : quote.price_tax.before_tax_cents) === typed ? quote.price_tax : null;
+  const typedBeforeTax = f.price_tax === 'included' ? split?.before_tax_cents : typed;
   const id = (k: string) => `mr-${k}`;
   const text = (k: string, label: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean } = {}) => (
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{label}</label>
@@ -101,6 +109,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
 
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
     pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
+    price_tax: cents(f.rental_charge ?? '') !== undefined ? f.price_tax : undefined,
     addons: addonsPayload(addons),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const check = () => start(async () => {
@@ -245,11 +254,13 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
             <p className="small muted">{quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included.{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
             {quote.may_override_price && (
               <div className="stack" data-testid="mr-custom-price">
-                {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental, before tax, and the reason. Press Check again to see the total.</p>
+                {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental, plus tax or tax included, and the reason. Press Check again to see the total.</p>
                   : <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it with the reason. The rate-sheet price stays on the booking for an Admin to see.</p>}
-                <div className="ad-fields">{text('rental_charge', quote.has_rates === false ? 'Rental charge for the whole rental ($, before tax)' : 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}{text('price_reason', 'Reason for the price')}
+                <div className="ad-fields">{text('rental_charge', quote.has_rates === false ? 'Rental charge for the whole rental ($)' : 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}
+                  {select('price_tax', 'Tax', PRICE_TAX_OPTIONS)}{text('price_reason', 'Reason for the price')}
                   {isAdmin && text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>
-                {(() => { const fl = priceFlags(cents(f.rental_charge ?? ''), quote.rate_sheet_cents, quote.billable_days, quote.price_floor_daily_cents, quote.price_max_discount_bps);
+                {split && <p className="small" data-testid="mr-price-tax">{PRICE_TAX_LABEL[split.tax]}: {fmt(split.before_tax_cents)} before tax and {fmt(split.hst_cents)} HST, {fmt(split.with_tax_cents)} in all.</p>}
+                {(() => { const fl = priceFlags(typedBeforeTax, quote.rate_sheet_cents, quote.billable_days, quote.price_floor_daily_cents, quote.price_max_discount_bps);
                   return fl.length ? <p className="alert alert--warn" role="status" data-testid="mr-price-flag"><span>This price is {fl.join(' and ')}. You can still add the rental: it is flagged for an Admin to review.</span></p> : null; })()}
               </div>)}
           </div>)}

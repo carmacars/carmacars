@@ -24,7 +24,8 @@ export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', no
 type R = Record<string, unknown>;
 type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string }>;
   sourced?: boolean; choice?: string | null; choice_by?: string | null; claim_by?: string | null; supply_type?: string;
-  price?: { rental_cents: number; rate_sheet_cents: number | null; reason: string | null; by: string | null; at: string; flags: string[]; reviewed_at: string | null; review_note: string | null } | null;
+  price?: { rental_cents: number; rate_sheet_cents: number | null; reason: string | null; by: string | null; at: string; flags: string[]; reviewed_at: string | null; review_note: string | null;
+    /** 0112 */ tax?: 'plus' | 'included'; with_tax_cents?: number | null } | null;
   commissions?: Array<{ id: string; name: string; kind: string; status: string; rate_bps: number; base_cents: number; amount_cents: number; reason: string | null }> };
 const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a rental they added', offer: 'the first offer they sent', admin: 'given by an Admin', referral: 'their referral link' };
 type Detail = B & R & {
@@ -199,7 +200,7 @@ function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: str
       {c.claim_by && <span className="ad-sub" data-testid="booking-claim">{c.claim_by} says they sourced this client.{' '}
         <Act action="sales_claim_decide" payload={{ booking, accept: true }} label="Credit them" testId="claim-accept" refresh={refresh} done="Credited." fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />{' '}
         <Act action="sales_claim_decide" payload={{ booking, accept: false }} label="Not theirs" testId="claim-decline" refresh={refresh} done="Claim closed." fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} /></span>}
-      {c.price && <span className="ad-sub" data-testid="booking-custom-price">Price typed by hand: {$(c.price.rental_cents)}, rate sheet {$(c.price.rate_sheet_cents ?? 0)}{c.price.by ? `, by ${c.price.by}` : ''}. {c.price.reason}
+      {c.price && <span className="ad-sub" data-testid="booking-custom-price">Price typed by hand: {c.price.tax === 'included' ? `${$(c.price.with_tax_cents ?? 0)} tax included (${$(c.price.rental_cents)} before tax)` : `${$(c.price.rental_cents)} plus tax`}, rate sheet {$(c.price.rate_sheet_cents ?? 0)}{c.price.by ? `, by ${c.price.by}` : ''}. {c.price.reason}
         {c.price.flags.length ? <b className="ad-late"> Flagged: {c.price.flags.map((f) => (f === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</b> : null}
         {c.price.reviewed_at ? ` Reviewed ${t(c.price.reviewed_at)}.` : <> <Act action="price_review" payload={{ booking }} label="Mark reviewed" testId="price-review" refresh={refresh} done="Reviewed." fields={[{ name: 'note', label: 'Note', type: 'text' }]} /></>}</span>}
       {c.commissions && c.commissions.length > 0 && <span className="ad-sub" data-testid="booking-commissions">Commission: {c.commissions.map((x) => `${x.name} ${$(x.amount_cents)} (${x.kind === 'commission' ? `${x.rate_bps / 100}%, ${x.status.replace(/_/g, ' ')}` : x.kind})`).join('; ')}
