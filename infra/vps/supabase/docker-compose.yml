@@ -321,7 +321,7 @@ services:
       - -c
       - config_file=/etc/postgresql/postgresql.conf
       - -c
-      - log_min_messages=fatal
+      - log_min_messages=error
       - -c
       - max_connections=${PG_MAX_CONNECTIONS}
       - -c
