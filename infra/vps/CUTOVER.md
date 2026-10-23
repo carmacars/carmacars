@@ -163,7 +163,14 @@ Smoke tests (a phone and a laptop):
 
 ## Upkeep
 - **Updates:** security updates install themselves (no automatic reboot). `/var/run/reboot-required` means a reboot
-  is due: do it in a quiet hour (`sudo reboot`; the containers come back by themselves, `restart: unless-stopped`).
+  is due: do it in a quiet hour with the vps-ops workflow, action `reboot` (confirm `REBOOT`; refused while a ci deploy
+  or a backup runs; installs `docker-compose.yml` and `bin/`, recreates the db container, checks the API and
+  health-local, reports the downtime), or by hand (`sudo reboot`; the containers come back by themselves,
+  `restart: unless-stopped`).
+- **Backup bucket size:** vps-ops `backup-report` shows R2 usage per prefix against the free 10 GB and the retention
+  that keeps it under 7 GB; `apply-retention` sets it on the server (`WALG_RETAIN_FULL` in `backup/walg.env`, read by
+  `bin/walg-base`; `backup/logical-keep-days`, read by `scripts/backup/backup.sh`) and deletes what is beyond it.
+  Storage files (`volumes/storage`) are on the server disk only: neither wal-g nor the logical dump holds them.
   Docker itself is upgraded by hand (`sudo apt-get install --only-upgrade docker-ce ...`), since it restarts every container.
 - **Supabase versions:** change the image tags in `supabase/docker-compose.yml` (keep the Postgres image: a major
   upgrade is a separate project), run vps-provision. A newer GoTrue or Storage runs its own migrations at start.

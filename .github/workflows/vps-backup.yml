@@ -7,7 +7,7 @@ name: vps-backup
 #     week (systemd timers carmacars-wal-push and carmacars-walg-base; wal-g's libsodium encryption)
 #   - from here, nightly: the same logical backup as the hosted project's (scripts/backup/backup.sh: pg_dump custom
 #     format in one snapshot, age-encrypted to the vault's backup_age_recipient, manifest with every table's count),
-#     uploaded to s3://<bucket>/logical/nightly/<stamp>/, 30 days kept; restored at once into a scratch PostgreSQL 17
+#     uploaded to s3://<bucket>/logical/nightly/<stamp>/, 30 days kept (or the server's backup/logical-keep-days, vps-ops); restored at once into a scratch PostgreSQL 17
 #     on the runner and compared table by table (scripts/backup/restore-test.sh)
 #   - Mondays: the point-in-time restore test on the server (bin/walg-restore-test: newest base backup + every
 #     archived WAL file, replayed in a throwaway container without network)
