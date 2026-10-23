@@ -42,10 +42,12 @@ describe('labels', () => {
 
 describe('the facts read from the code', () => {
   const facts = portalFacts();
-  it('has the seven admin groups and the assistant groups', () => {
-    expect(facts.nav.admin.map((g: { group: string }) => g.group)).toEqual(['Today', 'Bookings', 'Cars', 'Owners and partners', 'Money', 'People', 'Settings']);
-    expect(facts.nav.admin.find((g: { group: string }) => g.group === 'Owners and partners').links).toContain('Applications');
+  it('has the six admin groups and the assistant groups', () => {
+    expect(facts.nav.admin.map((g: { group: string }) => g.group)).toEqual(['Today', 'Bookings', 'Cars', 'People', 'Money', 'Settings']);
+    expect(facts.nav.admin.find((g: { group: string }) => g.group === 'People').links).toContain('Applications');
     expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('My work');
+    expect(facts.nav.va.find((g: { group: string }) => g.group === 'Live').links).toContain('Live chat');
+    expect(facts.nav.investor[0].links).toContain('Profile and notices');
     expect(facts.nav.owner[0].links).toContain('Documents');
   });
   it('knows the labels of a page from its code', () => {
