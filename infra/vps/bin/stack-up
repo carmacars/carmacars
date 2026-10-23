@@ -11,6 +11,14 @@ for f in .env auth.env functions.env auth-config.json; do
   chmod 600 "$S/$f"
 done
 chmod 700 "$D/backup" "$D/state"
+# on any failure: what went wrong, for the workflow's annotations
+show_failed() {
+  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1); do
+    echo "---- $c: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")"
+    docker logs --tail 40 "$c" 2>&1 | cut -c1-300
+  done
+}
+trap show_failed ERR
 "$D/bin/dc" pull --quiet
 # GoTrue refuses to start without a site URL: until the copy renders the hosted settings into auth.env, the default
 grep -q '^GOTRUE_SITE_URL=' "$S/auth.env" || echo "GOTRUE_SITE_URL='$(grep -m1 '^SITE_URL=' "$S/defaults.env" | cut -d= -f2)'" >> "$S/auth.env"
@@ -18,14 +26,7 @@ grep -q '^GOTRUE_SITE_URL=' "$S/auth.env" || echo "GOTRUE_SITE_URL='$(grep -m1 '
 "$D/bin/dc" up -d --wait --wait-timeout 600 db
 docker exec supabase-db psql -U supabase_admin -d postgres -XAtq -c "create schema if not exists graphql_public;
   grant usage on schema graphql_public to postgres, anon, authenticated, service_role;" > /dev/null
-if ! "$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900; then
-  # what went wrong, for the workflow's annotations
-  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1); do
-    echo "---- $c: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")"
-    docker logs --tail 25 "$c" 2>&1 | cut -c1-300
-  done
-  exit 1
-fi
+"$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900
 # archive_command writes the spool as the container's postgres user
 uid=$(docker exec supabase-db id -u postgres)
 chown "$uid" "$D/wal-spool"; chmod 700 "$D/wal-spool"
