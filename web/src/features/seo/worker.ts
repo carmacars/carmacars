@@ -148,3 +148,29 @@ export async function writeArticle(t: TextGenerator, a: SeoClaim['articles'][num
     (n) => articleProblems(n, { tokens: Object.keys(tokens), numbers, banned: o.banned }));
   return { ok: !!r.best, ...(r.best ?? {}), problems: r.problems, error: r.best ? undefined : r.error ?? 'The article did not pass the checks', model: r.model, prompt_version: ARTICLE_PROMPT_VERSION, neurons: r.neurons, ms: r.ms, provider: t.name };
 }
+
+// The IndexNow sweep's loop (0097, 0124), pure: src/server/seo-job.ts passes the database and Bing.
+export type SweepClaim = { paths?: string[]; cursor?: unknown; files?: number | null; why?: string; key?: string };
+/** The sweep's loop, with its database and network calls passed in (unit tested). */
+export async function sweepWith(d: {
+  claim(): Promise<SweepClaim>;
+  send(key: string, paths: string[]): Promise<{ status: number; error?: string; retryAfter?: number }>;
+  report(p: Record<string, unknown>): Promise<unknown>;
+}, rounds: number): Promise<{ sent: number; why?: string; status?: number }> {
+  let sent = 0;
+  for (let i = 0; i < rounds; i++) {
+    let c: SweepClaim;
+    try { c = await d.claim(); } catch (e) {
+      const why = `claim: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200);
+      await d.report({ status: 0, count: 0, error: why }).catch(() => undefined);
+      return { sent, why };
+    }
+    if (!c.paths?.length || !c.key) return { sent, why: c.why ?? 'no key' };
+    let r: { status: number; error?: string; retryAfter?: number };
+    try { r = await d.send(c.key, c.paths); } catch (e) { r = { status: 0, error: e instanceof Error ? e.message : String(e) }; }
+    await d.report({ status: r.status, count: c.paths.length, cursor: c.cursor, files: c.files, error: r.error, retry_after: r.retryAfter ?? null });
+    if (r.status < 200 || r.status >= 300) return { sent, status: r.status, why: r.error };
+    sent += c.paths.length;
+  }
+  return { sent };
+}

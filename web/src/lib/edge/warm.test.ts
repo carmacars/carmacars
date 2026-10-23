@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { warmBatch, warmDone, warmPaths, warmValue } from './warm.ts';
+import { WARM_SITE, warmBatch, warmDone, warmPaths, warmValue } from './warm.ts';
 
-test('warm-up: home, the fleet page, then each car page once, in the fleet order, bounded', () => {
+test('warm-up: home, the fleet page, the site pages and hubs, then each car page once, in the fleet order, bounded', () => {
   const rows = [{ slug: 'kia-forte' }, { slug: 'honda-civic' }, { slug: 'kia-forte' }, { slug: '../admin' }, { slug: null }];
-  assert.deepEqual(warmPaths(rows), ['/', '/cars', '/cars/kia-forte', '/cars/honda-civic']);
+  assert.deepEqual(warmPaths(rows), ['/', '/cars', ...WARM_SITE, '/cars/kia-forte', '/cars/honda-civic']);
+  assert.ok(WARM_SITE.includes('/faq'));
   assert.equal(warmPaths(Array.from({ length: 50 }, (_, i) => ({ slug: `car-${i}` })), 10).length, 10);
 });
 

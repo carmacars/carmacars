@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { rpc } from '@/lib/db/repo';
+import { rpc, sharedRead } from '@/lib/db/repo';
 import type { CarRow } from '@/lib/types';
 import type { Faq } from './copy';
 
@@ -17,6 +17,20 @@ export interface ArticleRow { slug: string; title: string; description: string; 
 export interface Article extends ArticleRow { seo_title: string | null; body_md: string; faq: Faq[]; links: Array<{ href: string; label: string }>; author_name: string | null; related: Array<{ slug: string; title: string; path: string }> }
 
 export const getSeoLinks = cache(async () => ((await rpc('seo_links', {})) ?? []) as unknown as SeoLink[]);
+/** 0124: the footer's popular hubs (makes, models, cities, services), from the priority list: every page links to them,
+ *  so discovery does not depend on the sitemaps alone. Kept per Worker for 5 minutes; none when the read fails. */
+export interface HubLinks { makes: HubLink[]; models: HubLink[]; places: HubLink[]; services: HubLink[] }
+export interface HubLink { path: string; name: string }
+const NO_HUBS: HubLink[] = [];
+export const getHubLinks = cache(async (): Promise<HubLinks> => {
+  try {
+    const h = ((await sharedRead('seo_hub_links', () => rpc('seo_hub_links', {}))) ?? {}) as Partial<HubLinks>;
+    const ok = (l: unknown): HubLink[] => (Array.isArray(l) ? l.filter((x): x is HubLink => !!x && typeof x.path === 'string' && x.path.startsWith('/') && typeof x.name === 'string' && !!x.name).slice(0, 12) : NO_HUBS);
+    return { makes: ok(h.makes), models: ok(h.models), places: ok(h.places), services: ok(h.services) };
+  } catch {
+    return { makes: NO_HUBS, models: NO_HUBS, places: NO_HUBS, services: NO_HUBS };
+  }
+});
 export const getSeoPages = cache(async () => ((await rpc('seo_pages_public', {})) ?? []) as unknown as SeoPageRow[]);
 export const getSeoPage = cache(async (slug: string) => (await rpc('seo_page', { p_slug: slug })) as unknown as SeoPage | null);
 export const getArticles = cache(async () => ((await rpc('articles_public', {})) ?? []) as unknown as ArticleRow[]);

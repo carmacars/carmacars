@@ -37,7 +37,7 @@ async function rows(): Promise<Row[]> {
 
 type Prio = Array<{ path: string; lastmod: string | null }>;
 async function priorityRows(): Promise<Prio> {
-  try { return ((await rpc('sitemap_priority', {}, SR)) ?? []) as unknown as Prio; } catch { return []; }
+  try { return ((await memo('sitemap_priority', () => rpc('sitemap_priority', {}, SR))) ?? []) as unknown as Prio; } catch { return []; }
 }
 
 function entries(name: SitemapName, all: Row[], prio: Prio = []): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
@@ -58,7 +58,36 @@ function entries(name: SitemapName, all: Row[], prio: Prio = []): Array<{ loc: s
   }
 }
 
-const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=21600' };
+// 0124: kept by the CDN and the edge copy for 6 hours and served stale for a day while it is read again, so a crawler's
+// burst of sitemap fetches is answered at the edge (Googlebot fetches faster from a site that answers fast).
+const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' };
+
+// 0124: every sitemap file at the site's root. Google reads a sitemap index only for files "in the same directory as the
+// sitemap index file, or lower" (developers.google.com/search/docs/crawling-indexing/sitemaps/large-sitemaps), and a
+// sitemap not submitted in Search Console "affects only descendants of the parent directory" (the sitemaps.org location
+// rule Bing follows too). /sitemap-index/2.xml listed /sitemap-vehicles/*.xml, which is outside /sitemap-index/: Search
+// Console showed 0 discovered pages for all 480 of them. The public names are now /sitemap-index-<n>.xml,
+// /sitemap-priority-<n>.xml, /sitemap-vehicles-<file>.xml and /sitemap-places-<file>.xml (next.config.ts rewrites them
+// to the handlers under /sitemap-files/); the old addresses answer 301 to the new ones.
+export const sitemapUrl = {
+  index: (n: number) => `${siteUrl()}${n <= 1 ? '/sitemap.xml' : `/sitemap-index-${n}.xml`}`,
+  priority: (n: number) => `${siteUrl()}/sitemap-priority-${n}.xml`,
+  vehicles: (file: string) => `${siteUrl()}/sitemap-vehicles-${file}.xml`,
+  places: (file: string) => `${siteUrl()}/sitemap-places-${file}.xml`
+};
+/** 0124: the priority sitemap in files of 10,000 addresses (fetched and reported one by one in Search Console). */
+export const PRIORITY_CHUNK = 10_000;
+
+/** A sitemap that cannot be read now (the database busy): 503 with Retry-After, never a 500 (a crawler slows down and
+ *  comes back; a 500 counts against the site's crawl rate and is reported as an error). */
+export function busyXml(retryAfter = 120): Response {
+  return new Response('Busy, try again shortly', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'retry-after': String(retryAfter) } });
+}
+export async function guarded(make: () => Promise<Response>): Promise<Response> {
+  try { return await make(); } catch { return busyXml(); }
+}
+/** An old sitemap address (before 0124), moved for good to its root name. */
+export const moved = (to: string) => new Response(null, { status: 301, headers: { location: to, 'cache-control': 'public, max-age=86400' } });
 
 // The vehicle pages (migration 0097): files per tree ("" renting, "buy-" for sale, "t-<term>-" each search term): the
 // makes, one per make and level (toyota-years, split in parts of 45,000 when bigger), and the place and colour files
@@ -91,14 +120,23 @@ type PlaceFile = { file: string; vertical: string; term: string; page: number; l
 async function placeFiles(): Promise<PlaceFile[]> {
   try { return ((await memo('place_sitemap_files', () => rpc('place_sitemap_files', {}, SR))) ?? []) as unknown as PlaceFile[]; } catch { return []; }
 }
-/** The site's own sitemaps and the place files (at most 49,000), first in the index. */
+const lastOf = (e: Array<{ lastmod: string | null }>) => e.map((x) => x.lastmod).filter(Boolean).sort().pop();
+const sm = (loc: string, last: string | null | undefined) => `<sitemap><loc>${esc(loc)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
+/** The site's own sitemaps (the priority list in files of PRIORITY_CHUNK) and the place files (at most 49,000), first in
+ *  the index. */
 async function siteEntries(): Promise<string[]> {
   const [all, places, prio] = await Promise.all([rows(), placeFiles(), priorityRows()]);
-  return [...SITEMAPS.map((name) => {
+  return [...SITEMAPS.flatMap((name) => {
     const e = entries(name, all, prio);
-    const last = e.map((x) => x.lastmod).filter(Boolean).sort().pop();
-    return `<sitemap><loc>${esc(`${siteUrl()}/sitemap-${name}.xml`)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
-  }), ...places.slice(0, 49_000).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-places/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`)];
+    if (name === 'priority') return chunk(e, PRIORITY_CHUNK).map((c, i) => sm(sitemapUrl.priority(i + 1), lastOf(c)));
+    return [sm(`${siteUrl()}/sitemap-${name}.xml`, lastOf(e))];
+  }), ...places.slice(0, 49_000).map((f) => sm(sitemapUrl.places(f.file), iso(f.lastmod)))];
+}
+/** The list in parts of n (at least one part, so an empty priority list is still one valid, empty file). */
+export function chunk<T>(list: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += n) out.push(list.slice(i, i + n));
+  return out.length ? out : [[]];
 }
 
 /** robots.txt (0102): every index file, then each child sitemap of the first index (the site's own files and the place
@@ -106,7 +144,7 @@ async function siteEntries(): Promise<string[]> {
 export async function robotsSitemaps(): Promise<string[]> {
   const [site, n] = await Promise.all([siteEntries(), indexCount()]);
   const children = site.map((x) => /<loc>([^<]+)<\/loc>/.exec(x)?.[1]?.replace(/&amp;/g, '&') ?? '').filter(Boolean).slice(0, 1000);
-  return [`${siteUrl()}/sitemap.xml`, ...Array.from({ length: n - 1 }, (_, i) => `${siteUrl()}/sitemap-index/${i + 2}.xml`), ...children];
+  return [sitemapUrl.index(1), ...Array.from({ length: n - 1 }, (_, i) => sitemapUrl.index(i + 2)), ...children];
 }
 
 /** How many index files there are (robots.txt names each). */
@@ -121,15 +159,22 @@ export async function sitemapIndex(n = 1): Promise<Response> {
   const site = n === 1 ? all : [];
   const offset = n === 1 ? 0 : (n - 1) * INDEX_SIZE - all.length;
   const v = await vIndex(offset, INDEX_SIZE - site.length);
-  const files = (v?.files ?? []).map((f) => `<sitemap><loc>${esc(`${siteUrl()}/sitemap-vehicles/${f.file}.xml`)}</loc>${f.lastmod ? `<lastmod>${iso(f.lastmod)}</lastmod>` : ''}</sitemap>`);
+  const files = (v?.files ?? []).map((f) => sm(sitemapUrl.vehicles(f.file), iso(f.lastmod)));
   if (!site.length && !files.length) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${site.join('')}${files.join('')}</sitemapindex>\n`, { headers: XML });
 }
 
-export async function sitemapFile(name: SitemapName): Promise<Response> {
-  const [all, prio] = await Promise.all([rows(), name === 'priority' ? priorityRows() : Promise.resolve([] as Prio)]);
-  const e = entries(name, all, prio);
-  const img = name === 'cars';
+export async function sitemapFile(name: Exclude<SitemapName, 'priority'>): Promise<Response> {
+  return urlset(entries(name, await rows()), name === 'cars');
+}
+/** Part n of the priority sitemap (/sitemap-priority-<n>.xml, 0124); 404 past the last part. */
+export async function prioritySitemapFile(n: number): Promise<Response> {
+  const [all, prio] = await Promise.all([rows(), priorityRows()]);
+  const parts = chunk(entries('priority', all, prio), PRIORITY_CHUNK);
+  if (!Number.isInteger(n) || n < 1 || n > parts.length) return NOT_FOUND();
+  return urlset(parts[n - 1]!, false);
+}
+function urlset(e: Array<{ loc: string; lastmod: string | null; images?: string[] }>, img: boolean): Response {
   const body = e.map((x) => `<url><loc>${esc(x.loc)}</loc>${x.lastmod ? `<lastmod>${x.lastmod}</lastmod>` : ''}${(x.images ?? []).map((i) => `<image:image><image:loc>${esc(i)}</image:loc></image:image>`).join('')}</url>`).join('\n');
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${img ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>\n${body}\n</urlset>\n`, { headers: XML });
 }

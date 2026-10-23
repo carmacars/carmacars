@@ -147,9 +147,16 @@ test('first visit, nothing kept: a 5xx becomes the busy page that retries; an RS
   assert.doesNotMatch(body, /\u2014/, 'no em dash');
   assert.equal(s.c.m.size, 0, 'the busy page is never kept');
   const rr = req(car + '?_rsc=x', { rsc: '1' });
-  assert.equal((await serveEdge(rr, null, staleKey(rr), '/cars/vw-jetta-2020', s.d)).status, 500);
+  // 0124: an RSC payload or a sitemap the site cannot give: 503 with Retry-After (a crawler comes back), never the 500
+  const rsc = await serveEdge(rr, null, staleKey(rr), '/cars/vw-jetta-2020', s.d);
+  assert.equal(rsc.status, 503);
   const sm = req('https://carmacars.ca/sitemap.xml');
-  assert.equal((await serveEdge(sm, null, staleKey(sm), '/sitemap.xml', s.d)).status, 500);
+  const smr = await serveEdge(sm, null, staleKey(sm), '/sitemap.xml', s.d);
+  assert.equal(smr.status, 503);
+  assert.equal(smr.headers.get('retry-after'), '120');
+  assert.equal(smr.headers.get('cache-control'), 'no-store');
+  const part = req('https://carmacars.ca/sitemap-vehicles-toyota-trims.xml');
+  assert.equal((await serveEdge(part, null, staleKey(part), '/sitemap-vehicles-toyota-trims.xml', s.d)).status, 503);
 });
 
 test('first visit, nothing kept, slow: waits, then the answer; past the limit the busy page, and the answer is still kept', async () => {
@@ -197,7 +204,7 @@ test('a copy from the previous deploy: the page yes (marked), its RSC payload no
   const page = await serveEdge(req(car), null, k, '/cars/vw-jetta-2020', next);
   assert.equal(page.status, 200);
   assert.match(page.headers.get(STALE_HEADER)!, /deploy=previous/);
-  assert.equal((await serveEdge(rr, null, rk, '/cars/vw-jetta-2020', next)).status, 500);
+  assert.equal((await serveEdge(rr, null, rk, '/cars/vw-jetta-2020', next)).status, 503, 'not the other build payload: the 503 of 0124');
   // the same deploy's RSC payload is served
   assert.equal(await (await serveEdge(rr, null, rk, '/cars/vw-jetta-2020', { ...s.d, now: next.now })).text(), '0:rsc');
 });

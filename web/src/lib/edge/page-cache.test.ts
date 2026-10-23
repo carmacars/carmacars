@@ -51,6 +51,10 @@ test('only a page cache HIT (or a sitemap) is kept, for the time OpenNext calls 
   assert.equal(edgeTtl('/sitemap.xml', 200, h({ 'cache-control': 'public, max-age=0, s-maxage=3600' })), 3600);
   assert.equal(edgeTtl('/robots.txt', 200, h({ 'cache-control': 'public, max-age=0, s-maxage=3600' })), 3600);
   assert.equal(edgeTtl('/sitemap.xml', 500, h({ 'cache-control': 'public, max-age=0, s-maxage=3600' })), 0);
+  // 0124: the sitemaps at the site's root are kept too (the old addresses only redirect)
+  for (const p of ['/sitemap-index-2.xml', '/sitemap-priority-1.xml', '/sitemap-vehicles-t-car-hire-toyota-years.xml', '/sitemap-places-rental.car-rental.12.xml'])
+    assert.equal(edgeTtl(p, 200, h({ 'cache-control': 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' })), 21600, p);
+  assert.equal(edgeTtl('/sitemap-index/2.xml', 301, h({ 'cache-control': 'public, max-age=86400' })), 0);
 });
 
 test('a rebuild of a public page moves the generation; a portal rebuild does not', () => {
@@ -184,6 +188,7 @@ test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours
   const h = (o: Record<string, string>) => new Headers(o);
   for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
     assert.ok(PROGRAMMATIC.test(p), p);
+  for (const p of ['/makes', '/places', '/places/3']) assert.ok(PROGRAMMATIC.test(p), p);
   for (const p of ['/cars', '/cars/porsche-911', '/buy', '/t/car-hire', '/admin/x']) assert.ok(!PROGRAMMATIC.test(p), p);
   assert.equal(edgeTtl('/cars/volkswagen/jetta/2020', 200, h({ 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate' })), PROGRAMMATIC_TTL_S);
   assert.equal(edgeTtl('/buy/volkswagen', 200, h({ 'cache-control': 'private, no-store', 'set-cookie': 'a=1' })), 0);

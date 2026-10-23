@@ -15,9 +15,13 @@ export const WARM_BUDGET_MS = 15_000;
 /** a pause between two requests of one lane, so the database is never hit by a burst */
 export const WARM_GAP_MS = 150;
 
-/** Home, the fleet page, then each car page of the fleet (in the fleet's order: featured first), without repeats. */
+/** 0124: the site's own pages and the hubs crawlers open first (/faq answered a cold crawler in 7.7 s after a deploy) */
+export const WARM_SITE = ['/car-rental', '/faq', '/how-it-works', '/requirements', '/delivery', '/guides', '/makes', '/places', '/detailing',
+  '/body-shop', '/chauffeur', '/list-your-car', '/contact', '/terms', '/privacy', '/cancellation-policy'];
+/** Home, the fleet page, the site's own pages and hubs (0124), then each car page of the fleet (in the fleet's order:
+ *  featured first), without repeats. */
 export function warmPaths(rows: ReadonlyArray<{ slug?: unknown }>, max = WARM_MAX): string[] {
-  const out = ['/', '/cars'];
+  const out = ['/', '/cars', ...WARM_SITE];
   for (const r of rows) {
     const s = typeof r.slug === 'string' ? r.slug : '';
     if (/^[a-z0-9][a-z0-9-]{0,119}$/.test(s)) { const p = `/cars/${s}`; if (!out.includes(p)) out.push(p); }

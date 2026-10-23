@@ -166,13 +166,13 @@ test('sitemaps: the index lists the place files; a file lists place pages by add
   const idx = await (await request.get('/sitemap.xml')).text();
   const files = [...idx.matchAll(/<loc>([^<]*sitemap-places[^<]*)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
   expect(files.length).toBeGreaterThan(50);
-  expect(files).toContain('/sitemap-places/rental.suv-rental.1.xml');
-  expect(files).toContain('/sitemap-places/bodyshop.collision-repair.1.xml');
-  const one = await (await request.get('/sitemap-places/rental.suv-rental.1.xml')).text();
+  expect(files).toContain('/sitemap-places-rental.suv-rental.1.xml');
+  expect(files).toContain('/sitemap-places-bodyshop.collision-repair.1.xml');
+  const one = await (await request.get('/sitemap-places-rental.suv-rental.1.xml')).text();
   expect(one).toContain('/car-rental/suv-rental/port-credit-mississauga-on');
   expect(one).not.toContain('/car-rental/suv-rental/cn-tower');
-  expect((await request.get('/sitemap-places/rental.nope.1.xml')).status()).toBe(200);
-  expect((await request.get('/sitemap-places/bad.xml')).status()).toBe(404);
+  expect((await request.get('/sitemap-places-rental.nope.1.xml')).status()).toBe(200);
+  expect((await request.get('/sitemap-places-bad.xml')).status()).toBe(404);
   const pages = await (await request.get('/sitemap-pages.xml')).text();
   for (const p of ['/detailing', '/body-shop', '/place-data']) expect(pages).toContain(p);
 });

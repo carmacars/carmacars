@@ -5657,6 +5657,9 @@ export type Database = {
           last_error: string | null;
           last_at: string | null;
           updated_at: string;
+          phase: string;
+          p_i: number;
+          p_pos: number;
         };
         Insert: {
           id?: boolean;
@@ -5671,6 +5674,9 @@ export type Database = {
           last_error?: string | null;
           last_at?: string | null;
           updated_at?: string;
+          phase?: string;
+          p_i?: number;
+          p_pos?: number;
         };
         Update: {
           id?: boolean;
@@ -5685,6 +5691,9 @@ export type Database = {
           last_error?: string | null;
           last_at?: string | null;
           updated_at?: string;
+          phase?: string;
+          p_i?: number;
+          p_pos?: number;
         };
         Relationships: [];
       };
@@ -18954,6 +18963,7 @@ export type Database = {
       sample_car_match: { Args: { p_vehicle: string; p_pickup: string; p_return: string }; Returns: Json };
       save_form_draft: { Args: { p_form_code: string; p_data: Json; p_step?: string; p_schema_version?: number; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string; p_device_label?: string }; Returns: Json };
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
+      seo_hub_links: { Args: never; Returns: Json };
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };

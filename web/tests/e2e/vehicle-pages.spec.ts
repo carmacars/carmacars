@@ -132,14 +132,14 @@ test('a car of ours sits on its exact trim page; offers only for real cars', asy
 test('the vehicle sitemaps list every indexed page, by make and level, with lastmod', async ({ request }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'once is enough');
   const index = await (await request.get('/sitemap.xml')).text();
-  expect(index).toContain('/sitemap-vehicles/makes.xml');
-  expect(index).toContain('/sitemap-vehicles/volkswagen-trims.xml');
-  const trims = await request.get('/sitemap-vehicles/volkswagen-trims.xml');
+  expect(index).toContain('/sitemap-vehicles-makes.xml');
+  expect(index).toContain('/sitemap-vehicles-volkswagen-trims.xml');
+  const trims = await request.get('/sitemap-vehicles-volkswagen-trims.xml');
   expect(trims.status()).toBe(200);
   const xml = await trims.text();
   expect(xml).toContain('/cars/volkswagen/jetta/2020/sportline</loc><lastmod>');
   expect((xml.match(/<url>/g) ?? []).length).toBeLessThan(50_000);
-  expect((await request.get('/sitemap-vehicles/nosuch-trims.xml')).status()).toBe(404);
+  expect((await request.get('/sitemap-vehicles-nosuch-trims.xml')).status()).toBe(404);
   expect(await (await request.get('/sitemap-pages.xml')).text()).not.toContain('/rent/');
 });
 
@@ -155,7 +155,7 @@ test('under the rules a trim page with no car is noindex with its year as canoni
     await rebuild();
     await expect.poll(async () => { await page.goto(url); return (await meta(page)).robots ?? ''; }, { timeout: 30_000, intervals: [1_000] }).toContain('noindex');
     expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021$/);
-    expect(await (await request.get('/sitemap-vehicles/volkswagen-trims.xml')).text()).not.toContain(`${url}<`);
+    expect(await (await request.get('/sitemap-vehicles-volkswagen-trims.xml')).text()).not.toContain(`${url}<`);
     // our real 2021 Jetta Execline is published: the page flips to indexed and joins its sitemap
     const [o] = await sql`select id from owners where kind = 'program' order by created_at limit 1`;
     await sql`insert into vehicles (id, owner_id, year, make, model, trim, colour, plate, class, status, management_mode, onboarding_method, body_type)
@@ -166,7 +166,7 @@ test('under the rules a trim page with no car is noindex with its year as canoni
     await expect.poll(async () => { await rebuild(); await page.goto(url); return (await meta(page)).robots ?? 'index'; }, { timeout: 60_000, intervals: [3_000] }).not.toContain('noindex');
     expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021\/execline$/);
     await expect(page.getByTestId('vp-inventory').locator('.car-card').first()).toContainText('Jetta');
-    expect(await (await request.get('/sitemap-vehicles/volkswagen-trims.xml')).text()).toContain(`${url}<`);
+    expect(await (await request.get('/sitemap-vehicles-volkswagen-trims.xml')).text()).toContain(`${url}<`);
   } finally {
     await sql`update program_settings set vpage_index_mode = 'all' where id = (app.settings()).id`;
     await sql`update vehicle_listings set status = 'unpublished', unpublished_at = now(), unpublished_reason = 'e2e fixture' where vehicle_id = ${car}`;
@@ -244,20 +244,20 @@ test('sitemaps: the city, colour and /buy files, each under 50,000 addresses, re
   test.skip(info.project.name.startsWith('phone'), 'once is enough');
   test.setTimeout(120_000);
   const index = await (await request.get('/sitemap.xml')).text();
-  expect(index).toContain('/sitemap-vehicles/tiers-1.xml');
-  expect(index).toContain('/sitemap-vehicles/buy-tiers-1.xml');
-  expect(index).toContain('/sitemap-vehicles/buy-makes.xml');
-  const tiers = await (await request.get('/sitemap-vehicles/tiers-1.xml')).text();
+  expect(index).toContain('/sitemap-vehicles-tiers-1.xml');
+  expect(index).toContain('/sitemap-vehicles-buy-tiers-1.xml');
+  expect(index).toContain('/sitemap-vehicles-buy-makes.xml');
+  const tiers = await (await request.get('/sitemap-vehicles-tiers-1.xml')).text();
   const locs = [...tiers.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
   expect(locs.length).toBeGreaterThan(1000);
   expect(locs.length).toBeLessThanOrEqual(50_000);
   expect(new Set(locs).size, 'no address twice across the keyset slices').toBe(locs.length);
   expect(locs).toContain('/cars/volkswagen/jetta/2020/sportline/mississauga/black');
   expect(locs).toContain('/cars/volkswagen/jetta/2020/sportline/colour/gold');
-  const buy = await (await request.get('/sitemap-vehicles/buy-tiers-1.xml')).text();
+  const buy = await (await request.get('/sitemap-vehicles-buy-tiers-1.xml')).text();
   expect(buy).toContain('/buy/volkswagen/jetta/2020/sportline/mississauga/black</loc>');
-  expect((await request.get('/sitemap-vehicles/tiers-999.xml')).status()).toBe(404);
-  expect((await request.get('/sitemap-index/2.xml')).status()).toBe(404);
+  expect((await request.get('/sitemap-vehicles-tiers-999.xml')).status()).toBe(404);
+  expect((await request.get('/sitemap-index-2.xml')).status()).toBe(404);
   expect(await (await request.get('/robots.txt')).text()).toMatch(/Sitemap: \S+\/sitemap\.xml/);
 });
 
@@ -273,7 +273,7 @@ test('the Admin switches take the city and colour pages and the /buy tree out of
     await expect.poll(async () => robots('/buy/volkswagen/jetta/2020'), { timeout: 30_000, intervals: [2_000] }).toContain('noindex');
     const index = await (await request.get('/sitemap.xml')).text();
     expect(index).not.toMatch(/\/sitemap-vehicles\/(t-[a-z-]+-)?tiers-/);
-    expect(index).not.toContain('/sitemap-vehicles/buy-');
+    expect(index).not.toContain('/sitemap-vehicles-buy-');
     expect(await robots('/cars/volkswagen/jetta/2020/sportline')).not.toContain('noindex');
   } finally {
     await sql`update program_settings set vpage_place_index = true, vpage_colour_index = true, vpage_buy_index = true where id = (app.settings()).id`;
@@ -336,8 +336,8 @@ test('the term index and an unknown term', async ({ request }, info) => {
   expect(await (await request.get('/t/car-hire')).text()).toContain('href="/t/car-hire/volkswagen"');
   expect((await request.get('/t/nosuchterm/volkswagen')).status()).toBe(404);
   const idx = await (await request.get('/sitemap.xml')).text();
-  expect(idx).toContain('/sitemap-vehicles/t-car-hire-makes.xml');
-  expect(idx).toContain('/sitemap-vehicles/t-bumper-repair-tiers-1.xml');
-  const f = await (await request.get('/sitemap-vehicles/t-ceramic-coating-volkswagen-trims.xml')).text();
+  expect(idx).toContain('/sitemap-vehicles-t-car-hire-makes.xml');
+  expect(idx).toContain('/sitemap-vehicles-t-bumper-repair-tiers-1.xml');
+  const f = await (await request.get('/sitemap-vehicles-t-ceramic-coating-volkswagen-trims.xml')).text();
   expect(f).toContain('/t/ceramic-coating/volkswagen/jetta/2020/sportline</loc>');
 });

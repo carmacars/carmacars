@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { noOverflow } from './helpers';
 
 // Migration 0115 end to end (phone 375 and desktop 1440): a new term with its own page, a synonym served with its
@@ -36,14 +36,33 @@ test('chauffeur terms take a request; body repair never promises mechanical work
 });
 
 const locs = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!.replace(/&amp;/g, '&')).pathname);
+// 0124: the priority sitemap is /sitemap-priority-1.xml, -2.xml... (10,000 addresses each), first in the index
+const priority = async (request: APIRequestContext) => {
+  const parts = locs(await (await request.get('/sitemap.xml')).text()).filter((p) => /^\/sitemap-priority-\d+\.xml$/.test(p));
+  const all: string[] = [];
+  for (const p of parts) all.push(...locs(await (await request.get(p)).text()));
+  return all;
+};
 
 test('crawl priority: the priority sitemap is first in the index, under 50,000 addresses, with cars, makes and place pages', async ({ request }) => {
   test.skip(test.info().project.name !== 'desktop-1440', 'one width is enough for files');
   const idx = locs(await (await request.get('/sitemap.xml')).text());
-  expect(idx[0]).toBe('/sitemap-priority.xml');
-  const res = await request.get('/sitemap-priority.xml');
+  expect(idx[0]).toBe('/sitemap-priority-1.xml');
+  const res = await request.get('/sitemap-priority-1.xml');
   expect(res.status()).toBe(200);
-  const urls = locs(await res.text());
+  expect(res.headers()['cache-control']).toContain('stale-while-revalidate');
+  const first = locs(await res.text());
+  expect(first.length).toBeLessThanOrEqual(10_000);
+  const urls = await priority(request);
+  expect(urls.slice(0, first.length)).toEqual(first);
+  // the old single file and the old index and child addresses move for good to their root names
+  const old = await request.get('/sitemap-priority.xml', { maxRedirects: 0 });
+  expect(old.status()).toBe(301);
+  expect(old.headers()['location']).toMatch(/\/sitemap-priority-1\.xml$/);
+  expect((await request.get('/sitemap-index/2.xml', { maxRedirects: 0 })).headers()['location'] ?? '').toMatch(/\/sitemap-index-2\.xml$/);
+  expect((await request.get('/sitemap-places/rental.car-rental.1.xml', { maxRedirects: 0 })).headers()['location'] ?? '').toMatch(/\/sitemap-places-rental\.car-rental\.1\.xml$/);
+  // every child of the index is at the site's root (an index may only list files in its directory or below)
+  expect(idx.every((p) => /^\/sitemap-[a-z0-9.-]+\.xml$/.test(p)), 'every sitemap at the root').toBe(true);
   expect(urls.length).toBeGreaterThan(0);
   expect(urls.length).toBeLessThanOrEqual(50_000);
   expect(new Set(urls).size).toBe(urls.length);
@@ -58,6 +77,9 @@ test('click depth: footer Browse leads to every place (directory) and every make
   const browse = page.getByRole('navigation', { name: 'Browse' });
   await expect(browse.getByRole('link', { name: 'Every place we cover' })).toHaveAttribute('href', '/places');
   await expect(browse.getByRole('link', { name: 'Every make and model' })).toHaveAttribute('href', '/makes');
+  // 0124: the popular hubs of the priority list on every page: the cities nearest us and the services, in one click
+  await expect(page.getByRole('navigation', { name: 'Cities' }).getByRole('link').first()).toHaveAttribute('href', /^\/car-rental\/[a-z0-9-]+$/);
+  await expect(page.getByRole('navigation', { name: 'Services' }).getByRole('link').first()).toHaveAttribute('href', /^\/[a-z-]+\/[a-z0-9-]+\/[a-z0-9-]+$/);
   await page.goto('/places');
   const first = page.getByTestId('directory-pages').getByRole('link').first();
   await expect(first).toBeVisible();
@@ -79,7 +101,7 @@ test('click depth: footer Browse leads to every place (directory) and every make
 
 test('structured data: a rental page for a place we deliver to has its Service; a far one does not; no rating without reviews', async ({ page, request }) => {
   const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
-  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/car-rental\/rent-a-car\/(?!gta$)[a-z0-9-]+$/.test(u));
+  const near = (await priority(request)).find((u) => /^\/car-rental\/rent-a-car\/(?!gta$)[a-z0-9-]+$/.test(u));
   expect(near).toBeTruthy();
   await page.goto(near!);
   expect(await ld()).toContain('"serviceType":"Car rental"');
@@ -91,7 +113,7 @@ test('structured data: a rental page for a place we deliver to has its Service; 
 // 0121: mechanical work has pages, never as our work: a request we arrange, a rental meanwhile, no questions, no Service
 test('mechanical work we arrange: a request, never our work, no questions; synonyms point to their term', async ({ page, request }) => {
   const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
-  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/body-shop\/oil-change\/[a-z0-9-]+$/.test(u));
+  const near = (await priority(request)).find((u) => /^\/body-shop\/oil-change\/[a-z0-9-]+$/.test(u));
   expect(near, 'an oil change page in the priority sitemap').toBeTruthy();
   await page.goto(near!);
   await expect(page.locator('h1')).toHaveText(/^Oil Change in /);
