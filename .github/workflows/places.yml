@@ -31,6 +31,12 @@ concurrency:
   group: places
   cancel-in-progress: false
 
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
 jobs:
   # ---------------------------------------------------------------- GeoNames and the Census (small files)
   gazetteers:
@@ -130,11 +136,9 @@ jobs:
       - name: Load (region by region, under the database size cap)
         run: |
           set -euo pipefail
-          pool=$(curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/database/pooler" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN")
-          host=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host' <<<"$pool")
-          user=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_user' <<<"$pool")
-          enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri'); echo "::add-mask::$enc"
-          export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
+          DATABASE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" db-url)
+          [ -n "$DATABASE_URL" ] || { echo "::error::No database address (SUPABASE_DB_PASSWORD, or the server with DB_BACKEND=vps)"; exit 1; }
+          export DATABASE_URL
           ../.github/ci-run.sh "Places load" node scripts/places/load.mjs --in "$RUNNER_TEMP/out" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/load.txt"
           grep -E '^(loaded|by country|paced)|skipped' "$RUNNER_TEMP/load.txt" | sed 's/^/::notice title=places::/'
       # 0106: the top pages warmed again after the load (the Worker's post-deploy warm-up, 0102), production only
@@ -142,8 +146,7 @@ jobs:
         if: inputs.environment == 'production'
         continue-on-error: true
         run: |
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           echo "::add-mask::$L"
           T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
           echo "::add-mask::$T"

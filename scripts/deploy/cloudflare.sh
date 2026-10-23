@@ -55,7 +55,12 @@ token() {
 resources() {
   [ -n "${CF_R2:-}" ] || token
   local cache tag storage kv_id="" d1_id=""
-  if [ "$CF_R2" = yes ]; then cache=r2; storage=r2-binding; else storage=supabase; [ "${CF_KV:0:3}" = yes ] && cache=kv || cache=assets; fi
+  # R2 became available on the account on Oct 23. Files move to R2 only once they have been copied there
+  # (FILES_ON_R2=yes, set after the copy), and the page cache stays on KV unless CACHE_ON_R2=yes: a crawl writes pages
+  # far more often than R2's free 1M writes a month allow. Without these, R2 alone changes nothing.
+  storage=supabase; [ "${CF_KV:0:3}" = yes ] && cache=kv || cache=assets
+  if [ "$CF_R2" = yes ] && [ "${FILES_ON_R2:-no}" = yes ]; then storage=r2-binding; fi
+  if [ "$CF_R2" = yes ] && [ "${CACHE_ON_R2:-no}" = yes ]; then cache=r2; fi
   # PAGE_CACHE=assets (the workflow's page_cache input): serve pages as built, for a day the KV free write quota
   # (1,000 a day) is used up by earlier deploys and the cache cannot be filled
   if [ "${PAGE_CACHE:-auto}" = assets ] && [ "$cache" = kv ]; then cache=assets; notice "Page cache: assets for this deploy (PAGE_CACHE=assets)"; fi
@@ -98,7 +103,7 @@ resources() {
   export_env STORAGE_PROVIDER "$storage"
   export_env OPEN_NEXT_CACHE "$cache"
   if [ "$storage" = supabase ]; then
-    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/vehicle-public"
+    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "$SB_PUBLIC_URL/storage/v1/object/public/vehicle-public"
   else
     export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "${APP_URL:-https://$DOMAIN}/media"
   fi

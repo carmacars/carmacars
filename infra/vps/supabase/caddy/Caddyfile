@@ -1,0 +1,41 @@
+# TLS in front of Kong for the public API (infra/vps/CUTOVER.md, "DNS").
+# Certificates: Let's Encrypt, issued and renewed by Caddy itself (HTTP-01 on port 80 or TLS-ALPN-01 on 443). This
+# needs api.carmacars.ca to reach this server directly: a DNS-only (grey cloud) A record in Cloudflare. With the
+# record proxied (orange cloud), set SSL/TLS to Full (strict) only after the first certificate is issued; renewals
+# then depend on Cloudflare passing /.well-known/acme-challenge/ through on port 80.
+{
+	email {$ACME_EMAIL}
+	servers {
+		# Cloudflare (when proxied) and the Worker send X-Forwarded-For; Kong logs the client address from it
+		trusted_proxies static private_ranges
+	}
+}
+
+{$API_HOSTNAME} {
+	encode zstd gzip
+	# uploads up to Storage's limit (50 MB) plus headroom
+	request_body {
+		max_size 60MB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy kong:8000 {
+		# Edge Functions may run 150 s (calendar-sync allows 120 s)
+		transport http {
+			read_timeout 170s
+			write_timeout 170s
+		}
+	}
+	log {
+		output stdout
+		format console
+	}
+}
+
+# GoTrue's email templates, for the auth container only (Docker network; this port is not published).
+:8089 {
+	root * /srv/auth-templates
+	file_server
+}

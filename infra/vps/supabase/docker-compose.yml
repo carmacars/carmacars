@@ -1,0 +1,440 @@
+# CarmaCars self-hosted Supabase (infra/vps/CUTOVER.md). Based on the official supabase/docker compose file
+# (github.com/supabase/supabase, docker/, October 2026) with these changes:
+#   - Kong is the gateway (the official Kong override), published on 127.0.0.1 only; Caddy terminates TLS for
+#     api.carmacars.ca in front of it. Nothing but Caddy listens on a public address (ufw allows 22/80/443, and
+#     every other published port is bound to 127.0.0.1, which Docker's iptables rules cannot open to the world).
+#   - Realtime, Analytics (Logflare) and Vector are left out: the app uses none of them (no channel/subscribe in
+#     web/src). imgproxy is left out: the app never asks Storage for image transformations (render/image).
+#   - Supavisor is behind the compose profile "pooler" (off): nothing outside the server connects to Postgres
+#     directly; CI reaches it through an SSH tunnel and the services connect on the Docker network.
+#   - Studio and pg-meta are bound to 127.0.0.1 (SSH tunnel only); Kong has no dashboard or /pg routes.
+#   - Postgres is tuned for the 24 GB VPS (command line flags below, values in defaults.env), keeps the hosted
+#     project's JWT secret and API keys (in .env, written by infra/vps/scripts/make-env.sh), and signs user tokens
+#     with an ES256 key of its own (JWT_KEYS / JWT_JWKS), as the hosted project does with its own.
+#   - GoTrue settings that the deploy manages (templates, redirect list, phone, hooks, SMTP) come from auth.env
+#     (rendered by infra/vps/scripts/auth-env.mjs); Edge Function secrets come from functions.env.
+# Always run through /opt/carmacars/bin/dc (it passes defaults.env and .env).
+
+name: supabase
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:2026.10.12-sha-3699278
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - 127.0.0.1:3000:3000/tcp
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""
+        ]
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      meta:
+        condition: service_started
+    environment:
+      HOSTNAME: "0.0.0.0"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH}
+      DEFAULT_ORGANIZATION_NAME: CarmaCars
+      DEFAULT_PROJECT_NAME: carmacars
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      ENABLED_FEATURES_LOGS_ALL: "false"
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - ./volumes/snippets:/app/snippets:z
+      - ./volumes/functions:/app/edge-functions:ro,z
+
+  kong:
+    container_name: supabase-kong
+    image: kong/kong:3.9.3
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      default:
+        aliases:
+          - api-gw
+          - envoy
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 127.0.0.1:8000:8000/tcp
+    volumes:
+      - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
+      - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+      KONG_ROUTER_FLAVOR: expressions
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_DNS_VALID_TTL: 5
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      # the client address Caddy forwards (X-Forwarded-For) is trusted from the Docker network only
+      KONG_TRUSTED_IPS: 172.16.0.0/12,10.0.0.0/8,192.168.0.0/16,127.0.0.1
+      KONG_REAL_IP_HEADER: X-Forwarded-For
+      KONG_REAL_IP_RECURSIVE: "on"
+      KONG_PROXY_ACCESS_LOG: /dev/stdout combined
+      KONG_NGINX_WORKER_PROCESSES: "4"
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ""
+      SUPABASE_SECRET_KEY: ""
+      ANON_KEY_ASYMMETRIC: ""
+      SERVICE_ROLE_KEY_ASYMMETRIC: ""
+      DASHBOARD_USERNAME: ""
+      DASHBOARD_PASSWORD: ""
+    entrypoint: ["/bin/sh", "/home/kong/kong-entrypoint.sh"]
+
+  auth:
+    container_name: supabase-auth
+    image: supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+    # the settings the deploy manages (site URL, redirect list, templates, SMTP, phone, hooks, MFA, rate limits);
+    # values here win over auth.env only for the fixed ones below
+    env_file:
+      - path: ./auth.env
+        required: false
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY}
+      # the hosted project's legacy HS256 secret (the anon and service_role keys are signed with it)
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      # signing keys: this server's ES256 private key (signs user tokens) and the legacy symmetric key
+      GOTRUE_JWT_KEYS: ${JWT_KEYS}
+      # the app checks iss == <NEXT_PUBLIC_SUPABASE_URL>/auth/v1 (web/src/lib/auth/jwt-verify.ts), as on the hosted project
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}/auth/v1
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+
+  rest:
+    container_name: supabase-rest
+    image: postgrest/postgrest:v14.18
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_POOL: ${PGRST_DB_POOL}
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      # JWKS: this server's ES256 public key, the legacy HS256 key (anon, service_role, Admin view-as tokens) and,
+      # for the first hour after the cutover, the hosted project's public signing keys (JWT_JWKS, make-env.sh)
+      PGRST_JWT_SECRET: ${JWT_JWKS}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
+    command: ["postgrest"]
+
+  storage:
+    container_name: supabase-storage
+    image: supabase/storage-api:v1.81.0
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://storage:5000/status"]
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 10s
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      JWT_JWKS: ${JWT_JWKS}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      # the largest bucket limit the deploy sets is 15 MB (scripts/deploy/supabase.sh storage); backups use 50 MB parts
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID}
+      REGION: ${REGION}
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - ./volumes/storage:/var/lib/storage:z
+
+  meta:
+    container_name: supabase-meta
+    image: supabase/postgres-meta:v0.100.0
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    # SQL for CI (scripts/deploy/lib.sh sbq, through the SSH tunnel): POST /query {"query": ...} answers the rows of
+    # the last statement as JSON, like the Management API's database/query. Never published beyond 127.0.0.1.
+    ports:
+      - 127.0.0.1:8085:8080/tcp
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST}
+      PG_META_DB_PORT: ${POSTGRES_PORT}
+      PG_META_DB_NAME: ${POSTGRES_DB}
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      # migrations and the email templates (about 1.8 MB of SQL) take longer than the default
+      PG_QUERY_TIMEOUT_SECS: "900"
+
+  functions:
+    container_name: supabase-edge-functions
+    image: supabase/edge-runtime:v1.77.4
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - ./volumes/functions:/home/deno/functions:z
+      - deno-cache:/root/.cache/deno
+    depends_on:
+      kong:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL, LINK_SIGNING_KEY, DEBIT_JOB_TOKEN, STRIPE_SECRET_KEY,
+    # CALSYNC_JOB_TOKEN (the hosted project's Edge Function secrets; scripts/deploy/lib.sh sb_fn_secrets)
+    env_file:
+      - path: ./functions.env
+        required: false
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_JWKS: ${JWT_JWKS}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
+    command: ["start", "--user-worker-request-idle-timeout", "150000", "--main-service", "/home/deno/functions/main"]
+
+  db:
+    container_name: supabase-db
+    # the hosted project's major version (17); make-env.sh records the image in .env (PG_IMAGE) once and keeps it
+    image: ${PG_IMAGE}
+    restart: unless-stopped
+    logging: *logging
+    shm_size: ${PG_SHM_SIZE}
+    stop_grace_period: 120s
+    ports:
+      - 127.0.0.1:5432:5432/tcp
+    volumes:
+      - ./volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ./volumes/db/data:/var/lib/postgresql/data:Z
+      - ./volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      # the vault's root key lives here: keep this volume with the data directory
+      - db-config:/etc/postgresql-custom
+      # WAL archiving: archive_command copies each finished WAL file into the spool (infra/vps/bin/wal-archive);
+      # wal-g on the host pushes the spool to the backup bucket (carmacars-wal-push.timer). A no-op until the backup
+      # bucket is configured (/opt/carmacars/backup/enabled).
+      - /opt/carmacars/wal-spool:/wal-spool:z
+      - /opt/carmacars/backup/enabled-flag:/opt/carmacars/backup-flag:ro
+      - /opt/carmacars/bin/wal-archive:/usr/local/bin/wal-archive:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      # the first start initialises the cluster and runs Supabase's init scripts
+      start_period: 180s
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: ${POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB}
+      JWT_EXP: ${JWT_EXPIRY}
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - log_min_messages=error
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS}
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE}
+      - -c
+      - work_mem=${PG_WORK_MEM}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM}
+      - -c
+      - wal_buffers=${PG_WAL_BUFFERS}
+      - -c
+      - min_wal_size=${PG_MIN_WAL_SIZE}
+      - -c
+      - max_wal_size=${PG_MAX_WAL_SIZE}
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - max_worker_processes=${PG_MAX_WORKER_PROCESSES}
+      - -c
+      - max_parallel_workers=${PG_MAX_PARALLEL_WORKERS}
+      - -c
+      - max_parallel_workers_per_gather=${PG_MAX_PARALLEL_WORKERS_PER_GATHER}
+      - -c
+      - max_parallel_maintenance_workers=${PG_MAX_PARALLEL_MAINTENANCE_WORKERS}
+      - -c
+      - huge_pages=try
+      - -c
+      - wal_level=replica
+      - -c
+      - wal_compression=on
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=/usr/local/bin/wal-archive %p
+      - -c
+      - archive_timeout=300
+      - -c
+      - track_io_timing=on
+      - -c
+      - log_min_duration_statement=${PG_LOG_MIN_DURATION_STATEMENT}
+
+  # Off by default (profile "pooler"): nothing outside the server needs a pooled connection today.
+  supavisor:
+    profiles: ["pooler"]
+    container_name: supabase-pooler
+    image: supabase/supavisor:2.9.13
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - 127.0.0.1:6543:6543
+    volumes:
+      - ./volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro,z
+    healthcheck:
+      test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "http://127.0.0.1:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/_supabase
+      CLUSTER_POSTGRES: "true"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      VAULT_ENC_KEY: ${VAULT_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      REGION: local
+      ERL_AFLAGS: -proto_dist inet_tcp
+      POOLER_TENANT_ID: carmacars
+      POOLER_DEFAULT_POOL_SIZE: "20"
+      POOLER_MAX_CLIENT_CONN: "200"
+      POOLER_POOL_MODE: transaction
+      DB_POOL_SIZE: "5"
+    command: ["/bin/sh", "-c", "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"]
+
+  # TLS for api.carmacars.ca (Let's Encrypt, automatic) in front of Kong; also serves the GoTrue email templates to
+  # the auth container on the Docker network only (:8089, not published).
+  caddy:
+    container_name: supabase-caddy
+    image: caddy:2.10.2
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      kong:
+        condition: service_healthy
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+      - 443:443/udp
+    environment:
+      API_HOSTNAME: ${API_HOSTNAME}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - ./volumes/auth-templates:/srv/auth-templates:ro,z
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-config:
+  deno-cache:
+  caddy-data:
+  caddy-config:

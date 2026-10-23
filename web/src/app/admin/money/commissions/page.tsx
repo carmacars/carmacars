@@ -32,7 +32,7 @@ export default async function StaffCommissions({ searchParams }: { searchParams:
       <p className="small muted">Prices staff typed by hand. A price under the floor or more than the discount limit under the rate sheet is flagged; nothing is blocked. Mark each one reviewed.</p>
       <Table<R> testId="prices" rows={rv.prices} rowKey={(r) => String(r.booking_number)} empty="No prices typed by hand to review." cols={[
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'vehicle', label: 'Car', className: 'wrap' },
-        { key: 'rental_cents', label: 'Price', num: true, render: (r) => $(r.rental_cents) }, { key: 'rate_sheet_cents', label: 'Rate sheet', num: true, render: (r) => $(r.rate_sheet_cents) },
+        { key: 'rental_cents', label: 'Price', num: true, render: (r) => r.tax === 'included' ? `${$(r.with_tax_cents)} tax included` : `${$(r.rental_cents)} plus tax` }, { key: 'rate_sheet_cents', label: 'Rate sheet', num: true, render: (r) => $(r.rate_sheet_cents) },
         { key: 'days', label: 'Days', num: true }, { key: 'by', label: 'Typed by' }, { key: 'reason', label: 'Reason', className: 'wrap' },
         { key: 'flags', label: 'Flag', render: (r) => (r.flags as string[]).length ? <b className="ad-late">{(r.flags as string[]).map((f) => (f === 'below_floor' ? 'under the floor' : 'past the discount limit')).join(', ')}</b> : 'none' },
         { key: 'act', label: '', render: (r) => r.reviewed_at ? `reviewed ${t(r.reviewed_at)}` : <Act action="price_review" payload={{ booking: r.booking_number }} label="Mark reviewed" testId={`price-review-${String(r.booking_number)}`} refresh={[base]} done="Reviewed." fields={[{ name: 'note', label: 'Note', type: 'text' }]} /> }]} /></>);

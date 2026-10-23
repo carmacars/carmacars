@@ -31,7 +31,7 @@ export function googleMaps(apiKey: string, o: GoogleMapsOptions = {}): MapsAdapt
     name: 'google',
     async autocomplete(query, sessionToken): Promise<PlaceSuggestion[]> {
       const input = query.trim().slice(0, 120);
-      if (input.length < 2) return [];
+      if (input.length < 3) return [];
       const j = await call<{ suggestions?: { placePrediction?: { placeId: string; text?: { text?: string } } }[] }>(`${PLACES}/places:autocomplete`, {
         method: 'POST', headers: headers('suggestions.placePrediction.placeId,suggestions.placePrediction.text.text'),
         body: JSON.stringify({ input, sessionToken, includedRegionCodes: ['ca'], languageCode: 'en', regionCode: 'ca', locationBias: BIAS })

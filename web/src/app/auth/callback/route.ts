@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { landingFor, safeNext } from '@/server/portals';
 import { rolesOf } from '@/server/door';
 import { rpc } from '@/lib/db/repo';
+import { cookies } from 'next/headers';
+import { decodeFlow, FLOW_COOKIE } from '@/lib/auth/oauth';
+import { finishProviderSignIn } from '@/server/oauth-sign-in';
 
 // Supabase Auth email links land here with a token hash (every template: scripts/deploy/auth-templates.mjs) or a
 // one-time code (PKCE, a link asked for on this same browser). Either becomes a session cookie; then the person
@@ -39,6 +42,19 @@ export async function GET(req: Request) {
   const tokenHash = u.searchParams.get('token_hash');
   const type = u.searchParams.get('type') ?? '';
   const backend = env().DATA_BACKEND;
+  // sign-in with a provider (src/lib/auth/oauth.ts): this browser started the flow (its cookie) and the provider sent
+  // the person back, with a code or with a refusal (cancelled on the provider's page)
+  const jar = await cookies();
+  const flow = decodeFlow(jar.get(FLOW_COOKIE)?.value);
+  if (flow && !tokenHash && (code || u.searchParams.get('error'))) {
+    jar.delete(FLOW_COOKIE);
+    if (!code) {
+      const reason = u.searchParams.get('error') === 'access_denied' ? 'cancelled' : 'exchange';
+      return NextResponse.redirect(new URL(`/sign-in?oauth=${reason}&provider=${flow.p}`, u.origin));
+    }
+    const r = await finishProviderSignIn(code, flow);
+    return NextResponse.redirect(new URL(r.to, u.origin));
+  }
   if (backend === 'supabase' && tokenHash && TYPES.has(type)) {
     const { supabaseServer } = await import('@/lib/supabase/server');
     const s = await supabaseServer();

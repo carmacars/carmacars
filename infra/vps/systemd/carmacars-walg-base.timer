@@ -1,0 +1,10 @@
+[Unit]
+Description=CarmaCars: base backup every night at 06:10 UTC (02:10 Toronto in summer)
+
+[Timer]
+OnCalendar=*-*-* 06:10:00 UTC
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

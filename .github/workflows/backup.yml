@@ -36,10 +36,36 @@ concurrency:
 env:
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  # the deploy-reports retention runs on either backend; the backup and check jobs are the hosted project's only (on
+  # the company's server: .github/workflows/vps-backup.yml, wal-g and a nightly dump to the backup bucket)
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
 
 jobs:
+  # where Supabase is: the repository variable DB_BACKEND when set, else the committed infra/vps/backend
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.b.outputs.backend }}
+      health: ${{ steps.b.outputs.health }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+      - id: b
+        env:
+          DB_BACKEND: ${{ vars.DB_BACKEND }}
+          VPS_HEALTH: ${{ vars.VPS_HEALTH }}
+        run: |
+          echo "backend=$(infra/vps/scripts/backend.sh)" >> "$GITHUB_OUTPUT"
+          echo "health=$(infra/vps/scripts/backend.sh health)" >> "$GITHUB_OUTPUT"
+
   backup:
-    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
+    needs: gate
+    if: needs.gate.outputs.backend != 'vps' && ((github.event_name == 'schedule' && github.event.schedule == '23 7 * * *') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup'))
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -101,7 +127,8 @@ jobs:
           if [ "$PRUNE_REPORTS" = 1 ] || [ "${{ inputs.prune_now }}" = true ]; then PRUNE=1 scripts/backup/prune-reports.sh | tail -n 1; fi
 
   check:
-    if: (github.event_name == 'schedule' && github.event.schedule == '41 13 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'check')
+    needs: gate
+    if: needs.gate.outputs.backend != 'vps' && ((github.event_name == 'schedule' && github.event.schedule == '41 13 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'check'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

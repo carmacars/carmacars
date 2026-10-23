@@ -14,6 +14,12 @@ concurrency:
   group: usage
   cancel-in-progress: false
 
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
 jobs:
   usage:
     runs-on: ubuntu-24.04
@@ -40,6 +46,6 @@ jobs:
           jq -r '.unavailable | to_entries[] | "\(.key): \(.value)"' "$F" | sed 's/^/::notice title=not readable::/'
           if [ "$(jq '.days | length' "$F")" = 0 ]; then echo "::notice title=usage::no Cloudflare figures this hour"; exit 0; fi
           Q=$(jq -c '{source: "cloudflare", days: .days}' "$F" | sed "s/'/''/g")
-          curl -sS -f -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data "$(jq -n --arg q "select app.usage_record_external('$Q'::jsonb) -> 'refresh' -> 'states' as states" '{query: $q}')" > "$RUNNER_TEMP/states.json"
+          printf "select app.usage_record_external('%s'::jsonb) -> 'refresh' -> 'states' as states" "$Q" > "$RUNNER_TEMP/usage.sql"
+          "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$RUNNER_TEMP/usage.sql" > "$RUNNER_TEMP/states.json"
           jq -r '.[0].states | to_entries | map("\(.key) \(.value)") | join(", ")' "$RUNNER_TEMP/states.json" | sed 's/^/::notice title=usage::/'

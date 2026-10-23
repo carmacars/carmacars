@@ -61,6 +61,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Text alerts', (k) => k.startsWith('sms_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Sign-in by phone', (k) => k.startsWith('signin_')],
+  ['Google Maps daily caps', (k) => k.startsWith('maps_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

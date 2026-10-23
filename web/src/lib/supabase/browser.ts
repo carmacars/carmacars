@@ -7,6 +7,7 @@ import type { Database } from '@/lib/db/types';
 // blueprint puts in the browser (calendar, quote, search, cookie choice) when DATA_BACKEND=supabase.
 let client: ReturnType<typeof createBrowserClient<Database>> | undefined;
 export function supabaseBrowser() {
-  client ??= createBrowserClient<Database>(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey);
+  client ??= createBrowserClient<Database>(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey,
+    publicEnv.supabaseAuthCookie ? { cookieOptions: { name: publicEnv.supabaseAuthCookie } } : undefined);
   return client;
 }

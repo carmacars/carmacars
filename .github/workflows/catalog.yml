@@ -36,6 +36,12 @@ concurrency:
   group: catalog-${{ github.event_name == 'push' && github.ref || 'write' }}
   cancel-in-progress: false
 
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
 jobs:
   import:
     runs-on: ubuntu-24.04
@@ -58,8 +64,7 @@ jobs:
             push) echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
             workflow_dispatch) [ "${{ inputs.write }}" = true ] && echo "mode=write" >> "$GITHUB_OUTPUT" || echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
           esac
-          due=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select app.vehicle_catalog_import_due() as due"}' | jq -r '.[0].due // false')
+          due=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql 'select app.vehicle_catalog_import_due() as due' | jq -r '.[0].due // false')
           if [ "$due" = true ]; then echo "mode=write" >> "$GITHUB_OUTPUT"; else echo "mode=skip" >> "$GITHUB_OUTPUT"; echo "::notice title=catalog::not due: the last import is recent and none was asked for"; fi
       - name: Dry run (download, normalise, counts, fixture)
         if: steps.due.outputs.mode == 'dry'
@@ -101,15 +106,10 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
-            pool=$(curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/database/pooler" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" || true)
-            host=$(jq -r '[.[]? | select(.database_type == "PRIMARY")][0].db_host // empty' <<<"$pool")
-            user=$(jq -r '[.[]? | select(.database_type == "PRIMARY")][0].db_user // empty' <<<"$pool")
-            if [ -n "$host" ] && [ -n "$user" ]; then
-              enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri'); echo "::add-mask::$enc"
-              export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
-            fi
-          fi
+          # the session pooler (hosted, with the database password) or the SSH tunnel (DB_BACKEND=vps); empty: the Management API
+          DATABASE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" db-url || true)
+          if [ -n "$DATABASE_URL" ]; then export DATABASE_URL; else unset DATABASE_URL; fi
+          SQL_API_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-api-url); export SQL_API_URL
           node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --write --stats "$RUNNER_TEMP/stats.json" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/write.txt"
           echo "::notice title=catalog::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
@@ -123,8 +123,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           echo "::add-mask::$L"
           T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
           echo "::add-mask::$T"

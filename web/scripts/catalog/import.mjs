@@ -224,10 +224,13 @@ function statements(catalog, meta) {
 }
 
 async function management(sql) {
+  // SQL_API_URL: the company's own server (pg-meta's /query through the job's SSH tunnel, scripts/deploy/vps.sh), which
+  // answers like the Management API's database/query
+  const api = process.env.SQL_API_URL;
   const ref = process.env.SUPABASE_PROJECT_REF, token = process.env.SUPABASE_ACCESS_TOKEN;
-  if (!ref || !token) throw new Error('SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are needed to write');
-  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-    method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ query: sql }), signal: AbortSignal.timeout(300_000)
+  if (!api && (!ref || !token)) throw new Error('SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN (or SQL_API_URL) are needed to write');
+  const r = await fetch(api ?? `https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    method: 'POST', headers: { ...(api ? {} : { authorization: `Bearer ${token}` }), 'content-type': 'application/json' }, body: JSON.stringify({ query: sql }), signal: AbortSignal.timeout(300_000)
   });
   const text = await r.text();
   if (!r.ok) throw new Error(`SQL failed (${r.status}): ${text.slice(0, 600)}`);

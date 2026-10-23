@@ -30,10 +30,16 @@ concurrency:
   group: verify
   cancel-in-progress: true
 
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
 jobs:
   live:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 45
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -62,12 +68,13 @@ jobs:
           if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
       - name: Live checks
         run: |
-          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
           echo "::add-mask::$K"
-          export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co"
+          export SUPABASE_SERVICE_ROLE_KEY="$K" SUPABASE_URL="$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" url)"
+          # the company's server (DB_BACKEND=vps): SQL and the Auth settings without the Management API
+          export SQL_API_URL="$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-api-url)" SB_AUTH_CONFIG_FILE="$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" auth-config-file "$RUNNER_TEMP/auth-config.json")"
           # the site's link key: the statement emails job is called once, as the Worker's cron calls it (web/scripts/verify-live.mjs)
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           echo "::add-mask::$L"
           export LINK_SIGNING_KEY="$L"
           status=0
@@ -106,8 +113,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/verify"
           F="$RUNNER_TEMP/verify/cars-not-public.json"
-          curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select app.cars_not_public() as cars, app.sample_cars_state() as samples"}' > "$F"
+          "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql 'select app.cars_not_public() as cars, app.sample_cars_state() as samples' > "$F"
           # car names and the steps left only (no plate, no owner): one notice per car, at most 9
           jq -r '.[0].samples | "sample cars: \(.public) of \(.cars) on the site; enquiries \(.enquiries) (\(.open_enquiries) new)"' "$F" | sed 's/^/::notice title=sample cars::/'
           jq -r '.[0].cars[:9][] | "\(.name) (\(.status)): \(.gates | map(.label) | join(", ")). Next: \(.next)\(if .sample_photos then " [sample photos]" else "" end)"' "$F" | sed 's/^/::notice title=not public::/'
@@ -164,9 +170,9 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
           echo "::add-mask::$K"
-          S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+          S=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url)
           curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
           for f in "$RUNNER_TEMP"/verify/*; do
             ct=image/png; case "$f" in *.json) ct=application/json;; esac
