@@ -79,7 +79,7 @@ test('click depth: footer Browse leads to every place (directory) and every make
 
 test('structured data: a rental page for a place we deliver to has its Service; a far one does not; no rating without reviews', async ({ page, request }) => {
   const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
-  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/car-rental\/(?!toronto$)[a-z0-9-]+$/.test(u));
+  const near = locs(await (await request.get('/sitemap-priority.xml')).text()).find((u) => /^\/car-rental\/rent-a-car\/(?!gta$)[a-z0-9-]+$/.test(u));
   expect(near).toBeTruthy();
   await page.goto(near!);
   expect(await ld()).toContain('"serviceType":"Car rental"');
