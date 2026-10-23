@@ -35,6 +35,8 @@ export function cspHeader(nonce: string, o: CspOptions = {}): string {
     `style-src 'self' 'unsafe-inline'`,
     `img-src ${img} https:`,
     `font-src 'self'`,
+    // the investor deck's narrated video, its poster and captions: short-lived signed links to Supabase Storage
+    `media-src 'self' blob: ${['https://*.supabase.co', ...(o.connectOrigins ?? [])].join(' ')}`,
     `connect-src ${connect}${turnstile}`,
     `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS}`,
     `frame-ancestors 'none'`,
