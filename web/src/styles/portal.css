@@ -270,7 +270,9 @@
   .ad-table--cards td::before, .ad-table--cards tbody th::before { content: attr(data-label); color: var(--text-2); font-weight: 600; font-size: var(--fs-2xs); letter-spacing: 0.04em; text-transform: uppercase; }
   .ad-table--cards tr > :first-child::before { display: none; }
   .ad-table--cards td:empty { display: none; }
-  .ad-table--cards td.wrap, .ad-table--cards td:has(.ad-actions) { grid-column: 1 / -1; }
+  .ad-table--cards td.wrap, .ad-table--cards td:has(.ad-actions, .btn, form) { grid-column: 1 / -1; }
+  .ad-table--cards td > *, .ad-table--cards td .btn { max-width: 100%; }
+  .ad-table--cards td .btn { white-space: normal; height: auto; }
 }
 @media (max-width: 30rem) {
   .pt__nav { flex-wrap: wrap; column-gap: var(--s-4); row-gap: 0; overflow: visible; }
