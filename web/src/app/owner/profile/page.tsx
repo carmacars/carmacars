@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { PageHeader } from '@/features/portal/Chrome';
 import { Dl } from '@/features/portal/Blocks';
 import { OwnerProfileForm } from '@/features/owner/OwnerForms';
 import { requireOwner } from '@/server/owner/data';
@@ -15,7 +16,7 @@ export default async function OwnerProfilePage() {
   const o = home.owner;
   return (
     <>
-      <h1 className="d2">Profile</h1>
+      <PageHeader title="Profile" purpose="Your contact details and the details your agreements and registry forms use." />
       <div className="pt-split">
         <section className="pt-card" aria-labelledby="ow-contact"><h2 className="d4" id="ow-contact">Contact details</h2>
           <OwnerProfileForm initial={{ email: o.email ?? '', phone: o.phone ?? '', address_line1: o.address_line1 ?? '', address_line2: o.address_line2 ?? '', city: o.city ?? '', province: o.province ?? 'ON', postal_code: o.postal_code ?? '', hst_number: o.hst_number ?? '' }} />

@@ -26,7 +26,7 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
       <h1 className="d3">My jobs{d.name ? `, ${d.name.split(' ')[0]}` : ''}</h1>
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/field/sign">Read and sign</Link></span></p>}
       <nav className="fd-days" aria-label="Day"><Link prefetch={false} href="/field" aria-current={day === 'today' ? 'page' : undefined}>Today ({d.today.length})</Link><Link prefetch={false} href="/field?day=tomorrow" aria-current={day === 'tomorrow' ? 'page' : undefined}>Tomorrow ({d.tomorrow.length})</Link></nav>
-      {!jobs.length && <p className="pt-empty" data-testid="no-jobs">No jobs {day}.</p>}
+      {!jobs.length && <div className="pt-empty" data-testid="no-jobs"><p>No jobs {day}.</p><p className="small muted">{day === 'today' ? 'New jobs show up here as CarmaCars books them. Tomorrow shows what is coming.' : 'Jobs for tomorrow show up here as they are booked.'}</p></div>}
       {jobs.map((j: FieldCard) => (
         <section key={j.field_job_id} className={`fd-card${j === next ? ' is-next' : ''}`} aria-labelledby={`j-${j.field_job_id}`} data-testid="job-card">
           <p className="pt-kicker">{when(j.scheduled_at)} · {j.status.replace(/_/g, ' ')}</p>
@@ -37,14 +37,14 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
           <Link prefetch={false} className={`btn ${j.status === 'scheduled' ? 'btn--ghost' : 'btn--primary'} fd-wide`} href={`/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>
         </section>
       ))}
-      <section className="fd-card" aria-labelledby="moves-t">
+      {/* vehicle moves: shown when there is a car to move or a move to end (an empty card with nothing to press is clutter) */}
+      {(d.vehicles.length > 0 || d.moves.length > 0) && <section className="fd-card" aria-labelledby="moves-t">
         <h2 className="d4" id="moves-t">Vehicle moves</h2>
         {d.moves.map((m) => <div key={m.id} className="stack"><p className="small">{m.vehicle_name}, since {when(m.started_at)}{m.from_place ? ` from ${m.from_place}` : ''}</p>
           <FieldButton action="move_end" payload={{ move: m.id }} label="End the move" testId="move-end" fields={[{ name: 'to_place', label: 'Now at' }, { name: 'odometer', label: 'Odometer (km)', numeric: true }]} /></div>)}
         {d.vehicles.length > 0 && <FieldButton action="move_start" payload={{}} label="Start a move" testId="move-start" fields={[{ name: 'vehicle', label: 'Car', options: d.vehicles.map((v) => [v.id, v.name] as [string, string]) },
           { name: 'purpose', label: 'Why', options: [['repositioning', 'Reposition'], ['service', 'Service or repair'], ['detail', 'To the detailer'], ['other', 'Other']] }, { name: 'from_place', label: 'From' }, { name: 'odometer', label: 'Odometer (km)', numeric: true }]} />}
-        {!d.vehicles.length && !d.moves.length && <p className="small muted">A move is recorded on a car of one of your jobs.</p>}
-      </section>
+      </section>}
       {tk.phone && <p className="small"><a className="link" href={`tel:${tk.phone.replace(/[^\d+]/g, '')}`}>Call CarmaCars, {tk.phone}</a></p>}
     </>
   );

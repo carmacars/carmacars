@@ -82,6 +82,8 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   const staff = await ctx(browser);
   await signIn(staff, cs.email, '/va');
   await openMenuIfPhone(staff, 'va-nav');
+  // Live visitors, Live chat and Game leads are their own group, Live (October 23, 2026)
+  await staff.getByTestId('va-nav').getByTestId('nav-group-live').click();
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live visitors' })).toBeVisible();
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live chat' })).toBeVisible();
   await staff.goto('/va/live', { waitUntil: 'networkidle' });

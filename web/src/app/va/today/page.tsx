@@ -4,7 +4,7 @@ import { vaPage, FN_LABEL } from '@/server/va';
 import { Card, PageHead, Tiles, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Today', path: '/va/today', noindex: true, description: 'The day at a glance.' });
+export const metadata = pageMeta({ title: 'Today at a glance', path: '/va/today', noindex: true, description: 'The day at a glance.' });
 
 type Digest = { open: number; overdue: number; due_today: number; escalated: number; done_today: number; mine: number; by_type: Record<string, number>; pickups_today: number; returns_today: number;
   requests_waiting: number | null; payments_failed: number | null; next: Array<{ title: string; due_at: string }> };
@@ -15,7 +15,7 @@ export default async function Today() {
   const d = await read<Digest>('digest');
   return (
     <>
-      <PageHead title="Today" kicker={FN_LABEL[fn]} />
+      <PageHead title="Today at a glance" kicker={FN_LABEL[fn]} purpose="Your open tasks in numbers, today's pickups and returns, and what comes next." />
       <div data-testid="digest"><Tiles items={[
         { k: 'Open', v: d.open, href: '/va' }, { k: 'Overdue', v: d.overdue, warn: d.overdue > 0, href: '/va?only=overdue' }, { k: 'Due today', v: d.due_today, href: '/va?only=today' },
         { k: 'Escalated', v: d.escalated, href: '/va?only=escalated' }, { k: 'Mine', v: d.mine, href: '/va?tab=mine' }, { k: 'Done today', v: d.done_today },

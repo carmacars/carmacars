@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { More, PageHeader } from '@/features/portal/Chrome';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { OwnBookingForm } from '@/features/owner/OwnerForms';
@@ -48,16 +49,19 @@ export default async function OwnerBookings({ searchParams }: { searchParams: Pr
   const bookable = home.vehicles.filter((v) => ['available', 'ready_to_list', 'cleaning', 'exit_notice'].includes(v.status)).map((v) => ({ id: v.vehicle_id, name: v.name }));
   return (
     <>
-      <h1 className="d2">Bookings</h1>
+      <PageHeader title="Bookings" purpose="Every booking on your vehicles, and your own bookings of them."
+        action={bookable.length ? <a className="btn btn--ghost btn--sm ph__phone-only" href="#book-own">Book my own car</a> : undefined} />
       <div className="pt-split">
         <div className="stack-lg">
-          <Month year={y} month={m - 1} bookings={list} />
-          <Month year={m === 12 ? y + 1 : y} month={m % 12} bookings={list} />
           <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
             {list.length ? <ul className="ow-rows">{list.map((b) => <li key={b.booking_id}><span>{b.booking_number} · {b.vehicle_name}</span><span className="ow-amount">{b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
               : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}
             <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars.</p>
           </section>
+          <More summary="Calendar: this month and next" testId="owner-calendar">
+            <Month year={y} month={m - 1} bookings={list} />
+            <Month year={m === 12 ? y + 1 : y} month={m % 12} bookings={list} />
+          </More>
         </div>
         <aside className="pt-split__aside">
           <section className="pt-card" aria-labelledby="book-own" id="book-own"><h2 className="d4">Book my own car</h2><OwnBookingForm vehicles={bookable} initial={sp.vehicle} /></section>

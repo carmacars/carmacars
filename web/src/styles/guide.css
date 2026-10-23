@@ -186,3 +186,6 @@
   .gd-contact { break-inside: avoid; }
   a { color: inherit; text-decoration: none; }
 }
+/* portal cleanup (October 23, 2026): the "New here?" strip is one slim line, not a block */
+.gd-banner { padding: var(--s-2) var(--s-3); gap: var(--s-2) var(--s-3); border-left-width: 4px; }
+.gd-banner p { font-size: var(--fs-sm); flex-basis: 12rem; }

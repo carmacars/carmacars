@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage, FN_LABEL } from '@/server/va';
 import { Act } from '@/features/admin/Act';
-import { Badge, Filters, PageHead, Table, t, label } from '@/features/admin/ui';
+import { Badge, Filters, MoreFilters, PageHead, Table, t, label } from '@/features/admin/ui';
 import { taskHref, type Task } from '@/features/va/tasks';
 import { QueueLive } from '@/features/va/QueueLive';
 import { signCount } from '@/features/manual/SignPages';
@@ -26,12 +26,14 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   return (
     <>
       <QueueLive open={all.length} />
-      <PageHead title="To do" kicker={`${FN_LABEL[fn]} · ${all.length} open`}><Link prefetch={false} className="btn btn--ghost btn--sm" href="/va/today">Today</Link></PageHead>
+      <PageHead title="To do" kicker={`${FN_LABEL[fn]} · ${all.length} open`} purpose="Your open tasks, most urgent first. Open a task to do it, or take one nobody has yet."><Link prefetch={false} className="btn btn--ghost btn--sm" href="/va/today">Today at a glance</Link></PageHead>
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="va-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/va/sign">Read and sign</Link></span></p>}
       <Filters base="/va" name="tab" value={tab} sp={sp} options={[['all', `All (${all.length})`], ['mine', `Mine (${count('mine')})`], ['unassigned', `Unassigned (${count('unassigned')})`], ['waiting', `Waiting (${count('waiting')})`]]} />
-      <Filters base="/va" name="only" value={sp.only ?? ''} sp={sp} options={[['', 'Any time'], ['overdue', 'Overdue'], ['today', 'Due today'], ['escalated', 'Escalated']]} />
-      {types.length > 1 && <Filters base="/va" name="type" value={sp.type ?? ''} sp={sp} options={[['', 'Every type'], ...types.map((x) => [x, label(x)] as [string, string])]} />}
-      <Table<Task & Record<string, unknown>> testId="queue" caption="Open tasks" rows={rows as Array<Task & Record<string, unknown>>} empty="Queue clear." cols={[
+      <MoreFilters active={!!(sp.only || sp.type)}>
+        <Filters base="/va" name="only" value={sp.only ?? ''} sp={sp} options={[['', 'Any time'], ['overdue', 'Overdue'], ['today', 'Due today'], ['escalated', 'Escalated']]} />
+        {types.length > 1 && <Filters base="/va" name="type" value={sp.type ?? ''} sp={sp} options={[['', 'Every type'], ...types.map((x) => [x, label(x)] as [string, string])]} />}
+      </MoreFilters>
+      <Table<Task & Record<string, unknown>> testId="queue" caption="Open tasks" rows={rows as Array<Task & Record<string, unknown>>} empty={all.length ? 'No task matches these filters. Choose All to see every open task.' : 'Queue clear: nothing is waiting for you. New tasks appear here as they come in.'} cols={[
         { key: 'priority', label: 'Priority', render: (r) => <Badge s={r.priority === 'urgent' ? 'failed' : r.priority === 'high' ? 'needs_review' : 'open'}>{r.priority}</Badge> },
         { key: 'title', label: 'Task', className: 'wrap', render: (r) => <><Link prefetch={false} className="link" href={taskHref(r)} data-testid={`task-${r.task_type}`}>{r.title}</Link>{r.escalated ? <span className="ad-flag ad-flag--red">escalated</span> : null}</> },
         { key: 'record', label: 'Record', render: (r) => r.booking_number ?? r.plate ?? r.vehicle_name ?? '' },

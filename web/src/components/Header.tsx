@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
-import { AccountLink, MenuButton, NavLink } from './HeaderClient';
+import { AccountLink, MenuButton, NavLink, PublicOnly } from './HeaderClient';
 
 export const NAV: [string, string, string][] = [
   ['/cars', 'Fleet', 'Every car, with dates and prices'], ['/how-it-works', 'How it works', 'Request to book'],
@@ -16,12 +16,12 @@ export function Header({ s }: { s: SiteSettings }) {
       <header className="site-header on-dark">
         <div className="wrap">
           <Wordmark s={s} />
-          <nav className="nav" aria-label="Main">
+          <PublicOnly><nav className="nav" aria-label="Main">
             {NAV.map(([h, l]) => <NavLink key={h} className="nav__link" href={h}>{l}</NavLink>)}
-          </nav>
+          </nav></PublicOnly>
           <div className="header-actions">
             <AccountLink className="btn btn--quiet btn--sm header-signin" />
-            <Link prefetch={false} className="btn btn--primary btn--sm" href="/cars">Find a car</Link>
+            <PublicOnly keep={['account']}><Link prefetch={false} className="btn btn--primary btn--sm" href="/cars">Find a car</Link></PublicOnly>
             <MenuButton />
           </div>
         </div>

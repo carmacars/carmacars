@@ -16,7 +16,8 @@ import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 const SHOTS = 'test-results/legal-admin-redesign';
 const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
-const GROUPS = ['Today', 'Bookings', 'Cars', 'Owners and partners', 'Money', 'People', 'Settings'];
+// six groups since October 23, 2026 (People holds owners and partners, then renters, staff and investors)
+const GROUPS = ['Today', 'Bookings', 'Cars', 'People', 'Money', 'Settings'];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 
@@ -88,7 +89,7 @@ async function cloneRow(sql: Sql, table: string, id: string, over: Record<string
 
 test.describe.configure({ mode: 'serial' });
 
-test('admin: To do, the seven groups, search, the keyboard, Admin access only for rent@carmacars.ca', async ({ browser }) => {
+test('admin: To do, the six groups, search, the keyboard, Admin access only for rent@carmacars.ca', async ({ browser }) => {
   const sql = db();
   const admin = await mkUser(sql, 'admin', 'Lr Admin');
   const page = await ctx(browser);
@@ -100,17 +101,18 @@ test('admin: To do, the seven groups, search, the keyboard, Admin access only fo
   await expect(page.getByTestId('todo-returns')).toBeVisible();
   await check(page, 'To do');
   await shot(page, 'todo');
-  // the menu: seven groups with plain names, the current one open
+  // the menu: six groups with plain names, the current one open
   await openMenu(page);
   const nav = page.getByTestId('admin-nav');
   for (const g of GROUPS) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
-  await nav.getByTestId('nav-group-owners').click();
+  await expect(nav.locator('.gn__head, .gn__single')).toHaveCount(GROUPS.length);
+  await nav.getByTestId('nav-group-people').click();
   await expect(nav.getByRole('link', { name: /^Applications/ })).toBeVisible();
   await shot(page, 'menu');
   await nav.getByRole('link', { name: /^Applications/ }).click();
   await page.waitForURL(/\/admin\/applications/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner applications');
-  if (isPhone()) await expect(page.getByTestId('nav-menu')).toContainText('Owners and partners');
+  if (isPhone()) await expect(page.getByTestId('nav-menu')).toContainText('People');
   // search: a booking number finds the booking
   const [bk] = await sql`select booking_number from bookings order by created_at desc limit 1`;
   await page.locator('#gn-q').fill(bk!.booking_number as string);
@@ -456,7 +458,7 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('To do');
   await openMenu(page);
   const nav = page.getByTestId('va-nav');
-  for (const g of ['My work', 'Bookings', 'Renters', 'Cars', 'Owners']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
+  for (const g of ['My work', 'Live', 'Bookings', 'Renters', 'Cars', 'Owners']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await nav.getByTestId('nav-group-bookings').click();
   await nav.getByRole('link', { name: 'Requests' }).click();
   await page.waitForURL(/\/va\/requests/);

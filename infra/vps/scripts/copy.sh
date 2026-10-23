@@ -184,6 +184,10 @@ restore() {
   if [ "$archiving" = yes ]; then vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled; fi
   local load_s=$(( $(date +%s) - tl ))
   migrations
+  # every sequence at least at its column's max: on the October 23, 2026 cutover the dump's setval lines did not reach
+  # the server and audited writes failed with duplicate keys until the sequences were set (scripts/sequences.sql)
+  local seqs; seqs=$(vps_sql_file "$HERE/sequences.sql") || die "setting the sequences to their tables' max failed"
+  note "sequences moved up to their tables' max: $(jq -r 'length' <<<"$seqs") ($(jq -r 'map(.seq) | join(", ")' <<<"$seqs" | cut -c1-300))"
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
         left join pg_roles r on r.oid = s.setrole
@@ -313,7 +317,9 @@ auth() {
   # what the API does not show back: the SMTP password (Resend: the deploy_resend_api_key in the vault) and the SMS
   # hook's signing secret (deploy_auth_sms_hook_secret), from the server's vault (copied by the vault step)
   host=$(jq -r '.smtp_host // ""' "$W/auth-config.json")
-  if ! jq -e '.smtp_pass // "" | test("^[^*]+$")' "$W/auth-config.json" > /dev/null && [[ "$host" == *resend* ]]; then
+  # the API answers a hash of the password (hex, not "******"): for Resend the password is the API key (re_...), so
+  # anything else is replaced (on October 23, 2026 the hash was carried and every Auth email failed with 535)
+  if [[ "$host" == *resend* ]] && ! jq -e '.smtp_pass // "" | test("^re_[A-Za-z0-9_]+$")' "$W/auth-config.json" > /dev/null; then
     local k; k=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_resend_api_key'" | jq -r '.[0].v // empty'); mask "$k"
     if [ -n "$k" ]; then jq --arg k "$k" '.smtp_pass = $k' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"; else warn "no SMTP password: Auth emails will fail until deploy_resend_api_key is in the vault"; fi
   fi
