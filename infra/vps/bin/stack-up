@@ -13,10 +13,14 @@ done
 chmod 700 "$D/backup" "$D/state"
 # on any failure: what went wrong, for the workflow's annotations
 show_failed() {
-  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1); do
+  local c
+  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1 | grep -v '^supabase-db$'); do
     echo "---- $c: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")"
-    docker logs --tail 40 "$c" 2>&1 | cut -c1-300
+    docker logs --tail 6 "$c" 2>&1 | cut -c1-240
   done
+  # the database last, so its lines are in the annotations' tail
+  echo "---- supabase-db: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' supabase-db 2>&1)"
+  docker logs --tail 45 supabase-db 2>&1 | cut -c1-240
 }
 trap show_failed ERR
 "$D/bin/dc" pull --quiet
