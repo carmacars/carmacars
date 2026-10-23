@@ -6,7 +6,9 @@ import { email, phone } from '@/features/forms/schemas';
 // gives the person a clear message first. Policy numbers come from the database (site_facts).
 export interface RequestRules { minAge: number; maxDays: number; maxAdditional: number; maxSeats: number; noteMax: number; licenceClasses: string[]; otherLicence: boolean; noticeMinutes: number }
 
-export const place = z.object({ label: z.string().trim().max(300).default(''), placeId: z.string().trim().max(300).default('') });
+// session: the address field's Google session token (0113), so the Place Details lookup at submit closes the same
+// billing session as the suggestions that found the place
+export const place = z.object({ label: z.string().trim().max(300).default(''), placeId: z.string().trim().max(300).default(''), session: z.string().trim().max(64).optional() });
 const dobFields = { dobY: z.string().trim().default(''), dobM: z.string().trim().default(''), dobD: z.string().trim().default('') };
 export const driverSchema = z.object({ first: z.string().trim().default(''), last: z.string().trim().default(''), email: z.string().trim().default(''), licClass: z.string().default(''), ...dobFields });
 
