@@ -175,14 +175,14 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-      - name: Chromium
-        timeout-minutes: 15
-        run: if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
-      - name: ffmpeg (Ubuntu's package)
+      - name: ffmpeg (Ubuntu's package, before the browser's libraries)
         timeout-minutes: 10
         run: |
           command -v ffmpeg > /dev/null || { sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends ffmpeg; }
           ffmpeg -hide_banner -version | head -1
+      - name: Chromium
+        timeout-minutes: 15
+        run: if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
       - name: Timeline and captions
         run: node scripts/investor-video/timeline.mjs --dir "$OUT"
       - name: Frames (1920x1080, 30 fps)
