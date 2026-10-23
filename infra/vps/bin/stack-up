@@ -12,7 +12,14 @@ for f in .env auth.env functions.env auth-config.json; do
 done
 chmod 700 "$D/backup" "$D/state"
 "$D/bin/dc" pull --quiet
-"$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900
+if ! "$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900; then
+  # what went wrong, for the workflow's annotations
+  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1); do
+    echo "---- $c: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")"
+    docker logs --tail 25 "$c" 2>&1 | cut -c1-300
+  done
+  exit 1
+fi
 # archive_command writes the spool as the container's postgres user
 uid=$(docker exec supabase-db id -u postgres)
 chown "$uid" "$D/wal-spool"; chmod 700 "$D/wal-spool"
