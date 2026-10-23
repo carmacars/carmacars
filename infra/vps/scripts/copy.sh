@@ -198,7 +198,8 @@ restore() {
     echo "- left to their own step: $(jq -r '.skipped_by_rule | to_entries | map("\(.key) (\(.value))") | join(", ")' "$f")"
     echo "- tables the server does not have (Auth/Storage versions): $(jq -r '.missing_on_server | to_entries | map("\(.key) (\(.value) rows)") | join(", ") | if . == "" then "none" else . end' "$f")"
     echo "- columns dropped (the hosted Auth/Storage is newer): $(jq -r '.columns_dropped | to_entries | map("\(.key): \(.value | join(" "))") | join("; ") | if . == "" then "none" else . end' "$f")"
-  } | summary
+  } | tee "$W/restore-summary.md" | summary
+  note "restore: $(grep '^- ' "$W/restore-summary.md" | sed 's/^- //' | paste -sd ';' - | cut -c1-3500)"
   jq -e '.columns_dropped | length == 0' "$f" > /dev/null || warn "some columns of the hosted project were dropped (see the summary); check them before the cutover"
 }
 
@@ -305,8 +306,11 @@ storage() {
     set -u
     b="$1"; n="$2"; s="$3"; m="$4"; c="$5"
     p=$(jq -rn --arg n "$n" '"'"'$n | split("/") | map(@uri) | join("/")'"'"')
-    have=$(curl -sS -o /dev/null -I -w "%{http_code} %header{content-length}" "$VURL/storage/v1/object/authenticated/$b/$p" -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" 2>/dev/null || echo "000 0")
-    if [ "${have%% *}" = 200 ] && [ "${have##* }" = "$s" ]; then echo "skip"; exit 0; fi
+    # the first byte, read from the file itself (a HEAD answers from the database row even when the file is missing)
+    if [ "$s" != 0 ]; then
+      have=$(curl -sS -o /dev/null -r 0-0 -w "%{http_code} %header{content-range}" "$VURL/storage/v1/object/authenticated/$b/$p" -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" 2>/dev/null || echo "000 x")
+      if [ "${have%% *}" = 206 ] && [ "${have##*/}" = "$s" ]; then echo "skip"; exit 0; fi
+    fi
     f=$(mktemp -p "$W")
     if ! curl -sS -f -o "$f" "$HURL/storage/v1/object/authenticated/$b/$p" -H "Authorization: Bearer $HKEY" -H "apikey: $HKEY"; then rm -f "$f"; echo "fail download $b/$n" ; exit 0; fi
     code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$VURL/storage/v1/object/$b/$p" -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" \
@@ -385,6 +389,7 @@ verify() {
   jq -n --arg mode "$COPY_MODE" --argjson problems "$(printf '%s\n' "${problems[@]:-}" | jq -R 'select(length > 0)' | jq -sc .)" \
     --argjson infos "$(printf '%s\n' "${infos[@]:-}" | jq -R 'select(length > 0)' | jq -sc .)" \
     '{mode: $mode, ok: ($problems | length == 0), problems: $problems, infos: $infos}' > "$W/verify.json"
+  note "verify details: $(printf '%s; ' "${infos[@]}" | cut -c1-3500)"
   if [ "${#problems[@]}" != 0 ]; then for p in "${problems[@]}"; do warn "$p"; done; die "verify: ${#problems[@]} problem(s)"; fi
   note "verify: the server matches ($COPY_MODE)"
 }
