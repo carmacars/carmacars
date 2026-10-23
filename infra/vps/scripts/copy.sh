@@ -100,13 +100,13 @@ preflight() {
   printf '%s' "$exts" > "$W/extensions.json"
   hq "select bucket_id, count(*) as objects, coalesce(sum((metadata->>'size')::bigint), 0) as bytes from storage.objects group by 1 order by 1" > "$W/buckets.json"
   local vimg vfree
-  vimg=$(vps_ssh "docker inspect -f '{{.Config.Image}}' supabase-db" 2>/dev/null || echo "not running")
+  vimg=$(vps_ssh "sudo docker inspect -f '{{.Config.Image}}' supabase-db" 2>/dev/null || echo "not running")
   vfree=$(vps_ssh "df -B1 --output=avail / | tail -n 1")
   [ "$vfree" -gt $(( size * 4 + 5 * 1024 * 1024 * 1024 )) ] || die "the server has $((vfree / 1024 / 1024)) MB free; the database is $((size / 1024 / 1024)) MB"
   { echo "### Copy preflight ($COPY_MODE)"; echo
     echo "- hosted Postgres $ver, database $((size / 1024 / 1024)) MB, $(jq length "$W/extensions.json") extensions"
     echo "- server: $vimg, $((vfree / 1024 / 1024 / 1024)) GB free"
-    echo "- stored files: $(jq -r 'map("\(.bucket_id) \(.objects) (\(.bytes / 1048576 | floor) MB)") | join(", ")' "$W/buckets.json"); skipped: ${SKIP_BUCKETS:-none}"
+    echo "- stored files: $(jq -r 'map("\(.bucket_id) \(.objects) (\(.bytes | tonumber / 1048576 | floor) MB)") | join(", ")' "$W/buckets.json"); skipped: ${SKIP_BUCKETS:-none}"
   } | summary
   [[ "$ver" == 17.* ]] || die "the hosted project runs Postgres $ver; the server runs 17"
   case "$vimg" in *postgres:17.*) ;; *) die "the server's database container is not Postgres 17 ($vimg); run vps-provision first" ;; esac
@@ -122,7 +122,7 @@ dump() {
   for f in roles schema data; do [ -s "$W/$f.sql" ] || [ "$f" = roles ] || die "$f.sql is empty"; done
   note "dump: roles $(wc -c < "$W/roles.sql") B, schema $(wc -c < "$W/schema.sql") B, data $(( $(wc -c < "$W/data.sql") / 1024 / 1024 )) MB in $(( $(date +%s) - t0 )) s ($(supabase --version))"
   # the hosted counts right after the dump (exact when the project is frozen: COPY_MODE=final)
-  hq "$COUNTS_SQL" | jq '.[0].counts' > "$W/hosted-counts.json"
+  hq "$COUNTS_SQL" | jq '.[0].counts | (if type == "string" then fromjson else . end) | map_values(tonumber)' > "$W/hosted-counts.json"
 }
 
 reset() {
@@ -156,7 +156,7 @@ restore() {
                  (select table_schema, table_name, json_agg(column_name::text order by ordinal_position) as cols
                     from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') group by 1, 2) c),
       'sequences', (select coalesce(json_agg(sequence_schema || '.' || sequence_name), '[]') from information_schema.sequences)) as t" \
-    | jq '.[0].t' > "$W/target.json"
+    | jq '.[0].t | if type == "string" then fromjson else . end' > "$W/target.json"
   python3 -I "$HERE/filter-data.py" "$W/data.sql" "$W/target.json" "$W/data.fit.sql" "$W/filter.json"
   local missing
   missing=$(jq -r --arg s "$APP_SCHEMAS" '.missing_on_server | keys[] | select((split(".")[0]) as $x | ($s | split(" ") | index($x)))' "$W/filter.json")
@@ -200,7 +200,7 @@ vault() {
   vps_tunnel
   local n_h out t
   ( umask 077; hq "select coalesce(json_agg(json_build_object('name', name, 'description', coalesce(description, ''), 'secret', decrypted_secret)), '[]') as s
-                   from vault.decrypted_secrets" | jq '.[0].s' > "$W/vault.json" )
+                   from vault.decrypted_secrets" | jq '.[0].s | if type == "string" then fromjson else . end' > "$W/vault.json" )
   n_h=$(jq 'length' "$W/vault.json")
   jq -e 'all(.[]; .secret != null)' "$W/vault.json" > /dev/null || die "some hosted vault secrets did not decrypt"
   # one SQL file: upsert by name (vault.create_secret / update_secret); every value dollar-quoted with a tag of its own
@@ -219,14 +219,14 @@ vault() {
   local names_h; names_h=$(jq -c '[.[].name | select(. != null)] | sort' "$W/vault.json")
   rm -f "$W/vault.sql" "$W/vault.json"
   [ "$(jq -c '.[0].names | sort' <<<"$out")" = "$names_h" ] || die "the vault names on the server differ from the hosted project's"
-  [ "$(jq '.[0].ok' <<<"$out")" = "$(jq '.[0].n' <<<"$out")" ] || die "some vault secrets on the server do not decrypt"
+  [ "$(jq -r '.[0].ok | tostring' <<<"$out")" = "$(jq -r '.[0].n | tostring' <<<"$out")" ] || die "some vault secrets on the server do not decrypt"
   note "vault: $n_h secrets re-created on the server; all decrypt with the server's key"
 }
 
 cron() {
   vps_tunnel
   local jobs n sqlf t rewritten
-  jobs=$(hq "select coalesce(json_agg(json_build_object('jobname', jobname, 'schedule', schedule, 'command', command, 'active', active) order by jobid), '[]') as j from cron.job" | jq '.[0].j')
+  jobs=$(hq "select coalesce(json_agg(json_build_object('jobname', jobname, 'schedule', schedule, 'command', command, 'active', active) order by jobid), '[]') as j from cron.job" | jq '.[0].j | if type == "string" then fromjson else . end')
   printf '%s' "$jobs" | vps_ssh "sudo sh -c 'umask 077; cat > /opt/carmacars/state/cron-hosted.json'"
   n=$(jq 'length' <<<"$jobs")
   sqlf=$(mktemp)
@@ -245,8 +245,8 @@ cron() {
   rm -f "$sqlf"
   local v; v=$(vps_sql "select count(*) as n, count(*) filter (where active) as active,
                                coalesce(json_agg(jobname) filter (where command like '%supabase.co%'), '[]') as hosted_urls from cron.job")
-  [ "$(jq '.[0].n' <<<"$v")" = "$n" ] || die "the server has $(jq '.[0].n' <<<"$v") pg_cron jobs, the hosted project $n"
-  [ "$(jq '.[0].active' <<<"$v")" = 0 ] || die "some pg_cron jobs on the server are active before the cutover"
+  [ "$(jq -r '.[0].n | tostring' <<<"$v")" = "$n" ] || die "the server has $(jq -r '.[0].n | tostring' <<<"$v") pg_cron jobs, the hosted project $n"
+  [ "$(jq -r '.[0].active | tostring' <<<"$v")" = 0 ] || die "some pg_cron jobs on the server are active before the cutover"
   [ "$(jq '.[0].hosted_urls | length' <<<"$v")" = 0 ] || warn "jobs that still name a supabase.co address: $(jq -c '.[0].hosted_urls' <<<"$v")"
   note "cron: $n jobs re-created paused on the server ($rewritten call an Edge Function, now through the server's Kong); the hosted states are kept for the cutover"
 }
@@ -320,8 +320,8 @@ verify() {
   vps_tunnel; vkey; hkey
   local problems=() infos=()
   # 1. every table: server rows == rows in the dump (proves the restore); and == the hosted project now (exact in final)
-  vps_sql "$COUNTS_SQL" | jq '.[0].counts' > "$W/vps-counts.json"
-  hq "$COUNTS_SQL" | jq '.[0].counts' > "$W/hosted-counts-now.json"
+  vps_sql "$COUNTS_SQL" | jq '.[0].counts | (if type == "string" then fromjson else . end) | map_values(tonumber)' > "$W/vps-counts.json"
+  hq "$COUNTS_SQL" | jq '.[0].counts | (if type == "string" then fromjson else . end) | map_values(tonumber)' > "$W/hosted-counts-now.json"
   local vs_dump vs_hosted
   vs_dump=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile f "$W/filter.json" '[$f[0].rows | to_entries[] | select(($v[0][.key] // -1) != .value) | {table: .key, dump: .value, server: ($v[0][.key] // null)}]')
   vs_hosted=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile h "$W/hosted-counts-now.json" '[$h[0] | to_entries[] | select(.key | test("^(auth\\.schema_migrations|storage\\.migrations)$") | not) | select(($v[0][.key] // 0) != .value) | {table: .key, hosted: .value, server: ($v[0][.key] // null)}]')
@@ -339,11 +339,11 @@ verify() {
   fi
   # 2. vault, cron
   local vh vv ch cv
-  vh=$(hq "select count(*) as n from vault.secrets" | jq '.[0].n'); vv=$(vps_sql "select count(*) filter (where decrypted_secret is not null) as n from vault.decrypted_secrets" | jq '.[0].n')
+  vh=$(hq "select count(*) as n from vault.secrets" | jq -r '.[0].n | tostring'); vv=$(vps_sql "select count(*) filter (where decrypted_secret is not null) as n from vault.decrypted_secrets" | jq -r '.[0].n | tostring')
   [ "$vh" = "$vv" ] || problems+=("vault: $vh secrets on the hosted project, $vv decryptable on the server")
-  ch=$(hq "select count(*) as n from cron.job" | jq '.[0].n'); cv=$(vps_sql "select count(*) as n, count(*) filter (where active) as a from cron.job")
-  [ "$ch" = "$(jq '.[0].n' <<<"$cv")" ] || problems+=("cron: $ch jobs on the hosted project, $(jq '.[0].n' <<<"$cv") on the server")
-  if ! vps_is_live && [ "$(jq '.[0].a' <<<"$cv")" != 0 ]; then problems+=("cron: $(jq '.[0].a' <<<"$cv") jobs active on the server before the cutover"); fi
+  ch=$(hq "select count(*) as n from cron.job" | jq -r '.[0].n | tostring'); cv=$(vps_sql "select count(*) as n, count(*) filter (where active) as a from cron.job")
+  [ "$ch" = "$(jq -r '.[0].n | tostring' <<<"$cv")" ] || problems+=("cron: $ch jobs on the hosted project, $(jq -r '.[0].n | tostring' <<<"$cv") on the server")
+  if ! vps_is_live && [ "$(jq -r '.[0].a | tostring' <<<"$cv")" != 0 ]; then problems+=("cron: $(jq -r '.[0].a | tostring' <<<"$cv") jobs active on the server before the cutover"); fi
   # 3. the same answers from the database API (anon) and the same Auth settings
   local rpc hh vh2
   rpc_sig() { # base key rpc -> "code sha"
@@ -369,8 +369,8 @@ verify() {
   done
   # 5. two-step sign-in: TOTP secrets readable without the hosted project's key?
   local totp; totp=$(vps_sql "select count(*) as n, count(*) filter (where secret like '{%') as enc from auth.mfa_factors where factor_type = 'totp'")
-  [ "$(jq '.[0].enc' <<<"$totp")" = 0 ] || problems+=("$(jq '.[0].enc' <<<"$totp") of $(jq '.[0].n' <<<"$totp") TOTP factors are stored encrypted with the hosted project's key: those people must enrol their authenticator again")
-  infos+=("TOTP factors: $(jq '.[0].n' <<<"$totp")")
+  [ "$(jq -r '.[0].enc | tostring' <<<"$totp")" = 0 ] || problems+=("$(jq -r '.[0].enc | tostring' <<<"$totp") of $(jq -r '.[0].n | tostring' <<<"$totp") TOTP factors are stored encrypted with the hosted project's key: those people must enrol their authenticator again")
+  infos+=("TOTP factors: $(jq -r '.[0].n | tostring' <<<"$totp")")
   { echo "### Verify ($COPY_MODE)"; echo
     echo "- tables: $(jq length "$W/vps-counts.json") on the server, $(jq '.rows | length' "$W/filter.json") loaded from the dump"
     for i in "${infos[@]}"; do echo "- $i"; done
