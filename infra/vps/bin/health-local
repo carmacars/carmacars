@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# The server's own view of its health, as JSON (run by the vps-health workflow over SSH, and by hand).
+# Exit 1 when something needs attention: a container not running or unhealthy, disk over 85%, memory almost gone,
+# the WAL spool not draining (backup configured), the last base backup over 30 hours old, the certificate under
+# 14 days, or Postgres not answering.
+set -uo pipefail
+D=/opt/carmacars
+problems=()
+containers=$(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}}\t{{.State}}\t{{.Status}}')
+while IFS=$'\t' read -r name state status; do
+  [ -n "$name" ] || continue
+  if [ "$state" != running ]; then problems+=("$name is $state"); continue; fi
+  case "$status" in *unhealthy*) problems+=("$name is unhealthy") ;; esac
+done <<<"$containers"
+for c in supabase-db supabase-auth supabase-rest supabase-storage supabase-kong supabase-edge-functions supabase-meta supabase-caddy; do
+  grep -q "^$c	" <<<"$containers" || problems+=("$c does not exist")
+done
+disk=$(df --output=pcent / | tail -n 1 | tr -dc 0-9)
+[ "${disk:-0}" -le 85 ] || problems+=("disk ${disk}% full")
+mem_avail=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
+[ "${mem_avail:-0}" -ge 512 ] || problems+=("only ${mem_avail} MB of memory available")
+pg=$(docker exec supabase-db pg_isready -U postgres -h localhost -q && echo up || echo down)
+[ "$pg" = up ] || problems+=("Postgres does not answer")
+conns=$(docker exec supabase-db psql -U supabase_admin -d postgres -XAtc "select count(*) from pg_stat_activity" 2>/dev/null || echo null)
+backup=disabled; spool=0; spool_oldest_min=0; base_age_h=null
+if [ -f "$D/backup/enabled-flag/enabled" ]; then
+  backup=enabled
+  spool=$(find "$D/wal-spool" -maxdepth 1 -type f ! -name '.*' | wc -l)
+  oldest=$(find "$D/wal-spool" -maxdepth 1 -type f ! -name '.*' -printf '%T@\n' | sort -n | head -n 1)
+  [ -n "$oldest" ] && spool_oldest_min=$(( ( $(date +%s) - ${oldest%.*} ) / 60 ))
+  [ "$spool_oldest_min" -le 30 ] || problems+=("WAL spool not draining: $spool files, oldest ${spool_oldest_min} min")
+  if [ -f "$D/state/walg-base.last" ]; then
+    base_age_h=$(( ( $(date +%s) - $(date -d "$(cat "$D/state/walg-base.last")" +%s) ) / 3600 ))
+    [ "$base_age_h" -le 30 ] || problems+=("last base backup ${base_age_h} h ago")
+  else
+    problems+=("no base backup yet")
+  fi
+fi
+host=$(grep -m1 '^API_HOSTNAME=' "$D/supabase/defaults.env" | cut -d= -f2)
+cert_days=null
+end=$(echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$host" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+if [ -n "$end" ]; then
+  cert_days=$(( ( $(date -d "$end" +%s) - $(date +%s) ) / 86400 ))
+  [ "$cert_days" -ge 14 ] || problems+=("TLS certificate for $host expires in $cert_days days")
+fi
+live=false; [ -f "$D/state/live" ] && live=true
+load=$(cut -d' ' -f1 /proc/loadavg)
+jq -n --argjson problems "$(printf '%s\n' "${problems[@]:-}" | jq -R 'select(length > 0)' | jq -sc .)" \
+  --arg disk "$disk" --arg mem "$mem_avail" --arg pg "$pg" --arg conns "$conns" --arg backup "$backup" \
+  --arg spool "$spool" --arg spool_min "$spool_oldest_min" --arg base "$base_age_h" --arg cert "$cert_days" \
+  --argjson live "$live" --arg load "$load" --arg containers "$containers" \
+  '{ok: ($problems | length == 0), problems: $problems, live: $live, disk_pct: ($disk | tonumber? // null),
+    mem_available_mb: ($mem | tonumber? // null), load1: ($load | tonumber? // null), postgres: $pg,
+    connections: ($conns | tonumber? // null), backup: $backup, wal_spool_files: ($spool | tonumber),
+    wal_spool_oldest_min: ($spool_min | tonumber), base_backup_age_h: ($base | tonumber? // null),
+    cert_days_left: ($cert | tonumber? // null),
+    containers: ($containers | split("\n") | map(select(length > 0) | split("\t") | {name: .[0], state: .[1], status: .[2]}))}'
+[ "${#problems[@]}" -eq 0 ]

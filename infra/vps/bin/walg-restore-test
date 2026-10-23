@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Point-in-time restore test (the vps-backup workflow, mode restore-test-pitr; weekly): the newest wal-g base backup
+# and every WAL file archived since, into a scratch data directory, started in a throwaway container of the same
+# Postgres image with no network (so no cron job reaches anything), replayed to the end of the archive and promoted.
+# Checks: recovery finished, the tables of the live database exist in the copy, rows in auth.users and public, and
+# the newest job_runs row in the copy is recent (the WAL replay reached the last hours). Prints a JSON report.
+set -euo pipefail
+D=/opt/carmacars
+[ -f "$D/backup/enabled-flag/enabled" ] || { echo '{"ok":false,"error":"the backup bucket is not configured"}'; exit 1; }
+W="$D/restore-test"
+NAME=carmacars-pitr-test
+cleanup() { docker rm -f "$NAME" > /dev/null 2>&1 || true; rm -rf "$W"; }
+trap cleanup EXIT
+cleanup; mkdir -p "$W/data"
+t0=$(date +%s)
+"$D/bin/walg" backup-fetch "$W/data" LATEST > "$W/../state/pitr-fetch.log" 2>&1
+# every archived WAL segment from the backup's first one, until the archive has no next one
+first=$("$D/bin/walg" backup-list --json --detail 2>/dev/null | jq -r 'sort_by(.start_time) | last | .wal_file_name')
+[[ "$first" =~ ^[0-9A-F]{24}$ ]] || { echo "{\"ok\":false,\"error\":\"no base backup listed\"}"; exit 1; }
+mkdir -p "$W/data/pg_wal"
+tli=${first:0:8}; log=$((16#${first:8:8})); seg=$((16#${first:16:8})); fetched=0; misses=0
+while :; do
+  f=$(printf '%s%08X%08X' "$tli" "$log" "$seg")
+  if "$D/bin/walg" wal-fetch "$f" "$W/data/pg_wal/$f" > /dev/null 2>&1; then fetched=$((fetched + 1)); misses=0
+  else misses=$((misses + 1)); [ "$misses" -ge 2 ] && break; fi
+  seg=$((seg + 1)); if [ "$seg" -gt 255 ]; then seg=0; log=$((log + 1)); fi
+done
+touch "$W/data/recovery.signal"
+uid=$(docker exec supabase-db id -u postgres); gid=$(docker exec supabase-db id -g postgres)
+chown -R "$uid:$gid" "$W/data"; chmod 700 "$W/data"
+img=$(docker inspect -f '{{.Config.Image}}' supabase-db)
+docker run -d --name "$NAME" --network none --shm-size 1g \
+  -v "$W/data:/var/lib/postgresql/data" -v supabase_db-config:/etc/postgresql-custom:ro \
+  -e POSTGRES_PASSWORD=unused "$img" postgres -c config_file=/etc/postgresql/postgresql.conf \
+  -c archive_mode=off -c restore_command=/bin/false -c recovery_target_action=promote \
+  -c shared_buffers=1GB -c max_connections=50 > /dev/null
+ok=false
+for _ in $(seq 1 180); do
+  if docker exec "$NAME" psql -U supabase_admin -d postgres -XAtc "select not pg_is_in_recovery()" 2>/dev/null | grep -q t; then ok=true; break; fi
+  sleep 5
+done
+if [ "$ok" != true ]; then
+  docker logs --tail 30 "$NAME" 2>&1 | sed 's/^/[pitr] /' >&2
+  echo "{\"ok\":false,\"error\":\"recovery did not finish in 15 minutes\",\"wal_fetched\":$fetched}"; exit 1
+fi
+q() { docker exec "$1" psql -U supabase_admin -d postgres -XAtc "$2"; }
+tables_sql="select count(*) from information_schema.tables where table_schema in ('public','app','auth','storage') and table_type = 'BASE TABLE'"
+live_tables=$(q supabase-db "$tables_sql"); copy_tables=$(q "$NAME" "$tables_sql")
+users=$(q "$NAME" "select count(*) from auth.users")
+newest=$(q "$NAME" "select coalesce(extract(epoch from now() - max(started_at))::bigint / 3600, -1) from public.job_runs" 2>/dev/null || echo -1)
+report=$(jq -n --argjson lt "$live_tables" --argjson ct "$copy_tables" --argjson u "$users" --argjson n "$newest" \
+  --argjson f "$fetched" --argjson s "$(( $(date +%s) - t0 ))" --arg img "$img" \
+  '{ok: ($lt == $ct and $u > 0 and $n >= 0 and $n <= 26), image: $img, tables_live: $lt, tables_restored: $ct,
+    auth_users: $u, newest_job_run_hours_ago: $n, wal_segments_fetched: $f, seconds: $s}')
+echo "$report"
+jq -e .ok <<<"$report" > /dev/null

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Bring the stack up (idempotent): folders and modes, images, containers, then wait until every health check passes.
+set -euo pipefail
+D=/opt/carmacars
+S=$D/supabase
+[ -s "$S/.env" ] || { echo "stack-up: $S/.env is missing (the vps-provision workflow writes it)" >&2; exit 1; }
+mkdir -p "$S/volumes/db/data" "$S/volumes/storage" "$S/volumes/functions" "$S/volumes/snippets" \
+         "$S/volumes/auth-templates" "$S/volumes/pooler" "$D/wal-spool" "$D/backup/enabled-flag" "$D/state"
+for f in .env auth.env functions.env auth-config.json; do
+  if [ ! -f "$S/$f" ]; then if [ "$f" = auth-config.json ]; then echo '{}' > "$S/$f"; else : > "$S/$f"; fi; fi
+  chmod 600 "$S/$f"
+done
+chmod 700 "$D/backup" "$D/state"
+"$D/bin/dc" pull --quiet
+"$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900
+# archive_command writes the spool as the container's postgres user
+uid=$(docker exec supabase-db id -u postgres)
+chown "$uid" "$D/wal-spool"; chmod 700 "$D/wal-spool"
+"$D/bin/dc" ps --format '{{.Name}} {{.Status}}'

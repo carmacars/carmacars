@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Start the database over from an empty data directory (the copy workflow's first step, so every copy is a full,
+# clean one). Refused once the server is live (/opt/carmacars/state/live, set by the cutover): then the data here is
+# the only copy of new bookings. The vault's root key (db-config volume) and the stored files are kept.
+set -euo pipefail
+D=/opt/carmacars
+if [ -f "$D/state/live" ]; then echo "db-reset: refused, this server is the live backend since $(cat "$D/state/live")" >&2; exit 1; fi
+[ "${1:-}" = --yes ] || { echo "usage: db-reset --yes" >&2; exit 2; }
+"$D/bin/dc" stop
+rm -rf "$D/supabase/volumes/db/data"
+mkdir -p "$D/supabase/volumes/db/data"
+rm -f "$D/wal-spool/"* 2>/dev/null || true
+"$D/bin/stack-up"

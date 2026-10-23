@@ -1,0 +1,2 @@
+# The server's public IPv4 address on its own line below these comment lines (committed: the vps-* workflows and
+# scripts/deploy/vps.sh read the first line that is not a comment). Empty until the OVHcloud VPS exists.

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# wal-g with the backup bucket's settings (/opt/carmacars/backup/walg.env, written by the vps-backup workflow).
+set -euo pipefail
+E=/opt/carmacars/backup/walg.env
+[ -f "$E" ] || { echo "walg: $E is missing (run the vps-backup workflow with mode configure)" >&2; exit 1; }
+set -a
+# shellcheck disable=SC1090
+. "$E"
+PGPASSWORD=$(/opt/carmacars/bin/secret POSTGRES_PASSWORD); export PGPASSWORD
+set +a
+exec /opt/carmacars/bin/wal-g "$@"

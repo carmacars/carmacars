@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Nightly base backup with wal-g and the retention (carmacars-walg-base.timer). Point-in-time recovery is possible to
+# any moment since the oldest full backup kept: WALG_RETAIN_FULL (7) nightly full backups.
+set -euo pipefail
+D=/opt/carmacars
+[ -f "$D/backup/enabled-flag/enabled" ] || { echo "walg-base: the backup bucket is not configured; nothing to do"; exit 0; }
+exec 9> "$D/state/walg-base.lock"
+flock -n 9 || { echo "walg-base: already running" >&2; exit 1; }
+keep="${WALG_RETAIN_FULL:-7}"
+t0=$(date +%s)
+"$D/bin/walg" backup-push "$D/supabase/volumes/db/data"
+"$D/bin/walg" delete retain FULL "$keep" --confirm
+secs=$(( $(date +%s) - t0 ))
+"$D/bin/walg" backup-list --json --detail > "$D/state/walg-backups.json" 2>/dev/null || true
+date -u +%FT%TZ > "$D/state/walg-base.last"
+echo "walg-base: done in ${secs}s; full backups kept: $(jq 'length' "$D/state/walg-backups.json" 2>/dev/null || echo '?')"

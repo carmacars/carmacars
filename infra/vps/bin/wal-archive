@@ -1,0 +1,7 @@
+#!/bin/sh
+# Postgres archive_command (inside the db container): copy the finished WAL file to the spool, which wal-g on the host
+# pushes to the backup bucket (wal-push). Until the bucket is configured there is no flag file and nothing is kept.
+[ -f /opt/carmacars/backup-flag/enabled ] || exit 0
+f=$(basename "$1")
+[ -f "/wal-spool/$f" ] && exit 0
+cp "$1" "/wal-spool/.$f.tmp" && mv "/wal-spool/.$f.tmp" "/wal-spool/$f"

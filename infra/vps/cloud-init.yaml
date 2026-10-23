@@ -1,0 +1,20 @@
+#cloud-config
+# Optional user data for the OVHcloud order (Ubuntu 24.04). It only makes sure the deploy key is on the ubuntu
+# user and closes password login early; everything else (firewall, fail2ban, Docker, swap, the stack) is done by
+# infra/vps/bootstrap.sh, which the vps-provision workflow runs over SSH and which is safe to run again.
+# Without user data, OVHcloud installs the SSH key chosen at order time for ubuntu, which is all that is needed.
+users:
+  - default
+  - name: ubuntu
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINm9cLr9zGAEbWvsZz8Bh8+vXNlEL7hi0vxXaWjKn/vG carmacars-deploy
+ssh_pwauth: false
+disable_root: true
+timezone: UTC
+package_update: true
+packages: [ufw]
+runcmd:
+  - [ufw, limit, 22/tcp]
+  - [ufw, allow, 80/tcp]
+  - [ufw, allow, 443/tcp]
+  - [ufw, --force, enable]
