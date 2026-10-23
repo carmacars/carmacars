@@ -11,6 +11,12 @@ select test.eq('snapshot: a page read from it is the page read live', (select pu
 select test.eq('snapshot: it is used while the fleet is unchanged',
   (select app.seo_page_snapshot(p) is not null from seo_pages p where slug = 'se-suv'), true);
 select test.eq('snapshot: an unchanged fleet changes no page', app.seo_snapshot_refresh(), 0);
+-- the fleet has one order whatever plan reads it (0126: cars at the same rate published together keep their order)
+set enable_hashjoin = off; set enable_mergejoin = off;
+select test.eq('snapshot: another query plan changes no page either', app.seo_snapshot_refresh(), 0);
+set enable_nestloop = off; set enable_seqscan = off;
+select test.eq('snapshot: nor a third one', app.seo_snapshot_refresh(), 0);
+reset enable_hashjoin; reset enable_mergejoin; reset enable_nestloop; reset enable_seqscan;
 update seo_pages set cars_changed_at = timestamptz '2026-01-01 00:00Z' where slug = 'se-suv';
 
 -- a new daily rate for the SUV: the stamp changes, the page reads live at once, the refresh records the change
