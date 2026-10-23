@@ -11937,6 +11937,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      rental_agreement_companions: {
+        Row: {
+          id: string;
+          booking_id: string;
+          rental_agreement_id: string;
+          form_code: string;
+          template_id: string;
+          template_sha256: string;
+          document_id: string;
+          document_sha256: string;
+          status: string;
+          renter_signed_at: string | null;
+          renter_record_id: string | null;
+          signed_document_id: string | null;
+          signed_sha256: string | null;
+          completed_at: string | null;
+          superseded_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          rental_agreement_id: string;
+          form_code?: string;
+          template_id: string;
+          template_sha256: string;
+          document_id: string;
+          document_sha256: string;
+          status?: string;
+          renter_signed_at?: string | null;
+          renter_record_id?: string | null;
+          signed_document_id?: string | null;
+          signed_sha256?: string | null;
+          completed_at?: string | null;
+          superseded_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          rental_agreement_id?: string;
+          form_code?: string;
+          template_id?: string;
+          template_sha256?: string;
+          document_id?: string;
+          document_sha256?: string;
+          status?: string;
+          renter_signed_at?: string | null;
+          renter_record_id?: string | null;
+          signed_document_id?: string | null;
+          signed_sha256?: string | null;
+          completed_at?: string | null;
+          superseded_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       rental_agreement_signers: {
         Row: {
           id: string;
@@ -12054,6 +12114,42 @@ export type Database = {
           completed_at?: string | null;
           voided_at?: string | null;
           void_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      rental_form_settings: {
+        Row: {
+          form_code: string;
+          rep_name: string;
+          rep_full_name: string | null;
+          signature_key: string | null;
+          signature_sha256: string | null;
+          signature_by: string | null;
+          signature_at: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          form_code: string;
+          rep_name?: string;
+          rep_full_name?: string | null;
+          signature_key?: string | null;
+          signature_sha256?: string | null;
+          signature_by?: string | null;
+          signature_at?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          form_code?: string;
+          rep_name?: string;
+          rep_full_name?: string | null;
+          signature_key?: string | null;
+          signature_sha256?: string | null;
+          signature_by?: string | null;
+          signature_at?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -18953,7 +19049,7 @@ export type Database = {
       renter_send_message: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
       renter_set_coverage_option: { Args: { p_booking: string; p_by: string; p_option: number }; Returns: Json };
       renter_set_marketing: { Args: { p_by: string; p_opt_in: boolean; p_text?: string; p_version?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
-      renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
+      renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string; p_companion_sha256?: string }; Returns: string };
       renter_sign_amendment: { Args: { p_amendment: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_submit_card_coverage: { Args: { p_booking: string; p_by: string; p_confirm: boolean; p_text?: string }; Returns: Json };
       renter_submit_review: { Args: { p_booking: string; p_by: string; p_rating: number; p_title?: string; p_body?: string; p_publish_consent?: boolean }; Returns: string };
@@ -18973,14 +19069,17 @@ export type Database = {
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
       server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
+      server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
+      server_attach_companion_signed: { Args: { p_companion: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_attach_owner_signed_copy: { Args: { p_request: string; p_path: string; p_sha256: string }; Returns: string };
       server_attach_signed_amendment: { Args: { p_amendment: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_auth_sms: { Args: { p: Json }; Returns: Json };
       server_auth_sms_result: { Args: { p: Json }; Returns: Json };
+      server_blindspot_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
@@ -19048,6 +19147,7 @@ export type Database = {
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
+      server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };

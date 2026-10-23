@@ -997,7 +997,7 @@ def build():
         f'Site setup lists what is still missing on the public site, with {B("Open site settings")}.',
         'Site settings: contact details, hours, tagline, logo, socials, Google place id and featured cars.',
         'Program settings: every timing and policy value.',
-        'Forms: the official ServiceOntario PDFs and what goes in each field.',
+        'Forms: Blind Spot\'s rental agreement for every booking, and the official ServiceOntario PDFs and what goes in each field.',
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
@@ -1026,6 +1026,18 @@ def build():
         f'A new version from ServiceOntario? Press {B("Upload the official fillable PDF")}: the fields of the same name keep their mapping.',
     ])
     g.tip('SR-LV-006 (registration), SR-LV-012 (two registrants), ON00453 (a company\'s RIN), 013-1155 and 013-0169 (the tax-exempt transfer into an owner\'s corporation). 013-1155 is sworn before a commissioner, so it is printed and signed in person. ON00453 is an Adobe form: it opens in Adobe Acrobat Reader. Each form\'s notes list what to tick or choose at the counter.', label='Good to know')
+
+    g.task('Blind Spot rental agreement', 'We rent under Blind Spot Car Rental\'s insurance, so every booking has two agreements: CarmaCars\' rental agreement and Blind Spot\'s own. Blind Spot\'s is filled in from the booking, the renter and the car, and the renter signs both with one signature. Its PDF is stored privately, never on the website.')
+    g.steps([
+        f'Open {P("Settings", "Forms")}. The Blind Spot Car Rental agreement card is first. Press {B("Upload Blind Spot\'s PDF")} and choose Blind Spot\'s blank form (2 pages, A4).',
+        f'Press {B("Download the filled sample")}: a made-up booking on the form. {B("Sample billed to an insurer")} also fills the claim number, the adjuster and the insurance company. Check every box.',
+        'On the form the old address (top left and twice in box 15) is replaced by the mailing address of Site settings, box 1 by CarmaCars\' HST number (Program settings, Company HST number; blank until it is entered), and box 21 has the representative\'s signature instead of Sam\'s.',
+        f'Press {B("Checked: use for bookings")}. From then on each booking gets it when its rental agreement is made; a renter whose agreement is already open gets it the next time they open the signing page.',
+        'Box 21: Ahmad is written in a script hand, as Blind Spot asked. To use a real signature instead, upload a PNG under Authorized company representative; Remove the image goes back to the written name. Full name is for the signature record page.',
+        f'A new version of Blind Spot\'s form? Upload it the same way: it waits for {B("Checked: use for bookings")}, and bookings keep the version in use until then.',
+    ])
+    g.tip('Each box is filled only when the booking has the value: the renter and their licence, the additional drivers, the car (plate, make and model, the fleet number as vehicle number), the pickup as time and date out, the due-back date and time, the kilometres allowed, the daily rate and the rental charge, the underage fee, the Protection Plan as CDW, winter tires, the subtotal, HST, total and deposit, and for a booking billed to an insurer the insurer, claim number and adjuster. Other charges, such as delivery, are listed in box 14. Initials, fuel and the boxes filled at return stay blank.', label='Good to know')
+    g.para('The renter\'s signature goes in boxes 16, 17 and 20 of the signed copy, with a signature record page. Both agreements are in the booking\'s Drivers and documents tab, in the renter\'s Documents, and the signed Blind Spot agreement is attached to the "Your signed rental agreement" email. Admin > Today lists the HST number, the upload and the check until they are done.')
 
     g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are made from the person\'s record and signed in their own portal, or on paper.')
     g.steps([

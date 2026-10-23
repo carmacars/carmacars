@@ -7,7 +7,7 @@ import { useAct } from './useAct';
 
 // The rental agreement's signature (migration 0049, simpler): the four statements of Part 6 stay on screen word for
 // word, and one tap on "All four" ticks them; the signature is the legal name on file (adopted) or drawn; one button.
-export function SignForm({ number, token, sha, consents, legalName, button, onDone, fixNameHref }: { number?: string; token?: string; sha: string; consents: Consent[]; legalName: string; button: string; onDone?: () => void; fixNameHref?: string }) {
+export function SignForm({ number, token, sha, companionSha, consents, legalName, button, onDone, fixNameHref }: { number?: string; token?: string; sha: string; companionSha?: string | null; consents: Consent[]; legalName: string; button: string; onDone?: () => void; fixNameHref?: string }) {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [sig, setSig] = useState<SignatureValue>(null);
   const [local, setLocal] = useState<Record<string, string>>({});
@@ -21,7 +21,7 @@ export function SignForm({ number, token, sha, consents, legalName, button, onDo
     if (!sig) fe.signature = 'Draw your signature in the box, or use your name.';
     setLocal(fe);
     if (Object.keys(fe).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
-    const input = { consents: [...ticked], sha, drawn: sig!.method === 'drawn' ? sig!.png : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined };
+    const input = { consents: [...ticked], sha, companionSha: companionSha ?? undefined, drawn: sig!.method === 'drawn' ? sig!.png : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined };
     a.run(() => (token ? signAsDriver(token, input) : signAgreement(number!, input)), (r) => { if (r.ok) onDone?.(); });
   };
   return (

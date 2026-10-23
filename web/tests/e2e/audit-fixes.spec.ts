@@ -164,7 +164,7 @@ test('an official form: Review and check from its link, filled for a car, then u
     const dlg = desk.getByTestId(`form-review-${CODE}-dialog`);
     await expect(dlg).toBeVisible();
     await expect(dlg.getByRole('alert')).toHaveCount(0);
-    await expect(dlg.getByTestId(`form-review-${CODE}-sample`)).toContainText('field(s) filled', { timeout: 30_000 });
+    await expect(dlg.getByTestId(`form-review-${CODE}-sample`)).toContainText('text box(es) filled', { timeout: 30_000 });
     await expect(dlg.getByRole('img', { name: `${CODE}, page 1, filled` })).toBeVisible();
     await axe(desk, 'form review 1440');
     await dlg.getByTestId(`form-review-${CODE}-verify`).click();

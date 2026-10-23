@@ -9,11 +9,11 @@ export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', n
 
 export default async function Settings() {
   const { read } = await page('/admin/settings');
-  const s = await read<{ problems: Array<{ message: string }> }>('settings');
+  const s = await read<{ problems: Array<{ message: string; href?: string | null }> }>('settings');
   return (
     <>
       <PageHead title="Settings" kicker="Changes reach the public site at once" />
-      {s.problems.length > 0 && <Card title="Site setup" tone="warn"><ul className="small">{s.problems.map((p) => <li key={p.message}>{p.message}</li>)}</ul><Link prefetch={false} className="link small" href="/admin/settings/site">Open site settings</Link></Card>}
+      {s.problems.length > 0 && <Card title="Site setup" tone="warn"><ul className="small">{s.problems.map((p) => <li key={p.message}>{p.message}{p.href && <> <Link prefetch={false} className="link" href={p.href}>Open</Link></>}</li>)}</ul><Link prefetch={false} className="link small" href="/admin/settings/site">Open site settings</Link></Card>}
       <div className="ad-cols ad-cols--3">{SECTIONS.map(([k, title, about]) => <Link prefetch={false} key={k} className="ad-tile" href={`/admin/settings/${k}`}><span className="ad-tile__k">{title}</span><span className="small">{about}</span></Link>)}</div>
     </>
   );

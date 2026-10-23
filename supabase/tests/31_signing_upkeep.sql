@@ -158,7 +158,7 @@ update owners set address_line2 = 'Unit 1204', registrant_identification_number 
 select test.eq('context: the unit without its word, always ticked, no RIN yet', (select (c #>> '{owner,unit}') || '/' || (c ->> 'always') || '/' || (c #>> '{corporation,rin_missing}')
   from app.registry_context(test.id('vehicle:su_car')) c), '1204/true/true');
 select test.ok('transforms: the registry''s date style is offered', (app.form_templates(test.id('su_admin')) -> 'transforms') ? 'date:YYYY/MM/DD');
-select test.ok('forms: every draft names what each form is for and what it leaves blank', (select bool_and(notes like '%Left blank on purpose%') from pdf_templates where is_current));
+select test.ok('forms: every draft names what each form is for and what it leaves blank', (select bool_and(notes like '%Left blank on purpose%') from pdf_templates where is_current and kind <> 'booking_overlay'));
 
 -- ================================================================ 6b. Sales opens what its inbox lists
 select test.mk_user('su_sales', 'va', 'sales');

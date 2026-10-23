@@ -145,10 +145,10 @@ def build():
         f'Press {B("Save details")}. The agreement then shows your details.',
     ], shot=S('renter/04-sign-details-desktop', 0, 560, 1440, 1540, pins=[(1, 640, 760), (2, 235, 1502)]))
     g.steps([
-        f'Check the key values at the top: the car, the dates, the deposit and the deductible. Open {B("Read the full rental agreement")} to read it word for word, or press {B("Download PDF")} to keep a copy.',
+        f'Check the key values at the top: the car, the dates, the deposit and the deductible. Open {B("Read the full rental agreement")} to read it word for word, or press {B("Download PDF")} to keep a copy. Below it is the Blind Spot Car Rental agreement, filled in with the same booking: we rent under Blind Spot\'s insurance, so it is part of your rental too. Press its {B("Download PDF")} to read it.',
         f'Under Sign, tap {B("All four")}: it ticks the four statements, which stay on screen to read.',
         f'Your full legal name is your signature. Prefer to sign with your finger or the mouse? Press {B("Draw instead")}.',
-        f'Press {B("Sign and continue to payment")}.',
+        f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies are in Documents and in the email that confirms your booking.',
     ], shot=S('renter/06-sign-ready-desktop', 0, 700, 1440, 1840,
               pins=[(3, 850, 736), (4, 1000, 848), (5, 1300, 1580), (6, 1395, 1684)]))
 

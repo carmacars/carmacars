@@ -13,6 +13,7 @@ import { PrepareAgreement } from '@/features/portal/PrepareAgreement';
 import { myBooking } from '@/server/portal/data';
 import { agreementFacts, blocksFor, openAgreement, unsignedFacts } from '@/server/portal/agreement';
 import { viewAs } from '@/server/view-as';
+import { companionOf, openCompanionQuietly } from '@/server/portal/blindspot';
 import { rpc } from '@/lib/db/repo';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,9 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   if (b.agreement?.renter_signed_at) redirect(added && !b.link_due ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
   // its agreement is made the first time the renter opens this page (there was no offer to approve)
   if (added && !b.agreement && !(await viewAs())) { await openAgreement(b.id, user.id); redirect(bookingPath(b.booking_number, 'sign')); }
+  // the second agreement (Blind Spot's, 0127): made here when the rental agreement was opened before it was in use
+  let companion = b.agreement?.status === 'open' ? await companionOf(b.id) : null;
+  if (b.agreement?.status === 'open' && !companion && !(await viewAs())) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
   const facts = await agreementFacts(b.id, user.id);
   const r = facts.renter;
   const me = facts.drivers.find((d) => d.role === 'renter');
@@ -69,13 +73,19 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
             <div className="pt-card__head"><h2 className="d4" id="pt-read">The agreement</h2><a className="link" href={`/account/documents/${b.agreement.document_id}`} data-testid="agreement-pdf">Download PDF</a></div>
             <p className="small muted">Filled in with your booking and your details above. The full text, word for word:</p>
             <details className="sg-docs"><summary>Read the full rental agreement</summary><AgreementView blocks={blocks} /></details>
+            {companion && (
+              <div className="stack" data-testid="sign-companion">
+                <div className="pt-card__head"><h3 className="d4">Blind Spot Car Rental agreement</h3><a className="link" href={`/account/documents/${companion.document_id}`} data-testid="companion-pdf">Download PDF</a></div>
+                <p className="small muted">We rent under Blind Spot Car Rental&apos;s insurance, so your rental also has their agreement, filled in with the same booking and details. Your one signature below signs both agreements.</p>
+              </div>
+            )}
           </section>
           <aside className="pt-split__aside">
             <section className="pt-card" aria-labelledby="pt-sign">
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
               {charge && <p className="small" data-testid="sign-charge-note">Read and sign your rental agreement; your card is charged when you sign. We charge {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
               <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>
