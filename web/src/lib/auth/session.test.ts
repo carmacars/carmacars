@@ -116,3 +116,17 @@ test('view as: a refused server action is sent to the read-only page; anything e
   assert.match(await b.text(), /^Read only/);
   assert.equal(b.headers.get('x-frame-options'), 'DENY');
 });
+
+test('a fresh token from another Supabase Auth (the hosted project, after the move) is refreshed at once; one from this one is left alone', async () => {
+  const g = gotrue(200, { access_token: 'new.at.x', refresh_token: 'r-new', expires_in: 3600, token_type: 'bearer', user: { id: 'u1' } });
+  const tok = (iss: string): StoredSession => ({ access_token: `h.${b64u(JSON.stringify({ exp: 1_000_000 + 3000, iss }))}.s`, refresh_token: 'r-moved', expires_at: 1_000_000 + 3000, token_type: 'bearer', user: { id: 'u1' } });
+  const mine = new Request('https://carmacars.ca/owner', { headers: { cookie: header(tok('https://api.carmacars.ca/auth/v1')) } });
+  assert.equal(await refreshSession(mine, { url: 'https://api.carmacars.ca/', anonKey: 'anon', fetch: g.f, now }), null);
+  assert.equal(g.calls.length, 0);
+  const moved = new Request('https://carmacars.ca/owner', { headers: { cookie: header(tok('https://abcdref.supabase.co/auth/v1')) } });
+  const r = await refreshSession(moved, { url: 'https://api.carmacars.ca', anonKey: 'anon', fetch: g.f, now });
+  assert.equal(r?.outcome, 'refreshed');
+  assert.equal(g.calls.length, 1);
+  assert.equal(g.calls[0]!.url, 'https://api.carmacars.ca/auth/v1/token?grant_type=refresh_token');
+  assert.ok(r!.setCookies.some((c) => c.startsWith(`${NAME}=`)), 'the same cookie name is kept');
+});
