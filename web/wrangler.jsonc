@@ -52,7 +52,8 @@
   "vars": {
     "APP_ENV": "production",
     "DATA_BACKEND": "supabase",
-    "NEXT_PUBLIC_APP_URL": "https://carmacars.ca"
+    "NEXT_PUBLIC_APP_URL": "https://carmacars.ca",
+    "AUTH_OAUTH_PROVIDERS": "google"
   },
   "env": {
     "staging": {
