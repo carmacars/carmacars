@@ -82,7 +82,7 @@ jobs:
           # inside
           if inside=$(timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh sudo /opt/carmacars/bin/health-local' 2>/dev/null) || [ -n "${inside:-}" ]; then
             while IFS= read -r p; do [ -n "$p" ] && problems+=("server: $p"); done < <(jq -r '.problems[]?' <<<"$inside" 2>/dev/null)
-            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, live}' | sed 's/^/::notice title=inside::/'
+            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, cron_failed_30m, live}' | sed 's/^/::notice title=inside::/'
             ANON=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret ANON_KEY' 2>/dev/null || true)
           else
             problems+=("server: SSH did not answer within 60 s")
