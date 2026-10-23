@@ -31,10 +31,10 @@ export async function readFields(bytes: Uint8Array | ArrayBuffer): Promise<{ fie
 
 /** Fill a form. Values come from the database (app.fill_government_form); a signature field gets the PNG drawn on
  *  screen when one is given. flatten: the result can no longer be edited (the signed copy). */
-export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<string, string | null>, map: Record<string, Spec | string>, o: { signaturePng?: Uint8Array; flatten?: boolean } = {}): Promise<{ bytes: Uint8Array; filled: string[]; missing: string[] }> {
+export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<string, string | null>, map: Record<string, Spec | string>, o: { signaturePng?: Uint8Array; flatten?: boolean } = {}): Promise<{ bytes: Uint8Array; filled: string[]; missing: string[]; truncated: string[] }> {
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = doc.getForm();
-  const filled: string[] = []; const missing: string[] = [];
+  const filled: string[] = []; const missing: string[] = []; const truncated: string[] = [];
   const get = (name: string) => { try { return form.getField(name); } catch { return null; } };
   const pages = doc.getPages();
   let font: PDFFont | null = null;
@@ -56,9 +56,9 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
     if (!f) { missing.push(name); continue; }
     const v = raw ?? '';
     try {
-      if (f instanceof PDFTextField) { const max = f.getMaxLength(); f.setText(max ? v.slice(0, max) : v); }
+      if (f instanceof PDFTextField) { const max = f.getMaxLength(); if (max && v.length > max) truncated.push(name); f.setText(max ? v.slice(0, max) : v); }
       else if (f instanceof PDFCheckBox) { if (/^(yes|true|on|1|x)$/i.test(v)) f.check(); else f.uncheck(); }
-      else if (f instanceof PDFDropdown) { if (!v) f.clear(); else if (f.getOptions().includes(v) || f.isEditable()) f.select(v); }
+      else if (f instanceof PDFDropdown) { if (!v) f.clear(); else { const o = matchOption(f.getOptions(), v); if (o) f.select(o); else if (f.isEditable()) f.select(v); else { missing.push(name); continue; } } }
       else if (f instanceof PDFOptionList) { if (v && f.getOptions().includes(v)) f.select(v); }
       else if (f instanceof PDFRadioGroup) { if (v && f.getOptions().includes(v)) f.select(v); }
       else continue;
@@ -69,6 +69,8 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
     const png = await doc.embedPng(o.signaturePng);
     for (const [name, s] of Object.entries(map)) {
       if (typeof s === 'string' || s.type !== 'signature') continue;
+      // a signature with a condition is drawn only when the database kept it for this car (the condition held)
+      if (s.when && !(name in values)) continue;
       const f = get(name);
       if (!f && s.box) {
         const page = pages[s.box.page - 1] ?? pages[0]!;
@@ -94,7 +96,16 @@ export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<st
     for (const f of form.getFields()) if (f instanceof PDFButton) { try { form.removeField(f); } catch { /* a button shared with another field stays */ } }
     form.updateFieldAppearances(); form.flatten();
   }
-  return { bytes: await doc.save(), filled, missing };
+  return { bytes: await doc.save(), filled, missing, truncated };
+}
+
+/** The option of a drop-down a value stands for: the option itself, or the one it abbreviates ("ON" for
+ *  "ON - Ontario"), or the one it names after the code ("Ontario"), whatever the dash between them. */
+export function matchOption(options: string[], v: string): string | null {
+  if (options.includes(v)) return v;
+  const norm = (x: string) => x.trim().toLowerCase();
+  const t = norm(v);
+  return options.find((o) => { const [code, ...rest] = o.split(/\s+[-\u2013\u2014]\s+/); return norm(code ?? '') === t || norm(rest.join(' ')) === t || norm(o) === t; }) ?? null;
 }
 
 /** Text drawn inside a box: one line, shrunk to fit its width, sitting on the box's lower part. */

@@ -35,7 +35,8 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
       const doc = await openPdf(out.bytes);
       const pages: string[] = [];
       for (let n = 1; n <= Math.min(doc.numPages, 6); n++) pages.push(await pageJpeg(doc, n, 1400));
-      const empty = Object.entries(r.data.values).filter(([, x]) => x === null || x === '').map(([k]) => k);
+      // a signature box is signed by a person, not filled: it is not "empty"
+      const empty = Object.entries(r.data.values).filter(([k, x]) => (x === null || x === '') && r.data.field_map[k]?.type !== 'signature').map(([k]) => k);
       setShown({ pages, filled: out.filled.length, missing: out.missing, empty });
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'The sample could not be made.' });

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignaturePad } from '@/features/portal/SignaturePad';
 import type { Spec } from './fill';
+import { ownerSigns } from './signs';
 
 // The owner's official registry form (migration 0042), filled in this browser from the values on record: download
 // it as it is, or sign it on screen and save the signed copy with your documents.
@@ -15,7 +16,7 @@ export function OfficialForm({ f }: { f: Official }) {
   const [busy, setBusy] = useState(false);
   const [sig, setSig] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const hasSignature = Object.values(f.field_map).some((s) => typeof s !== 'string' && s.type === 'signature');
+  const hasSignature = ownerSigns(f.field_values, f.field_map);
   const signed = f.status === 'signed' || f.status === 'filed';
   const make = async (signature?: string) => {
     const r = await fetch(`/owner/documents/forms/${f.id}/template`);

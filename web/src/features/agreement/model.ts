@@ -1,8 +1,9 @@
 // The rental agreement as one list of blocks, filled from the booking (public.server_agreement_facts).
 // The screen (AgreementView) and the PDF (pdf.ts) both render these blocks, so what the renter reads
 // is what the PDF holds. Text markup inside blocks: **bold** only.
-import { money } from '@/lib/format';
-import { AGREEMENT_CLOSING, AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated';
+// Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
+import { companyParty, money, phone } from '../../lib/format.ts';
+import { AGREEMENT_CLOSING, AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated.ts';
 
 export type Block =
   | { t: 'title'; text: string }
@@ -111,7 +112,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ...(b.agreement_number ? [['Agreement number', b.agreement_number]] : []),
     ['Booking number / made on', `${b.booking_number} / ${when(b.booked_at ?? b.requested_at)}`],
     ['Booking type', `${BOOKING_TYPE[b.booking_type] ?? b.booking_type}${b.renews_booking_id ? ', renewal of an earlier agreement' : ''}`],
-    ['Renter', `Name: ${or(r?.legal_name)}  Date of birth: ${or(day(r?.date_of_birth ?? renter?.date_of_birth))}  Address: ${or(address)}  Mobile: ${or(r?.mobile)}  Email: ${or(r?.email)}`],
+    ['Renter', `Name: ${or(r?.legal_name)}  Date of birth: ${or(day(r?.date_of_birth ?? renter?.date_of_birth))}  Address: ${or(address)}  Mobile: ${or(phone(r?.mobile))}  Email: ${or(r?.email)}`],
     ['Renter licence', licence(renter)],
     ...(extra.length ? extra.map((d) => ['Additional Driver', `Name: ${d.full_name}  Date of birth: ${or(day(d.date_of_birth))}  Licence: ${licence(d)}`]) : [['Additional Drivers', 'None']]),
     ['Identity verified', f.drivers.map((d) => `${d.full_name}: ${d.identity_verified_on ? `${d.identity_method === 'identity_service' ? 'identity check service' : 'staff review'}, ${day(d.identity_verified_on)}` : 'before pickup'}`).join('; ')],
@@ -143,7 +144,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
   const blocks: Block[] = [
     { t: 'title', text: 'CarmaCars Rental Agreement' },
     { t: 'h2', text: 'Part 1: Rental Summary' },
-    { t: 'p', text: 'This Agreement is between CarmaCars ("CarmaCars", "we", "us") and the Renter named below ("you").' },
+    { t: 'p', text: `This Agreement is between ${companyParty(f.company.legal_name, f.company.trade_name)} ("CarmaCars", "we", "us") and the Renter named below ("you").` },
     { t: 'table', head: ['Item', 'Details'], rows: summary, kv: true },
     { t: 'table', head: ['Charge', 'Amount'], rows: charges, kv: true },
     { t: 'p', text: 'Other Charges may arise during or after the rental under Parts 2 and 3.' },

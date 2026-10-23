@@ -1,5 +1,6 @@
 import 'server-only';
 import { rpc } from '@/lib/db/repo';
+import { when } from '@/features/agreement/model';
 
 // What every signed PDF prints for the company (the legal review, migration 0053): the signing officer's countersignature
 // with its stored wording ("Signed electronically for <legal name>, operating as CarmaCars, by <officer>, Director,
@@ -19,7 +20,7 @@ export async function companySignature(requestId: string | null | undefined): Pr
   let officer: string | null = null; let title: string | null = null; let witness: CompanySignature['witness'] = null; let text: string | null = null;
   for (const r of rows) {
     if (r.signer_role === 'witness' && r.method === 'typed') {
-      witness = { name: r.signer_name, when: r.signed_at ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(r.signed_at)) : '' };
+      witness = { name: r.signer_name, when: r.signed_at ? when(r.signed_at) : '' }; // the same Toronto date and time as every signature row
       lines.push([`Witness: ${r.signer_name}`, `typed on screen in person; ${r.consent_text ?? ''}`]);
     }
     if (r.signer_role === 'carmacars') {
