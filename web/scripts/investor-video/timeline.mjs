@@ -5,6 +5,7 @@
 // <dir>/captions.vtt (the script's words, timed to the voice).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { report } from './report.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const dir = resolve(arg('dir', '.video'));
@@ -74,4 +75,4 @@ const vtt = ['WEBVTT', '', ...cues.flatMap((c, k) => [String(k + 1), `${ts(c.fro
 
 writeFileSync(join(dir, 'timeline.json'), JSON.stringify({ fps: FPS, width: 1920, height: 1080, total, frames: Math.ceil(total * FPS), estimate, scenes, beats, voices, whooshes }, null, 2));
 writeFileSync(join(dir, 'captions.vtt'), vtt);
-console.log(`timeline: ${scenes.length} scenes, ${beats.length} slides on screen, ${total.toFixed(1)} s (${Math.floor(total / 60)}:${String(Math.round(total % 60)).padStart(2, '0')})${estimate ? ', voice estimated from the words' : ''}`);
+report('notice', 'timeline', `${scenes.length} scenes, ${beats.length} slides on screen, ${total.toFixed(1)} s (${Math.floor(total / 60)}:${String(Math.round(total % 60)).padStart(2, '0')})${estimate ? ', voice estimated from the words' : ''}`);

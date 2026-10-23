@@ -7,12 +7,13 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { report } from './report.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const dir = resolve(arg('dir', '.video'));
 const tl = JSON.parse(readFileSync(join(dir, 'timeline.json'), 'utf8'));
 const T = tl.total.toFixed(3);
-const ff = (args) => { const p = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { maxBuffer: 1 << 26 }); if (p.status !== 0) { console.error(String(p.stderr)); process.exit(1); } };
+const ff = (args) => { const p = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { maxBuffer: 1 << 26 }); if (p.status !== 0) { report('error', 'audio', String(p.stderr)); process.exit(1); } };
 
 // the pad: A minor 9 and F major 7, crossfading over 24 s, each partial doubled a few cents sharp for width
 const chordA = [110, 164.81, 196, 246.94, 261.63];
@@ -43,4 +44,4 @@ ff(['-i', join(dir, 'voice.wav'), '-i', join(dir, 'pad.wav'), '-i', join(dir, 'w
   '[0:a]asplit=2[v][sc];[1:a][sc]sidechaincompress=threshold=0.02:ratio=10:attack=30:release=600:makeup=1[pad];' +
   '[2:a]volume=0.22[wh];[v][pad][wh]amix=inputs=3:normalize=0:weights=1 0.9 1,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[out]',
   '-map', '[out]', '-ac', '2', '-t', T, join(dir, 'mix.wav')]);
-console.log(`audio: ${tl.voices.length} voice lines, ${n} whooshes, ${T} s -> ${join(dir, 'mix.wav')}`);
+report('notice', 'audio', `${tl.voices.length} voice lines, ${n} whooshes, ${T} s -> ${join(dir, 'mix.wav')}`);

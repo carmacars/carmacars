@@ -7,6 +7,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { report } from './report.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const dir = resolve(arg('dir', '.video'));
@@ -16,6 +17,7 @@ const plan = JSON.parse(readFileSync(join(dir, 'plan.json'), 'utf8'));
 const vdir = join(dir, 'voice');
 mkdirSync(vdir, { recursive: true });
 
+const gh = (level, msg) => report(level, 'tts', msg);
 const SPEAKER = process.env.TTS_SPEAKER || 'thalia';
 const MODELS = [
   { model: '@cf/deepgram/aura-2-en', body: (text) => ({ text, speaker: SPEAKER, encoding: 'mp3' }) },
@@ -49,10 +51,10 @@ for (const s of plan.scenes) {
   let audio;
   if (!chosen) {
     for (const m of MODELS) {
-      try { audio = await speak(m, s.say); chosen = m; break; } catch (e) { console.warn(`tts: ${e.message}`); }
+      try { audio = await speak(m, s.say); chosen = m; break; } catch (e) { gh('warning', `tts: ${e.message}`); }
     }
-    if (!chosen) { console.error('tts: no model spoke'); process.exit(1); }
-    console.log(`tts: ${chosen.model}${chosen.model.includes('aura-2') ? ` (${SPEAKER})` : ''}`);
+    if (!chosen) { gh('error', 'tts: no model spoke'); process.exit(1); }
+    gh('notice', `tts: ${chosen.model}${chosen.model.includes('aura-2') ? ` (${SPEAKER})` : ''}`);
   } else audio = await speak(chosen, s.say);
   const rawf = join(vdir, `${String(s.n).padStart(2, '0')}.raw`);
   const wav = join(vdir, `${String(s.n).padStart(2, '0')}.wav`);
@@ -64,4 +66,4 @@ for (const s of plan.scenes) {
   console.log(`tts: ${String(s.n).padStart(2, '0')} ${sec.toFixed(2)} s  ${s.title}`);
 }
 writeFileSync(join(vdir, 'durations.json'), JSON.stringify({ model: chosen.model, speaker: chosen.model.includes('aura-2') ? SPEAKER : null, scenes: out }, null, 2));
-console.log(`tts: ${out.reduce((a, x) => a + x.seconds, 0).toFixed(1)} s of voice`);
+gh('notice', `tts: ${out.reduce((a, x) => a + x.seconds, 0).toFixed(1)} s of voice`);

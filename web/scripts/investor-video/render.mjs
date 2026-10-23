@@ -9,6 +9,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeF
 import { createServer } from 'node:http';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { report } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '../..');
@@ -31,7 +32,7 @@ const browser = await chromium.launch({ args: ['--no-proxy-server', '--font-rend
 
 async function open(scale = 1) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: scale });
-  page.on('pageerror', (e) => { console.error('stage error:', e.message); process.exitCode = 1; });
+  page.on('pageerror', (e) => { report('error', 'stage', e.message); process.exitCode = 1; });
   await page.goto(base, { waitUntil: 'load' });
   const n = await page.evaluate((tl) => window.__init(tl), timeline);
   await page.evaluate(() => window.__ready());
@@ -81,7 +82,7 @@ if (arg('sheet')) {
   const list = join(dir, 'seg', 'list.txt');
   writeFileSync(list, Array.from({ length: workers }, (_, w) => join(dir, 'seg', `${String(w).padStart(2, '0')}.mp4`)).filter(existsSync).map((f) => `file '${f}'`).join('\n'));
   await done(run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', join(dir, 'video.mp4')]));
-  console.log(`render: ${frames} frames in ${((Date.now() - started) / 1000).toFixed(0)} s -> ${join(dir, 'video.mp4')}`);
+  report('notice', 'render', `${frames} frames in ${((Date.now() - started) / 1000).toFixed(0)} s -> ${join(dir, 'video.mp4')}`);
 }
 await browser.close();
 server.close();

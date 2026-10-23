@@ -7,6 +7,7 @@ import { build } from 'esbuild';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { report } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '../..');
@@ -69,7 +70,7 @@ const scenes = parts.map((p, i) => {
   return { n: i + 1, title, group: g?.id ?? null, slides, text, say: spoken(text), words: text.split(/\s+/).length };
 });
 if (at !== slideTitles.length) problems.push(`the script covers ${at} slides; the deck has ${slideTitles.length}`);
-if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
+if (problems.length) { for (const p of problems.slice(0, 9)) report('error', 'script and deck', p); process.exit(1); }
 
 // ---------------------------------------------------------------- the stage page
 const css = ['tokens.css', 'core.css', 'deck.css'].map((f) => readFileSync(join(WEB, 'src/styles', f), 'utf8')).join('\n');
@@ -84,4 +85,4 @@ const page = `<!doctype html><html lang="en-CA"><head><meta charset="utf-8"><tit
 writeFileSync(join(out, 'stage.html'), page);
 writeFileSync(join(out, 'plan.json'), JSON.stringify({ today, vars, scenes, slides: slideTitles }, null, 2));
 const words = scenes.reduce((a, s) => a + s.words, 0);
-console.log(`plan: ${scenes.length} scenes over ${slideTitles.length} slides, ${words} words (about ${(words / 2.6 / 60).toFixed(1)} min spoken)`);
+report('notice', 'plan', `${scenes.length} scenes over ${slideTitles.length} slides, ${words} words (about ${(words / 2.6 / 60).toFixed(1)} min spoken)`);
