@@ -222,3 +222,63 @@
 .sg-progress .ck-dot { margin-top: 0.45em; }
 /* a long sign-in email (no spaces) wraps instead of widening the page at 375 */
 .pt__hello p, [data-testid="account-email"], [data-testid="no-access-email"] { overflow-wrap: anywhere; min-width: 0; }
+
+/* ---------- Portal cleanup (October 23, 2026): a calmer frame, one page header, one attention list ---------- */
+.pt__top { gap: var(--s-3); padding-top: var(--s-4); }
+.pt__hello { flex-wrap: nowrap; align-items: center; }
+.pt__hello > p { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pt__hello .gd-frame-links { flex: none; flex-wrap: nowrap; }
+.pt__nav { gap: var(--s-4); }
+/* a tab's own pages (Money: invoices, statements, payouts) as a row of chips under the tabs */
+.pt__subnav { display: flex; gap: var(--s-2); overflow-x: auto; scrollbar-width: none; padding-bottom: var(--s-1); }
+.pt__subnav::-webkit-scrollbar { display: none; }
+.pt__subnav a { flex: none; min-height: 36px; display: inline-flex; align-items: center; gap: 0.4em; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); text-decoration: none; background: var(--white); }
+.pt__subnav a:hover { color: var(--text); border-color: var(--black); }
+.pt__subnav a[aria-current="page"] { background: var(--black); color: var(--white); border-color: var(--black); }
+.pt__subnav .pt__count { margin-left: 0.2em; }
+/* the page header: title, one line on what the page is for, one primary action */
+.ph { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--s-2) var(--s-4); }
+.ph__text { display: grid; gap: var(--s-1); min-width: 0; flex: 1 1 18rem; }
+.ph__purpose { color: var(--text-2); max-width: 62ch; overflow-wrap: anywhere; }
+.ph__action { flex: none; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+/* needs your attention: one line, one button each */
+.attn { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.attn li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-4); padding: var(--s-3) var(--s-4); background: var(--white); border: 1px solid var(--grey-200); border-left: 3px solid var(--red-600); }
+.attn__text { display: grid; gap: 2px; min-width: 0; flex: 1 1 16rem; overflow-wrap: anywhere; }
+/* details most visits skip */
+.pt-more { border-top: 1px solid var(--grey-200); }
+.pt-more > summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); min-height: 44px; display: flex; align-items: center; gap: 0.5em; list-style: none; }
+.pt-more > summary::-webkit-details-marker { display: none; }
+.pt-more > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; flex: none; }
+.pt-more[open] > summary::before { transform: rotate(45deg); }
+.pt-more__body { display: grid; gap: var(--s-3); padding-bottom: var(--s-3); }
+.pt-home > [data-testid="attention"] { grid-column: 1 / -1; }
+.pt-inline-more { display: inline; } .pt-inline-more > summary { display: inline; cursor: pointer; text-decoration: underline; } .pt-inline-more[open] { display: block; margin-top: var(--s-1); }
+.pt-home__full { grid-column: 1 / -1; }
+
+/* tables on a phone: each row a card, the first column as its title and the others in two columns, each with its
+   column name; no sideways scrolling */
+@media (max-width: 47.99rem) {
+  .ad-scroll:has(> .ad-table--cards) { background: none; border: 0; overflow: visible; }
+  .ad-table--cards, .ad-table--cards tbody { display: block; width: auto; }
+  .ad-table--cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .ad-table--cards tbody { display: grid; gap: var(--s-2); }
+  .ad-table--cards tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2) var(--s-3); background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-3); }
+  .ad-table--cards tbody tr:hover { background: var(--white); }
+  .ad-table--cards td, .ad-table--cards tbody th { display: flex; flex-direction: column; gap: 1px; padding: 0 !important; border: 0; white-space: normal !important; min-width: 0 !important; text-align: left !important; overflow-wrap: anywhere; font-weight: 400; }
+  .ad-table--cards tr > :first-child { grid-column: 1 / -1; font-size: var(--fs-sm); font-weight: 600; padding-bottom: var(--s-2) !important; border-bottom: 1px solid var(--grey-100); }
+  .ad-table--cards td::before, .ad-table--cards tbody th::before { content: attr(data-label); color: var(--text-2); font-weight: 600; font-size: var(--fs-2xs); letter-spacing: 0.04em; text-transform: uppercase; }
+  .ad-table--cards tr > :first-child::before { display: none; }
+  .ad-table--cards td:empty { display: none; }
+  .ad-table--cards td.wrap, .ad-table--cards td:has(.ad-actions) { grid-column: 1 / -1; }
+}
+@media (max-width: 30rem) {
+  .pt__nav { flex-wrap: wrap; column-gap: var(--s-4); row-gap: 0; overflow: visible; }
+  .pt__nav a { font-size: var(--fs-xs); min-height: 40px; }
+}
+@media (min-width: 64rem) { .ph__phone-only { display: none; } .ph__action:not(:has(> :not(.ph__phone-only))) { display: none; } }
+/* the investor portal (portal cleanup, October 23, 2026): a gutter on a phone, the same frame as the other portals */
+.iv-frame { padding-inline: var(--gutter); margin-inline: auto; }
+.iv-top { padding-top: 0; margin-bottom: var(--s-5); }
+.iv-body { display: grid; gap: var(--s-5); }
+.iv-body > * { min-width: 0; }

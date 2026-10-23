@@ -3,6 +3,7 @@ import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
 import { napAddress } from '@/features/seo/business';
+import { PortalSwitchFooter } from './HeaderClient';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
@@ -12,7 +13,22 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
   const places = links.filter((l) => l.kind === 'location');
   const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
-  return (
+  // inside a portal: one short line (contact, the public site, the legal pages) instead of the site's long footer
+  const compact = (
+    <footer className="site-footer site-footer--portal on-dark" data-testid="portal-footer">
+      <div className="wrap footer-portal">
+        <span>{s.brand_name}</span>
+        {s.phone && <a href={`tel:${s.phone}`}>{s.phone_display}</a>}
+        {s.public_email && <a href={`mailto:${s.public_email}`}>{s.public_email}</a>}
+        <Link prefetch={false} href="/">Website</Link>
+        <Link prefetch={false} href="/contact">Contact</Link>
+        <Link prefetch={false} href="/terms">Terms of use</Link>
+        <Link prefetch={false} href="/privacy">Privacy policy</Link>
+        <CookiePrefsButton />
+      </div>
+    </footer>
+  );
+  return <PortalSwitchFooter compact={compact} full={(
     <footer className="site-footer on-dark">
       <div className="wrap">
         <div className="footer-grid">
@@ -67,5 +83,5 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
         <Wordmark s={s} className="wordmark--xl footer-mark" link={false} />
       </div>
     </footer>
-  );
+  )} />;
 }

@@ -352,3 +352,23 @@ a.ad-tile:hover { border-color: var(--black); }
 .cs-which__list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: var(--s-2); }
 .cs-which__car { width: 100%; min-height: 3rem; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; white-space: normal; height: auto; padding-block: var(--s-2); }
 .cs-which__other { display: grid; gap: var(--s-2); margin-top: var(--s-3); }
+
+/* ---------- Portal cleanup (October 23, 2026) ---------- */
+/* the frame's first line on a phone: who is signed in (two lines if need be), then Guide and Sign out on one line */
+@media (max-width: 63.99rem) {
+  .ad__who { flex-wrap: nowrap; padding-block: var(--s-2); }
+  .ad__who > .muted { flex: 1 1 7.5rem; min-width: 0; overflow-wrap: anywhere; }
+  .ad__who .gd-frame-links { flex: none; flex-wrap: nowrap; }
+}
+/* a long group of the menu in a few labelled parts */
+.gn__section { padding: var(--s-2) var(--s-3) 2px var(--s-5); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+@media (min-width: 64rem) { .gn__section { padding-left: var(--s-6); } }
+/* filters past the first row fold behind "More filters" */
+.ad-morefilters > summary { cursor: pointer; font-size: var(--fs-xs); font-weight: 600; min-height: 36px; display: inline-flex; align-items: center; gap: 0.5em; list-style: none; }
+.ad-morefilters > summary::-webkit-details-marker { display: none; }
+.ad-morefilters > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
+.ad-morefilters[open] > summary::before { transform: rotate(45deg); }
+.ad-morefilters[open] > summary { margin-bottom: var(--s-2); }
+.ad-morefilters > div { display: grid; gap: var(--s-2); }
+.ad-head__text { display: grid; gap: 2px; min-width: 0; }
+.ad-head__purpose { max-width: 70ch; margin: 0; }

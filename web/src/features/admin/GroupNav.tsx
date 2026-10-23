@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 // groups with plain names, the current group open with its pages and the current page highlighted, the others one
 // tap away. On a phone the whole menu folds behind one "Menu" button that names where you are. Keyboard: "g" then a
 // letter goes to a page; "/" focuses the search.
-export interface NavLink { href: string; label: string; key?: string }
+export interface NavLink { href: string; label: string; key?: string; /** a small heading above this link: a long group in a few labelled parts */ section?: string }
 export interface NavGroup { key: string; label: string; links: NavLink[] }
 
 function matches(path: string, query: string, href: string): boolean {
@@ -75,9 +75,10 @@ export function GroupNav({ groups, counts = {}, label, testId }: { groups: NavGr
                 <span>{g.label}</span>{n && !expanded ? <span className="pt__count">{n}</span> : null}<span className="gn__chev" aria-hidden="true" />
               </button>
               {expanded && (
-                <ul className="gn__links">{g.links.map((l) => (
+                <ul className="gn__links">{g.links.map((l) => [
+                  l.section ? <li key={`s-${l.section}`} className="gn__section" aria-hidden="true">{l.section}</li> : null,
                   <li key={l.href}><Link prefetch={false} href={l.href} aria-current={here?.href === l.href ? 'page' : undefined}>{l.label}{counts[l.href] ? <span className="pt__count">{counts[l.href]}</span> : null}</Link></li>
-                ))}</ul>
+                ])}</ul>
               )}
             </li>
           );
