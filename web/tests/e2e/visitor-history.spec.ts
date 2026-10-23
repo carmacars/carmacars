@@ -55,13 +55,16 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     const csEmail = await person(sql, 'va', 'Cyril Service');
 
     // the visitor: analytics accepted, the home page, a car, the FAQ
+    // its own campaign, so the list can be narrowed to it: the list shows the 50 newest visits, and in a full run the
+    // other tests' visits of the last two hours push this one (made two hours old) off the first page
+    const camp = `vh${tag()}`;
     const v = await ctx(browser, { 'x-cc-city': 'Kingston', 'x-cc-region': 'ON', 'x-cc-country': 'CA' });
-    await v.goto('/', { waitUntil: 'networkidle' });
+    await v.goto(`/?utm_source=e2e&utm_campaign=${camp}`, { waitUntil: 'networkidle' });
     // Ontario: analytics are on with a notice (0075); elsewhere the banner asks first. Either way, analytics.
     const choice = v.locator('[data-testid="cookie-accept"], [data-testid="cookie-ok"]').first();
     await choice.waitFor({ timeout: 8_000 }).then(() => choice.click()).catch(() => undefined);
     const [car] = await sql`select slug from public_vehicle_listings order by slug limit 1`;
-    await v.goto(`/cars/${car!.slug}`, { waitUntil: 'networkidle' });
+    await v.goto(`/cars/${car!.slug}?utm_source=e2e&utm_campaign=${camp}`, { waitUntil: 'networkidle' });
     await v.goto('/faq', { waitUntil: 'networkidle' });
     const sid = await v.evaluate(() => (JSON.parse(sessionStorage.getItem('cc_sid') ?? '{}') as { id?: string }).id ?? '');
     expect(sid).toMatch(/^[0-9a-f-]{36}$/);
@@ -82,7 +85,9 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     // Admin > Today > Visitor history
     const page = await ctx(browser);
     await signIn(page, adminEmail);
-    await page.goto('/admin/live/history', { waitUntil: 'networkidle' });
+    const [u] = await sql`select utm ->> 'campaign' as c from visitor_sessions where id = ${sid}`;
+    expect(u!.c, 'the visit keeps its campaign').toBe(camp);
+    await page.goto(`/admin/live/history?source=${camp}`, { waitUntil: 'networkidle' });
     await expect(page.getByRole('heading', { level: 1, name: 'Visitor history' })).toBeVisible();
     await expect(page.getByTestId('vh-intro')).toContainText('worked out 30 minutes after it ends');
     await expect(page.locator('.ad-tile').filter({ hasText: 'Visits' }).first()).toBeVisible();

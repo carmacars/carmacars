@@ -82,16 +82,18 @@ test('Signals: a visitor who prices a car for soon, opens a question, taps the p
   await v.locator('a[href^="tel:"]').first().click();
   sent = beacon(v);
   await sent;
-  // the request form: the first field touched starts it
-  sent = beacon(v);
+  // the request form: the first field touched starts it. The field is touched once the form page's own beacon has sent
+  // its page view (the car page's last batch, sent as it closes, can answer first; a field touched before the form
+  // page's beacon runs is never seen), and the signals are read once the database has them (under load /api/t answers
+  // 204 and stores the batch in the background)
+  const bookView = v.waitForRequest((r) => r.url().endsWith('/api/t') && r.method() === 'POST' && /"page_view"/.test(r.postData() ?? '') && (r.postData() ?? '').includes(`/book/${slug}`), { timeout: 25_000 });
   await v.goto(`/book/${slug}?from=${from}&to=${to}&tf=10:00&tt=10:00`, { waitUntil: 'load' });
-  await sent;
+  await bookView;
   await v.locator('form input, form select').first().focus();
-  sent = beacon(v);
-  await sent;
-
-  const [s] = await sql`select s.id, s.score, (select string_agg(kind, ',' order by kind) from visitor_live_signals l where l.session_id = s.id and l.active) as kinds
-                          from visitor_sessions s where s.utm ->> 'campaign' = ${camp} order by s.last_seen_at desc limit 1`;
+  const read = async () => (await sql`select s.id, s.score, (select string_agg(kind, ',' order by kind) from visitor_live_signals l where l.session_id = s.id and l.active) as kinds
+                          from visitor_sessions s where s.utm ->> 'campaign' = ${camp} order by s.last_seen_at desc limit 1`)[0];
+  await expect.poll(async () => String((await read())?.kinds ?? ''), { timeout: 30_000, intervals: [1_000] }).toContain('form_reached');
+  const s = await read();
   expect(s?.kinds).toContain('price_seen');
   expect(s?.kinds).toContain('contact_tap');
   expect(s?.kinds).toContain('form_reached');

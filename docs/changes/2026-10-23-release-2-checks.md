@@ -7,6 +7,8 @@
 - The sitemaps keep the site's rows, the vehicle shape and the place files per Worker for 5 minutes on the live site (Googlebot's bursts); the local stack (`DATA_BACKEND=local`) reads them every time, as the anon shared reads already do.
 - The local stack (`web/scripts/local-db.sh`): after loading the test places it runs the place roots, priority sitemap and place directory jobs that pg_cron runs in production, so /sitemap-priority.xml and /places list the test places (the priority sitemap was stored by migration 0115 before the places were loaded, so a production build listed no rental place page but the GTA). The seed now uses the script's own database address (`CARMACARS_LOCAL_PORT`).
 - End to end, visitor history: the test waits for the FAQ's view before making the visit two hours old, checks that the day's rollup counts /faq (or already holds its 20 pages), and checks that the Top pages card shows the dates' first page; it no longer depends on /faq being in the top 10 of a day of the whole suite's visits.
+- End to end, visitor history: the visit carries its own campaign and the list is opened filtered to it. The list shows the 50 newest visits, and in a full run the other tests' visits of the last two hours pushed this one (made two hours old) off the first page.
+- End to end, live signals: the form field is touched only after the form page's own beacon has sent its page view (the car page's closing batch could answer first, and a field touched before the form page's beacon runs is never seen), and the signals are polled until the database has form_reached (under load /api/t answers 204 and stores the batch in the background).
 
 ## Guides
 
