@@ -1,5 +1,5 @@
 import 'server-only';
-import { rpc } from '@/lib/db/repo';
+import { rpc, sharedRead } from '@/lib/db/repo';
 import { absUrl } from '@/features/seo/meta';
 import { siteUrl } from '@/lib/site';
 
@@ -48,7 +48,23 @@ const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control':
 export const INDEX_SIZE = 50_000;
 const BASE_FILE = /^(makes|tiers-\d+|[a-z0-9]+(-[a-z0-9]+)*-(models|years|trims)(-\d+)?)$/;
 type VIndex = { total: number; files: Array<{ file: string; lastmod: string | null }> };
-const vIndex = (offset: number, limit: number) => rpc('vehicle_sitemap_index', { p_offset: offset, p_limit: limit }, SR) as unknown as Promise<VIndex>;
+// 0110: the numbering of app.vpage_index_page, done here from the stored shape (the level files, the place and colour
+// files per tree, the trees) instead of 50,000 rows built in SQL on every request (7 to 12 s, past the 8 s limit).
+type Shape = { base: Array<{ file: string; lastmod: string | null }>; tiers: number; trees: string[] };
+const shape = () => sharedRead('vehicle_sitemap_shape', () => rpc('vehicle_sitemap_shape', {}, SR)) as Promise<Shape>;
+export function numberFiles(sh: Shape, offset: number, limit: number): VIndex {
+  const nb = sh.base.length;
+  const per = nb + (sh.tiers ?? 0);
+  const total = per * sh.trees.length;
+  const files: VIndex['files'] = [];
+  for (let n = offset + 1; n <= Math.min(offset + Math.max(limit, 0), total); n++) {
+    const r = (n - 1) % per;
+    const tree = sh.trees[Math.floor((n - 1) / per)]!;
+    files.push(r < nb ? { file: tree + sh.base[r]!.file, lastmod: sh.base[r]!.lastmod } : { file: `${tree}tiers-${r - nb + 1}`, lastmod: null });
+  }
+  return { total, files };
+}
+const vIndex = async (offset: number, limit: number): Promise<VIndex> => numberFiles(await shape(), offset, Math.min(limit, INDEX_SIZE));
 
 // the place pages (0095): one file per term and range of places, listed by the database without reading the pages
 type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };

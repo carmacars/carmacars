@@ -18977,6 +18977,7 @@ export type Database = {
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
       vehicle_sitemap_files: { Args: never; Returns: Json };
       vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
+      vehicle_sitemap_shape: { Args: never; Returns: Json };
       vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
       vehicle_takes_debit: { Args: { p_vehicle: string }; Returns: boolean };
       vehicle_tier_files_count: { Args: never; Returns: number };
