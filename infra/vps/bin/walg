@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
-# wal-g with the backup bucket's settings (/opt/carmacars/backup/walg.env, written by the vps-backup workflow).
+# wal-g with the backup bucket's settings (/opt/carmacars/backup/walg.env, written by bin/backup-configure).
+# It runs in a throwaway Ubuntu container that shares the database container's network (Postgres on 127.0.0.1) and
+# sees the data directory at the same path as Postgres does (/var/lib/postgresql/data, read only): wal-g checks that
+# the path it reads is Postgres' own data_directory. /opt/carmacars (spool, restore test, state) is mounted as is.
 set -euo pipefail
-E=/opt/carmacars/backup/walg.env
+D=/opt/carmacars
+E=$D/backup/walg.env
 [ -f "$E" ] || { echo "walg: $E is missing (run the vps-backup workflow with mode configure)" >&2; exit 1; }
 set -a
 # shellcheck disable=SC1090
 . "$E"
-PGPASSWORD=$(/opt/carmacars/bin/secret POSTGRES_PASSWORD); export PGPASSWORD
+export PGPASSWORD; PGPASSWORD=$("$D/bin/secret" POSTGRES_PASSWORD)
+export PGDATA=/var/lib/postgresql/data
+export PGHOST=127.0.0.1
 set +a
-exec /opt/carmacars/bin/wal-g "$@"
+envs=()
+for v in $(grep -oE '^[A-Z_][A-Z0-9_]*=' "$E" | tr -d '=') PGPASSWORD PGDATA PGHOST; do envs+=(-e "$v"); done
+exec docker run --rm -i --network container:supabase-db "${envs[@]}" \
+  -v "$D/supabase/volumes/db/data:/var/lib/postgresql/data:ro" -v "$D:$D" \
+  -v /etc/ssl/certs:/etc/ssl/certs:ro -v "$D/bin/wal-g:/usr/local/bin/wal-g:ro" \
+  ubuntu:24.04 /usr/local/bin/wal-g "$@"

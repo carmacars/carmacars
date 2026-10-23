@@ -8,7 +8,7 @@ exec 9> "$D/state/walg-base.lock"
 flock -n 9 || { echo "walg-base: already running" >&2; exit 1; }
 keep="${WALG_RETAIN_FULL:-7}"
 t0=$(date +%s)
-"$D/bin/walg" backup-push "$D/supabase/volumes/db/data"
+"$D/bin/walg" backup-push /var/lib/postgresql/data
 "$D/bin/walg" delete retain FULL "$keep" --confirm
 secs=$(( $(date +%s) - t0 ))
 "$D/bin/walg" backup-list --json --detail > "$D/state/walg-backups.json" 2>/dev/null || true
