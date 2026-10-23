@@ -59,7 +59,8 @@ export async function HubPage({ h }: { h: Hub }) {
   // 0115: a rental page for a place we deliver to describes the service we really give there (our business, delivered)
   if (v === 'rental' && h.term.served === 'yes' && h.delivery.in_reach && !wide) graph.push({ '@type': 'Service', name: `${h.term.title} in ${where}`, serviceType: 'Car rental',
     provider: { '@id': `${siteUrl()}/#business` }, areaServed: { '@type': 'Place', name: where } });
-  if ((v === 'detailing' || v === 'bodyshop') && h.service) graph.push({ '@type': 'Service', name: `${h.term.title}`, serviceType: h.service.name, description: h.service.description,
+  // never on the mechanical work we arrange (0121): we do not perform it
+  if ((v === 'detailing' || v === 'bodyshop') && h.service && !auto) graph.push({ '@type': 'Service', name: `${h.term.title}`, serviceType: h.service.name, description: h.service.description,
     provider: { '@id': `${siteUrl()}/#business` }, areaServed: { '@type': wide ? 'AdministrativeArea' : 'Place', name: where } });
   const src = h.place.sources;
   return (

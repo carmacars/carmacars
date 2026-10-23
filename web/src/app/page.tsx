@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { CarCard } from '@/components/CarCard';
 import { Faq } from '@/components/Faq';
 import { Html } from '@/components/Html';
@@ -10,6 +11,8 @@ import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
 import { getBusinessFacts } from '@/features/seo/business-data';
+import { getEntityFacts } from '@/features/seo/facts';
+import { keyFacts, summary } from '@/features/seo/llms';
 import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 
@@ -30,10 +33,10 @@ type Row = { label: string; text: string };
 type Opt = { title: string; body: string };
 
 export default async function Home() {
-  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, bf] = await Promise.all([
+  const [s, f, t, fleet, classes, faq, steps, reqs, cover, hero, deliv, owner, bf, ef] = await Promise.all([
     getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), faqItems('home.faq'), listItems<Step>('home.how_steps'),
     listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'),
-    getBusinessFacts()
+    getBusinessFacts(), getEntityFacts()
   ]);
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
@@ -64,6 +67,9 @@ export default async function Home() {
           <div><dt>At request</dt><dd>No payment</dd></div>
         </dl></div>
       </section>
+
+      {/* the short answer people skim and AI answer engines quote (2026-10-23-ai-search) */}
+      <AnswerBlock lead={summary(ef)} rows={keyFacts(ef)} updated={ef.updated} />
 
       <section className="section on-dark fleet-rail" aria-labelledby="h-fleet">
         {fleet.length >= 3 ? (

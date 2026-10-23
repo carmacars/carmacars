@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { Crumbs } from '@/components/Crumbs';
+import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
-import { fill, getFleet, getTokens, slotPhoto } from '@/lib/site';
+import { fill, getFleet, getSettings, getTokens, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
 const trail: Trail = [['Home', '/'], ['Delivery']];
@@ -17,7 +18,11 @@ export async function generateMetadata() {
 }
 
 export default async function Delivery() {
-  const [t, fleet, hero] = await Promise.all([getTokens(), getFleet(), slotPhoto('delivery.hero')]);
+  const [t, fleet, hero, s] = await Promise.all([getTokens(), getFleet(), slotPhoto('delivery.hero'), getSettings()]);
+  // the real cars' delivery fees and the day one last changed (sample cars never price anything)
+  const real = fleet.filter((c) => !c.is_sample);
+  const delFrom = real.length ? Math.min(...real.map((c) => c.delivery_fee_cents)) : null;
+  const updated = real.map((c) => c.updated_at ?? '').filter(Boolean).sort().pop() ?? null;
   const F = (x: string) => fill(x, t);
   const groups = [...new Set(fleet.map((c) => c.delivery_fee_cents))].sort((a, b) => a - b);
   return (
@@ -32,6 +37,10 @@ export default async function Delivery() {
           <p><Link className="btn btn--primary btn--lg" href="/cars?mode=delivery">Find a car for delivery</Link></p>
         </div></div>
       </section>
+      <AnswerBlock lead={F(`{{brand}} delivers rental cars anywhere in {{serviceArea}}: homes, offices, hotels and {{airports}}, day or night, and can collect the car at the end.${delFrom !== null ? ` Delivery costs from ${money(delFrom)} each way plus the distance.` : ''} Choose delivery when you send a request; you pay nothing until we confirm.`)}
+        rows={[...(delFrom !== null ? [['Delivery from', `${money(delFrom)} each way, plus distance`] as [string, string]] : []), ['Where', F('{{serviceArea}}, and {{airports}}')], ['When', 'Any time, day or night'],
+          ['How to book', 'Pick a car, choose delivery and type the address. We price the distance in your offer.'], ...(s.phone_display ? [['Phone', s.phone_display] as [string, string]] : [])]}
+        updated={updated} />
       <section className="section" aria-labelledby="dl-how">
         <div className="wrap grid">
           <div className="c-5"><div className="how__sticky stack"><h2 className="d1" id="dl-how">How delivery works</h2><p className="lead">The same handover as collecting it yourself, at your door.</p></div></div>

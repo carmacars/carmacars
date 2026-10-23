@@ -45,7 +45,8 @@ export default async function GuidePage({ params }: Params) {
   const faq = a.faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
   const trail: Trail = [['Home', '/'], ['Guides', '/guides'], [F(a.title)]];
   const url = siteUrl() + a.path;
-  const org = { '@type': 'Organization', '@id': `${siteUrl()}/#business`, name: s.brand_name, url: `${siteUrl()}/` };
+  // the business node itself is on every page (the layout); a reference keeps one type for #business (AutoRental)
+  const org = { '@id': `${siteUrl()}/#business` };
   return (
     <div className="p-article" data-page="article">
       <JsonLd graph={[breadcrumbLd(trail, a.path), ...(faq.length ? [faqLd(faq)] : []), {

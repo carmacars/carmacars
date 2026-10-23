@@ -18,7 +18,10 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 // phone, the hours as set, the map position when set, the profiles, the places served (the location pages), the price
 // range of the real cars' daily rates, and a rating only from the published reviews the page itself shows (at least
 // seo_rating_min_reviews of them, public.business_rating). No legal company name.
-export function businessLd(s: SiteSettings, base: string, opts: { areas?: string[]; price?: { min: number; max: number } | null; rating?: { count: number; average: number } | null } = {}) {
+// lite (every page, from the layout, 2026-10-23-ai-search): the node from settings alone, so every page's references to
+// #business (a Service's provider, the WebSite's publisher, a car's seller) resolve; the pages that read the fleet add the
+// price range, the places served and the rating to the same node.
+export function businessLd(s: SiteSettings, base: string, opts: { areas?: string[]; price?: { min: number; max: number } | null; rating?: { count: number; average: number } | null; lite?: boolean } = {}) {
   const sameAs = Object.entries(s.social_links ?? {}).filter(([, v]) => /^https:\/\//.test(v)).map(([, v]) => v);
   if (s.google_place_id) sameAs.push(`https://www.google.com/maps/place/?q=place_id:${s.google_place_id}`);
   const b = s.business;
@@ -35,13 +38,16 @@ export function businessLd(s: SiteSettings, base: string, opts: { areas?: string
     image: `${base}/og/default.png`,
     ...(s.phone ? { telephone: s.phone } : {}),
     ...(s.public_email ? { email: s.public_email } : {}),
-    priceRange: opts.price ? (opts.price.min === opts.price.max ? `${dollars(opts.price.min)} a day` : `${dollars(opts.price.min)} to ${dollars(opts.price.max)} a day`) : '$$',
+    ...(s.phone ? { contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer service', telephone: s.phone, ...(s.public_email ? { email: s.public_email } : {}),
+      areaServed: b?.country || 'CA', availableLanguage: ['English'] }] } : {}),
+    ...(s.google_place_id ? { hasMap: `https://www.google.com/maps/place/?q=place_id:${s.google_place_id}` } : {}),
+    ...(opts.lite ? {} : { priceRange: opts.price ? (opts.price.min === opts.price.max ? `${dollars(opts.price.min)} a day` : `${dollars(opts.price.min)} to ${dollars(opts.price.max)} a day`) : '$$' }),
     currenciesAccepted: 'CAD', paymentAccepted: 'Credit card',
     address: { '@type': 'PostalAddress', ...(a.street ? { streetAddress: a.street } : {}), addressLocality: a.city, addressRegion: a.region, ...(a.postal ? { postalCode: a.postal } : {}), addressCountry: b?.country || 'CA' },
     ...(b?.latitude != null && b?.longitude != null ? { geo: { '@type': 'GeoCoordinates', latitude: Number(b.latitude), longitude: Number(b.longitude) } } : {}),
     openingHoursSpecification: hours,
-    areaServed: (opts.areas?.length ? opts.areas : [s.city]).map((name) => ({ '@type': 'City', name })),
-    ...(opts.rating && opts.rating.count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: opts.rating.average, reviewCount: opts.rating.count, bestRating: 5, worstRating: 1 } } : {}),
+    ...(opts.lite ? {} : { areaServed: (opts.areas?.length ? opts.areas : [s.city]).map((name) => ({ '@type': 'City', name })) }),
+    ...(!opts.lite && opts.rating && opts.rating.count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: opts.rating.average, reviewCount: opts.rating.count, bestRating: 5, worstRating: 1 } } : {}),
     ...(sameAs.length ? { sameAs } : {})
   };
 }
