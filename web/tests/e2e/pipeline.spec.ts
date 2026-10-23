@@ -16,7 +16,7 @@ import { acceptCookies, db, noOverflow, watch } from './helpers';
 //   or expired link does not
 // - an owner and an investor download their statement PDFs; the investor's yearly summary
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.)|(?<!18122211 )Canada Inc\b/i, 'numbered company name (allowed only as the party, "18122211 Canada Inc.", 0120)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 const LINK_KEY = process.env.LINK_SIGNING_KEY ?? 'local-link-signing-key-change-me-32-chars';
 type Sql = ReturnType<typeof db>;
 // a 1 x 1 PNG: the capture screen re-encodes it as JPEG before the upload, as it does with a camera photo

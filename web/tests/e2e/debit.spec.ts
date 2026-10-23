@@ -86,8 +86,10 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   const t = terms!.t as { late_fee_rule: string; payee: { name: string; phone: string } };
   await expect(page.getByTestId('pad-agreement')).toContainText(t.late_fee_rule);
   await expect(page.getByTestId('pad-payee')).toContainText(t.payee.name);
-  // the payee is the company's legal name, operating as CarmaCars (the legal review, 0053), never the number alone
-  expect(await page.getByTestId('pad-agreement').innerText()).toMatch(/, operating as CarmaCars/);
+  // the payee is the company's legal name alone, "18122211 Canada Inc." (0053; no "operating as" since 0120)
+  const padText = await page.getByTestId('pad-agreement').innerText();
+  expect(padText).toMatch(/You authorize \d+ Canada Inc\. to debit/);
+  expect(padText).not.toMatch(/operating as/);
   await check(page, 'banking setup form');
   await page.locator('#ds-name').fill(`Dora ${last}`);
   await page.locator('#ds-institution').fill('004');

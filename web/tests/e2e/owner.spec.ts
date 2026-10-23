@@ -12,7 +12,7 @@ import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch } from './help
 // with axe (no serious or critical issue), for horizontal overflow and with the copy rules.
 const SHOTS = 'test-results/owner';
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.)|(?<!18122211 )Canada Inc\b/i, 'numbered company name (allowed only as the party, "18122211 Canada Inc.", 0120)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 
 async function check(page: Page, where: string) {
   await noOverflow(page);

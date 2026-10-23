@@ -145,7 +145,7 @@ test('ServiceOntario forms: the Admin previews and uses the official PDFs; the o
     expect(filled[`${P1}businessInfo[0].#subform[4].streetName[1]`]).toBe('2967 Dundas St W');
     await expect(phone.getByRole('status').filter({ hasText: 'Downloaded' })).toBeVisible();
     // signed in ink and recorded by an Admin, the form shows as signed
-    await sql`update government_form_fills set status = 'signed', signed_at = now(), signed_method = 'paper' where vehicle_id = ${o.car} and form_code = 'SR-LV-012' and superseded_at is null`;
+    await sql`update government_form_fills set status = 'signed', missing = '{}', signed_at = now(), signed_method = 'paper' where vehicle_id = ${o.car} and form_code = 'SR-LV-012' and superseded_at is null`;
     await phone.goto('/owner/documents', { waitUntil: 'networkidle' });
     await expect(phone.getByTestId('owner-gov-forms')).toContainText('Official form, signed');
     await phone.context().close();
@@ -199,7 +199,7 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     const pages = (await PDFDocument.load(body)).getPageCount();
     expect(pages, 'the agreement, then its signature page and record').toBeGreaterThan(unsignedPages);
     const words = await pdfText(body);
-    expect(words).toMatch(/between 18122211 Canada Inc\. ?\(the "?Company"?\)/);
+    expect(words).toMatch(/between 18122211 Canada Inc\. \(the " ?Company ?"\)/);
     expect(words, 'the party is the numbered company alone').not.toMatch(/operating as/);
     expect(words).toContain('$25,000.00');
     expect(words).toContain('Signature record');

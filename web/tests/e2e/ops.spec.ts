@@ -15,7 +15,7 @@ import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf } from './helpe
 // - field staff take the listing photos inside the photo-shoot job and submits them
 // Every page is checked with axe, for overflow and with the copy rules.
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.)|(?<!18122211 )Canada Inc\b/i, 'numbered company name (allowed only as the party, "18122211 Canada Inc.", 0120)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
@@ -251,7 +251,7 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
       // the signed copy is a new document: reload the page so the link points at it
       if (i > 0) await rp.reload();
       pdf = await rp.request.get(await rp.getByTestId('doc-rental_amendment').last().getAttribute('href') as string);
-      if (pdf.status() === 200) { text = await pdfText(await pdf.body()); if (/Signed electronically for [^,]+, operating as CarmaCars/.test(text)) break; }
+      if (pdf.status() === 200) { text = await pdfText(await pdf.body()); if (/Signed electronically for \d+ Canada Inc\., by /.test(text)) break; }
       await rp.waitForTimeout(1500);
     }
     expect(pdf.status()).toBe(200);
@@ -259,7 +259,7 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     // the signed PDF: the corporate countersignature in the signing officer's name, with the approved wording, in the
     // signature block and the record; the staff member only as "Proposed by" (the legal review, section 6)
     // in the signature block and in the signature record
-    expect(text.match(/Signed electronically for [^,]+, operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(text.match(/Signed electronically for \d+ Canada Inc\., by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(text).toContain('CarmaCars signs this amendment electronically at the moment the Renter signs it.');
     expect(text).toMatch(/Proposed by /);
     expect(text).not.toContain('Signed electronically for CarmaCars ');
