@@ -423,7 +423,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'sms_templates', 'sms_opt_out_log',
                             -- places (0095): gazetteer data loaded by the places workflow (each run recorded in place_imports); the
                             -- regions, terms and services Admins change are audited
-                            'places', 'places_staging', 'place_imports')
+                            'places', 'places_staging', 'place_imports',
+                            -- visitor history (0118): counts a day worked out by the visitor job (no person, money, pricing or status)
+                            'visitor_daily', 'visitor_daily_top')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

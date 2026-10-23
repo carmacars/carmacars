@@ -249,9 +249,13 @@ select test.eq('my sales: follow-ups done this week', (app.door(test.id('lv_sale
 update visitor_events set at = now() - interval '91 days' where session_id = test.sid('a')::uuid;
 update visitor_sessions set last_seen_at = now() - interval '91 days' where id = test.sid('a')::uuid;
 select app.job_visitor_housekeeping(now());
-select test.eq('retention: events and sessions older than 90 days are deleted; daily counts per car kept',
+-- since 0118 the visit itself stays as a summary for Visitor history (visitor_sessions_keep_days, 13 months; suite 75)
+select test.eq('retention: events older than 90 days are deleted, the visit kept as a summary; daily counts per car kept',
   (select count(*) from visitor_events where session_id = test.sid('a')::uuid) || ' ' || (select count(*) from visitor_sessions where id = test.sid('a')::uuid)
-  || ' ' || ((select count(*) from vehicle_interest_daily) > 0)::text, '0 0 true');
+  || ' ' || ((select count(*) from vehicle_interest_daily) > 0)::text, '0 1 true');
+update visitor_sessions set last_seen_at = now() - interval '400 days' where id = test.sid('a')::uuid;
+select app.job_visitor_housekeeping(now());
+select test.eq('retention: the visit goes after 13 months', (select count(*) from visitor_sessions where id = test.sid('a')::uuid), 0::bigint);
 update chat_conversations set closed_at = now() - interval '400 days', last_message_at = now() - interval '400 days', renter_id = null where token = test.tok('c2');
 select app.job_visitor_housekeeping(now());
 select test.eq('retention: a chat of a visitor who is not a customer goes after the days set', (select count(*) from chat_conversations where token = test.tok('c2')), 0::bigint);
