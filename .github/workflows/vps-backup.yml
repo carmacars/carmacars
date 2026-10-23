@@ -127,6 +127,7 @@ jobs:
           source scripts/deploy/vps.sh
           set +e; vps_ssh sudo /opt/carmacars/bin/walg-restore-test > "$RUNNER_TEMP/pitr.json"; rc=$?; set -e
           cat "$RUNNER_TEMP/pitr.json"
+          echo "::notice title=pitr::$(jq -c . "$RUNNER_TEMP/pitr.json" 2>/dev/null || tail -c 900 "$RUNNER_TEMP/pitr.json")"
           { echo "## Point-in-time restore test"; echo; echo '```json'; cat "$RUNNER_TEMP/pitr.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           st=$([ $rc = 0 ] && echo succeeded || echo failed)
           sum=$(jq -c . "$RUNNER_TEMP/pitr.json" 2>/dev/null || echo '{}')
