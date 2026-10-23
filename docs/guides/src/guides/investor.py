@@ -28,7 +28,7 @@ def build():
               blurb='Each investment, its returns and the latest statement.')
     g.task('Read an investment')
     g.steps([
-        f'The menu: {B("Investments")}, {B("Statements")} and {B("Profile and notices")}. {B("Sign out")} is on the right.',
+        f'The tabs: {B("Investments")}, {B("Statements")}, {B("Documents to sign")}, {B("Investor deck")} (while CarmaCars shares it) and {B("Profile and notices")}. {B("Guide")} and {B("Sign out")} are at the top.',
         'Your agreement number and name.',
         'Invested Amount, Principal, what was reinvested and redeemed to date, and the Yearly Percentage.',
         'Investment Date, Lockup End Date, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date.',
@@ -75,7 +75,7 @@ def build():
         ['Next Payment Date', 'When the next return is paid: the 15th of the month after the Return Month.'],
     ], head=['Term', 'What it means'])
     g.task('Notices from CarmaCars')
-    g.para('Two notices can appear on Investments, above your investments:')
+    g.para('Two notices can appear on Investments, under Needs your attention, above your investments:')
     g.table([
         ['Return on hold:', 'A return is held, with the reason, for example tax information we still need. Send what it asks for and we release it.'],
         ['Redemption notice:', 'CarmaCars will repay an amount, with the Redemption Date.'],
