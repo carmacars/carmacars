@@ -8,7 +8,8 @@ name: vps-health
 #            draining, the last base backup under 30 hours, the TLS certificate over 14 days
 # A failure emails the site check's address (program_settings.uptime_alert_email, else rent@carmacars.ca) through
 # Resend, as the site's own alerts go: once when it starts, then hourly while it lasts, and once when it is over. The
-# Resend key is the repository secret RESEND_API_KEY when set (it works with the server down), else the server's.
+# Resend key is the repository secret RESEND_API_KEY when set, else the server's (functions.env), else the vault's
+# deploy_resend_api_key (as the deploy reads it: the server's vault, then the hosted project's).
 # Emails are sent only once the server is the backend (DB_BACKEND=vps) or when run by hand with alert: true.
 on:
   schedule:
@@ -35,6 +36,8 @@ jobs:
     timeout-minutes: 8
     env:
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       API: https://api.carmacars.ca
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +101,9 @@ jobs:
           source scripts/deploy/vps.sh
           key="$RESEND_API_KEY"
           [ -n "$key" ] || key=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret RESEND_API_KEY' 2>/dev/null || true)
-          [ -n "$key" ] || { echo "::error::no Resend key (repository secret RESEND_API_KEY, or the server's): the alert could not be emailed"; exit 1; }
+          [ -n "$key" ] || key=$(DB_BACKEND=vps timeout 30 scripts/deploy/sb.sh vault deploy_resend_api_key 2>/dev/null || true)
+          [ -n "$key" ] || key=$(DB_BACKEND=supabase timeout 30 scripts/deploy/sb.sh vault deploy_resend_api_key 2>/dev/null || true)
+          [ -n "$key" ] || { echo "::error::no Resend key (repository secret RESEND_API_KEY, the server's functions.env or the vault's deploy_resend_api_key): the alert could not be emailed"; exit 1; }
           echo "::add-mask::$key"
           to=$(timeout 30 bash -c "source scripts/deploy/vps.sh; vps_sql \"select uptime_alert_email as e from program_settings limit 1\"" 2>/dev/null | jq -r '.[0].e // empty' 2>/dev/null || true)
           to="${to:-rent@carmacars.ca}"

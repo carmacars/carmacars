@@ -45,9 +45,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Wait for SSH (a fresh install takes a few minutes; up to 15)
+        run: |
+          host=$(grep -v '^[[:space:]]*#' infra/vps/host | tr -d '[:space:]')
+          for i in $(seq 1 90); do
+            if ssh-keyscan -T 5 -t ed25519 "$host" 2>/dev/null | grep -q ed25519; then echo "SSH answers after $((i * 10 - 10)) s"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::$host does not answer on port 22 after 15 minutes"; exit 1
       - name: The server answers on SSH (address from infra/vps/host)
         run: |
           source scripts/deploy/vps.sh
+          for i in $(seq 1 30); do vps_ssh true 2>/dev/null && break; echo "login not ready ($i)"; sleep 10; done
           host=$(vps_host)
           # shellcheck disable=SC2016 # expanded on the server
           vps_ssh 'echo "$(hostname) $(. /etc/os-release; echo "$PRETTY_NAME"), $(nproc) vCPU, $(free -g | awk "/Mem:/ {print \$2}") GB RAM, $(df -h / | awk "NR==2 {print \$2}") disk"' | sed 's/^/::notice title=server::/'
