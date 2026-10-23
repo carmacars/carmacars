@@ -14,6 +14,10 @@ on:
         description: Highest /sitemap-index/<n>.xml to submit (Search Console allows 500 sitemaps per property)
         type: string
         default: '480'
+      leaf:
+        description: Submit the URL-set files directly (priority first) instead of the index files
+        type: boolean
+        default: false
   schedule:
     - cron: '17 */3 * * *'
 
@@ -29,6 +33,7 @@ jobs:
         env:
           SUBMIT: ${{ github.event_name == 'schedule' && 'false' || inputs.submit }}
           MAX_INDEX: ${{ inputs.max_index || '480' }}
+          LEAF: ${{ inputs.leaf || false }}
         run: |
           set -euo pipefail
           q() { curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data "$(jq -n --arg q "$1" '{query:$q}')"; }
@@ -45,7 +50,40 @@ jobs:
           SITE=$(jq -r '[.siteEntry[]?.siteUrl | select(test("carmacars.ca"))] | (map(select(startswith("sc-domain:")))[0] // .[0]) // empty' <<<"$sites")
           [ -n "$SITE" ] || { echo "::error title=gsc::no carmacars.ca property for this account"; exit 1; }
           ES=$(jq -rn --arg s "$SITE" '$s|@uri')
-          if [ "$SUBMIT" = true ]; then
+          # Leaf mode (Oct 23): walk sitemap.xml down to the URL-set files and submit those directly (priority first), after
+          # removing submitted index files, so Search Console reads URL lists rather than lists of lists
+          root_tag() { curl -sS --max-time 60 "$1" | head -c 600 | grep -o '<\(sitemapindex\|urlset\)' | head -1 | tr -d '<'; }
+          locs() { curl -sS --max-time 90 "$1" | grep -o '<loc>[^<]*</loc>' | sed 's#</\?loc>##g'; }
+          echo "::notice title=structure::sitemap.xml is $(root_tag https://carmacars.ca/sitemap.xml); sitemap-index/2.xml is $(root_tag https://carmacars.ca/sitemap-index/2.xml)"
+          if [ "$SUBMIT" = true ] && [ "${LEAF:-false}" = true ]; then
+            : > leaves.txt; : > queue.txt
+            locs https://carmacars.ca/sitemap.xml > level1.txt
+            echo "::notice title=sitemap.xml children::$(wc -l < level1.txt)"
+            while read -r u; do
+              t=$(root_tag "$u")
+              if [ "$t" = urlset ]; then echo "$u" >> leaves.txt; else echo "$u" >> queue.txt; fi
+              [ $(wc -l < leaves.txt) -ge 600 ] && break
+            done < level1.txt
+            while read -r u && [ $(wc -l < leaves.txt) -lt 600 ]; do
+              locs "$u" >> leaves.txt || true
+            done < queue.txt
+            grep -i priority leaves.txt > ordered.txt || true; grep -vi priority leaves.txt >> ordered.txt || true
+            echo "::notice title=leaves::$(wc -l < ordered.txt) URL-set files found (first: $(head -3 ordered.txt | tr '\n' ' '))"
+            # free the property's 500-sitemap quota: delete submitted index files other than sitemap.xml
+            cur=$(curl -sS "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps")
+            del=0
+            for u in $(jq -r '.sitemap[]? | select(.isSitemapsIndex == true) | .path | select(endswith("/sitemap.xml")|not)' <<<"$cur"); do
+              curl -sS -o /dev/null -X DELETE "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')"; del=$((del+1)); sleep 0.1
+            done
+            echo "::notice title=removed::$del submitted index files removed"
+            n=0; fail=0
+            for u in $(head -n "${LEAF_MAX:-495}" ordered.txt); do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')")
+              if [ "$code" = 204 ] || [ "$code" = 200 ]; then n=$((n+1)); else fail=$((fail+1)); echo "submit $u -> $code"; fi
+              sleep 0.2
+            done
+            echo "::notice title=gsc leaf submitted::$n URL-set sitemaps submitted, $fail failed"
+          elif [ "$SUBMIT" = true ]; then
             n=0; fail=0
             for u in https://carmacars.ca/sitemap.xml $(seq -f 'https://carmacars.ca/sitemap-index/%g.xml' 2 "$MAX_INDEX"); do
               code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')")
