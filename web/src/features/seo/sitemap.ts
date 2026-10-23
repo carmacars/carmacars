@@ -21,8 +21,11 @@ export type SitemapName = (typeof SITEMAPS)[number];
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
 
+// The site's own sitemap rows and the place file list are the same for every request: kept per Worker for 5 minutes
+// (sharedRead). Google fetched hundreds of index files at once on Oct 23, each reading both again, and the busy
+// database made many of them pass Google's time limit ("Couldn't fetch").
 async function rows(): Promise<Row[]> {
-  return ((await rpc('sitemap_all', {}, SR)) ?? []) as unknown as Row[];
+  return ((await sharedRead('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
 }
 
 function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
@@ -38,7 +41,7 @@ function entries(name: SitemapName, all: Row[]): Array<{ loc: string; lastmod: s
   }
 }
 
-const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=3600' };
+const XML = { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=21600' };
 
 // The vehicle pages (migration 0097): files per tree ("" renting, "buy-" for sale, "t-<term>-" each search term): the
 // makes, one per make and level (toyota-years, split in parts of 45,000 when bigger), and the place and colour files
@@ -69,7 +72,7 @@ const vIndex = async (offset: number, limit: number): Promise<VIndex> => numberF
 // the place pages (0095): one file per term and range of places, listed by the database without reading the pages
 type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };
 async function placeFiles(): Promise<PlaceFile[]> {
-  try { return ((await rpc('place_sitemap_files', {}, SR)) ?? []) as unknown as PlaceFile[]; } catch { return []; }
+  try { return ((await sharedRead('place_sitemap_files', () => rpc('place_sitemap_files', {}, SR))) ?? []) as unknown as PlaceFile[]; } catch { return []; }
 }
 /** The site's own sitemaps and the place files (at most 49,000), first in the index. */
 async function siteEntries(): Promise<string[]> {
