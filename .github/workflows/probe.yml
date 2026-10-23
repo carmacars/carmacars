@@ -8,9 +8,6 @@ jobs:
     steps:
       - run: |
           G="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-          seq 300 329 | xargs -P 30 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" > o.txt
-          echo "::notice title=parallel 30 cold::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' o.txt)"
-          seq 300 329 | xargs -P 30 -I{} curl -s -A "$G" -o /dev/null -m 60 -w "{} %{http_code} %{time_total}\n" "https://carmacars.ca/sitemap-index/{}.xml" > o.txt
-          echo "::notice title=parallel 30 again::$(awk '{c[$2]++; if($3>m)m=$3} END{for(k in c) printf "%s:%d ",k,c[k]; printf "max %.1fs", m}' o.txt)"
-          b=$(curl -s -m 30 https://carmacars.ca/sign-in); echo "::notice title=sign-in::google button $(grep -c 'Continue with Google' <<<"$b")"
-          curl -s -o /dev/null -m 30 -w "::notice title=oauth start::%{http_code} -> %{redirect_url}\n" "https://carmacars.ca/auth/oauth?provider=google&intent=signin" | sed 's/code_challenge=[^&]*/code_challenge=x/; s/state=[^&]*/state=x/' | cut -c1-200
+          for i in 1 2 3; do for n in 300 301; do curl -s -A "$G" -D h -o /dev/null -m 60 -w "$n %{http_code} %{time_total}s " "https://carmacars.ca/sitemap-index/$n.xml" >> o.txt; grep -i '^x-edge\|^cf-cache\|^cache-control\|^cf-ray' h | tr -d '\r' | tr '\n' ' ' >> o.txt; echo >> o.txt; done; sleep 20; done
+          b=$(curl -s -m 30 https://carmacars.ca/sign-in); echo "google mentions: $(grep -o -i 'google' <<<"$b" | wc -l), oauth link: $(grep -c '/auth/oauth' <<<"$b")" >> o.txt
+          echo "::notice title=probe::$(tr '\n' '|' < o.txt)"
