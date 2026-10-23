@@ -17,8 +17,8 @@ const voice = estimate ? plan.scenes.map((s) => s.words / 2.8) : JSON.parse(read
 export const FPS = 30;
 const TIN = 0.7;        // a transition between scenes
 const TIN_G = 0.45;     // a transition between the slides of a feature group
-const LEAD = 0.6;       // from the start of a scene to its first word
-const TAIL = 0.85;      // from the last word to the end of the scene
+const LEAD = 0.45;      // from the start of a scene to its first word
+const TAIL = 0.6;       // from the last word to the end of the scene
 const MIN_SCENE = 3.4;
 const INTRO = 2.6;      // a feature group's opening slide
 const FEATURE = 1.2;    // each feature slide, at least

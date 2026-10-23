@@ -18,6 +18,7 @@ from kokoro import KPipeline
 ap = argparse.ArgumentParser()
 ap.add_argument('--dir', required=True)
 ap.add_argument('--voice', default='af_heart')
+ap.add_argument('--speed', type=float, default=1.1)
 a = ap.parse_args()
 out = Path(a.dir)
 plan = json.loads((out / 'plan.json').read_text())
@@ -30,7 +31,7 @@ TRIM = ('silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.05,
 scenes = []
 for s in plan['scenes']:
     n = f"{s['n']:02d}"
-    parts = [np.asarray(audio, dtype=np.float32) for _, _, audio in pipe(s['say'], voice=a.voice, speed=1.0)]
+    parts = [np.asarray(audio, dtype=np.float32) for _, _, audio in pipe(s['say'], voice=a.voice, speed=a.speed)]
     gap = np.zeros(int(24000 * 0.12), dtype=np.float32)
     joined = np.concatenate([x for p in parts for x in (p, gap)][:-1]) if parts else gap
     raw = vdir / f'{n}.raw.wav'

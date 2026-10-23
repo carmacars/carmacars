@@ -67,7 +67,7 @@ if (arg('sheet')) {
     if (from >= to) return;
     const { page } = await open(1);
     const enc = run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(timeline.fps), '-c:v', 'mjpeg', '-i', '-',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-maxrate', '9M', '-bufsize', '18M', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-g', String(timeline.fps * 2),
+      '-c:v', 'libx264', '-preset', 'slow', '-tune', 'stillimage', '-crf', '20', '-maxrate', '7M', '-bufsize', '14M', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-g', String(timeline.fps * 2),
       '-r', String(timeline.fps), join(dir, 'seg', `${String(w).padStart(2, '0')}.mp4`)]);
     for (let f = from; f < to; f++) {
       await page.evaluate((x) => window.__seek(x), f / timeline.fps);
