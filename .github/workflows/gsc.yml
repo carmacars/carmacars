@@ -52,13 +52,15 @@ jobs:
           ES=$(jq -rn --arg s "$SITE" '$s|@uri')
           # Leaf mode (Oct 23): walk sitemap.xml down to the URL-set files and submit those directly (priority first), after
           # removing submitted index files, so Search Console reads URL lists rather than lists of lists
-          root_tag() { curl -sS --max-time 60 "$1" | head -c 600 | grep -o '<\(sitemapindex\|urlset\)' | head -1 | tr -d '<'; }
-          locs() { curl -sS --max-time 90 "$1" | grep -o '<loc>[^<]*</loc>' | sed 's#</\?loc>##g'; }
+          root_tag() { curl -sS --max-time 60 -o rt.xml "$1" || true; head -c 600 rt.xml | grep -o '<\(sitemapindex\|urlset\)' | head -1 | tr -d '<' || true; }
+          locs() { curl -sS --max-time 90 -o lc.xml "$1" || true; grep -o '<loc>[^<]*</loc>' lc.xml | sed 's#</\?loc>##g' || true; }
           echo "::notice title=structure::sitemap.xml is $(root_tag https://carmacars.ca/sitemap.xml); sitemap-index/2.xml is $(root_tag https://carmacars.ca/sitemap-index/2.xml)"
           if [ "$SUBMIT" = true ] && [ "${LEAF:-false}" = true ]; then
             : > leaves.txt; : > queue.txt
             locs https://carmacars.ca/sitemap.xml > level1.txt
-            echo "::notice title=sitemap.xml children::$(wc -l < level1.txt)"
+            echo "::notice title=sitemap.xml children::$(wc -l < level1.txt); first $(head -3 level1.txt | tr '\n' ' ') last $(tail -2 level1.txt | tr '\n' ' ')"
+            for u in $(head -2 level1.txt) $(sed -n '100p;1000p;20000p' level1.txt) $(tail -1 level1.txt); do echo "::notice title=type::$u is $(root_tag "$u") with $(locs "$u" | wc -l) locs, first $(locs "$u" | head -1)"; done
+            # sitemap.xml is an index; walk its children in order, a nested index contributes its own children
             while read -r u; do
               t=$(root_tag "$u")
               if [ "$t" = urlset ]; then echo "$u" >> leaves.txt; else echo "$u" >> queue.txt; fi
