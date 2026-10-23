@@ -113,7 +113,7 @@ jobs:
   full:
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
-    timeout-minutes: 130   # releases 2 and 3: end to end alone runs about 45 minutes, more with maintenance, capture and phone sign-in
+    timeout-minutes: 240   # Oct 23: the whole job (e2e ~60 min, link check, crawl as every role, SEO, emails) passed 130 minutes
     defaults:
       run:
         working-directory: web
