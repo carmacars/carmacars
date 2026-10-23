@@ -6,7 +6,7 @@ import { adminTaskHref } from '@/features/va/tasks';
 import { Badge, BookingLink, Filters, PageHead, Table, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Tasks', path: '/admin/tasks', noindex: true, description: 'Every queue.' });
+export const metadata = pageMeta({ title: 'Staff tasks', path: '/admin/tasks', noindex: true, description: 'Every queue.' });
 type R = Record<string, unknown>;
 const inADay = () => new Date(Date.now() + 86_400_000).toISOString();
 
@@ -20,7 +20,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<Re
   const R = ['/admin/tasks'];
   const tomorrow = inADay();
   return (<>
-    <PageHead title="Tasks" kicker={`${count} shown`} />
+    <PageHead title="Staff tasks" kicker={`${count} shown`} purpose="Every open task in every queue: the Admin's and each staff function's. Your own list is To do." />
     <Filters base="/admin/tasks" name="queue" value={sp.queue ?? ''} sp={sp} options={[['', 'All queues'], ['admin', 'Admin'], ['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet'], ['finance', 'Finance']]} />
     <Filters base="/admin/tasks" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'Open'], ['done', 'Done']]} />
     <Table<R> testId="tasks" rows={rows} empty="No open tasks. Tasks the system raises (and the ones you add) show up here by queue." cols={[{ key: 'due_at', label: 'Due', render: (r) => <span className={typeof r.due_at === 'string' && new Date(r.due_at) < new Date() ? 'ad-late' : undefined}>{t(r.due_at)}</span> },

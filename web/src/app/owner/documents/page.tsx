@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
+import { PageHeader } from '@/features/portal/Chrome';
 import { day } from '@/features/owner/Blocks';
 import { ownerDocuments, ownerForms, requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
@@ -19,7 +20,7 @@ export default async function OwnerDocuments() {
   const name = (id: string | null) => home.vehicles.find((v) => v.vehicle_id === id)?.name;
   return (
     <>
-      <header className="stack"><h1 className="d2">Documents</h1><p className="muted">Signed agreements and schedules, and the values for the government forms of each vehicle&apos;s registry visit.</p></header>
+      <PageHeader title="Documents" purpose="Your signed agreements and schedules, and the values for each vehicle's registry forms." />
       <div className="pt-split">
         <div className="stack-lg">
         {screen.length > 0 && <section className="stack" aria-labelledby="ow-ab"><h2 className="pt-section-title" id="ow-ab">Forms to sign on screen</h2>

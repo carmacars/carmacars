@@ -1,7 +1,7 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import Link from 'next/link';
-import { $, Badge, BookingLink, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Filters, MoreFilters, PageHead, Search, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
 
 export const dynamic = 'force-dynamic';
@@ -20,11 +20,13 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
   const count = keep ? rows.length : res.count;
   return (
     <>
-      <PageHead title="Bookings" kicker={`${count} found`}><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
+      <PageHead title="Bookings" kicker={`${count} found`} purpose="Every booking, newest pickup first. Open one to see its trip, payments and documents."><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
       <Filters base="/admin/bookings" name="status" value={status} options={STATUSES} sp={sp} />
-      <Filters base="/admin/bookings" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />
-      <Filters base="/admin/bookings" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
+      <MoreFilters active={!!(sp.supply || sp.added)}>
+        <Filters base="/admin/bookings" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />
+        <Filters base="/admin/bookings" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
+      </MoreFilters>
       <Table<Row> testId="bookings" caption="Bookings" rows={rows} cols={[
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
         { key: 'status', label: 'Status', render: (r) => <Badge s={r.awaiting_signature ? 'awaiting_signature' : r.status} /> },

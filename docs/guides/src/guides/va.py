@@ -31,7 +31,7 @@ def build():
               'Every function works the same way: start on To do, take the oldest task, finish it, and check Today '
               'for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.',
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
-    g.task('The menu', 'My work comes first: To do, Today, My scorecard and My sales (customer service and Sales also have Live visitors, Live chat and Game leads). Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
+    g.task('The menu', 'My work comes first: To do, Today at a glance, My scorecard and My sales. Customer service and Sales then have Live: Live chat, Live visitors and Game leads. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
         ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
@@ -121,8 +121,8 @@ def build():
 
     g.task('A buyer lead from a /buy page', 'Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.')
     g.steps([
-        f'The lead is in {B("Leads")}, Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.',
-        'If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim).',
+        f'The lead is in {B("Owner leads")} (customer service: {B("Owners and enquiries")}), Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.',
+        'If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim). For mechanical work (a "Mechanical work to arrange" task: an oil change, brakes, tires, a tow and the like), CarmaCars does not do the work: book it with a trusted shop or recommend one, never promise the shop\'s price or time, and offer a rental while their car is in.',
         f'Press {B("Take it")}, then {B("Update")} as you go: contacted, qualified, converted or closed with the reason.',
     ])
     g.tip('We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.')
@@ -411,7 +411,7 @@ def build():
               blurb='Who is on the site, how likely each visitor is to book, one-click actions, follow-ups, the chat inbox.')
     g.task('Live visitors')
     g.steps([
-        f'Open {P("My work", "Live visitors")}. "Live now" counts who is on the site now, "Visitors today" the people seen today. The page refreshes by itself every 15 seconds; the menu shows how many hot visitors are on the site. Each visitor shows a booking likelihood from 0 to 100 (Hot, Warm or Cold); the most likely to book come first.',
+        f'Open {P("Live", "Live visitors")}. "Live now" counts who is on the site now, "Visitors today" the people seen today. The page refreshes by itself every 15 seconds; the menu shows how many hot visitors are on the site. Each visitor shows a booking likelihood from 0 to 100 (Hot, Warm or Cold); the most likely to book come first.',
         '"Why" gives the three strongest reasons, for example "Pickup tomorrow · Saw $320 for 3 days · Tapped to call". The badges are all the signals; the dots say how strong each is.',
         'Each visitor shows a name when known, otherwise "Visitor from Toronto, phone", the page and car they are on, how many others look at that car now, and this visit\'s pages.',
         f'Suggested: the next step and a message. Press {B("Invite to chat with this message")}, or {B("Edit the message")} first. Sales can {B("Offer a 10% discount code")} (one per visitor a week). {B("Assign to Sales")} hands the visitor to Sales with a task. When their dates are taken, {B("Suggest a similar free car")} writes the message for you.',
@@ -423,7 +423,7 @@ def build():
            'Taking the follow-up task, a chat with you or a message from you stops these reminders: you are handling it.')
     g.task('Live chat')
     g.steps([
-        f'Open {P("My work", "Live chat")}. The menu counts chats waiting for a person. Reply within 5 minutes.',
+        f'Open {P("Live", "Live chat")}. The menu counts chats waiting for a person. Reply within 5 minutes.',
         'Choose a conversation. Beside it: the visitor\'s page, pages and signals, and the renter\'s bookings when known.',
         f'Press {B("Take over")} (or just write a reply): the assistant stops. Write and press {B("Send")} or Enter. The visitor sees when you type.',
         f'{B("Hand back to the assistant")} when you are done, or {B("Close")}. A visitor who gave an email gets a copy of the chat.',
@@ -438,7 +438,7 @@ def build():
               blurb='Reading and answering texts, suggestions, unknown callers and missed calls.')
     g.task('Answer a text')
     g.steps([
-        f'Open {P("My work", "Live chat")} and press {B("Texts and calls")}. Unread texts and missed calls are counted on each number.',
+        f'Open {P("Live", "Live chat")} and press {B("Texts and calls")}. Unread texts and missed calls are counted on each number.',
         'Choose a number: calls and texts in order, and beside them who it is, with their bookings.',
         f'Write the text and press {B("Send text")}. It goes from the CarmaCars number.',
         f'{B("Suggest a reply")} writes a draft into the box. Read it and change it: it is never sent until you press Send text.',
@@ -454,7 +454,7 @@ def build():
               'Visitors who are not signed in play a quick game on the site and win a promo code. To get it they give a first name, an email '
               'and sometimes a mobile number. Customer service and Sales follow them up.',
               blurb='Game leads to call or email, the code they won, whether it is used, and the Sales task.')
-    g.task('Game leads', f'{P("My work", "Game leads")}.')
+    g.task('Game leads', f'{P("Live", "Game leads")}.')
     g.steps([
         'Each claim: when, the name (and "on the site now"), email and phone, the prize, the code and whether it is used, marketing consent, and the cars and pages they viewed.',
         f'Press {B("Call")} or {B("Email")}. Help them pick a car and send a request; the code goes in the promo code box (on their own device it is filled in). Then press {B("Contacted")}.',
@@ -552,7 +552,7 @@ def build():
         'Use the arrows, Today and the range to move around, or search by plate, booking or name.',
         f'Fleet and customer service can remove a cleaning block from its side panel ({B("Remove the block")}) when a car is ready sooner.',
     ], shot=S('va-cs/09-calendar-desktop', 210, 60, 1440, 860, pins=[(1, 950, 330), (2, 560, 200)]))
-    g.task('Find a car', f'{P("My work", "Find a car")}. A renter quotes the car code on the car\'s page (like CC-7F3A).')
+    g.task('Find a car', f'{P("Bookings", "Find a car")} (Finance and Fleet: {P("Rentals", "Find a car")}). A renter quotes the car code on the car\'s page (like CC-7F3A).')
     g.steps([
         'Type the car code, a plate, a VIN or the name. Each car shows its code, plate, status and its page on the site.',
         'In Add a rental, type the car code or plate in the box above Car to choose it.',
@@ -565,7 +565,7 @@ def build():
 
     g.reference(
         nav_rows=[('To do', 'Your function\'s tasks, oldest due first'),
-                  ('Today', 'Pickups, returns, what is due'),
+                  ('Today at a glance', 'Pickups, returns, what is due'),
                   ('Working as', 'Switch function (above the menu)'),
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
                   ('Finance', 'Payments, Tolls and tickets, Reconciliation, Turo trips'),

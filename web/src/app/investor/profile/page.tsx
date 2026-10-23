@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
+import { PageHeader } from '@/features/portal/Chrome';
 import { door, requireInvestor } from '@/server/door';
 import { Requests } from '@/features/investor/Requests';
 import { money } from '@/lib/format';
@@ -24,7 +25,7 @@ export default async function Profile() {
   const eff = new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${h.election_effective_month}T12:00:00Z`));
   return (
     <div className="stack">
-      <h1 className="d2">Profile and notices</h1>
+      <PageHeader title="Profile and notices" purpose="Your contact details, how returns are handled, and notices you send us." />
       <section className="pt-card" aria-labelledby="ct-t"><h2 className="d4" id="ct-t">Contact details</h2>
         <dl className="pt-dl"><div><dt>Name</dt><dd>{h.investor.legal_name}</dd></div><div><dt>Email</dt><dd>{h.investor.email ?? ''}</dd></div><div><dt>Phone</dt><dd>{h.investor.phone ?? ''}</dd></div>
           <div><dt>Address</dt><dd>{h.investor.address ?? ''}</dd></div><div><dt>Bank account</dt><dd>{h.bank_last4 ? `ending ${h.bank_last4}` : 'none on file'}</dd></div></dl>

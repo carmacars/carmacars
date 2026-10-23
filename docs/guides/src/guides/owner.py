@@ -19,7 +19,7 @@ def build():
             f'Invited by us? Open the invitation email within 24 hours, choose a password and press {B("Save the new password")}.',
             f'Next time, go to {U("carmacars.ca/sign-in")}, enter your Email and Password and press {B("Sign in")}.',
             f'Forgot your password? Press {B("Forgot your password?")} on the sign-in page and follow the email.',
-            f'Rather use your phone? Press {B("Use my phone number instead")} on the sign-in page, enter your mobile number and the 6-digit code we text you. Add and verify your number first under {B("Profile")}, Sign-in, so it opens your owner portal.',
+            f'Rather use your phone? Press {B("Use my phone number instead")} on the sign-in page, enter your mobile number and the 6-digit code we text you. Add and verify your number first under {P("Account", "Profile")}, Sign-in, so it opens your owner portal.',
         ],
         shot=S('public/09-sign-in-phone', 0, 595, 390, 1180, pins=[(3, 372, 1041)]),
         note='Email links work for 24 hours, once. If a link has expired, the page it opens has '
@@ -142,7 +142,7 @@ def build():
     g.bullets([
         'A debit is never more than its notice said. Each invoice shows "will be debited on" with the date.',
         'If your bank returns a debit for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.',
-        'Returned for another reason (for example a closed account)? We do not try again and add no Late Fee. We pause your debit and email you: pay the invoice from its page, or set up a new account under Banking.',
+        'Returned for another reason (for example a closed account)? We do not try again and add no Late Fee. We pause your debit and email you: pay the invoice from its page, or set up a new account under Account > Banking.',
         'Returned again after the retry? The invoice is in arrears and we contact you.',
         'You can always pay an invoice by card from its page before the debit day.',
         'On your bank statement the debit shows our company\'s legal name, operating as CarmaCars.',
@@ -150,7 +150,7 @@ def build():
 
     g.task('Set up the automatic debit', 'Do this once. Without it, we email you on each notice day to set it up.')
     g.steps([
-        f'Open {B("Banking")}. Under Automatic debit of your fees, press {B("Set up pre-authorized debit")}.',
+        f'Open {P("Account", "Banking")}. Under Automatic debit of your fees, press {B("Set up pre-authorized debit")}.',
         f'Read the agreement and press {B("Continue to my bank details")}.',
         f'Enter your bank details and press {B("Save the bank account")}. Banking then shows the account and the next debit.',
     ], shot=S('owner/07-banking-desktop', 0, 280, 1440, 960, pins=[(1, 1385, 485)]))
@@ -168,7 +168,7 @@ def build():
 
     g.task('Tell us where to pay you')
     g.steps([
-        f'Open {B("Banking")}. Under Where we pay you, choose Bank transfer or e-Transfer.',
+        f'Open {P("Account", "Banking")}. Under Where we pay you, choose Bank transfer or e-Transfer.',
         'Fill in Account holder, Institution number, Transit number and Account number (or your e-Transfer email).',
         f'Press {B("Submit payout details")}. For your security we confirm new details by phone before we use them.',
     ], shot=S('owner/07-banking-desktop', 0, 330, 990, 900, pins=[(1, 500, 423), (2, 900, 550), (3, 300, 834)]), fig_w=3.9)
@@ -252,7 +252,7 @@ def build():
         'Vehicles and Bookings show each car and its rentals. There are no program fees, so there is no Invoices page.',
         'Statements and Payouts: a statement for each month and the payment of your share.',
     ])
-    g.task('Sign the partner agreement', f'Press {B("Check and sign")} on Home, or open {B("Partner agreement")}.')
+    g.task('Sign the partner agreement', f'Press {B("Check and sign")} on Home, or open {P("Documents", "Partner agreement")}.')
     g.steps([
         'Check the key values at the top: who signs, your address, our commission, your insurance and your cars. The agreement is filled in from your partner record; open it to read it in full.',
         'Something wrong? Tell us before you sign and we fix it.',
@@ -276,7 +276,7 @@ def build():
         'On your agreements shows your legal name and how you are enrolled. A change to these means new agreements, so call or message us.',
     ], shot=S('owner/15-profile-desktop', 0, 280, 1440, 1080, pins=[(1, 175, 947), (2, 1057, 393)]))
 
-    g.task('Texts or email', f'On {B("Profile")}, under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}: new bookings, payouts, invoices and documents to sign by a short text with a link. Texts need a phone you verified with a code. Statements, invoices and signed documents are always emailed too. Reply STOP to any text to stop them.')
+    g.task('Texts or email', f'On {P("Account", "Profile")}, under {B("Messages")}, choose {B("Email")}, {B("Text")} or {B("Both")}: new bookings, payouts, invoices and documents to sign by a short text with a link. Texts need a phone you verified with a code. Statements, invoices and signed documents are always emailed too. Reply STOP to any text to stop them.')
 
     g.task('Take a car out of the program', 'You give 30 days\' notice for that car only. Your other cars stay in.')
     g.steps([
@@ -288,21 +288,18 @@ def build():
     g.reference(
         nav_rows=[('Home', 'Next thing to do, your cars, money, next debit'),
                   ('Vehicles', 'Each car: terms, checklist, uploads, photos, Leaving'),
-                  ('Bookings', 'Calendar, all bookings, Book my own car'),
-                  ('Invoices', 'Fee invoices and Pay $...'),
-                  ('Statements', 'One a month, Download PDF'),
-                  ('Payouts', 'What was paid and when'),
+                  ('Bookings', 'All bookings, the calendar, Book my own car'),
+                  ('Money', 'Invoices (fee invoices and Pay $...), Statements (one a month, Download PDF), Payouts (what was paid and when)'),
                   ('Documents', 'Agreements, forms, Forms C and D'),
-                  ('Banking', 'Automatic debit, where we pay you'),
-                  ('Notifications', 'Our messages'),
-                  ('Profile', 'Contact details, password')],
+                  ('Account', 'Profile (contact details, password), Banking (automatic debit, where we pay you), Notifications (our messages)'),
+],
         top_tasks=[('Sign everything at once', f'{P("Home", "Check and sign")}'),
-                   ('Set up the monthly debit', f'{P("Banking", "Set up pre-authorized debit")}'),
-                   ('Pay an invoice now', f'{B("Invoices")}, the invoice, then {B("Pay $...")}'),
-                   ('Payout details', f'{P("Banking", "Where we pay you")}'),
+                   ('Set up the monthly debit', f'{B("Account")} > {P("Banking", "Set up pre-authorized debit")}'),
+                   ('Pay an invoice now', f'{P("Money", "Invoices")}, the invoice, then {B("Pay $...")}'),
+                   ('Payout details', f'{B("Account")} > {P("Banking", "Where we pay you")}'),
                    ('Forms C and D', f'{P("Documents", "Sign Form C on screen instead")} or {B("Take a photo of the signed page")}'),
                    ('Book your own car', f'{P("Bookings", "Book my own car")}'),
                    ('New listing photos', f'{B("Vehicles")}, the car, then {B("Take new photos")}'),
                    ('Leave the program', f'{B("Vehicles")}, the car, then {B("Give notice")}')],
-        extra_problems=[('A debit was returned', 'You get an email with the reason. Insufficient funds: keep the money in the account for the retry, or pay the invoice from its page. Any other reason: pay from the invoice\'s page or set up a new account under Banking.')])
+        extra_problems=[('A debit was returned', 'You get an email with the reason. Insufficient funds: keep the money in the account for the retry, or pay the invoice from its page. Any other reason: pay from the invoice\'s page or set up a new account under Account > Banking.')])
     return g

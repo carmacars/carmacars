@@ -44,15 +44,24 @@ if [ -n "$end" ]; then
   [ "$cert_days" -ge 14 ] || problems+=("TLS certificate for $host expires in $cert_days days")
 fi
 live=false; [ -f "$D/state/live" ] && live=true
+# pg_cron jobs whose latest run (last 2 hours) failed, on the live server: on the cutover day a sequence left at 1 made every
+# audited write fail, and only the jobs' run details showed it
+cron_failed=null
+if [ "$live" = true ] && [ "$pg" = up ]; then
+  cron_failed=$(docker exec supabase-db psql -U supabase_admin -d postgres -XAtc "select count(*) || '|' || coalesce(string_agg(j.jobname, ', '), '') from (select distinct on (jobid) jobid, status from cron.job_run_details where start_time > now() - interval '2 hours' order by jobid, start_time desc) d join cron.job j using (jobid) where d.status = 'failed'" 2>/dev/null || echo "")
+  n=${cron_failed%%|*}
+  [ "${n:-0}" = 0 ] || problems+=("$n pg_cron jobs failing (latest run failed): ${cron_failed#*|}")
+  cron_failed=${n:-null}
+fi
 load=$(cut -d' ' -f1 /proc/loadavg)
 jq -n --argjson problems "$(printf '%s\n' "${problems[@]:-}" | jq -R 'select(length > 0)' | jq -sc .)" \
   --arg disk "$disk" --arg mem "$mem_avail" --arg pg "$pg" --arg conns "$conns" --arg backup "$backup" \
   --arg spool "$spool" --arg spool_min "$spool_oldest_min" --arg base "$base_age_h" --arg cert "$cert_days" \
-  --argjson live "$live" --arg load "$load" --arg containers "$containers" \
+  --argjson live "$live" --arg load "$load" --arg containers "$containers" --arg cron_failed "$cron_failed" \
   '{ok: ($problems | length == 0), problems: $problems, live: $live, disk_pct: ($disk | tonumber? // null),
     mem_available_mb: ($mem | tonumber? // null), load1: ($load | tonumber? // null), postgres: $pg,
     connections: ($conns | tonumber? // null), backup: $backup, wal_spool_files: ($spool | tonumber),
     wal_spool_oldest_min: ($spool_min | tonumber), base_backup_age_h: ($base | tonumber? // null),
-    cert_days_left: ($cert | tonumber? // null),
+    cert_days_left: ($cert | tonumber? // null), cron_jobs_failing: ($cron_failed | tonumber? // null),
     containers: ($containers | split("\n") | map(select(length > 0) | split("\t") | {name: .[0], state: .[1], status: .[2]}))}'
 [ "${#problems[@]}" -eq 0 ]

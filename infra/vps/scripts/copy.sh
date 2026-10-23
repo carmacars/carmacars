@@ -130,7 +130,7 @@ dump() {
 reset() {
   refuse_if_live
   vps_ssh sudo /opt/carmacars/bin/db-reset --yes | tail -n 12
-  note "reset: the server's database was started over empty"
+  say "reset: the server's database was started over empty"
 }
 
 restore() {
@@ -156,7 +156,9 @@ restore() {
   #    reported, not fatal), then the schema in one transaction as postgres (the owner, as on the hosted project)
   psql "$admin" -X -q -f "$W/roles.sql" > /dev/null 2> "$W/roles.err" || true
   if grep -q 'ERROR' "$W/roles.err"; then warn "roles.sql: $(grep 'ERROR' "$W/roles.err" | head -n 5 | tr '\n' ' ')"; fi
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$W/schema.sql" > "$W/schema.out" 2> "$W/schema.err" \
+  local ts; ts=$(date +%s)
+  # inside the server as well: thousands of statements one by one through the tunnel took about 10 minutes
+  zstd -q -3 -c "$W/schema.sql" | vps_ssh sudo /opt/carmacars/bin/sql-load postgres 2> "$W/schema.err" \
     || { grep -v 'supautils' "$W/schema.err" | tail -n 20 >&2; die "restoring the schema failed (above); nothing of it was kept"; }
   # 3. the data, fitted to the server's tables, one transaction with triggers off
   vps_sql "select json_build_object(
@@ -169,34 +171,63 @@ restore() {
   local missing
   missing=$(jq -r --arg s "$APP_SCHEMAS" '.missing_on_server | keys[] | select((split(".")[0]) as $x | ($s | split(" ") | index($x)))' "$W/filter.json")
   [ -z "$missing" ] || die "the server has no table for: $(tr '\n' ' ' <<<"$missing") (the schema restore did not create them)"
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -c 'SET session_replication_role = replica' -f "$W/data.fit.sql" > /dev/null 2> "$W/data.err" \
-    || { grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
+  # WAL archiving off for the load (the copy ends with a fresh base backup); back on right after
+  local archiving=no
+  if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
+    archiving=yes; vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/enabled /opt/carmacars/backup/enabled-flag/paused
+  fi
+  local tl; tl=$(date +%s)
+  # compressed over SSH and loaded inside the server (bin/sql-load): COPY through the tunnel ran at under 1 MB/s
+  zstd -q -3 -T0 -c "$W/data.fit.sql" | vps_ssh sudo /opt/carmacars/bin/sql-load postgres 2> "$W/data.err" \
+    || { [ "$archiving" = yes ] && vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled
+         grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
+  if [ "$archiving" = yes ]; then vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled; fi
+  local load_s=$(( $(date +%s) - tl ))
   migrations
+  # every sequence at least at its column's max: on the October 23, 2026 cutover the dump's setval lines did not reach
+  # the server and audited writes failed with duplicate keys until the sequences were set (scripts/sequences.sql)
+  local seqs; seqs=$(vps_sql_file "$HERE/sequences.sql") || die "setting the sequences to their tables' max failed"
+  note "sequences moved up to their tables' max: $(jq -r 'length' <<<"$seqs") ($(jq -r 'map(.seq) | join(", ")' <<<"$seqs" | cut -c1-300))"
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
         left join pg_roles r on r.oid = s.setrole
        where s.setdatabase in (0, (select oid from pg_database where datname = 'postgres'))
          and (r.rolname in ('anon', 'authenticated', 'service_role', 'authenticator', 'postgres') or s.setrole = 0)" > "$W/role-settings.json"
-  local role setting key val n=0 failed=0 left=()
-  while IFS=$'\t' read -r role setting; do
+  local role setting key val n=0 failed=0 left=() before
+  # one record per line, fields split by the unit separator (a tab would swallow an empty role: database settings)
+  while IFS=$'\x1f' read -r role setting; do
     key="${setting%%=*}"; val="${setting#*=}"
     # never the hosted project's freeze, nor what docker-compose.yml sets
-    case "$key" in default_transaction_read_only|app.settings.jwt_exp|app.settings.jwt_secret) continue ;; esac
-    # single values only (timeouts, PostgREST's pgrst.*, the app's app.*); list settings such as search_path or
-    # session_preload_libraries keep the image's Supabase defaults and are listed for a look
-    if ! [[ "$key" =~ ^(statement_timeout|lock_timeout|idle_in_transaction_session_timeout|idle_session_timeout|work_mem|temp_file_limit|pgrst\.[a-z_.]+|app\.[a-z_.]+)$ ]]; then
+    case "$key" in default_transaction_read_only|app.settings.jwt_exp|app.settings.jwt_secret|"") continue ;; esac
+    local t; t=$(tag)
+    if [[ "$key" =~ ^(statement_timeout|lock_timeout|idle_in_transaction_session_timeout|idle_session_timeout|work_mem|temp_file_limit|pgrst\.[a-z_.]+|app\.[a-z_.]+)$ ]]; then
+      # a single value: dollar-quoted
+      val="\$$t\$$val\$$t\$"
+    elif [[ "$key" =~ ^(search_path|session_preload_libraries|local_preload_libraries)$ ]] && [[ "$val" =~ ^[A-Za-z0-9_\$\",\ .-]+$ ]]; then
+      # a list, as pg_db_role_setting keeps it ("$user", public, extensions): valid after TO as it is
+      :
+    else
       left+=("${role:-database}: $key"); continue
     fi
-    local t; t=$(tag)
-    if [ -n "$role" ]; then stmt="alter role \"$role\" set $key = \$$t\$$val\$$t\$"; else stmt="alter database postgres set $key = \$$t\$$val\$$t\$"; fi
-    if psql "$admin" -X -q -v ON_ERROR_STOP=1 -c "$stmt" > /dev/null 2> "$W/set.err"; then n=$((n + 1))
-    else failed=$((failed + 1)); warn "could not set $key for ${role:-the database}: $(head -c 200 "$W/set.err")"; fi
-  done < <(jq -r '.[] | [.role, .setting] | @tsv' "$W/role-settings.json")
+    if [ -n "$role" ]; then stmt="alter role \"$role\" set $key to $val"; else stmt="alter database postgres set $key to $val"; fi
+    before=$(psql "$admin" -X -q -At -c "select coalesce((select s from pg_db_role_setting d left join pg_roles r on r.oid = d.setrole, unnest(d.setconfig) s
+               where d.setdatabase in (0, (select oid from pg_database where datname = 'postgres')) and coalesce(r.rolname, '') = '$role' and s like '$key=%' limit 1), '')" 2>/dev/null || true)
+    if psql "$admin" -X -q -v ON_ERROR_STOP=1 -c "$stmt" > /dev/null 2> "$W/set.err"; then
+      # a preload library the server lacks would stop every login of that role: try one, and undo when it fails
+      if [[ "$key" == *preload_libraries ]] && [ -n "$role" ] && ! psql "$(vdb_url "$role")" -X -q -c "select 1" > /dev/null 2> "$W/login.err"; then
+        if [ -n "$before" ]; then psql "$admin" -X -q -c "alter role \"$role\" set $key to ${before#*=}" > /dev/null 2>&1 || true
+        else psql "$admin" -X -q -c "alter role \"$role\" reset $key" > /dev/null 2>&1 || true; fi
+        failed=$((failed + 1)); warn "$key = $val for $role stops its logins on the server ($(grep -v supautils "$W/login.err" | head -c 200)); kept the server's own"
+        continue
+      fi
+      n=$((n + 1))
+    else failed=$((failed + 1)); warn "could not set $key for ${role:-the database}: $(grep -v supautils "$W/set.err" | head -c 200)"; fi
+  done < <(jq -r '.[] | "\(.role)\u001f\(.setting)"' "$W/role-settings.json")
   psql "$admin" -X -q -c "notify pgrst, 'reload config'; notify pgrst, 'reload schema'" > /dev/null || true
   psql "$admin" -X -q -c "vacuum analyze" > /dev/null 2>&1 || warn "vacuum analyze did not finish"
   local f; f="$W/filter.json"
   { echo "### Restore"; echo
-    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s; $n role/database settings copied, $failed failed"
+    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s (schema $(( tl - ts )) s, data $load_s s); $n role/database settings copied, $failed failed"
     echo "- role settings left to the image's defaults (compare by hand): ${left[*]:-none}"
     echo "- left to their own step: $(jq -r '.skipped_by_rule | to_entries | map("\(.key) (\(.value))") | join(", ")' "$f")"
     echo "- tables the server does not have (Auth/Storage versions): $(jq -r '.missing_on_server | to_entries | map("\(.key) (\(.value) rows)") | join(", ") | if . == "" then "none" else . end' "$f")"
@@ -221,7 +252,7 @@ migrations() {
   mh=$(hq "select count(*) as n from supabase_migrations.schema_migrations" | jq -r '.[0].n | tostring')
   mv=$(vps_sql "select count(*) as n from supabase_migrations.schema_migrations" | jq -r '.[0].n | tostring')
   [ "$mh" = "$mv" ] || die "migration history: $mh rows on the hosted project, $mv on the server"
-  note "migrations: $mv rows of history copied"
+  say "migrations: $mv rows of history copied"
 }
 
 vault() {
@@ -286,7 +317,9 @@ auth() {
   # what the API does not show back: the SMTP password (Resend: the deploy_resend_api_key in the vault) and the SMS
   # hook's signing secret (deploy_auth_sms_hook_secret), from the server's vault (copied by the vault step)
   host=$(jq -r '.smtp_host // ""' "$W/auth-config.json")
-  if ! jq -e '.smtp_pass // "" | test("^[^*]+$")' "$W/auth-config.json" > /dev/null && [[ "$host" == *resend* ]]; then
+  # the API answers a hash of the password (hex, not "******"): for Resend the password is the API key (re_...), so
+  # anything else is replaced (on October 23, 2026 the hash was carried and every Auth email failed with 535)
+  if [[ "$host" == *resend* ]] && ! jq -e '.smtp_pass // "" | test("^re_[A-Za-z0-9_]+$")' "$W/auth-config.json" > /dev/null; then
     local k; k=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_resend_api_key'" | jq -r '.[0].v // empty'); mask "$k"
     if [ -n "$k" ]; then jq --arg k "$k" '.smtp_pass = $k' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"; else warn "no SMTP password: Auth emails will fail until deploy_resend_api_key is in the vault"; fi
   fi
@@ -294,6 +327,18 @@ auth() {
     local s; s=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_auth_sms_hook_secret'" | jq -r '.[0].v // empty'); mask "$s"
     if [ -n "$s" ]; then jq --arg s "$s" '.hook_send_sms_secrets = $s' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"; else warn "the Send SMS hook is on but its secret is not in the vault (deploy_auth_sms_hook_secret)"; fi
   fi
+  # sign-in providers (Google...): a client secret the API does not show back comes from the vault, deploy_auth_<p>_secret
+  local prov provs=""
+  for prov in $(jq -r 'to_entries[] | select(.key | test("^external_[a-z0-9]+_enabled$")) | select(.value == true) | .key | sub("^external_"; "") | sub("_enabled$"; "")' "$W/auth-config.json"); do
+    [ "$prov" = email ] || [ "$prov" = phone ] || [ "$prov" = anonymous_users ] && continue
+    if ! jq -e --arg k "external_${prov}_secret" '.[$k] // "" | test("^[^*]+$")' "$W/auth-config.json" > /dev/null; then
+      local ps; ps=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_auth_${prov}_secret'" | jq -r '.[0].v // empty'); mask "$ps"
+      if [ -n "$ps" ]; then jq --arg k "external_${prov}_secret" --arg v "$ps" '.[$k] = $v' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"
+      else warn "sign-in with $prov is on, but its client secret is not shown by the API and not in the vault (deploy_auth_${prov}_secret): it will not work on the server"; fi
+    fi
+    provs+="$prov (secret $(jq -r --arg k "external_${prov}_secret" 'if (.[$k] // "" | test("^[^*]+$")) then "present" else "MISSING" end' "$W/auth-config.json")) "
+  done
+  local provnote=""; [ -z "$provs" ] || provnote="; sign-in providers $provs(redirect $VPS_API_URL/auth/v1/callback)"
   jq --arg u "$VPS_API_URL" '. + {__api_external_url: $u}' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"
   local out; out=$(mktemp -d); chmod 700 "$out"
   node "$HERE/auth-env.mjs" --out "$out" < "$W/auth-config.json" > "$W/auth-render.json"
@@ -302,7 +347,7 @@ auth() {
   rm -rf "$out" "$W/auth-config.json"
   local iss; iss=$(curl -sS --max-time 20 "$VURL/auth/v1/.well-known/openid-configuration" | jq -r '.issuer // empty' || true)
   [ "$iss" = "$VPS_API_URL/auth/v1" ] || warn "Auth's issuer is '$iss', expected $VPS_API_URL/auth/v1 (web/src/lib/auth/jwt-verify.ts checks it)"
-  note "auth: $(jq -r '"\(.carried) settings and \(.templates | length) templates carried; not carried: \(.not_carried | if length == 0 then "none" else join(", ") end)"' "$W/auth-render.json"); issuer $iss"
+  note "auth: $(jq -r '"\(.carried) settings and \(.templates | length) templates carried; not carried: \(.not_carried | if length == 0 then "none" else join(", ") end)"' "$W/auth-render.json" | cut -c1-300); issuer $iss$provnote"
 }
 
 functions() {
@@ -358,17 +403,37 @@ verify() {
   vs_dump=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile f "$W/filter.json" '[$f[0].rows | to_entries[] | select(($v[0][.key] // -1) != .value) | {table: .key, dump: .value, server: ($v[0][.key] // null)}]')
   vs_hosted=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile h "$W/hosted-counts-now.json" '[$h[0] | to_entries[] | select(.key | test("^(auth\\.schema_migrations|storage\\.migrations)$") | not) | select(($v[0][.key] // 0) != .value) | {table: .key, hosted: .value, server: ($v[0][.key] // null)}]')
   printf '%s' "$vs_dump" > "$W/diff-dump.json"; printf '%s' "$vs_hosted" > "$W/diff-hosted.json"
+  # files stored on the hosted project after the dump are copied too (the storage step reads the list now): more rows in
+  # storage.objects than the dump is drift in a rehearsal (the hosted project is frozen for the final copy)
+  if [ "$COPY_MODE" != final ] && [ "$(jq '[.[] | select(.table == "storage.objects" and .server > .dump)] | length' <<<"$vs_dump")" != 0 ]; then
+    infos+=("storage.objects: $(jq -c '[.[] | select(.table == "storage.objects")][0] | "\(.server) on the server, \(.dump) in the dump"' <<<"$vs_dump") (files stored since the dump)")
+    vs_dump=$(jq -c '[.[] | select(.table != "storage.objects")]' <<<"$vs_dump")
+  fi
   [ "$(jq length <<<"$vs_dump")" = 0 ] || problems+=("$(jq length <<<"$vs_dump") tables differ from the dump: $(jq -c '.[:8]' <<<"$vs_dump")")
   # sign-ins keep writing these on the hosted project when only the database API could be frozen (cutover.sh)
-  local churn='^auth\.(refresh_tokens|sessions|audit_log_entries|flow_state|one_time_tokens|mfa_challenges|mfa_amr_claims)$'
+  # and the visitor tracking and rate-limit counters, written by the website's tracking calls during the freeze (a few
+  # page views of the last minutes; nothing a person entered)
+  local churn='^(auth\.(refresh_tokens|sessions|audit_log_entries|flow_state|one_time_tokens|mfa_challenges|mfa_amr_claims)|app\.rate_limit_hits|public\.visitor_(events|sessions|live_signals|signals))$'
   if [ "$COPY_MODE" = final ] && [ "$(jq --arg c "$churn" '[.[] | select(.table | test($c))] | length' <<<"$vs_hosted")" != 0 ]; then
-    infos+=("sign-in tables changed on the hosted project after the dump: $(jq -c --arg c "$churn" '[.[] | select(.table | test($c)) | .table]' <<<"$vs_hosted") (people signed in during the copy sign in again)")
+    infos+=("sign-in and visitor tracking tables changed on the hosted project after the dump: $(jq -c --arg c "$churn" '[.[] | select(.table | test($c)) | .table]' <<<"$vs_hosted") (people signed in during the copy sign in again)")
     vs_hosted=$(jq -c --arg c "$churn" '[.[] | select(.table | test($c) | not)]' <<<"$vs_hosted")
   fi
   if [ "$(jq length <<<"$vs_hosted")" != 0 ]; then
     if [ "$COPY_MODE" = final ]; then problems+=("$(jq length <<<"$vs_hosted") tables differ from the frozen hosted project: $(jq -c '.[:8]' <<<"$vs_hosted")")
     else infos+=("$(jq length <<<"$vs_hosted") tables changed on the hosted project since the dump (expected while it is live): $(jq -c '[.[:6][] | .table]' <<<"$vs_hosted")"); fi
   fi
+  # 1b. the reserved roles' and the database's settings (anon's timeout, authenticator's preload libraries, search_path)
+  local rs_sql="select coalesce(json_agg(coalesce(r.rolname, 'database') || ': ' || x order by 1), '[]') as s from pg_db_role_setting d
+      left join pg_roles r on r.oid = d.setrole, unnest(d.setconfig) x
+     where d.setdatabase in (0, (select oid from pg_database where datname = 'postgres'))
+       and (r.rolname in ('anon', 'authenticated', 'service_role', 'authenticator', 'postgres') or d.setrole = 0)
+       and x !~ '^(default_transaction_read_only|app\.settings\.jwt_(exp|secret))='"
+  local rh rv
+  rh=$(hq "$rs_sql" | jq -c '.[0].s | (if type == "string" then fromjson else . end) | sort')
+  rv=$(vps_sql "$rs_sql" | jq -c '.[0].s | (if type == "string" then fromjson else . end) | sort')
+  local rmiss; rmiss=$(jq -nc --argjson h "$rh" --argjson v "$rv" '$h - $v')
+  if [ "$rmiss" != "[]" ]; then problems+=("role settings of the hosted project missing or different on the server: $rmiss")
+  else infos+=("role settings: the hosted project's $(jq length <<<"$rh") are on the server$( [ "$(jq -nc --argjson h "$rh" --argjson v "$rv" '$v - $h')" = "[]" ] || echo "; the server also has $(jq -nc --argjson h "$rh" --argjson v "$rv" '$v - $h')")"); fi
   # 2. vault, cron
   local vh vv ch cv
   vh=$(hq "select count(*) as n from vault.secrets" | jq -r '.[0].n | tostring'); vv=$(vps_sql "select count(*) filter (where decrypted_secret is not null) as n from vault.decrypted_secrets" | jq -r '.[0].n | tostring')
@@ -393,7 +458,10 @@ verify() {
   # 4. buckets, functions
   hh=$(curl -sS "$HURL/storage/v1/bucket" -H "Authorization: Bearer $HKEY" -H "apikey: $HKEY" | jq -S -c 'map({id, public}) | sort_by(.id)')
   vh2=$(curl -sS "$VURL/storage/v1/bucket" -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" | jq -S -c 'map({id, public}) | sort_by(.id)')
-  [ "$hh" = "$vh2" ] || problems+=("buckets differ: hosted $hh, server $vh2")
+  if [ "$hh" != "$vh2" ]; then
+    if [ "$COPY_MODE" = final ]; then problems+=("buckets differ: hosted $hh, server $vh2")
+    else infos+=("buckets differ (a bucket made on the hosted project after the dump?): hosted $(jq -c '[.[].id]' <<<"$hh"), server $(jq -c '[.[].id]' <<<"$vh2")"); fi
+  fi
   local fn code
   for fn in send-outbox owner-debit calendar-sync; do
     code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$VURL/functions/v1/$fn" || true)
@@ -417,6 +485,8 @@ verify() {
 }
 
 basebackup() {
+  # archiving back on if a failed restore left it paused
+  vps_ssh "sudo sh -c 'cd /opt/carmacars/backup/enabled-flag && if [ -f paused ] && [ ! -f enabled ]; then mv paused enabled; fi'"
   if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
     note "base backup: $(vps_ssh sudo /opt/carmacars/bin/walg-base | tail -n 1)"
   else

@@ -68,7 +68,7 @@ test.describe('investor deck', () => {
       await page.goto('/investor', { waitUntil: 'networkidle' });
       await expect(page.getByTestId('deck-promo')).toBeVisible();
       await expect(page.getByTestId('nav-deck')).toBeVisible();
-      await page.getByTestId('deck-promo').click();
+      await page.getByTestId('deck-promo').getByRole('link', { name: 'Open the deck' }).click();
       await page.waitForURL('**/investor/deck');
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
       await expect(page.getByTestId('deck')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });

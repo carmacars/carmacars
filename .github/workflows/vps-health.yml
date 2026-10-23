@@ -10,7 +10,8 @@ name: vps-health
 # Resend, as the site's own alerts go: once when it starts, then hourly while it lasts, and once when it is over. The
 # Resend key is the repository secret RESEND_API_KEY when set, else the server's (functions.env), else the vault's
 # deploy_resend_api_key (as the deploy reads it: the server's vault, then the hosted project's).
-# Emails are sent only once the server is the backend (DB_BACKEND=vps) or when run by hand with alert: true.
+# Runs on its schedule once the server is the backend (infra/vps/backend = vps) or with infra/vps/health = on; emails
+# are sent only once the server is the backend, or when run by hand with alert: true.
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -35,8 +36,30 @@ defaults:
     shell: bash .github/ci-run.sh vps-health bash --noprofile --norc -eo pipefail {0}
 
 jobs:
+  # where Supabase is: the repository variable DB_BACKEND when set, else the committed infra/vps/backend
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.b.outputs.backend }}
+      health: ${{ steps.b.outputs.health }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+      - id: b
+        env:
+          DB_BACKEND: ${{ vars.DB_BACKEND }}
+          VPS_HEALTH: ${{ vars.VPS_HEALTH }}
+        run: |
+          echo "backend=$(infra/vps/scripts/backend.sh)" >> "$GITHUB_OUTPUT"
+          echo "health=$(infra/vps/scripts/backend.sh health)" >> "$GITHUB_OUTPUT"
+
   health:
-    if: github.event_name == 'workflow_dispatch' || vars.DB_BACKEND == 'vps' || vars.VPS_HEALTH == 'on'
+    needs: gate
+    if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.health == 'on'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
@@ -59,7 +82,7 @@ jobs:
           # inside
           if inside=$(timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh sudo /opt/carmacars/bin/health-local' 2>/dev/null) || [ -n "${inside:-}" ]; then
             while IFS= read -r p; do [ -n "$p" ] && problems+=("server: $p"); done < <(jq -r '.problems[]?' <<<"$inside" 2>/dev/null)
-            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, live}' | sed 's/^/::notice title=inside::/'
+            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, cron_jobs_failing, live}' | sed 's/^/::notice title=inside::/'
             ANON=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret ANON_KEY' 2>/dev/null || true)
           else
             problems+=("server: SSH did not answer within 60 s")
@@ -88,7 +111,7 @@ jobs:
             echo "failed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Alert email (on a change, then hourly while it lasts)
-        if: always() && (vars.DB_BACKEND == 'vps' || inputs.alert)
+        if: always() && (needs.gate.outputs.backend == 'vps' || inputs.alert)
         env:
           GH_TOKEN: ${{ github.token }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

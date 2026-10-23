@@ -13,12 +13,13 @@ export function Table<T extends Record<string, unknown>>({ cols, rows, empty = '
   if (!rows.length) return <p className="ad-empty" data-testid={testId ? `${testId}-empty` : undefined}>{empty}</p>;
   return (
     <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label={caption ?? 'Table'}>
-      <table className="ad-table ad-table--dense" data-testid={testId}>
+      {/* on a phone each row is a card with its column names (admin.css, .ad-table--cards); the roles keep it a table */}
+      <table className="ad-table ad-table--dense ad-table--cards" role="table" data-testid={testId}>
         {caption && <caption className="vh">{caption}</caption>}
-        <thead><tr>{cols.map((c) => <th key={c.key} scope="col" className={c.num ? 'num' : undefined}>{c.label}</th>)}</tr></thead>
-        <tbody>{rows.map((r, i) => (
-          <tr key={rowKey ? rowKey(r, i) : String(r.id ?? i)}>
-            {cols.map((c) => <td key={c.key} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
+        <thead role="rowgroup"><tr role="row">{cols.map((c) => <th key={c.key} role="columnheader" scope="col" className={c.num ? 'num' : undefined}>{c.label}</th>)}</tr></thead>
+        <tbody role="rowgroup">{rows.map((r, i) => (
+          <tr key={rowKey ? rowKey(r, i) : String(r.id ?? i)} role="row">
+            {cols.map((c) => <td key={c.key} role="cell" data-label={c.label} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
           </tr>))}
         </tbody>
       </table>
@@ -82,10 +83,11 @@ export function Card({ title, children, aside, id, testId, tone }: { title: Reac
   );
 }
 
-export function PageHead({ title, kicker, children }: { title: ReactNode; kicker?: ReactNode; children?: ReactNode }) {
+/** The page header: kicker, title, what the page is for in one line (purpose), then the page's actions. */
+export function PageHead({ title, kicker, purpose, children }: { title: ReactNode; kicker?: ReactNode; purpose?: ReactNode; children?: ReactNode }) {
   return (
     <header className="ad-head">
-      <div>{kicker && <p className="pt-kicker">{kicker}</p>}<h1 className="d3">{title}</h1></div>
+      <div className="ad-head__text">{kicker && <p className="pt-kicker">{kicker}</p>}<h1 className="d3">{title}</h1>{purpose && <p className="small muted ad-head__purpose">{purpose}</p>}</div>
       {children && <div className="ad-head__actions">{children}</div>}
     </header>
   );
@@ -123,4 +125,9 @@ export function Search({ action, value, placeholder = 'Search' }: { action: stri
       <button className="btn btn--ghost btn--sm" type="submit">Search</button>
     </form>
   );
+}
+
+/** Filters past the first row, folded (portal cleanup, October 23, 2026): open by itself when one of them is in use. */
+export function MoreFilters({ active, children, label: text = 'More filters' }: { active: boolean; children: ReactNode; label?: string }) {
+  return <details className="ad-morefilters" open={active} data-testid="more-filters"><summary>{text}{active ? ' (in use)' : ''}</summary><div>{children}</div></details>;
 }

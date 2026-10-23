@@ -17,7 +17,7 @@ concurrency:
 # Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
 # infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
 env:
-  DB_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
 
 jobs:

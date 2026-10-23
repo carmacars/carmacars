@@ -26,8 +26,8 @@ def build():
 
     # ---------------------------------------------------------------- 1
     g.chapter('Getting around Admin',
-              'Admin opens on To do: what needs you now, most urgent first. The menu groups every screen into seven groups: '
-              'Today, Bookings, Cars, Owners and partners, Money, People and Settings. Search finds any booking, car or person.',
+              'Admin opens on To do: what needs you now, most urgent first. The menu groups every screen into six groups: '
+              'Today, Bookings, Cars, People, Money and Settings. The long groups come in labelled parts (for example People: Owners and partners, then Renters, staff and investors). Search finds any booking, car or person.',
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
     g.task('To do', 'Start every shift here. Each line says what to do and why, and its button opens a small pop-up that does it, already filled in. Nothing to remember and no menu to search.')
     g.steps([
@@ -40,13 +40,12 @@ def build():
     ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
     g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
-        ['Today', 'To do, Overview, Tasks'],
-        ['Bookings', 'Requests, Bookings, Calendar, Add a rental, Damage, Incidents and claims, Reviews'],
-        ['Cars', 'Vehicles, Listings, Similar cars, Retire or delete, Rates for many cars'],
-        ['Owners and partners', 'Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed'],
-        ['Money', 'Owner invoices, Owner debits, Payments and refunds, Owner statements, Company statements, Payouts, Staff commissions, Tolls and tickets, Insurer invoices, Reconciliation, Expenses'],
-        ['People', 'Renters, Staff, Investors, Portals and view as'],
-        ['Settings', 'All settings, Site, Program, Forms, Guides, Emails, Email log, Sample photos, Audit log'],
+        ['Today', 'To do, Overview, Staff tasks, Live visitors'],
+        ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
+        ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
+        ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
+        ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
     g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
     g.task('Search', 'The search box sits at the top of the menu, on every page.')
@@ -60,7 +59,7 @@ def build():
         ['g r', 'Requests', 'g l', 'Listings'],
         ['g b', 'Bookings', 'g a', 'Applications'],
         ['g c', 'Calendar', 'g o', 'Owners'],
-        ['g k', 'Tasks', 'g m', 'Payments and refunds'],
+        ['g k', 'Staff tasks', 'g m', 'Payments and refunds'],
         ['g s', 'All settings', '/', 'Search'],
     ], head=['Keys', 'Opens', 'Keys', 'Opens'], cls='keys')
 
@@ -84,7 +83,7 @@ def build():
         f'Press {B("Invite")}. The link in the email works for 24 hours.',
     ], shot=S('admin/27-portals-desktop', 210, 880, 1440, 1240, pins=[(1, 441, 1027), (2, 825, 1027), (3, 441, 1120), (4, 330, 1196)]))
     g.tip('Someone who already signs in gets the new role at once, with no email. Owners and investors must be on file first: '
-          'Owners and partners > Owners and People > Investors also have a one-click invite for a record without a sign-in.')
+          'People > Owners and People > Investors also have a one-click invite for a record without a sign-in.')
 
     g.task('Send a password link', 'For anyone who forgot their password or let their invitation expire.')
     g.steps([
@@ -428,10 +427,10 @@ def build():
            f'A car whose VIN fits several trims shows {B("Pick the trim")} there: press the right one. Either way the title, description and search text are written again.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
 
-    g.task('Partners', f'{P("Owners and partners", "Partners")}. Partner rental companies whose cars we rent out on commission.')
+    g.task('Partners', f'{P("People", "Partners")}. Partner rental companies whose cars we rent out on commission.')
     g.steps([
         f'Press {B("Add a partner")}: business and legal name, contacts, HST number, commission and insurance with its expiry date.',
-        'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Tasks gets a reminder (Program settings sets how many days before).',
+        'Open a partner for its cars, bookings, statements, payouts and documents. A warning shows when its insurance expires soon, and Staff tasks gets a reminder (Program settings sets how many days before).',
         f'Banking (Admins only): {B("Save the payout account")} for the account we pay the partner into. The account number is stored encrypted. Press {B("Verify")} once checked.',
         f'Portal: {B("Invite to the owner portal")} gives the partner the owner portal with its cars, bookings, statements and the partner agreement, filled in and signed on screen in three taps.',
         f'Signed on paper? Press {B("Print the partner agreement")}, then record the signed scan under Record a paper signature.',
@@ -440,7 +439,7 @@ def build():
     g.task('A partner fleet on its own rates', 'Some partners send a price sheet of their own rates instead of sharing what the renter pays. '
            '01 Motors works this way: its whole fleet is on the site, and staff manage its cars (it has no portal sign-in yet; add its email on the partner page and invite it later).')
     g.steps([
-        f'{P("Owners and partners", "Partners")} > the partner. {B("Pricing")} shows how it is paid: the renter pays the partner\'s sheet rate plus the markup (10% unless you set another), rounded to the nearest dollar; '
+        f'{P("People", "Partners")} > the partner. {B("Pricing")} shows how it is paid: the renter pays the partner\'s sheet rate plus the markup (10% unless you set another), rounded to the nearest dollar; '
         f'CarmaCars keeps the markup plus its cut (20% of the sheet rate); the partner is owed the rest of its sheet rate. Press {B("Edit pricing")} to change the markup, the cut or the basis for every car at once.',
         f'{B("Cars")} lists each car with its sheet rates a day (1 to 2 days, 3 or more, 7 or more) and the renter\'s rates. Press {B("Edit")} on a car to change a negotiated rate, give that car its own markup or cut, '
         f'mark it {B("Insurance included")} or {B("No credit card needed")}, or confirm its model year. The renter\'s rates change at once.',
@@ -510,7 +509,7 @@ def build():
         f'After the trip press {B("Completed")}. {B("Decline")} or {B("Cancel")} closes a request with the reason.',
     ])
     g.tip(f'To do has a line {B("Chauffeur requests to quote")} while any request is new, and the card Chauffeur today lists the confirmed trips of the day.')
-    g.task('The vehicles and their rates', f'{P("Owners and partners", "Partners")} > the partner, card Chauffeur vehicles.')
+    g.task('The vehicles and their rates', f'{P("People", "Partners")} > the partner, card Chauffeur vehicles.')
     g.steps([
         'Each vehicle shows the partner\'s rates an hour and the client\'s (the markup added, rounded to the nearest dollar).',
         f'Press {B("Edit")} to change a rate, give it its own markup or cut, change the passengers, or take it off the site.',
@@ -523,7 +522,7 @@ def build():
               'Owners apply on the site with List your car. Every application waits for you in one place, Applications: '
               'approve it, ask the owner for something, or decline it. Approved owners sign and pay in their portal.',
               blurb='Applications, the terms and first invoice, adding a car for an owner, an owner\'s terms and invoices, paid and signed, and Forms C and D.')
-    g.task('Applications', f'{P("Owners and partners", "Applications")}. Every owner application, newest first.')
+    g.task('Applications', f'{P("People", "Applications")}. Every owner application, newest first.')
     g.steps([
         'The chips filter by status: New, Waiting on owner, Approved, Declined, or All. New applications also show on To do.',
         'Each row shows the application number, the owner, the car, how many of the four checks are done, and when they applied.',
@@ -540,7 +539,7 @@ def build():
     ], shot=S('admin/34-application-desktop', 0, 160, 1440, 900, pins=[(1, 1050, 633), (2, 1064, 436), (3, 1220, 436), (4, 1050, 491)]))
     g.para('The application has an Invoices tab: every invoice of its cars, drafts and voids included. An application staff entered for the owner says "Entered by staff" and who; approving it sends the owner the set-up email (review the details and sign) instead of the approval email.')
     g.tip(f'Notes on the page are for staff only: {B("Add note")} keeps a line on the record. When the owner answers a request, their answer is in the notes and the application is New again.')
-    g.task('Add a car for an owner', f'{P("Owners and partners", "Add a car for an owner")}, or {B("Add another car")} on an owner\'s page. The owner never has to fill in the application.')
+    g.task('Add a car for an owner', f'{P("People", "Add a car for an owner")}, or {B("Add another car")} on an owner\'s page. The owner never has to fill in the application.')
     g.steps([
         'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
         'The car: type the VIN. The car is looked up at once and shown in one line (Edit if something is wrong); no VIN at hand, add it by its plate with the year, make and model from the lists. Tap the colour, check the class, then the odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
@@ -549,7 +548,7 @@ def build():
         f'Press {B("Add the car and set it up")}. The owner gets one email: review the details, correct anything, and sign. An owner with no sign-in gets the link to choose a password in that same email.',
     ])
     g.para(f'Customer service and fleet assistants add cars the same way from their portal; theirs wait in Applications for you, with the terms and invoices they proposed already filled in. On an approved application staff entered, {B("Send the set-up email again")} sends the owner the email with a fresh link.')
-    g.task('Owners', f'{P("Owners and partners", "Owners")}. Every owner, with their cars and where onboarding stands.')
+    g.task('Owners', f'{P("People", "Owners")}. Every owner, with their cars and where onboarding stands.')
     g.steps([
         'Each owner shows their application, how many cars, and where onboarding stands.',
         f'{B("View as (owner portal)")} shows their portal. {B("Send password link")} helps them sign in.',
@@ -602,7 +601,7 @@ def build():
         f'When the Vehicle Schedule is already signed, saving shows a warning: the owner must sign an updated schedule. Press {B("Create the updated schedule and email the owner to sign")}. The current terms stay until the owner signs; then the new ones apply from their date to invoices, debits and statements.',
         f'Signed on paper instead? {B("Record signed on paper")} with the date. {B("Withdraw it")} cancels the update, with a reason.',
     ])
-    g.task('Paid and signed', f'{P("Owners and partners", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
+    g.task('Paid and signed', f'{P("People", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
         f'Open {B("Checklist and quick actions")}. Each line says Signed in the portal, Signed on paper, Paid by e-Transfer, Not signed, and so on.',
@@ -615,7 +614,7 @@ def build():
            'A paper signature counts as signed everywhere: the checklist, onboarding and the owner portal. The scan is kept privately with the owner\'s documents.')
     g.warn(f'Recorded the wrong thing, or a cheque bounced? Press {B("Void")} beside it and give the reason. The invoice owes that amount again and the owner is told; a voided signature makes the item open again. Only an Admin can void.')
 
-    g.task('Forms C and D', f'{P("Owners and partners", "Owner forms")}. Form C is signed on screen in the owner portal, with the witness on the same screen. Form D (and Form C on paper, if the owner prefers) is printed, signed in front of witnesses, and sent as a photo of each page.')
+    g.task('Forms C and D', f'{P("People", "Owner forms")}. Form C is signed on screen in the owner portal, with the witness on the same screen. Form D (and Form C on paper, if the owner prefers) is printed, signed in front of witnesses, and sent as a photo of each page.')
     g.steps([
         'Each row shows the owner, the form, the witnesses and when it was uploaded.',
         'Press Open to read the photo or scan. Check each marked spot is signed or initialled.',
@@ -817,7 +816,8 @@ def build():
     g.task('The assistant\'s settings')
     g.para('In Program settings, "Live visitors and live chat": the chat on or off, the AI first or not, its model, the neurons it may use a day '
            '(6,000, about 10 chats; then chats wait for a person), the greeting on car pages after some seconds (off by default), '
-           'how long chats and visits are kept (12 months and 90 days, as the privacy policy says).')
+           'how long chats and visits are kept, as the privacy policy says: chats 12 months, the pages of a visit 90 days, '
+           'the visit\'s summary in Visitor history 13 months, and the daily totals, which name no one, 3 years.')
     g.task('What a visitor typed')
     g.para(f'A visitor who typed contact details into a form shows them on their line: "Typed into the booking request, not sent: Maya Chen, maya@example.com", '
            f'with {B("Email not confirmed")} until they open the link we emailed, and {B("Renter page")}.')
@@ -885,14 +885,14 @@ def build():
         'The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.',
         'On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.',
     ])
-    g.task('Leads', f'{P("Bookings", "Leads")}.')
+    g.task('Leads', f'{P("Bookings", "Renter leads")}.')
     g.steps([
         'The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.',
         'Each claim: when, the name (and "on the site now"), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.',
         f'Press {B("Call")} or {B("Email")}, then {B("Contacted")} (it is yours). {B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
         'A visitor who viewed 3 cars or more also gets a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.',
     ])
-    g.task('Contact details typed into forms', f'{P("Bookings", "Leads")}, the card "Typed into forms" at the top.')
+    g.task('Contact details typed into forms', f'{P("Bookings", "Renter leads")}, the card "Typed into forms" at the top.')
     g.steps([
         'When someone types a name, email or phone into the request to book, the contact form, List your car, the owner application, Create an account, the discount game or the chat, it is saved as soon as each field is valid, even if they never press Send.',
         'Each line: when, the name (and "On the site now"), email and phone, the form, and Sent or Not sent. "Email not confirmed" means the account was opened from the form and the person has not opened the link we emailed them yet.',
@@ -950,7 +950,7 @@ def build():
     g.steps([
         'The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.',
         'Untick it when the car is sold or no longer for sale: the pages say so at once.',
-        f'"Find me this car" on the /buy pages sends a buyer lead to Sales ({B("Leads")}, Buyer leads), with a To do line.',
+        f'"Find me this car" on the /buy pages sends a buyer lead to Sales (staff portal: {B("Owner leads")}, Buyer leads), with a To do line.',
     ])
     g.task('Search engines and business listings', f'{P("Settings", "All settings")}, then Site settings.')
     g.steps([
@@ -979,6 +979,11 @@ def build():
            f'The buying help, detailing and body shop pages, and the pages of places beyond our reach, have a request form. Each request is a lead with a task in {B("To do")}: '
            'detailing and body shop requests are due within an hour of opening and show in Today. Buying help pages say plainly that CarmaCars does not sell, finance or '
            'lease cars; the notice at the top is set under Place pages.')
+    g.para('Mechanical work has pages too, under the body shop pages and listed apart as "Auto services we arrange": a mechanic, oil changes, '
+           'brakes, tires and winter tires, towing, batteries and boosts, alignment, transmission and engine repair, diagnostics, inspections and '
+           'the Ontario safety certificate, emissions, AC, exhaust and suspension. CarmaCars does not do this work, and the pages say so: each takes '
+           'a request (a "Mechanical work to arrange" task, due within an hour of opening) and offers a rental while the car is in. '
+           'They have no questions of their own and no vehicle pages.')
     g.task('One name, address and phone',
            'The footer, the contact page, the structured data and every business listing show the business address of Site settings. '
            'Keep it the address renters come to, and change it there only.')
@@ -1262,11 +1267,10 @@ def build():
                   ('Search', 'Any booking, plate, VIN, name or email'),
                   ('Bookings', 'Requests, bookings, the calendar, adding a rental'),
                   ('Cars', 'Vehicles, listings, calendar sync, sample photos'),
-                  ('Owners and partners', 'Applications, owners, partners, owner forms'),
                   ('Money', 'Owner invoices and debits, payments, statements, tolls'),
-                  ('People', 'Renters, staff, investors, View as'),
+                  ('People', 'Applications, owners, partners, owner forms; renters, staff, investors, View as'),
                   ('Settings', 'Site, program, forms, guides, emails, audit log')],
-        top_tasks=[('Answer an application', f'{P("Owners and partners", "Applications")}, then {B("Approve")}, {B("Ask for something")} or {B("Decline")}'),
+        top_tasks=[('Answer an application', f'{P("People", "Applications")}, then {B("Approve")}, {B("Ask for something")} or {B("Decline")}'),
                    ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),
                    ('Change a booking', f'The booking\'s Changes tab, then {B("Send to the renter")}'),
                    ('Publish a car', f'To do, the car\'s line, then {B("Set rates and publish")}'),

@@ -24,6 +24,7 @@ export default async function Referrals() {
   return (
     <div className="stack">
       <h1 className="d3">Referrals</h1>
+      <p className="small muted">Your referral link and QR code: a booking made with it counts as a rental you sourced.</p>
       <section className="fd-card" aria-labelledby="ref-t"><h2 className="d4" id="ref-t">Your link</h2>
         <p className="fd-big" data-testid="referral-code">{r.code}</p>
         <p className="small" style={{ overflowWrap: 'anywhere' }}>{url}</p>

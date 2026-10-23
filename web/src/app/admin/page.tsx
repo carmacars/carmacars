@@ -6,6 +6,7 @@ import { BookingLink, Card, PageHead, t } from '@/features/admin/ui';
 import { Prompts } from '@/features/admin/todo/Prompts';
 import type { Todo } from '@/features/admin/todo/types';
 import { UsageCards } from '@/features/usage/UsageCards';
+import { More } from '@/features/portal/Chrome';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -38,7 +39,8 @@ export default async function AdminToDo() {
   const time = (iso: string) => t(iso).split(', ').pop();
   return (
     <>
-      <PageHead title="To do" kicker={prompts.length + open.length ? `${prompts.length + open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now'}>
+      <PageHead title="To do" kicker={prompts.length + open.length ? `${prompts.length + open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now'}
+        purpose="What needs an Admin now, most urgent first. Each line has one button that does it.">
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link>
       </PageHead>
       <UsageCards userId={user.id} />
@@ -94,11 +96,14 @@ function SiteHealth({ h }: { h: Health }) {
   return (
     <Card id="site-health" title={failing ? `Site health: ${failing} problem${failing > 1 ? 's' : ''}` : 'Site health'} testId="site-health" tone={failing ? 'warn' : undefined}
       aside={<span className="small muted">{h.enabled ? `Checked every ${h.interval} minutes. Alerts go to ${h.alert_email}` : 'The site check is off (Program settings)'}</span>}>
+      {/* portal cleanup (October 23, 2026): every check in one line while nothing is wrong; the details one tap away */}
+      {!failing && !h.open.length && <p className="small" data-testid="site-health-summary">{h.checks.every((c) => c.status === 'ok') ? `All ${h.checks.length} checks working.` : h.checks.some((c) => c.status === 'ok') ? `${h.checks.filter((c) => c.status === 'ok').length} of ${h.checks.length} checks working; the others are not checked yet.` : 'Not checked yet.'}</p>}
       {h.open.length > 0 && (
         <ul className="ad-list" data-testid="site-alerts">{h.open.map((a) => (
           <li key={a.id}><span><b>{a.label}</b>: {a.detail} <span className="small muted">since {t(a.opened_at)}{a.emailed ? ', emailed' : a.held ? `, not emailed: ${a.held}` : a.real ? '' : ', short problem: not emailed'}</span></span>
             <span className="ad-sub">{a.advice}</span></li>))}</ul>
       )}
+      <More summary={failing || h.open.length ? 'Every check' : 'Every check, the alert rules and texts'} open={!!failing} testId="site-health-more">
       <ul className="sh-list">{h.checks.map((c) => (
         <li key={c.key} data-testid={`check-${c.key}`} data-status={c.status}>
           <span className={`sh-dot is-${c.status}`} aria-hidden="true" />
@@ -111,6 +116,7 @@ function SiteHealth({ h }: { h: Health }) {
       {h.sms && <SmsVolume s={h.sms} />}
       {h.recent.length > 0 && <details className="todo__clear"><summary className="small muted">{h.recent.length} resolved in the last 7 days</summary>
         <ul className="small muted">{h.recent.map((r, i) => <li key={i}>{r.label}: {r.detail} ({t(r.opened_at)} to {t(r.resolved_at)})</li>)}</ul></details>}
+      </More>
     </Card>
   );
 }

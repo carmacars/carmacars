@@ -14,6 +14,7 @@ export default async function FieldSales() {
   return (
     <div className="stack">
       <h1 className="d3">My sales</h1>
+      <p className="small muted">The rentals you sourced or added, and the commission on each.</p>
       <Commissions c={s.commissions} own compact />
       <section className="fd-card" aria-labelledby="fs-deals"><h2 className="d4" id="fs-deals">Rentals</h2>
         {s.deals.length ? <ul className="fd-shots" data-testid="field-deals">{s.deals.map((x) => (
