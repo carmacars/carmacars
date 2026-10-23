@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Bring the stack up (idempotent): folders and modes, images, containers, then wait until every health check passes.
+set -euo pipefail
+D=/opt/carmacars
+S=$D/supabase
+[ -s "$S/.env" ] || { echo "stack-up: $S/.env is missing (the vps-provision workflow writes it)" >&2; exit 1; }
+mkdir -p "$S/volumes/db/data" "$S/volumes/storage" "$S/volumes/functions" "$S/volumes/snippets" \
+         "$S/volumes/auth-templates" "$S/volumes/pooler" "$D/wal-spool" "$D/backup/enabled-flag" "$D/state"
+for f in .env auth.env functions.env auth-config.json; do
+  if [ ! -f "$S/$f" ]; then if [ "$f" = auth-config.json ]; then echo '{}' > "$S/$f"; else : > "$S/$f"; fi; fi
+  chmod 600 "$S/$f"
+done
+chmod 700 "$D/backup" "$D/state"
+# on any failure: what went wrong, for the workflow's annotations
+show_failed() {
+  local c
+  for c in $(docker ps -a --filter label=com.docker.compose.project=supabase --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*\(healthy\)| Up [0-9]+ [a-z]+$' | cut -d' ' -f1 | grep -v '^supabase-db$'); do
+    echo "---- $c: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")"
+    docker logs --tail 6 "$c" 2>&1 | cut -c1-240
+  done
+  # the database last, so its lines are in the annotations' tail
+  echo "---- supabase-db: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' supabase-db 2>&1)"
+  docker logs --tail 45 supabase-db 2>&1 | cut -c1-240
+}
+trap show_failed ERR
+"$D/bin/dc" pull --quiet
+# GoTrue refuses to start without a site URL: until the copy renders the hosted settings into auth.env, the default
+grep -q '^GOTRUE_SITE_URL=' "$S/auth.env" || echo "GOTRUE_SITE_URL='$(grep -m1 '^SITE_URL=' "$S/defaults.env" | cut -d= -f2)'" >> "$S/auth.env"
+# the database first; PostgREST serves graphql_public as on the hosted project, so the schema must exist
+"$D/bin/dc" up -d --wait --wait-timeout 600 db
+docker exec supabase-db psql -U supabase_admin -d postgres -XAtq -c "create schema if not exists graphql_public;
+  grant usage on schema graphql_public to postgres, anon, authenticated, service_role;" > /dev/null
+"$D/bin/dc" up -d --remove-orphans --wait --wait-timeout 900
+# archive_command writes the spool as the container's postgres user
+uid=$(docker exec supabase-db id -u postgres)
+chown "$uid" "$D/wal-spool"; chmod 700 "$D/wal-spool"
+"$D/bin/dc" ps --format '{{.Name}} {{.Status}}'

@@ -12,6 +12,8 @@
 #                                        schedule it hourly
 #   scripts/deploy/supabase.sh calsync   deploy the calendar-sync Edge Function (Turo and other calendar links) and
 #                                        schedule it every 5 minutes
+#   scripts/deploy/supabase.sh fnsync    the three Edge Functions and their secrets only: no pg_cron change and no call
+#                                        (infra/vps: the copy to the company's server, before its cutover)
 #   scripts/deploy/supabase.sh storage   the file buckets in Supabase Storage (used when the Cloudflare account
 #                                        has no R2: STORAGE_PROVIDER=supabase); vehicle-public is public
 #   scripts/deploy/supabase.sh photos    the stand-in photos into vehicle-public (once; a marker object records it)
@@ -30,13 +32,15 @@
 #                                        Only the settings that differ are sent.
 #
 # Needs SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF; APP_URL (default https://carmacars.ca).
+# DB_BACKEND=vps (repository variable) runs every step against the company's own server instead (lib.sh, vps.sh,
+# infra/vps/CUTOVER.md); the default, supabase, is the hosted project as before.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 # shellcheck source=lib.sh
 . "$HERE/lib.sh"
 APP_URL="${APP_URL:-https://carmacars.ca}"
-REF="$SUPABASE_PROJECT_REF"
+REF="${SUPABASE_PROJECT_REF:-}"
 
 # Migrations 0001 to 0030 were applied to the live project through the Management API before this
 # runner existed. On a project that already has the schema but an empty history, they are recorded
@@ -44,19 +48,17 @@ REF="$SUPABASE_PROJECT_REF"
 BASELINE_MAX="0030"
 
 secrets() {
-  local keys anon service
-  keys=$(sbapi GET "/api-keys?reveal=true")
-  anon=$(jq -r '[.[] | select(.name == "anon")][0].api_key // empty' <<<"$keys")
-  service=$(jq -r '[.[] | select(.name == "service_role")][0].api_key // empty' <<<"$keys")
-  [ -n "$anon" ] && [ -n "$service" ] || die "The project's anon or service_role key was not returned"
-  mask "$anon"; mask "$service"
-  export_env NEXT_PUBLIC_SUPABASE_URL "https://$REF.supabase.co"
-  export_env NEXT_PUBLIC_SUPABASE_ANON_KEY "$anon"
-  export_env SUPABASE_SERVICE_ROLE_KEY "$service"
+  sb_keys || die "The project's anon or service_role key was not returned"
+  export_env NEXT_PUBLIC_SUPABASE_URL "$SB_PUBLIC_URL"
+  export_env NEXT_PUBLIC_SUPABASE_ANON_KEY "$SB_ANON_KEY"
+  export_env SUPABASE_SERVICE_ROLE_KEY "$SB_SERVICE_KEY"
+  # on the company's server the session cookie keeps the hosted project's name (sb-<ref>-auth-token), so nobody is
+  # signed out by the cutover (web/src/lib/supabase/server.ts)
+  if [ "$DB_BACKEND" = vps ] && [ -n "$REF" ]; then export_env NEXT_PUBLIC_SUPABASE_AUTH_COOKIE "sb-$REF-auth-token"; fi
   # the project's JWT secret (the legacy HS256 key the database API still accepts): Admin "view as" reads a renter's or
   # owner's portal with a 5-minute token for that person, made on the server (web/src/server/view-as.ts)
   local jwt
-  jwt=$(sbapi GET "/postgrest" | jq -r '.jwt_secret // empty')
+  jwt=$(sb_jwt_secret)
   if [ -n "$jwt" ]; then mask "$jwt"; export_env SUPABASE_JWT_SECRET "$jwt"
   else notice "No JWT secret from the project: Admin view as cannot open the renter and owner portals"; fi
   local rows
@@ -83,18 +85,11 @@ secrets() {
     export_env MAPS_PROVIDER fake
     notice "Maps: the fake adapter (add deploy_google_maps_api_key to the vault for Google Places and Routes)"
   fi
-  # session pooler (IPv4) for the seed script
-  local pool host user
-  pool=$(sbapi GET "/config/database/pooler")
-  host=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host' <<<"$pool")
-  user=$(jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_user' <<<"$pool")
-  if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
-    local enc
-    enc=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri')
-    mask "$enc"
-    export_env DATABASE_URL "postgresql://$user:$enc@$host:5432/postgres"
-  fi
-  log "secrets: Supabase keys, vault secrets and the pooler address are exported"
+  # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
+  local dburl
+  dburl=$(sb_db_url)
+  if [ -n "$dburl" ]; then export_env DATABASE_URL "$dburl"; fi
+  log "secrets: Supabase keys, vault secrets and the database address are exported ($DB_BACKEND)"
 }
 
 migrate() {
@@ -146,7 +141,7 @@ templates() {
 
 auth() {
   local cfg list want u patch
-  cfg=$(sbapi GET "/config/auth")
+  cfg=$(sb_auth_get)
   list=$(jq -r '.uri_allow_list // ""' <<<"$cfg")
   want="$list"
   for u in "$APP_URL/auth/callback" "${APP_URL/https:\/\//https://www.}/auth/callback" "$APP_URL/update-password" "${APP_URL/https:\/\//https://www.}/update-password"; do
@@ -160,139 +155,125 @@ auth() {
     patch=$(jq -s '.[0] + .[1]' <(echo "$patch") <(echo "$tpl"))
   fi
   if [ "$want" != "$list" ] || jq -e 'has("mailer_templates_confirmation_content")' <<<"$patch" > /dev/null; then
-    sbapi PATCH "/config/auth" "$patch" > /dev/null
+    sb_auth_patch "$patch" > /dev/null
     notice "Auth: redirect allow list and email templates updated"
   else
     log "auth: already configured"
   fi
 }
 
-outbox() {
-  local token dir
-  token=$(vault_get outbox_job_token)
-  if [ -z "$token" ]; then
-    token=$(openssl rand -hex 32)
-    vault_set outbox_job_token "$token" "Bearer token pg_cron sends to the send-outbox Edge Function"
-  fi
-  mask "$token"
-  : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"
-  mask "$RESEND_API_KEY"
-  : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"
-  mask "$LINK_SIGNING_KEY"
-  # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
-  sbapi POST "/secrets" "$(jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
-    '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]')" > /dev/null
-  dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/send-outbox/index.ts" "$dir/index.ts"
-  cp "$ROOT/emails/src/engine.mjs" "$dir/engine.mjs"
-  local out code
-  out=$(mktemp)
-  code=$(cd "$dir" && curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/functions/deploy?slug=send-outbox" \
-    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-    -F 'metadata={"entrypoint_path":"index.ts","name":"send-outbox","verify_jwt":false};type=application/json' \
-    -F 'file=@index.ts;type=application/typescript' -F 'file=@engine.mjs;type=application/javascript')
-  [ "${code:0:1}" = "2" ] || die "send-outbox deploy failed ($code): $(head -c 800 "$out")"
-  log "send-outbox deployed: $(jq -c '{slug, version, status}' "$out")"
-  rm -rf "$dir" "$out"
-  sbq "select cron.schedule('carmacars-send-outbox', '* * * * *', \$c\$
+# One Edge Function called by pg_cron through pg_net with a bearer token kept in the vault: deploy the files, set the
+# function's secrets, schedule the job, then check that the function refuses a call without the token and answers
+# one with it. On the company's server (DB_BACKEND=vps) the call with the token is made only once the server is the
+# live backend (the cutover is done): before that it would send emails or debits from a copy of the data.
+cron_function() { # slug job schedule timeout_ms token_name label dir
+  local slug="$1" job="$2" schedule="$3" timeout="$4" tname="$5" label="$6" dir="$7" out code
+  out=$(sb_fn_deploy "$slug" "$dir") || die "$slug deploy failed"
+  log "$slug deployed: $out"
+  sbq "select cron.schedule('$job', '$schedule', \$c\$
          select net.http_post(
-           url := 'https://$REF.supabase.co/functions/v1/send-outbox',
+           url := '$(sb_fn_url "$slug")',
            headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
-                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'outbox_job_token')),
-           body := '{}'::jsonb, timeout_milliseconds := 30000)
+                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = '$tname')),
+           body := '{}'::jsonb, timeout_milliseconds := $timeout)
        \$c\$)" > /dev/null
   # the function answers 403 without the token
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/send-outbox")
-  [ "$code" = "403" ] || warn "send-outbox without a token answered $code (expected 403)"
-  code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/send-outbox" -H "Authorization: Bearer $token")
-  [ "$code" = "200" ] && notice "Outbox sender: Edge Function send-outbox answers ($(cat "$dir.json")), pg_cron job carmacars-send-outbox every minute" \
-    || warn "send-outbox with the token answered $code: $(head -c 300 "$dir.json")"
-  rm -f "$dir.json"
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$(sb_fn_test_url "$slug")")
+  [ "$code" = "403" ] || warn "$slug without a token answered $code (expected 403)"
+  if [ "$DB_BACKEND" = vps ] && ! vps_is_live; then
+    notice "$label: $slug deployed and refuses calls without its token; not called with the token (the server is not live yet)"
+    return 0
+  fi
+  out=$(mktemp)
+  code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$(sb_fn_test_url "$slug")" -H "Authorization: Bearer $(vault_get "$tname")")
+  [ "$code" = "200" ] && notice "$label: Edge Function $slug answers ($(head -c 300 "$out")), pg_cron job $job ($schedule)" \
+    || warn "$slug with the token answered $code: $(head -c 300 "$out")"
+  rm -f "$out"
 }
+
+# A job token in the vault (made once).
+job_token() { # vault_name description
+  local token
+  token=$(vault_get "$1")
+  if [ -z "$token" ]; then
+    token=$(openssl rand -hex 32)
+    vault_set "$1" "$token" "$2"
+  fi
+  mask "$token"
+  printf '%s' "$token"
+}
+
+# The files of each Edge Function, as deployed (index.ts and what it imports), into a directory.
+fn_files() { # slug dir
+  case "$1" in
+    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs" ;;
+    owner-debit) cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$2/" ;;
+    calendar-sync) cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$2/index.ts"
+                   cp "$ROOT/web/src/features/calendar/ical.ts" "$2/ical.ts"
+                   cp "$ROOT/web/src/features/calendar/sync-run.ts" "$2/run.ts" ;;
+    *) die "unknown function $1" ;;
+  esac
+}
+# The secrets of each function (JSON for sb_fn_secrets); the job tokens are made once in the vault.
+fn_secrets_json() { # slug
+  local token
+  case "$1" in
+    send-outbox)
+      token=$(job_token outbox_job_token "Bearer token pg_cron sends to the send-outbox Edge Function")
+      : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"; mask "$RESEND_API_KEY"
+      # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
+      : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"; mask "$LINK_SIGNING_KEY"
+      jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
+        '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]' ;;
+    owner-debit)
+      token=$(job_token debit_job_token "Bearer token pg_cron sends to the owner-debit Edge Function")
+      : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"; mask "$STRIPE_SECRET_KEY"
+      jq -n --arg t "$token" --arg s "$STRIPE_SECRET_KEY" '[{name: "DEBIT_JOB_TOKEN", value: $t}, {name: "STRIPE_SECRET_KEY", value: $s}]' ;;
+    calendar-sync)
+      token=$(job_token calsync_job_token "Bearer token pg_cron sends to the calendar-sync Edge Function")
+      jq -n --arg t "$token" '[{name: "CALSYNC_JOB_TOKEN", value: $t}]' ;;
+  esac
+}
+deploy_fn() { # slug job schedule timeout_ms token_name label
+  local dir
+  sb_fn_secrets "$(fn_secrets_json "$1")"
+  dir=$(mktemp -d)
+  fn_files "$1" "$dir"
+  cron_function "$1" "$2" "$3" "$4" "$5" "$6" "$dir"
+  rm -rf "$dir"
+}
+
+outbox() { deploy_fn send-outbox carmacars-send-outbox '* * * * *' 30000 outbox_job_token "Outbox sender"; }
 
 # The automatic monthly owner debit (docs/changes/2026-10-14-owner-debit.md): the owner-debit Edge Function, its
 # secrets (a job token in the vault, the Stripe key) and the hourly pg_cron call. The function decides itself whether
 # anything is due (the debit day and hour are Program settings), so an hourly call is safe.
-debit() {
-  local token dir out code
-  token=$(vault_get debit_job_token)
-  if [ -z "$token" ]; then
-    token=$(openssl rand -hex 32)
-    vault_set debit_job_token "$token" "Bearer token pg_cron sends to the owner-debit Edge Function"
-  fi
-  mask "$token"
-  : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"
-  mask "$STRIPE_SECRET_KEY"
-  sbapi POST "/secrets" "$(jq -n --arg t "$token" --arg s "$STRIPE_SECRET_KEY" '[{name: "DEBIT_JOB_TOKEN", value: $t}, {name: "STRIPE_SECRET_KEY", value: $s}]')" > /dev/null
-  dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$dir/"
-  out=$(mktemp)
-  code=$(cd "$dir" && curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/functions/deploy?slug=owner-debit" \
-    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-    -F 'metadata={"entrypoint_path":"index.ts","name":"owner-debit","verify_jwt":false};type=application/json' \
-    -F 'file=@index.ts;type=application/typescript' -F 'file=@run.ts;type=application/typescript')
-  [ "${code:0:1}" = "2" ] || die "owner-debit deploy failed ($code): $(head -c 800 "$out")"
-  log "owner-debit deployed: $(jq -c '{slug, version, status}' "$out")"
-  rm -rf "$dir" "$out"
-  sbq "select cron.schedule('carmacars-owner-debit', '28 * * * *', \$c\$
-         select net.http_post(
-           url := 'https://$REF.supabase.co/functions/v1/owner-debit',
-           headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
-                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'debit_job_token')),
-           body := '{}'::jsonb, timeout_milliseconds := 60000)
-       \$c\$)" > /dev/null
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/owner-debit")
-  [ "$code" = "403" ] || warn "owner-debit without a token answered $code (expected 403)"
-  code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/owner-debit" -H "Authorization: Bearer $token")
-  [ "$code" = "200" ] && notice "Owner debit: Edge Function owner-debit answers ($(head -c 300 "$dir.json")), pg_cron job carmacars-owner-debit hourly" \
-    || warn "owner-debit with the token answered $code: $(head -c 300 "$dir.json")"
-  rm -f "$dir.json"
-}
+debit() { deploy_fn owner-debit carmacars-owner-debit '28 * * * *' 60000 debit_job_token "Owner debit"; }
 
 # Calendar sync (docs/changes/2026-10-19-calendar-sync-recovery-uptime.md): the calendar-sync Edge Function with the
 # site's own reader (web/src/features/calendar/ical.ts and sync-run.ts, copied beside index.ts), its job token in the
 # vault, and the pg_cron call every 5 minutes. The database decides which calendar links are due
 # (calendar_sync_minutes, 10 by default), so a call with nothing due costs one query.
-calsync() {
-  local token dir out code
-  token=$(vault_get calsync_job_token)
-  if [ -z "$token" ]; then
-    token=$(openssl rand -hex 32)
-    vault_set calsync_job_token "$token" "Bearer token pg_cron sends to the calendar-sync Edge Function"
-  fi
-  mask "$token"
-  sbapi POST "/secrets" "$(jq -n --arg t "$token" '[{name: "CALSYNC_JOB_TOKEN", value: $t}]')" > /dev/null
-  dir=$(mktemp -d)
-  cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$dir/index.ts"
-  cp "$ROOT/web/src/features/calendar/ical.ts" "$dir/ical.ts"
-  cp "$ROOT/web/src/features/calendar/sync-run.ts" "$dir/run.ts"
-  out=$(mktemp)
-  code=$(cd "$dir" && curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/functions/deploy?slug=calendar-sync" \
-    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-    -F 'metadata={"entrypoint_path":"index.ts","name":"calendar-sync","verify_jwt":false};type=application/json' \
-    -F 'file=@index.ts;type=application/typescript' -F 'file=@ical.ts;type=application/typescript' -F 'file=@run.ts;type=application/typescript')
-  [ "${code:0:1}" = "2" ] || die "calendar-sync deploy failed ($code): $(head -c 800 "$out")"
-  log "calendar-sync deployed: $(jq -c '{slug, version, status}' "$out")"
-  rm -rf "$dir" "$out"
-  sbq "select cron.schedule('carmacars-calendar-sync', '*/5 * * * *', \$c\$
-         select net.http_post(
-           url := 'https://$REF.supabase.co/functions/v1/calendar-sync',
-           headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
-                        'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'calsync_job_token')),
-           body := '{}'::jsonb, timeout_milliseconds := 120000)
-       \$c\$)" > /dev/null
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/calendar-sync")
-  [ "$code" = "403" ] || warn "calendar-sync without a token answered $code (expected 403)"
-  code=$(curl -sS -o "$dir.json" -w '%{http_code}' -X POST "https://$REF.supabase.co/functions/v1/calendar-sync" -H "Authorization: Bearer $token")
-  [ "$code" = "200" ] && notice "Calendar sync: Edge Function calendar-sync answers ($(head -c 300 "$dir.json")), pg_cron job carmacars-calendar-sync every 5 minutes" \
-    || warn "calendar-sync with the token answered $code: $(head -c 300 "$dir.json")"
-  rm -f "$dir.json"
+calsync() { deploy_fn calendar-sync carmacars-calendar-sync '*/5 * * * *' 120000 calsync_job_token "Calendar sync"; }
+
+# The three functions and their secrets only: no pg_cron change, no call (the vps-copy workflow, before the cutover:
+# the copied jobs stay paused until then).
+fnsync() {
+  local slug dir out
+  for slug in send-outbox owner-debit calendar-sync; do
+    sb_fn_secrets "$(fn_secrets_json "$slug")"
+    dir=$(mktemp -d); fn_files "$slug" "$dir"
+    out=$(sb_fn_deploy "$slug" "$dir") || die "$slug deploy failed"
+    rm -rf "$dir"
+    log "$slug deployed: $out; without a token it answers $(curl -sS -o /dev/null -w '%{http_code}' -X POST "$(sb_fn_test_url "$slug")") (403 expected)"
+  done
+  notice "Edge Functions: send-outbox, owner-debit, calendar-sync and their secrets deployed ($DB_BACKEND); pg_cron unchanged"
 }
 
 service_key() {
   if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-    SUPABASE_SERVICE_ROLE_KEY=$(sbapi GET "/api-keys?reveal=true" | jq -r '[.[] | select(.name == "service_role")][0].api_key')
-    mask "$SUPABASE_SERVICE_ROLE_KEY"
+    sb_keys
+    SUPABASE_SERVICE_ROLE_KEY="$SB_SERVICE_KEY"
   fi
 }
 
@@ -301,10 +282,10 @@ storage() {
   local b pub code
   for b in vehicle-public vehicle-originals documents identity condition-photos agreements; do
     pub=false; [ "$b" = vehicle-public ] && pub=true
-    code=$(curl -sS -o /dev/null -w '%{http_code}' "https://$REF.supabase.co/storage/v1/bucket/$b" \
+    code=$(curl -sS -o /dev/null -w '%{http_code}' "$SB_URL/storage/v1/bucket/$b" \
       -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY")
     if [ "$code" = 200 ]; then log "storage: bucket $b exists"; continue; fi
-    code=$(curl -sS -o /tmp/sb-bucket.json -w '%{http_code}' -X POST "https://$REF.supabase.co/storage/v1/bucket" \
+    code=$(curl -sS -o /tmp/sb-bucket.json -w '%{http_code}' -X POST "$SB_URL/storage/v1/bucket" \
       -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: application/json' \
       --data "$(jq -n --arg b "$b" --argjson p "$pub" '{id: $b, name: $b, public: $p, file_size_limit: 15728640}')")
     [ "${code:0:1}" = 2 ] || die "Could not create the storage bucket $b ($code): $(head -c 300 /tmp/sb-bucket.json)"
@@ -315,7 +296,7 @@ storage() {
 # The listing pipeline's studio backdrop and shadow (web/src/features/listing/presets), under site/backdrop/.
 presets() {
   service_key
-  local base="https://$REF.supabase.co/storage/v1/object" f
+  local base="$SB_URL/storage/v1/object" f
   for f in brand_background_v1.png studio_v2.png shadow_v1.png; do
     curl -sS -f -o /dev/null -X POST "$base/vehicle-public/site/backdrop/$f" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
       -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: image/png' -H 'x-upsert: true' -H 'cache-control: max-age=31536000' \
@@ -327,7 +308,7 @@ presets() {
 photos() {
   service_key
   presets
-  local base="https://$REF.supabase.co/storage/v1/object" marker=".seeded/stand-in-photos-v1"
+  local base="$SB_URL/storage/v1/object" marker=".seeded/stand-in-photos-v1"
   if [ "$(curl -sS -o /dev/null -w '%{http_code}' "$base/public/vehicle-public/$marker")" = 200 ]; then
     log "photos: already uploaded"; return
   fi
@@ -453,15 +434,15 @@ phoneauth() {
     warn "Sign-in by phone: $uri answered $code to an unsigned call (expected 401); the phone provider was not switched on"
     return 0
   fi
-  cfg=$(sbapi GET "/config/auth")
+  cfg=$(sb_auth_get)
   want=$(jq -n --arg uri "$uri" --arg sec "$AUTH_SMS_HOOK_SECRET" --arg tpl "$SMS_TEMPLATE" '{
     external_phone_enabled: true, sms_autoconfirm: false, sms_otp_length: 6, sms_otp_exp: 300, sms_max_frequency: 60, sms_template: $tpl,
     hook_send_sms_enabled: true, hook_send_sms_uri: $uri, hook_send_sms_secrets: $sec }')
   # only what differs (a secret Supabase does not show back is sent again: the same value, so nothing changes)
   diff=$(jq -n --argjson c "$cfg" --argjson w "$want" '[$w | to_entries[] | select($c[.key] != .value)] | from_entries')
   if [ "$diff" = "{}" ]; then log "phoneauth: already configured"; return 0; fi
-  sbapi PATCH "/config/auth" "$diff" > /dev/null
-  cfg=$(sbapi GET "/config/auth")
+  sb_auth_patch "$diff" > /dev/null
+  cfg=$(sb_auth_get)
   jq -e --arg uri "$uri" '.external_phone_enabled == true and .hook_send_sms_enabled == true and .hook_send_sms_uri == $uri and .sms_otp_length == 6 and .sms_otp_exp == 300' <<<"$cfg" > /dev/null \
     || die "Sign-in by phone: Supabase Auth did not keep the phone settings"
   notice "Sign-in by phone: phone provider on (6-digit codes, 5 minutes), Send SMS hook $uri; changed: $(jq -r 'keys - ["hook_send_sms_secrets"] | join(", ")' <<<"$diff")$(jq -r 'if has("hook_send_sms_secrets") then ", hook secret" else "" end' <<<"$diff")"

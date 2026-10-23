@@ -6,7 +6,7 @@
 // Supabase treats that as a stolen token and ends the session: the person is signed out about an hour after
 // signing in. Refreshing here, where the response can carry Set-Cookie, keeps the session, and the app then always
 // sees a fresh token (and can verify it without a round trip to Supabase Auth).
-import { cookieHeader, expiresAt, parseCookieHeader, readSession, sessionCookies, setCookie, type StoredSession } from './session-cookie.ts';
+import { cookieHeader, expiresAt, jwtClaims, parseCookieHeader, readSession, sessionCookies, setCookie, type StoredSession } from './session-cookie.ts';
 
 export interface RefreshConfig { url: string; anonKey: string; fetch?: typeof fetch; now?: () => number }
 export interface RefreshResult { request: Request; setCookies: string[]; outcome: 'refreshed' | 'signed_out' }
@@ -41,6 +41,14 @@ async function refreshToken(cfg: RefreshConfig, token: string) {
   return p;
 }
 
+// An access token issued by another Supabase Auth than cfg.url (the hosted project's, after the move to the company's
+// own server, infra/vps/CUTOVER.md) is refreshed at once: the refresh token is in the copied database, and the new
+// token is then signed and issued by the server the site now uses. A token without an issuer is judged by its expiry.
+function otherIssuer(token: string, url: string): boolean {
+  const iss = jwtClaims(token)?.iss;
+  return typeof iss === 'string' && iss !== `${url.replace(/\/$/, '')}/auth/v1`;
+}
+
 /** null: nothing to do (no session, or the token is still good, or Supabase could not be reached). */
 export async function refreshSession(request: Request, cfg: RefreshConfig): Promise<RefreshResult | null> {
   const header = request.headers.get('cookie');
@@ -50,7 +58,7 @@ export async function refreshSession(request: Request, cfg: RefreshConfig): Prom
   if (!found) return null;
   const exp = expiresAt(found.session);
   const now = Math.floor((cfg.now?.() ?? Date.now()) / 1000);
-  if (exp !== null && exp - now > MARGIN_S) return null;
+  if (exp !== null && exp - now > MARGIN_S && !otherIssuer(found.session.access_token, cfg.url)) return null;
   const secure = new URL(request.url).protocol === 'https:';
   const r = await refreshToken(cfg, found.session.refresh_token);
   if (!r.ok && !r.fatal) return null;

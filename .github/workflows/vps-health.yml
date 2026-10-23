@@ -1,0 +1,128 @@
+name: vps-health
+
+# Every 5 minutes (GitHub runs schedules late or skips them when busy; this is a second line, the database's own site
+# check of 0062 keeps running on the server): the company's Supabase server from outside and from inside.
+#   outside  https://api.carmacars.ca: Auth answers, the database API answers an anonymous read, Storage answers,
+#            an Edge Function refuses a call without its token, Auth's issuer is right
+#   inside   (SSH) bin/health-local: every container running and healthy, Postgres, disk, memory, the WAL spool
+#            draining, the last base backup under 30 hours, the TLS certificate over 14 days
+# A failure emails the site check's address (program_settings.uptime_alert_email, else rent@carmacars.ca) through
+# Resend, as the site's own alerts go: once when it starts, then hourly while it lasts, and once when it is over. The
+# Resend key is the repository secret RESEND_API_KEY when set, else the server's (functions.env), else the vault's
+# deploy_resend_api_key (as the deploy reads it: the server's vault, then the hosted project's).
+# Emails are sent only once the server is the backend (DB_BACKEND=vps) or when run by hand with alert: true.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      alert:
+        description: Send the alert email even before the cutover
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: vps-health
+  cancel-in-progress: true
+
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-health bash --noprofile --norc -eo pipefail {0}
+
+jobs:
+  health:
+    if: github.event_name == 'workflow_dispatch' || vars.DB_BACKEND == 'vps' || vars.VPS_HEALTH == 'on'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      API: https://api.carmacars.ca
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+            scripts/deploy
+      - name: Check
+        id: check
+        run: |
+          source scripts/deploy/vps.sh
+          problems=()
+          # inside
+          if inside=$(timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh sudo /opt/carmacars/bin/health-local' 2>/dev/null) || [ -n "${inside:-}" ]; then
+            while IFS= read -r p; do [ -n "$p" ] && problems+=("server: $p"); done < <(jq -r '.problems[]?' <<<"$inside" 2>/dev/null)
+            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, live}' | sed 's/^/::notice title=inside::/'
+            ANON=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret ANON_KEY' 2>/dev/null || true)
+          else
+            problems+=("server: SSH did not answer within 60 s")
+          fi
+          # outside
+          probe() { # name expected curl-args... ; records the time
+            local name="$1" want="$2"; shift 2
+            local out; out=$(curl -sS -o /dev/null -w '%{http_code} %{time_total}' --max-time 15 "$@" 2>/dev/null || echo "000 15")
+            if [ "${out%% *}" = "$want" ]; then echo "::notice title=outside::$name ${out%% *} in ${out##* } s"; else problems+=("$name answered ${out%% *} (expected $want)"); fi
+          }
+          if [ -n "${ANON:-}" ]; then
+            probe "auth" 200 "$API/auth/v1/health" -H "apikey: $ANON"
+            probe "database API (anonymous read)" 200 -X POST "$API/rest/v1/rpc/site_settings_public" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H 'content-type: application/json' -d '{}'
+          else
+            probe "auth (without a key)" 401 "$API/auth/v1/settings"
+          fi
+          probe "storage" 200 "$API/storage/v1/status"
+          probe "edge function without its token" 403 -X POST "$API/functions/v1/send-outbox"
+          iss=$(curl -sS --max-time 15 "$API/auth/v1/.well-known/openid-configuration" 2>/dev/null | jq -r '.issuer // empty' 2>/dev/null || true)
+          [ "$iss" = "$API/auth/v1" ] || problems+=("auth issuer is '${iss:-unreadable}' (expected $API/auth/v1)")
+          printf '%s\n' "${problems[@]:-}" | sed '/^$/d' > "$RUNNER_TEMP/problems.txt"
+          if [ -s "$RUNNER_TEMP/problems.txt" ]; then
+            sed 's/^/::error title=vps-health::/' "$RUNNER_TEMP/problems.txt"
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Alert email (on a change, then hourly while it lasts)
+        if: always() && (vars.DB_BACKEND == 'vps' || inputs.alert)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FAILED: ${{ steps.check.outputs.failed || 'true' }}
+        run: |
+          # the previous runs of this workflow (completed): a streak of failures started when?
+          prev=$(gh run list -R "$GITHUB_REPOSITORY" -w vps-health.yml -L 30 --json conclusion,createdAt,status \
+                 --jq '[.[] | select(.status == "completed" and (.conclusion == "success" or .conclusion == "failure"))]' 2>/dev/null || echo '[]')
+          last=$(jq -r '.[0].conclusion // "success"' <<<"$prev")
+          streak=$(jq '[foreach .[] as $r ({go: true, n: 0}; if .go and $r.conclusion == "failure" then .n += 1 else .go = false end; .n)] | max // 0' <<<"$prev")
+          send=""
+          if [ "$FAILED" = true ]; then
+            if [ "$last" = success ]; then send=problem; elif [ $(( (streak + 1) % 12 )) = 0 ]; then send=still; fi
+          elif [ "$last" = failure ]; then send=recovered; fi
+          [ -n "$send" ] || { echo "no email (failed: $FAILED, previous: $last, streak: $streak)"; exit 0; }
+          source scripts/deploy/vps.sh
+          key="$RESEND_API_KEY"
+          [ -n "$key" ] || key=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret RESEND_API_KEY' 2>/dev/null || true)
+          [ -n "$key" ] || key=$(DB_BACKEND=vps timeout 30 scripts/deploy/sb.sh vault deploy_resend_api_key 2>/dev/null || true)
+          [ -n "$key" ] || key=$(DB_BACKEND=supabase timeout 30 scripts/deploy/sb.sh vault deploy_resend_api_key 2>/dev/null || true)
+          [ -n "$key" ] || { echo "::error::no Resend key (repository secret RESEND_API_KEY, the server's functions.env or the vault's deploy_resend_api_key): the alert could not be emailed"; exit 1; }
+          echo "::add-mask::$key"
+          to=$(timeout 30 bash -c "source scripts/deploy/vps.sh; vps_sql \"select uptime_alert_email as e from program_settings limit 1\"" 2>/dev/null | jq -r '.[0].e // empty' 2>/dev/null || true)
+          to="${to:-rent@carmacars.ca}"
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          case "$send" in
+            problem) subject="CarmaCars server: problem found"; intro="The check of the CarmaCars Supabase server (api.carmacars.ca) found:" ;;
+            still) subject="CarmaCars server: the problem continues"; intro="The problem with the CarmaCars Supabase server continues (about $(( (streak + 1) * 5 )) minutes):" ;;
+            recovered) subject="CarmaCars server: back to normal"; intro="The CarmaCars Supabase server passes every check again." ;;
+          esac
+          body=$( { echo "$intro"; echo; [ "$send" != recovered ] && sed 's/^/- /' "$RUNNER_TEMP/problems.txt"; echo; echo "Run: $run"; echo "What to do: infra/vps/CUTOVER.md, section Upkeep."; } )
+          code=$(curl -sS -o "$RUNNER_TEMP/resend.json" -w '%{http_code}' https://api.resend.com/emails -H "Authorization: Bearer $key" -H 'content-type: application/json' \
+            --data "$(jq -n --arg to "$to" --arg s "$subject" --arg t "$body" '{from: "CarmaCars <hello@carmacars.ca>", to: [$to], subject: $s, text: $t}')")
+          if [ "${code:0:1}" = 2 ]; then echo "::notice title=vps-health::$send email sent to $to"; else echo "::error::Resend answered $code: $(head -c 300 "$RUNNER_TEMP/resend.json")"; exit 1; fi
+      - name: Result
+        if: always()
+        run: '[ "${{ steps.check.outputs.failed }}" = false ]'

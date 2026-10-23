@@ -44,6 +44,12 @@ concurrency:
   group: guides
   cancel-in-progress: false
 
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
 jobs:
   check:
     runs-on: ubuntu-24.04
@@ -61,8 +67,7 @@ jobs:
         id: c
         run: |
           if [ "${{ inputs.auto }}" != true ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           echo "::add-mask::$L"
           T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
           echo "::add-mask::$T"
@@ -123,8 +128,7 @@ jobs:
         run: BASE_URL=http://localhost:3000 npx playwright test --project desktop-1440 --reporter=dot > /tmp/e2e.log 2>&1 || tail -n 15 /tmp/e2e.log
       - name: A second server with Stripe test keys, for the payment screen
         run: |
-          q() { curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-                  --data "{\"query\":\"select decrypted_secret as v from vault.decrypted_secrets where name = '$1'\"}" | jq -r '.[0].v // empty'; }
+          q() { "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault "$1"; }
           SK=$(q deploy_stripe_secret_key); PK=$(q deploy_stripe_publishable_key)
           echo "::add-mask::$SK"
           if [[ "$SK" == sk_test_* && "$PK" == pk_test_* ]]; then
@@ -143,8 +147,7 @@ jobs:
       - name: The link key (the jobs' token is derived from it)
         if: ${{ inputs.upkeep || inputs.auto }}
         run: |
-          L=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
-            --data '{"query":"select decrypted_secret as v from vault.decrypted_secrets where name = '"'"'deploy_link_signing_key'"'"'"}' | jq -r '.[0].v // empty')
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           if [ -z "$L" ]; then echo "::error title=guide upkeep::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
           echo "::add-mask::$L"
           echo "LINK_SIGNING_KEY=$L" >> "$GITHUB_ENV"
@@ -174,9 +177,9 @@ jobs:
       - name: Upload to deploy-reports/guides/<date>
         run: |
           set -euo pipefail
-          K=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
           echo "::add-mask::$K"
-          S="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+          S=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url)
           curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
           # the archive copy as WebP (quality 90, about two thirds of the PNG): the upkeep above already compared the PNGs,
           # and only the newest date is kept (scripts/backup/prune-reports.sh in the nightly backup workflow)

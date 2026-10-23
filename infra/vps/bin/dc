@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# docker compose for the CarmaCars Supabase stack, with its two env files (defaults.env committed, .env secret).
+set -euo pipefail
+cd /opt/carmacars/supabase
+exec docker compose --project-directory /opt/carmacars/supabase -f docker-compose.yml \
+  --env-file defaults.env --env-file .env "$@"

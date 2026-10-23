@@ -1,0 +1,156 @@
+name: vps-backup
+
+# Backups of the company's own Supabase server (infra/vps/CUTOVER.md, Backups). Two layers, both in one
+# S3-compatible bucket (OVHcloud Object Storage or Backblaze B2):
+#   - on the server, always on once configured: every finished WAL file (within 5 minutes, archive_timeout) and a
+#     nightly wal-g base backup at 06:10 UTC, 7 full backups kept: point-in-time recovery to any moment of the last
+#     week (systemd timers carmacars-wal-push and carmacars-walg-base; wal-g's libsodium encryption)
+#   - from here, nightly: the same logical backup as the hosted project's (scripts/backup/backup.sh: pg_dump custom
+#     format in one snapshot, age-encrypted to the vault's backup_age_recipient, manifest with every table's count),
+#     uploaded to s3://<bucket>/logical/nightly/<stamp>/, 30 days kept; restored at once into a scratch PostgreSQL 17
+#     on the runner and compared table by table (scripts/backup/restore-test.sh)
+#   - Mondays: the point-in-time restore test on the server (bin/walg-restore-test: newest base backup + every
+#     archived WAL file, replayed in a throwaway container without network)
+# The schedules act only once the server is the backend (repository variable DB_BACKEND=vps); by hand, any time.
+#
+# The bucket's settings: repository secrets BACKUP_S3_ENDPOINT (https://...), BACKUP_S3_REGION, BACKUP_S3_BUCKET,
+# BACKUP_S3_ACCESS_KEY_ID, BACKUP_S3_SECRET_ACCESS_KEY, BACKUP_WALG_KEY (64 hex characters; keep a copy in the company
+# password manager, wal-g backups cannot be read without it) when set; otherwise the vault's deploy_backup_s3_endpoint,
+# deploy_backup_s3_region, deploy_backup_s3_bucket, deploy_backup_s3_access_key_id, deploy_backup_s3_secret_access_key
+# and deploy_backup_walg_key (infra/vps/scripts/backup-env.sh: the live backend's vault first, then the other's).
+on:
+  schedule:
+    - cron: '23 7 * * *'   # nightly logical backup and its restore test
+    - cron: '17 9 * * 1'   # Monday: the point-in-time restore test on the server
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: configure (bucket and keys onto the server, first base backup), backup (logical + restore test), pitr-test, status
+        type: choice
+        options: [status, configure, backup, pitr-test]
+        default: status
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-backup
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: vps
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+  BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+  BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+  BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+  BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+  BACKUP_WALG_KEY: ${{ secrets.BACKUP_WALG_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  LIVE_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-backup bash --noprofile --norc -eo pipefail {0}
+
+jobs:
+  configure:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'configure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: The bucket's settings (repository secrets, else the vault)
+        run: infra/vps/scripts/backup-env.sh
+      - name: Bucket and keys onto the server, WAL archiving on, the first base backup
+        run: |
+          source scripts/deploy/vps.sh
+          jq -n '{endpoint: env.BACKUP_S3_ENDPOINT, region: (env.BACKUP_S3_REGION // "us-east-1"), bucket: env.BACKUP_S3_BUCKET,
+                  access_key_id: env.BACKUP_S3_ACCESS_KEY_ID, secret_access_key: env.BACKUP_S3_SECRET_ACCESS_KEY, walg_key: env.BACKUP_WALG_KEY}' \
+            | vps_ssh sudo /opt/carmacars/bin/backup-configure | sed 's/^/::notice title=wal-g::/'
+
+  backup:
+    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *' && vars.DB_BACKEND == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 17 and age
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common age > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -q postgresql-17 postgresql-client-17 > /dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: The bucket's settings (repository secrets, else the vault)
+        run: infra/vps/scripts/backup-env.sh
+      - name: Dump (through the SSH tunnel), encrypt, upload to the bucket, keep 30 days
+        run: |
+          mkdir -p "$RUNNER_TEMP/backup"
+          BACKUP_DIR="$RUNNER_TEMP/backup" scripts/backup/backup.sh | tee "$RUNNER_TEMP/backup.out"
+          echo "STAMP=$(tail -n 1 "$RUNNER_TEMP/backup.out")" >> "$GITHUB_ENV"
+      - name: Restore into a scratch PostgreSQL 17 and compare every table
+        run: scripts/backup/restore-test.sh --dir "$RUNNER_TEMP/backup"
+      - name: Record the restore test
+        if: always() && env.STAMP != ''
+        run: |
+          R="$RUNNER_TEMP/backup/restore-report.json"
+          if [ -f "$R" ] && jq -e '(.missing | length == 0) and .pg_restore_errors_about_tables == 0 and ((.consistent_counts | not) or (.different | length == 0))' "$R" > /dev/null; then st=succeeded; err=''; else st=failed; err='the restore test of the nightly backup failed; see the vps-backup workflow run'; fi
+          sum=$( [ -f "$R" ] && jq -c '{stamp, tables, matched, rows_restored, different: (.different | length), pg_restore_errors, seconds}' "$R" || echo '{}')
+          scripts/deploy/sb.sh sql "insert into public.job_runs (job_name, run_key, status, started_at, finished_at, summary, error)
+               values ('backup-restore-test', '$STAMP', '$st', now(), now(), \$j\$$sum\$j\$::jsonb, nullif('$err', ''))
+               on conflict (job_name, run_key) do nothing" > /dev/null
+          if [ -f "$R" ]; then
+            AWS_ACCESS_KEY_ID="$BACKUP_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}" \
+              aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" --only-show-errors cp "$R" "s3://$BACKUP_S3_BUCKET/logical/nightly/$STAMP/restore-report.json"
+          fi
+          {
+            echo "## Backup logical/nightly/$STAMP"; echo
+            jq -r '"- \(.row_counts | length) tables, \([.row_counts[]] | add) rows; \(.encrypted.bytes) bytes encrypted; server \(.server_version); counts \(if .consistent_counts then "from the dump snapshot" else "read after the dump" end)"' "$RUNNER_TEMP/backup/manifest.json"
+            [ -f "$R" ] && jq -r '"- Restore into \(.restored_into): \(.matched) of \(.tables) tables with the same row count, \(.rows_restored) rows, \(.different | length) different, \(.missing | length) missing; \(.seconds) s"' "$R"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$st" = succeeded ]
+      - name: Remove the dump from the runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/backup"
+
+  pitr-test:
+    if: (github.event_name == 'schedule' && github.event.schedule == '17 9 * * 1' && vars.DB_BACKEND == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'pitr-test')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Newest base backup + every archived WAL file, replayed in a throwaway container on the server
+        run: |
+          source scripts/deploy/vps.sh
+          set +e; vps_ssh sudo /opt/carmacars/bin/walg-restore-test > "$RUNNER_TEMP/pitr.json"; rc=$?; set -e
+          cat "$RUNNER_TEMP/pitr.json"
+          { echo "## Point-in-time restore test"; echo; echo '```json'; cat "$RUNNER_TEMP/pitr.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          st=$([ $rc = 0 ] && echo succeeded || echo failed)
+          sum=$(jq -c . "$RUNNER_TEMP/pitr.json" 2>/dev/null || echo '{}')
+          scripts/deploy/sb.sh sql "insert into public.job_runs (job_name, run_key, status, started_at, finished_at, summary, error)
+               values ('backup-pitr-test', to_char(now() at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24MI\"Z\"'), '$st', now(), now(), \$j\$$sum\$j\$::jsonb,
+                       nullif('$([ $rc = 0 ] || echo 'the point-in-time restore test failed; see the vps-backup workflow run')', ''))
+               on conflict (job_name, run_key) do nothing" > /dev/null || true
+          exit $rc
+
+  status:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'status'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: The bucket's settings (repository secrets, else the vault)
+        continue-on-error: true
+        run: infra/vps/scripts/backup-env.sh
+      - name: Backups on the server and in the bucket
+        run: |
+          source scripts/deploy/vps.sh
+          vps_ssh sudo /opt/carmacars/bin/health-local | jq '{backup, wal_spool_files, wal_spool_oldest_min, base_backup_age_h, problems}' || true
+          vps_ssh "sudo /opt/carmacars/bin/walg backup-list --pretty 2>/dev/null || echo 'wal-g: not configured'"
+          if [ -n "$BACKUP_S3_BUCKET" ]; then
+            AWS_ACCESS_KEY_ID="$BACKUP_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}" \
+              aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT" ls "s3://$BACKUP_S3_BUCKET/logical/nightly/" | tail -n 5
+          fi

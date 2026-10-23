@@ -1,0 +1,145 @@
+name: vps-provision
+
+# The company's own Supabase server (infra/vps/CUTOVER.md, step 2): prepares the OVHcloud VPS and brings the stack up.
+# Safe to run again at any time: bootstrap.sh only applies what changed, make-env.sh keeps every secret it already
+# wrote (and the hosted project's keys until the cutover), stack-up recreates only containers whose settings changed.
+# Touches nothing of the hosted project (it reads its keys and settings) and changes DNS only when asked (dns: true,
+# a new record api.carmacars.ca, never an existing one of the site).
+#
+# Needs: infra/vps/host (the server's IPv4, committed), the repository secret VPS_SSH_KEY (the private half of the
+# key installed for the ubuntu user at order time), SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF (the hosted keys),
+# CLOUDFLARE_API_TOKEN for dns: true.
+on:
+  workflow_dispatch:
+    inputs:
+      dns:
+        description: Create or update the DNS-only A record api.carmacars.ca -> the server (Cloudflare)
+        type: boolean
+        default: false
+      trust_hosted_jwks:
+        description: PostgREST and Storage also accept tokens signed by the hosted project (for the hour after the cutover)
+        type: boolean
+        default: true
+      pg_image:
+        description: Postgres image override (empty = keep the one chosen at the first run; e.g. supabase/postgres:17.6.1.136)
+        type: string
+        default: ''
+      reset_db:
+        description: Start the database over from an empty data directory (refused once the server is live; the copy refills it)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-ops
+  cancel-in-progress: false
+
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-provision bash --noprofile --norc -eo pipefail {0}
+
+jobs:
+  provision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for SSH (a fresh install takes a few minutes; up to 15)
+        run: |
+          host=$(grep -v '^[[:space:]]*#' infra/vps/host | tr -d '[:space:]')
+          for i in $(seq 1 90); do
+            if ssh-keyscan -T 5 -t ed25519 "$host" 2>/dev/null | grep -q ed25519; then echo "SSH answers after $((i * 10 - 10)) s"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::$host does not answer on port 22 after 15 minutes"; exit 1
+      - name: The server answers on SSH (address from infra/vps/host)
+        run: |
+          source scripts/deploy/vps.sh
+          for i in $(seq 1 30); do vps_ssh true 2>/dev/null && break; echo "login not ready ($i)"; sleep 10; done
+          host=$(vps_host)
+          # shellcheck disable=SC2016 # expanded on the server
+          vps_ssh 'echo "$(hostname) $(. /etc/os-release; echo "$PRETTY_NAME"), $(nproc) vCPU, $(free -g | awk "/Mem:/ {print \$2}") GB RAM, $(df -h / | awk "NR==2 {print \$2}") disk"' | sed 's/^/::notice title=server::/'
+          if [ ! -s infra/vps/known_hosts ]; then
+            line=$(ssh-keyscan -T 15 -t ed25519 "$host" 2>/dev/null | head -n 1)
+            echo "::notice title=known_hosts::$line"
+            { echo "### Pin the server's host key"; echo; echo "Commit this line as \`infra/vps/known_hosts\` (then every run checks it):"; echo; echo '```'; echo "$line"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Bootstrap (hardening, Docker, swap, sysctl, UTC, wal-g, the stack's files)
+        run: |
+          source scripts/deploy/vps.sh
+          git rev-parse HEAD > infra/vps/REVISION
+          tar -C infra/vps -czf "$RUNNER_TEMP/infra.tgz" .
+          vps_scp "$RUNNER_TEMP/infra.tgz" /tmp/carmacars-infra.tgz
+          vps_ssh 'set -e; rm -rf /tmp/carmacars-infra; mkdir -p /tmp/carmacars-infra; tar -C /tmp/carmacars-infra -xzf /tmp/carmacars-infra.tgz; sudo bash /tmp/carmacars-infra/bootstrap.sh; rm -rf /tmp/carmacars-infra /tmp/carmacars-infra.tgz'
+      - name: The server's secret settings (.env; the hosted project's JWT secret and keys)
+        env:
+          TRUST_HOSTED_JWKS: ${{ inputs.trust_hosted_jwks && '1' || '0' }}
+          PG_IMAGE_OVERRIDE: ${{ inputs.pg_image }}
+        run: infra/vps/scripts/make-env.sh
+      - name: Stack up (pull the pinned images, start, wait for every health check)
+        env:
+          RESET_DB: ${{ inputs.reset_db }}
+        run: |
+          source scripts/deploy/vps.sh
+          if [ "$RESET_DB" = true ]; then vps_ssh sudo /opt/carmacars/bin/db-reset --yes; else vps_ssh sudo /opt/carmacars/bin/stack-up; fi
+      - name: Health (inside the server, then through the SSH tunnel)
+        run: |
+          source scripts/deploy/vps.sh
+          vps_tunnel
+          vps_ssh sudo /opt/carmacars/bin/health-local > "$RUNNER_TEMP/health.json" || true
+          jq -r '"containers: " + (.containers | map("\(.name) \(.status)") | join("; "))' "$RUNNER_TEMP/health.json" | sed 's/^/::notice title=health::/'
+          jq -r '.problems[]' "$RUNNER_TEMP/health.json" | sed 's/^/::warning title=health::/'
+          ANON=$(vps_secret ANON_KEY); SERVICE=$(vps_secret SERVICE_ROLE_KEY)
+          K="http://127.0.0.1:$VPS_KONG_PORT"
+          fail=0
+          check() { # name expected-code curl-args...
+            local name="$1" want="$2"; shift 2
+            local code; code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$@" || echo 000)
+            if [ "$code" = "$want" ]; then echo "::notice title=health::$name: $code"; else echo "::error title=health::$name: $code (expected $want)"; fail=1; fi
+          }
+          check "auth /health" 200 "$K/auth/v1/health" -H "apikey: $ANON"
+          check "auth settings" 200 "$K/auth/v1/settings" -H "apikey: $ANON"
+          check "rest (service role, OpenAPI root)" 200 "$K/rest/v1/" -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE"
+          check "rest without a key" 401 "$K/rest/v1/"
+          check "storage buckets (service role)" 200 "$K/storage/v1/bucket" -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE"
+          check "anything else (no Studio in public)" 404 "$K/"
+          iss=$(curl -sS "$K/auth/v1/.well-known/openid-configuration" | jq -r '.issuer // empty' || true)
+          if [ "$iss" = "https://api.carmacars.ca/auth/v1" ]; then echo "::notice title=health::auth issuer $iss"; else echo "::error title=health::auth issuer '$iss' (expected https://api.carmacars.ca/auth/v1)"; fail=1; fi
+          check "sql through pg-meta" 200 -X POST "http://127.0.0.1:$VPS_META_PORT/query" -H 'content-type: application/json' --data '{"query":"select 1"}'
+          # the public address, once DNS points here
+          ip=$(getent ahostsv4 api.carmacars.ca | awk 'NR==1 {print $1}' || true)
+          if [ -n "$ip" ] && [ "$ip" = "$(vps_host)" ]; then
+            check "https://api.carmacars.ca/auth/v1/health" 200 "https://api.carmacars.ca/auth/v1/health" -H "apikey: $ANON"
+          else
+            echo "::notice title=health::api.carmacars.ca resolves to '${ip:-nothing}', not the server: the public address is not checked yet"
+          fi
+          exit $fail
+      - name: DNS api.carmacars.ca -> the server (DNS only, Let's Encrypt by Caddy)
+        if: inputs.dns
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          source scripts/deploy/vps.sh
+          ip=$(vps_host)
+          [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::infra/vps/host is not an IPv4 address"; exit 1; }
+          CF=https://api.cloudflare.com/client/v4
+          H=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'content-type: application/json')
+          zone=$(curl -sS "${H[@]}" "$CF/zones?name=carmacars.ca" | jq -r '.result[0].id // empty')
+          [ -n "$zone" ] || { echo "::error::the Cloudflare token cannot see the zone carmacars.ca"; exit 1; }
+          rec=$(curl -sS "${H[@]}" "$CF/zones/$zone/dns_records?name=api.carmacars.ca" | jq -c '.result')
+          [ "$(jq '[.[] | select(.type != "A")] | length' <<<"$rec")" = 0 ] || { echo "::error::api.carmacars.ca already has a record that is not A; not touched"; exit 1; }
+          body=$(jq -nc --arg ip "$ip" '{type: "A", name: "api.carmacars.ca", content: $ip, ttl: 300, proxied: false, comment: "CarmaCars Supabase server (infra/vps)"}')
+          id=$(jq -r '.[0].id // empty' <<<"$rec")
+          if [ -n "$id" ]; then r=$(curl -sS -X PUT "${H[@]}" "$CF/zones/$zone/dns_records/$id" --data "$body"); else r=$(curl -sS -X POST "${H[@]}" "$CF/zones/$zone/dns_records" --data "$body"); fi
+          jq -e '.success' <<<"$r" > /dev/null || { echo "::error::Cloudflare: $(jq -c '.errors' <<<"$r")"; exit 1; }
+          echo "::notice title=dns::api.carmacars.ca A $ip (DNS only). Caddy gets the certificate on the first HTTPS request; run this workflow again in a few minutes to check https."

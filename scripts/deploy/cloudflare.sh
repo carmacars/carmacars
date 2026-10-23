@@ -103,7 +103,7 @@ resources() {
   export_env STORAGE_PROVIDER "$storage"
   export_env OPEN_NEXT_CACHE "$cache"
   if [ "$storage" = supabase ]; then
-    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/vehicle-public"
+    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "$SB_PUBLIC_URL/storage/v1/object/public/vehicle-public"
   else
     export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "${APP_URL:-https://$DOMAIN}/media"
   fi

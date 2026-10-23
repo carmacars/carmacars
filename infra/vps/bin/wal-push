@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Push the spooled WAL files to the backup bucket, oldest first (carmacars-wal-push.timer, every minute).
+set -euo pipefail
+D=/opt/carmacars
+[ -f "$D/backup/enabled-flag/enabled" ] || exit 0
+exec 9> "$D/state/wal-push.lock"
+flock -n 9 || exit 0
+n=0
+while IFS= read -r f; do
+  if "$D/bin/walg" wal-push "$D/wal-spool/$f" > /dev/null 2> "$D/state/wal-push.err"; then
+    rm -f "$D/wal-spool/$f"; n=$((n + 1))
+  else
+    echo "wal-push: $f failed: $(tail -n 3 "$D/state/wal-push.err" | tr '\n' ' ')" >&2
+    exit 1
+  fi
+done < <(find "$D/wal-spool" -maxdepth 1 -type f ! -name '.*' -printf '%f\n' | sort)
+[ "$n" -gt 0 ] && date -u +%FT%TZ > "$D/state/wal-push.last"
+exit 0

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Supabase Auth's settings on this server, kept in the Management API's config/auth shape (auth-config.json) and
+# rendered into GoTrue's auth.env plus the email template files (by infra/vps/scripts/auth-env.mjs on the runner).
+#   auth-config get           prints auth-config.json
+#   auth-config apply < tar   installs auth-config.json, auth.env and templates/ from the tar; recreates auth
+set -euo pipefail
+S=/opt/carmacars/supabase
+case "${1:-}" in
+  get) if [ -s "$S/auth-config.json" ]; then cat "$S/auth-config.json"; else echo '{}'; fi ;;
+  apply)
+    t=$(mktemp -d); chmod 700 "$t"
+    tar -C "$t" --no-same-owner -xf -
+    for f in auth-config.json auth.env; do [ -f "$t/$f" ] || { rm -rf "$t"; echo "auth-config: $f missing" >&2; exit 1; }; done
+    jq -e 'type == "object"' "$t/auth-config.json" > /dev/null
+    install -m 600 "$t/auth-config.json" "$S/auth-config.json"
+    install -m 600 "$t/auth.env" "$S/auth.env"
+    mkdir -p "$S/volumes/auth-templates"
+    if [ -d "$t/templates" ]; then
+      rm -f "$S/volumes/auth-templates/"*.html
+      install -m 644 "$t/templates/"*.html "$S/volumes/auth-templates/" 2>/dev/null || true
+    fi
+    rm -rf "$t"
+    /opt/carmacars/bin/dc up -d --wait auth > /dev/null
+    echo '{"applied":true}' ;;
+  *) echo "usage: auth-config get | apply < tar" >&2; exit 2 ;;
+esac

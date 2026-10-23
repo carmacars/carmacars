@@ -1,0 +1,8 @@
+[Unit]
+Description=CarmaCars: push spooled WAL files to the backup bucket (wal-g)
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/carmacars/bin/wal-push
+Nice=5

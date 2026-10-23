@@ -287,12 +287,23 @@ const worker = {
     // data centre's copy above is unaffected (it is kept before this line).
     headers.set('cache-control', response.headers.get(STALE_HEADER) === 'busy' ? 'no-store' : 'no-cache');
     const nonce = newNonce();
-    headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true }));
+    headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(env.NEXT_PUBLIC_SUPABASE_URL) }));
     const out = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     // @ts-expect-error: HTMLRewriter is a Workers global
     return new HTMLRewriter().on('script', new NonceAdder(nonce)).transform(out);
   }
 };
+// The browser calls Supabase for the public reads (src/lib/browser-rpc.ts). *.supabase.co is always allowed
+// (csp.ts); a Supabase on the company's own address (infra/vps/CUTOVER.md) is added here.
+function supabaseOrigin(url: unknown): string[] {
+  try {
+    const o = new URL(String(url)).origin;
+    return o.endsWith('.supabase.co') ? [] : [o];
+  } catch {
+    return [];
+  }
+}
+
 export default worker;
 
 /** Cloudflare's country and region for a request, as CA-ON (or CA when the region is unknown); null when unknown. */

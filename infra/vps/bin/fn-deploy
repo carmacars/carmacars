@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Deploy one Edge Function: a tar of its files (index.ts and what it imports) on stdin, into the edge-runtime volume
+# (volumes/functions/<slug>), swapped in at once; then the runtime is restarted so no worker keeps the old code.
+set -euo pipefail
+slug="${1:-}"
+[[ "$slug" =~ ^[a-z0-9][a-z0-9-]*$ ]] && [ "$slug" != main ] || { echo "usage: fn-deploy SLUG < files.tar" >&2; exit 2; }
+V=/opt/carmacars/supabase/volumes/functions
+new="$V/.$slug.new"; old="$V/.$slug.old"
+rm -rf "$new" "$old"; mkdir -p "$new"
+tar -C "$new" --no-same-owner -xf -
+[ -f "$new/index.ts" ] || { rm -rf "$new"; echo "fn-deploy: no index.ts" >&2; exit 1; }
+chmod -R a+rX "$new"
+[ -d "$V/$slug" ] && mv "$V/$slug" "$old"
+mv "$new" "$V/$slug"
+rm -rf "$old"
+/opt/carmacars/bin/dc restart functions > /dev/null
+for _ in $(seq 1 30); do
+  [ "$(docker inspect -f '{{.State.Health.Status}}' supabase-edge-functions 2>/dev/null)" = healthy ] && break
+  sleep 2
+done
+jq -nc --arg s "$slug" --argjson n "$(find "$V/$slug" -type f | wc -l)" '{slug: $s, version: "files", status: "ACTIVE", files: $n}'
