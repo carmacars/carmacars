@@ -36,7 +36,7 @@ def build():
               blurb='Your job list, a job card, maps and car moves.')
     g.task('Your job list')
     g.steps([
-        f'The menu: {B("My jobs")}, {B("Report")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
+        f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
         'Each card: the kind, the time, the status, the car and plate.',
         f'Press {B("Open the job")} to start.',
@@ -145,9 +145,9 @@ def build():
               'Report anything that happens on the road, add a rental for a renter you found, share your referral link, '
               'and keep your details up to date.',
               blurb='Report an incident, add a rental, commissions, your referral link and your profile.')
-    g.task('Report something')
+    g.task('Report a problem')
     g.steps([
-        f'Open {B("Report")} and choose the Car.',
+        f'Open {B("Report a problem")} and choose the Car.',
         f'Choose What happened: {B("New damage found")}, {B("Warning light")}, {B("Collision while I was driving")}, {B("Ticket or toll while I was driving")}, {B("Lost property found")} or {B("Something else")}.',
         'Write the Details: where, when and what you see.',
         f'Press {B("Take a photo")} for each photo, then {B("Send the report")}.',
@@ -184,7 +184,7 @@ def build():
     g.reference(
         nav_rows=[('My jobs', 'Today and Tomorrow, in order; Vehicle moves'),
                   ('A job', 'Open in maps, Acknowledge, Start'),
-                  ('Report', 'Damage, warning light, collision, ticket, lost property'),
+                  ('Report a problem', 'Damage, warning light, collision, ticket, lost property'),
                   ('Add a rental', 'A renter you found: a payment link or the saved card'),
                   ('My sales', 'Your rentals and commissions'),
                   ('Referrals', 'Your link and QR code'),
@@ -195,7 +195,7 @@ def build():
                    ('Take a car back', f'Every step, then {B("Complete the return")}'),
                    ('Shoot listing photos', f'{B("Take photo")}, then {B("Submit for listing")}'),
                    ('Move a car', f'{B("Start a move")}, then {B("End the move")}'),
-                   ('Report an incident', f'{P("Report", "Send the report")}'),
+                   ('Report an incident', f'{P("Report a problem", "Send the report")}'),
                    ('Add a rental', f'{B("Add a rental")}, {B("I sourced this client")}, {B("Add the rental")}')],
         extra_problems=[('A photo did not upload', f'Check your signal, then press {B("Send again")}.'),
                         ('The renter does not match', 'Do not hand over. Press Stop and call us.')])
