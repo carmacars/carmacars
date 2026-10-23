@@ -21,7 +21,7 @@ export default async function Documents() {
             <thead role="rowgroup"><tr role="row"><th scope="col">Document</th><th scope="col">Booking</th><th scope="col">Date</th><th scope="col"><span className="vh">Open</span></th></tr></thead>
             <tbody role="rowgroup">{docs.map((d) => (
               <tr key={d.id} role="row">
-                <th scope="row" role="rowheader" data-label="Document">{KIND[d.kind] ?? d.title}{ID.includes(d.kind) && d.purge_after && <span className="xs muted"><br />Deleted after {when(d.purge_after, false)}</span>}</th>
+                <th scope="row" role="rowheader" data-label="Document">{d.kind === 'rental_agreement' && d.title.startsWith('Blind Spot') ? d.title : KIND[d.kind] ?? d.title}{ID.includes(d.kind) && d.purge_after && <span className="xs muted"><br />Deleted after {when(d.purge_after, false)}</span>}</th>
                 <td role="cell" data-label="Booking">{d.booking_number ?? ''}</td>
                 <td role="cell" data-label="Date">{when(d.created_at, false)}</td>
                 <td role="cell" data-label="Open">{d.purged ? <span className="muted small">Deleted</span> : <a className="link" href={`/account/documents/${d.id}`}>{ID.includes(d.kind) ? 'View' : 'Download'}</a>}</td>

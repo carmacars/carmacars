@@ -134,7 +134,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
   return bin.length > 200 && bin.length < 400_000 && sig.every((v, i) => bin[i] === v) ? bin : null;
 }
 
-export interface SignInput { typedName?: string; drawn?: string; consents: string[]; sha: string }
+export interface SignInput { typedName?: string; drawn?: string; consents: string[]; sha: string; /** the second agreement's SHA-256 (0127), when the booking has one */ companionSha?: string }
 
 async function signatureArgs(input: SignInput, owner: string) {
   const all = consents();
@@ -164,7 +164,9 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     await rpc('renter_sign_agreement', {
       p_booking: b.id, p_by: userId, p_typed_name: input.typedName?.trim() || undefined, p_drawn_signature: drawnPath ?? undefined,
       p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent, p_consent_text: SIGN_STATEMENT, p_document_sha256: input.sha,
-      p_consents: all.map((c) => ({ code: c.code, version: CONSENT_VERSION, text: consentLine(c) }))
+      p_consents: all.map((c) => ({ code: c.code, version: CONSENT_VERSION, text: consentLine(c) })),
+      // the one signature covers the second agreement too (Blind Spot's, 0127): its SHA-256 is checked with it
+      p_companion_sha256: input.companionSha || undefined
     }, SR);
     // a rental staff added by hand with the saved card (the legal review, 0053): the card is charged now, on "Accept and
     // sign", exactly as the amendment flow does (the key is the booking's, so it is never charged twice)

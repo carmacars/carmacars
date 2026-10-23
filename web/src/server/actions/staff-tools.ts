@@ -17,7 +17,7 @@ async function me() {
   return { user, aal: await sessionAal() };
 }
 
-export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'form_templates' | 'form_template_preview';
+export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'form_templates' | 'form_template_preview' | 'rental_form_preview';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -74,6 +74,56 @@ export async function uploadFormTemplate(form: FormData): Promise<R<Record<strin
     await (await storage()).put('documents', key, bytes, 'application/pdf');
     const data = await door<Record<string, unknown>>(user.id, 'ops_do', 'form_template_upload', { form_code: code, file_key: key, sha256: await sha256Hex(bytes),
       page_count: Number(form.get('page_count') ?? 0) || null, file_name: file.name, fields, title: String(form.get('title') ?? '') || null }, aal);
+    revalidatePath('/admin/settings/forms');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
+/** Blind Spot's rental agreement (Admin > Settings > Forms, 0127): its blank PDF, into the private documents bucket with
+ *  its SHA-256. It must open and be A4 (the boxes are measured on Blind Spot's form). A new upload waits to be checked. */
+export async function uploadRentalForm(form: FormData): Promise<R<{ id: string; same: boolean }>> {
+  try {
+    const { user, aal } = await me();
+    const file = form.get('file');
+    const code = String(form.get('form_code') ?? '');
+    if (!/^[A-Z0-9-]{2,30}$/.test(code)) return { ok: false, code: 'invalid', message: 'Unknown form.' };
+    if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the PDF.' };
+    if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!(bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)) return { ok: false, code: 'invalid', message: 'That file is not a PDF.' };
+    const { PDFDocument } = await import('pdf-lib');
+    let pages = 0;
+    try {
+      const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+      pages = doc.getPageCount();
+      const { width, height } = doc.getPage(0).getSize();
+      if (Math.abs(width - 595.28) > 2 || Math.abs(height - 841.89) > 2) return { ok: false, code: 'invalid', message: `This PDF is ${Math.round(width)} by ${Math.round(height)} points; Blind Spot's form is A4. Upload Blind Spot's own PDF.` };
+    } catch { return { ok: false, code: 'invalid', message: 'This PDF could not be opened (it may be encrypted). Upload Blind Spot\'s own PDF.' }; }
+    const key = `forms/templates/${code}/${crypto.randomUUID()}.pdf`;
+    const { storage } = await import('@/integrations/storage');
+    await (await storage()).put('documents', key, bytes, 'application/pdf');
+    const data = await door<{ id: string; same: boolean }>(user.id, 'ops_do', 'rental_form_upload', { form_code: code, file_key: key, sha256: await sha256Hex(bytes), page_count: pages, file_name: file.name }, aal);
+    revalidatePath('/admin/settings/forms');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
+/** The authorized company representative's signature for a per-booking form: a PNG (a transparent background is best).
+ *  Until one is uploaded, the representative's name is written on the form in a script hand. */
+export async function uploadRentalSignature(form: FormData): Promise<R<Record<string, unknown>>> {
+  try {
+    const { user, aal } = await me();
+    const file = form.get('file');
+    const code = String(form.get('form_code') ?? '');
+    if (!/^[A-Z0-9-]{2,30}$/.test(code)) return { ok: false, code: 'invalid', message: 'Unknown form.' };
+    if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the image.' };
+    if (file.size > 2_000_000) return { ok: false, code: 'invalid', message: 'The image must be under 2 MB.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (![0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((v, i) => bytes[i] === v)) return { ok: false, code: 'invalid', message: 'Use a PNG image of the signature.' };
+    const key = `forms/signatures/${code}/${crypto.randomUUID()}.png`;
+    const { storage } = await import('@/integrations/storage');
+    await (await storage()).put('documents', key, bytes, 'image/png');
+    const data = await door<Record<string, unknown>>(user.id, 'ops_do', 'rental_form_rep', { form_code: code, signature_key: key, signature_sha256: await sha256Hex(bytes) }, aal);
     revalidatePath('/admin/settings/forms');
     return { ok: true, data };
   } catch (e) { return fail(e); }

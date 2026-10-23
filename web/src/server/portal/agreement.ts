@@ -43,6 +43,9 @@ export async function openAgreement(bookingId: string, by: string): Promise<stri
   const key = `bookings/${bookingId}/agreement-v${f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
   await (await storage()).put('agreements', key, pdf, 'application/pdf');
   const id = (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
+  // the second agreement (Blind Spot's, 0127) beside it, when its template is in use; never in the way of this one
+  const { openCompanionQuietly } = await import('@/server/portal/blindspot');
+  await openCompanionQuietly(bookingId, by);
   // each additional driver with an email address gets their own signing link (migration 0040)
   const { sendFirstDriverLinks } = await import('@/server/portal/driver-links');
   await sendFirstDriverLinks(bookingId, by).catch(() => undefined);
@@ -55,8 +58,15 @@ interface SigningRecord {
   records: Array<{ signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null }>;
 }
 
-/** After confirmation: the signed copy with each signature and the signature record, attached once. */
+/** After confirmation: the signed copy with each signature and the signature record, attached once; then the signed
+ *  copy of the second agreement (0127), when the booking has one. */
 export async function attachSignedCopy(bookingId: string, renterUserId: string): Promise<void> {
+  await attachAgreementSignedCopy(bookingId, renterUserId);
+  const { attachCompanionSigned } = await import('@/server/portal/blindspot');
+  await attachCompanionSigned(bookingId, renterUserId);
+}
+
+async function attachAgreementSignedCopy(bookingId: string, renterUserId: string): Promise<void> {
   const rec = (await rpc('server_signing_record', { p_booking: bookingId }, SR)) as unknown as SigningRecord | null;
   if (!rec || rec.status !== 'completed' || rec.signed_document_id) return;
   const f = await agreementFacts(bookingId, renterUserId);

@@ -12,6 +12,7 @@ import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { SECTIONS } from '../sections';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
+import { RentalForms, type RentalForm } from '@/features/blindspot/RentalForms';
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
@@ -205,8 +206,11 @@ export default async function Section({ params }: { params: Promise<{ section: s
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
       form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);
   }
-  case 'forms':
-    return (<>{head}<OfficialForms d={await door<FormsData>(user.id, 'ops_read', 'form_templates')} /></>);
+  case 'forms': {
+    // the registry forms, then the forms filled for every booking (0127: Blind Spot's rental agreement)
+    const d = await door<FormsData & { rental_forms?: RentalForm[] }>(user.id, 'ops_read', 'form_templates');
+    return (<>{head}<RentalForms forms={d.rental_forms ?? []} /><OfficialForms d={d} /></>);
+  }
   case 'program': {
     // turnaround_block_minutes always equals the turnaround (0042): one setting is shown; owner_debit_show_legal_name is no
     // longer used (0122: the payee is always the legal name alone)
