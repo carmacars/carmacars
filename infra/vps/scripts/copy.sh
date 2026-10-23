@@ -333,6 +333,7 @@ verify() {
   vps_sql "$COUNTS_SQL" | jq '.[0].counts | (if type == "string" then fromjson else . end) | map_values(tonumber)' > "$W/vps-counts.json"
   hq "$COUNTS_SQL" | jq '.[0].counts | (if type == "string" then fromjson else . end) | map_values(tonumber)' > "$W/hosted-counts-now.json"
   local vs_dump vs_hosted
+  [ -f "$W/filter.json" ] || echo '{"rows": {}}' > "$W/filter.json"   # verify alone: no dump to compare with
   vs_dump=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile f "$W/filter.json" '[$f[0].rows | to_entries[] | select(($v[0][.key] // -1) != .value) | {table: .key, dump: .value, server: ($v[0][.key] // null)}]')
   vs_hosted=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile h "$W/hosted-counts-now.json" '[$h[0] | to_entries[] | select(.key | test("^(auth\\.schema_migrations|storage\\.migrations)$") | not) | select(($v[0][.key] // 0) != .value) | {table: .key, hosted: .value, server: ($v[0][.key] // null)}]')
   printf '%s' "$vs_dump" > "$W/diff-dump.json"; printf '%s' "$vs_hosted" > "$W/diff-hosted.json"
