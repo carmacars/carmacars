@@ -54,6 +54,12 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   const [panel, setPanel] = useState(false);
   const [, startTransition] = useTransition();
   const openBtn = useRef<HTMLButtonElement>(null);
+  // the dates and sorting bar folds to one line (the owner's request of October 23, 2026): open at the top of the page,
+  // folded by itself on a phone once the visitor scrolls into the cars, open again back at the top; the arrow folds or
+  // opens it at any width (on a desktop folding also hides the filters column, so the cars take the whole width)
+  const [folded, setFolded] = useState(false);
+  const top = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLElement>(null);
   const mode = p.get('mode') ?? '';
   const hasDates = !!(dates.from && dates.to);
 
@@ -89,6 +95,26 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP, qText]);
 
   useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
+
+  // fold on a phone once the cars have scrolled 200px under the stuck bar; open again once the bar is back in its place.
+  // Measured from a mark above the bar (the bar's own height changes when it folds), with a wide gap between the two
+  // points so the page moving up when the bar folds never opens it again. Only crossing a point acts, so the arrow wins
+  // in between.
+  useEffect(() => {
+    const phone = window.matchMedia('(max-width: 39.99rem)');
+    let past = false; let raf = 0;
+    const check = () => {
+      raf = 0;
+      if (!top.current || !bar.current) return;
+      const y = top.current.getBoundingClientRect().top; const stick = parseFloat(getComputedStyle(bar.current).top) || 0;
+      if (!past && y < stick - 200) { past = true; if (phone.matches) setFolded(true); }
+      else if (past && y > stick - 1) { past = false; if (phone.matches) setFolded(false); }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   const rows = useMemo(() => {
     const list = cars.map((c, i) => {
@@ -133,25 +159,35 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   };
   const heading = hasDates ? `${free ? 'Cars free' : 'No cars free'} ${shortDate(dates.from)} to ${shortDate(dates.to)}` : shown.length < cars.length ? 'Cars that match' : 'Every car';
   const closePanel = () => { setPanel(false); openBtn.current?.focus(); };
+  const summary = [hasDates ? `${shortDate(dates.from)} to ${shortDate(dates.to)}` : 'Any dates', chips.length ? `Filters · ${chips.length} active` : 'Filters', plural(shown.length, 'car')].join(' · ');
 
   return (
-    <div className={loading ? 'is-loading' : undefined}>
-      <section className="fleet-bar" aria-label="Dates and sorting">
-        <div className="wrap fleet-bar__in">
-          <div className="field fleet-bar__dates">
-            <DateRange id="fl" from={dates.from} to={dates.to} min={today} today={today} maxDays={maxDays} onChange={(v) => startTransition(() => setDates(v))} />
+    <div className={[loading && 'is-loading', folded && 'is-folded'].filter(Boolean).join(' ') || undefined}>
+      <div ref={top} aria-hidden="true"></div>
+      <section className={`fleet-bar${folded ? ' is-folded' : ''}`} aria-label="Dates and sorting" ref={bar}>
+        <div className="fleet-bar__fold" id="fleet-options" data-testid="fleet-options">
+          <div className="wrap fleet-bar__in">
+            <div className="field fleet-bar__dates">
+              <DateRange id="fl" from={dates.from} to={dates.to} min={today} today={today} maxDays={maxDays} onChange={(v) => startTransition(() => setDates(v))} />
+            </div>
+            <TimeSelect id="fl-tf" label="Pickup time" value={tf} onChange={setTf} />
+            <TimeSelect id="fl-tt" label="Return time" value={tt} onChange={setTt} />
+            <div className="field fleet-bar__sort">
+              <label className="label" htmlFor="fl-sort">Sort by</label>
+              <select className="select" id="fl-sort" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="featured">Our order</option><option value="price-asc">Price, low to high</option><option value="price-desc">Price, high to low</option>
+                <option value="seats">Seats, most first</option><option value="name">Name, A to Z</option>
+              </select>
+            </div>
+            <button type="button" className="btn btn--ghost fleet-bar__filters" aria-expanded={panel} aria-controls="filter-panel" ref={openBtn} onClick={() => setPanel(true)}>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M6 10h8M8.5 14h3" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Filters<b>{chips.length ? ` (${chips.length})` : ''}</b>
+            </button>
           </div>
-          <TimeSelect id="fl-tf" label="Pickup time" value={tf} onChange={setTf} />
-          <TimeSelect id="fl-tt" label="Return time" value={tt} onChange={setTt} />
-          <div className="field fleet-bar__sort">
-            <label className="label" htmlFor="fl-sort">Sort by</label>
-            <select className="select" id="fl-sort" value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="featured">Our order</option><option value="price-asc">Price, low to high</option><option value="price-desc">Price, high to low</option>
-              <option value="seats">Seats, most first</option><option value="name">Name, A to Z</option>
-            </select>
-          </div>
-          <button type="button" className="btn btn--ghost fleet-bar__filters" aria-expanded={panel} aria-controls="filter-panel" ref={openBtn} onClick={() => setPanel(true)}>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M6 10h8M8.5 14h3" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Filters<b>{chips.length ? ` (${chips.length})` : ''}</b>
+        </div>
+        <div className="wrap fleet-bar__tog">
+          <button type="button" className="fleet-bar__toggle" aria-expanded={!folded} aria-controls="fleet-options" data-testid="fleet-fold" onClick={() => setFolded(!folded)}>
+            {folded ? <><span className="vh">Show dates and filters: </span><span className="fleet-bar__sum">{summary}</span></> : <span className="vh">Hide dates and filters</span>}
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 12.5l5-5 5 5" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
           </button>
         </div>
       </section>
