@@ -10,7 +10,7 @@ export class RpcError extends Error {
 /** 0106: a public page's anonymous read gives up after this long (the database's own limit for anon is 2.5 s): a busy
  *  database (an import, a load spike) then fails the page fast, and the Worker answers from the last good copy
  *  (src/lib/edge/page-cache.ts serveEdge) instead of holding the visitor for 30 s or more. */
-export const ANON_DEADLINE_MS = 3_000;
+export const ANON_DEADLINE_MS = 6_000;
 /** the code an abandoned call is reported with: the database's statement timeout, never tried again at run time */
 export const DEADLINE_CODE = '57014';
 

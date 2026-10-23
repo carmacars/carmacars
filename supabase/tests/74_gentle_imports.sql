@@ -5,9 +5,9 @@
 select test.suite('74 gentle imports');
 
 -- ---------------------------------------------------------------- a public read fails fast
-select test.eq('anon: a 2.5 s statement timeout (PostgREST applies it to every anon request)',
+select test.eq('anon: a 5 s statement timeout (0111; PostgREST applies it to every anon request)',
   (select array_to_string(s.setconfig, ',') from pg_db_role_setting s join pg_roles r on r.oid = s.setrole where r.rolname = 'anon' and s.setdatabase = 0),
-  'statement_timeout=2500ms');
+  'statement_timeout=5s');
 select test.eq('the busy check: active sessions, lock waits, the longest statement',
   (select string_agg(k, ',' order by k) from jsonb_object_keys(app.db_busy()) k), 'active,longest_ms,waiting');
 select test.eq('the busy check through the API name', (select string_agg(k, ',' order by k) from jsonb_object_keys(public.server_db_busy()) k), 'active,longest_ms,waiting');
