@@ -85,14 +85,14 @@ select test.eq('confirmation: to the owner, with the payee by its business name,
   || '/' || (test.lt('pad') ->> 'payee_phone' = app.ntf_contact() ->> 'support_phone') || '/' || (test.lt('pad') ->> 'bank_name') || ' ' || (test.lt('pad') ->> 'bank_last4')
   || '/' || (test.lt('pad') ->> 'agreement_type') || '/' || (test.lt('pad') ->> 'debit_day') || '/' || (test.lt('pad') ->> 'notice_days')
   || '/' || (test.lt('pad') ->> 'accepted_on' = app.fmt_day(app.today())) || '/' || (test.lt('pad') ->> 'late_fee_rule' = app.owner_debit_terms() ->> 'late_fee_rule'),
-  (select company_legal_name || ', operating as CarmaCars' from app.settings()) || '/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
+  (select company_legal_name from app.settings()) || '/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
 select test.ok('confirmation: the first automatic debit is at least 10 days after it (0053)',
   app.owner_debit_next_date(app.today()) >= app.today() + 10);
 select test.eq('confirmation (0053): the full text of the accepted recurring agreement, below the summary',
   (test.lt('pad') ->> 'agreement_1') || '|' || (test.lt('pad') ->> 'agreement_2') || '|' || (test.lt('pad') ->> 'agreement_3') || '|' || (test.lt('pad') ->> 'agreement_4'),
   (select string_agg(x, '|' order by o) from jsonb_array_elements_text(app.owner_debit_terms() #> '{agreement,personal}') with ordinality t(x, o)));
-select test.eq('payee (0053): always the legal name, operating as CarmaCars', app.owner_debit_terms() #>> '{payee,name}',
-  (select company_legal_name || ', operating as CarmaCars' from app.settings()));
+select test.eq('payee (0053, 0122): always the legal name alone', app.owner_debit_terms() #>> '{payee,name}',
+  (select company_legal_name from app.settings()));
 select test.eq('confirmation: the catalogue row says what emits it', (select emitted_by from notification_catalogue where code = 'owner_pad_confirmed'),
   'owner_payment_methods_pad_confirmed (0051)');
 

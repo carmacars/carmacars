@@ -9,7 +9,7 @@ import type { Spec } from './fill';
 // owners" with the mapping already saved. Opens by itself from a link to /admin/settings/forms#<form code> (the To do
 // line of a form not checked yet). Until a form is checked, owners get the data sheet instead of the official PDF.
 type Props = { code: string; templateId: string; fieldMap: Record<string, Spec | string>; vehicles: Array<{ id: string; name: string; owner: string }> };
-type Shown = { pages: string[]; filled: number; missing: string[]; empty: string[] };
+type Shown = { pages: string[]; filled: number; missing: string[]; empty: string[]; byHand: number; xfaOnly: boolean };
 
 export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
   const router = useRouter();
@@ -30,13 +30,14 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
       const file = await fetch(`/api/staff/form-template/${templateId}`);
       if (!file.ok) throw new Error('The official PDF could not be opened.');
       const { fillPdf } = await import('./fill');
-      const out = await fillPdf(await file.arrayBuffer(), r.data.values, r.data.field_map, { flatten: true });
+      const out = await fillPdf(await file.arrayBuffer(), r.data.values, r.data.field_map);
       const { openPdf, pageJpeg } = await import('@/features/tolls/pdf');
       const doc = await openPdf(out.bytes);
       const pages: string[] = [];
-      for (let n = 1; n <= Math.min(doc.numPages, 6); n++) pages.push(await pageJpeg(doc, n, 1400));
-      const empty = Object.entries(r.data.values).filter(([, x]) => x === null || x === '').map(([k]) => k);
-      setShown({ pages, filled: out.filled.length, missing: out.missing, empty });
+      if (!out.xfaOnly) for (let n = 1; n <= Math.min(doc.numPages, 6); n++) pages.push(await pageJpeg(doc, n, 1400, true));
+      // a signature box is signed by a person, not filled: it is not "empty"
+      const empty = Object.entries(r.data.values).filter(([k, x]) => (x === null || x === '') && r.data.field_map[k]?.type !== 'signature').map(([k]) => k);
+      setShown({ pages, filled: out.filled.length, missing: out.missing, empty, byHand: out.byHand.length, xfaOnly: out.xfaOnly });
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'The sample could not be made.' });
     } finally { setLoading(false); }
@@ -73,7 +74,7 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
       <button className="btn btn--primary btn--sm" type="button" onClick={open} aria-haspopup="dialog" data-testid={tid}>Review and check</button>
       <dialog ref={dlg} className="ad-dialog ad-dialog--wide" aria-labelledby={`${tid}-t`} data-testid={`${tid}-dialog`}>
         <h2 className="d4" id={`${tid}-t`}>Check {code}, filled for a car</h2>
-        <p className="small">Read each value against the form. If they are right, press {'"'}Checked: use for owners{'"'}: owners then sign the official form instead of the data sheet.</p>
+        <p className="small">Read each value against the form. Only the empty text boxes are filled; the form is otherwise exactly as ServiceOntario publishes it, and it is ticked and signed by hand, in ink. If the values are right, press {'"'}Checked: use for owners{'"'}: owners then get the official form instead of the data sheet.</p>
         {vehicles.length > 1 && (
           <div className="row">
             <label className="label" htmlFor={`${tid}-car`}>Car</label>
@@ -85,7 +86,8 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
         {loading && <p className="small" role="status">Filling the form</p>}
         {shown && (
           <div className="stack" data-testid={`${tid}-sample`}>
-            <p className="small" role="status">{shown.filled} field(s) filled.{shown.empty.length ? ` Empty for this car: ${shown.empty.join(', ')}.` : ''}{shown.missing.length ? ` Not in the PDF: ${shown.missing.join(', ')}.` : ''}</p>
+            <p className="small" role="status">{shown.filled} text box(es) filled.{shown.byHand ? ` ${shown.byHand} box(es) to tick or sign by hand at the counter.` : ''}{shown.empty.length ? ` Empty for this car: ${shown.empty.join(', ')}.` : ''}{shown.missing.length ? ` Not in the PDF: ${shown.missing.join(', ')}.` : ''}</p>
+            {shown.xfaOnly && <p className="small">This is an Adobe form: download the preview and open it in Adobe Acrobat Reader to read the values in place.</p>}
             <div className="ad-form-pages">{shown.pages.map((src, i) => /* a page drawn in the browser (a data URL) */ // eslint-disable-next-line @next/next/no-img-element
               <img key={i} src={src} alt={`${code}, page ${i + 1}, filled`} width={700} />)}</div>
           </div>

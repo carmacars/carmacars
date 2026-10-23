@@ -4,7 +4,7 @@
 // (scripts/gen-person-agreements.mjs); this file fills its blanks: Schedule A, the names in the signature lines, and the
 // initials and dates given with the electronic signature. Rendered with the same blocks and PDF as every agreement.
 // Relative imports with their extension: the unit tests run this file in Node directly (model.test.ts).
-import { money } from '../../lib/format.ts';
+import { money, phone } from '../../lib/format.ts';
 import { FIELD_MD, INVESTMENT_MD, PERSON_AGREEMENTS_VERSION, VA_MD } from './source.generated.ts';
 
 export { PERSON_AGREEMENTS_VERSION };
@@ -76,7 +76,7 @@ export function investmentMarkdown(f: InvestorFacts, v: Record<string, string>, 
   let md = INVESTMENT_MD;
   md = row(md, 'Company\'s address and email for notices', [c.address, c.email].filter(Boolean).join('; ') || 'As on the Company\'s website');
   md = row(md, 'Investor\'s full legal name and type', `${i.legal_name}${i.investor_type ? ` (${i.investor_type})` : ''}`);
-  md = row(md, 'Investor\'s residential or head office address', [i.address, i.email, i.phone].filter(Boolean).join('; '));
+  md = row(md, 'Investor\'s residential or head office address', [i.address, i.email, phone(i.phone)].filter(Boolean).join('; '));
   md = row(md, 'Resident of Canada for tax purposes', i.tax_resident_canada === false ? `No. Country: ${i.tax_country ?? ''}` : 'Yes');
   md = row(md, 'Invested Amount', v.invested ?? '');
   md = row(md, 'Yearly Percentage', `${(v.yearly ?? '').replace(/%$/, '')}% per year`);
@@ -110,7 +110,7 @@ export function investmentSummary(f: InvestorFacts, v: Record<string, string>): 
   const i = f.investor;
   return [
     { label: 'Investor', value: `${i.legal_name}${i.investor_type ? ` (${i.investor_type})` : ''}`, fix: '/investor/profile' },
-    { label: 'Address, email and phone', value: [i.address, i.email, i.phone].filter(Boolean).join('; '), fix: '/investor/profile' },
+    { label: 'Address, email and phone', value: [i.address, i.email, phone(i.phone)].filter(Boolean).join('; '), fix: '/investor/profile' },
     { label: 'Invested Amount', value: v.invested ?? '', fix: null },
     { label: 'Yearly Percentage', value: v.yearly ?? '', fix: null },
     { label: 'Investment Date', value: v.investment_date ?? '', fix: null },
@@ -186,7 +186,7 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
     return md;
   }
   let md = signatureLines(FIELD_MD, c, s.full_name);
-  md = row(md, 'Employee', `${s.full_name} (legal name), ${v.address ?? ''} (address), ${s.phone ?? ''} (phone), ${s.email ?? ''} (email)`);
+  md = row(md, 'Employee', `${s.full_name} (legal name), ${v.address ?? ''} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
   md = row(md, 'Driver\'s licence', `Ontario Class G, number ${v.licence ?? ''}`);
   md = row(md, 'Role', FIELD_ROLE[s.field_function ?? ''] ?? (s.field_function ?? 'Driver and detailer'));
   md = row(md, 'Hourly Wage', `$${(v.wage ?? '').replace(/^\$/, '')} an hour`);

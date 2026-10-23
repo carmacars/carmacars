@@ -15,10 +15,10 @@ import { sampleForm } from '../../src/features/official-forms/fill';
 // - an Admin covers a plate on a phone (the suggested box and a drawn one, pixelated); the covered photo replaces the
 //   public one and the original is kept privately; publishing waits until every public photo is checked
 // - an Admin uploads a fillable official form, maps its fields and uses it for owners; the owner downloads it filled
-//   and signs it on screen
+//   and signs it in ink (official forms are never signed on screen)
 // - Program settings explain the one turnaround; the vehicle page says the tracker connection is coming soon
 const PW = 'correct horse battery';
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.?,? (?:operating as|o\/a) CarmaCars)|Canada Inc\b(?!\.?,? (?:operating as|o\/a) CarmaCars)/i, 'numbered company name (the payee "<legal name>, operating as CarmaCars" is allowed)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
+const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.)|(?<!18122211 )Canada Inc\b/i, 'numbered company name (allowed only as the party, "18122211 Canada Inc.", 0122)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const tag = () => `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
 const VIN_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789';
@@ -339,7 +339,7 @@ test('plates: an Admin covers a plate on a phone; the covered photo replaces the
   } finally { await sql.end(); }
 });
 
-test('forms: an Admin maps an official fillable PDF; the owner downloads it filled and signs it on screen; settings and tracker notes', async ({ browser }) => {
+test('forms: an Admin maps an official fillable PDF; the owner downloads it filled and signs it in ink; settings and tracker notes', async ({ browser }) => {
   onlyDesktop();
   test.setTimeout(180_000);
   const sql = db();
@@ -395,19 +395,11 @@ test('forms: an Admin maps an official fillable PDF; the owner downloads it fill
     const filled = await PDFDocument.load(readFileSync(file!));
     expect(filled.getForm().getTextField('owner_name').getText()).toBe('Olive Owner');
     expect(filled.getForm().getTextField('postal_code').getText()).toBe('M5V 1A1');
-    // signed on screen with a finger
-    const pad = phone.getByTestId('signature-pad');
-    await pad.scrollIntoViewIfNeeded();
-    const p = (await pad.boundingBox())!;
-    await phone.mouse.move(p.x + 20, p.y + p.height * 0.6); await phone.mouse.down();
-    for (let i = 1; i <= 30; i++) await phone.mouse.move(p.x + 20 + i * ((p.width - 60) / 30), p.y + p.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-    await phone.mouse.up();
-    await phone.getByTestId('official-sign').click();
-    await expect(phone.getByRole('status').filter({ hasText: 'Signed and saved' })).toBeVisible({ timeout: 20_000 });
-    const [signed] = await sql`select g.status, d.kind, d.storage_bucket from government_form_fills g join documents d on d.id = g.document_id where g.id = ${fill!.id}`;
-    expect([signed!.status, signed!.kind, signed!.storage_bucket]).toEqual(['signed', 'registry_form', 'agreements']);
-    await phone.reload();
-    await expect(phone.getByTestId('official-signed-copy')).toBeVisible();
+    // an official form is printed and signed in ink (0122): no signature pad, the page says so, and the route refuses one
+    await expect(phone.getByTestId('official-ink')).toContainText('Print it and sign it in ink');
+    await expect(phone.getByTestId('signature-pad')).toHaveCount(0);
+    expect((await phone.request.post(`/owner/documents/forms/${fill!.id}/signed`, { data: 'x' })).status()).toBe(410);
+    expect(filled.getForm().getTextField('owner_signature').getText() ?? '', 'the signature box stays empty').toBe('');
     await phone.context().close();
   } finally {
     // the other tests see the form as it was (the data sheet)

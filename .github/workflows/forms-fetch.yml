@@ -2,13 +2,19 @@ name: forms-fetch
 
 # The official ServiceOntario forms for Admin > Settings > Forms (0042's official form mapping; 0046's default
 # drafts). Resolves each dataset page of the Central Forms Repository to its English PDF, downloads it, records its
-# SHA-256, its pages and its fillable fields (web/scripts/forms-fetch.mjs; an encrypted form is opened with qpdf, a pure
-# XFA form is laid out by pdf.js and printed to a plain PDF with the box of each field, web/scripts/forms-xfa.mjs), then stores each PDF in the private
-# documents bucket under forms/templates/<code>/ (where Admin > Settings > Forms keeps uploaded templates) and the
-# report in deploy-reports/forms/<run id>/report.json. Nothing in the database changes: the templates and their
-# draft mappings are added by a migration from this report, and an Admin checks each one before owners get it.
+# SHA-256, its pages and its fillable fields (web/scripts/forms-fetch.mjs: the PDF fields, or the text fields of the
+# XFA data of an Adobe dynamic form), then stores each publisher's PDF byte for byte in the private documents bucket
+# under forms/templates/<code>/official-<sha>.pdf and the report in deploy-reports/forms/<run id>/report.json. The
+# filler writes only the values of the forms' empty text boxes (0122, the owner's rule of October 23, 2026: the forms
+# stay exactly as published). After storing, app.official_templates_use_originals() makes each stored download the
+# current template of its form (the downloads, their fields and mappings are registered by migration 0122).
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      store:
+        description: Store the PDFs in the documents bucket and the report in deploy-reports (off - only the run's artifact, for checking the fillers locally)
+        type: boolean
+        default: true
 
 concurrency:
   group: forms-fetch
@@ -38,16 +44,19 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
-      - name: Tools (qpdf opens the encrypted forms; Chromium lays out a pure XFA form)
-        run: |
-          sudo apt-get install -y -qq qpdf > /dev/null
-          npx playwright install --with-deps chromium > /dev/null
       - name: Resolve, download and read the forms
         run: |
-          node scripts/forms-fetch.mjs --out "$RUNNER_TEMP/forms" | tee "$RUNNER_TEMP/forms.txt"
+          node --experimental-strip-types --no-warnings scripts/forms-fetch.mjs --out "$RUNNER_TEMP/forms" | tee "$RUNNER_TEMP/forms.txt"
           sed 's/^/::notice title=forms::/' "$RUNNER_TEMP/forms.txt"
-      - name: Store the PDFs (documents bucket) and the report (deploy-reports)
+      - name: Keep the PDFs and the report as the run's artifact (the form fillers' tests and screenshots use them)
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms
+          path: ${{ runner.temp }}/forms
+          retention-days: 14
+      - name: Store the PDFs (documents bucket) and the report (deploy-reports)
+        if: always() && inputs.store
         run: |
           set -euo pipefail
           K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
@@ -68,3 +77,7 @@ jobs:
           curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/forms/${{ github.run_id }}/report.json" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$R"
           jq -r '.forms[] | "\(.code): \(if .ok then "\(.kind): \(.pages) pages, \(.fields | length) fields, fillable \(.fillable), pure XFA \(.pure_xfa), \(.file_key)" else "failed: \(.error)" end)"' "$R" | sed 's/^/::notice title=forms report::/'
           echo "::notice title=forms::report at deploy-reports/forms/${{ github.run_id }}/report.json"
+          # the stored downloads become the current templates (0122); a form whose download differs from the one
+          # registered by the migration is left as it is (its new SHA-256 is in the report: map it and register it)
+          used=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select app.official_templates_use_originals() as used" | jq -c '.[0].used')
+          echo "::notice title=forms::templates now the publisher's downloads: $used"

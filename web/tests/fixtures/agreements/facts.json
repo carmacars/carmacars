@@ -1,0 +1,252 @@
+{
+ "owner": {
+  "owner": {
+   "id": "c23dc8b3-2b08-4fe7-966e-ed423f3668c0",
+   "email": "person@example.test",
+   "phone": "+16475550144",
+   "payout": null,
+   "address": "40 King Street West, Toronto, ON M5H 1A1",
+   "hst_number": null,
+   "legal_name": "Northshore Holdings Ltd.",
+   "owner_type": "corporation",
+   "signer_name": "Cora Lindqvist",
+   "signer_role": "owner_corporation",
+   "corporation_name": "Northshore Holdings Ltd.",
+   "corporation_number": null,
+   "signing_officer_name": "Cora Lindqvist",
+   "signing_officer_title": "President"
+  },
+  "company": {
+   "email": "contact@carmacars.ca",
+   "phone": "+16475733377",
+   "address": "2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2",
+   "hst_bps": 1300,
+   "legal_name": "18122211 Canada Inc.",
+   "trade_name": "CarmaCars",
+   "install_fee_cents": 10000,
+   "signing_officer_name": "Abbas Al-Mashita",
+   "signing_officer_title": "Director"
+  },
+  "cosigners": [],
+  "schedules": [
+   {
+    "id": "174d9b08-9871-420d-843b-1243c1aaa123",
+    "vin": "1G1ZD5STD12C90095",
+    "make": "Chevrolet",
+    "trim": null,
+    "year": 2022,
+    "model": "Malibu",
+    "plate": "SGA3CC",
+    "colour": "Grey",
+    "held_by": "corporation",
+    "signed_at": "2026-10-23T11:39:00.797888+00:00",
+    "vehicle_id": "9609b8b3-aa38-40b4-893e-c8e6bc790bf2",
+    "odometer_km": 41000,
+    "owners_lien": "declined",
+    "title_status": "owned_outright",
+    "is_additional": false,
+    "special_terms": null,
+    "vehicle_number": 1,
+    "enrollment_date": null,
+    "management_mode": "managed",
+    "schedule_number": "VS-1004",
+    "install_fee_cents": 10000,
+    "onboarding_method": "transfer",
+    "onboarding_status": "upfront_paid",
+    "revenue_share_bps": 3500,
+    "tracker_fee_cents": 2500,
+    "finance_party_name": null,
+    "finance_permission": "not_applicable",
+    "title_agreement_id": "0284ec9f-da96-4183-ae2f-d86ecbbcbbed",
+    "insurance_fee_cents": 41000,
+    "signature_request_id": "06bc1b00-98e4-4430-8cce-a302266606cc"
+   }
+  ],
+  "agreements": [
+   {
+    "id": "097b90a0-4f87-40cb-904e-c479d199e06e",
+    "kind": "enrollment",
+    "status": "signed",
+    "agreement_date": "2026-10-23",
+    "document_sha256": "1d706a038943346e1c1ac6ab7365dd0055c1e7dfd269564523f12eab31b0b8e4",
+    "agreement_number": "EA-1007",
+    "signature_request_id": "06bc1b00-98e4-4430-8cce-a302266606cc",
+    "corporate_signatory_name": "Cora Lindqvist",
+    "corporate_signatory_title": "President"
+   },
+   {
+    "id": "0284ec9f-da96-4183-ae2f-d86ecbbcbbed",
+    "kind": "title_holding",
+    "status": "signed",
+    "agreement_date": "2026-10-23",
+    "document_sha256": "6c6793e47b5e93d0b8ab0205caacaf8bf156515891f23911cbb200fd18ddc7b0",
+    "agreement_number": "TA-1008",
+    "signature_request_id": "b97d62b7-1e42-43b4-ae32-ab71413e4ad5",
+    "corporate_signatory_name": "Cora Lindqvist",
+    "corporate_signatory_title": "President"
+   }
+  ],
+  "waiting_for_owners": false
+ },
+ "form_a": {
+  "code": "A",
+  "owner": {
+   "address": "40 King Street West, Toronto, ON, M5H 1A1",
+   "legal_name": "Northshore Holdings Ltd.",
+   "owner_type": "corporation",
+   "signer_name": "Cora Lindqvist",
+   "corporation_name": "Northshore Holdings Ltd."
+  },
+  "company": {
+   "site": "https://carmacars.ca",
+   "brand": "CarmaCars",
+   "email": "contact@carmacars.ca",
+   "phone": "+12893125991",
+   "address": "2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2",
+   "logo_key": null,
+   "hst_number": null,
+   "legal_name": "18122211 Canada Inc."
+  },
+  "owner_id": "c23dc8b3-2b08-4fe7-966e-ed423f3668c0",
+  "vehicles": [
+   {
+    "vin": "1G1ZD5STD12C90095",
+    "name": "2022 Chevrolet Malibu",
+    "plate": "SGA3CC",
+    "method": "transfer",
+    "title_status": "owned_outright"
+   }
+  ],
+  "title_agreement": "TA-1008"
+ },
+ "form_d": {
+  "code": "D1",
+  "owner": {
+   "address": "40 King Street West, Toronto, ON, M5H 1A1",
+   "legal_name": "Northshore Holdings Ltd.",
+   "owner_type": "corporation"
+  },
+  "company": {
+   "site": "https://carmacars.ca",
+   "brand": "CarmaCars",
+   "email": "contact@carmacars.ca",
+   "phone": "+12893125991",
+   "address": "2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2",
+   "logo_key": null,
+   "hst_number": null,
+   "legal_name": "18122211 Canada Inc."
+  },
+  "vehicles": [
+   {
+    "vin": "1G1ZD5STD12C90095",
+    "name": "2022 Chevrolet Malibu",
+    "plate": "SGA3CC",
+    "permission": "not_applicable",
+    "title_status": "owned_outright",
+    "finance_party": null,
+    "finance_account": null
+   }
+  ],
+  "title_agreement": "TA-1008"
+ },
+ "rental": {
+  "card": {
+   "brand": "visa",
+   "last4": "4242",
+   "cardholder_name": "Rita Moreau"
+  },
+  "lines": [
+   {
+    "stage": "booking",
+    "hst_cents": 2574,
+    "charge_type": "rental_charge",
+    "description": "Rental charge (daily, weekend, weekly or monthly rate)",
+    "amount_cents": 19800
+   }
+  ],
+  "renter": {
+   "city": "Toronto",
+   "email": "person@example.test",
+   "mobile": "+14165550142",
+   "country": "CA",
+   "province": "ON",
+   "legal_name": "Rita Moreau",
+   "postal_code": "M5H 2N2",
+   "address_line1": "100 Queen Street West",
+   "address_line2": null,
+   "date_of_birth": "1988-04-12"
+  },
+  "booking": {
+   "id": "3a0d193c-930a-433c-a4fa-87ab8d020e36",
+   "status": "confirmed",
+   "booked_at": "2026-10-23T11:36:46.364455+00:00",
+   "pickup_at": "2027-06-16T14:00:00+00:00",
+   "return_at": "2027-06-18T14:00:00+00:00",
+   "daily_days": 2,
+   "booking_type": "standard",
+   "pickup_place": null,
+   "rate_applied": "daily",
+   "requested_at": "2026-10-23T11:36:46.364455+00:00",
+   "return_place": null,
+   "weekend_days": 0,
+   "billable_days": 2,
+   "deposit_cents": 100000,
+   "pickup_method": "collected",
+   "return_method": "returned",
+   "booking_number": "CC-10001",
+   "coverage_option": 1,
+   "agreement_number": "RA-20001",
+   "daily_rate_cents": 9900,
+   "deductible_cents": 250000,
+   "offer_approved_at": null,
+   "renews_booking_id": null,
+   "weekly_rate_cents": 62000,
+   "km_allowance_total": 400,
+   "monthly_rate_cents": 205000,
+   "weekend_rate_cents": 13500,
+   "rental_charge_cents": 19800,
+   "hst_at_booking_cents": 2574,
+   "km_allowance_per_day": 200,
+   "overage_cents_per_km": 40,
+   "offer_approved_version": null,
+   "subtotal_at_booking_cents": 19800,
+   "total_due_at_booking_cents": 22374,
+   "renter_due_at_booking_cents": 22374
+  },
+  "company": {
+   "email": "contact@carmacars.ca",
+   "phone": "289-312-5991",
+   "address": "2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2",
+   "legal_name": "18122211 Canada Inc.",
+   "trade_name": "CarmaCars",
+   "incident_line": "289-312-5991",
+   "deductible_cents": 250000
+  },
+  "drivers": [
+   {
+    "id": "2cd91ae1-186b-4f8c-9af2-16042b66ca02",
+    "role": "renter",
+    "driver_id": "47b408c1-2739-475e-b26a-9a7e4d70474b",
+    "full_name": "Rita Moreau",
+    "date_of_birth": "1988-04-12",
+    "licence_class": "G",
+    "licence_expiry": "2031-06-30",
+    "licence_issuer": "ON",
+    "licence_number": "W1234-56789-01234",
+    "identity_method": null,
+    "identity_verified_on": null
+   }
+  ],
+  "vehicle": {
+   "vin": "5YJ3E1EA58A2BE9F8",
+   "fuel": "gasoline",
+   "make": "Mazda",
+   "trim": "GS-P Soft Top",
+   "year": 2021,
+   "model": "MX-5",
+   "plate": "LRC992",
+   "colour": "Soul Red"
+  },
+  "coverage": null
+ }
+}

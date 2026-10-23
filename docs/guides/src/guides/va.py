@@ -33,15 +33,15 @@ def build():
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
     g.task('The menu', 'My work comes first: To do, Today at a glance, My scorecard and My sales. Customer service and Sales then have Live: Live chat, Live visitors and Game leads. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
-        ['Customer service', 'Bookings (Requests, New quote, Add a rental, Calendar), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
-        ['Sales', 'Bookings (Requests and offers, New quote, Add a rental, Calendar), Owners (Owner leads)'],
-        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote)'],
-        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote)'],
+        ['Customer service', 'Bookings (Requests, Chauffeur, New quote, Add a rental, Calendar, Find a car), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
+        ['Sales', 'Bookings (Requests and offers, Chauffeur, New quote, Add a rental, Calendar, Find a car), Owners (Owner leads)'],
+        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car)'],
+        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
     g.steps([
         'The top line shows your function and how many tasks are open.',
-        'Filter: All, Mine, Unassigned or Waiting; Any time, Overdue, Due today or Escalated; and by type.',
+        'Filter: All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type.',
         'Each row has a priority, the task, its record, when it is due and how long it has waited. The oldest due is first.',
         f'Press {B("Take it")} to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. {B("Sheet")} opens the step-by-step procedure.',
         'Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day\'s opening and closing checks close at the end of that day.',

@@ -23,7 +23,7 @@ export interface PartnerFacts {
 }
 
 // The text. {{tokens}} are filled from the facts.
-export const PARTNER_AGREEMENT_MD = `This agreement is between **{{company}}**, operating as {{brand}} ("CarmaCars"), and **{{partner}}** ("the Partner"), partner number {{partner_number}}.
+export const PARTNER_AGREEMENT_MD = `This agreement is between **{{company}}** ("CarmaCars"), and **{{partner}}** ("the Partner"), partner number {{partner_number}}.
 
 ## 1. What this agreement is for
 

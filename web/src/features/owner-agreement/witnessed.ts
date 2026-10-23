@@ -4,8 +4,10 @@
 // with the witnesses and takes a photo of each page with the phone; staff review it. Form C may also be signed on screen
 // (the legal review, 0053): the owner signs and initials, and the witness, in person on the same device, types their
 // name and the statement that they witnessed the owner sign in their presence.
-import { markdown, type Block, type SignatureRow } from '@/features/agreement/model';
-import { FORM_C, FORM_D, WITNESSED_FORMS_VERSION } from './forms.generated';
+// Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
+import { markdown, type Block, type SignatureRow } from '../agreement/model.ts';
+import { endSentence } from '../../lib/format.ts';
+import { FORM_C, FORM_D, WITNESSED_FORMS_VERSION } from './forms.generated.ts';
 
 export { WITNESSED_FORMS_VERSION };
 export interface WitnessedFacts {
@@ -42,7 +44,7 @@ export function witnessedBlocks(f: WitnessedFacts): Block[] {
   const src = (f.code === 'C' ? FORM_C : FORM_D)
     .replace(/\{\{company\}\}/g, company)
     .replace(/^> /gm, '')
-    .replace(/^Owner: \[●\]\./m, `Owner: **${f.owner.legal_name}**.`);
+    .replace(/^Owner: \[●\]\./m, `Owner: **${f.owner.legal_name}**${/\.$/.test(f.owner.legal_name) ? '' : '.'}`);
   let blocks = markdown(src, {});
   if (f.code === 'C') {
     // the vehicle row of the form, one per financed or leased car
@@ -67,7 +69,7 @@ export function witnessedBlocks(f: WitnessedFacts): Block[] {
   blocks = blocks.map((b) => b.t === 'table' && b.head[0] === 'I acknowledge' ? { ...b, rows: b.rows.map((r) => [r[0]!, '>> INITIAL HERE: ____']) } : b);
   return [
     { t: 'title', text: FORM_TITLE[f.code] },
-    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company}, operating as ${f.company.brand}, and ${f.owner.legal_name}.` },
+    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company} and ${endSentence(f.owner.legal_name)}` },
     ...blocks,
     { t: 'h3', text: 'How to complete this form' },
     { t: 'ul', items: f.code === 'C'

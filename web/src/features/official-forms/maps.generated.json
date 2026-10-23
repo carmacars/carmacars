@@ -1,0 +1,331 @@
+{
+ "SR-LV-006": {
+  "kind": "acroform",
+  "map": {
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].lastName[0]": {
+    "source": "vehicle_registrant.rin",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].#subform[1].date[0]": {
+    "source": "vehicle_registrant.date_of_birth",
+    "transform": "date:YYYY/MM/DD"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].lastName[2]": {
+    "source": "vehicle_registrant.name",
+    "transform": "upper",
+    "required": true
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].streetName[0]": {
+    "source": "vehicle_registrant.address_line1"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].apt[0]": {
+    "source": "vehicle_registrant.unit",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].city[0]": {
+    "source": "vehicle_registrant.city"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].postalCode[0]": {
+    "source": "vehicle_registrant.postal_code",
+    "transform": "postal"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[2].#field[12]": {
+    "source": "method.two_registrants",
+    "type": "checkbox"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[2].#field[13]": {
+    "source": "method.plates_other",
+    "type": "checkbox"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].lastName[0]": {
+    "source": "vehicle.plate",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[2].#field[3]": {
+    "source": "always",
+    "type": "checkbox"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].#field[14]": {
+    "source": "vehicle.odometer_km"
+   },
+   "form1[0].page1[0].body[0].businessInfo2[0].#subform[0].#field[0]": {
+    "source": "always",
+    "type": "checkbox"
+   },
+   "form1[0].page1[0].body[0].businessInfo6[0].#field[0]": {
+    "source": "vehicle.vin",
+    "transform": "upper",
+    "required": true
+   },
+   "form1[0].page1[0].body[0].businessInfo7[0].esoName[0]": {
+    "source": "vehicle_registrant.signer_name",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].businessInfo7[0].signature[0]": {
+    "type": "signature",
+    "when": "vehicle_registrant.owner_signs"
+   }
+  }
+ },
+ "SR-LV-012": {
+  "kind": "acroform",
+  "map": {
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].lastName[0]": {
+    "source": "plate_owner.rin",
+    "transform": "upper",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].lastName[3]": {
+    "source": "plate_owner.name",
+    "transform": "upper",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].streetName[0]": {
+    "source": "plate_owner.address_line1",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].apt[0]": {
+    "source": "plate_owner.unit",
+    "transform": "upper",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].city[0]": {
+    "source": "plate_owner.city",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].#subform[0].postalCode[0]": {
+    "source": "plate_owner.postal_code",
+    "transform": "postal",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].personalInfo[0].esoName[0]": {
+    "source": "plate_owner.signer_name",
+    "transform": "upper",
+    "when": "method.plates_other"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].lastName[0]": {
+    "source": "owner.licence_number",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].#subform[1].date[0]": {
+    "source": "owner.date_of_birth",
+    "transform": "date:YYYY/MM/DD",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].lastName[3]": {
+    "source": "owner.registry_name",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].streetName[0]": {
+    "source": "owner.address_line1",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].apt[0]": {
+    "source": "owner.unit",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].city[0]": {
+    "source": "owner.city",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[0].postalCode[0]": {
+    "source": "owner.postal_code",
+    "transform": "postal",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].lastName[4]": {
+    "source": "registrant.rin",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].lastName[7]": {
+    "source": "registrant.registry_name",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].streetName[1]": {
+    "source": "registrant.address_line1",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].apt[1]": {
+    "source": "registrant.unit",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].city[1]": {
+    "source": "registrant.city",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].#subform[4].postalCode[1]": {
+    "source": "registrant.postal_code",
+    "transform": "postal",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].esoName[0]": {
+    "source": "owner.legal_name",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].signature[0]": {
+    "type": "signature",
+    "when": "method.two_registrants"
+   },
+   "form1[0].page1[0].body[0].businessInfo[0].esoName[1]": {
+    "source": "registrant.signing_officer_name",
+    "transform": "upper",
+    "when": "method.two_registrants"
+   }
+  }
+ },
+ "ON00453": {
+  "kind": "acroform",
+  "map": {
+   "form1[0].page1[0].body[0].new[0]": {
+    "source": "corporation.rin_missing",
+    "type": "checkbox",
+    "when": "corporation.applies"
+   },
+   "form1[0].page1[0].body[0].orgName[0]": {
+    "source": "corporation.registry_name",
+    "when": "corporation.applies",
+    "required": true
+   },
+   "form1[0].page1[0].body[0].existingRIN[0]": {
+    "source": "corporation.rin",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].operatedOut[0]": {
+    "source": "corporation.applies",
+    "type": "checkbox"
+   },
+   "form1[0].page1[0].body[0].corpFirstName[0]": {
+    "source": "owner.first_name"
+   },
+   "form1[0].page1[0].body[0].corpLastName[0]": {
+    "source": "owner.last_name"
+   },
+   "form1[0].page1[0].body[0].corpMiddleIntial[0]": {
+    "source": "owner.middle_name"
+   },
+   "form1[0].page1[0].body[0].telNo[0]": {
+    "source": "owner.phone",
+    "transform": "phone"
+   },
+   "form1[0].page1[0].body[0].corpEmail[0]": {
+    "source": "owner.email"
+   },
+   "form1[0].page1[0].body[0].dlNo[0]": {
+    "source": "owner.licence_number",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].unitNo[0]": {
+    "source": "owner.unit",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].streetNo[0]": {
+    "source": "owner.street_number"
+   },
+   "form1[0].page1[0].body[0].streetName[0]": {
+    "source": "owner.street_name"
+   },
+   "form1[0].page1[0].body[0].city[0]": {
+    "source": "owner.city"
+   },
+   "form1[0].page1[0].body[0].postalCode[0]": {
+    "source": "owner.postal_code",
+    "transform": "postal"
+   },
+   "form1[0].page1[0].body[0].sig1[0].signature[0]": {
+    "type": "signature"
+   },
+   "form1[0].page1[0].body[0].sig1[0].name[0]": {
+    "source": "corporation.signer_name",
+    "transform": "upper"
+   }
+  }
+ },
+ "013-0169": {
+  "kind": "acroform",
+  "map": {
+   "form1[0].page1[0].body[0].SectionA[0].busname[0]": {
+    "source": "owner.legal_name",
+    "transform": "upper",
+    "required": true
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[0].busname[0]": {
+    "source": "corporation.registry_name",
+    "when": "corporation.applies",
+    "required": true
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busUnitNo[0]": {
+    "source": "owner.unit",
+    "transform": "upper"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busStreetNo[0]": {
+    "source": "owner.street_number"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busStreetName[0]": {
+    "source": "owner.street_name"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busCity[0]": {
+    "source": "owner.city"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busProvince[0]": {
+    "source": "owner.province",
+    "type": "dropdown"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].busPostalCode[0]": {
+    "source": "owner.postal_code",
+    "transform": "postal"
+   },
+   "form1[0].page1[0].body[0].SectionB[0].#subform[1].TelephoneNo[0]": {
+    "source": "owner.phone",
+    "transform": "phone"
+   }
+  }
+ },
+ "013-1155": {
+  "kind": "acroform",
+  "map": {
+   "nameRecipient": {
+    "source": "corporation.registry_name",
+    "when": "corporation.applies",
+    "required": true
+   },
+   "cityTown2": {
+    "source": "owner.city"
+   },
+   "nameDonor": {
+    "source": "owner.legal_name",
+    "transform": "upper",
+    "required": true
+   },
+   "cityTown4": {
+    "source": "owner.city"
+   },
+   "modelYear": {
+    "source": "vehicle.year"
+   },
+   "make": {
+    "source": "vehicle.make"
+   },
+   "model": {
+    "source": "vehicle.model"
+   },
+   "vehicleID": {
+    "source": "vehicle.vin",
+    "transform": "upper",
+    "required": true
+   },
+   "nameOwnerRecipient": {
+    "source": "corporation.registry_name",
+    "when": "corporation.applies"
+   },
+   "nameDonor2": {
+    "source": "owner.legal_name",
+    "transform": "upper"
+   }
+  }
+ }
+}

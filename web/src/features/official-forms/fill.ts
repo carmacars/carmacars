@@ -1,115 +1,44 @@
-// Official fillable PDFs (migration 0042), with pdf-lib in the browser (never in the Worker): read the fillable
-// fields of an uploaded form, and fill one with the values the database resolved for a car and its owner, with
-// the owner's drawn signature placed in the signature fields. Works the same in Node for the unit tests.
-import { PDFButton, PDFCheckBox, PDFDocument, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, StandardFonts, rgb, type PDFField, type PDFFont, type PDFPage } from 'pdf-lib';
+// Official fillable PDFs (migration 0042), filled in the browser (never in the Worker) and in Node for the unit tests:
+// read the fields of an uploaded form, and fill one with the values the database resolved for a car and its owner.
+// The official ServiceOntario forms are kept exactly as published (the owner's rule of October 23, 2026): only their
+// empty text boxes are filled, as an incremental update after the publisher's last byte (pdf-update.ts). Checkboxes,
+// drop-downs and signature boxes are left for the person at the counter, and the forms are signed in ink.
+// Relative imports with their extension: the unit tests run this file in Node directly.
+import { fillTextFields, readPdfFields, type FieldKind } from './pdf-update.ts';
 
-export type FieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'signature' | 'button';
-export interface PdfField { name: string; type: FieldType; options?: string[]; page?: number; rect?: [number, number, number, number]; label?: string; tooltip?: string }
-/** box: where a value is drawn on a form with no fillable field (a coordinates-based template, pdf_templates.kind
- *  'overlay', 0046): the page (from 1) and the rectangle [x, y, width, height] in PDF points from the bottom left. */
+export type FieldType = FieldKind;
+export interface PdfField { name: string; type: FieldType; options?: string[]; page?: number; rect?: [number, number, number, number]; label?: string; tooltip?: string; max_length?: number }
+/** box: the 0046 coordinates of a field of a laid-out copy (kind 'overlay'); such a copy is no longer filled. */
 export interface Spec { source?: string; type?: 'text' | 'checkbox' | 'signature' | 'dropdown' | 'radio'; transform?: string; when?: string; required?: boolean;
   box?: { page: number; rect: [number, number, number, number] } }
 
-const typeOf = (f: PDFField): FieldType =>
-  f instanceof PDFTextField ? 'text' : f instanceof PDFCheckBox ? 'checkbox' : f instanceof PDFDropdown || f instanceof PDFOptionList ? 'dropdown'
-    : f instanceof PDFRadioGroup ? 'radio' : f instanceof PDFSignature ? 'signature' : 'button';
+const u8 = (b: Uint8Array | ArrayBuffer) => (b instanceof Uint8Array ? b : new Uint8Array(b));
 
-/** The fillable fields of a PDF, in the order the form lists them, with the page each one is on. */
-export async function readFields(bytes: Uint8Array | ArrayBuffer): Promise<{ fields: PdfField[]; pages: number }> {
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-  const pages = doc.getPages();
-  const fields = doc.getForm().getFields().map((f) => {
-    const t = typeOf(f);
-    const opts = f instanceof PDFDropdown || f instanceof PDFOptionList ? f.getOptions() : f instanceof PDFRadioGroup ? f.getOptions() : undefined;
-    const w = f.acroField.getWidgets()[0];
-    const ref = w?.P();
-    const page = ref ? pages.findIndex((p) => p.ref === ref) + 1 : 0;
-    return { name: f.getName(), type: t, ...(opts?.length ? { options: opts } : {}), ...(page > 0 ? { page } : {}) };
-  });
-  return { fields, pages: pages.length };
+/** The fields of a PDF, in the order the form lists them, with the page each one is on. A form that is only Adobe XFA
+ *  (no PDF fields) lists the fields its XFA data keeps, named form1[0].page1[0]... as Acrobat names them. */
+export async function readFields(bytes: Uint8Array | ArrayBuffer): Promise<{ fields: PdfField[]; pages: number; xfaOnly: boolean }> {
+  const r = await readPdfFields(u8(bytes));
+  return { pages: r.pages, xfaOnly: r.xfaOnly, fields: r.fields.map((f) => ({ name: f.name, type: f.type, ...(f.options ? { options: f.options } : {}), ...(f.page ? { page: f.page } : {}),
+    ...(f.rect ? { rect: f.rect } : {}), ...(f.tooltip ? { tooltip: f.tooltip } : {}), ...(f.max_length ? { max_length: f.max_length } : {}) })) };
 }
 
-/** Fill a form. Values come from the database (app.fill_government_form); a signature field gets the PNG drawn on
- *  screen when one is given. flatten: the result can no longer be edited (the signed copy). */
-export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<string, string | null>, map: Record<string, Spec | string>, o: { signaturePng?: Uint8Array; flatten?: boolean } = {}): Promise<{ bytes: Uint8Array; filled: string[]; missing: string[] }> {
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
-  const form = doc.getForm();
-  const filled: string[] = []; const missing: string[] = [];
-  const get = (name: string) => { try { return form.getField(name); } catch { return null; } };
-  const pages = doc.getPages();
-  let font: PDFFont | null = null;
-  const boxOf = (name: string) => { const s = map[name]; return typeof s === 'string' ? undefined : s?.box; };
-  for (const [name, raw] of Object.entries(values)) {
-    const f = get(name);
-    const box = boxOf(name);
-    if (!f && box) {
-      // a coordinates-based template: the value is drawn in its box
-      const page = pages[box.page - 1];
-      if (!page) { missing.push(name); continue; }
-      font ??= await doc.embedFont(StandardFonts.Helvetica);
-      const spec = map[name] as Spec;
-      if (spec.type === 'checkbox') { if (/^(yes|true|on|1|x)$/i.test(raw ?? '')) { drawText(page, font, 'X', box.rect, true); filled.push(name); } continue; }
-      if (spec.type === 'signature') continue;
-      if (raw) { drawText(page, font, raw, box.rect, false); filled.push(name); }
-      continue;
-    }
-    if (!f) { missing.push(name); continue; }
-    const v = raw ?? '';
-    try {
-      if (f instanceof PDFTextField) { const max = f.getMaxLength(); f.setText(max ? v.slice(0, max) : v); }
-      else if (f instanceof PDFCheckBox) { if (/^(yes|true|on|1|x)$/i.test(v)) f.check(); else f.uncheck(); }
-      else if (f instanceof PDFDropdown) { if (!v) f.clear(); else if (f.getOptions().includes(v) || f.isEditable()) f.select(v); }
-      else if (f instanceof PDFOptionList) { if (v && f.getOptions().includes(v)) f.select(v); }
-      else if (f instanceof PDFRadioGroup) { if (v && f.getOptions().includes(v)) f.select(v); }
-      else continue;
-      if (v) filled.push(name);
-    } catch { missing.push(name); }
+export interface Filled { bytes: Uint8Array; filled: string[]; missing: string[]; truncated: string[]; byHand: string[]; xfaOnly: boolean }
+/** Fill a form's text fields with the values (app.fill_government_form). What the mapping marks as a checkbox, a
+ *  drop-down, a radio button or a signature is never set: it is listed in byHand, for the person at the counter. */
+export async function fillPdf(bytes: Uint8Array | ArrayBuffer, values: Record<string, string | null>, map: Record<string, Spec | string>): Promise<Filled> {
+  const text: Record<string, string | null> = {}; const byHand: string[] = [];
+  for (const [name, v] of Object.entries(values)) {
+    const s = map[name]; const t = typeof s === 'string' ? 'text' : s?.type ?? 'text';
+    if (t === 'text') text[name] = v;
+    else if (t === 'signature' || (v && v !== 'Off')) byHand.push(name);
   }
-  if (o.signaturePng) {
-    const png = await doc.embedPng(o.signaturePng);
-    for (const [name, s] of Object.entries(map)) {
-      if (typeof s === 'string' || s.type !== 'signature') continue;
-      const f = get(name);
-      if (!f && s.box) {
-        const page = pages[s.box.page - 1] ?? pages[0]!;
-        const [x, y, w, h] = s.box.rect;
-        const k = Math.min(w / png.width, h / png.height);
-        page.drawImage(png, { x: x + (w - png.width * k) / 2, y: y + (h - png.height * k) / 2, width: png.width * k, height: png.height * k });
-        filled.push(name);
-        continue;
-      }
-      if (!f) { missing.push(name); continue; }
-      for (const w of f.acroField.getWidgets()) {
-        const page = pages.find((p) => p.ref === w.P()) ?? pages[0]!;
-        const r = w.getRectangle();
-        const k = Math.min(r.width / png.width, r.height / png.height);
-        page.drawImage(png, { x: r.x + (r.width - png.width * k) / 2, y: r.y + (r.height - png.height * k) / 2, width: png.width * k, height: png.height * k });
-      }
-      if (f instanceof PDFTextField) f.setText('');
-      filled.push(name);
-    }
-  }
-  if (o.flatten && form.getFields().length) {
-    // the publisher's Print and Clear buttons do nothing on a signed copy: they leave it
-    for (const f of form.getFields()) if (f instanceof PDFButton) { try { form.removeField(f); } catch { /* a button shared with another field stays */ } }
-    form.updateFieldAppearances(); form.flatten();
-  }
-  return { bytes: await doc.save(), filled, missing };
-}
-
-/** Text drawn inside a box: one line, shrunk to fit its width, sitting on the box's lower part. */
-function drawText(page: PDFPage, font: PDFFont, text: string, rect: [number, number, number, number], centre: boolean) {
-  const [x, y, w, h] = rect;
-  let size = Math.max(6, Math.min(10, h - 2));
-  while (size > 6 && font.widthOfTextAtSize(text, size) > w - 4) size -= 0.5;
-  let t = text;
-  while (t.length > 1 && font.widthOfTextAtSize(t, size) > w - 4) t = t.slice(0, -1);
-  const tw = font.widthOfTextAtSize(t, size);
-  page.drawText(t, { x: centre ? x + (w - tw) / 2 : x + 2, y: y + Math.max(1, (h - size) / 2), size, font, color: rgb(0, 0, 0) });
+  const out = await fillTextFields(u8(bytes), text);
+  return { bytes: out.bytes, filled: out.filled, missing: out.missing, truncated: out.truncated, byHand: [...byHand, ...out.skipped], xfaOnly: out.xfaOnly };
 }
 
 /** A small fillable form, for the tests and the Admin's trial: a few text fields, a checkbox and a signature box. */
 export async function sampleForm(): Promise<Uint8Array> {
+  const { PDFDocument } = await import('pdf-lib');
   const doc = await PDFDocument.create();
   const page = doc.addPage([612, 792]);
   const form = doc.getForm();

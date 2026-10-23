@@ -1,7 +1,7 @@
 // Builds src/features/person-agreements/source.generated.ts from the investment agreement and the two staff agreements
 // in ../docs/source (v2_investment.md, va_agreement.md, field_staff_agreement.md), so the Worker carries the text and an
 // agreement can be generated from an investor's or a staff member's record (migration 0049) instead of an uploaded PDF.
-// The numbered company name becomes {{company}} (the legal name from the settings, as on Forms C and D); dashes follow
+// The numbered company name becomes {{company}} (the legal name from the settings, as on Forms C and D, with no "operating as"); dashes follow
 // the copy rules; every blank [●] stays for src/features/person-agreements/model.ts to fill.
 //   node scripts/gen-person-agreements.mjs
 import { createHash } from 'node:crypto';
@@ -12,8 +12,9 @@ import { fileURLToPath } from 'node:url';
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(path.join(WEB, '../docs/source', f), 'utf8');
 const text = (s) => s
-  .replace(/\*\*(\d{6,} Canada Inc\.),?\*\*,? operating as CarmaCars/g, '**{{company}}**, operating as CarmaCars')
-  .replace(/\d{6,} Canada Inc\.,? operating as CarmaCars/g, '{{company}}, operating as CarmaCars')
+  // the company is named by its legal name alone, no "operating as" (the owner's decision of October 23, 2026)
+  .replace(/\*\*(\d{6,} Canada Inc\.),?\*\*,? operating as CarmaCars,?/g, '**{{company}}**')
+  .replace(/\d{6,} Canada Inc\.,? operating as CarmaCars,?/g, '{{company}}')
   .replace(/\*\*\d{6,} Canada Inc\.\*\*/g, '**{{company}}**')
   .replace(/\d{6,} Canada Inc\./g, '{{company}}')
   .replace(/ [–—] /g, ': ').replace(/[–—]/g, '-')

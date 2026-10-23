@@ -4,9 +4,10 @@
 // Additional Vehicle Schedule. The screen (AgreementView) and the PDF (agreementPdf) both render
 // these blocks, so what the owner reads is what the PDF holds. The articles come word for word from
 // docs/source (scripts/gen-owner-agreements.mjs).
-import { money, pct } from '@/lib/format';
-import { markdown, when, type Block, type SignatureRow } from '@/features/agreement/model';
-import { ENROLLMENT_ARTICLES, ENROLLMENT_SCHEDULE_B, OWNER_TEMPLATE_VERSION, TITLE_ARTICLES } from './source.generated';
+// Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
+import { companyParty, money, pct, phone } from '../../lib/format.ts';
+import { markdown, when, type Block, type SignatureRow } from '../agreement/model.ts';
+import { ENROLLMENT_ARTICLES, ENROLLMENT_SCHEDULE_B, OWNER_TEMPLATE_VERSION, TITLE_ARTICLES } from './source.generated.ts';
 
 export type PacketKey = 'enrollment' | 'title_holding' | 'additional';
 
@@ -21,7 +22,7 @@ export interface OwnerAgreementFacts {
   owner: { id: string; owner_type: 'individual' | 'corporation'; legal_name: string; corporation_name: string | null; corporation_number: string | null;
     email: string | null; phone: string | null; hst_number: string | null; address: string | null; signing_officer_name: string | null;
     signing_officer_title: string | null; signer_name: string; signer_role: string; payout: string | null };
-  company: { trade_name: string; address: string | null; email: string | null; phone: string | null; signing_officer_name: string; signing_officer_title: string | null; install_fee_cents: number; hst_bps: number };
+  company: { trade_name: string; legal_name?: string | null; address: string | null; email: string | null; phone: string | null; signing_officer_name: string; signing_officer_title: string | null; install_fee_cents: number; hst_bps: number };
   agreements: Array<{ id: string; kind: 'enrollment' | 'title_holding'; agreement_number: string; status: string; agreement_date: string | null; signature_request_id: string | null; document_sha256: string | null }>;
   schedules: OwnerSchedule[];
   /** The other Owners named in the Title Schedule (0053): each signs with their own link. */
@@ -67,7 +68,7 @@ const LABEL: Record<string, string> = {
 };
 const l = (v: string | null | undefined) => (v ? LABEL[v] ?? v : '');
 const vehicleLine = (s: OwnerSchedule) => [s.year, s.make, s.model, s.trim].filter(Boolean).join(' ') + (s.colour ? `, ${s.colour}` : '');
-const ownerLine = (f: OwnerAgreementFacts) => f.owner.owner_type === 'corporation' && f.owner.corporation_name ? `${f.owner.corporation_name} (${f.owner.legal_name})` : f.owner.legal_name;
+const ownerLine = (f: OwnerAgreementFacts) => f.owner.owner_type === 'corporation' && f.owner.corporation_name && f.owner.corporation_name !== f.owner.legal_name ? `${f.owner.corporation_name} (${f.owner.legal_name})` : f.owner.legal_name;
 const dateOr = (d: string | null | undefined, fallback: string) => (d ? when(`${d.slice(0, 10)}T12:00:00Z`, false) : fallback);
 
 function scheduleA(s: OwnerSchedule): Block {
@@ -110,7 +111,7 @@ function signatureRows(f: OwnerAgreementFacts, s?: SignedBy): SignatureRow[] {
   return [
     s?.owner ?? { party: ownerParty, name: f.owner.signer_name, signature: '', when: '' },
     ...others,
-    s?.carmacars ?? { party: 'CarmaCars', name: f.company.signing_officer_name, signature: others.length ? 'Applied when the last Owner signs' : 'Applied when the Owner signs', when: '' }
+    s?.carmacars ?? { party: 'CarmaCars', name: [f.company.signing_officer_name, f.company.signing_officer_title].filter(Boolean).join(', '), signature: others.length ? 'Applied when the last Owner signs' : 'Applied when the Owner signs', when: '' }
   ];
 }
 
@@ -118,9 +119,10 @@ export function documentBlocks(f: OwnerAgreementFacts, key: PacketKey, signed?: 
   const ea = agreement(f, 'enrollment');
   const ta = agreement(f, 'title_holding');
   const o = f.owner;
-  const company = `CarmaCars (CarmaCars.ca)`;
+  // the party is the numbered company alone, "18122211 Canada Inc." (the owner's decision of October 23, 2026)
+  const company = companyParty(f.company.legal_name, f.company.trade_name || 'CarmaCars');
   const notice = [f.company.address, f.company.email].filter(Boolean).join(', ') || 'The email address on this page';
-  const ownerAddress = [o.address, o.email, o.phone, o.hst_number ? `HST ${o.hst_number}` : 'No HST number'].filter(Boolean).join('; ');
+  const ownerAddress = [o.address, o.email, phone(o.phone), o.hst_number ? `HST ${o.hst_number}` : 'No HST number'].filter(Boolean).join('; ');
   if (key === 'enrollment') {
     const schedules = f.schedules.filter((s) => !s.is_additional);
     return [

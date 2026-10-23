@@ -6,10 +6,9 @@ import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
 import { CONFIRMATIONS, type PacketKey } from '@/features/owner-agreement/model';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
-import type { Official } from '@/features/official-forms/OfficialForm';
 import { OwnerPackage } from '@/features/signing/OwnerPackage';
 import { SignProgress, SignSummary, type ProgressItem, type SummaryRow } from '@/features/signing/Progress';
-import { ownerForms, requireOwner } from '@/server/owner/data';
+import { requireOwner } from '@/server/owner/data';
 import { findOpen, formABFacts, formSpec, ownerAgreementFacts, packetSpecs, partnerFacts, partnerSpec } from '@/server/signing/prepare';
 import { PrepareDocs } from '@/features/signing/PrepareDocs';
 import { SignTrouble } from './SignTrouble';
@@ -45,18 +44,15 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   const viewing = !!(await viewAs());
   const partner = home.kind === 'partner';
   // what this package holds, read in parallel; no PDF is made here (migration 0077)
-  const [checklist, facts, screen, pFacts, ready] = await Promise.all([
+  const [checklist, facts, screen, pFacts] = await Promise.all([
     rpc('server_my_signing_checklist', { p_by: user.id }, SR).catch(() => null) as unknown as Promise<Checklist | null>,
     partner ? Promise.resolve(null) : ownerAgreementFacts(home.owner.id, user.id),
     partner ? Promise.resolve([] as ScreenForm[]) : (rpc('owner_screen_forms', { p_by: user.id }, SR).catch(() => []) as unknown as Promise<ScreenForm[]>).then((x) => x.filter((f) => f.status !== 'signed')),
-    partner && home.partner?.agreement_status !== 'signed' ? partnerFacts(user.id) : Promise.resolve(null),
-    partner ? Promise.resolve([]) : ownerForms(user).then((x) => x.filter((f) => f.official && f.status === 'ready'))
+    partner && home.partner?.agreement_status !== 'signed' ? partnerFacts(user.id) : Promise.resolve(null)
   ]);
   const packetSpecsList = facts ? await packetSpecs(facts, home.owner.id, user.id) : [];
   const formSpecs = await Promise.all(screen.map(async (f) => formSpec(user.id, f.code, await formABFacts(user.id, f.code))));
   const paSpec = pFacts ? await partnerSpec(user.id, pFacts) : null;
-  const officials = (await Promise.all(ready.map((f) => rpc('owner_form_official', { p_by: user.id, p_fill: f.id }, SR).catch(() => null) as unknown as Promise<Official | null>)))
-    .filter((o): o is Official => !!o && Object.values(o.field_map).some((s) => typeof s !== 'string' && s.type === 'signature'));
   const all = [...packetSpecsList, ...formSpecs, ...(paSpec ? [paSpec] : [])];
   const open = await findOpen(user.id, all);
   const missing = all.filter((d) => !open.has(d.key));
@@ -68,8 +64,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   const docs = [
     ...packet.docs.map((d) => ({ key: d.key, title: d.title })),
     ...forms.map((f) => ({ key: `form-${f.code}`, title: f.title })),
-    ...(pa ? [{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }] : []),
-    ...officials.map((o) => ({ key: `official-${o.id}`, title: `${o.form_code} (${o.vehicle_name})` }))
+    ...(pa ? [{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }] : [])
   ];
   const spec: OwnerPackageSpec = {
     packet: packet.docs.map((d) => ({ key: d.key, sha: d.sha, title: d.title })),
@@ -78,10 +73,11 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
 
   // the checklist: what is in this package is marked; the rest says where it is done
   const inPackage = (code: string) => (code === 'enrollment' || code === 'title_holding' || code === 'schedule') ? packet.docs.length > 0
-    : code === 'form_a' || code === 'form_b' ? forms.some((f) => `form_${f.code.toLowerCase()}` === code) : code === 'partner_agreement' ? !!pa : code === 'registry_form' ? officials.length > 0 : false;
+    : code === 'form_a' || code === 'form_b' ? forms.some((f) => `form_${f.code.toLowerCase()}` === code) : code === 'partner_agreement' ? !!pa : false;
   const items: ProgressItem[] = (checklist?.items ?? []).map((i, n) => ({
     key: `${i.code}-${i.vehicle_id ?? ''}-${n}`, label: `${i.label}${i.vehicle_name && i.code !== 'registry_form' ? `, ${i.vehicle_name}` : ''}`, done: i.status === 'done',
-    note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking' : i.detail ?? null,
+    note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking'
+      : i.how === 'registry' ? i.detail ?? 'print it filled in and sign it in ink' : i.detail ?? null,
     href: i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/banking' : i.how === 'registry' ? '/owner/documents' : null,
     here: i.status !== 'done' && inPackage(i.code)
   }));
@@ -134,8 +130,6 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
               {packet.docs.map((d) => <details key={d.key}><summary>{d.title}</summary><AgreementView blocks={d.blocks} id={`ow-doc-${d.key}`} label={d.title} /></details>)}
               {forms.map((x) => <details key={x.code}><summary>{x.title}</summary><AgreementView blocks={x.blocks} id={`form-${x.code.toLowerCase()}`} label={x.title} /></details>)}
               {pa && <details><summary>{PARTNER_AGREEMENT_TITLE}</summary><AgreementView blocks={partnerAgreementBlocks(pa.facts)} id="partner-agreement" label={PARTNER_AGREEMENT_TITLE} /></details>}
-              {officials.map((o) => <details key={o.id}><summary>{o.form_code}: {o.title ?? 'registry form'} ({o.vehicle_name})</summary>
-                <p className="small">The official ServiceOntario form, filled from your records. Your signature goes in its signature box. <Link prefetch={false} className="link" href={`/owner/documents/forms/${o.id}/official`}>Download it to check</Link>.</p></details>)}
             </section>
           </div>
           <aside className="pt-split__aside">
@@ -143,7 +137,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
               {viewing ? <p className="small muted">Read only.</p> : missing.length ? (
                 <PrepareDocs targets={missing.map((d) => d.target)} titles={missing.map((d) => d.title)} />
               ) : (
-                <OwnerPackage docs={docs} signerName={signer} officials={officials} initials={enrollment}
+                <OwnerPackage docs={docs} signerName={signer} initials={enrollment}
                   statements={enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : []}
                   consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device. ${(f?.cosigners ?? []).some((c) => c.status !== 'signed') ? `Every Owner named in the Title Schedule signs with their own link (${(f?.cosigners ?? []).map((c) => c.name).join(', ')}); CarmaCars countersigns when the last one signs.` : 'CarmaCars countersigns at the same moment.'}`}
                   button={docs.length > 1 ? `Sign all ${docs.length}` : 'Sign'} action={signOwnerPackage.bind(null, spec)} />

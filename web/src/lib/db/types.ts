@@ -7224,6 +7224,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      official_form_originals: {
+        Row: {
+          id: string;
+          form_code: string;
+          from_sha256: string;
+          sha256: string;
+          file_key: string;
+          page_count: number | null;
+          kind: string;
+          field_names: Json;
+          field_map: Json;
+          notes: string | null;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_code: string;
+          from_sha256: string;
+          sha256: string;
+          file_key: string;
+          page_count?: number | null;
+          kind?: string;
+          field_names: Json;
+          field_map: Json;
+          notes?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_code?: string;
+          from_sha256?: string;
+          sha256?: string;
+          file_key?: string;
+          page_count?: number | null;
+          kind?: string;
+          field_names?: Json;
+          field_map?: Json;
+          notes?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       onboarding_checklist_items: {
         Row: {
           code: string;
@@ -19048,6 +19093,7 @@ export type Database = {
       server_seo_snapshots: { Args: never; Returns: number };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
+      server_sign_request_document: { Args: { p_id: string }; Returns: Json };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };

@@ -349,7 +349,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
   let text = '';
   await expect.poll(async () => (text = await signedText()).length, { timeout: 30_000, intervals: [1000, 3000, 5000] }).toBeGreaterThan(0);
   // in the signature block and in the signature record
-  expect(text.match(/Signed electronically for [^,]+, operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  expect(text.match(/Signed electronically for \d+ Canada Inc\., by Abbas Al-Mashita, Director, under a standing authorization dated [A-Z][a-z]+ \d{1,2}, \d{4}\./g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   expect(text).toContain(`Added by ${admin.name}`);
   expect(text).not.toMatch(new RegExp(`carmacars: ${admin.name}`, 'i'));
   await rp.context().close(); await page.context().close();
@@ -424,7 +424,8 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
     await op.goto(`/owner/invoices/${inv.invoice_number}`, { waitUntil: 'networkidle' });
     await op.locator('label:has-text("Pre-authorized debit")').click();
     await expect(op.getByTestId('fake-bank')).toBeVisible();
-    await expect(op.getByTestId('pad-payee')).toContainText('operating as CarmaCars');
+    await expect(op.getByTestId('pad-payee')).toContainText('Canada Inc.');
+    await expect(op.getByTestId('pad-payee')).not.toContainText('operating as');
     await expect(op.getByTestId('pad-one-time')).toContainText('I waive pre-notification and any waiting period for this one-time debit.');
     await check(op, 'invoice debit, two boxes');
     await op.locator('#ow-bname').fill(owner.name);

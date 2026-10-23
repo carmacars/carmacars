@@ -7,9 +7,7 @@
 // development sandbox cannot). Writes <out>/<code>.pdf and <out>/report.json.
 //
 //   node scripts/forms-fetch.mjs --out /tmp/forms
-import { mkdirSync, writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { PDFDocument, PDFCheckBox, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, PDFTextField, PDFName } from 'pdf-lib';
@@ -102,35 +100,19 @@ async function inspect(bytes) {
   return { pages: pages.length, sizes, xfa, fields, info };
 }
 
-// The template the platform fills: the publisher's PDF opened (the forms are encrypted with an empty password and
-// allow filling form fields; pdf-lib cannot read an encrypted file, so qpdf removes the encryption), with its XFA
-// part removed so the AcroForm fields are used. A pure XFA form (no AcroForm field at all) is laid out by pdf.js and
-// printed to a plain PDF with the box of each field: a coordinates-based template.
-function decrypt(bytes) {
-  const dir = mkdtempSync(join(tmpdir(), 'form-'));
-  writeFileSync(join(dir, 'in.pdf'), bytes);
-  try { execFileSync('qpdf', ['--decrypt', join(dir, 'in.pdf'), join(dir, 'out.pdf')], { stdio: 'pipe' }); }
-  catch (e) { if (e.status !== 3) throw new Error('qpdf could not open the PDF: ' + String(e.stderr ?? e.message).slice(0, 200)); }
-  return new Uint8Array(readFileSync(join(dir, 'out.pdf')));
-}
+// The template the platform fills is the publisher's PDF itself, byte for byte (0122, the owner's rule of October 23,
+// 2026: the forms stay exactly as ServiceOntario publishes them). It stays encrypted as published (the forms allow
+// filling); the filler (src/features/official-forms/pdf-update.ts) writes only the values of its empty text boxes, as
+// an incremental update. Its fields are read the same way: the PDF fields, or for an Adobe dynamic form (pure XFA, no
+// PDF field) the text fields of its XFA data.
 const encrypted = (b) => /\/Encrypt\s/.test(Buffer.from(b.subarray(Math.max(0, b.length - 4096))).toString('latin1') + Buffer.from(b.subarray(0, 4096)).toString('latin1'));
 
 async function prepare(original) {
-  const open = encrypted(original) ? decrypt(original) : original;
-  const seen = await inspect(open);
-  const fillable = seen.fields.filter((x) => x.type !== 'button');
-  if (fillable.length) {
-    const doc = await PDFDocument.load(open, { updateMetadata: false });
-    doc.getForm().deleteXFA();
-    const bytes = await doc.save({ useObjectStreams: false });
-    return { kind: 'acroform', bytes, ...seen, fields: fillable, decrypted: open !== original };
-  }
-  if (seen.xfa) {
-    const { renderXfa } = await import('./forms-xfa.mjs');
-    const x = await renderXfa(open);
-    return { kind: 'overlay', bytes: x.pdf, pages: x.pages, sizes: seen.sizes, xfa: true, pure_xfa: x.pure, fields: x.boxes, info: seen.info, decrypted: open !== original };
-  }
-  return { kind: 'overlay', bytes: open, ...seen, fields: [], decrypted: open !== original };
+  const { readPdfFields } = await import('../src/features/official-forms/pdf-update.ts');
+  const seen = encrypted(original) ? { sizes: null, xfa: null, info: null } : await inspect(original).catch(() => ({ sizes: null, xfa: null, info: null }));
+  const r = await readPdfFields(original);
+  const fields = r.fields.filter((x) => x.type !== 'button').map((x) => ({ ...x, ...(x.rect ? { rect: x.rect.map((n) => Math.round(n * 10) / 10) } : {}) }));
+  return { kind: 'acroform', bytes: original, pages: r.pages, sizes: seen.sizes, xfa: r.xfaOnly || !!seen.xfa, pure_xfa: r.xfaOnly, fields, info: seen.info, decrypted: false };
 }
 
 const LOCAL = arg('--local', null);
@@ -161,7 +143,7 @@ for (const f of FORMS) {
     writeFileSync(join(OUT, row.file), t.bytes);
     row.downloaded = true;
     row.ok = true;
-    console.log(`${f.code}: ${row.pdf_url} ${row.bytes} bytes${row.encrypted ? ' (encrypted, opened)' : ''}, ${row.pages} pages, ${row.fields.length} ${row.kind === 'acroform' ? 'fillable fields' : 'boxes for placed text'}${row.pure_xfa ? ' (pure XFA form, laid out by pdf.js)' : ''}`);
+    console.log(`${f.code}: ${row.pdf_url} ${row.bytes} bytes${row.encrypted ? ' (encrypted as published)' : ''}, ${row.pages} pages, ${row.fields.length} fillable fields${row.pure_xfa ? ' (an Adobe dynamic form: the fields of its XFA data)' : ''}`);
   } catch (e) {
     row.ok = false; row.error = e.message;
     console.log(`${f.code}: FAILED ${e.message}`);

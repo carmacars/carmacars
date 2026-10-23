@@ -28,7 +28,7 @@ export interface DebitTerms {
   late_fee_rule: string;
   /** What a returned debit the owner started from an invoice page does (no Late Fee). */
   own_debit_rule: string;
-  /** The payee: "<company legal name>, operating as CarmaCars", address, phone and the billing email (the legal review, 0053). */
+  /** The payee: the company's legal name ("18122211 Canada Inc.", 0122), address, phone and the billing email (the legal review, 0053). */
   payee: { name: string; address: string; phone: string; email: string };
   /** The recurring pre-authorized debit agreement, one string per paragraph, for a personal and a business account (0053). */
   agreement?: { personal: string[]; business: string[] };

@@ -3,7 +3,9 @@ import { companySignature } from '@/server/signature-lines';
 import { screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
+import { PDFDocument } from 'pdf-lib';
 import { agreementPdf } from '@/features/agreement/pdf';
+import type { Bucket } from '@/integrations/storage/types';
 import { when, type Block, type SignatureRow } from '@/features/agreement/model';
 import { screenFormBlocks } from '@/features/owner-agreement/screen-forms';
 import { requestMeta } from '@/server/request';
@@ -79,6 +81,26 @@ export async function signDocument(userId: string, input: { id: string; sha: str
   return { status: 'signed', signature_request_id: r.signature_request_id, title: r.title };
 }
 
+/** The signed copy of a document rendered elsewhere (an investment or staff agreement, or a PDF an Admin sent): the
+ *  document as it was signed (checked against the SHA-256 the signature names), then the signature page and the record.
+ *  A document that cannot be read or does not match leaves the signature page alone, as before. */
+async function withDocument(s: Awaited<ReturnType<typeof storage>>, requestId: string, signature: Uint8Array, expected: string): Promise<Uint8Array> {
+  try {
+    const d = (await rpc('server_sign_request_document', { p_id: requestId }, SR)) as unknown as { bucket: string; path: string } | null;
+    if (!d?.path) return signature;
+    const original = await s.get(d.bucket as Bucket, d.path);
+    if (!original || (expected && (await sha256Hex(original)) !== expected.toLowerCase())) return signature;
+    const out = await PDFDocument.load(original, { ignoreEncryption: true, updateMetadata: false });
+    const sig = await PDFDocument.load(signature, { updateMetadata: false });
+    for (const p of await out.copyPages(sig, sig.getPageIndices())) out.addPage(p);
+    out.setTitle(sig.getTitle() ?? ''); out.setProducer('CarmaCars'); out.setCreator('CarmaCars');
+    return await out.save({ useObjectStreams: false });
+  } catch (e) {
+    console.error('signed copy: the document could not be joined', e);
+    return signature;
+  }
+}
+
 export async function attachSignedRecord(userId: string, r: SignedRequest, drawnPath: string | null) {
   const s = await storage();
   const images = new Map<number, Uint8Array>();
@@ -89,10 +111,11 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'partner' ? 'Partner' : rec.signer_role === 'staff' ? 'Staff member' : 'Owner', name: rec.signer_name,
     signature: rec.method === 'typed' ? `Typed: ${rec.typed_name ?? rec.signer_name}` : 'Drawn signature', when: when(rec.signed_at) };
   let blocks: Block[];
+  let whole = false; // the document itself goes in front of the signature page (investment, staff and uploaded agreements)
   if (r.doc_type === 'form_a' || r.doc_type === 'form_b') {
     const code = r.doc_type === 'form_a' ? 'A' : 'B';
     const facts = await formABFacts(userId, code);
-    blocks = screenFormBlocks(facts, { owner: row, carmacars: { party: code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? 'Signed electronically for CarmaCars', when: when(rec.signed_at) } });
+    blocks = screenFormBlocks(facts, { owner: row, carmacars: { party: code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? `Signed electronically for ${facts.company.legal_name || facts.company.brand}.`, when: when(rec.signed_at) } });
   } else if (r.doc_type === 'form_c' && r.vehicle_id) {
     const facts = (await rpc('server_witnessed_form_facts', { p_by: userId, p_code: 'C', p_vehicle: r.vehicle_id }, SR)) as unknown as WitnessedFacts;
     const w = company.witness;
@@ -100,9 +123,10 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
       initials: rec.initials ? Object.values(rec.initials)[0] : undefined });
   } else if (r.doc_type === 'partner_agreement') {
     const facts = await partnerFacts(userId);
-    blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? 'Signed electronically for CarmaCars', when: when(rec.signed_at) } })
+    blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? `Signed electronically for ${facts.company.legal_name || facts.company.brand}.`, when: when(rec.signed_at) } })
       : [{ t: 'title', text: r.title }, { t: 'signatures', rows: [row] }];
   } else {
+    whole = true;
     blocks = [{ t: 'title', text: `${r.title}: signature` }, { t: 'p', text: 'This page records the signature of the document named below. The document itself is filed beside it, unchanged.' },
       { t: 'table', head: ['Document', 'SHA-256 of the document signed'], rows: [[r.title, r.document_sha256]] }, { t: 'signatures', rows: [row] }];
   }
@@ -112,7 +136,8 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
     [`${rec.signer_role.replace(/_/g, ' ')}: ${rec.signer_name}`, `${when(rec.signed_at)}; method ${rec.method}${rec.ip_address ? `; IP address ${rec.ip_address}` : ''}${rec.user_agent ? `; device ${rec.user_agent}` : ''}${rec.initials ? `; initials ${Object.values(rec.initials).join(', ')}` : ''}`],
     ...company.lines
   ];
-  const pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
+  let pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
+  if (whole) pdf = await withDocument(s, r.id, pdf, r.document_sha256);
   const sha = await sha256Hex(pdf);
   const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
   const path = `${base}/${r.doc_type}-${r.id.slice(0, 8)}-signed.pdf`;

@@ -13,9 +13,9 @@ select test.mk_user('lr_admin', 'admin');
 select test.mk_user('lr_cs', 'va', 'cs');
 
 -- ================================================================ 1. billing and pre-authorized debit
--- Payee name: "[company legal name], operating as CarmaCars"
-select test.eq('payee: the legal name, operating as CarmaCars', app.owner_payee_name(), (select company_legal_name from app.settings()) || ', operating as CarmaCars');
-select test.eq('payee: in the PAD agreement''s first paragraph (1.2)', app.owner_debit_terms() #>> '{agreement,personal,0}' like 'You authorize ' || app.owner_payee_name() || ', to debit the bank account you give%', true);
+-- Payee name: "[company legal name]" alone (the owner's decision of October 23, 2026, 0122: no "operating as")
+select test.eq('payee: the legal name alone', app.owner_payee_name(), (select company_legal_name from app.settings()));
+select test.eq('payee: in the PAD agreement''s first paragraph (1.2)', app.owner_debit_terms() #>> '{agreement,personal,0}' like 'You authorize ' || app.owner_payee_name() || ' to debit the bank account you give%', true);
 -- Stripe mandate description (1.3)
 select test.eq('mandate description (1.3), word for word', app.owner_mandate_description(),
   (select company_legal_name from app.settings()) || ' o/a CarmaCars: fees on your CarmaCars invoices on the 15th of each month, with notice 10 days before. A debit returned for insufficient funds is retried once for the same amount.');
@@ -174,11 +174,11 @@ select test.ok('void notice (6.2): the approved sentence and its values',
 -- ================================================================ 2. signatures
 -- 6.4 the corporate countersignature with the signing officer's name; staff appear only as "Proposed by" or "Added by"
 select test.eq('countersignature wording, as approved', app.corporate_signature_text(),
-  format('Signed electronically for %s, operating as CarmaCars, by %s, %s, under a standing authorization dated %s.',
+  format('Signed electronically for %s, by %s, %s, under a standing authorization dated %s.',
          (select company_legal_name from app.settings()), (select signing_officer_name from app.settings()), (select signing_officer_title from app.settings()),
          (select to_char(signing_officer_authorized_on, 'FMMonth FMDD, YYYY') from app.settings())));
 select test.eq('every automatic countersignature made since 0053 has the approved wording, in the signing officer''s name (method "automatic")',
-  (select count(*) from signature_records r where r.signer_role = 'carmacars' and r.method = 'automatic' and r.consent_text not like 'Signed electronically for %, operating as CarmaCars%'), 0::bigint);
+  (select count(*) from signature_records r where r.signer_role = 'carmacars' and r.method = 'automatic' and (r.consent_text not like 'Signed electronically for %' or r.consent_text like '%operating as%')), 0::bigint);
 select test.eq('no automatic countersignature names a staff member as the signer',
   (select count(*) from signature_records r where r.signer_role = 'carmacars' and r.method = 'automatic' and r.signer_user_id is not null
       and r.signer_user_id is distinct from (select signing_officer_user_id from app.settings())), 0::bigint);
