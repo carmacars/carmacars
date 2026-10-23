@@ -174,10 +174,13 @@ restore() {
   if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
     archiving=yes; vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/enabled /opt/carmacars/backup/enabled-flag/paused
   fi
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -c 'SET session_replication_role = replica' -c 'SET synchronous_commit = off' -f "$W/data.fit.sql" > /dev/null 2> "$W/data.err" \
+  local tl; tl=$(date +%s)
+  # compressed over SSH and loaded inside the server (bin/sql-load): COPY through the tunnel ran at under 1 MB/s
+  zstd -q -3 -T0 -c "$W/data.fit.sql" | vps_ssh sudo /opt/carmacars/bin/sql-load postgres 2> "$W/data.err" \
     || { [ "$archiving" = yes ] && vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled
          grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
   if [ "$archiving" = yes ]; then vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled; fi
+  local load_s=$(( $(date +%s) - tl ))
   migrations
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
@@ -203,7 +206,7 @@ restore() {
   psql "$admin" -X -q -c "vacuum analyze" > /dev/null 2>&1 || warn "vacuum analyze did not finish"
   local f; f="$W/filter.json"
   { echo "### Restore"; echo
-    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s; $n role/database settings copied, $failed failed"
+    echo "- $(jq .tables_copied "$f") tables, $(jq .rows_copied "$f") rows loaded in $(( $(date +%s) - t0 )) s (the data itself $load_s s); $n role/database settings copied, $failed failed"
     echo "- role settings left to the image's defaults (compare by hand): ${left[*]:-none}"
     echo "- left to their own step: $(jq -r '.skipped_by_rule | to_entries | map("\(.key) (\(.value))") | join(", ")' "$f")"
     echo "- tables the server does not have (Auth/Storage versions): $(jq -r '.missing_on_server | to_entries | map("\(.key) (\(.value) rows)") | join(", ") | if . == "" then "none" else . end' "$f")"
@@ -377,6 +380,12 @@ verify() {
   vs_dump=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile f "$W/filter.json" '[$f[0].rows | to_entries[] | select(($v[0][.key] // -1) != .value) | {table: .key, dump: .value, server: ($v[0][.key] // null)}]')
   vs_hosted=$(jq -n --slurpfile v "$W/vps-counts.json" --slurpfile h "$W/hosted-counts-now.json" '[$h[0] | to_entries[] | select(.key | test("^(auth\\.schema_migrations|storage\\.migrations)$") | not) | select(($v[0][.key] // 0) != .value) | {table: .key, hosted: .value, server: ($v[0][.key] // null)}]')
   printf '%s' "$vs_dump" > "$W/diff-dump.json"; printf '%s' "$vs_hosted" > "$W/diff-hosted.json"
+  # files stored on the hosted project after the dump are copied too (the storage step reads the list now): more rows in
+  # storage.objects than the dump is drift in a rehearsal (the hosted project is frozen for the final copy)
+  if [ "$COPY_MODE" != final ] && [ "$(jq '[.[] | select(.table == "storage.objects" and .server > .dump)] | length' <<<"$vs_dump")" != 0 ]; then
+    infos+=("storage.objects: $(jq -c '[.[] | select(.table == "storage.objects")][0] | "\(.server) on the server, \(.dump) in the dump"' <<<"$vs_dump") (files stored since the dump)")
+    vs_dump=$(jq -c '[.[] | select(.table != "storage.objects")]' <<<"$vs_dump")
+  fi
   [ "$(jq length <<<"$vs_dump")" = 0 ] || problems+=("$(jq length <<<"$vs_dump") tables differ from the dump: $(jq -c '.[:8]' <<<"$vs_dump")")
   # sign-ins keep writing these on the hosted project when only the database API could be frozen (cutover.sh)
   local churn='^auth\.(refresh_tokens|sessions|audit_log_entries|flow_state|one_time_tokens|mfa_challenges|mfa_amr_claims)$'

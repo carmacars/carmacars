@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Load a zstd-compressed SQL stream (stdin) into the database, inside the server: one transaction, triggers off
+# (session_replication_role = replica), as postgres (or the role given). Used by the copy for the data: streaming
+# compressed over SSH is several times faster than COPY through the tunnel.
+set -euo pipefail
+role="${1:-postgres}"
+[[ "$role" =~ ^(postgres|supabase_admin)$ ]] || { echo "usage: sql-load [postgres|supabase_admin] < data.sql.zst" >&2; exit 2; }
+pw=$(/opt/carmacars/bin/secret POSTGRES_PASSWORD)
+zstd -dc | docker exec -i -e PGPASSWORD="$pw" supabase-db psql -h 127.0.0.1 -U "$role" -d postgres -X -q -v ON_ERROR_STOP=1 \
+  --single-transaction -c 'SET session_replication_role = replica' -c 'SET synchronous_commit = off' -f - > /dev/null

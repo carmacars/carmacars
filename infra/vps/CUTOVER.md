@@ -186,6 +186,27 @@ The Supabase compute prices are the published ones (Medium US$60, Large US$110, 
 check supabase.com/pricing and the OVHcloud order page before deciding. GitHub Actions minutes are free while the
 repository is public (vps-health every 5 minutes, the nightly backup).
 
+## Status (October 23, 2026)
+Server 54.39.111.152 (OVHcloud VPS-4, Beauharnois) is provisioned; host key pinned in `known_hosts`; DNS-only
+`api.carmacars.ca` with a Let's Encrypt certificate. Backups go to the Cloudflare R2 bucket `carmacars-backups`
+(settings read from the vault's `deploy_backup_*`). Proven on the server:
+- vps-provision: every health check, inside and over https.
+- vps-copy rehearsal: verify "the server matches" (327 tables, about 588,000 rows, 24 vault secrets that decrypt,
+  45 pg_cron jobs paused, 1,317 stored files, Auth settings and RPC answers identical, Google sign-in carried).
+- vps-backup: configure (wal-g on R2), logical backup + restore test (334 of 334 tables equal), PITR test
+  (base backup + archived WAL replayed, ok).
+Found and fixed on the way: the platform's own Postgres image (17.11.0.003) does not set up the self-hosted roles
+(the stack uses the official self-hosted 17.6.1.136); the CLI's data dump leaves out the migration history (copied
+separately, else the deploy would re-run migrations); a HEAD on Storage answers from the database row (files are
+now checked by reading their first byte).
+
+Left before the cutover:
+- Google Cloud console: add `https://api.carmacars.ca/auth/v1/callback` to the OAuth client's authorised redirect
+  URIs (Sign in with Google goes through Supabase Auth's callback, which moves).
+- Decide the freeze window from the rehearsal timings (dump about 2.5 min; the data load is the long part).
+- Hosted settings GoTrue has no variable for (listed by the copy's auth step: the security notification emails,
+  `mfa_phone_*`, `rate_limit_web3`, `custom_oauth_max_providers`); none is used by the site today.
+
 ## Tested and not tested
 Tested here (no server exists yet): `docker compose config` with the env files (including the quoting of JSON keys
 and apostrophes in auth.env), `caddy validate`, YAML parsing, `actionlint` with `shellcheck` on every workflow,
