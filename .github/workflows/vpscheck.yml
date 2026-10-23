@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        section: [diag4]
+        section: [hl]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
