@@ -36,6 +36,18 @@ async function open(scale = 1) {
   await page.goto(base, { waitUntil: 'load' });
   const n = await page.evaluate((tl) => window.__init(tl), timeline);
   await page.evaluate(() => window.__ready());
+  if (scale === 1 && !open.checked) {
+    open.checked = true;
+    // layout check with the real figures: a slide whose content runs past its 1080 px, or past its width
+    const over = await page.evaluate(() => Array.from(document.querySelectorAll('#stage .dk-slide__in')).map((el, i) => {
+      el.parentElement.parentElement.style.display = 'block';
+      const r = { i: i + 1, title: el.parentElement.getAttribute('aria-label'), h: el.scrollHeight, w: el.scrollWidth };
+      el.parentElement.parentElement.style.display = 'none';
+      return r;
+    }).filter((r) => r.h > 1082 || r.w > 1922));
+    if (over.length) for (const o of over.slice(0, 8)) report('warning', 'layout', `${o.title}: content ${o.w}x${o.h} px in 1920x1080`);
+    else report('notice', 'layout', `all ${n} slides fit 1920x1080`);
+  }
   return { page, n };
 }
 
