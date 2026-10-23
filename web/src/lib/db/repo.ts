@@ -81,9 +81,41 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
     if (!p) { p = b.call(fn, a, { ...rest, role }); buildReads.set(key, p); p.catch(() => buildReads.delete(key)); }
     return (await p) as ReturnsOf<F>;
   }
+  // Site-wide public reads (settings, facts, footer links, sitemap lists): the same answer for every visitor, so each
+  // Worker instance keeps it for SHARED_TTL_MS, shares one call among concurrent requests, and keeps serving the last
+  // good answer for up to a day when the database errors or is too busy. Before this, every page render read them
+  // again (seo_links and site_facts were about 0.5 s each), and a crawl made the database fall over (2026-10-22).
+  if (role === 'anon' && !accessToken && SHARED_READS.has(fn) && env().DATA_BACKEND !== 'local') {
+    return (await sharedRead(`${fn}:${JSON.stringify(a)}`, () => b.call(fn, a, { ...rest, role }))) as ReturnsOf<F>;
+  }
   return (await b.call(fn, a, { ...rest, role, accessToken })) as ReturnsOf<F>;
 }
 const buildReads = new Map<string, Promise<unknown>>();
+
+const SHARED_READS = new Set<string>([
+  'site_settings_public', 'site_facts', 'site_content', 'vehicle_classes', 'seo_links', 'seo_pages_public', 'articles_public',
+  'sitemap_all', 'place_sitemap_files', 'vehicle_tiers', 'vehicle_tier_files_count', 'vehicle_sitemap_index'
+]);
+const SHARED_TTL_MS = 5 * 60_000;
+const SHARED_STALE_MS = 24 * 3600_000;
+const shared = new Map<string, { at: number; value?: unknown; pending?: Promise<unknown> }>();
+/** One shared read: fresh for SHARED_TTL_MS, refreshed by one caller at a time, the last good value on an error. */
+export async function sharedRead(key: string, load: () => Promise<unknown>, now = Date.now()): Promise<unknown> {
+  const e = shared.get(key);
+  const has = e !== undefined && 'value' in e;
+  if (has && now - e.at < SHARED_TTL_MS) return e.value;
+  if (e?.pending) return has ? e.value : e.pending;
+  const entry = e ?? { at: 0 };
+  const p = load().then(
+    (v) => { entry.at = Date.now(); entry.value = v; entry.pending = undefined; return v; },
+    (err) => { entry.pending = undefined; if ('value' in entry && Date.now() - entry.at < SHARED_STALE_MS) return entry.value; if (!('value' in entry)) shared.delete(key); throw err; }
+  );
+  entry.pending = p;
+  if (has) p.catch(() => {});
+  shared.set(key, entry);
+  if (shared.size > 2000) shared.delete(shared.keys().next().value as string);
+  return has ? entry.value : p;
+}
 
 /** Functions the browser may call through the local bridge (the same set anon may execute). */
 export const BROWSER_FUNCTIONS = new Set<FnName>([
