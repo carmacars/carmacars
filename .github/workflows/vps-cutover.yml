@@ -4,11 +4,14 @@ name: vps-cutover
 #   status           read only: the hosted project's freeze and jobs, the server's live flag and jobs
 #   freeze-hosted    the hosted project stops taking writes (jobs paused, read-only by default)   [writes the hosted project]
 #   final-copy       the full copy again, now of the frozen project; counts must match exactly
-#   go-live          the server's jobs resume and it is marked live (the copy refuses from then on)
+#   go-live          the server's jobs resume and it is marked live (the copy refuses from then on); then
+#                    infra/vps/backend becomes vps (committed to main by this workflow) and ci deploys the site
+#                    (checks off: the commit on main already passed them) unless deploy is off
 #   unfreeze-hosted  abort before go-live: the hosted project takes writes again, its jobs resume [writes the hosted project]
-#   rollback         after go-live: the server's jobs paused, not live, the hosted project unfrozen
-# Every switch but status needs the confirmation text CUTOVER. Setting the repository variable DB_BACKEND (vps or
-# supabase) and running ci with deploy are done by hand between the steps (CUTOVER.md says where).
+#   rollback         after go-live: the server's jobs paused, not live, the hosted project unfrozen; then
+#                    infra/vps/backend back to supabase and the site deployed again (unless deploy is off)
+# Every switch but status needs the confirmation text CUTOVER. A repository variable DB_BACKEND, if one is ever set,
+# wins over infra/vps/backend: keep it unset.
 on:
   workflow_dispatch:
     inputs:
@@ -25,9 +28,14 @@ on:
         description: final-copy only - Storage buckets not copied
         type: string
         default: backups
+      deploy:
+        description: go-live and rollback - commit infra/vps/backend and deploy the site (ci, production, checks off)
+        type: boolean
+        default: true
 
 permissions:
-  contents: read
+  contents: write   # go-live and rollback commit infra/vps/backend to main
+  actions: write    # ...and start the ci deploy
 
 concurrency:
   group: vps-ops
@@ -88,3 +96,29 @@ jobs:
       - name: Switch
         if: inputs.action != 'final-copy'
         run: infra/vps/scripts/cutover.sh "$ACTION"
+      - name: infra/vps/backend and the site's deploy
+        if: (inputs.action == 'go-live' || inputs.action == 'rollback') && inputs.deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          want=vps; [ "$ACTION" = rollback ] && want=supabase
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          pushed=no
+          for _ in 1 2 3; do
+            git fetch -q origin main && git checkout -q -B main origin/main
+            awk -v w="$want" 'BEGIN{done=0} /^[[:space:]]*#/ || /^[[:space:]]*$/ {print; next} !done {print w; done=1; next} {print}' infra/vps/backend > infra/vps/backend.new
+            grep -qx "$want" infra/vps/backend.new || echo "$want" >> infra/vps/backend.new
+            mv infra/vps/backend.new infra/vps/backend
+            if git diff --quiet -- infra/vps/backend; then echo "infra/vps/backend is already $want"; pushed=yes; break; fi
+            git add infra/vps/backend
+            git commit -q -m "Supabase backend: $want (vps-cutover $ACTION, run $GITHUB_RUN_ID)"
+            if git push -q origin main; then pushed=yes; break; fi
+            sleep 5
+          done
+          [ "$pushed" = yes ] || { echo "::error::could not push infra/vps/backend=$want to main: set it by hand and run ci with deploy"; exit 1; }
+          echo "::notice title=cutover::infra/vps/backend = $want on main ($(git rev-parse --short HEAD))"
+          gh workflow run ci.yml -R "$GITHUB_REPOSITORY" --ref main -f deploy=true -f checks=false -f environment=production
+          sleep 8
+          run=$(gh run list -R "$GITHUB_REPOSITORY" -w ci.yml -L 1 --json databaseId,url --jq '.[0].url')
+          echo "::notice title=cutover::site deploy started: $run (about 15 minutes; then the smoke tests of CUTOVER.md)"

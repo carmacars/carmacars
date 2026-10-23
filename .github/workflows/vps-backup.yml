@@ -11,7 +11,8 @@ name: vps-backup
 #     on the runner and compared table by table (scripts/backup/restore-test.sh)
 #   - Mondays: the point-in-time restore test on the server (bin/walg-restore-test: newest base backup + every
 #     archived WAL file, replayed in a throwaway container without network)
-# The schedules act only once the server is the backend (repository variable DB_BACKEND=vps); by hand, any time.
+# The schedules act only once the server is the backend (infra/vps/backend = vps, or the repository variable
+# DB_BACKEND); by hand, any time.
 #
 # The bucket's settings: repository secrets BACKUP_S3_ENDPOINT (https://...), BACKUP_S3_REGION, BACKUP_S3_BUCKET,
 # BACKUP_S3_ACCESS_KEY_ID, BACKUP_S3_SECRET_ACCESS_KEY, BACKUP_WALG_KEY (64 hex characters; keep a copy in the company
@@ -48,7 +49,7 @@ env:
   BACKUP_WALG_KEY: ${{ secrets.BACKUP_WALG_KEY }}
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-  LIVE_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+  LIVE_BACKEND: ${{ vars.DB_BACKEND }}
 
 # a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
 defaults:
@@ -56,6 +57,27 @@ defaults:
     shell: bash .github/ci-run.sh vps-backup bash --noprofile --norc -eo pipefail {0}
 
 jobs:
+  # where Supabase is: the repository variable DB_BACKEND when set, else the committed infra/vps/backend
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.b.outputs.backend }}
+      health: ${{ steps.b.outputs.health }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+      - id: b
+        env:
+          DB_BACKEND: ${{ vars.DB_BACKEND }}
+          VPS_HEALTH: ${{ vars.VPS_HEALTH }}
+        run: |
+          echo "backend=$(infra/vps/scripts/backend.sh)" >> "$GITHUB_OUTPUT"
+          echo "health=$(infra/vps/scripts/backend.sh health)" >> "$GITHUB_OUTPUT"
+
   configure:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'configure'
     runs-on: ubuntu-24.04
@@ -72,7 +94,8 @@ jobs:
             | vps_ssh sudo /opt/carmacars/bin/backup-configure | sed 's/^/::notice title=wal-g::/'
 
   backup:
-    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *' && vars.DB_BACKEND == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
+    needs: gate
+    if: (github.event_name == 'schedule' && github.event.schedule == '23 7 * * *' && needs.gate.outputs.backend == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -117,7 +140,8 @@ jobs:
         run: rm -rf "$RUNNER_TEMP/backup"
 
   pitr-test:
-    if: (github.event_name == 'schedule' && github.event.schedule == '17 9 * * 1' && vars.DB_BACKEND == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'pitr-test')
+    needs: gate
+    if: (github.event_name == 'schedule' && github.event.schedule == '17 9 * * 1' && needs.gate.outputs.backend == 'vps') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'pitr-test')
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:

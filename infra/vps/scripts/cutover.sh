@@ -111,14 +111,14 @@ go_live() {
   vps_ssh "sudo sh -c 'date -u +%FT%TZ > /opt/carmacars/state/live'"
   vps_sql "select count(cron.alter_job(jobid, active := true)) as resumed from cron.job where jobname = any(array(select jsonb_array_elements_text('$(sed "s/'/''/g" <<<"$names")'::jsonb)))" > /dev/null
   status
-  note "the server is live: its pg_cron jobs run (emails, debits, calendar sync). Next: set the repository variable DB_BACKEND=vps and run ci with deploy."
+  note "the server is live: its pg_cron jobs run (emails, debits, calendar sync). Next (the vps-cutover workflow does it unless deploy is off): infra/vps/backend = vps, then ci with deploy."
 }
 
 rollback() {
   vps_sql "select count(cron.alter_job(jobid, active := false)) as paused from cron.job where active" > /dev/null || true
   vps_ssh "sudo rm -f /opt/carmacars/state/live"
   unfreeze_hosted
-  note "rolled back to the hosted project: set the repository variable DB_BACKEND=supabase (or delete it) and run ci with deploy"
+  note "rolled back to the hosted project: infra/vps/backend = supabase, then ci with deploy (the vps-cutover workflow does both unless deploy is off)"
 }
 
 case "${1:-}" in
