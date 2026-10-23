@@ -95,12 +95,16 @@ else
 fi
 if [ "$consistent" = true ]; then
   echo "$COUNTS_SQL;" >&"${PSQL[1]}"
-  read -r -t 300 counts <&"${PSQL[0]}" || counts=""
+  counts=""
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    read -r -t 300 line <&"${PSQL[0]}" || break
+    if [[ "$line" == "{"* ]]; then counts="$line"; break; fi
+  done
 fi
 echo "commit;" >&"${PSQL[1]}"; echo '\q' >&"${PSQL[1]}"; wait "${PSQL_PID:-}" 2>/dev/null || true
 if [ "$consistent" != true ]; then
   pg_dump "${dump_args[@]}" --file="$FILE" 2> "$OUT/pg_dump.log" || fail "pg_dump failed: $(tail -n 3 "$OUT/pg_dump.log" | tr '\n' ' ')"
-  counts=$(psql -X -q -At -v ON_ERROR_STOP=1 -c "$COUNTS_SQL")
+  counts=$(psql -X -q -At -v ON_ERROR_STOP=1 -c "$COUNTS_SQL" 2>/dev/null | grep '^{')
 fi
 jq -e 'type == "object" and length > 100' <<<"$counts" > /dev/null || fail "the table counts could not be read"
 server=$(psql -X -q -At -c "show server_version")
