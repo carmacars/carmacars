@@ -66,16 +66,20 @@ places() {
   local out; out="$(mktemp -d)"
   (cd "$WEB" && node scripts/places/build.mjs --out "$out" >/dev/null && DATABASE_URL="$URL" node scripts/places/load.mjs --in "$out" | tail -n 1)
   rm -rf "$out"
+  # the jobs production runs every few minutes (pg_cron, absent here) over the places just loaded: the place roots, the
+  # priority sitemap (0115) and the place directory, so /sitemap-priority.xml and /places list the test places
+  run "$URL" -c "select app.place_roots_refresh()" -c "select app.sitemap_priority_refresh()" -c "select app.place_directory_refresh()" >/dev/null
 }
+seed() { (cd "$WEB" && DATABASE_URL="$URL" node scripts/seed.mjs); }
 
 case "${1:-up}" in
   up)
     start
     if ! "$PSQL" -X -At "$ADMIN" -c "select 1 from pg_database where datname = '$DB'" | grep -q 1; then
-      build; [ "${2:-}" = --no-seed ] || { (cd "$WEB" && node scripts/seed.mjs); places; }
+      build; [ "${2:-}" = --no-seed ] || { seed; places; }
     fi
     echo "DATABASE_URL=$URL" ;;
-  reset) start; build; (cd "$WEB" && node scripts/seed.mjs); places ;;
+  reset) start; build; seed; places ;;
   down) ${AS_PG[@]+"${AS_PG[@]}"} "$PG_CTL" -D "$DIR/data" -m fast stop ;;
   *) echo "usage: $0 up|reset|down" >&2; exit 2 ;;
 esac

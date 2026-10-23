@@ -240,7 +240,12 @@ select test.ok('a 429 backs off and keeps the cursor', (select backoff_until > n
 update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0;
 
 -- the switches: off takes the tier out of search at once
+select app.vehicle_sitemap_files_refresh();
+select app.vehicle_sitemap_shape_refresh();
+select test.ok('0119: the stored shape names the /buy tree while it is on', public.vehicle_sitemap_shape() -> 'trees' ? 'buy-');
 update program_settings set vpage_place_index = false, vpage_buy_index = false, vpage_detailing_index = false where id = (app.settings()).id;
+select test.ok('0119: a switch turned off is in the sitemap shape at once, not after the job', not (public.vehicle_sitemap_shape() -> 'trees' ? 'buy-')
+  and public.vehicle_sitemap_shape() = app.vehicle_sitemap_shape_live());
 select test.ok('place switch off: noindex, canonical at the trim; the colour pages stay', not (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'indexable')::boolean
   and public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', 'vp-town', null) ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline'
   and (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'gold') ->> 'indexable')::boolean
@@ -248,6 +253,8 @@ select test.ok('place switch off: noindex, canonical at the trim; the colour pag
 select test.ok('/buy and detailing switches off: those trees leave the sitemaps', not public.vehicle_sitemap_tree('buy-') and not public.vehicle_sitemap_tree('t-used-')
   and not public.vehicle_sitemap_tree('t-ceramic-coating-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-bumper-repair-'));
 update program_settings set vpage_place_index = true, vpage_buy_index = true, vpage_detailing_index = true where id = (app.settings()).id;
+select test.ok('0119: switched back on, the stored shape is read again', public.vehicle_sitemap_shape() -> 'trees' ? 'buy-'
+  and public.vehicle_sitemap_shape() = (select shape from app.vehicle_sitemap_files_cache_state limit 1));
 
 -- ---------------------------------------------------------------- the /buy twins: for sale only when a car really is
 select test.eq('no car flagged: nothing for sale', jsonb_array_length(public.vehicle_buy_extras('volkswagen', 'jetta', 2020, 'sportline') -> 'for_sale'), 0);

@@ -2,6 +2,7 @@ import 'server-only';
 import { rpc, sharedRead } from '@/lib/db/repo';
 import { absUrl } from '@/features/seo/meta';
 import { siteUrl } from '@/lib/site';
+import { env } from '@/lib/env';
 
 // The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
 // visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
@@ -26,8 +27,12 @@ const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
 // The site's own sitemap rows and the place file list are the same for every request: kept per Worker for 5 minutes
 // (sharedRead). Google fetched hundreds of index files at once on Oct 23, each reading both again, and the busy
 // database made many of them pass Google's time limit ("Couldn't fetch").
+// The local stack (DATA_BACKEND=local: next dev and the end-to-end tests) reads them every time, as the anon shared
+// reads already do (src/lib/db/repo.ts), so an Admin switch shows in the sitemaps at once; the database's own stored
+// lists follow a switch at once too (0119).
+const memo = (key: string, load: () => Promise<unknown>) => (env().DATA_BACKEND === 'local' ? load() : sharedRead(key, load));
 async function rows(): Promise<Row[]> {
-  return ((await sharedRead('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
+  return ((await memo('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
 }
 
 type Prio = Array<{ path: string; lastmod: string | null }>;
@@ -66,7 +71,7 @@ type VIndex = { total: number; files: Array<{ file: string; lastmod: string | nu
 // 0110: the numbering of app.vpage_index_page, done here from the stored shape (the level files, the place and colour
 // files per tree, the trees) instead of 50,000 rows built in SQL on every request (7 to 12 s, past the 8 s limit).
 type Shape = { base: Array<{ file: string; lastmod: string | null }>; tiers: number; trees: string[] };
-const shape = () => sharedRead('vehicle_sitemap_shape', () => rpc('vehicle_sitemap_shape', {}, SR)) as Promise<Shape>;
+const shape = () => memo('vehicle_sitemap_shape', () => rpc('vehicle_sitemap_shape', {}, SR)) as Promise<Shape>;
 export function numberFiles(sh: Shape, offset: number, limit: number): VIndex {
   const nb = sh.base.length;
   const per = nb + (sh.tiers ?? 0);
@@ -84,7 +89,7 @@ const vIndex = async (offset: number, limit: number): Promise<VIndex> => numberF
 // the place pages (0095): one file per term and range of places, listed by the database without reading the pages
 type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };
 async function placeFiles(): Promise<PlaceFile[]> {
-  try { return ((await sharedRead('place_sitemap_files', () => rpc('place_sitemap_files', {}, SR))) ?? []) as unknown as PlaceFile[]; } catch { return []; }
+  try { return ((await memo('place_sitemap_files', () => rpc('place_sitemap_files', {}, SR))) ?? []) as unknown as PlaceFile[]; } catch { return []; }
 }
 /** The site's own sitemaps and the place files (at most 49,000), first in the index. */
 async function siteEntries(): Promise<string[]> {

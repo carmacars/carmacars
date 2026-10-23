@@ -66,6 +66,8 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     const sid = await v.evaluate(() => (JSON.parse(sessionStorage.getItem('cc_sid') ?? '{}') as { id?: string }).id ?? '');
     expect(sid).toMatch(/^[0-9a-f-]{36}$/);
     await expect.poll(async () => Number((await sql`select page_views from visitor_sessions where id = ${sid}`)[0]?.page_views ?? 0), { timeout: 25_000 }).toBeGreaterThanOrEqual(2);
+    // the FAQ's view is recorded before the visit is made two hours old (else it lands now, after the summary)
+    await expect.poll(async () => Number((await sql`select count(*)::integer as n from visitor_events where session_id = ${sid} and path = '/faq'`)[0]?.n ?? 0), { timeout: 25_000 }).toBeGreaterThanOrEqual(1);
     await v.context().close();
 
     // two hours later: the visit is over and sent a request; the visitor job (every 15 minutes) works it out
@@ -85,7 +87,17 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await expect(page.getByTestId('vh-intro')).toContainText('worked out 30 minutes after it ends');
     await expect(page.locator('.ad-tile').filter({ hasText: 'Visits' }).first()).toBeVisible();
     await expect(page.getByTestId('vh-chart')).toBeVisible();
-    await expect(page.getByTestId('vh-top-pages')).toContainText('/faq');
+    // the top pages: the day's rollup counts this visit's /faq (or the day already has its 20 pages, as a full run of
+    // the tests does); the card shows the dates' first pages, which the other tests' visits of the day decide
+    const [faq] = await sql`with d as (select app.local_date(started_at) as day from visitor_sessions where id = ${sid})
+      select exists (select 1 from visitor_daily_top t, d where t.day = d.day and t.dim = 'page' and t.key = '/faq' and t.n >= 1)
+          or (select count(*) from visitor_daily_top t, d where t.day = d.day and t.dim = 'page') = 20 as ok`;
+    expect(faq!.ok, '/faq in the day\'s top pages').toBe(true);
+    const from = await page.locator('#vh-from').inputValue();
+    const to = await page.locator('#vh-to').inputValue();
+    const [top] = await sql`select app.visitor_history_summary(${from}::date, ${to}::date) -> 'top' -> 'page' -> 0 ->> 'key' as key`;
+    expect(top!.key).toBeTruthy();
+    await expect(page.getByTestId('vh-top-pages')).toContainText(`(${top!.key})`);
     const row = page.locator('[data-testid="vh-table"] tr').filter({ has: page.locator(`a[href="/admin/live/history/${sid}"]`) });
     await expect(row).toHaveCount(1);
     await expect(row).toContainText('Request sent');
