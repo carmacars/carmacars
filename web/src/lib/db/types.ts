@@ -10545,6 +10545,9 @@ export type Database = {
           db_plan: string;
           db_cap_free_mb: number;
           db_cap_pro_mb: number;
+          maps_daily_cap_autocomplete: number;
+          maps_daily_cap_place_details: number;
+          maps_daily_cap_routes: number;
         };
         Insert: {
           id?: string;
@@ -10965,6 +10968,9 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          maps_daily_cap_autocomplete?: number;
+          maps_daily_cap_place_details?: number;
+          maps_daily_cap_routes?: number;
         };
         Update: {
           id?: string;
@@ -11385,6 +11391,9 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          maps_daily_cap_autocomplete?: number;
+          maps_daily_cap_place_details?: number;
+          maps_daily_cap_routes?: number;
         };
         Relationships: [];
       };
@@ -18853,6 +18862,7 @@ export type Database = {
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
+      server_maps_take: { Args: { p_sku: string }; Returns: boolean };
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
