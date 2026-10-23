@@ -1,4 +1,4 @@
 # Where Supabase is for every workflow and deploy script (scripts/deploy/lib.sh): supabase (the hosted project) or
 # vps (the company's own server, infra/vps/CUTOVER.md). A repository variable DB_BACKEND, when set, wins.
 # vps-cutover go-live and rollback change this line.
-supabase
+vps
