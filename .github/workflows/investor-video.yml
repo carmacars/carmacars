@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       upload:
-        description: Upload the video to Storage (off: render and check only)
+        description: 'Upload the video to Storage (off: render and check only)'
         type: boolean
         default: true
       checks:
