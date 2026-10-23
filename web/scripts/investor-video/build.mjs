@@ -50,7 +50,13 @@ const fill = (s, where) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => {
   return v;
 });
 // the words as spoken: the same sentence, with the few things a voice reads badly spelled out
-const spoken = (s) => s.replace(/(\d+(?:\.\d+)?)x\b/g, '$1 times').replace(/24\/7/g, 'twenty-four seven').replace(/\bHST\b/g, 'H.S.T.').replace(/\bVIN\b/g, 'V.I.N.');
+const digits = (d) => d.split('').join(' ');
+const spoken = (s) => s
+  .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => { const [u, d] = m.split('@'); return `${u} at ${d.split('.').map((x, i, all) => (i === all.length - 1 && x.length <= 3 ? x.toUpperCase().split('').join('.') + '.' : x)).join(' dot ')}`; })
+  .replace(/(?:\+1[\s.-]?)?\(?\b(\d{3})\)?[\s.-]?(\d{3})[\s.-](\d{4})\b/g, (_, a, b, c) => `${digits(a)}, ${digits(b)}, ${digits(c)}`)
+  .replace(/\$(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d\d))?/g, (_, d, c) => `${d} dollars${c && c !== '00' ? ` and ${Number(c)} cents` : ''}`)
+  .replace(/(\d+(?:\.\d+)?)%/g, '$1 percent')
+  .replace(/(\d+(?:\.\d+)?)x\b/g, '$1 times').replace(/24\/7/g, 'twenty-four seven').replace(/\bHST\b/g, 'H S T').replace(/\bVIN\b/g, 'V.I.N.');
 
 let at = 0;
 const scenes = parts.map((p, i) => {

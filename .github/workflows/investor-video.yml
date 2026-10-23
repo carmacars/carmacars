@@ -5,7 +5,8 @@ name: investor-video
 #
 # render: the deck's figures (app.deck_figures(), read only) -> the plan (build.mjs: the deck rendered with those
 # figures, the script filled from them and checked against the deck) -> the voice (tts.mjs: Cloudflare Workers AI) ->
-# the timeline and captions -> every frame in Chromium (render.mjs) -> the sound (audio.mjs: voice, a synthesized pad
+# (Kokoro-82M open weights in a job with no secrets when the Cloudflare token may not use Workers AI) -> the
+# timeline and captions -> every frame in Chromium (render.mjs) -> the sound (audio.mjs: voice, a synthesized pad
 # ducked under it, synthesized whooshes) -> 1080p and 720p MP4, poster, WebVTT -> checks (frames on a contact sheet,
 # loudness, sizes) -> uploaded to the PRIVATE Supabase Storage bucket investor-media/deck-video (the deck has no public
 # version; the deck page signs short-lived links for each visit). Writes nothing to the database.
@@ -48,14 +49,101 @@ env:
   CARMACARS_LOCAL_DIR: /tmp/cc-local
 
 jobs:
-  render:
+  # the figures, the plan, and the voice from Cloudflare Workers AI when the token may use it
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 25
+    outputs:
+      voiced: ${{ steps.tts.outputs.voiced }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      OUT: ${{ github.workspace }}/web/.video
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: ffmpeg (Ubuntu's package)
+        timeout-minutes: 10
+        run: |
+          command -v ffmpeg > /dev/null || { sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends ffmpeg; }
+      - name: The deck's figures (app.deck_figures(), read only)
+        run: |
+          source ../scripts/deploy/lib.sh
+          mkdir -p "$OUT"
+          sbq "select app.deck_figures() as f" > "$OUT/figures.json"
+          jq -e '.[0].f.investment.min_cents and .[0].f.settings.deck_return_bps' "$OUT/figures.json" > /dev/null || die "app.deck_figures() did not answer"
+      - name: Plan (the deck rendered with those figures; the script filled and checked against it)
+        run: node scripts/investor-video/build.mjs --figures "$OUT/figures.json" --today "$(TZ=America/Toronto date +%F)" --out "$OUT"
+      - name: Voice (Cloudflare Workers AI text to speech)
+        id: tts
+        timeout-minutes: 15
+        run: |
+          if node scripts/investor-video/tts.mjs --dir "$OUT"; then echo "voiced=true" >> "$GITHUB_OUTPUT"
+          else echo "::warning title=tts::Cloudflare Workers AI did not speak (the token needs Workers AI permission); the open Kokoro voice is used instead"; rm -rf "$OUT/voice"; echo "voiced=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: investor-video-plan
+          retention-days: 1
+          include-hidden-files: true
+          path: |
+            web/.video/plan.json
+            web/.video/stage.html
+            web/.video/voice
+
+  # the voice from open weights (Kokoro-82M, Apache 2.0) on the runner's CPU, in a job with no secrets
+  voice:
+    needs: plan
+    if: needs.plan.outputs.voiced != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: investor-video-plan
+          path: web/.video
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Kokoro and ffmpeg
+        timeout-minutes: 15
+        run: |
+          sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends espeak-ng ffmpeg
+          pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -q 'kokoro>=0.9.4' soundfile
+      - name: Voice (Kokoro-82M)
+        timeout-minutes: 15
+        run: python scripts/investor-video/tts_local.py --dir .video --voice "${TTS_VOICE:-af_heart}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: investor-video-voice
+          retention-days: 1
+          include-hidden-files: true
+          path: web/.video/voice
+
+  render:
+    needs: [plan, voice]
+    if: always() && needs.plan.result == 'success' && (needs.voice.result == 'success' || needs.voice.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       DB_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       OUT: ${{ github.workspace }}/web/.video
@@ -72,6 +160,15 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: investor-video-plan
+          path: web/.video
+      - uses: actions/download-artifact@v4
+        if: needs.voice.result == 'success'
+        with:
+          name: investor-video-voice
+          path: web/.video/voice
       - name: Playwright browser cache
         id: pw
         uses: actions/cache@v4
@@ -86,19 +183,6 @@ jobs:
         run: |
           command -v ffmpeg > /dev/null || { sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends ffmpeg; }
           ffmpeg -hide_banner -version | head -1
-
-      - name: The deck's figures (app.deck_figures(), read only)
-        run: |
-          source ../scripts/deploy/lib.sh
-          mkdir -p "$OUT"
-          sbq "select app.deck_figures() as f" > "$OUT/figures.json"
-          jq -e '.[0].f.investment.min_cents and .[0].f.settings.deck_return_bps' "$OUT/figures.json" > /dev/null || die "app.deck_figures() did not answer"
-          echo "TODAY=$(TZ=America/Toronto date +%F)" >> "$GITHUB_ENV"
-      - name: Plan (the deck rendered with those figures; the script filled and checked against it)
-        run: node scripts/investor-video/build.mjs --figures "$OUT/figures.json" --today "$TODAY" --out "$OUT"
-      - name: Voice (Cloudflare Workers AI text to speech)
-        timeout-minutes: 15
-        run: node scripts/investor-video/tts.mjs --dir "$OUT"
       - name: Timeline and captions
         run: node scripts/investor-video/timeline.mjs --dir "$OUT"
       - name: Frames (1920x1080, 30 fps)
@@ -147,6 +231,7 @@ jobs:
         with:
           name: investor-video
           retention-days: 3
+          include-hidden-files: true
           path: |
             web/.video/final
             web/.video/qa
