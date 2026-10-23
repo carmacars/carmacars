@@ -34,12 +34,11 @@ if [ -n "$LISTING_DIR" ]; then
   [ "$PRUNE" = 1 ] && { echo "offline listings: nothing to delete" >&2; exit 2; }
   list() { local f="$LISTING_DIR/$(printf '%s' "${1:-root}" | tr '/' '_').json"; [ -f "$f" ] && cat "$f" || echo '[]'; }
 else
-  : "${SUPABASE_ACCESS_TOKEN:?}" "${SUPABASE_PROJECT_REF:?}"
-  KEY=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-        | jq -r '.[] | select(.name == "service_role") | .api_key')
-  [ -n "$KEY" ] && [ "$KEY" != null ] || { echo "the service key could not be read" >&2; exit 1; }
-  [ -n "${GITHUB_ACTIONS:-}" ] && echo "::add-mask::$KEY"
-  ST="https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1"
+  # the hosted project or the company's server (DB_BACKEND, scripts/deploy/lib.sh)
+  # shellcheck source=../deploy/lib.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../deploy/lib.sh"
+  KEY=$(sb_service_key) || { echo "the service key could not be read" >&2; exit 1; }
+  ST="$SB_URL/storage/v1"
   H=(-H "Authorization: Bearer $KEY" -H "apikey: $KEY")
   # one folder level, every page (the Storage API answers at most 1000 entries a call)
   list() {

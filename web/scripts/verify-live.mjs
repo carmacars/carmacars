@@ -6,6 +6,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 
+// The database and Supabase Auth's settings: the hosted project through the Management API, or the company's own
+// server (DB_BACKEND=vps, infra/vps/CUTOVER.md): SQL_API_URL (pg-meta through the job's SSH tunnel) and
+// SB_AUTH_CONFIG_FILE (the server's auth-config.json, in the Management API's config/auth shape). null when neither.
+async function sqlApi(query) {
+  const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN, api = process.env.SQL_API_URL;
+  if (!api && !(ref && mt)) return null;
+  return fetch(api ?? `https://api.supabase.com/v1/projects/${ref}/database/query`, { method: 'POST',
+    headers: { ...(api ? {} : { Authorization: `Bearer ${mt}` }), 'content-type': 'application/json' }, body: JSON.stringify({ query }) });
+}
+async function authConfig() {
+  if (process.env.SB_AUTH_CONFIG_FILE) return JSON.parse(fs.readFileSync(process.env.SB_AUTH_CONFIG_FILE, 'utf8'));
+  const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
+  if (process.env.DB_BACKEND === 'vps' || !ref || !mt) return null;
+  return (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json();
+}
+
 const BASE = (process.env.BASE_URL ?? 'https://carmacars.ca').replace(/\/$/, '');
 const out = process.argv[process.argv.indexOf('--out') + 1] ?? '/tmp/verify';
 const doRequest = process.argv.includes('--request');
@@ -470,11 +486,9 @@ if (process.argv.includes('--auth')) {
       const uid = inv.id ?? (await rest(`users?email=eq.${encodeURIComponent(inv.email)}&select=id`))[0]?.id;
       if (uid) {
         inv.removed = (await fetch(`${url}/auth/v1/admin/users/${uid}`, { method: 'DELETE', headers: h })).status;
-        const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
-        if (ref && mt) {
-          const q = `delete from public.staff_profiles where user_id = '${uid}'; delete from public.user_roles where user_id = '${uid}'; delete from public.users where id = '${uid}' and email like 'delivered+verify-invite-%@resend.dev';`;
-          inv.tidied = (await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mt}`, 'content-type': 'application/json' }, body: JSON.stringify({ query: q }) })).status;
-        }
+        const q = `delete from public.staff_profiles where user_id = '${uid}'; delete from public.user_roles where user_id = '${uid}'; delete from public.users where id = '${uid}' and email like 'delivered+verify-invite-%@resend.dev';`;
+        const res = await sqlApi(q);
+        if (res) inv.tidied = res.status;
       }
     } catch (e) { inv.tidy_error = String(e).slice(0, 200); }
     r.invite = inv;
@@ -487,9 +501,7 @@ if (process.argv.includes('--auth')) {
   // scripts/deploy/auth-templates.mjs link it. The templates stored in the project are checked to link the same way.
   report.auth_links = [];
   try {
-    const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
-    let cfg = null;
-    if (ref && mt) cfg = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json();
+    const cfg = await authConfig();
     const stamp = Date.now();
     const LINKS = [
       { type: 'recovery', email: 'verify-signin@carmacars.ca', next: '/update-password', tpl: 'recovery', choose: '/account' },
@@ -600,8 +612,7 @@ if (process.argv.includes('--auth')) {
       { path: 'guest', home: '/account', welcome: 'renter_account_created' }
     ];
     try {
-      const ref = process.env.SUPABASE_PROJECT_REF, mt = process.env.SUPABASE_ACCESS_TOKEN;
-      const cfg = ref && mt ? await (await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { headers: { Authorization: `Bearer ${mt}` } })).json() : null;
+      const cfg = await authConfig();
       const tpl = cfg?.mailer_templates_confirmation_content ?? '';
       report.signup_config = { link_seconds: cfg?.mailer_otp_exp ?? null, confirmation_link: tpl ? (/auth\/callback\?token_hash=\{\{ \.TokenHash \}\}&type=signup"/.test(tpl) ? 'by role (no next)' : 'HAS A FIXED next') : 'not read' };
     } catch (e) { report.signup_config = { error: String(e).slice(0, 200) }; }

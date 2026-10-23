@@ -225,6 +225,10 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # the Quo phone line (0085): the CarmaCars workspace's key; kept in the vault too (deploy_quo_api_key)
       QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
+      # where Supabase is: the hosted project (default) or the company's own server (repository variable
+      # DB_BACKEND=vps, infra/vps/CUTOVER.md; scripts/deploy/lib.sh). VPS_SSH_KEY is used only with vps.
+      DB_BACKEND: ${{ vars.DB_BACKEND || 'supabase' }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       DEPLOY_ENV: ${{ inputs.environment }}
       PAGE_CACHE: ${{ inputs.page_cache || 'auto' }}
       APP_URL: https://carmacars.ca
@@ -289,6 +293,8 @@ jobs:
             echo "NEXT_PUBLIC_APP_URL=$APP_URL"
             echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL"
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            # on the company's server: the session cookie keeps the hosted project's name (scripts/deploy/supabase.sh secrets)
+            if [ -n "${NEXT_PUBLIC_SUPABASE_AUTH_COOKIE:-}" ]; then echo "NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=$NEXT_PUBLIC_SUPABASE_AUTH_COOKIE"; fi
             echo "NEXT_PUBLIC_VEHICLE_PHOTOS_URL=$NEXT_PUBLIC_VEHICLE_PHOTOS_URL"
             echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
             echo "TURNSTILE_PROVIDER=$TURNSTILE_PROVIDER"
