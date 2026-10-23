@@ -37,10 +37,13 @@ const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'investor',
  *  rendered on demand with no ISR entry (no KV write per page: millions of pages), so their only copy is this one, kept
  *  for PROGRAMMATIC_TTL_S whatever Next.js says (force-dynamic answers "private, no-store"), and sent to browsers and
  *  crawlers with PROGRAMMATIC_CC. */
-export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7})$/;
+// 0124: the directories that lead to them (/makes, /places and its pages) too: rendered on demand, crawled often
+export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7}|makes|places(\/\d{1,6})?)$/;
 export const PROGRAMMATIC_TTL_S = 21_600;
 export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=21600, stale-while-revalidate=86400';
-const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-vehicles\/[a-z0-9-]+\.xml|sitemap-index\/\d+\.xml|sitemap-places\/[a-z0-9.-]+\.xml)$/;
+// 0124: the sitemaps at the site's root (/sitemap-index-<n>.xml, /sitemap-priority-<n>.xml, /sitemap-vehicles-<file>.xml,
+// /sitemap-places-<file>.xml); the old addresses only redirect now
+export const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-(index|priority)-\d+\.xml|sitemap-vehicles-[a-z0-9-]+\.xml|sitemap-places-[a-z0-9.-]+\.xml)$/;
 
 export interface EdgeRequestLike { method: string; url: string; headers: { get(name: string): string | null } }
 
@@ -372,7 +375,15 @@ export async function serveEdge(req: EdgeRequestLike, key: string | null, sKey: 
     if (!last) d.waitUntil(origin.then(consume));
   }
   if (html) { drain(last); return busyPage(); }
-  return last ?? failed(504);
+  // 0124: a sitemap, robots.txt or an RSC payload the site cannot give now is a 503 with Retry-After, never a 500 or 504:
+  // a crawler reads it as "come back later" and keeps its crawl rate (a 5xx other than 503 lowers it)
+  drain(last);
+  return busyAnswer();
+}
+
+/** The answer to a crawler or the router when the site cannot answer now (not a page): 503, Retry-After 120. */
+export function busyAnswer(retryAfter = 120): Response {
+  return new Response('Busy, try again shortly', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'retry-after': String(retryAfter), [STALE_HEADER]: 'busy' } });
 }
 
 // ------------------------------------------------------------------ requests nobody should render

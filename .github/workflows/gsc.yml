@@ -1,68 +1,122 @@
 name: gsc
 
-# Search Console through its API (Oct 23): the OAuth client and refresh token for rent@carmacars.ca live in the vault
-# (deploy_gsc_client_id, deploy_gsc_client_secret, deploy_gsc_refresh_token). Lists the properties, submits sitemap.xml and
-# the further sitemap index files (Search Console takes at most 500 per property), and reports each one's status.
+# Search Console and IndexNow for carmacars.ca (0124, docs/changes/2026-10-23-crawl-speed.md). Every three hours, after
+# each production deploy (ci.yml starts it with warm), or by hand:
+#   1. Search Console through its API (the OAuth client and refresh token for rent@carmacars.ca in the vault:
+#      deploy_gsc_client_id, deploy_gsc_client_secret, deploy_gsc_refresh_token). The property holds at most 500
+#      sitemaps: /sitemap.xml, the priority sitemap's parts and the site's own files, then the place and vehicle files
+#      with addresses in the index's order (web/src/features/seo/gsc-plan.ts). The index files /sitemap-index-<n>.xml are
+#      not submitted (robots.txt names every one); the old /sitemap-index/<n>.xml ones (they listed files outside their
+#      directory, so Google read none of them: 0 discovered pages) are removed. Missing ones are submitted, errored
+#      ones submitted again, and each file's figures (discovered addresses, errors, pending) are kept in
+#      app.gsc_sitemap_log and shown in the run's summary.
+#   2. After a deploy: the first priority addresses fetched once (warm), so Googlebot's first fetches are fast.
+#   3. IndexNow: whether it is on, its key file answers, and where the sweep is; then a few batches of 10,000 addresses
+#      of the sweep (priority list first) sent from here to Bing's endpoint, on the same cursor and daily ceiling as the
+#      site's five-minute job (so the sweep keeps going even when the site's job cannot).
 on:
   workflow_dispatch:
     inputs:
       submit:
-        description: Submit the sitemaps (false only reports)
+        description: Submit every planned sitemap again (false submits only the missing and errored ones)
         type: boolean
         default: true
-      max_index:
-        description: Highest /sitemap-index/<n>.xml to submit (Search Console allows 500 sitemaps per property)
+      max_sitemaps:
+        description: Sitemaps the property may hold (Search Console's limit is 500)
         type: string
-        default: '480'
+        default: '500'
+      warm:
+        description: Priority addresses to fetch once (after a deploy), 0 for none
+        type: string
+        default: '0'
+      indexnow_rounds:
+        description: IndexNow batches of 10,000 to send from here (0 for none)
+        type: string
+        default: '10'
   schedule:
     - cron: '17 */3 * * *'
+
+concurrency:
+  group: gsc
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  BASE: https://carmacars.ca
 
 jobs:
   gsc:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    timeout-minutes: 60
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Search Console
         env:
-          SUBMIT: ${{ github.event_name == 'schedule' && 'false' || inputs.submit }}
-          MAX_INDEX: ${{ inputs.max_index || '480' }}
+          MODE: ${{ github.event_name == 'schedule' && 'missing' || (inputs.submit && 'submit' || 'missing') }}
+          MAX: ${{ inputs.max_sitemaps || '500' }}
+          WARM: ${{ inputs.warm || '0' }}
+          SCAN: '1500'
         run: |
           set -euo pipefail
-          q() { curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data "$(jq -n --arg q "$1" '{query:$q}')"; }
-          rows=$(q "select name, decrypted_secret v from vault.decrypted_secrets where name in ('deploy_gsc_client_id','deploy_gsc_client_secret','deploy_gsc_refresh_token')")
-          get() { jq -r --arg n "$1" '[.[]|select(.name==$n)][0].v // empty' <<<"$rows"; }
-          CID=$(get deploy_gsc_client_id); CS=$(get deploy_gsc_client_secret); RT=$(get deploy_gsc_refresh_token)
-          echo "::add-mask::$CS"; echo "::add-mask::$RT"
+          sb="$GITHUB_WORKSPACE/scripts/deploy/sb.sh"
+          # the server's vault first, then the hosted project's (where the Search Console secrets were first stored)
+          hosted() { curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+                       --data "$(jq -n --arg n "$1" '{query: ("select decrypted_secret v from vault.decrypted_secrets where name = '"'"'" + $n + "'"'"'")}')" | jq -r '.[0].v // empty' 2>/dev/null || true; }
+          secret() { local v; v=$("$sb" vault "$1" 2>/dev/null || true); [ -n "$v" ] || v=$(hosted "$1"); echo "::add-mask::$v" >&2; printf '%s' "$v"; }
+          CID=$(secret deploy_gsc_client_id); CS=$(secret deploy_gsc_client_secret); RT=$(secret deploy_gsc_refresh_token)
           [ -n "$RT" ] || { echo "::error title=gsc::no refresh token in the vault"; exit 1; }
           AT=$(curl -sS https://oauth2.googleapis.com/token -d client_id="$CID" -d client_secret="$CS" -d refresh_token="$RT" -d grant_type=refresh_token | jq -r .access_token)
           echo "::add-mask::$AT"
-          H=(-H "Authorization: Bearer $AT")
-          sites=$(curl -sS "${H[@]}" https://www.googleapis.com/webmasters/v3/sites)
+          sites=$(curl -sS -H "Authorization: Bearer $AT" https://www.googleapis.com/webmasters/v3/sites)
           echo "::notice title=gsc properties::$(jq -c '[.siteEntry[]? | "\(.siteUrl) \(.permissionLevel)"]' <<<"$sites")"
           SITE=$(jq -r '[.siteEntry[]?.siteUrl | select(test("carmacars.ca"))] | (map(select(startswith("sc-domain:")))[0] // .[0]) // empty' <<<"$sites")
           [ -n "$SITE" ] || { echo "::error title=gsc::no carmacars.ca property for this account"; exit 1; }
-          ES=$(jq -rn --arg s "$SITE" '$s|@uri')
-          if [ "$SUBMIT" = true ]; then
-            n=0; fail=0
-            for u in https://carmacars.ca/sitemap.xml $(seq -f 'https://carmacars.ca/sitemap-index/%g.xml' 2 "$MAX_INDEX"); do
-              code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')")
-              if [ "$code" = 204 ] || [ "$code" = 200 ]; then n=$((n+1)); else fail=$((fail+1)); echo "submit $u -> $code"; fi
-              sleep 0.2
-            done
-            echo "::notice title=gsc submitted::$n sitemaps submitted to $SITE, $fail failed"
+          OUT="$RUNNER_TEMP/gsc-rows.json"
+          AT="$AT" SITE="$SITE" OUT="$OUT" node --experimental-strip-types --no-warnings web/scripts/gsc.mjs
+          # each sitemap's figures, kept to watch discovery file by file (select * from app.gsc_sitemap_latest)
+          if [ -s "$OUT" ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_sitemap_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$OUT")" "$tag" > "$RUNNER_TEMP/store.sql"
+            "$sb" sql-file "$RUNNER_TEMP/store.sql" >/dev/null && echo "::notice title=gsc::figures stored (app.gsc_sitemap_log)" || echo "::warning title=gsc::the figures could not be stored (migration 0124 not applied yet?)"
           fi
-          list=$(curl -sS "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps")
-          # Google's first fetch of a batch of index files can fail while it fetches hundreds at once: resubmit up to 40
-          # failed ones a run, one every 20 s, so each is fetched again on its own
-          retry=$(jq -r '[.sitemap[]? | select((.errors|tonumber? // 0) > 0) | .path][0:40][]' <<<"$list")
-          r=0
-          for u in $retry; do
-            curl -sS -o /dev/null -X PUT "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps/$(jq -rn --arg u "$u" '$u|@uri')" && r=$((r+1))
-            sleep 20
+
+      - name: IndexNow (on, key file, sweep; then batches from here)
+        continue-on-error: true
+        env:
+          ROUNDS: ${{ github.event_name == 'schedule' && '10' || inputs.indexnow_rounds || '10' }}
+        run: |
+          set -euo pipefail
+          sb="$GITHUB_WORKSPACE/scripts/deploy/sb.sh"
+          st=$("$sb" sql "select (select indexnow_enabled from program_settings limit 1) enabled, (select indexnow_daily_max from program_settings limit 1) daily_max,
+                 (select indexnow_key from site_settings limit 1) k, (select to_jsonb(w) - 'id' from indexnow_sweep w) sweep,
+                 (select count(*) from indexnow_queue where sent_at is null and attempts < 5) queued,
+                 (select count(*) from indexnow_queue where sent_at > now() - interval '1 day') sent_1d")
+          KEY=$(jq -r '.[0].k // empty' <<<"$st"); echo "::add-mask::$KEY"
+          keyfile=$(curl -sS -m 20 "$BASE/$KEY.txt" || true)
+          kf=$([ -n "$KEY" ] && [ "$(printf '%s' "$keyfile" | tr -d '[:space:]')" = "$KEY" ] && echo answers || echo "does NOT answer with the key")
+          echo "::notice title=indexnow::enabled $(jq -r '.[0].enabled' <<<"$st"), key file $kf, queue $(jq -r '.[0].queued' <<<"$st") waiting / $(jq -r '.[0].sent_1d' <<<"$st") sent in a day, sweep $(jq -c '.[0].sweep | {phase, p_i, p_pos, file_i, pos, rounds, sent_today, last_status, last_error, last_at, backoff_until}' <<<"$st")"
+          [ "$(jq -r '.[0].enabled' <<<"$st")" = true ] && [ "$kf" = answers ] || { echo "::warning title=indexnow::off or the key file does not answer: nothing sent from here"; exit 0; }
+          host=$(sed -E 's#^https?://##; s#/.*##' <<<"$BASE")
+          sent=0
+          for i in $(seq 1 "$ROUNDS"); do
+            c=$("$sb" sql "select app.server_indexnow_claim(10000) c" | jq '.[0].c')
+            n=$(jq '.paths | length' <<<"$c")
+            if [ "$n" = 0 ]; then echo "::notice title=indexnow::nothing to send now ($(jq -r '.why // ""' <<<"$c"))"; break; fi
+            jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' <<<"$c" > "$RUNNER_TEMP/in.json"
+            code=$(curl -sS -o "$RUNNER_TEMP/in.out" -D "$RUNNER_TEMP/in.h" -w '%{http_code}' -m 60 -X POST https://www.bing.com/indexnow -H 'content-type: application/json; charset=utf-8' --data-binary @"$RUNNER_TEMP/in.json" || echo 0)
+            ra=$(grep -i '^retry-after:' "$RUNNER_TEMP/in.h" 2>/dev/null | tr -dc '0-9' || true)
+            err=$(head -c 200 "$RUNNER_TEMP/in.out" 2>/dev/null | tr -d '\r' || true)
+            jq -n --argjson c "$c" --argjson s "$code" --arg e "$err" --arg ra "$ra" '{status: $s, count: ($c.paths | length), cursor: $c.cursor, files: $c.files, error: (if $s >= 200 and $s < 300 then null else $e end), retry_after: (if $ra == "" then null else ($ra | tonumber) end)}' > "$RUNNER_TEMP/rep.json"
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.server_indexnow_report($%s$%s$%s$::jsonb) r' "$tag" "$(cat "$RUNNER_TEMP/rep.json")" "$tag" > "$RUNNER_TEMP/rep.sql"
+            "$sb" sql-file "$RUNNER_TEMP/rep.sql" >/dev/null
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then echo "::warning title=indexnow::Bing answered $code ($err); the sweep waits as the answer says"; break; fi
+            sent=$((sent + n))
           done
-          [ "$r" -gt 0 ] && echo "::notice title=gsc retried::$r sitemaps with errors resubmitted"
-          list=$(curl -sS "${H[@]}" "https://www.googleapis.com/webmasters/v3/sites/$ES/sitemaps")
-          echo "::notice title=gsc status::$(jq -c '{count: (.sitemap|length), errors: ([.sitemap[]?|select((.errors|tonumber? // 0)>0)]|length), pending: ([.sitemap[]?|select(.isPending)]|length), first: ([.sitemap[]?|select(.path|endswith("/sitemap.xml"))][0] | {path, lastDownloaded, isPending, errors, warnings, contents})}' <<<"$list")"
+          echo "::notice title=indexnow::$sent addresses sent to Bing's IndexNow from here this run"

@@ -4,12 +4,13 @@ import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
 import { napAddress } from '@/features/seo/business';
 import { PortalSwitchFooter } from './HeaderClient';
+import type { HubLinks } from '@/features/seo/data';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
 type Link_ = { slug: string; kind: string; name: string; path: string };
-export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: string; links?: Link_[] }) {
+export function Footer({ s, reply, links = [], hubs }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks }) {
   const places = links.filter((l) => l.kind === 'location');
   const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
@@ -77,6 +78,14 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
           <li><Link prefetch={false} href="/places">Every place we cover</Link></li>
           <li><Link prefetch={false} href="/makes">Every make and model</Link></li>
         </ul></nav>
+        {/* 0124: the popular hubs of the priority list (cities nearest us, the first services, the popular makes and
+            models), on every page, so a crawler reaches them in one click from anywhere */}
+        {([['Cities', hubs?.places], ['Services', hubs?.services], ['Popular makes', hubs?.makes], ['Popular models', hubs?.models]] as const)
+          .filter(([, l]) => l && l.length > 0).map(([h, l]) => (
+            <nav key={h} aria-label={h} className="footer-browse"><h2>{h}</h2><ul>
+              {l!.map((x) => <li key={x.path}><Link prefetch={false} href={x.path}>{x.name}</Link></li>)}
+            </ul></nav>
+          ))}
         <div className="footer-legal">
           <span>{s.brand_name}. {s.service_area}, Canada.</span>
           <span>Prices in Canadian dollars, before HST unless stated.</span>

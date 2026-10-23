@@ -17,8 +17,8 @@ test('the sitemap index leads to every child sitemap, a vehicle page and a place
   expect(idx).not.toContain('<urlset');
   const children = locs(idx).map(pathOf);
   for (const part of ['pages', 'cars', 'landing', 'guides', 'hubs']) expect(children).toContain(`/sitemap-${part}.xml`);
-  const place = children.find((p) => p.startsWith('/sitemap-places/'));
-  const vehicle = children.find((p) => p.startsWith('/sitemap-vehicles/'));
+  const place = children.find((p) => p.startsWith('/sitemap-places-'));
+  const vehicle = children.find((p) => p.startsWith('/sitemap-vehicles-'));
   expect(place, 'a place file (0095)').toBeTruthy();
   expect(vehicle, 'a vehicle file (0097)').toBeTruthy();
   expect(children.length).toBeLessThanOrEqual(50_000);
@@ -44,7 +44,7 @@ test('the sitemap index leads to every child sitemap, a vehicle page and a place
 
   // down to a vehicle page: the first vehicle file with addresses
   let vehicleUrl: string | undefined;
-  for (const v of children.filter((c) => c.startsWith('/sitemap-vehicles/')).slice(0, 20)) {
+  for (const v of children.filter((c) => c.startsWith('/sitemap-vehicles-')).slice(0, 20)) {
     const r = await request.get(v);
     if (r.status() !== 200) continue;
     const xml = await r.text();
@@ -59,5 +59,5 @@ test('the sitemap index leads to every child sitemap, a vehicle page and a place
   const robots = await (await request.get('/robots.txt')).text();
   expect(robots).toMatch(/Sitemap: \S+\/sitemap\.xml/);
   expect(robots).toMatch(/Sitemap: \S+\/sitemap-hubs\.xml/);
-  expect(robots).toMatch(/Sitemap: \S+\/sitemap-places\/\S+\.xml/);
+  expect(robots).toMatch(/Sitemap: \S+\/sitemap-places-\S+\.xml/);
 });

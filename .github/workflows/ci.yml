@@ -360,3 +360,11 @@ jobs:
         run: |
           gh workflow run guides.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f auto=true
           echo "::notice title=guides::started the guides workflow (auto) for ${GITHUB_SHA::7}: screenshots, the text of the sections that changed, the PDFs"
+      - name: Crawl warm-up and Search Console (the gsc workflow, after a deploy; 0124)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run gsc.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f submit=true -f warm=3000 -f indexnow_rounds=10
+          echo "::notice title=gsc::started the gsc workflow: the first 3,000 priority addresses fetched once, the sitemaps submitted, IndexNow batches sent"

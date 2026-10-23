@@ -48,11 +48,23 @@ const config: NextConfig = {
     ];
   },
   // the files search engines ask for at the root (0061): the IndexNow key file and the Google verification file
+  // 0124: every sitemap at the site's root (a sitemap index may list only files in its own directory or below; a sitemap
+  // outside Search Console covers only its own directory): /sitemap-index-<n>.xml, /sitemap-priority-<n>.xml,
+  // /sitemap-vehicles-<file>.xml and /sitemap-places-<file>.xml, answered by the handlers under /sitemap-files/.
   async rewrites() {
-    return [
-      { source: '/:name([a-f0-9]{32}\\.txt)', destination: '/api/site-file/:name' },
-      { source: '/:name(google[a-z0-9]{6,40}\\.html)', destination: '/api/site-file/:name' }
-    ];
+    return {
+      beforeFiles: [
+        { source: '/:name(sitemap-index-\\d{1,5}\\.xml)', destination: '/sitemap-files/index/:name' },
+        { source: '/:name(sitemap-priority-\\d{1,3}\\.xml)', destination: '/sitemap-files/priority/:name' },
+        { source: '/:name(sitemap-vehicles-[a-z0-9-]{1,120}\\.xml)', destination: '/sitemap-files/vehicles/:name' },
+        { source: '/:name(sitemap-places-[a-z0-9.-]{1,160}\\.xml)', destination: '/sitemap-files/places/:name' }
+      ],
+      afterFiles: [
+        { source: '/:name([a-f0-9]{32}\\.txt)', destination: '/api/site-file/:name' },
+        { source: '/:name(google[a-z0-9]{6,40}\\.html)', destination: '/api/site-file/:name' }
+      ],
+      fallback: []
+    };
   },
   async redirects() {
     // The prototype's file names, in case one was shared.

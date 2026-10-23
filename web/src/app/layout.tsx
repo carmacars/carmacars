@@ -13,7 +13,7 @@ import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
 import { websiteLd } from '@/features/seo/business';
-import { getSeoLinks } from '@/features/seo/data';
+import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,7 +36,7 @@ export const viewport: Viewport = { themeColor: '#000000', width: 'device-width'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
-  const [s, w, links] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => [])]);
+  const [s, w, links, hubs] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks()]);
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`}>
       <body>
@@ -44,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CookieBanner w={w} />
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>
-        <Footer s={s} reply={replyText(s)} links={links} />
+        <Footer s={s} reply={replyText(s)} links={links} hubs={hubs} />
         <JsonLd graph={[websiteLd(s, siteUrl())]} />
         <Effects />
         <SiteAssist />

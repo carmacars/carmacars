@@ -53,12 +53,12 @@ const placeSample = new Set(); let placeCount = 0;
 if (/<sitemapindex/.test(sm)) {
   const parts = [...sm.matchAll(/<sitemap><loc>([^<]+)<\/loc>(?:<lastmod>([^<]+)<\/lastmod>)?<\/sitemap>/g)];
   report.sitemapParts = parts.map((m) => m[1]);
-  if (parts.filter(([, l]) => !/sitemap-places/.test(l)).length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
+  if (parts.filter(([, l]) => !/sitemap-places-/.test(l)).length < 4) bad('sitemap', `index lists ${parts.length} parts (want pages, cars, landing, guides)`);
   if (parts.length > 50000) bad('sitemap', `index lists ${parts.length} files (Google reads 50,000 at most)`);
   // the term trees (/t/<term>, 0097) mirror the renting tree file for file: every file name is checked against it, and of
   // each term's tree the makes and the first place and colour file are read (the rest are the same addresses under
   // another prefix); every other file is read whole
-  const names = parts.map(([, loc]) => new URL(loc).pathname.replace(/^\/sitemap-vehicles\/|\.xml$/g, ''));
+  const names = parts.map(([, loc]) => new URL(loc).pathname.replace(/^\/sitemap-vehicles-|\.xml$/g, ''));
   const rentFiles = new Set(names.filter((n) => !/^(buy-|t-)/.test(n) && /^(makes|tiers-\d+|[a-z0-9-]+-(models|years|trims)(-\d+)?)$/.test(n)));
   const termTrees = new Map();
   const splitT = (n) => { for (let i = n.indexOf('-', 2); i > 0; i = n.indexOf('-', i + 1)) if (rentFiles.has(n.slice(i + 1))) return [n.slice(2, i), n.slice(i + 1)]; return null; };
@@ -66,7 +66,7 @@ if (/<sitemapindex/.test(sm)) {
   report.termTrees = termTrees.size;
   for (const [, loc, lastmod] of parts) {
     if (lastmod && Number.isNaN(Date.parse(lastmod))) bad('sitemap', `${loc} has an unreadable lastmod`);
-    const tn = /\/sitemap-vehicles\/(t-[a-z0-9-]+)\.xml$/.exec(loc);
+    const tn = /\/sitemap-vehicles-(t-[a-z0-9-]+)\.xml$/.exec(loc);
     const tb = tn ? splitT(tn[1])?.[1] : null;
     // of the term trees: every makes file, and the first place file of the first term only
     if (tn && tb !== 'makes' && !(tb === 'tiers-1' && tn[1].startsWith(`t-${[...termTrees.keys()][0]}-`))) continue;
@@ -86,7 +86,7 @@ if (/<sitemapindex/.test(sm)) {
     for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);
     const urls = [...part.body.matchAll(/<url><loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&'));
     // the place pages (0095): every file is read, two addresses of each are checked like any page (same template)
-    if (/\/sitemap-places\//.test(loc)) { placeCount += urls.length; for (const u of urls.slice(0, 2)) placeSample.add(new URL(u).pathname); smUrls.push(...urls.slice(0, 2)); continue; }
+    if (/\/sitemap-places-/.test(loc)) { placeCount += urls.length; for (const u of urls.slice(0, 2)) placeSample.add(new URL(u).pathname); smUrls.push(...urls.slice(0, 2)); continue; }
     smUrls.push(...urls);
   }
 } else {
@@ -120,7 +120,7 @@ const fleetCarLinks = [...fleetHtml.matchAll(/href="(\/(?:cars|rent)\/[^"#?/]+)"
 // the vehicle pages (0097): /cars/<make> shares the car pages' shape; they are told apart by their own sitemaps
 const vehiclePaths = new Set();
 // (the renting tree's level files only: its pages are the ones linked up and down the tree)
-for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles\/(?!buy-|t-)(?!tiers-)[a-z0-9-]+\.xml$/.test(loc)) {
+for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles-(?!buy-|t-)(?!tiers-)[a-z0-9-]+\.xml$/.test(loc)) {
   for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) { const vp = new URL(m[1]).pathname; if (!heavy(vp)) vehiclePaths.add(vp); }
 }
 const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p) && !vehiclePaths.has(p)));
@@ -245,7 +245,7 @@ for (const p of auditPaths.filter(heavy)) {
 }
 for (const [x, ps] of h1s) if (ps.length > 1) bad('h1', `"${x}" on ${ps.join(', ')}`);
 for (const [, ps] of bodies) if (ps.length > 1) bad('bodies', `the same main body on ${ps.join(', ')}`);
-if (report.sitemapParts && !report.sitemapParts.some((l) => /\/sitemap-vehicles\/makes\.xml$/.test(l))) bad('sitemap', 'index without the vehicle sitemaps (sitemap-vehicles/makes.xml)');
+if (report.sitemapParts && !report.sitemapParts.some((l) => /\/sitemap-vehicles-makes\.xml$/.test(l))) bad('sitemap', 'index without the vehicle sitemaps (sitemap-vehicles/makes.xml)');
 report.vehiclePages = vehiclePaths.size;
 for (const [d, ps] of descs) if (ps.length > 1) bad('descriptions', `"${d.slice(0, 60)}..." on ${ps.join(', ')}`);
 

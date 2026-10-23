@@ -5,7 +5,7 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { getTokens, siteUrl } from '@/lib/site';
 import { textGenerator } from '@/integrations/llm';
-import { runSeoJob, type SeoClaim, type SeoSummary } from '@/features/seo/worker';
+import { runSeoJob, sweepWith, type SeoClaim, type SeoSummary, type SweepClaim } from '@/features/seo/worker';
 
 // The search job as the site runs it (migration 0061): the Worker's cron trigger calls /api/jobs/seo every five
 // minutes (custom-worker.ts), and an Admin's "Write again" right after the click. It writes the copy that is due with
@@ -61,19 +61,17 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
   return s;
 }
 
-/** The IndexNow sweep (0097): the next batch of vehicle addresses (up to 10,000, IndexNow's most per request) after the
- *  cursor, sent, and the answer reported: 2xx moves the cursor, 429 and 403 back off (the database keeps the cursor,
- *  the day's count and the back-off, shared with every sender). Production only; nothing is rendered. */
+/** The IndexNow sweep (0097; 0124: the priority list first, then the place files, then the vehicle files): the next
+ *  batch (up to 10,000 addresses, IndexNow's most per request) after the cursor, sent, and the answer reported: 2xx
+ *  moves the cursor, 429 and 403 back off (the database keeps the cursor, the day's count and the back-off, shared with
+ *  every sender). A claim that fails (the database busy) is reported too, so Admin and the gsc workflow see why nothing
+ *  went out. Production only; nothing is rendered. */
 export async function runIndexNowSweep(o: { rounds?: number } = {}): Promise<{ sent: number; why?: string; status?: number }> {
   if (!indexNowOn()) return { sent: 0, why: 'not production' };
-  let sent = 0;
-  for (let i = 0; i < (o.rounds ?? 1); i++) {
-    const c = (await rpc('server_indexnow_claim', { p_limit: 10_000 }, SR)) as unknown as { paths: string[]; cursor?: unknown; files?: number; why?: string; key?: string };
-    if (!c.paths?.length || !c.key) return { sent, why: c.why ?? 'no key' };
-    const r = await sendIndexNow(c.key, c.paths);
-    await rpc('server_indexnow_report', { p: { status: r.status, count: c.paths.length, cursor: c.cursor, files: c.files, error: r.error, retry_after: r.retryAfter ?? null } as unknown as Json }, SR);
-    if (r.status < 200 || r.status >= 300) return { sent, status: r.status };
-    sent += c.paths.length;
-  }
-  return { sent };
+  return sweepWith({
+    claim: async () => (await rpc('server_indexnow_claim', { p_limit: 10_000 }, SR)) as unknown as SweepClaim,
+    send: sendIndexNow,
+    report: (p) => rpc('server_indexnow_report', { p: p as unknown as Json }, SR)
+  }, o.rounds ?? 1);
 }
+
