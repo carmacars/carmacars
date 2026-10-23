@@ -59,16 +59,8 @@ jobs:
             : > leaves.txt; : > queue.txt
             locs https://carmacars.ca/sitemap.xml > level1.txt
             echo "::notice title=sitemap.xml children::$(wc -l < level1.txt); first $(head -3 level1.txt | tr '\n' ' ') last $(tail -2 level1.txt | tr '\n' ' ')"
-            for u in $(head -2 level1.txt) $(sed -n '100p;1000p;20000p' level1.txt) $(tail -1 level1.txt); do echo "::notice title=type::$u is $(root_tag "$u") with $(locs "$u" | wc -l) locs, first $(locs "$u" | head -1)"; done
-            # sitemap.xml is an index; walk its children in order, a nested index contributes its own children
-            while read -r u; do
-              t=$(root_tag "$u")
-              if [ "$t" = urlset ]; then echo "$u" >> leaves.txt; else echo "$u" >> queue.txt; fi
-              [ $(wc -l < leaves.txt) -ge 600 ] && break
-            done < level1.txt
-            while read -r u && [ $(wc -l < leaves.txt) -lt 600 ]; do
-              locs "$u" >> leaves.txt || true
-            done < queue.txt
+            # sitemap.xml is a one-level index of URL-set files (checked Oct 23): its children are the leaves
+            { echo https://carmacars.ca/sitemap-priority.xml; cat level1.txt; } > leaves.txt
             grep -i priority leaves.txt > ordered.txt || true; grep -vi priority leaves.txt >> ordered.txt || true
             echo "::notice title=leaves::$(wc -l < ordered.txt) URL-set files found (first: $(head -3 ordered.txt | tr '\n' ' '))"
             # free the property's 500-sitemap quota: delete submitted index files other than sitemap.xml
