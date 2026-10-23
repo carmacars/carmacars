@@ -1576,6 +1576,8 @@ export type Database = {
           partner_sheet_rental_cents: number | null;
           partner_cut_bps: number | null;
           partner_markup_bps: number | null;
+          price_tax: string | null;
+          price_with_tax_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -1715,6 +1717,8 @@ export type Database = {
           partner_sheet_rental_cents?: number | null;
           partner_cut_bps?: number | null;
           partner_markup_bps?: number | null;
+          price_tax?: string | null;
+          price_with_tax_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -1854,6 +1858,8 @@ export type Database = {
           partner_sheet_rental_cents?: number | null;
           partner_cut_bps?: number | null;
           partner_markup_bps?: number | null;
+          price_tax?: string | null;
+          price_with_tax_cents?: number | null;
         };
         Relationships: [];
       };
@@ -10545,7 +10551,12 @@ export type Database = {
           db_plan: string;
           db_cap_free_mb: number;
           db_cap_pro_mb: number;
+          maps_daily_cap_autocomplete: number;
+          maps_daily_cap_place_details: number;
+          maps_daily_cap_routes: number;
           vpage_extra_sources: string[];
+          visitor_sessions_keep_days: number;
+          visitor_daily_keep_days: number;
         };
         Insert: {
           id?: string;
@@ -10966,7 +10977,12 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          maps_daily_cap_autocomplete?: number;
+          maps_daily_cap_place_details?: number;
+          maps_daily_cap_routes?: number;
           vpage_extra_sources?: string[];
+          visitor_sessions_keep_days?: number;
+          visitor_daily_keep_days?: number;
         };
         Update: {
           id?: string;
@@ -11387,7 +11403,12 @@ export type Database = {
           db_plan?: string;
           db_cap_free_mb?: number;
           db_cap_pro_mb?: number;
+          maps_daily_cap_autocomplete?: number;
+          maps_daily_cap_place_details?: number;
+          maps_daily_cap_routes?: number;
           vpage_extra_sources?: string[];
+          visitor_sessions_keep_days?: number;
+          visitor_daily_keep_days?: number;
         };
         Relationships: [];
       };
@@ -17343,6 +17364,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      visitor_daily: {
+        Row: {
+          day: string;
+          visits: number;
+          visitors: number;
+          new_visits: number;
+          returning_visits: number;
+          known_visits: number;
+          page_views: number;
+          bounces: number;
+          seconds: number;
+          converted: number;
+          requests: number;
+          bookings: number;
+          signups: number;
+          contacts: number;
+          phone: number;
+          tablet: number;
+          desktop: number;
+          left_out: number;
+          computed_at: string;
+        };
+        Insert: {
+          day: string;
+          visits?: number;
+          visitors?: number;
+          new_visits?: number;
+          returning_visits?: number;
+          known_visits?: number;
+          page_views?: number;
+          bounces?: number;
+          seconds?: number;
+          converted?: number;
+          requests?: number;
+          bookings?: number;
+          signups?: number;
+          contacts?: number;
+          phone?: number;
+          tablet?: number;
+          desktop?: number;
+          left_out?: number;
+          computed_at?: string;
+        };
+        Update: {
+          day?: string;
+          visits?: number;
+          visitors?: number;
+          new_visits?: number;
+          returning_visits?: number;
+          known_visits?: number;
+          page_views?: number;
+          bounces?: number;
+          seconds?: number;
+          converted?: number;
+          requests?: number;
+          bookings?: number;
+          signups?: number;
+          contacts?: number;
+          phone?: number;
+          tablet?: number;
+          desktop?: number;
+          left_out?: number;
+          computed_at?: string;
+        };
+        Relationships: [];
+      };
+      visitor_daily_top: {
+        Row: {
+          day: string;
+          dim: string;
+          key: string;
+          n: number;
+        };
+        Insert: {
+          day: string;
+          dim: string;
+          key: string;
+          n: number;
+        };
+        Update: {
+          day?: string;
+          dim?: string;
+          key?: string;
+          n?: number;
+        };
+        Relationships: [];
+      };
       visitor_events: {
         Row: {
           id: number;
@@ -17449,6 +17557,12 @@ export type Database = {
           audience: string;
           assigned_to: string | null;
           assigned_at: string | null;
+          summary_at: string | null;
+          exit_path: string | null;
+          duration_s: number | null;
+          conversions: string[];
+          has_contact: boolean;
+          exclude_reason: string | null;
         };
         Insert: {
           id: string;
@@ -17483,6 +17597,12 @@ export type Database = {
           audience?: string;
           assigned_to?: string | null;
           assigned_at?: string | null;
+          summary_at?: string | null;
+          exit_path?: string | null;
+          duration_s?: number | null;
+          conversions?: string[];
+          has_contact?: boolean;
+          exclude_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -17517,6 +17637,12 @@ export type Database = {
           audience?: string;
           assigned_to?: string | null;
           assigned_at?: string | null;
+          summary_at?: string | null;
+          exit_path?: string | null;
+          duration_s?: number | null;
+          conversions?: string[];
+          has_contact?: boolean;
+          exclude_reason?: string | null;
         };
         Relationships: [];
       };
@@ -18858,6 +18984,7 @@ export type Database = {
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
+      server_maps_take: { Args: { p_sku: string }; Returns: boolean };
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };

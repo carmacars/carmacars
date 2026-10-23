@@ -41,7 +41,8 @@ create or replace function test.vhhas(p jsonb, p_sid text) returns boolean
 language sql as $$ select test.vhsid(p_sid)::text = any (test.vhids(p)) $$;
 
 -- ================================================================ 1. settings and retention defaults
-select test.eq('visits are kept 13 months by default', (app.settings()).visitor_sessions_keep_days, 395);
+select test.eq('visits are kept 90 days by default (the privacy policy)', (app.settings()).visitor_sessions_keep_days, 90);
+update program_settings set visitor_sessions_keep_days = 395 where id = (app.settings()).id;
 select test.eq('page detail stays 90 days', (app.settings()).visitor_events_keep_days, 90);
 select test.eq('daily totals: 3 years', (app.settings()).visitor_daily_keep_days, 1095);
 select test.throws('visits kept at least 30 days', $$update program_settings set visitor_sessions_keep_days = 7$$, 'check');
@@ -209,9 +210,9 @@ select test.ok('totals of 40 days ago stay', exists (select 1 from visitor_daily
 -- a visit with a chat is kept as before
 select test.ok('a visit with a chat is kept', exists (select 1 from visitor_sessions where id = test.vhsid('back')));
 
--- ================================================================ 9. the privacy policy
-select test.ok('privacy policy: the 13 months are written where our text is',
-  not exists (select 1 from site_content_blocks where block_key = 'legal.privacy' and body like '%| Site visit records (pages, events) |%' and body not like '%| Site visit summaries%'));
+-- 9. the privacy policy is unchanged (0118 keeps visits 90 days by default)
+select test.ok('privacy policy: unchanged', not exists (select 1 from site_content_blocks where block_key = 'legal.privacy' and body like '%| Site visit summaries%'));
+update program_settings set visitor_sessions_keep_days = 90 where id = (app.settings()).id;
 
 -- clean up what other suites count
 delete from visitor_sessions where visitor_id in (select test.vhvid(x) from unnest(array['google', 'back', 'renter', 'bot', 'staffer', 'ongoing', 'old40', 'old120', 'old400']) x);

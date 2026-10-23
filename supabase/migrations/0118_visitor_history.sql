@@ -24,9 +24,9 @@
 
 -- ================================================================ 1. settings
 alter table program_settings
-  add column if not exists visitor_sessions_keep_days integer not null default 395 check (visitor_sessions_keep_days between 30 and 1095),
+  add column if not exists visitor_sessions_keep_days integer not null default 90 check (visitor_sessions_keep_days between 30 and 1095),
   add column if not exists visitor_daily_keep_days integer not null default 1095 check (visitor_daily_keep_days between 90 and 3650);
-comment on column program_settings.visitor_sessions_keep_days is 'Visitor history (0118): a visit''s summary (date, how it arrived, device, approximate city, pages viewed, conversions) is kept this many days (395, 13 months, by default). Never less than the page views and events (visitor_events_keep_days).';
+comment on column program_settings.visitor_sessions_keep_days is 'Visitor history (0118): a visit''s summary (date, how it arrived, device, approximate city, pages viewed, conversions) is kept this many days (90 days by default, as the privacy policy says for site visit records; an Admin may raise it to 13 months once the policy says so). Never less than the page views and events (visitor_events_keep_days).';
 comment on column program_settings.visitor_daily_keep_days is 'Visitor history (0118): the daily totals (visits, unique visitors, conversions, top pages and sources; no personal information) are kept this many days (1095, 3 years, by default).';
 
 -- ================================================================ 2. the visit's summary
@@ -540,12 +540,6 @@ begin
   end loop;
 end $$;
 
--- ================================================================ 9. the privacy policy (section 1, retention), flagged for the lawyer
--- The live copy changes only where it still carries our text; an Admin's own edit is left as it is.
-update site_content_blocks
-   set body = replace(body,
-     '| Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |',
-     '| Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |
-| Site visit summaries (date, the site or campaign that sent you, first and last page, device, approximate city, number of pages, whether you sent a request or gave contact details) | 13 months; daily totals without personal information are kept |')
- where block_key = 'legal.privacy' and body like '%| Site visit records (pages, events) | 90 days; daily counts per car without personal information are kept |%'
-   and body not like '%| Site visit summaries%';
+-- 9. the privacy policy: unchanged. Visit summaries are kept 90 days by default, within the policy's site visit records row;
+-- raising visitor_sessions_keep_days needs the policy's retention table updated first (lawyer).
+
