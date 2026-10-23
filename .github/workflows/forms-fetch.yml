@@ -8,7 +8,12 @@ name: forms-fetch
 # report in deploy-reports/forms/<run id>/report.json. Nothing in the database changes: the templates and their
 # draft mappings are added by a migration from this report, and an Admin checks each one before owners get it.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      store:
+        description: Store the PDFs in the documents bucket and the report in deploy-reports (off - only the run's artifact, for checking the fillers locally)
+        type: boolean
+        default: true
 
 concurrency:
   group: forms-fetch
@@ -46,8 +51,15 @@ jobs:
         run: |
           node scripts/forms-fetch.mjs --out "$RUNNER_TEMP/forms" | tee "$RUNNER_TEMP/forms.txt"
           sed 's/^/::notice title=forms::/' "$RUNNER_TEMP/forms.txt"
-      - name: Store the PDFs (documents bucket) and the report (deploy-reports)
+      - name: Keep the PDFs and the report as the run's artifact (the form fillers' tests and screenshots use them)
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms
+          path: ${{ runner.temp }}/forms
+          retention-days: 14
+      - name: Store the PDFs (documents bucket) and the report (deploy-reports)
+        if: always() && inputs.store
         run: |
           set -euo pipefail
           K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
