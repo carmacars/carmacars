@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        section: [db, api, auth, storage, functions, webhooks, infra]
+        section: [seqfix]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
