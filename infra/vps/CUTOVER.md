@@ -195,7 +195,7 @@ Server 54.39.111.152 (OVHcloud VPS-4, Beauharnois) is provisioned; host key pinn
   45 pg_cron jobs paused, 1,317 stored files, Auth settings and RPC answers identical, Google sign-in carried).
 - vps-backup: configure (wal-g on R2), logical backup + restore test (334 of 334 tables equal), PITR test
   (base backup + archived WAL replayed, ok).
-Found and fixed on the way: the platform's own Postgres image (17.11.0.003) does not set up the self-hosted roles
+Found and fixed on the way: COPY through the SSH tunnel ran under 1 MB/s (21 min), so schema and data now load inside the server from a compressed stream; the platform's own Postgres image (17.11.0.003) does not set up the self-hosted roles
 (the stack uses the official self-hosted 17.6.1.136); the CLI's data dump leaves out the migration history (copied
 separately, else the deploy would re-run migrations); a HEAD on Storage answers from the database row (files are
 now checked by reading their first byte).
@@ -203,7 +203,11 @@ now checked by reading their first byte).
 Left before the cutover:
 - Google Cloud console: add `https://api.carmacars.ca/auth/v1/callback` to the OAuth client's authorised redirect
   URIs (Sign in with Google goes through Supabase Auth's callback, which moves).
-- Decide the freeze window from the rehearsal timings (dump about 2.5 min; the data load is the long part).
+- The freeze window: the last rehearsal's whole copy took about 6 minutes (dump 2 to 3.5 min, restore 35 s inside the
+  server, 1,332 files about 1 min, verify, base backup). Plan 15 minutes of read-only site for steps 2 to 4.
+- Compare two role settings by hand (the copy leaves list-valued settings to the image's defaults): the hosted
+  project's `authenticator` `session_preload_libraries` and `postgres` `search_path` against the server's
+  (`select rolname, rolconfig from pg_roles where rolname in ('authenticator','postgres')` on both).
 - Hosted settings GoTrue has no variable for (listed by the copy's auth step: the security notification emails,
   `mfa_phone_*`, `rate_limit_web3`, `custom_oauth_max_providers`); none is used by the site today.
 
