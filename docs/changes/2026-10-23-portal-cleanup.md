@@ -123,6 +123,8 @@ the before shots (the fresh seed): compare the frame, the menus and the layout, 
 
 ## Guides
 
+Chapters changed: `admin/getting-around-admin`, `admin/people-and-access`, `admin/partners-company-cars-and-rentals-added-by-hand`, `admin/chauffeur-service`, `admin/owners-and-onboarding`, `admin/discount-games-and-leads`, `admin/search-car-pages-landing-pages-and-guides`, `admin/quick-reference`, `va/your-workday`, `va/customer-service`, `va/live-visitors-and-live-chat`, `va/texts-and-calls`, `va/discount-game-leads`, `va/shared-tools`, `va/quick-reference`, `owner/start-here`, `owner/fees-payments-and-payouts`, `owner/for-partner-rental-companies`, `owner/notices-profile-and-leaving`, `owner/quick-reference`, `field/my-jobs`, `field/report-rentals-referrals-and-profile`, `field/quick-reference`, `investor/your-investments`, `investor/how-your-returns-work`, `renter/after-your-trip`.
+
 The in-portal guides (`docs/guides/content/*.json`, seeded into the guide pages) and their sources
 (`docs/guides/src/guides/*.py`) follow the new menu: Admin "People > ...", "Bookings > Renter leads", "Staff tasks", the
 six groups and their parts; staff "Live > ...", "Bookings > Find a car", "Today at a glance", More filters; owner "Account
