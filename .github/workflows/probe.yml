@@ -12,5 +12,5 @@ jobs:
           set +e
           umask 077; printf '%s\n' "$K" > k; echo "key lines: $(wc -l < k) first: $(head -1 k | cut -c1-36)" >> out.txt
           ssh-keygen -y -f k > pub 2>err && echo "pub: $(cut -c1-60 pub)" >> out.txt || echo "keygen err: $(cat err)" >> out.txt
-          for u in ubuntu root; do ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i k $u@54.39.111.152 'echo ok $(whoami)' >> out.txt 2>&1; echo "$u exit $?" >> out.txt; done
+          for u in ubuntu root; do r=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i k $u@54.39.111.152 "echo ok \$(whoami)" 2>e); echo "$u exit $? out=$r err=$(tail -1 e | tr -d "|")" >> out.txt; done
           echo "::notice title=probe::$(tr '\n' '|' < out.txt)"
