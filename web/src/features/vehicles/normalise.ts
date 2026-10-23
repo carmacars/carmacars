@@ -35,6 +35,8 @@ export type Variant = {
    *  EPA's prices), the hours to charge at 240 V, the luggage volume in cubic feet, the battery in kWh when EPA names it */
   mpg_city?: number | null; mpg_hwy?: number | null; mpg_comb?: number | null; fuel_cost_usd?: number | null; charge240_h?: number | null;
   luggage_cuft?: number | null; battery_kwh?: number | null;
+  /** where the figures come from when it is not EPA: 'nrcan' (Natural Resources Canada's Fuel Consumption Ratings, 0115) */
+  src?: 'nrcan';
 };
 /** A body's Canadian dimensions and curb weight, as NHTSA vPIC's Canadian specifications give them (cm, kg). */
 export type Dim = { body: string; length_cm: number | null; width_cm: number | null; height_cm: number | null; wheelbase_cm: number | null; curb_kg: number | null };
@@ -48,9 +50,15 @@ export type Catalog = { makes: MakeRow[]; models: ModelRow[]; years: YearRow[]; 
 
 /** RFC 4180 CSV (quoted fields, doubled quotes, CRLF), first row the header. */
 export function parseCsv(text: string): Array<Record<string, string>> {
+  const rows = csvRows(text);
+  const head = (rows.shift() ?? []).map((h) => h.trim());
+  return rows.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+}
+/** RFC 4180 CSV as rows of cells (a leading byte-order mark dropped). */
+export function csvRows(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [], field = '', q = false;
-  for (let i = 0; i < text.length; i++) {
+  for (let i = text.charCodeAt(0) === 0xfeff ? 1 : 0; i < text.length; i++) {
     const c = text[i]!;
     if (q) {
       if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += c;
@@ -60,8 +68,7 @@ export function parseCsv(text: string): Array<Record<string, string>> {
     else field += c;
   }
   if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  const head = (rows.shift() ?? []).map((h) => h.trim());
-  return rows.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+  return rows;
 }
 
 const num = (s: string | undefined) => { const n = Number(String(s ?? '').trim()); return Number.isFinite(n) && String(s ?? '').trim() !== '' ? n : null; };
@@ -140,7 +147,8 @@ const mode = (xs: Array<string | null>) => { const n = new Map<string, number>()
 export type VpicNames = Map<string, Map<number, string[]>>; // make slug -> year -> model names
 
 /** The EPA rows and vPIC names as the catalog. vPIC adds years only to models EPA knows or the trim list names. */
-export function buildCatalog(rows: Array<Record<string, string>>, opts: { years: [number, number]; vpic?: VpicNames; trimLines?: TrimLine[]; popular?: Array<{ make: string; model: string }> }): Catalog {
+export function buildCatalog(rows: Array<Record<string, string>>, opts: { years: [number, number]; vpic?: VpicNames; trimLines?: TrimLine[]; popular?: Array<{ make: string; model: string }>;
+  extra?: ExtraSource[] }): Catalog {
   const makes = new Map<string, string>();
   const models = new Map<string, { make: string; name: string; key: string; aliases: Set<string>; vclass: Array<string | null>; sources: Set<string> }>();
   const years = new Map<string, YearRow>();
@@ -193,6 +201,8 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
       }
     }
   }
+  // the further sources (0115): the vPIC database export, NRCan's ratings, Wikidata's older models (addExtra, below)
+  const extraTrims = addExtra(opts.extra ?? [], makes, models, years);
   const modelRows: ModelRow[] = [...models.values()].map((m) => ({ make: m.make, slug: slugify(m.name), name: m.name, key: m.key, aliases: [...m.aliases].sort(), vclass: mode(m.vclass), sources: [...m.sources].sort() }));
   // two EPA base models with one slug (rare spelling differences) stay one page: the first name wins, aliases merge
   const bySlug = new Map<string, ModelRow>();
@@ -225,6 +235,8 @@ export function buildCatalog(rows: Array<Record<string, string>>, opts: { years:
     return viaAlias?.slug ?? null;
   };
   const trim_lines = (opts.trimLines ?? []).map((t) => ({ ...t, model: resolve(t.make, t.model) ?? '' })).filter((t) => t.model);
+  // a source's trims for the model years the curated list does not name (the curated list wins where it has the year)
+  if (extraTrims.size) trim_lines.push(...extraTrimLines(extraTrims, keyToSlug, trim_lines));
   const popular = (opts.popular ?? []).map((p, i) => ({ make: p.make, model: resolve(p.make, p.model) ?? '', sort: i + 1 })).filter((p) => p.model);
   return {
     makes: [...makes].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.slug.localeCompare(b.slug)),
@@ -348,6 +360,203 @@ export function batches(c: Catalog, maxBytes = 900_000): Batch[] {
       cur.models.push(m); cur.years.push(...ys); size += add;
     }
     out.push(cur);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- further sources (0115, docs/seo/coverage-2026-10-23.md)
+// Each is optional and read only when the import is given its file or flag (web/scripts/catalog/import.mjs):
+// - vpicdb: NHTSA's vPIC database (public domain) exported as make, model, year, vehicle type and trim: the makes,
+//   models and years EPA does not rate (heavy trucks, buses, motorcycles when asked, low-volume makes) and the trim
+//   names the VIN patterns carry;
+// - nrcan: Natural Resources Canada's Fuel Consumption Ratings (Open Government Licence - Canada), 1995 on: the
+//   Canadian-market models and years, with their Canadian figures where EPA has none for that year;
+// - wikidata: car models before 1981 with their production years (CC0), names only.
+export type ExtraRow = { make: string; model: string; year: number; trim?: string | null; vclass?: string | null; variant?: Variant | null };
+export type ExtraSource = { source: 'vpicdb' | 'nrcan' | 'wikidata'; rows: ExtraRow[]; newMakes: boolean; years: [number, number] };
+type ModelWork = { make: string; name: string; key: string; aliases: Set<string>; vclass: Array<string | null>; sources: Set<string> };
+
+/** A source's rows into the catalog being built: a model by its key, an alias or its family ("Sierra 2500 HD" is the
+ *  Sierra's), else a new model; the year added or marked; the figures only where EPA has none for that year. Returns the
+ *  trims named per make|model key|year, in the order first seen. */
+function addExtra(sources: ExtraSource[], makes: Map<string, string>, models: Map<string, ModelWork>, years: Map<string, YearRow>): Map<string, string[]> {
+  const trims = new Map<string, string[]>();
+  for (const src of sources) {
+    const byMake = new Map<string, ModelWork[]>();
+    for (const m of models.values()) (byMake.get(m.make) ?? byMake.set(m.make, []).get(m.make)!).push(m);
+    for (const r of src.rows) {
+      const name = makeName(r.make); const make = name ? slugify(name) : '';
+      if (!make || !Number.isInteger(r.year) || r.year < src.years[0] || r.year > src.years[1]) continue;
+      if (!makes.has(make)) { if (!src.newMakes) continue; makes.set(make, name!); }
+      const label = cleanModelName(r.model);
+      const key = modelKey(label);
+      if (!key) continue;
+      const list = byMake.get(make) ?? byMake.set(make, []).get(make)!;
+      const known = (k: string) => models.get(`${make}|${k}`) ?? list.find((o) => o.aliases.has(k));
+      let m = known(key) ?? list.filter((o) => o.key.length >= 3 && key.startsWith(o.key) && /^(\d{3,4}(hd)?|hd)$/.test(key.slice(o.key.length))).sort((a, b) => b.key.length - a.key.length)[0];
+      if (m && m.key !== key) m.aliases.add(key);
+      // else the longest run of its first words that is a model ("Sierra AT4" is the Sierra's): the rest names a trim or
+      // a body, not a model of its own
+      if (!m) { const ws = label.split(' '); let acc = ''; for (let i = 0; i < ws.length - 1 && i < 4; i++) { acc += modelKey(ws[i]); const hit = acc.length >= 2 ? known(acc) : undefined; if (hit) m = hit; } }
+      if (!m) { m = { make, name: label, key, aliases: new Set(), vclass: [], sources: new Set() }; models.set(`${make}|${key}`, m); list.push(m); }
+      m.sources.add(src.source);
+      if (r.vclass) m.vclass.push(classOf(r.vclass));
+      const yk = `${make}|${m.key}|${r.year}`;
+      let y = years.get(yk);
+      if (!y) { y = { make, model: m.key, year: r.year, vclass: null, variants: [], sources: [src.source] }; years.set(yk, y); }
+      else if (!y.sources.includes(src.source)) y.sources.push(src.source);
+      if (r.variant && y.variants.every((v) => v.src === 'nrcan')) y.variants.push(r.variant);
+      for (const t of splitTrims(r.trim, label)) {
+        const tl = trims.get(yk) ?? trims.set(yk, []).get(yk)!;
+        if (!tl.some((x) => trimSlug(x) === trimSlug(t))) tl.push(t);
+      }
+    }
+  }
+  return trims;
+}
+
+/** A model name from another source without drive, body and fuel-system words ("F-150 FFV 4X4" is "F-150"); kept as
+ *  it is when nothing would be left. */
+export function cleanModelName(s: string): string {
+  const words = String(s ?? '').replace(/\s+/g, ' ').trim().split(' ');
+  const kept = words.filter((w, i) => i === 0 || !(GENERIC.has(modelKey(w)) || /^(\d(wd|dr)|4x[24]|ffv|lwb|swb|hev|phev|bev)$/i.test(w)));
+  return (kept.join(' ') || words.join(' ')).replace(/[\s,;]+$/, '');
+}
+
+/** The trim names in one source value ("LX; EX / EX-L", "Sport,Touring"), at most 40 characters each, less the model's
+ *  own name and words that say nothing ("N/A", "-", "Not Applicable"). */
+export function splitTrims(v: string | null | undefined, model: string): string[] {
+  const out: string[] = [];
+  for (const raw of String(v ?? '').split(/;|,|\s\/\s/)) {
+    const t = raw.replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 40 || !/[a-z0-9]/i.test(t) || /^(n\/?a|none|not applicable|unknown|-+|\.+)$/i.test(t) || modelKey(t) === modelKey(model) || !trimSlug(t)) continue;
+    if (!out.some((x) => trimSlug(x) === trimSlug(t))) out.push(t);
+  }
+  return out;
+}
+
+/** The trims per model year as trim lines (runs of years with the same names become one line, 40 names at most), for
+ *  the model years no curated line covers. */
+function extraTrimLines(trims: Map<string, string[]>, keyToSlug: Map<string, string>, curated: TrimLine[]): TrimLine[] {
+  const covered = (make: string, model: string, year: number) => curated.some((t) => t.make === make && t.model === model && year >= t.from && year <= t.to);
+  const byModel = new Map<string, Array<{ year: number; names: string[] }>>();
+  for (const [k, names] of trims) {
+    const [make, key, y] = k.split('|'); const slug = keyToSlug.get(`${make}|${key}`); const year = Number(y);
+    if (!slug || !names.length || covered(make!, slug, year)) continue;
+    const mk = `${make}|${slug}`;
+    (byModel.get(mk) ?? byModel.set(mk, []).get(mk)!).push({ year, names: names.slice(0, 40) });
+  }
+  const out: TrimLine[] = [];
+  for (const [mk, ys] of [...byModel].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const [make, model] = mk.split('|') as [string, string];
+    ys.sort((a, b) => a.year - b.year);
+    for (const y of ys) {
+      const last = out[out.length - 1];
+      if (last && last.make === make && last.model === model && last.to === y.year - 1 && last.trims.join('|') === y.names.join('|')) last.to = y.year;
+      else out.push({ make, model, from: y.year, to: y.year, trims: [...y.names] });
+    }
+  }
+  return out;
+}
+
+/** The vPIC types a vPIC export row may be, by the name vPIC gives them. */
+export const VPIC_TYPES: Record<string, string> = {
+  'passenger car': 'car', 'multipurpose passenger vehicle (mpv)': 'mpv', truck: 'truck', motorcycle: 'motorcycle', bus: 'bus',
+  'low speed vehicle (lsv)': 'lsv', 'incomplete vehicle': 'incomplete', trailer: 'trailer', 'off road vehicle': 'offroad'
+};
+const VPIC_CLASS: Record<string, string> = { truck: 'Truck', motorcycle: 'Motorcycle', bus: 'Bus', lsv: 'Low Speed Vehicle', offroad: 'Off Road Vehicle' };
+/** The vPIC database export (docs/seo/coverage-2026-10-23.md has the query): CSV or tab-separated text with the header
+ *  make,model,year,vehicle_type,trim (NULL is empty). Only the types asked for (car, mpv, truck by default). */
+export function parseVpicExport(text: string, types: Set<string> = new Set(['car', 'mpv', 'truck'])): ExtraRow[] {
+  const out: ExtraRow[] = [];
+  // sqlcmd writes tab-separated text (the doc's export): read either
+  const first = text.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0] ?? '';
+  const table = first.includes('\t') && !first.includes(',')
+    ? (() => { const [h, ...ls] = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim() && !/^-+(\t-+)*$/.test(l.trim())); const head = h!.split('\t').map((x) => x.trim());
+        return ls.map((l) => { const c = l.split('\t'); return Object.fromEntries(head.map((k, i) => [k, (c[i] ?? '').trim() === 'NULL' ? '' : (c[i] ?? '').trim()])); }); })()
+    : parseCsv(text);
+  for (const r of table) {
+    const t = VPIC_TYPES[String(pick(r, 'vehicle_type') ?? '').trim().toLowerCase()] ?? String(pick(r, 'vehicle_type') ?? '').trim().toLowerCase();
+    if (!types.has(t)) continue;
+    const year = num(pick(r, 'year'));
+    const make = String(pick(r, 'make') ?? '').trim(), model = String(pick(r, 'model') ?? '').trim();
+    if (!year || !make || !model) continue;
+    out.push({ make, model, year, trim: String(pick(r, 'trim') ?? '').trim() || null, vclass: VPIC_CLASS[t] ?? null });
+  }
+  return out;
+}
+
+/** NRCan's transmission code as EPA words: AS8 "Automatic (S8)", AV "Automatic (variable gear ratios)", M6 "Manual 6-spd". */
+export function nrcanTrans(code: string): string | null {
+  const m = /^(AM|AS|AV|A|M)(\d{0,2})$/i.exec(String(code ?? '').trim());
+  if (!m) return null;
+  const k = m[1]!.toUpperCase(), n = m[2] ?? '';
+  if (k === 'AV') return n ? `Automatic (AV-S${n})` : 'Automatic (variable gear ratios)';
+  if (k === 'M') return n ? `Manual ${n}-spd` : 'Manual';
+  if (k === 'AS') return `Automatic (S${n})`;
+  if (k === 'AM') return `Automatic (AM${n})`;
+  return n ? `Automatic ${n}-spd` : 'Automatic';
+}
+const NRCAN_FUEL: Record<string, string> = { X: 'gasoline', Z: 'premium', D: 'diesel', E: 'gasoline', N: 'gasoline', B: 'electric' };
+/** NRCan's Fuel Consumption Ratings (one CSV per file: the conventional, battery-electric or plug-in hybrid lists). The
+ *  header is found by its words (the files differ by year: "Model year" or "MODEL YEAR", one or two header lines), and
+ *  each row becomes a model year with its Canadian figures as a powertrain marked src 'nrcan'. */
+export function parseNrcanCsv(text: string): ExtraRow[] {
+  const lines = csvRows(text);
+  const hi = lines.findIndex((r) => r.some((c) => /^make$/i.test(c.trim())) && r.some((c) => /^model/i.test(c.trim()) && !/year/i.test(c)));
+  if (hi < 0) return [];
+  // a second header line ("(L/100 km)" under "City") is joined to the first
+  const sub = lines[hi + 1] && !lines[hi + 1]!.some((c) => /^\d{4}$/.test(c.trim())) ? lines[hi + 1]! : null;
+  const head = lines[hi]!.map((c, i) => `${c} ${sub?.[i] ?? ''}`.replace(/\s+/g, ' ').trim().toLowerCase());
+  const col = (re: RegExp, not?: RegExp) => head.findIndex((h) => re.test(h) && !(not && not.test(h)));
+  const c = {
+    year: col(/model.?year|^year/), make: col(/^make/), model: col(/^model(?!.?year)/), vclass: col(/class/), displ: col(/engine size/), cyl: col(/cylinder/),
+    trans: col(/transmission/), fuel: col(/fuel( type)?$|fuel type/, /consumption/), city: col(/city/, /mpg|le\/|kwh/), hwy: col(/hwy|highway/, /mpg|le\/|kwh/),
+    comb: col(/comb/, /mpg|le\/|kwh/), kwhComb: col(/comb.*kwh/), co2: col(/co2 emissions|co2.*g\/km/), range: col(/range/)
+  };
+  if (c.make < 0 || c.model < 0 || c.year < 0) return [];
+  // the plug-in hybrid list has a second fuel (its L/100 km figures are the gasoline ones)
+  const phevFile = head.some((h) => /fuel type 2/.test(h));
+  const at = (r: string[], i: number) => (i >= 0 ? String(r[i] ?? '').trim() : '');
+  const n = (s: string) => { const x = Number(s.replace(/[^0-9.]/g, '')); return s && Number.isFinite(x) && x > 0 ? x : null; };
+  const out: ExtraRow[] = [];
+  let id = 0;
+  for (const r of lines.slice(hi + (sub ? 2 : 1))) {
+    const year = Number(at(r, c.year)); const make = at(r, c.make); const model = at(r, c.model);
+    if (!/^\d{4}$/.test(at(r, c.year)) || !make || !model) continue;
+    const fuelCode = at(r, c.fuel).toUpperCase().split('/')[0]!;
+    const phev = phevFile;
+    const ev = !phev && (fuelCode === 'B' || (c.kwhComb >= 0 && !!n(at(r, c.kwhComb)) && !n(at(r, c.displ))));
+    const words = model.toUpperCase();
+    const drive = /\b(AWD|4MATIC|XDRIVE|QUATTRO|4MOTION|SH-AWD|ALL4)\b/.test(words) ? 'All-Wheel Drive' : /\b(4WD|4X4)\b/.test(words) ? '4-Wheel Drive' : null;
+    id++;
+    out.push({ make, model, year, vclass: at(r, c.vclass) || null, variant: {
+      id: -(year * 100000 + id), epa_model: model, special: [], displ: ev ? null : n(at(r, c.displ)), cyl: ev ? null : n(at(r, c.cyl)), turbo: false, super: false,
+      drive, trans: nrcanTrans(at(r, c.trans)), fuel: ev ? 'electric' : phev ? 'plug_in_hybrid' : (NRCAN_FUEL[fuelCode] ?? 'gasoline'), vclass: at(r, c.vclass) || null,
+      l100_city: ev ? null : n(at(r, c.city)), l100_hwy: ev ? null : n(at(r, c.hwy)), l100_comb: ev ? null : n(at(r, c.comb)),
+      kwh100: ev ? n(at(r, c.kwhComb >= 0 ? c.kwhComb : c.comb)) : null, ev_range_km: ev || phev ? n(at(r, c.range)) : null,
+      co2_g_km: ev ? 0 : n(at(r, c.co2)), src: 'nrcan'
+    } });
+  }
+  return out;
+}
+/** Wikidata's car models (CC0) from the SPARQL query in docs/seo/coverage-2026-10-23.md, as its JSON results: the
+ *  manufacturer's and the model's English labels and the first and last production years. One model year a year of
+ *  production, before 1981 only (vPIC and EPA have every year since), and twenty years at most a model. */
+export function parseWikidata(json: unknown, until = 1980): ExtraRow[] {
+  const b = (json as { results?: { bindings?: Array<Record<string, { value?: string }>> } })?.results?.bindings ?? [];
+  const out: ExtraRow[] = [];
+  const seen = new Set<string>();
+  for (const x of b) {
+    const make = String(x.makeLabel?.value ?? '').trim().replace(/\s+(motor car company|motor company|motor corporation|motors corporation|motor works|motors|automobiles|automobile company|automotive|car company|corporation|company)$/i, '').trim();
+    let model = String(x.modelLabel?.value ?? '').trim();
+    const from = Number(String(x.start?.value ?? '').slice(0, 4)); const to = Number(String(x.end?.value ?? '').slice(0, 4)) || from;
+    if (!make || !model || /^Q\d+$/.test(model) || !(from >= 1900 && from <= until)) continue;
+    if (model.toLowerCase().startsWith(make.toLowerCase() + ' ')) model = model.slice(make.length + 1).trim();
+    for (let y = from; y <= Math.min(to, until, from + 19); y++) {
+      const k = `${make}|${model}|${y}`.toLowerCase();
+      if (!seen.has(k)) { seen.add(k); out.push({ make, model, year: y }); }
+    }
   }
   return out;
 }

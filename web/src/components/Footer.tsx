@@ -58,6 +58,8 @@ export function Footer({ s, reply, links = [] }: { s: SiteSettings; reply: strin
           <li><Link prefetch={false} href="/detailing">Car detailing</Link></li>
           <li><Link prefetch={false} href="/body-shop">Auto body shop</Link></li>
           <li><Link prefetch={false} href="/buy/cars-for-sale/toronto">Buying a car</Link></li>
+          <li><Link prefetch={false} href="/places">Every place we cover</Link></li>
+          <li><Link prefetch={false} href="/makes">Every make and model</Link></li>
         </ul></nav>
         <div className="footer-legal">
           <span>{s.brand_name}. {s.service_area}, Canada.</span>

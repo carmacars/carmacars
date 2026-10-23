@@ -21,6 +21,10 @@ on:
         description: Add OpenStreetMap neighbourhoods and towns (one job per Geofabrik extract)
         type: boolean
         default: true
+      osm_areas:
+        description: Also neighbourhoods mapped as areas (ways and relations), not only as nodes (0115)
+        type: boolean
+        default: true
       environment:
         description: Target
         type: choice
@@ -75,14 +79,20 @@ jobs:
           us/north-carolina, us/north-dakota, us/ohio, us/oklahoma, us/oregon, us/pennsylvania, us/rhode-island, us/south-carolina, us/south-dakota,
           us/tennessee, us/texas, us/utah, us/vermont, us/virginia, us/washington, us/west-virginia, us/wisconsin, us/wyoming, us/puerto-rico]
     steps:
-      - name: Place nodes (city, town, village, hamlet, suburb, quarter, neighbourhood, borough)
+      # 0115: neighbourhoods, suburbs, quarters and boroughs mapped as areas too (ways and multipolygon relations, placed
+      # at their middle by gazetteer.ts), not only as nodes: many cities map their neighbourhoods only as areas
+      - name: Place nodes (city, town, village, hamlet, suburb, quarter, neighbourhood, borough) and neighbourhood areas
         run: |
           set -euo pipefail
           sudo apt-get install -y -qq osmium-tool > /dev/null
           name="$(echo '${{ matrix.extract }}' | tr '/' '-')"
           curl -fsSL -o in.osm.pbf "https://download.geofabrik.de/north-america/${{ matrix.extract }}-latest.osm.pbf"
-          osmium tags-filter in.osm.pbf n/place=city,town,village,hamlet,suburb,quarter,neighbourhood,borough -o places.osm.pbf
-          mkdir -p out && osmium export places.osm.pbf -f geojsonseq --add-unique-id=type_id -o "out/$name.geojsonseq"
+          if [ "${{ inputs.osm_areas }}" = true ]; then
+            osmium tags-filter in.osm.pbf n/place=city,town,village,hamlet nwr/place=suburb,quarter,neighbourhood,borough -o places.osm.pbf
+          else
+            osmium tags-filter in.osm.pbf n/place=city,town,village,hamlet,suburb,quarter,neighbourhood,borough -o places.osm.pbf
+          fi
+          mkdir -p out && osmium export places.osm.pbf -f geojsonseq --add-unique-id=type_id --geometry-types=point,polygon -o "out/$name.geojsonseq"
           echo "::notice title=osm::$name $(wc -l < "out/$name.geojsonseq") place nodes"
           echo "name=$name" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4

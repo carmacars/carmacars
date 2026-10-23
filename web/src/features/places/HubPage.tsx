@@ -8,7 +8,7 @@ import { absUrl, breadcrumbLd, faqLd, seoMeta, type Trail } from '@/features/seo
 import { money } from '@/lib/format';
 import { fill, getClasses, getTokensLite as getTokens, replyText, getSettings, siteUrl } from '@/lib/site';
 import { hubCopy, placeLabel } from './copy';
-import { hubPath, VERTICAL_ROOT, type Hub } from './data';
+import { getTerms, hubPath, VERTICAL_ROOT, type Hub, type Vertical } from './data';
 import { PlaceLeadForm } from './PlaceLeadForm';
 import '@/styles/seo.css';
 
@@ -20,7 +20,10 @@ export async function hubMeta(h: Hub) {
   const t = await getTokens();
   const c = hubCopy(h, { fill: (s) => fill(s, t) });
   // a synonym pointing to another term's page: that page is the canonical one, this one is not indexed
-  return seoMeta({ title: c.title, description: c.description, path: h.term.canonical_path ?? h.path, noindex: !h.indexable || !!h.term.canonical_path });
+  const m = await seoMeta({ title: c.title, description: c.description, path: h.term.canonical_path ?? h.path, noindex: !h.indexable || !!h.term.canonical_path });
+  // 0115: the synonym's page names its term's page as the canonical (noindex alone would leave it without one)
+  if (h.term.canonical_path) m.alternates = { canonical: siteUrl() + h.term.canonical_path };
+  return m;
 }
 
 export function hubTrail(h: Hub): Trail {
@@ -30,7 +33,7 @@ export function hubTrail(h: Hub): Trail {
 }
 
 export async function HubPage({ h }: { h: Hub }) {
-  const [t, classes, s] = await Promise.all([getTokens(), getClasses(), getSettings()]);
+  const [t, classes, s, allTerms] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms()]);
   const F = (x: string) => fill(x, t);
   const c = hubCopy(h, { fill: F });
   const labels = Object.fromEntries(classes.map((x) => [x.code, x.label]));
@@ -44,6 +47,9 @@ export async function HubPage({ h }: { h: Hub }) {
   const graph: object[] = [breadcrumbLd(trail, h.path), ...(c.faq.length ? [faqLd(c.faq)] : [])];
   if (h.cars.length) graph.push({ '@type': 'ItemList', name: c.h1, numberOfItems: h.cars.length,
     itemListElement: h.cars.slice(0, 12).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + x.path, name: `${x.year ?? ''} ${x.make} ${x.model}`.trim(), ...(x.cover ? { image: absUrl(x.cover.path) } : {}) })) });
+  // 0115: a rental page for a place we deliver to describes the service we really give there (our business, delivered)
+  if (v === 'rental' && h.term.served === 'yes' && h.delivery.in_reach && !wide) graph.push({ '@type': 'Service', name: `${h.term.title} in ${where}`, serviceType: 'Car rental',
+    provider: { '@id': `${siteUrl()}/#business` }, areaServed: { '@type': 'Place', name: where } });
   if ((v === 'detailing' || v === 'bodyshop') && h.service) graph.push({ '@type': 'Service', name: `${h.term.title}`, serviceType: h.service.name, description: h.service.description,
     provider: { '@id': `${siteUrl()}/#business` }, areaServed: { '@type': wide ? 'AdministrativeArea' : 'Place', name: where } });
   const src = h.place.sources;
@@ -123,6 +129,16 @@ export async function HubPage({ h }: { h: Hub }) {
               {[...rentLinks, ...h.related_terms].slice(0, 12).map((x) => <li key={x.path}><Link prefetch={false} className="link" href={x.path}>{x.title} in {h.place.name}</Link></li>)}
               {h.term.landing_path && <li><Link prefetch={false} className="link" href={h.term.landing_path}>{h.term.title} in Toronto</Link></li>}
             </ul></nav>
+          </div>
+        </section>
+        {/* 0115: every search term's page for this place, so each is one click from the place's page (four from home) */}
+        <section className="car-sec landing__links" aria-labelledby="h-all">
+          <h2 className="d2" id="h-all">Everything for {h.place.name}</h2>
+          <div className="landing__cols" data-testid="hub-all-terms">
+            {(['rental', 'detailing', 'bodyshop', 'sale'] as Vertical[]).map((vv) => { const list = allTerms.filter((x) => x.vertical === vv && !(vv === v && x.slug === h.term.slug)); return list.length ? (
+              <nav key={vv} aria-label={`${ROOT_LABEL[vv]} in ${h.place.name}`}><h3 className="d4">{ROOT_LABEL[vv]}</h3><ul className="linklist">
+                {list.map((x) => <li key={x.slug}><Link prefetch={false} className="link" href={hubPath(vv, x.slug, h.place.slug)}>{x.title}</Link></li>)}
+              </ul></nav>) : null; })}
           </div>
         </section>
         <p className="xs muted" data-testid="place-attribution">

@@ -51,7 +51,7 @@ export function StatsBlock({ sp, dims, model, trim, name, s, seats }: { sp: Spec
           <thead><tr><th scope="col">Dimension</th>{bodies.map((b) => <th key={b.body} scope="col">{b.body.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())}</th>)}</tr></thead>
           <tbody>{drows.map((r) => <tr key={r.label}><th scope="row">{r.label}</th>{r.values.map((v, i) => <td key={i}>{v}</td>)}</tr>)}</tbody>
         </table></div>}
-      <p className="xs muted" data-testid="vp-sources">Sources: fuel use, MPG, CO2, electric range, battery, charge time, luggage volume and the annual fuel cost are the US EPA&apos;s (fueleconomy.gov){drows.length ? '; dimensions and curb weight are NHTSA vPIC Canadian vehicle specifications, by body' : ''}. Imperial MPG, litres, inches and pounds are converted from those figures. Figures no free source publishes for this car (power, torque, acceleration, top speed, fuel tank, towing) are left out.</p>
+      <p className="xs muted" data-testid="vp-sources">Sources: {sp.length && sp.every((x) => x.src === 'nrcan') ? <>fuel use, CO2 and electric range are Natural Resources Canada&apos;s Fuel Consumption Ratings (Open Government Licence - Canada)</> : <>fuel use, MPG, CO2, electric range, battery, charge time, luggage volume and the annual fuel cost are the US EPA&apos;s (fueleconomy.gov)</>}{drows.length ? '; dimensions and curb weight are NHTSA vPIC Canadian vehicle specifications, by body' : ''}. Imperial MPG, litres, inches and pounds are converted from those figures. Figures no free source publishes for this car (power, torque, acceleration, top speed, fuel tank, towing) are left out.</p>
     </section>
   );
 }

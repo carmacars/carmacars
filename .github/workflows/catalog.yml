@@ -15,6 +15,11 @@ name: catalog
 #   push            (any branch, when the import's code changes) a dry run only: download, normalise, counts, the
 #                   fixture subset as annotations. Never writes.
 #
+# Further sources (0115; docs/seo/coverage-2026-10-23.md): the vPIC database export (vpicdb), NRCan's Fuel Consumption
+# Ratings (nrcan) and Wikidata's models before 1981 (wikidata). The import includes the ones Program settings
+# vpage_extra_sources lists (empty by default: they wait until the database has moved off the 1 GB server), or the ones a
+# manual run names. Every import replaces the whole catalog, so once a source is on it stays on in the setting.
+#
 # Production is written only here, never from a developer's machine.
 on:
   schedule:
@@ -25,6 +30,10 @@ on:
         description: Write the catalog to the production database (false for a dry run)
         type: boolean
         default: true
+      extra:
+        description: Further sources, comma separated (vpicdb,nrcan,wikidata); empty uses Program settings vpage_extra_sources, none for none
+        type: string
+        default: ''
   push:
     paths:
       - '.github/workflows/catalog.yml'
@@ -54,6 +63,15 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          # the further sources (0115): a manual run's list, else the setting (never on a push)
+          extra="${{ inputs.extra }}"
+          if [ "${{ github.event_name }}" != push ] && [ -z "$extra" ]; then
+            extra=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+              --data '{"query":"select coalesce(array_to_string(vpage_extra_sources, $$,$$), $$$$) as x from program_settings limit 1"}' | jq -r '.[0].x // empty' 2>/dev/null || true)
+          fi
+          [ "$extra" = none ] && extra=''
+          echo "extra=$extra" >> "$GITHUB_OUTPUT"
+          [ -n "$extra" ] && echo "::notice title=catalog::further sources: $extra"
           case "${{ github.event_name }}" in
             push) echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
             workflow_dispatch) [ "${{ inputs.write }}" = true ] && echo "mode=write" >> "$GITHUB_OUTPUT" || echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
@@ -61,11 +79,42 @@ jobs:
           due=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
             --data '{"query":"select app.vehicle_catalog_import_due() as due"}' | jq -r '.[0].due // false')
           if [ "$due" = true ]; then echo "mode=write" >> "$GITHUB_OUTPUT"; else echo "mode=skip" >> "$GITHUB_OUTPUT"; echo "::notice title=catalog::not due: the last import is recent and none was asked for"; fi
+      # 0115: the vPIC standalone database (public domain, a SQL Server backup) restored in a container and exported by
+      # scripts/catalog/vpic-export.sql; any failure leaves the source out of this run (the annotations say why)
+      - name: vPIC database export
+        if: steps.due.outputs.mode != 'skip' && contains(steps.due.outputs.extra, 'vpicdb')
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          link=$(curl -fsSL https://vpic.nhtsa.dot.gov/api/ | grep -oE 'vPICList_lite_[0-9_]+\.bak\.zip' | sort -u | tail -n 1)
+          [ -n "$link" ] || { echo "::warning title=vpicdb::no vPICList_lite backup link on vpic.nhtsa.dot.gov/api"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/vpic" && curl -fsSL -o "$RUNNER_TEMP/vpic/db.zip" "https://vpic.nhtsa.dot.gov/api/$link"
+          (cd "$RUNNER_TEMP/vpic" && unzip -o -q db.zip && mv ./*.bak db.bak && chmod 644 db.bak)
+          PW="Vp$(openssl rand -hex 12)!"; echo "::add-mask::$PW"
+          docker run -d --name vpic -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$PW" -v "$RUNNER_TEMP/vpic:/b" mcr.microsoft.com/mssql/server:2022-latest >/dev/null
+          for i in $(seq 1 60); do docker exec vpic /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$PW" -Q 'select 1' >/dev/null 2>&1 && break; sleep 5; done
+          files=$(docker exec vpic /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$PW" -h -1 -W -Q "SET NOCOUNT ON; RESTORE FILELISTONLY FROM DISK='/b/db.bak'" | awk 'NF {print $1}')
+          moves=$(for f in $files; do printf "MOVE '%s' TO '/var/opt/mssql/data/%s', " "$f" "$f"; done)
+          docker exec vpic /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$PW" -Q "RESTORE DATABASE vPICList_Lite1 FROM DISK='/b/db.bak' WITH ${moves} REPLACE" >/dev/null
+          docker cp scripts/catalog/vpic-export.sql vpic:/b/q.sql
+          docker exec vpic /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$PW" -d vPICList_Lite1 -i /b/q.sql -s $'\t' -W -o /b/export.tsv
+          cp "$RUNNER_TEMP/vpic/export.tsv" "$RUNNER_TEMP/vpic-export.tsv"
+          echo "::notice title=vpicdb::$link: $(wc -l < "$RUNNER_TEMP/vpic-export.tsv") rows"
+          docker rm -f vpic >/dev/null
+      - name: Further source flags
+        id: extra
+        if: steps.due.outputs.mode != 'skip'
+        run: |
+          f=''
+          case ",${{ steps.due.outputs.extra }}," in *,vpicdb,*) [ -s "$RUNNER_TEMP/vpic-export.tsv" ] && f="$f --vpic-export $RUNNER_TEMP/vpic-export.tsv" ;; esac
+          case ",${{ steps.due.outputs.extra }}," in *,nrcan,*) f="$f --nrcan download" ;; esac
+          case ",${{ steps.due.outputs.extra }}," in *,wikidata,*) f="$f --wikidata download" ;; esac
+          echo "flags=$f" >> "$GITHUB_OUTPUT"
       - name: Dry run (download, normalise, counts, fixture)
         if: steps.due.outputs.mode == 'dry'
         run: |
           set -euo pipefail
-          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --stats "$RUNNER_TEMP/stats.json" --fixture-out "$RUNNER_TEMP/fixture" | tee "$RUNNER_TEMP/out.txt"
+          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa ${{ steps.extra.outputs.flags }} --stats "$RUNNER_TEMP/stats.json" --fixture-out "$RUNNER_TEMP/fixture" | tee "$RUNNER_TEMP/out.txt"
           echo "::notice title=catalog stats::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
           echo "::notice title=catalog coverage::$(jq -c '.coverage' "$RUNNER_TEMP/stats.json" | head -c 3900)"
           echo "::notice title=catalog unmatched::$(jq -r '.unmatched | join(", ")' "$RUNNER_TEMP/stats.json" | head -c 3500)"
@@ -110,7 +159,7 @@ jobs:
               export DATABASE_URL="postgresql://$user:$enc@$host:5432/postgres"
             fi
           fi
-          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa --write --stats "$RUNNER_TEMP/stats.json" \
+          node --experimental-strip-types --no-warnings scripts/catalog/import.mjs --vpic --nhtsa ${{ steps.extra.outputs.flags }} --write --stats "$RUNNER_TEMP/stats.json" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/write.txt"
           echo "::notice title=catalog::$(jq -c 'del(.unmatched, .coverage)' "$RUNNER_TEMP/stats.json")"
           grep -E '^(write|staged|merged|written):' "$RUNNER_TEMP/write.txt" | sed 's/^/::notice title=catalog write::/' || true
