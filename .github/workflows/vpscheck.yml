@@ -1,0 +1,25 @@
+name: vpscheck
+# Temporary (branch vpscheck): the post-cutover proof of every Supabase capability on api.carmacars.ca.
+on:
+  push:
+    branches: [vpscheck]
+    paths: ['.github/vpscheck/**', '.github/workflows/vpscheck.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        section: [db, api, auth, storage, functions, webhooks, infra]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      PHONE: '+12893125991'
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ matrix.section }}
+        run: |
+          if [ -f ".github/vpscheck/${{ matrix.section }}.sh" ]; then bash ".github/vpscheck/${{ matrix.section }}.sh"; fi
