@@ -301,6 +301,18 @@ auth() {
     local s; s=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_auth_sms_hook_secret'" | jq -r '.[0].v // empty'); mask "$s"
     if [ -n "$s" ]; then jq --arg s "$s" '.hook_send_sms_secrets = $s' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"; else warn "the Send SMS hook is on but its secret is not in the vault (deploy_auth_sms_hook_secret)"; fi
   fi
+  # sign-in providers (Google...): a client secret the API does not show back comes from the vault, deploy_auth_<p>_secret
+  local prov provs=""
+  for prov in $(jq -r 'to_entries[] | select(.key | test("^external_[a-z0-9]+_enabled$")) | select(.value == true) | .key | sub("^external_"; "") | sub("_enabled$"; "")' "$W/auth-config.json"); do
+    [ "$prov" = email ] || [ "$prov" = phone ] || [ "$prov" = anonymous_users ] && continue
+    if ! jq -e --arg k "external_${prov}_secret" '.[$k] // "" | test("^[^*]+$")' "$W/auth-config.json" > /dev/null; then
+      local ps; ps=$(vps_sql "select decrypted_secret as v from vault.decrypted_secrets where name = 'deploy_auth_${prov}_secret'" | jq -r '.[0].v // empty'); mask "$ps"
+      if [ -n "$ps" ]; then jq --arg k "external_${prov}_secret" --arg v "$ps" '.[$k] = $v' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"
+      else warn "sign-in with $prov is on, but its client secret is not shown by the API and not in the vault (deploy_auth_${prov}_secret): it will not work on the server"; fi
+    fi
+    provs+="$prov (secret $(jq -r --arg k "external_${prov}_secret" 'if (.[$k] // "" | test("^[^*]+$")) then "present" else "MISSING" end' "$W/auth-config.json")) "
+  done
+  [ -z "$provs" ] || note "auth: sign-in providers $provs; the provider's console must allow the redirect $VPS_API_URL/auth/v1/callback"
   jq --arg u "$VPS_API_URL" '. + {__api_external_url: $u}' "$W/auth-config.json" > "$W/a.tmp" && mv "$W/a.tmp" "$W/auth-config.json"
   local out; out=$(mktemp -d); chmod 700 "$out"
   node "$HERE/auth-env.mjs" --out "$out" < "$W/auth-config.json" > "$W/auth-render.json"
