@@ -983,7 +983,7 @@ def build():
            'brakes, tires and winter tires, towing, batteries and boosts, alignment, transmission and engine repair, diagnostics, inspections and '
            'the Ontario safety certificate, emissions, AC, exhaust and suspension. CarmaCars does not do this work, and the pages say so: each takes '
            'a request (a "Mechanical work to arrange" task, due within an hour of opening) and offers a rental while the car is in. '
-           'They have no questions of their own and no vehicle pages.')
+           'They have no questions of their own; their per car pages (for each make, model, year and trim) say the same and take the same request.')
     g.task('One name, address and phone',
            'The footer, the contact page, the structured data and every business listing show the business address of Site settings. '
            'Keep it the address renters come to, and change it there only.')

@@ -123,7 +123,36 @@ test('mechanical work we arrange: a request, never our work, no questions; synon
 
   await page.goto('/body-shop');
   await expect(page.getByTestId('arranged-terms').getByRole('link', { name: 'Oil Change in Toronto' })).toHaveAttribute('href', '/body-shop/oil-change/toronto');
-  // no vehicle page tree for it
-  expect((await request.get('/sitemap.xml')).ok()).toBe(true);
-  expect(await (await request.get('/sitemap.xml')).text()).not.toContain('t-oil-change');
+});
+
+// 0123 (owner: "Include them in the per car pages."): the per car pages of the mechanical work we arrange, honest the same way
+test('mechanical work we arrange on the per car pages: a trusted shop, a rental meanwhile, no questions; in the vehicle sitemaps', async ({ page, request }) => {
+  const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
+  expect((await page.goto('/t/oil-change/volkswagen/jetta/2020/sportline/scarborough'))?.status()).toBe(200);
+  await expect(page.locator('h1')).toHaveText(/^Oil change for a 2020 Volkswagen Jetta Sportline in Scarborough$/);
+  await expect(page.locator('body')).toContainText('CarmaCars does not do this work itself');
+  await expect(page.locator('body')).toContainText('trusted shop');
+  await expect(page.locator('body')).not.toContainText('insurance replacement');
+  await expect(page.locator('#h-q')).toHaveCount(0);
+  expect(await ld()).not.toContain('FAQPage');
+  expect(await ld()).not.toContain('"@type":"Service"');
+  expect(await ld()).not.toContain('AggregateRating');
+  await expect(page.getByTestId('svc-rent-first').getByRole('link', { name: 'See cars to rent' })).toHaveAttribute('href', '/t/rental-car-while-car-is-in-the-shop/volkswagen/jetta/2020/sportline/scarborough');
+  const form = page.getByTestId('lead-form');
+  await expect(form.locator('input[name="marketing"]')).toHaveCount(0);
+  await form.locator('#vl-name').fill('Auto Car Test');
+  await form.locator('#vl-email').fill(`autocar-${Date.now()}@example.com`);
+  await form.getByRole('button', { name: 'Request it' }).click();
+  await expect(page.getByTestId('lead-sent')).toBeVisible();
+  await noOverflow(page);
+  if (test.info().project.name !== 'desktop-1440') return;
+  // the vehicle sitemaps list the tree's files, and a file lists its pages
+  const files = locs(await (await request.get('/sitemap.xml')).text()).filter((u) => u.startsWith('/sitemap-vehicles/t-oil-change-'));
+  expect(files.length).toBeGreaterThan(0);
+  const res = await request.get(files[0]!);
+  expect(res.status()).toBe(200);
+  const urls = locs(await res.text());
+  expect(urls.length).toBeGreaterThan(0);
+  expect(urls.length).toBeLessThanOrEqual(50_000);
+  expect(urls.every((u) => u.startsWith('/t/oil-change/'))).toBe(true);
 });

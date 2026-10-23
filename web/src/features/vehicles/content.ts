@@ -325,12 +325,15 @@ export function termTitleOptions(o: Named & { mode: TermMode; term: { slug: stri
   return [`${T}: ${c}${n}${where}${o.city ? '' : ' | {{brand}}'}`, `${T}: ${c}${n}${where}${tail && !o.city ? tail : ''}`, `${T}: ${c}${n}${sp}`, `${T}: ${c}${m}${sp}`,
     `${S}: ${c}${m}${sp}`, `${S}: ${c}${m}${o.city ? `, ${shortPlace(o.city)}` : ''}`].map((x) => cap(x));
 }
-export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string; phrase?: string }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
+export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug: string; name: string; phrase?: string; lead?: string | null }; use?: string; body?: string | null; length?: string | null; forSale?: number; cars?: number; recalls?: number | null }): string[] {
   const c = o.colour ? `${low(o.colour)} ` : '';
   const n = `${c}${nameOf(o)}`, ph = midTerm(o.term), where = o.city ? ` in ${o.city}` : '';
   const facts = [o.body ? low(o.body) : '', o.length ? `${o.length} long` : '', o.use ?? ''].filter(Boolean).join(', ');
   if (o.mode === 'detailing') return [`${o.term.name} for ${an(n)} ${n}${where}${facts ? ` (${facts})` : ''}. Request a time, and rent a car from us while yours is detailed.`,
     `${o.term.name} for ${an(n)} ${n}${where}. Request a time, and rent a car while yours is detailed.`, `${o.term.name} for ${an(n)} ${n}${where}: request it, and rent a car meanwhile.`];
+  // 0123: mechanical work we arrange (lead auto_service): never ours, a trusted shop, a rental while the car is in
+  if (o.mode === 'bodyshop' && o.term.lead === 'auto_service') return [`${o.term.name} for ${an(n)} ${n}${where}: we arrange it with a trusted shop, and rent you a car while yours is in.`,
+    `${o.term.name} for ${an(n)} ${n}${where}: request it, we arrange a trusted shop and a rental meanwhile.`, `${o.term.name} for ${an(n)} ${n}${where}: request it, and rent a car meanwhile.`];
   if (o.mode === 'bodyshop') return [`${o.term.name} for ${an(n)} ${n}${where}${facts ? ` (${facts})` : ''}. Request it, with an insurance replacement rental while it is repaired.`,
     `${o.term.name} for ${an(n)} ${n}${where}, with an insurance replacement rental while it is repaired.`, `${o.term.name} for ${an(n)} ${n}${where}: request it, and rent a car meanwhile.`];
   if (o.mode === 'sale') {

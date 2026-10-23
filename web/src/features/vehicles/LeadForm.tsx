@@ -7,8 +7,9 @@ import { useForm } from '@/features/forms/useForm';
 
 // The vehicle pages' lead forms (migration 0097): "Find me this car" on a for-sale page, a financing or leasing
 // question, a detailing or body shop request. Each is a lead for Sales (Leads, with a To do line).
-type Kind = 'buyer' | 'finance' | 'detailing' | 'bodyshop';
-const BUTTON: Record<Kind, string> = { buyer: 'Find me this car', finance: 'Send my question', detailing: 'Request detailing', bodyshop: 'Request the repair' };
+// auto_service (0123): mechanical work we arrange with a trusted shop, never do ourselves; no marketing consent asked
+type Kind = 'buyer' | 'finance' | 'detailing' | 'bodyshop' | 'auto_service';
+const BUTTON: Record<Kind, string> = { buyer: 'Find me this car', finance: 'Send my question', detailing: 'Request detailing', bodyshop: 'Request the repair', auto_service: 'Request it' };
 export function LeadForm({ kind, vehicle, service, place, marketingText, disclaimer }: { kind: Kind; vehicle: string; service?: string; place?: string; marketingText: string; disclaimer?: string }) {
   const { state, run, pending, errors: e, clear } = useForm(vehicleLeadSchema, submitVehicleLead);
   const id = (x: string) => `vl-${x}`;
@@ -32,7 +33,7 @@ export function LeadForm({ kind, vehicle, service, place, marketingText, disclai
             {!money && <option value="week">This week</option>}<option value="now">{money ? 'Now' : 'As soon as possible'}</option><option value="month">Within a month</option><option value="three">Within three months</option><option value="later">Later</option></select></div>
       </div>
       {disclaimer && <p className="small muted" data-testid="lead-disclaimer">{disclaimer}</p>}
-      {marketingText && <label className="check"><input type="checkbox" name="marketing" /><span className="small">{marketingText}</span></label>}
+      {marketingText && kind !== 'auto_service' && <label className="check"><input type="checkbox" name="marketing" /><span className="small">{marketingText}</span></label>}
       <Turnstile action={`lead-${kind}`} />
       <button className="btn btn--primary" type="submit" disabled={pending}>{pending ? 'Sending' : BUTTON[kind]}</button>
     </form>

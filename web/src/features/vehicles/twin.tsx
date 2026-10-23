@@ -233,6 +233,8 @@ export async function TwinView(tw: Twin) {
   const img = standIn({ path: trimPath, group: 'body_group' in p ? p.body_group : 'car', vclass: 'vclass' in p ? p.vclass : null, model: o.model ?? o.make, paint: isTier(p) ? p.colour?.slug : undefined });
   const mode = tree.mode;
   const svc = mode === 'detailing' || mode === 'bodyshop';
+  // 0123: mechanical work we arrange with a trusted shop (lead auto_service), never our work: no questions, no insurance offer
+  const auto = mode === 'bodyshop' && tree.term?.lead === 'auto_service';
   const label = tree.term?.name ?? 'Buy';
   const trail = trailOf(tw, label);
   const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -246,13 +248,14 @@ export async function TwinView(tw: Twin) {
   const lead = mode === 'sale'
     ? [x.for_sale.length ? `${x.for_sale.length === 1 ? 'One' : x.for_sale.length} for sale by us now, from ${money(Math.min(...x.for_sale.map((c) => c.asking_price_cents)))}.` : `None for sale by us right now: rent one for a week first, or ask us to find one.`,
        sp.length ? `Rated ${ratingRange(sp)} combined (EPA).` : '', x.recalls ? `${x.recalls.length} NHTSA recall campaign${x.recalls.length === 1 ? '' : 's'}.` : '', finance ? disclaimer : ''].filter(Boolean).join(' ')
+    : auto ? `${tree.term!.name} for the ${full}${where}: CarmaCars does not do this work itself. Request it and we arrange it with a trusted shop or connect you with one, and we can deliver a rental car to you while yours is in.`
     : svc ? `${tree.term!.name} for the ${full}${where}: request it here. ${mode === 'bodyshop' ? 'Rent a car from us while it is repaired, as an insurance replacement rental when it is a claim.' : 'Rent a car from us while yours is detailed.'}`
     : `${tree.term!.name} for the ${full}${where}. ${sp.length ? `Rated ${ratingRange(sp)} combined (EPA).` : ''} ${inv.exact.length ? `${inv.exact.length} of ours to rent now.` : 'Request one, or rent a similar car now.'}`.replace(/\s+/g, ' ').trim();
   const cheapest = sp.filter((s) => s.cost100 !== null)[0];
   const faqRaw = [...(isTier(p) && p.city ? cityFaq(p.city, name).slice(0, svc ? 1 : 2) : []),
     ...(mode === 'sale' ? buyFaq(full, x, sp) : svc ? serviceFaq(tw, name, dims) : rentalFaq({ name, cars: inv.exact.length, similar: inv.similar.length + inv.same_model.length, ev: cheapest?.fuel === 'electric',
       cost100: cheapest ? dollars(cheapest.cost100) : null, cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined }))];
-  const faq = faqRaw.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
+  const faq = auto ? [] : faqRaw.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
   const offers = x.for_sale.map((c) => ({ '@type': 'Offer', price: (c.asking_price_cents / 100).toFixed(2), priceCurrency: 'CAD', availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/UsedCondition',
     businessFunction: 'http://purl.org/goodrelations/v1#Sell', seller: { '@id': `${siteUrl()}/#business` }, url: siteUrl() + path, name: c.name }));
   const ld = 'model' in p ? productLd({ name: full, make: o.make, model: o.model!, year: o.year, trim: o.trim, path, image: img, description: lead, inv: p.inventory, offers: mode === 'rental',
@@ -261,18 +264,22 @@ export async function TwinView(tw: Twin) {
   // the renting term for an insurance replacement rental (place_terms: insurance-replacement-rental; the default list: insurance-replacement)
   const ir = tiers.terms.find((x2) => x2.kind === 'rental' && /^insurance-replacement/.test(x2.slug));
   const rentReplacement = ir ? `/t/${ir.slug}${p.path.slice(5)}` : p.path;
-  const kindForm = mode === 'sale' ? (finance ? 'finance' : 'buyer') : mode === 'detailing' ? 'detailing' : 'bodyshop';
+  const kindForm = mode === 'sale' ? (finance ? 'finance' : 'buyer') : mode === 'detailing' ? 'detailing' : auto ? 'auto_service' : 'bodyshop';
+  const shop = tiers.terms.find((x2) => x2.kind === 'rental' && x2.slug === 'rental-car-while-car-is-in-the-shop');
+  const rentShop = shop ? `/t/${shop.slug}${p.path.slice(5)}` : p.path;
   const drows = dimRows(dims);
   return (
     <div className="p-vehicle" data-page={`${tree.term ? `term-${mode}` : 'buy'}-${p.level.replace('_', '-')}`}>
-      <JsonLd graph={[breadcrumbLd(trail, path), ...(ld ? [ld] : []), faqLd(faq)]} />
+      <JsonLd graph={[breadcrumbLd(trail, path), ...(ld ? [ld] : []), ...(faq.length ? [faqLd(faq)] : [])]} />
       <VehicleHead trail={trail} h1={h1} lead={lead} img={img} alt={`${full} in the studio, a representative image`}
         cta={mode === 'sale' ? (x.for_sale.length ? ['#h-sale', 'See the cars for sale'] : ['#find', finance ? 'Ask about it' : 'Find me this car']) : svc ? ['#find', 'Request it'] : ['#inventory', 'See cars to rent']}
         facts={[...(mode === 'sale' ? [['For sale by us', String(x.for_sale.length)] as [string, string]] : []), ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ...(svc && bodyOf(p) ? [['Body', String(bodyOf(p))] as [string, string]] : []), ...(svc && lengthOf(p) ? [['Length', String(lengthOf(p))] as [string, string]] : []),
           ...(mode === 'sale' ? [['Recalls', x.recalls ? String(x.recalls.length) : ''] as [string, string]] : [])].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
-        {svc && <RentFirst rentPath={mode === 'bodyshop' ? rentReplacement : rentPath} name={name} testId="svc-rent-first" linkText="See cars to rent"
+        {auto && <RentFirst rentPath={rentShop} name={name} testId="svc-rent-first" linkText="See cars to rent" title="A rental while yours is in the shop"
+          text="CarmaCars does not do this work; you keep driving while the shop has your car. We deliver a rental to you, by the day, at our usual rates." request={`a rental while my ${name} is in the shop`} />}
+        {svc && !auto && <RentFirst rentPath={mode === 'bodyshop' ? rentReplacement : rentPath} name={name} testId="svc-rent-first" linkText="See cars to rent"
           title={mode === 'bodyshop' ? 'An insurance replacement rental while it is repaired' : 'Rent a car while yours is detailed'}
           text={mode === 'bodyshop' ? 'Your car is in the shop; you keep driving. We deliver a rental to you, by the day, and bill your insurer when the claim covers it.' : 'Keep driving while your car is in: we deliver a rental to you and collect it when yours is ready.'}
           request={mode === 'bodyshop' ? `insurance replacement rental while my ${name} is repaired` : `a rental while my ${name} is detailed`} />}
@@ -300,13 +307,13 @@ export async function TwinView(tw: Twin) {
           text={`A week of your own driving tells you more than a test drive: the commute, the parking, the fuel. Rent a ${full} from us first.`} request={`${full} for a week, before buying`} />}
         {mode !== 'rental' && <section className="vp-sec" aria-labelledby="h-find" id="find">
           <h2 className="d3" id="h-find">{mode === 'sale' ? (finance ? `Ask us about the ${full}` : 'Find me this car') : `Request ${tree.term!.name.toLowerCase()}`}</h2>
-          <p className="small muted measure">{mode === 'sale' ? `Tell us your budget and when you want to buy; we look for a ${full} for you and reply within one business day.` : `Tell us when suits you; we reply within one business day with a time and a price.`}</p>
+          <p className="small muted measure">{mode === 'sale' ? `Tell us your budget and when you want to buy; we look for a ${full} for you and reply within one business day.` : auto ? 'Tell us when suits you. A person replies within one business day and arranges it with a trusted shop or recommends one; the shop sets its own price and time.' : `Tell us when suits you; we reply within one business day with a time and a price.`}</p>
           <LeadForm kind={kindForm} vehicle={full} service={tree.term?.name} place={o.city} marketingText={consent.marketing.text} disclaimer={finance ? disclaimer : undefined} />
         </section>}
       </div>
       {(mode === 'rental' || svc) && <InventoryBlock inv={svc ? { ...inv, exact: [], same_model: [] } : inv} labels={labels} name={svc ? 'car while yours is in' : full}
         exactLabel={`Our ${name} cars`} sameLabel={`Other ${o.make} ${o.model ?? ''} cars we have`} />}
-      <div className="wrap vp-body"><Questions items={faq} title={mode === 'sale' ? `Buying the ${full}` : `${tree.term?.name ?? 'Renting'}: the ${full}`} /></div>
+      {faq.length > 0 && <div className="wrap vp-body"><Questions items={faq} title={mode === 'sale' ? `Buying the ${full}` : `${tree.term?.name ?? 'Renting'}: the ${full}`} /></div>}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { costPer100km, driveLabel, engineLabel, kwh100miTo100km, miToKm, modelKey, mpgToL100, slugify, transLabel, trimSlug } from './units.ts';
 import { gateRules, parentPath, vpageGate, type GateSettings } from './gate.ts';
 import { batches, buildCatalog, makeName, parseCsv, parsePopular, parseTrimList, specialTokens } from './normalise.ts';
-import { buyDescriptionOptions, buyTitleOptions, descriptionFor, descriptionOptions, dimsFor, fit, mpgImperial, ratingRange, shortPlace, specs, statRows, tierDescriptionOptions, tierTitleOptions, titleFor, titleOptions, trimDiffs, yearChanges, type Variant } from './content.ts';
+import { buyDescriptionOptions, buyTitleOptions, descriptionFor, descriptionOptions, dimsFor, fit, mpgImperial, ratingRange, shortPlace, specs, statRows, termDescriptionOptions, tierDescriptionOptions, tierTitleOptions, titleFor, titleOptions, trimDiffs, yearChanges, type Variant } from './content.ts';
 
 const here = new URL('.', import.meta.url).pathname;
 const S = { gas_cents: 155, premium_extra_cents: 20, elec_cents: 15 };
@@ -221,4 +221,13 @@ test('every figure: a row only when a source has it, conversions labelled, bodie
   assert.deepEqual(dimsFor(dims, 'Jetta', 'GLI').map((d) => d.body), ['JETTA GLI 4DR SEDAN']);
   assert.deepEqual(dimsFor(dims, 'Jetta', 'Highline').map((d) => d.body), ['JETTA 4DR SEDAN']);
   assert.deepEqual(dimsFor([], 'Jetta', 'GLI'), []);
+});
+
+test('0123: a vehicle page of the mechanical work we arrange says a trusted shop does it, never CarmaCars, with a rental meanwhile', () => {
+  const o = { make: 'Honda', model: 'Civic', year: 2019, trim: 'LX', mode: 'bodyshop' as const, term: { slug: 'oil-change', name: 'Oil change', lead: 'auto_service' } };
+  const d = termDescriptionOptions(o);
+  assert.match(d[0]!, /^Oil change for a 2019 Honda Civic LX: we arrange it with a trusted shop, and rent you a car while yours is in\.$/);
+  for (const x of d) { assert.doesNotMatch(x, /insurance|we (do|change|repair|fix)\b/i); assert.ok(x.length <= 170, x); }
+  const body = termDescriptionOptions({ ...o, term: { slug: 'collision-repair', name: 'Collision repair', lead: 'bodyshop' } });
+  assert.match(body[0]!, /insurance replacement rental/);
 });

@@ -48,6 +48,8 @@ export async function submitVehicleLead(_: unknown, fd: FormData): Promise<Actio
   const parsed = vehicleLeadSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   const v = parsed.data;
+  // 0123: mechanical work we arrange (auto_service) is a place request: its own task for the team, no marketing consent
+  if (v.kind === 'auto_service') return submitAutoService(v, fd);
   const consent = v.marketing === 'on' ? (await consentTexts()).marketing : null;
   const what = v.kind === 'buyer' ? `Find me this car: ${v.vehicle}` : `${v.service || (v.kind === 'finance' ? 'Financing' : 'Service')}: ${v.vehicle}`;
   return submit(v.kind, {
@@ -56,6 +58,21 @@ export async function submitVehicleLead(_: unknown, fd: FormData): Promise<Actio
     payload: { vehicle: v.vehicle, service: v.service || null, place: v.place || null, budget: v.budget || null, timeline: TIMELINE[v.timeline] },
     consent_marketing: !!consent, consent_text: consent?.text ?? null
   }, fd.get('cf-turnstile-response'));
+}
+
+async function submitAutoService(v: { name: string; email: string; phone: string; vehicle: string; service: string; place: string; timeline: string; note: string }, fd: FormData): Promise<ActionResult<{ leadId: string }>> {
+  const meta = await requestMeta();
+  const token = fd.get('cf-turnstile-response');
+  if (!(await verifyTurnstile(typeof token === 'string' ? token : null, meta.ip))) return { ok: false, code: 'turnstile', message: 'We could not confirm you are not a bot. Reload the page and try again.' };
+  try {
+    const payload = Object.fromEntries(Object.entries({ vehicle: v.vehicle, service: v.service, place: v.place, date: TIMELINE[v.timeline] }).filter(([, x]) => x));
+    const r = (await rpc('submit_place_lead', { p: { kind: 'auto_service', name: v.name, email: v.email || null, phone: v.phone || null, message: v.note || null, payload, source: 'web', source_url: meta.referer }, p_ip: meta.ip ?? undefined },
+      { role: 'service_role', requestId: meta.requestId })) as unknown as { ok: boolean; lead_id?: string; error?: string };
+    if (!r.ok) return { ok: false, code: r.error ?? 'refused', message: r.error === 'rate_limited' ? 'Too many messages from this connection. Please try again later or call us.' : 'We could not send that. Please try again.' };
+    return { ok: true, data: { leadId: r.lead_id! } };
+  } catch (e) {
+    return { ok: false, code: 'db', message: e instanceof DbError ? e.message : 'We could not send that. Please try again.' };
+  }
 }
 
 // A request from a place page or a service page (migration 0095): public.submit_place_lead after Turnstile, a lead of

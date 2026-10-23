@@ -51,7 +51,7 @@ export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; cod
 /** The vehicle pages' lead forms (0097): "Find me this car" (buyer), financing and leasing questions (finance), a
  *  detailing or body shop request. An email or a phone; the budget, the timeline or a note as the form asks. */
 export const vehicleLeadSchema = z.object({
-  kind: z.enum(['buyer', 'finance', 'detailing', 'bodyshop']),
+  kind: z.enum(['buyer', 'finance', 'detailing', 'bodyshop', 'auto_service']),
   name: z.string().trim().min(2, 'Enter your name.').max(100),
   email: z.string().trim().max(200).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Enter an email address like name@example.com.').optional().default(''),
   phone: optPhone.optional().default(''),

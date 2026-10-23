@@ -39,9 +39,26 @@ select test.eq('the public term list gives the lead kind',
 select test.eq('sitemaps: every own term has its files, no synonym',
   (select count(distinct f ->> 'term')::integer from jsonb_array_elements(public.place_sitemap_files()) f join place_terms t on t.slug = f ->> 'term' and t.lead_kind = 'auto_service'),
   (select case when (app.settings()).bodyshop_hubs_index then 20 else 0 end));
-select test.eq('vehicle pages: no tree for the mechanical work we arrange',
-  (select count(*)::integer from app.vpage_terms() v join place_terms t on t.slug = v.slug where t.lead_kind = 'auto_service'), 0);
+-- 0123 (owner: "Include them in the per car pages."): each own term has its vehicle page tree, as a body shop term
+select test.eq('vehicle pages: every term of the mechanical work we arrange has its tree, in the body shop family, auto_service',
+  (select count(*)::integer from app.vpage_terms() v join place_terms t on t.slug = v.slug where t.lead_kind = 'auto_service' and v.kind = 'bodyshop' and v.lead = 'auto_service'), 20);
 select test.ok('vehicle pages: the body shop trees stay', exists (select 1 from app.vpage_terms() where slug = 'collision-repair'));
+select test.eq('vehicle pages: no synonym has a tree', (select count(*)::integer from app.vpage_terms() v join place_terms t on t.slug = v.slug where t.canonical_slug is not null), 0);
+select test.eq('vehicle sitemaps: the trees follow the body shop switch',
+  (select count(*)::integer from app.vpage_trees() where term in ('oil-change', 'towing', 'mechanic')),
+  case when (app.settings()).vpage_bodyshop_index then 3 else 0 end);
+select test.ok('vehicle sitemaps: the index counts every tree''s files (each file at most 50,000 addresses, the index 50,000 files a page)',
+  (select coalesce(max(total), 0) from app.vpage_index_page(0, 1)) = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files_stored()) + public.vehicle_tier_files_count())
+  and (select pairs_per_file * per_pair <= 50000 from app.vpage_tier_shape()));
+-- the stored shape: stamped with the trees, so a term switched off reads live at once; stored again by the refresh
+select app.vehicle_sitemap_shape_refresh();
+select test.ok('vehicle sitemaps: the stored shape lists the mechanical work''s trees',
+  (select public.vehicle_sitemap_shape() -> 'trees') ? 't-oil-change-' or not (app.settings()).vpage_bodyshop_index);
+update place_terms set is_active = false where slug = 'oil-change';
+select test.ok('vehicle sitemaps: a term switched off leaves the shape at once (the stamp changes)',
+  not ((public.vehicle_sitemap_shape() -> 'trees') ? 't-oil-change-'));
+update place_terms set is_active = true where slug = 'oil-change';
+select app.vehicle_sitemap_shape_refresh();
 select test.ok('priority sitemap: the first four of the mechanical work only, as a family of its own',
   app.sitemap_priority_refresh() >= 0
   and not exists (select 1 from app.sitemap_priority_cache c join place_terms t on t.lead_kind = 'auto_service' and c.path like '/body-shop/' || t.slug || '/%'
