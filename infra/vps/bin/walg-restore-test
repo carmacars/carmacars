@@ -13,6 +13,13 @@ cleanup() { docker rm -f "$NAME" > /dev/null 2>&1 || true; rm -rf "$W"; }
 trap cleanup EXIT
 cleanup; mkdir -p "$W/data"
 t0=$(date +%s)
+# everything written so far into the archive: switch to a new WAL file, then wait until the spool is pushed
+docker exec supabase-db psql -U supabase_admin -d postgres -XAtqc "select pg_switch_wal()" > /dev/null 2>&1 || true
+for _ in $(seq 1 60); do
+  sleep 3
+  "$D/bin/wal-push" || true
+  [ -z "$(find "$D/wal-spool" -maxdepth 1 -type f ! -name '.*' | head -n 1)" ] && break
+done
 "$D/bin/walg" backup-fetch "$W/data" LATEST > "$W/../state/pitr-fetch.log" 2>&1
 # every archived WAL segment from the backup's first one, until the archive has no next one
 first=$("$D/bin/walg" backup-list --json --detail 2>/dev/null | jq -r 'sort_by(.start_time) | last | .wal_file_name')
