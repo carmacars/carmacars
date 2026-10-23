@@ -405,9 +405,11 @@ verify() {
   fi
   [ "$(jq length <<<"$vs_dump")" = 0 ] || problems+=("$(jq length <<<"$vs_dump") tables differ from the dump: $(jq -c '.[:8]' <<<"$vs_dump")")
   # sign-ins keep writing these on the hosted project when only the database API could be frozen (cutover.sh)
-  local churn='^auth\.(refresh_tokens|sessions|audit_log_entries|flow_state|one_time_tokens|mfa_challenges|mfa_amr_claims)$'
+  # and the visitor tracking and rate-limit counters, written by the website's tracking calls during the freeze (a few
+  # page views of the last minutes; nothing a person entered)
+  local churn='^(auth\.(refresh_tokens|sessions|audit_log_entries|flow_state|one_time_tokens|mfa_challenges|mfa_amr_claims)|app\.rate_limit_hits|public\.visitor_(events|sessions|live_signals|signals))$'
   if [ "$COPY_MODE" = final ] && [ "$(jq --arg c "$churn" '[.[] | select(.table | test($c))] | length' <<<"$vs_hosted")" != 0 ]; then
-    infos+=("sign-in tables changed on the hosted project after the dump: $(jq -c --arg c "$churn" '[.[] | select(.table | test($c)) | .table]' <<<"$vs_hosted") (people signed in during the copy sign in again)")
+    infos+=("sign-in and visitor tracking tables changed on the hosted project after the dump: $(jq -c --arg c "$churn" '[.[] | select(.table | test($c)) | .table]' <<<"$vs_hosted") (people signed in during the copy sign in again)")
     vs_hosted=$(jq -c --arg c "$churn" '[.[] | select(.table | test($c) | not)]' <<<"$vs_hosted")
   fi
   if [ "$(jq length <<<"$vs_hosted")" != 0 ]; then
