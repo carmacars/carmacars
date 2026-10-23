@@ -9,6 +9,7 @@ import { pendingToken } from '@/server/capture';
 import { rpc } from '@/lib/db/repo';
 import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
+import { More, PageHeader } from '@/features/portal/Chrome';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -32,7 +33,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
       {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
       {links && links.new.length > 0 && <LinkedNotice bookings={links.new.filter((l) => l.kind === 'booking').map((l) => l.booking_number ?? '')} drivers={links.new.filter((l) => l.kind === 'driver').length} />}
-      <h1 className="d2">Your trips</h1>
+      <PageHeader title="Your trips" purpose={list.length ? 'Your next step first, then current, upcoming and past trips.' : undefined} />
       {!list.length ? (
         <div className="pt-empty"><p className="d4">No trips yet.</p><p className="muted">Pick a car and dates and send a request. Nothing is charged until you approve an offer.</p><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></div>
       ) : (
@@ -45,12 +46,22 @@ export default async function Account({ searchParams }: { searchParams: Promise<
               {step.href && <p><Link prefetch={false} className={`btn ${step.urgent ? 'btn--primary' : 'btn--ghost'}`} href={step.href}>{step.cta}</Link></p>}
             </section>
           )}
-          {[['Current', current], ['Upcoming', upcoming], ['Past', past]].map(([title, items]) => (items as typeof list).length ? (
+          {[['Current', current], ['Upcoming', upcoming]].map(([title, items]) => (items as typeof list).length ? (
             <section key={title as string} className="stack" aria-labelledby={`pt-${title}`}>
               <h2 className="pt-section-title" id={`pt-${title}`}>{title as string}</h2>
               <ul className="pt-list">{(items as typeof list).map((b) => <TripRow key={b.id} b={b} photo={photo(b.slug)} />)}</ul>
             </section>
           ) : null)}
+          {/* past trips fold away once there are other trips to show (portal cleanup, October 23, 2026) */}
+          {past.length > 0 && (current.length + upcoming.length ? (
+            <section className="stack pt-home__full" aria-labelledby="pt-Past"><More summary={<span id="pt-Past">Past trips ({past.length})</span>} testId="past-trips">
+              <ul className="pt-list">{past.map((b) => <TripRow key={b.id} b={b} photo={photo(b.slug)} />)}</ul></More></section>
+          ) : (
+            <section className="stack" aria-labelledby="pt-Past">
+              <h2 className="pt-section-title" id="pt-Past">Past</h2>
+              <ul className="pt-list">{past.map((b) => <TripRow key={b.id} b={b} photo={photo(b.slug)} />)}</ul>
+            </section>
+          ))}
         </div>
       )}
       {links && links.driver_trips.length > 0 && (

@@ -293,7 +293,7 @@ def build():
 
     g.task('Review your rental')
     g.steps([
-        f'Open the trip under Past, then press {B("Review your rental")}.',
+        f'Open the trip under Past trips, then press {B("Review your rental")}.',
         'Tap the stars. Add a title and a few words if you like. Both are optional.',
         f'Tick {B("Show my review on the site with my first name")} only if you agree to it being shown.',
         f'Press {B("Send my review")}.',

@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { PageHeader } from '@/features/portal/Chrome';
 import { Dl } from '@/features/portal/Blocks';
 import { ProfileForm } from '@/features/portal/ProfileForm';
 import { myProfile, requireUser } from '@/server/portal/data';
@@ -17,7 +18,7 @@ export default async function ProfilePage() {
   const r = p.renter;
   return (
     <>
-      <h1 className="d2">Profile</h1>
+      <PageHeader title="Profile" purpose="Your details, sign-in, card on file and drivers." />
       <div className="pt-split">
         <div className="stack-lg">
           <section className="pt-card" aria-labelledby="pt-me"><h2 className="d4" id="pt-me">You</h2>
