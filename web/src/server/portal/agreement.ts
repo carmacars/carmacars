@@ -69,7 +69,7 @@ export async function attachSignedCopy(bookingId: string, renterUserId: string):
       const png = await s.get('agreements', r.provider_signature).catch(() => null);
       if (png) images.set(rows.length, png);
     }
-    rows.push({ party, name, signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? (company.text ?? 'Signed electronically for CarmaCars') : 'Drawn signature') : 'Not yet accepted', when: r ? when(r.signed_at) : '' });
+    rows.push({ party, name, signature: r ? (r.method === 'typed' ? `Typed: ${r.typed_name ?? r.signer_name}` : r.method === 'automatic' ? (company.text ?? `Signed electronically for ${f.company.legal_name || 'CarmaCars'}.`) : 'Drawn signature') : 'Not yet accepted', when: r ? when(r.signed_at) : '' });
   };
   const renterRec = rec.records.find((r) => r.signer_role === 'renter');
   await add('Renter', renterRec?.signer_name ?? f.renter?.legal_name ?? '', renterRec);

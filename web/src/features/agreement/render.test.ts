@@ -16,7 +16,7 @@ const F = JSON.parse(readFileSync(new URL('../../../tests/fixtures/agreements/fa
 // a drawn signature: 40 x 10 PNG
 const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAACgAAAAKCAYAAADGmhxQAAAALklEQVR4nGMQUEj4D8MMdARk2TvqWFrZO5COJUvTQDiWLDDqWFqBUcfSCpDjWAA6KT5ZaYCppQAAAABJRU5ErkJggg==', 'base64'));
 const AT = '2026-10-23T15:42:00Z';
-const COUNTERSIGN = 'Signed electronically for 18122211 Canada Inc., operating as CarmaCars, by Abbas Al-Mashita, Director, under a standing authorization dated October 16, 2026.';
+const COUNTERSIGN = 'Signed electronically for 18122211 Canada Inc., by Abbas Al-Mashita, Director, under a standing authorization dated October 16, 2026.';
 
 type Item = { str: string; x: number; y: number };
 async function read(bytes: Uint8Array) {
@@ -45,6 +45,8 @@ async function read(bytes: Uint8Array) {
 const noPlaceholders = (pages: Awaited<ReturnType<typeof read>>, what: string) => {
   const all = pages.map((p) => p.text).join(' ');
   for (const bad of [/\bundefined\b/, /\bnull\b/, /\bNaN\b/, /\[●\]/, /\{\{/, /\$-?0?\.?\b(?=\s|$)NaN/, /Invalid Date/]) assert.doesNotMatch(all, bad, `${what}: ${bad}`);
+  // the party is the numbered company alone (the owner's decision of October 23, 2026)
+  assert.doesNotMatch(all, /operating as/i, `${what}: no "operating as"`);
 };
 const signed = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: when(AT) });
 const images = (blocks: Block[]) => {
@@ -58,7 +60,7 @@ test('the rental agreement: the legal company as a party, every field filled, th
   const blocks = agreementBlocks(f, { privacyUrl: 'https://carmacars.ca/privacy', signatures: [signed('Renter', f.renter!.legal_name!), { party: 'CarmaCars', name: 'Abbas Al-Mashita', signature: COUNTERSIGN, when: when(AT) }] });
   const pages = await read(await agreementPdf(blocks, { title: 'Signed rental agreement', createdAt: new Date(AT), images: images(blocks), footer: 'CarmaCars rental agreement.' }));
   noPlaceholders(pages, 'rental');
-  assert.match(pages[0]!.text, /This Agreement is between 18122211 Canada Inc\., operating as CarmaCars \("CarmaCars", "we", "us"\) and the Renter/);
+  assert.match(pages[0]!.text, /This Agreement is between 18122211 Canada Inc\. \("CarmaCars", "we", "us"\) and the Renter/);
   assert.match(pages[0]!.text, new RegExp(`Mobile: ${phone(f.renter!.mobile)}`));
   assert.doesNotMatch(pages[0]!.text, /Mobile: \+1/);
   assert.match(pages.map((p) => p.text).join(' '), new RegExp(when(f.booking.pickup_at).replace(/[.()]/g, '\\$&')), 'pickup in Toronto time');
@@ -73,12 +75,12 @@ test('the rental agreement: the legal company as a party, every field filled, th
   assert.ok(Math.abs(sig.y - name.y) < 45, 'on the renter\'s row');
 });
 
-test('the Enrollment Agreement: "18122211 Canada Inc., operating as CarmaCars and CarmaCars.ca", the owner\'s initials, the VIN on one line', async () => {
+test('the Enrollment Agreement: the party "18122211 Canada Inc." alone, the owner\'s initials, the VIN on one line', async () => {
   const f = F.owner;
   const blocks = documentBlocks(f, 'enrollment', { owner: signed('Owner (corporation)', f.owner.signer_name), carmacars: { party: 'CarmaCars', name: 'Abbas Al-Mashita', signature: COUNTERSIGN, when: when(AT) }, initials: 'CL' });
   const pages = await read(await agreementPdf(blocks, { title: 'Vehicle Enrollment Agreement, signed', createdAt: new Date(AT), images: images(blocks), footer: 'CarmaCars Vehicle Enrollment Agreement.' }));
   noPlaceholders(pages, 'enrollment');
-  assert.match(pages[0]!.text, /CarmaCars 18122211 Canada Inc\., operating as CarmaCars and CarmaCars\.ca CarmaCars notice address/, 'the company party row');
+  assert.match(pages[0]!.text, /CarmaCars 18122211 Canada Inc\. CarmaCars notice address/, 'the company party row');
   const all = pages.map((p) => p.text).join(' ');
   assert.equal((all.match(/\bCL\b/g) ?? []).length, 3, 'the three initials');
   const vin = f.schedules[0]!.vin;
@@ -95,7 +97,7 @@ test('Form D printed: the vehicle table keeps the VIN whole, a name ending with 
   const vin = f.vehicles[0]!.vin!;
   assert.ok(pages[0]!.items.some((i) => i.str === vin), `the VIN ${vin} in one piece`);
   assert.doesNotMatch(pages.map((p) => p.text).join(' '), /Ltd\.\./);
-  assert.match(pages[0]!.text, /between 18122211 Canada Inc\., operating as CarmaCars, and Northshore Auto Holdings Ltd\. /);
+  assert.match(pages[0]!.text, /between 18122211 Canada Inc\. and Northshore Auto Holdings Ltd\. /);
   const a = screenFormBlocks({ ...F.form_a, owner: { ...F.form_a.owner, legal_name: 'Northshore Auto Holdings Ltd.' } });
   const ap = await read(await agreementPdf(a, { title: 'Form A', createdAt: new Date(AT), footer: 'CarmaCars Form A.' }));
   assert.doesNotMatch(ap.map((p) => p.text).join(' '), /Ltd\.\./);
@@ -115,7 +117,7 @@ test('a table that runs onto the next page repeats its heading there, and a head
 });
 
 test('formats: the company as a party, a phone, a sentence ending', () => {
-  assert.equal(companyParty('18122211 Canada Inc.', 'CarmaCars'), '18122211 Canada Inc., operating as CarmaCars');
+  assert.equal(companyParty('18122211 Canada Inc.', 'CarmaCars'), '18122211 Canada Inc.', 'the numbered company alone, no "operating as"');
   assert.equal(companyParty(null, 'CarmaCars'), 'CarmaCars');
   assert.equal(phone('+14165550142'), '416-555-0142');
   assert.equal(phone('(416) 555 0142'), '416-555-0142');

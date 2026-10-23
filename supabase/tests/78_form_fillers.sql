@@ -1,8 +1,10 @@
 -- 78: the form fillers (migration 0120, docs/changes/2026-10-23-form-fillers.md). The registry context in the shape the
 -- official ServiceOntario forms ask for (addresses in their boxes, the registry's name order, who is the vehicle's
--- registrant and who holds the plates by onboarding method), the checked mappings of the five forms, the phone format, and
--- the company's legal name in the owner agreements' facts. Fixtures start with "ff".
-select test.suite('75 form fillers');
+-- registrant and who holds the plates by onboarding method), the checked mappings of the five forms, the phone format, the
+-- publisher's downloads registered and made the templates (only their empty text boxes are filled; checkboxes, drop-downs
+-- and signatures by hand, in ink), and the company named by its legal name alone in the agreements, the countersignature
+-- and the pre-authorized debit agreement. Fixtures start with "ff".
+select test.suite('78 form fillers');
 
 -- ---------------------------------------------------------------- helpers
 select test.eq('split address: street, unit, city, province, postal code', app.split_ca_address('2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2'),
@@ -67,8 +69,24 @@ select test.ok('the sources list every new path, and every path of every mapping
            union select e.value ->> 'when' from pdf_templates t, jsonb_each(t.field_map) e where t.is_current and e.value ? 'when') x));
 
 -- ---------------------------------------------------------------- the checked mappings, filled
-select test.eq('the five official forms carry the checked mapping (no Admin had saved one)',
-  (select count(*) from pdf_templates where is_current and notes like '%Mapping checked against the official PDF%'), 5::bigint);
+-- the official templates as the migration left them: other suites upload their own forms and save mappings in an
+-- Admin's name, so the stored copies are made current again and remapped (no Admin's mapping)
+update pdf_templates t set is_current = exists (select 1 from official_form_originals o where o.form_code = t.form_code and o.from_sha256 = t.sha256)
+ where t.form_code in (select form_code from official_form_originals);
+update pdf_templates t set mapped_by = null, verified = false, verified_by = null, verified_at = null
+ where t.is_current and t.form_code in (select form_code from official_form_originals);
+select app.official_form_remap(o.form_code, o.from_sha256, o.field_names, o.field_map, o.notes) from official_form_originals o where o.form_code <> 'ON00453';
+select test.eq('the four fillable official forms carry the checked mapping (no Admin had saved one)',
+  (select count(*) from pdf_templates where is_current and notes like '%Mapping checked against the official PDF%'), 4::bigint);
+select test.eq('the laid-out copy of ON00453 is retired: not used for owners',
+  (select verified::text || '/' || (notes like '%Retired (0120)%')::text from pdf_templates where form_code = 'ON00453' and is_current), 'false/true');
+select test.eq('the publisher''s downloads are registered, with their fields and mappings', (select count(*) from official_form_originals where jsonb_array_length(field_names) > 0 and field_map <> '{}'::jsonb), 5::bigint);
+select test.ok('every path of every download''s mapping is a source',
+  (select bool_and(p in (select x ->> 'path' from jsonb_array_elements(app.registry_sources()) x))
+     from (select coalesce(e.value ->> 'source', 'always') p from official_form_originals o, jsonb_each(o.field_map) e
+           union select e.value ->> 'when' from official_form_originals o, jsonb_each(o.field_map) e where e.value ? 'when') x));
+select test.eq('no signature date is filled in: an ink signature is dated when it is signed',
+  (select count(*) from official_form_originals o, jsonb_each(o.field_map) e where e.value ->> 'source' = 'today'), 0::bigint);
 select test.lives('the checked mappings pass the mapping checks of 0042', $$select app.form_template_map(test.id('ff_admin'), jsonb_build_object('template', t.id, 'field_map', t.field_map)) from pdf_templates t where t.is_current$$);
 -- form_template_map saved them in an Admin's name: a second run of the remap leaves an Admin's mapping alone
 select test.eq('an Admin''s own mapping is never replaced', (select sum(app.official_form_remap(t.form_code, t.sha256, t.field_names, '{}'::jsonb, 'x')) from pdf_templates t where t.is_current), 0::bigint);
@@ -82,7 +100,7 @@ select test.eq('SR-LV-006, Lease: the corporation and its address in four boxes;
           || (v ->> 'form1[0].page1[0].body[0].personalInfo[0].#subform[0].postalCode[0]') || '/' || (v ->> 'form1[0].page1[0].body[0].personalInfo[0].#subform[2].#field[13]') || '/'
           || (v ->> 'form1[0].page1[0].body[0].businessInfo6[0].#field[0]') = 'TREMBLAY MOBILITY INC./1204 Bay Street/1807/Toronto/M5R 2A5/Yes/' || (select upper(vin) from vehicles where id = test.id('vehicle:ff_s2'))
      from ff_fill where form_code = 'SR-LV-006' and label = 'S2'), true);
-select test.eq('SR-LV-006, Lease: the owner signs section 8 (the signature box is kept for this car)',
+select test.eq('SR-LV-006, Lease: the owner signs section 8 in ink (the signature box is kept for this car, to sign by hand)',
   (select v ? 'form1[0].page1[0].body[0].businessInfo7[0].signature[0]' from ff_fill where form_code = 'SR-LV-006' and label = 'S2') || '/'
   || (select v ? 'form1[0].page1[0].body[0].businessInfo7[0].signature[0]' from ff_fill where form_code = 'SR-LV-006' and label = 'S6'), 'true/false');
 select test.eq('SR-LV-012, Lease: CarmaCars in section 1 with its street line alone; section 2 empty; no signature for the owner',
@@ -115,3 +133,26 @@ select test.eq('owner agreement facts: the company''s legal name', public.server
 select test.ok('privileges: the new functions are the service role''s', not has_function_privilege('authenticated', 'public.server_sign_request_document(uuid)', 'execute')
   and has_function_privilege('service_role', 'public.server_sign_request_document(uuid)', 'execute') and not has_function_privilege('authenticated', 'app.registry_context(uuid)', 'execute')
   and not has_function_privilege('anon', 'app.official_form_remap(text, text, jsonb, jsonb, text)', 'execute'));
+
+-- ---------------------------------------------------------------- the publisher's downloads become the templates
+select test.eq('not stored yet: nothing switches', app.official_templates_use_originals(), '{}'::text[]);
+select test.eq('stored (forced here): the five templates become the publisher''s downloads', array_length(app.official_templates_use_originals(true), 1), 5);
+select test.eq('each current template is the download: its key, its SHA-256 and its page count',
+  (select count(*) from pdf_templates t join official_form_originals o on o.form_code = t.form_code
+    where t.is_current and t.file_key = o.file_key and t.sha256 = o.sha256 and t.page_count = o.page_count and o.used_at is not null), 5::bigint);
+select test.eq('ON00453, the Adobe dynamic form: its XFA fields and their mapping, to be checked again',
+  (select kind || '/' || verified::text || '/' || (field_map ? 'form1[0].page1[0].body[0].orgName[0]')::text || '/' || (mapped_by is null)::text from pdf_templates where form_code = 'ON00453' and is_current),
+  'acroform/false/true/true');
+select test.eq('an Admin''s own mapping of a form of the same kind stays',
+  (select (field_map = (select field_map from pdf_templates x where x.id = t.id))::text from pdf_templates t where t.form_code = '013-1155' and t.is_current and t.mapped_by is not null), 'true');
+select test.eq('a second run switches nothing', app.official_templates_use_originals(true), '{}'::text[]);
+
+-- ---------------------------------------------------------------- the company: "18122211 Canada Inc.", no "operating as"
+select test.eq('the countersignature names the numbered company alone',
+  app.corporate_signature_text() like 'Signed electronically for ' || (select company_legal_name from app.settings()) || ', by Abbas Al-Mashita, %, under a standing authorization dated %'
+  and app.corporate_signature_text() not like '%operating as%', true);
+select test.eq('the pre-authorized debit agreement''s payee is the legal name', app.owner_payee_name(), (select company_legal_name from app.settings()));
+select test.eq('the PAD agreement reads "You authorize <legal name> to debit"', app.owner_pad_agreement('owner') ->> 0 like 'You authorize ' || (select company_legal_name from app.settings()) || ' to debit %', true);
+select test.ok('privileges: the originals are the service role''s', not has_function_privilege('authenticated', 'app.official_templates_use_originals(boolean)', 'execute')
+  and has_function_privilege('service_role', 'app.official_templates_use_originals(boolean)', 'execute') and not has_function_privilege('anon', 'app.storage_has(text, text)', 'execute')
+  and not has_table_privilege('authenticated', 'official_form_originals', 'select'));

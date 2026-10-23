@@ -190,7 +190,7 @@ def build():
     g.steps([
         f'Press {B("Check and sign")} on Home (or open {U("carmacars.ca/owner/sign")}). The list at the top shows each document: signed, in this package, or done elsewhere (Forms C and D, the bank debit).',
         f'Check the key values: your name, address, each car with its VIN and plate, your fees and Revenue Share. Something wrong? Press {B("Fix")} next to it, change it, and come back.',
-        'Open any document to read it word for word: the agreements, the schedules, Forms A and B, and the official registry forms that are ready.',
+        'Open any document to read it word for word: the agreements, the schedules and Forms A and B. The official registry forms are not in it: they are printed and signed in ink.',
         f'Tap {B("All of these")} for the statements the agreement asks you to initial (your initials are filled in), then press {B("Sign all")}.',
         'Your name on file is your signature. One signature is applied to each document; CarmaCars countersigns at the same moment and every signed copy is in Documents.',
     ])
@@ -237,9 +237,10 @@ def build():
     g.steps([
         f'Open Documents and choose a form marked "Official form, filled for you".',
         f'Press {B("Download the filled form")} and check each value.',
-        f'To sign it on screen, draw your signature in the box, then press {B("Sign and save")}. Forms ready to sign are also in the package on {B("Check and sign")}, signed with the same one signature. The signed copy is kept with your documents.',
-    ], shot=S('owner/13-official-form-desktop', 0, 420, 1440, 1080, pins=[(2, 320, 564), (3, 720, 1047)]))
-    g.warn('If the registry office asks for an ink signature, print the filled form and sign it there. You pay ServiceOntario, the inspection station and the appraiser directly.')
+        'Print it and sign it in ink. It is the official ServiceOntario form exactly as ServiceOntario publishes it, with only its empty text boxes filled in. Its boxes to tick and its signatures are done by hand, at the registry office or before you go, as we tell you.',
+    ], shot=S('owner/13-official-form-desktop', 0, 420, 1440, 1080, pins=[(2, 320, 564)]))
+    g.tip('ON00453 (a company\'s registrant number) is an Adobe form: open it in Adobe Acrobat Reader (free) to see and print it. Other PDF viewers show a blank page, as they do with the form downloaded from ServiceOntario.', label='Good to know')
+    g.warn('Official registry forms are never signed on screen. You pay ServiceOntario, the inspection station and the appraiser directly.')
 
     # ---------------------------------------------------------------- 6b
     g.chapter('For partner rental companies',

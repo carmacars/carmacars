@@ -72,7 +72,7 @@ function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
     const url = URL.createObjectURL(new Blob([out.bytes as unknown as BlobPart], { type: 'application/pdf' }));
     const a = document.createElement('a'); a.href = url; a.download = `${code}-preview.pdf`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    setMsg({ ok: true, text: `Preview downloaded: ${out.filled.length} field(s) filled${out.missing.length ? `; not found in the PDF: ${out.missing.join(', ')}` : ''}.` });
+    setMsg({ ok: true, text: `Preview downloaded: ${out.filled.length} text box(es) filled${out.byHand.length ? `, ${out.byHand.length} to tick or sign by hand` : ''}${out.missing.length ? `; not found in the PDF: ${out.missing.join(', ')}` : ''}.${out.xfaOnly ? ' An Adobe form: open it in Adobe Acrobat Reader.' : ''}` });
   });
   return (
     <div className="stack" data-testid={`form-map-${code}`}>
@@ -84,7 +84,7 @@ function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
               <td><select className="select" id={`${idb}-s`} value={s.type === 'signature' ? '@signature' : s.source ?? ''} data-testid={`map-${f.name}`}
                 onChange={(e) => set(e.target.value === '@signature' ? { type: 'signature', source: undefined } : { source: e.target.value || undefined, type: f.type === 'checkbox' ? 'checkbox' : f.type === 'dropdown' ? 'dropdown' : f.type === 'radio' ? 'radio' : 'text' })}>
                 <option value="">Leave empty</option>
-                {(f.type === 'signature' || f.type === 'text') && <option value="@signature">The owner signs here (drawn on screen)</option>}
+                {(f.type === 'signature' || f.type === 'text') && <option value="@signature">Signed here by hand, in ink</option>}
                 {sections.map((sec) => <optgroup key={sec} label={sec}>{d.sources.filter((x) => x.section === sec).map((x) => <option key={x.path} value={x.path}>{x.label}</option>)}</optgroup>)}
               </select></td>
               <td><label className="vh" htmlFor={`${idb}-t`}>Format of {f.name}</label><select className="select" id={`${idb}-t`} value={s.transform ?? ''} disabled={s.type === 'signature' || f.type === 'checkbox'} onChange={(e) => set({ transform: e.target.value || undefined })}>
@@ -118,7 +118,7 @@ function FieldsPanel({ startOpen, children }: { startOpen: boolean; children: Re
 export function OfficialForms({ d }: { d: FormsData }) {
   return (
     <div className="stack" data-testid="official-forms">
-      <p className="small muted">Until a form&apos;s official PDF is uploaded, mapped and checked, owners get a data sheet with every value to copy onto the form. Upload the fillable PDF from ServiceOntario, choose what goes in each field, download a preview for one car, then use it for owners.</p>
+      <p className="small muted">Until a form&apos;s official PDF is uploaded, mapped and checked, owners get a data sheet with every value to copy onto the form. Upload the fillable PDF from ServiceOntario, choose what goes in each field, download a preview for one car, then use it for owners. Only the form&apos;s empty text boxes are filled; the PDF is otherwise kept exactly as published, and its checkboxes and signatures are done by hand, in ink.</p>
       {d.forms.map((f) => {
         const t = f.current; const official = !!t?.file_key;
         return (
@@ -127,9 +127,9 @@ export function OfficialForms({ d }: { d: FormsData }) {
               <span className={`ad-b ${t?.verified && official ? 'ad-b--dark' : official ? 'ad-b--amber' : 'ad-b--light'}`}>{t?.verified && official ? 'Official PDF in use' : official ? 'Mapping to check' : 'Data sheet in use'}</span></div>
             <p className="small">{official ? `${t!.file_name ?? 'PDF'}, ${t!.field_names.length} fields${t!.page_count ? ` on ${t!.page_count} page(s)` : ''}, version ${t!.version}` : 'No official PDF yet.'}
               {t?.verified_at ? ` Checked by ${t.verified_by_name ?? 'an Admin'}.` : ''} Owners now: {f.fills.pdf} with the official PDF, {f.fills.data_sheet} with the data sheet.</p>
-            {official && t!.kind === 'overlay' && <p className="small" data-testid={`form-overlay-${f.form_code}`}>This form has no fillable fields (the publisher&apos;s PDF is an Adobe dynamic form). It was laid out as a plain PDF, and each value is printed in the box of its field.</p>}
+            {official && t!.kind === 'overlay' && <p className="small" data-testid={`form-overlay-${f.form_code}`}>A laid-out copy of an Adobe form, no longer used: owners get the data sheet until the publisher&apos;s PDF is stored (the forms-fetch workflow).</p>}
             {official && t!.notes && <p className="small muted">{t!.notes}</p>}
-            {official && !t!.verified && t!.field_names.length > 0 && <FormReview code={f.form_code} templateId={t!.id} fieldMap={t!.field_map} vehicles={d.vehicles} />}
+            {official && !t!.verified && t!.kind !== 'overlay' && t!.field_names.length > 0 && <FormReview code={f.form_code} templateId={t!.id} fieldMap={t!.field_map} vehicles={d.vehicles} />}
             <Upload code={f.form_code} />
             {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></FieldsPanel>}
           </section>);

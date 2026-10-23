@@ -21,7 +21,7 @@ export function PackageSignForm({ docs, signerName, fixNameHref, statements = []
   consent, button, action, after, testId = 'package-sign-form' }: {
   docs: Array<{ key: string; title: string }>; signerName: string; fixNameHref?: string; statements?: Statement[]; statementsLegend?: string; initials?: boolean;
   investment?: boolean; consent: string; button: string; action: (input: PackageInput) => Promise<PackageResult>;
-  /** runs in the browser after the server signed (the official registry forms are filled and signed here) */
+  /** runs in the browser after the server signed */
   after?: (sig: SignatureValue) => Promise<string | null>; testId?: string;
 }) {
   const router = useRouter();

@@ -1,21 +1,22 @@
-// The ServiceOntario forms filled for real (docs/changes/2026-10-23-form-fillers.md): the official PDFs as stored for owners
-// (tests/fixtures/official-forms, from the forms-fetch workflow), the mapping of migration 0120 (maps.generated.json), and
-// the registry context of four cars in the four onboarding methods (contexts.json, read from the database). Each value
-// must land in its own field, inside that field's box on the page, with the owner's signature only where the owner signs.
+// The ServiceOntario forms filled for real (docs/changes/2026-10-23-form-fillers.md): the publisher's downloads byte for
+// byte (tests/fixtures/official-forms, as the forms-fetch workflow downloads them, encrypted as published), the mapping
+// of migration 0120 (maps.generated.json), and the registry context of four cars in the four onboarding methods
+// (contexts.json, read from the database).
+// The owner's rule (October 23, 2026): the filled form is the official PDF unchanged except its empty text boxes. The
+// filled file is compared with the official one object by object: the same bytes first, the same pages and content
+// streams, and the update after them holds only the values (and their appearances) of the text fields filled; no
+// checkbox, drop-down, signature, page, annotation, image or font is added or changed.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PDFCheckBox, PDFDocument, PDFDropdown, PDFTextField } from 'pdf-lib';
-import { fillPdf, matchOption, readFields, type Spec } from './fill.ts';
-import { ownerSigns } from './signs.ts';
+import { fillPdf, readFields, type Spec } from './fill.ts';
+import { Pdf, acroForm, fields, filledValues, get, pages, packetText, xfaPackets, xmlTree, type V, type XNode } from './pdf-update.ts';
 
 const FIX = new URL('../../../tests/fixtures/official-forms/', import.meta.url);
 const MAPS = JSON.parse(readFileSync(new URL('./maps.generated.json', import.meta.url), 'utf8')) as Record<string, { kind: string; map: Record<string, Spec> }>;
 const CTX = JSON.parse(readFileSync(new URL('contexts.json', FIX), 'utf8')) as Record<string, Record<string, unknown>>;
-const REPORT = JSON.parse(readFileSync(new URL('../../../../docs/forms/official-forms.json', import.meta.url), 'utf8')) as { forms: Array<{ code: string; fields: Array<{ name: string; type: string; page: number; rect: [number, number, number, number]; max_length?: number | null }> }> };
+const REPORT = JSON.parse(readFileSync(new URL('../../../../docs/forms/official-forms.json', import.meta.url), 'utf8')) as { forms: Array<{ code: string; original_sha256: string; pages: number }> };
 const pdf = (code: string) => new Uint8Array(readFileSync(new URL(`${code}.pdf`, FIX)));
-// a 2 x 1 PNG: the drawn signature
-const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAEElEQVR4nGP4z8DAwMDAAAAU/wP9xI+0gAAAAABJRU5ErkJggg==', 'base64'));
 
 // what app.fill_government_form does with a mapping and a context (0022, 0042; the transforms of app.apply_transform)
 const at = (c: unknown, path: string) => { const v = path.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), c); return v === null || v === undefined || String(v).trim() === '' ? null : String(v); };
@@ -40,24 +41,98 @@ function valuesFor(ctx: Record<string, unknown>, map: Record<string, Spec>): Rec
 }
 const SCEN = { S1: 'S1_lease_existing_corporation', S2: 'S2_lease_new_corporation', S3: 'S3_co_registrant', S6: 'S6_transfer_leased' } as const;
 const FORMS_OF: Record<keyof typeof SCEN, string[]> = { S1: ['SR-LV-006', 'SR-LV-012'], S2: ['SR-LV-006', 'SR-LV-012', 'ON00453', '013-0169', '013-1155'], S3: ['SR-LV-006', 'SR-LV-012'], S6: ['SR-LV-006', 'SR-LV-012'] };
-const fill = async (code: string, s: keyof typeof SCEN, o: { signaturePng?: Uint8Array; flatten?: boolean } = {}) => {
+const fill = async (code: string, s: keyof typeof SCEN) => {
   const values = valuesFor(CTX[SCEN[s]]!, MAPS[code]!.map);
-  return { values, ...(await fillPdf(pdf(code), values, MAPS[code]!.map, o)) };
+  return { values, ...(await fillPdf(pdf(code), values, MAPS[code]!.map)) };
 };
 const P1 = 'form1[0].page1[0].body[0].';
-const text = (doc: PDFDocument, name: string) => { const f = doc.getForm().getField(name); return f instanceof PDFTextField ? f.getText() ?? '' : ''; };
-const checked = (doc: PDFDocument, name: string) => (doc.getForm().getField(name) as PDFCheckBox).isChecked();
 
-test('every mapped field is a field of the official PDF, of the same type, and every value fits its field', async () => {
-  for (const [code, { kind, map }] of Object.entries(MAPS)) {
-    if (kind === 'overlay') continue;
-    const { fields } = await readFields(pdf(code));
-    const byName = new Map(fields.map((f) => [f.name, f]));
+// ---------------------------------------------------------------- the comparison with the official PDF
+const norm = (v: V | undefined): unknown => v === undefined ? undefined : v.t === 'str' ? `str:${Buffer.from(v.bytes).toString('hex')}` : v.t === 'arr' ? v.items.map(norm)
+  : v.t === 'dict' ? Object.fromEntries(v.entries.map(([k, x]) => [k, norm(x)]).sort(([a], [b]) => String(a).localeCompare(String(b)))) : v.t === 'ref' ? `ref:${v.num} ${v.gen}` : v.t === 'num' ? `num:${v.raw}` : JSON.stringify(v);
+const without = (v: V, keys: string[]) => ({ ...(norm(v) as Record<string, unknown>), ...Object.fromEntries(keys.map((k) => [k, undefined])) });
+function leaves(xml: string): Array<[string, string]> {
+  const t = xmlTree(xml); const out: Array<[string, string]> = [];
+  const walk = (n: XNode, path: string) => n.children.forEach((c, i) => { const p = `${path}/${c.name}#${i}`; if (c.children.length) walk(c, p); else out.push([p, c.self ? '' : xml.slice(c.openEnd, c.closeStart)]); });
+  walk(t, '');
+  return out;
+}
+
+/** The filled file against the official one: the official bytes first, unchanged; the same pages; and in the update
+ *  only the filled text fields (their /V and /AP), the appearance streams they point to, and the switch of the form's
+ *  XFA copy (a hybrid form) or the XFA data with the values (an XFA-only form). */
+async function onlyTextBoxesChanged(code: string, original: Uint8Array, out: Awaited<ReturnType<typeof fill>>) {
+  const filled = out.bytes;
+  assert.deepEqual(Buffer.from(filled.subarray(0, original.length)), Buffer.from(original), `${code}: the official PDF's bytes come first, unchanged`);
+  if (!out.filled.length) { assert.equal(filled.length, original.length, `${code}: nothing filled, nothing added`); return; }
+  const a = await Pdf.open(original); const b = await Pdf.open(filled);
+  const pa = await pages(a); const pb = await pages(b);
+  assert.deepEqual(pb, pa, `${code}: the same pages, in the same order`);
+  const updated = [...b.xref.entries()].filter(([, e]) => e.kind === 'off' && e.off >= original.length).map(([n]) => n);
+  for (const p of pa) assert.ok(!updated.includes(p), `${code}: page object ${p} (its content streams and annotations) unchanged`);
+  const fa = await fields(a); const byNum = new Map<number, (typeof fa)[number]>();
+  for (const f of fa) { byNum.set(f.num, f); for (const w of f.widgets) byNum.set(w.num, f); }
+  const filledNames = new Set(out.filled);
+  const { formNum } = await acroForm(a); const { form } = await acroForm(a);
+  const packets = await xfaPackets(a, form); const ds = packets.get('datasets');
+  const apRefs = new Set<number>();
+  for (const n of updated) {
+    const ob = (await b.obj(n))!;
+    if (nameOf(get(ob.value, 'Type')) === 'XRef') continue;
+    const oa = await a.obj(n);
+    if (!oa) continue; // a new object: checked below as an appearance stream
+    const f = byNum.get(n);
+    if (f) {
+      assert.equal(f.kind, 'text', `${code}: object ${n} is a text field (${f.name}), never a ${f.kind}`);
+      assert.ok(filledNames.has(f.name), `${code}: ${f.name} was filled`);
+      assert.deepEqual(without(ob.value, ['V', 'AP']), without(oa.value, ['V', 'AP']), `${code}: ${f.name}: only its value and appearance change`);
+      const ap = get(get(ob.value, 'AP'), 'N'); if (ap?.t === 'ref') apRefs.add(ap.num);
+      continue;
+    }
+    if (n === formNum) {
+      assert.deepEqual(without(ob.value, ['XFA']), without(oa.value, ['XFA']), `${code}: the form dictionary: only its XFA copy switched off`);
+      assert.equal(get(ob.value, 'XFA'), undefined);
+      continue;
+    }
+    if (ds?.t === 'ref' && n === ds.num) {
+      assert.deepEqual(without(ob.value, ['Length', 'Filter', 'DecodeParms']), without(oa.value, ['Length', 'Filter', 'DecodeParms']), `${code}: the XFA data stream keeps its dictionary`);
+      const xa = (await packetText(a, ds))!; const xb = (await packetText(b, ds))!;
+      const la = leaves(xa); const lb = leaves(xb);
+      assert.deepEqual(lb.map(([p]) => p), la.map(([p]) => p), `${code}: the XFA data keeps every node, in order`);
+      const changed = lb.filter(([, t], i) => t !== la[i]![1]).map(([, t]) => t);
+      assert.equal(changed.length, out.filled.length, `${code}: one data node per value`);
+      continue;
+    }
+    assert.fail(`${code}: object ${n} changed and is not a filled text field`);
+  }
+  for (const n of updated) {
+    if (await a.obj(n)) continue;
+    const ob = (await b.obj(n))!;
+    if (nameOf(get(ob.value, 'Type')) === 'XRef') continue;
+    assert.equal(nameOf(get(ob.value, 'Subtype')), 'Form', `${code}: new object ${n} is an appearance stream`);
+    assert.ok(apRefs.has(n), `${code}: appearance ${n} belongs to a filled field`);
+  }
+  // the fields that were not filled are the official ones, untouched: every checkbox, drop-down, radio and signature
+  const fb = await fields(b);
+  for (const f of fb) if (f.kind !== 'text' || !filledNames.has(f.name)) assert.ok(!updated.includes(f.num) && f.widgets.every((w) => !updated.includes(w.num)), `${code}: ${f.name} (${f.kind}) untouched`);
+}
+const nameOf = (v: V | undefined) => (v?.t === 'name' ? v.raw : undefined);
+
+test('the fixtures are the publisher\'s downloads, byte for byte', async () => {
+  const { createHash } = await import('node:crypto');
+  for (const f of REPORT.forms) assert.equal(createHash('sha256').update(pdf(f.code)).digest('hex'), f.original_sha256, f.code);
+});
+
+test('every mapped field is a field of the official PDF, of the same type; every text value fits its field', async () => {
+  for (const [code, { map }] of Object.entries(MAPS)) {
+    const { fields: fs, xfaOnly } = await readFields(pdf(code));
+    const byName = new Map(fs.map((f) => [f.name, f]));
     for (const [name, s] of Object.entries(map)) {
       const f = byName.get(name);
       assert.ok(f, `${code}: ${name} is in the PDF`);
-      if (s.type === 'checkbox') assert.equal(f.type, 'checkbox', `${code}: ${name} is a checkbox`);
+      if (s.type === 'checkbox' && !xfaOnly) assert.equal(f.type, 'checkbox', `${code}: ${name} is a checkbox`);
       if (s.type === 'dropdown') assert.equal(f.type, 'dropdown', `${code}: ${name} is a drop-down`);
+      if ((s.type ?? 'text') === 'text') assert.equal(f.type, 'text', `${code}: ${name} is a text box`);
     }
   }
   for (const s of Object.keys(SCEN) as Array<keyof typeof SCEN>) for (const code of FORMS_OF[s]) {
@@ -67,139 +142,95 @@ test('every mapped field is a field of the official PDF, of the same type, and e
   }
 });
 
-test('SR-LV-006 under a Lease: the owner\'s corporation is the registrant, its address in four boxes, the plates are someone else\'s', async () => {
-  const doc = await PDFDocument.load((await fill('SR-LV-006', 'S2')).bytes);
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'TREMBLAY MOBILITY INC.');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].streetName[0]`), '1204 Bay Street');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].apt[0]`), '1807');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].city[0]`), 'Toronto');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].postalCode[0]`), 'M5R 2A5');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].#subform[1].date[0]`), '', 'a company has no date of birth');
-  assert.equal(checked(doc, `${P1}personalInfo[0].#subform[2].#field[13]`), true, 'Number plates owned by other than above');
-  assert.equal(checked(doc, `${P1}personalInfo[0].#subform[2].#field[12]`), false);
-  assert.equal(text(doc, `${P1}businessInfo6[0].#field[0]`), 'W1KAF4HB5MR123456', 'section 7 names the VIN');
-  assert.equal(text(doc, `${P1}businessInfo7[0].esoName[0]`), 'OLIVIA MARGARET TREMBLAY');
-  const s1 = await PDFDocument.load((await fill('SR-LV-006', 'S1')).bytes);
-  assert.equal(text(s1, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'C9876-54321', 'the corporation\'s RIN, never a person\'s licence');
-  assert.equal(text(s1, `${P1}personalInfo[0].#subform[0].apt[0]`), '2500');
-  assert.equal(text(s1, `${P1}businessInfo7[0].esoName[0]`), 'DANIEL OKAFOR', 'the signing officer signs for the corporation');
+test('the filled form is the official PDF unchanged except its filled text boxes (every form, every method)', async () => {
+  for (const s of Object.keys(SCEN) as Array<keyof typeof SCEN>) for (const code of FORMS_OF[s]) {
+    const out = await fill(code, s);
+    assert.ok(out.filled.length > 0, `${s} ${code}: something filled`);
+    await onlyTextBoxesChanged(`${s} ${code}`, pdf(code), out);
+    // what the mapping marks as a checkbox, a drop-down or a signature is left for the counter
+    for (const [n, sp] of Object.entries(MAPS[code]!.map)) if (sp.type && sp.type !== 'text') assert.ok(!out.filled.includes(n), `${s} ${code}: ${n} (${sp.type}) is done by hand`);
+  }
 });
 
-test('SR-LV-006 under Co-Registrant: the owner by the registry\'s name order, licence and birth date; two registrants', async () => {
-  const doc = await PDFDocument.load((await fill('SR-LV-006', 'S3')).bytes);
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'TREMBLAY, OLIVIA M');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'T6512-48390-85421');
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].#subform[1].date[0]`), '1985/02/03');
-  assert.equal(checked(doc, `${P1}personalInfo[0].#subform[2].#field[12]`), true);
-  assert.equal(checked(doc, `${P1}personalInfo[0].#subform[2].#field[13]`), false);
+test('the filled forms open in another PDF reader (pdf.js) with the values in their fields, encrypted as published', async () => {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  for (const code of ['SR-LV-006', 'SR-LV-012', '013-0169', '013-1155']) {
+    const out = await fill(code, 'S2');
+    const d = await pdfjs.getDocument({ data: out.bytes.slice(), verbosity: 0 }).promise;
+    assert.equal(d.numPages, REPORT.forms.find((f) => f.code === code)!.pages);
+    const objs = (await d.getFieldObjects()) ?? {};
+    for (const n of out.filled) assert.equal(String((objs[n] as Array<{ value: unknown }> | undefined)?.[0]?.value ?? ''), out.values[n], `${code}: ${n}`);
+    const annots = await (await d.getPage(1)).getAnnotations();
+    const first = annots.find((x: { fieldName?: string }) => x.fieldName === out.filled[0]) as { hasAppearance?: boolean } | undefined;
+    assert.ok(first?.hasAppearance, `${code}: the first filled field has its appearance`);
+  }
 });
 
-test('SR-LV-006 under a Transfer of a leased car: the lessor keeps the vehicle, CarmaCars signs, the owner does not', async () => {
-  const out = await fill('SR-LV-006', 'S6');
-  const doc = await PDFDocument.load(out.bytes);
-  assert.equal(text(doc, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'BMW FINANCIAL SERVICES');
-  assert.equal(checked(doc, `${P1}personalInfo[0].#subform[2].#field[13]`), true);
-  assert.equal(text(doc, `${P1}businessInfo7[0].esoName[0]`), 'ABBAS AL-MASHITA');
-  assert.equal(ownerSigns(out.values, MAPS['SR-LV-006']!.map), false);
+const text = async (bytes: Uint8Array, name: string) => (await filledValues(bytes))[name] ?? '';
+
+test('SR-LV-006 under a Lease: the owner\'s corporation is the registrant, its address in four boxes, the VIN in section 7', async () => {
+  const d = (await fill('SR-LV-006', 'S2')).bytes;
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'TREMBLAY MOBILITY INC.');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].streetName[0]`), '1204 Bay Street');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].apt[0]`), '1807');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].city[0]`), 'Toronto');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].postalCode[0]`), 'M5R 2A5');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].lastName[0]`), '', 'a new corporation\'s RIN is written in at the counter (ON00453, the same visit)');
+  assert.equal(await text(d, `${P1}personalInfo[0].#subform[0].#subform[1].date[0]`), '', 'a company has no date of birth');
+  assert.equal(await text(d, `${P1}businessInfo6[0].#field[0]`), 'W1KAF4HB5MR123456', 'section 7 names the VIN');
+  assert.equal(await text(d, `${P1}businessInfo7[0].esoName[0]`), 'OLIVIA MARGARET TREMBLAY');
+  assert.equal(await text(d, `${P1}businessInfo7[0].date[0]`), '', 'the date of an ink signature is written when it is signed');
+  const s1 = (await fill('SR-LV-006', 'S1')).bytes;
+  assert.equal(await text(s1, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'C9876-54321', 'the corporation\'s RIN on record, never a person\'s licence');
+  assert.equal(await text(s1, `${P1}personalInfo[0].#subform[0].apt[0]`), '2500');
+  assert.equal(await text(s1, `${P1}businessInfo7[0].esoName[0]`), 'DANIEL OKAFOR', 'the signing officer signs for the corporation');
+});
+
+test('SR-LV-006 under Co-Registrant and under a Transfer of a leased car (CarmaCars\' signing officer signs section 8)', async () => {
+  const co = (await fill('SR-LV-006', 'S3')).bytes;
+  assert.equal(await text(co, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'TREMBLAY, OLIVIA M');
+  assert.equal(await text(co, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'T6512-48390-85421');
+  assert.equal(await text(co, `${P1}personalInfo[0].#subform[0].#subform[1].date[0]`), '1985/02/03');
+  const tr = (await fill('SR-LV-006', 'S6')).bytes;
+  assert.equal(await text(tr, `${P1}personalInfo[0].#subform[0].lastName[2]`), 'BMW FINANCIAL SERVICES');
+  assert.equal(await text(tr, `${P1}businessInfo7[0].esoName[0]`), 'ABBAS AL-MASHITA');
 });
 
 test('SR-LV-012: section 1 names CarmaCars as the plate owner only when it holds the plates; section 2 only for two registrants', async () => {
-  const lease = await PDFDocument.load((await fill('SR-LV-012', 'S2')).bytes);
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].lastName[3]`), '18122211 CANADA INC.');
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'R1234-56789');
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].streetName[0]`), '2967 Dundas St W', 'the street line alone, not the whole address');
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].apt[0]`), '208B');
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].city[0]`), 'Toronto');
-  assert.equal(text(lease, `${P1}personalInfo[0].#subform[0].postalCode[0]`), 'M6P 1Z2');
-  assert.equal(text(lease, `${P1}businessInfo[0].#subform[0].lastName[3]`), '', 'section 2 stays empty');
-  const co = await PDFDocument.load((await fill('SR-LV-012', 'S3')).bytes);
-  assert.equal(text(co, `${P1}personalInfo[0].#subform[0].lastName[3]`), '', 'section 1 stays empty');
-  assert.equal(text(co, `${P1}businessInfo[0].#subform[0].lastName[3]`), 'TREMBLAY, OLIVIA M');
-  assert.equal(text(co, `${P1}businessInfo[0].#subform[0].apt[0]`), '1807');
-  assert.equal(text(co, `${P1}businessInfo[0].#subform[4].lastName[7]`), '18122211 CANADA INC.');
-  assert.equal(text(co, `${P1}businessInfo[0].#subform[4].city[1]`), 'Toronto');
-  assert.equal(text(co, `${P1}businessInfo[0].esoName[1]`), 'ABBAS AL-MASHITA');
+  const lease = (await fill('SR-LV-012', 'S2')).bytes;
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].lastName[3]`), '18122211 CANADA INC.');
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].lastName[0]`), 'R1234-56789');
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].streetName[0]`), '2967 Dundas St W', 'the street line alone, not the whole address');
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].apt[0]`), '208B');
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].city[0]`), 'Toronto');
+  assert.equal(await text(lease, `${P1}personalInfo[0].#subform[0].postalCode[0]`), 'M6P 1Z2');
+  assert.equal(await text(lease, `${P1}businessInfo[0].#subform[0].lastName[3]`), '', 'section 2 stays empty');
+  const co = (await fill('SR-LV-012', 'S3')).bytes;
+  assert.equal(await text(co, `${P1}personalInfo[0].#subform[0].lastName[3]`), '', 'section 1 stays empty');
+  assert.equal(await text(co, `${P1}businessInfo[0].#subform[0].lastName[3]`), 'TREMBLAY, OLIVIA M');
+  assert.equal(await text(co, `${P1}businessInfo[0].#subform[0].apt[0]`), '1807');
+  assert.equal(await text(co, `${P1}businessInfo[0].#subform[4].lastName[7]`), '18122211 CANADA INC.');
+  assert.equal(await text(co, `${P1}businessInfo[0].#subform[4].city[1]`), 'Toronto');
+  assert.equal(await text(co, `${P1}businessInfo[0].esoName[1]`), 'ABBAS AL-MASHITA');
 });
 
-test('the tax forms and the RIN form: the owner and the corporation, street number and name apart, the phone as written, Ontario chosen', async () => {
-  const c = await PDFDocument.load((await fill('013-0169', 'S2')).bytes);
-  assert.equal(text(c, `${P1}SectionB[0].#subform[1].busStreetNo[0]`), '1204');
-  assert.equal(text(c, `${P1}SectionB[0].#subform[1].busStreetName[0]`), 'Bay Street');
-  assert.equal(text(c, `${P1}SectionB[0].#subform[1].TelephoneNo[0]`), '(416) 555-0142');
-  assert.match((c.getForm().getField(`${P1}SectionB[0].#subform[1].busProvince[0]`) as PDFDropdown).getSelected()[0] ?? '', /^ON\b.*Ontario$/);
-  const s = await PDFDocument.load((await fill('013-1155', 'S2')).bytes);
-  assert.equal(text(s, 'nameRecipient'), 'TREMBLAY MOBILITY INC.');
-  assert.equal(text(s, 'nameDonor'), 'OLIVIA MARGARET TREMBLAY');
-  assert.equal(text(s, 'vehicleID'), 'W1KAF4HB5MR123456');
+test('the tax forms and the RIN form: the owner and the corporation, street number and name apart, the phone as written', async () => {
+  const c = await fill('013-0169', 'S2');
+  assert.equal(await text(c.bytes, `${P1}SectionB[0].#subform[1].busStreetNo[0]`), '1204');
+  assert.equal(await text(c.bytes, `${P1}SectionB[0].#subform[1].busStreetName[0]`), 'Bay Street');
+  assert.equal(await text(c.bytes, `${P1}SectionB[0].#subform[1].TelephoneNo[0]`), '(416) 555-0142');
+  assert.deepEqual(c.byHand, [`${P1}SectionB[0].#subform[1].busProvince[0]`], 'the province drop-down is chosen at the counter');
+  const s = (await fill('013-1155', 'S2')).bytes;
+  assert.equal(await text(s, 'nameRecipient'), 'TREMBLAY MOBILITY INC.');
+  assert.equal(await text(s, 'nameDonor'), 'OLIVIA MARGARET TREMBLAY');
+  assert.equal(await text(s, 'vehicleID'), 'W1KAF4HB5MR123456');
+  // ON00453 is an Adobe dynamic form: its values are in its XFA data, the boxes to tick are left for the counter
   const rin = await fill('ON00453', 'S2');
-  assert.equal(rin.values['Section 1. Provide the name of the contact person (Director/Owner). Phone Number'], '(416) 555-0142');
-  assert.equal(rin.values['Section 1. Provide Address of Physical Ontario Location. Street Number'], '1204');
-});
-
-// where pdf.js finds each value on the flattened page: inside the box of its field (2 points of slack)
-async function placed(bytes: Uint8Array) {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const d = await pdfjs.getDocument({ data: bytes, verbosity: 0 }).promise;
-  const pages: Array<{ items: Array<{ str: string; x: number; y: number }>; images: Array<{ x: number; y: number; w: number; h: number }> }> = [];
-  for (let i = 1; i <= d.numPages; i++) {
-    const p = await d.getPage(i);
-    const t = await p.getTextContent();
-    const ops = await p.getOperatorList();
-    const images: Array<{ x: number; y: number; w: number; h: number }> = [];
-    // the transform in force when each image is painted (pdf-lib draws an image as save, cm, Do, restore)
-    let m: number[] = [1, 0, 0, 1, 0, 0]; const stack: number[][] = [];
-    ops.fnArray.forEach((fn, k) => {
-      if (fn === pdfjs.OPS.save) stack.push(m);
-      else if (fn === pdfjs.OPS.restore) m = stack.pop() ?? [1, 0, 0, 1, 0, 0];
-      else if (fn === pdfjs.OPS.transform) { const [a, b, c, dd, e, f] = ops.argsArray[k] as number[]; m = [m[0]! * a! + m[2]! * b!, m[1]! * a! + m[3]! * b!, m[0]! * c! + m[2]! * dd!, m[1]! * c! + m[3]! * dd!, m[0]! * e! + m[2]! * f! + m[4]!, m[1]! * e! + m[3]! * f! + m[5]!]; }
-      else if (fn === pdfjs.OPS.paintImageXObject) images.push({ x: m[4]!, y: m[5]!, w: m[0]!, h: m[3]! });
-    });
-    pages.push({ items: (t.items as Array<{ str: string; transform: number[] }>).filter((x) => x.str.trim()).map((x) => ({ str: x.str, x: x.transform[4]!, y: x.transform[5]! })), images });
-  }
-  return pages;
-}
-
-test('flattened and signed: each value is printed inside its own field\'s box, and the signature only in the owner\'s signature box', async () => {
-  for (const s of Object.keys(SCEN) as Array<keyof typeof SCEN>) for (const code of FORMS_OF[s]) {
-    const { kind, map } = MAPS[code]!;
-    const out = await fill(code, s, { signaturePng: PNG, flatten: true });
-    const pages = await placed(out.bytes);
-    const rects = new Map((REPORT.forms.find((f) => f.code === code)!.fields).map((f) => [f.name, { page: f.page, rect: f.rect }]));
-    for (const [name, v] of Object.entries(out.values)) {
-      const spec = map[name]!;
-      if (!v || spec.type === 'checkbox' || spec.type === 'signature' || spec.type === 'dropdown') continue;
-      const box = kind === 'overlay' ? spec.box! : rects.get(name)!;
-      const [x, y, w, h] = box.rect;
-      const page = pages[box.page - 1]!;
-      const hit = page.items.find((i) => i.str.includes(v.slice(0, 12)) && i.x >= x - 2 && i.x <= x + w + 2 && i.y >= y - 2 && i.y <= y + h + 2);
-      assert.ok(hit, `${s} ${code}: "${v}" inside ${name} (page ${box.page}, ${box.rect.map(Math.round).join(' ')}); found ${JSON.stringify(page.items.filter((i) => i.str.includes(v.slice(0, 12))))}`);
-    }
-    const signs = Object.entries(map).filter(([n, sp]) => sp.type === 'signature' && (!sp.when || n in out.values));
-    // the images the signature added: those the same form filled without a signature does not have (the Ontario logo is one)
-    const before = await placed((await fill(code, s, { flatten: true })).bytes);
-    const key = (im: { x: number; y: number }, page: number) => `${page}:${im.x.toFixed(1)}:${im.y.toFixed(1)}`;
-    const had = new Set(before.flatMap((p, i) => p.images.map((im) => key(im, i + 1))));
-    const drawn = pages.flatMap((p, i) => p.images.map((im) => ({ ...im, page: i + 1 }))).filter((im) => !had.has(key(im, im.page)));
-    assert.equal(drawn.length, signs.length, `${s} ${code}: one signature per box the owner signs`);
-    for (const [n, sp] of signs) {
-      const box = kind === 'overlay' ? sp.box! : rects.get(n)!;
-      const [x, y, w, h] = box.rect;
-      assert.ok(drawn.some((im) => im.page === box.page && im.x >= x - 1 && im.x + im.w <= x + w + 1 && im.y >= y - 1 && im.y + im.h <= y + h + 1), `${s} ${code}: the signature inside ${n}`);
-    }
-  }
-});
-
-test('who signs on screen: the owner under a Lease (SR-LV-006) and Co-Registrant (both forms); nobody on the plate owner\'s section', async () => {
-  const signs = (code: string, s: keyof typeof SCEN) => ownerSigns(valuesFor(CTX[SCEN[s]]!, MAPS[code]!.map), MAPS[code]!.map);
-  assert.deepEqual([signs('SR-LV-006', 'S1'), signs('SR-LV-006', 'S2'), signs('SR-LV-006', 'S3'), signs('SR-LV-006', 'S6')], [true, true, true, false]);
-  assert.deepEqual([signs('SR-LV-012', 'S1'), signs('SR-LV-012', 'S2'), signs('SR-LV-012', 'S3'), signs('SR-LV-012', 'S6')], [false, false, true, false]);
-  assert.equal(signs('ON00453', 'S2'), true);
-});
-
-test('a drop-down takes the option a value stands for, whatever the dash', () => {
-  const o = ['AB - Alberta', 'MB – Manitoba', 'ON - Ontario'];
-  assert.equal(matchOption(o, 'ON'), 'ON - Ontario');
-  assert.equal(matchOption(o, 'manitoba'), 'MB – Manitoba');
-  assert.equal(matchOption(o, 'ON - Ontario'), 'ON - Ontario');
-  assert.equal(matchOption(o, 'QC'), null);
+  assert.equal(rin.xfaOnly, true);
+  assert.equal(await text(rin.bytes, `${P1}orgName[0]`), 'TREMBLAY MOBILITY INC.');
+  assert.equal(await text(rin.bytes, `${P1}telNo[0]`), '(416) 555-0142');
+  assert.equal(await text(rin.bytes, `${P1}streetNo[0]`), '1204');
+  assert.equal(await text(rin.bytes, `${P1}streetName[0]`), 'Bay Street');
+  assert.equal(await text(rin.bytes, `${P1}new[0]`), '', 'never ticked');
+  assert.deepEqual(rin.byHand.sort(), [`${P1}new[0]`, `${P1}operatedOut[0]`, `${P1}sig1[0].signature[0]`].sort());
 });

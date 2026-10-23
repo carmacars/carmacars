@@ -119,8 +119,8 @@ export function documentBlocks(f: OwnerAgreementFacts, key: PacketKey, signed?: 
   const ea = agreement(f, 'enrollment');
   const ta = agreement(f, 'title_holding');
   const o = f.owner;
-  // as the source text names it: "18122211 Canada Inc., operating as CarmaCars and CarmaCars.ca"
-  const company = `${companyParty(f.company.legal_name, f.company.trade_name || 'CarmaCars')} and CarmaCars.ca`;
+  // the party is the numbered company alone, "18122211 Canada Inc." (the owner's decision of October 23, 2026)
+  const company = companyParty(f.company.legal_name, f.company.trade_name || 'CarmaCars');
   const notice = [f.company.address, f.company.email].filter(Boolean).join(', ') || 'The email address on this page';
   const ownerAddress = [o.address, o.email, phone(o.phone), o.hst_number ? `HST ${o.hst_number}` : 'No HST number'].filter(Boolean).join('; ');
   if (key === 'enrollment') {

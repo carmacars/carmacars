@@ -3,17 +3,19 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { PDFDocument, PDFTextField, PDFCheckBox } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
+import { filledValues } from '../../src/features/official-forms/pdf-update';
 import { acceptCookies, db, noOverflow, pdfText, watch } from './helpers';
 
 // The form fillers from the portals (docs/changes/2026-10-23-form-fillers.md), with the official ServiceOntario PDFs
 // (tests/fixtures/official-forms) as the stored templates:
 // - an Admin opens Settings > Forms, downloads a filled preview of SR-LV-006 for a Co-Registrant car and checks the
-//   values sit in their own boxes, then uses SR-LV-006 and SR-LV-012 for owners;
-// - the owner, on a phone, opens Documents, downloads the official form filled from their records, signs SR-LV-012 on
-//   screen and opens the signed copy (flattened, the signature drawn, every value in place);
+//   values sit in their own boxes and that the file is the publisher's PDF with only its text boxes added, then uses
+//   SR-LV-006 and SR-LV-012 for owners;
+// - the owner, on a phone, opens Documents and downloads the official form filled from their records: the publisher's
+//   PDF byte for byte with the values after it; the page says it is printed and signed in ink, with no signature pad;
 // - an Admin sends an investment agreement generated from the record; the investor signs it in their portal and "Signed
-//   copy" opens the whole agreement followed by the signature page, naming 18122211 Canada Inc. as the party.
+//   copy" opens the whole agreement followed by the signature page, naming 18122211 Canada Inc. alone as the party.
 // Fictional people only.
 const PW = 'correct horse battery';
 const FIX = path.join(process.cwd(), 'tests/fixtures/official-forms');
@@ -59,7 +61,8 @@ const draw = async (page: Page, canvas: ReturnType<Page['locator']>) => {
   for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
   await page.mouse.up();
 };
-const text = (d: PDFDocument, name: string) => (d.getForm().getField(name) as PDFTextField).getText() ?? '';
+const values = async (b: Uint8Array) => filledValues(b);
+const prefix = (b: Uint8Array, o: Buffer) => Buffer.from(b.subarray(0, o.length)).equals(o);
 
 /** An individual owner whose car joins under Co-Registrant: SR-LV-006 and SR-LV-012 filled from the records. */
 async function coRegistrantOwner(sql: Sql) {
@@ -80,7 +83,7 @@ async function coRegistrantOwner(sql: Sql) {
   return { user: u, owner, car, vin };
 }
 
-test('ServiceOntario forms: the Admin previews and uses the official PDFs; the owner downloads them filled and signs SR-LV-012 on a phone', async ({ browser }) => {
+test('ServiceOntario forms: the Admin previews and uses the official PDFs; the owner downloads them filled, to print and sign in ink', async ({ browser }) => {
   test.skip(test.info().project.name !== 'desktop-1440', 'one run: the Admin on a desktop and the owner on a phone, in the same test');
   test.setTimeout(240_000);
   const sql = db();
@@ -102,14 +105,16 @@ test('ServiceOntario forms: the Admin previews and uses the official PDFs; the o
     await map.getByLabel('Preview with').selectOption(o.car);
     const dl = desk.waitForEvent('download');
     await map.getByTestId('form-preview-SR-LV-006').click();
-    const preview = await PDFDocument.load(readFileSync((await (await dl).path())!));
-    expect(text(preview, `${P1}personalInfo[0].#subform[0].lastName[2]`)).toBe('TREMBLAY, OLIVIA M');
-    expect(text(preview, `${P1}personalInfo[0].#subform[0].lastName[0]`)).toBe('T6512-48390-85421');
-    expect(text(preview, `${P1}personalInfo[0].#subform[0].streetName[0]`)).toBe('1204 Bay Street');
-    expect(text(preview, `${P1}personalInfo[0].#subform[0].apt[0]`)).toBe('1807');
-    expect(text(preview, `${P1}personalInfo[0].#subform[0].postalCode[0]`)).toBe('M5R 2A5');
-    expect(text(preview, `${P1}businessInfo6[0].#field[0]`)).toBe(o.vin);
-    expect((preview.getForm().getField(`${P1}personalInfo[0].#subform[2].#field[12]`) as PDFCheckBox).isChecked()).toBe(true);
+    const previewBytes = new Uint8Array(readFileSync((await (await dl).path())!));
+    expect(prefix(previewBytes, readFileSync(path.join(FIX, 'SR-LV-006.pdf'))), 'the publisher\'s PDF first, byte for byte').toBe(true);
+    const preview = await values(previewBytes);
+    expect(preview[`${P1}personalInfo[0].#subform[0].lastName[2]`]).toBe('TREMBLAY, OLIVIA M');
+    expect(preview[`${P1}personalInfo[0].#subform[0].lastName[0]`]).toBe('T6512-48390-85421');
+    expect(preview[`${P1}personalInfo[0].#subform[0].streetName[0]`]).toBe('1204 Bay Street');
+    expect(preview[`${P1}personalInfo[0].#subform[0].apt[0]`]).toBe('1807');
+    expect(preview[`${P1}personalInfo[0].#subform[0].postalCode[0]`]).toBe('M5R 2A5');
+    expect(preview[`${P1}businessInfo6[0].#field[0]`]).toBe(o.vin);
+    expect(preview[`${P1}personalInfo[0].#subform[2].#field[12]`] ?? 'Off', 'checkboxes are ticked by hand at the counter').toBe('Off');
     await check(desk, 'admin settings forms 1440');
     for (const code of ['SR-LV-006', 'SR-LV-012']) {
       await desk.getByTestId(`form-verify-${code}`).click();
@@ -127,26 +132,20 @@ test('ServiceOntario forms: the Admin previews and uses the official PDFs; the o
     await forms.getByRole('link', { name: 'SR-LV-012' }).click();
     await phone.waitForURL(/\/owner\/documents\/forms\/[0-9a-f-]+\/official$/);
     await check(phone, 'owner official form 375');
+    await expect(phone.getByTestId('official-ink')).toContainText('Print it and sign it in ink');
+    await expect(phone.getByTestId('signature-pad')).toHaveCount(0);
     const dl2 = phone.waitForEvent('download');
     await phone.getByTestId('official-download').click();
-    const filled = await PDFDocument.load(readFileSync((await (await dl2).path())!));
-    expect(text(filled, `${P1}personalInfo[0].#subform[0].lastName[3]`), 'section 1 is not for this car').toBe('');
-    expect(text(filled, `${P1}businessInfo[0].#subform[0].lastName[3]`)).toBe('TREMBLAY, OLIVIA M');
-    expect(text(filled, `${P1}businessInfo[0].#subform[4].lastName[7]`)).toBe('18122211 CANADA INC.');
-    await draw(phone, phone.getByTestId('signature-pad'));
-    await phone.getByTestId('official-sign').click();
-    await expect(phone.getByRole('status').filter({ hasText: 'Signed and saved' })).toBeVisible({ timeout: 20_000 });
-    await phone.reload({ waitUntil: 'networkidle' });
-    const copy = await phone.request.get((await phone.getByTestId('official-signed-copy').getAttribute('href'))!);
-    expect(copy.status()).toBe(200);
-    const body = await copy.body();
-    const signed = await PDFDocument.load(body);
-    expect(signed.getForm().getFields().length, 'the signed copy is flattened').toBe(0);
-    const words = await pdfText(body);
-    expect(words).toContain('TREMBLAY, OLIVIA M');
-    expect(words).toContain('18122211 CANADA INC.');
-    expect(words).toContain('2967 Dundas St W');
-    expect(words).not.toContain('Toronto, ON M6P');
+    const filledBytes = new Uint8Array(readFileSync((await (await dl2).path())!));
+    expect(prefix(filledBytes, readFileSync(path.join(FIX, 'SR-LV-012.pdf'))), 'the publisher\'s PDF first, byte for byte').toBe(true);
+    const filled = await values(filledBytes);
+    expect(filled[`${P1}personalInfo[0].#subform[0].lastName[3]`] ?? '', 'section 1 is not for this car').toBe('');
+    expect(filled[`${P1}businessInfo[0].#subform[0].lastName[3]`]).toBe('TREMBLAY, OLIVIA M');
+    expect(filled[`${P1}businessInfo[0].#subform[4].lastName[7]`]).toBe('18122211 CANADA INC.');
+    expect(filled[`${P1}businessInfo[0].#subform[4].streetName[1]`]).toBe('2967 Dundas St W');
+    await expect(phone.getByRole('status').filter({ hasText: 'Downloaded' })).toBeVisible();
+    // signed in ink and recorded by an Admin, the form shows as signed
+    await sql`update government_form_fills set status = 'signed', signed_at = now(), signed_method = 'paper' where vehicle_id = ${o.car} and form_code = 'SR-LV-012' and superseded_at is null`;
     await phone.goto('/owner/documents', { waitUntil: 'networkidle' });
     await expect(phone.getByTestId('owner-gov-forms')).toContainText('Official form, signed');
     await phone.context().close();
@@ -200,7 +199,8 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     const pages = (await PDFDocument.load(body)).getPageCount();
     expect(pages, 'the agreement, then its signature page and record').toBeGreaterThan(unsignedPages);
     const words = await pdfText(body);
-    expect(words).toMatch(/18122211 Canada Inc\. ?, operating as CarmaCars/);
+    expect(words).toMatch(/between 18122211 Canada Inc\. ?\(the "?Company"?\)/);
+    expect(words, 'the party is the numbered company alone').not.toMatch(/operating as/);
     expect(words).toContain('$25,000.00');
     expect(words).toContain('Signature record');
     expect(words).toContain(iu.name);

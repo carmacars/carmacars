@@ -555,7 +555,7 @@ def build():
         f'{B("View as (owner portal)")} shows their portal. {B("Send password link")} helps them sign in.',
         f'Invite an owner on file: fill in Name and Email under Invite an owner, then press {B("Send invitation")}.',
     ], shot=S('admin/12-owners-desktop', 0, 0, 1440, 560, pins=[(1, 590, 240), (2, 539, 276), (3, 1114, 462)]))
-    g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules, Forms A and B and the official forms that are ready). '
+    g.para('The owner signs everything at once in their portal (Check and sign: the agreements, schedules and Forms A and B; the official registry forms are printed and signed in ink). '
            'The confirmations to tick, then one signature: CarmaCars countersigns at the same moment, under the signing officer\'s standing authorization. '
            'A car with a second owner on the ownership waits for that owner too: they get their own link by email and sign the same documents.')
     g.task('Mark a car insured (Insurer confirmed)', 'A program owner\'s car is handed over to a renter only once the insurer confirms in writing that it is on the fleet policy. Requests, offers and payment never wait for it.')
@@ -1012,15 +1012,15 @@ def build():
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
-    g.task('Official ServiceOntario forms', 'The five official forms are loaded with a draft mapping to the owner, car, company and lender details. Until you check a form, owners get a data sheet with the values.')
+    g.task('Official ServiceOntario forms', 'The five official forms are loaded with a mapping to the owner, car, company and lender details. Each is the form exactly as ServiceOntario publishes it: only its empty text boxes are filled. Its checkboxes, drop-downs and signatures are done by hand at the counter, in ink. Until you check a form, owners get a data sheet with the values.')
     g.steps([
         f'Open {P("Settings", "Forms")}. Each form shows "Mapping to check" (a draft is ready) or "Official PDF in use". Its notes say what the form is for and which boxes are left blank on purpose.',
         f'Press {B("Download a filled preview")} for one car and check each value against the form.',
-        'Change a field if needed: What goes in it (or "The owner signs here"), a Format (for example YYYY/MM/DD) and Only when. Press Save the mapping.',
-        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed, and owners sign it with their other documents. Each form not checked yet is also a line on To do with the same button and Preview it.',
+        'Change a field if needed: What goes in it (or "Signed here by hand, in ink"), a Format (for example YYYY/MM/DD) and Only when. Press Save the mapping.',
+        f'Press {B("Checked: use for owners")}. Every owner\'s form of that kind is filled again, except ones already signed or filed. Owners download it, print it and sign it in ink; record it with {B("Record paper signature")}. Each form not checked yet is also a line on To do with the same button and Preview it.',
         f'A new version from ServiceOntario? Press {B("Upload the official fillable PDF")}: the fields of the same name keep their mapping.',
     ])
-    g.tip('SR-LV-006 (registration), SR-LV-012 (two registrants), ON00453 (a company\'s RIN), 013-1155 and 013-0169 (the tax-exempt transfer into an owner\'s corporation). 013-1155 is sworn before a commissioner, so it is printed and signed in person.', label='Good to know')
+    g.tip('SR-LV-006 (registration), SR-LV-012 (two registrants), ON00453 (a company\'s RIN), 013-1155 and 013-0169 (the tax-exempt transfer into an owner\'s corporation). 013-1155 is sworn before a commissioner, so it is printed and signed in person. ON00453 is an Adobe form: it opens in Adobe Acrobat Reader. Each form\'s notes list what to tick or choose at the counter.', label='Good to know')
 
     g.task('Agreements to sign: investors and staff', 'Investment agreements and staff agreements are made from the person\'s record and signed in their own portal, or on paper.')
     g.steps([

@@ -3,7 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { when } from '@/features/agreement/model';
 
 // What every signed PDF prints for the company (the legal review, migration 0053): the signing officer's countersignature
-// with its stored wording ("Signed electronically for <legal name>, operating as CarmaCars, by <officer>, Director,
+// with its stored wording ("Signed electronically for <legal name>, by <officer>, Director,
 // under a standing authorization dated <date>."), and the staff member who sent the offer, added the rental, or proposed
 // or approved the amendment, as "Proposed by" or "Added by". Staff are never the signer.
 const SR = { role: 'service_role' as const };

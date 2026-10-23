@@ -209,7 +209,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
     return (<>{head}<OfficialForms d={await door<FormsData>(user.id, 'ops_read', 'form_templates')} /></>);
   case 'program': {
     // turnaround_block_minutes always equals the turnaround (0042): one setting is shown; owner_debit_show_legal_name is no
-    // longer used (0053: the payee is always the legal name, operating as CarmaCars)
+    // longer used (0120: the payee is always the legal name alone)
     // staff_agreement_defaults has its own form below, by function (0057)
     const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults'].includes(k)
       // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)

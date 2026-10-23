@@ -7224,6 +7224,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      official_form_originals: {
+        Row: {
+          id: string;
+          form_code: string;
+          from_sha256: string;
+          sha256: string;
+          file_key: string;
+          page_count: number | null;
+          kind: string;
+          field_names: Json;
+          field_map: Json;
+          notes: string | null;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_code: string;
+          from_sha256: string;
+          sha256: string;
+          file_key: string;
+          page_count?: number | null;
+          kind?: string;
+          field_names: Json;
+          field_map: Json;
+          notes?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_code?: string;
+          from_sha256?: string;
+          sha256?: string;
+          file_key?: string;
+          page_count?: number | null;
+          kind?: string;
+          field_names?: Json;
+          field_map?: Json;
+          notes?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       onboarding_checklist_items: {
         Row: {
           code: string;

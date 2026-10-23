@@ -16,9 +16,10 @@ export function phone(v: string | null | undefined): string {
 }
 /** A name at the end of a sentence: "Northshore Auto Holdings Ltd." keeps its one full stop. */
 export const endSentence = (s: string) => (/[.!?]$/.test(s.trim()) ? s.trim() : `${s.trim()}.`);
-/** How the company is named as a party: "18122211 Canada Inc., operating as CarmaCars" (the brand alone without a legal name). */
+/** How the company is named as a party in an agreement: its legal name alone, "18122211 Canada Inc." (the owner's decision of
+ *  October 23, 2026: no "operating as"); the brand when no legal name is set. */
 export const companyParty = (legal: string | null | undefined, brand: string | null | undefined = 'CarmaCars') =>
-  legal && legal.trim() ? `${legal.trim().replace(/,$/, '')}, operating as ${brand || 'CarmaCars'}` : brand || 'CarmaCars';
+  legal && legal.trim() ? legal.trim().replace(/,$/, '') : brand || 'CarmaCars';
 export const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
 export function list(items: string[], join = 'or'): string {
   if (items.length < 2) return items.join('');

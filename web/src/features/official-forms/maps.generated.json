@@ -64,10 +64,6 @@
    "form1[0].page1[0].body[0].businessInfo7[0].signature[0]": {
     "type": "signature",
     "when": "vehicle_registrant.owner_signs"
-   },
-   "form1[0].page1[0].body[0].businessInfo7[0].date[0]": {
-    "source": "today",
-    "transform": "date:YYYY/MM/DD"
    }
   }
  },
@@ -105,11 +101,6 @@
    "form1[0].page1[0].body[0].personalInfo[0].esoName[0]": {
     "source": "plate_owner.signer_name",
     "transform": "upper",
-    "when": "method.plates_other"
-   },
-   "form1[0].page1[0].body[0].personalInfo[0].date[1]": {
-    "source": "today",
-    "transform": "date:YYYY/MM/DD",
     "when": "method.plates_other"
    },
    "form1[0].page1[0].body[0].businessInfo[0].#subform[0].lastName[0]": {
@@ -180,253 +171,77 @@
     "type": "signature",
     "when": "method.two_registrants"
    },
-   "form1[0].page1[0].body[0].businessInfo[0].date[2]": {
-    "source": "today",
-    "transform": "date:YYYY/MM/DD",
-    "when": "method.two_registrants"
-   },
    "form1[0].page1[0].body[0].businessInfo[0].esoName[1]": {
     "source": "registrant.signing_officer_name",
     "transform": "upper",
-    "when": "method.two_registrants"
-   },
-   "form1[0].page1[0].body[0].businessInfo[0].date[3]": {
-    "source": "today",
-    "transform": "date:YYYY/MM/DD",
     "when": "method.two_registrants"
    }
   }
  },
  "ON00453": {
-  "kind": "overlay",
+  "kind": "acroform",
   "map": {
-   "Section 1. Proof of Business Address. Purpose of Application. New": {
+   "form1[0].page1[0].body[0].new[0]": {
     "source": "corporation.rin_missing",
     "type": "checkbox",
-    "when": "corporation.applies",
-    "box": {
-     "page": 1,
-     "rect": [
-      20.8,
-      220.5,
-      10,
-      15.2
-     ]
-    }
+    "when": "corporation.applies"
    },
-   "Section 1. Organization name as indicated on identification document": {
+   "form1[0].page1[0].body[0].orgName[0]": {
     "source": "corporation.registry_name",
     "when": "corporation.applies",
-    "required": true,
-    "box": {
-     "page": 1,
-     "rect": [
-      20.8,
-      192.7,
-      570.3,
-      12.5
-     ]
-    }
+    "required": true
    },
-   "Section 1. Proof of Business Address. Existing RIN(s) (if applicable).": {
+   "form1[0].page1[0].body[0].existingRIN[0]": {
     "source": "corporation.rin",
-    "transform": "upper",
-    "box": {
-     "page": 1,
-     "rect": [
-      20.8,
-      163.9,
-      570.3,
-      12.5
-     ]
-    }
+    "transform": "upper"
    },
-   "Section 1. Is the business operated out of the owner’s place of residence? Yes": {
+   "form1[0].page1[0].body[0].operatedOut[0]": {
     "source": "corporation.applies",
-    "type": "checkbox",
-    "box": {
-     "page": 1,
-     "rect": [
-      20.8,
-      98.9,
-      10,
-      15.2
-     ]
-    }
+    "type": "checkbox"
    },
-   "Section 1. Provide the name of the contact person (Director/Owner). First Name": {
-    "source": "owner.first_name",
-    "box": {
-     "page": 1,
-     "rect": [
-      20.8,
-      57.2,
-      282.3,
-      12.5
-     ]
-    }
+   "form1[0].page1[0].body[0].corpFirstName[0]": {
+    "source": "owner.first_name"
    },
-   "Section 1. Provide the name of the contact person (Director/Owner). Last Name": {
-    "source": "owner.last_name",
-    "box": {
-     "page": 1,
-     "rect": [
-      308.8,
-      58.5,
-      282.3,
-      11.1
-     ]
-    }
+   "form1[0].page1[0].body[0].corpLastName[0]": {
+    "source": "owner.last_name"
    },
-   "Section 1. Provide the name of the contact person (Director/Owner). Middle Name": {
-    "source": "owner.middle_name",
-    "box": {
-     "page": 2,
-     "rect": [
-      20.8,
-      749,
-      282.3,
-      11.1
-     ]
-    }
+   "form1[0].page1[0].body[0].corpMiddleIntial[0]": {
+    "source": "owner.middle_name"
    },
-   "Section 1. Provide the name of the contact person (Director/Owner). Phone Number": {
+   "form1[0].page1[0].body[0].telNo[0]": {
     "source": "owner.phone",
-    "transform": "phone",
-    "box": {
-     "page": 2,
-     "rect": [
-      308.8,
-      747.6,
-      283.8,
-      12.5
-     ]
-    }
+    "transform": "phone"
    },
-   "Section 1. Provide the name of the contact person (Director/Owner). Email Address": {
-    "source": "owner.email",
-    "box": {
-     "page": 2,
-     "rect": [
-      20.8,
-      720.3,
-      570.3,
-      11.1
-     ]
-    }
+   "form1[0].page1[0].body[0].corpEmail[0]": {
+    "source": "owner.email"
    },
-   "Section 1. Driver’s Licence Number or Ontario Photo Card Number of the contact person (Director/Owner)": {
+   "form1[0].page1[0].body[0].dlNo[0]": {
     "source": "owner.licence_number",
-    "transform": "upper",
-    "box": {
-     "page": 2,
-     "rect": [
-      20.8,
-      663.4,
-      570.3,
-      14.2
-     ]
-    }
+    "transform": "upper"
    },
-   "Section 1. Provide Address of Physical Ontario Location. Unit Number": {
+   "form1[0].page1[0].body[0].unitNo[0]": {
     "source": "owner.unit",
-    "transform": "upper",
-    "box": {
-     "page": 2,
-     "rect": [
-      20.8,
-      620.6,
-      67.8,
-      12.5
-     ]
-    }
+    "transform": "upper"
    },
-   "Section 1. Provide Address of Physical Ontario Location. Street Number": {
-    "source": "owner.street_number",
-    "box": {
-     "page": 2,
-     "rect": [
-      92.8,
-      620.6,
-      85.8,
-      12.5
-     ]
-    }
+   "form1[0].page1[0].body[0].streetNo[0]": {
+    "source": "owner.street_number"
    },
-   "Section 1. Provide Address of Physical Ontario Location. Street Name": {
-    "source": "owner.street_name",
-    "box": {
-     "page": 2,
-     "rect": [
-      182.8,
-      620.6,
-      337.8,
-      12.5
-     ]
-    }
+   "form1[0].page1[0].body[0].streetName[0]": {
+    "source": "owner.street_name"
    },
-   "Section 1. Provide Address of Physical Ontario Location. City or Town": {
-    "source": "owner.city",
-    "box": {
-     "page": 2,
-     "rect": [
-      20.8,
-      591.8,
-      283.8,
-      12.5
-     ]
-    }
+   "form1[0].page1[0].body[0].city[0]": {
+    "source": "owner.city"
    },
-   "Section 1. Provide Address of Physical Ontario Location. Postal Code": {
+   "form1[0].page1[0].body[0].postalCode[0]": {
     "source": "owner.postal_code",
-    "transform": "postal",
-    "box": {
-     "page": 2,
-     "rect": [
-      524.8,
-      591.8,
-      66.3,
-      12.5
-     ]
-    }
+    "transform": "postal"
    },
-   "Section 1. Signature": {
-    "type": "signature",
-    "box": {
-     "page": 2,
-     "rect": [
-      26,
-      534.6,
-      168,
-      16
-     ]
-    }
+   "form1[0].page1[0].body[0].sig1[0].signature[0]": {
+    "type": "signature"
    },
-   "Section 1. Signature. Name": {
+   "form1[0].page1[0].body[0].sig1[0].name[0]": {
     "source": "corporation.signer_name",
-    "transform": "upper",
-    "box": {
-     "page": 2,
-     "rect": [
-      200.8,
-      534.6,
-      283.8,
-      26.9
-     ]
-    }
-   },
-   "Section 1. Signature. Date": {
-    "source": "today",
-    "transform": "date:YYYY/MM/DD",
-    "box": {
-     "page": 2,
-     "rect": [
-      488.8,
-      534.6,
-      101.6,
-      26.9
-     ]
-    }
+    "transform": "upper"
    }
   }
  },

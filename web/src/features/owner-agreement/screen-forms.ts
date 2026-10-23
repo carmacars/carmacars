@@ -29,14 +29,14 @@ export function screenFormBlocks(f: ScreenFormFacts, sig?: { owner?: SignatureRo
   if (f.code === 'A') blocks.splice(1, 0, { t: 'table', head: ['Vehicle', 'VIN', 'Onboarding Method'], rows: f.vehicles.map((v) => [v.name + (v.plate ? `, plate ${v.plate}` : ''), v.vin ?? '', METHOD[v.method] ?? v.method]) });
   // the lease table of Form B: the lessor is the owner's corporation
   blocks = blocks.map((b) => (b.t === 'table' && b.head[0] === 'Item'
-    ? { ...b, rows: b.rows.map((r) => (r[0] === 'Lessor (owner)' ? [r[0]!, `${f.owner.corporation_name ?? f.owner.legal_name}, address ${f.owner.address || 'as on the ownership permit'}; corporation and registrant numbers as on the ownership permit`] : r[0] === 'Lessee' ? [r[0]!, `${company}, operating as ${f.company.brand}`] : r)) }
+    ? { ...b, rows: b.rows.map((r) => (r[0] === 'Lessor (owner)' ? [r[0]!, `${f.owner.corporation_name ?? f.owner.legal_name}, address ${f.owner.address || 'as on the ownership permit'}; corporation and registrant numbers as on the ownership permit`] : r[0] === 'Lessee' ? [r[0]!, company] : r)) }
     : b));
   // the signature table becomes the signatures (on screen: the owner's and CarmaCars')
   blocks = blocks.filter((b) => !(b.t === 'table' && b.head[0] === ''));
   const blank = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: '' });
   return [
     { t: 'title', text: SCREEN_FORM_TITLE[f.code] },
-    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company}, operating as ${f.company.brand}, and ${endSentence(f.owner.legal_name)}` },
+    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company} and ${endSentence(f.owner.legal_name)}` },
     ...blocks,
     { t: 'signatures', rows: [sig?.owner ?? blank(f.code === 'B' ? 'Lessor (owner)' : 'Owner', f.owner.signer_name), sig?.carmacars ?? blank(f.code === 'B' ? 'Lessee (CarmaCars)' : 'CarmaCars', company)] }
   ];

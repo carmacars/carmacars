@@ -63,21 +63,23 @@ export async function pdfLines(doc: PdfDoc, maxPages = 40): Promise<{ lines: Tex
 }
 
 /** One page drawn on a canvas at a width (the review screen), or as a JPEG for the vision model. */
-export async function drawPage(doc: PdfDoc, n: number, canvas: HTMLCanvasElement, width: number): Promise<{ width: number; height: number }> {
+/** forms: the filled fields drawn on the page too (pdf.js AnnotationMode.ENABLE), as printed; by default pdf.js leaves
+ *  form fields to its HTML layer and the canvas shows them empty. */
+export async function drawPage(doc: PdfDoc, n: number, canvas: HTMLCanvasElement, width: number, forms = false): Promise<{ width: number; height: number }> {
   const page = await doc.getPage(n);
   const vp1 = page.getViewport({ scale: 1 });
   const vp = page.getViewport({ scale: width / vp1.width });
   canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  await page.render({ canvasContext: ctx, viewport: vp, ...(forms ? { annotationMode: 1 } : {}) }).promise;
   return { width: canvas.width, height: canvas.height };
 }
-export async function pageJpeg(doc: PdfDoc, n: number, longSide = 1600): Promise<string> {
+export async function pageJpeg(doc: PdfDoc, n: number, longSide = 1600, forms = false): Promise<string> {
   const page = await doc.getPage(n);
   const vp1 = page.getViewport({ scale: 1 });
   const c = document.createElement('canvas');
-  await drawPage(doc, n, c, Math.round(vp1.width >= vp1.height ? longSide : (longSide * vp1.width) / vp1.height));
+  await drawPage(doc, n, c, Math.round(vp1.width >= vp1.height ? longSide : (longSide * vp1.width) / vp1.height), forms);
   return c.toDataURL('image/jpeg', 0.85);
 }
 

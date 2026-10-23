@@ -3,43 +3,30 @@ import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
 import { fillPdf, readFields, sampleForm } from './fill.ts';
 
-// a 2 x 1 PNG (red, black): the drawn signature
-const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAEElEQVR4nGP4z8DAwMDAAAAU/wP9xI+0gAAAAABJRU5ErkJggg==', 'base64'));
-
 test('the fields of a fillable PDF are read with their type and page', async () => {
   const { fields, pages } = await readFields(await sampleForm());
   assert.equal(pages, 1);
   assert.deepEqual(fields.map((f) => `${f.name}:${f.type}:${f.page}`), ['owner_name:text:1', 'vin:text:1', 'plate:text:1', 'postal_code:text:1', 'is_lease:checkbox:1', 'owner_signature:text:1']);
 });
 
-test('a form is filled with the values, the checkbox ticked, the signature drawn, and a missing field named', async () => {
-  const out = await fillPdf(await sampleForm(), { owner_name: 'OLIVE OWNER', vin: '2T1BURHE0KC123456', postal_code: 'M5V 1A1', is_lease: 'Yes', not_on_form: 'x' },
-    { owner_name: { source: 'owner.legal_name' }, owner_signature: { type: 'signature' } }, { signaturePng: PNG });
+test('only the text boxes are filled: the checkbox and the signature are left for the counter, a missing field is named', async () => {
+  const src = await sampleForm();
+  const out = await fillPdf(src, { owner_name: 'OLIVE OWNER', vin: '2T1BURHE0KC123456', postal_code: 'M5V 1A1', is_lease: 'Yes', owner_signature: null, not_on_form: 'x' },
+    { owner_name: { source: 'owner.legal_name' }, is_lease: { source: 'method.is_lease', type: 'checkbox' }, owner_signature: { type: 'signature' } });
   assert.deepEqual(out.missing, ['not_on_form']);
-  assert.ok(out.filled.includes('owner_signature'));
-  const doc = await PDFDocument.load(out.bytes);
-  const form = doc.getForm();
+  assert.deepEqual(out.filled.sort(), ['owner_name', 'postal_code', 'vin']);
+  assert.deepEqual(out.byHand.sort(), ['is_lease', 'owner_signature']);
+  assert.deepEqual(Buffer.from(out.bytes.subarray(0, src.length)), Buffer.from(src), 'the original bytes come first, unchanged');
+  const form = (await PDFDocument.load(out.bytes)).getForm();
   assert.equal(form.getTextField('owner_name').getText(), 'OLIVE OWNER');
   assert.equal(form.getTextField('postal_code').getText(), 'M5V 1A1');
-  assert.equal(form.getCheckBox('is_lease').isChecked(), true);
+  assert.equal(form.getCheckBox('is_lease').isChecked(), false, 'never ticked');
+  assert.equal(form.getTextField('owner_signature').getText(), undefined, 'never signed');
+  assert.equal(form.getFields().length, 6, 'not flattened');
 });
 
-test('the signed copy is flattened: no field can be changed afterwards', async () => {
-  const out = await fillPdf(await sampleForm(), { owner_name: 'OLIVE OWNER' }, { owner_signature: { type: 'signature' } }, { signaturePng: PNG, flatten: true });
-  const doc = await PDFDocument.load(out.bytes);
-  assert.equal(doc.getForm().getFields().length, 0);
-});
-
-test('a form with no fillable field (a coordinates-based template) gets its values drawn in their boxes, the signature too', async () => {
-  const flat = await PDFDocument.create();
-  flat.addPage([612, 792]);
-  const out = await fillPdf(await flat.save(), { 'Organization name': 'SAMPLE HOLDINGS INC', 'Purpose: New': 'Yes', 'Not boxed': 'x' },
-    { 'Organization name': { source: 'corporation.name', box: { page: 1, rect: [20, 700, 300, 14] } },
-      'Purpose: New': { source: 'method.is_lease', type: 'checkbox', box: { page: 1, rect: [20, 650, 10, 12] } },
-      Signature: { type: 'signature', box: { page: 1, rect: [20, 500, 160, 30] } } }, { signaturePng: PNG, flatten: true });
-  assert.deepEqual(out.missing, ['Not boxed']);
-  assert.deepEqual(out.filled.sort(), ['Organization name', 'Purpose: New', 'Signature']);
-  const doc = await PDFDocument.load(out.bytes);
-  assert.equal(doc.getPageCount(), 1);
-  assert.ok(out.bytes.length > (await flat.save()).length + 500, 'text and the image were drawn');
+test('nothing to fill: the PDF comes back as it was', async () => {
+  const src = await sampleForm();
+  const out = await fillPdf(src, { is_lease: 'Yes' }, { is_lease: { type: 'checkbox' } });
+  assert.deepEqual(Buffer.from(out.bytes), Buffer.from(src));
 });

@@ -69,7 +69,7 @@ export function witnessedBlocks(f: WitnessedFacts): Block[] {
   blocks = blocks.map((b) => b.t === 'table' && b.head[0] === 'I acknowledge' ? { ...b, rows: b.rows.map((r) => [r[0]!, '>> INITIAL HERE: ____']) } : b);
   return [
     { t: 'title', text: FORM_TITLE[f.code] },
-    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company}, operating as ${f.company.brand}, and ${endSentence(f.owner.legal_name)}` },
+    { t: 'p', text: `Title-Holding and Lease Agreement${f.title_agreement ? ` ${f.title_agreement}` : ''} between ${company} and ${endSentence(f.owner.legal_name)}` },
     ...blocks,
     { t: 'h3', text: 'How to complete this form' },
     { t: 'ul', items: f.code === 'C'

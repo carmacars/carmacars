@@ -1,7 +1,7 @@
 import type { DebitTerms } from './types.ts';
 
 // The pre-authorized debit texts (the legal review of October 16, 2026; app.owner_debit_terms of 0053). The recurring
-// agreement comes from the database word for word (the payee "<legal name>, operating as CarmaCars", the debit day, the
+// agreement comes from the database word for word (the payee, the company's legal name alone since 0120, the debit day, the
 // notice days and the one Late Fee rule), so the Banking page, the invoice page and the confirmation email print the
 // same text. The one-time authorization is the invoice page's first box.
 
