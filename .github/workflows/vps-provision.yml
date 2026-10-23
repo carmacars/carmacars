@@ -24,6 +24,10 @@ on:
         description: Postgres image override (empty = keep the one chosen at the first run; e.g. supabase/postgres:17.6.1.136)
         type: string
         default: ''
+      reset_db:
+        description: Start the database over from an empty data directory (refused once the server is live; the copy refills it)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -83,9 +87,11 @@ jobs:
           PG_IMAGE_OVERRIDE: ${{ inputs.pg_image }}
         run: infra/vps/scripts/make-env.sh
       - name: Stack up (pull the pinned images, start, wait for every health check)
+        env:
+          RESET_DB: ${{ inputs.reset_db }}
         run: |
           source scripts/deploy/vps.sh
-          vps_ssh sudo /opt/carmacars/bin/stack-up
+          if [ "$RESET_DB" = true ]; then vps_ssh sudo /opt/carmacars/bin/db-reset --yes; else vps_ssh sudo /opt/carmacars/bin/stack-up; fi
       - name: Health (inside the server, then through the SSH tunnel)
         run: |
           source scripts/deploy/vps.sh

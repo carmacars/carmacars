@@ -305,6 +305,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+      # the first start initialises the cluster and runs Supabase's init scripts
+      start_period: 180s
     environment:
       POSTGRES_HOST: /var/run/postgresql
       PGPORT: ${POSTGRES_PORT}

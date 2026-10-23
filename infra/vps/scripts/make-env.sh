@@ -7,9 +7,11 @@
 #                           (GET /api-keys?reveal=true): the Worker, the stored anon key in the browser bundle and
 #                           Admin view-as tokens keep working unchanged
 #   the hosted project's    PGRST_DB_SCHEMAS, PGRST_DB_MAX_ROWS, PGRST_DB_EXTRA_SEARCH_PATH (GET /postgrest)
-#   the hosted project's    Postgres image: database.version of GET /v1/projects/{ref} (e.g. 17.6.1.054) when Docker
-#                           Hub has supabase/postgres:<that>; else defaults.env's PG_IMAGE. Chosen once: an existing
-#                           PG_IMAGE is kept (PG_IMAGE_OVERRIDE replaces it, for a deliberate minor upgrade)
+#   the Postgres image      defaults.env's PG_IMAGE (the official self-hosted compose's tag; same major version as the
+#                           hosted project, checked). PG_IMAGE_MATCH_HOSTED=1 takes the hosted project's exact tag
+#                           instead (database.version): the platform's newer images (17.11.0.003 tried on Oct 23, 2026)
+#                           did not initialise the self-hosted roles and schemas. Chosen once, then kept;
+#                           PG_IMAGE_OVERRIDE replaces it (only with an empty data directory: reset_db)
 #   made here once, kept    POSTGRES_PASSWORD, PG_META_CRYPTO_KEY, SECRET_KEY_BASE, VAULT_ENC_KEY, the ES256 key
 #   derived                 JWT_KEYS, JWT_JWKS (jwt-keys.mjs; the hosted project's public keys unless TRUST_HOSTED_JWKS=0)
 #
@@ -90,7 +92,7 @@ if [ -n "${PG_IMAGE_OVERRIDE:-}" ]; then
   V[PG_IMAGE]="$PG_IMAGE_OVERRIDE"; SRC[PG_IMAGE]=override
   if [ -n "$o" ] && [ "$o" != "$PG_IMAGE_OVERRIDE" ]; then say "WARNING: PG_IMAGE changes from $o to $PG_IMAGE_OVERRIDE (only a minor version step is safe on existing data)"; fi
 elif [ -n "$o" ]; then V[PG_IMAGE]="$o"; SRC[PG_IMAGE]=kept
-elif [[ "$hv" =~ ^17\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$(curl -sS -o /dev/null -w '%{http_code}' "https://hub.docker.com/v2/namespaces/supabase/repositories/postgres/tags/$hv")" = 200 ]; then
+elif [ "${PG_IMAGE_MATCH_HOSTED:-0}" = 1 ] && [[ "$hv" =~ ^17\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$(curl -sS -o /dev/null -w '%{http_code}' "https://hub.docker.com/v2/namespaces/supabase/repositories/postgres/tags/$hv")" = 200 ]; then
   V[PG_IMAGE]="supabase/postgres:$hv"; SRC[PG_IMAGE]="hosted-version"
 else
   if [ -n "$hv" ] && [[ ! "$hv" =~ ^17\. ]]; then _vps_die "The hosted project runs Postgres $hv; this stack, the backups and the copy expect 17"; fi
