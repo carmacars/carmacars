@@ -162,7 +162,7 @@ install -m 644 "$SRC/supabase/caddy/Caddyfile" "$D/supabase/caddy/"
 [ -f "$SRC/REVISION" ] && install -m 644 "$SRC/REVISION" "$D/REVISION"
 for u in "$SRC"/systemd/*; do install -m 644 "$u" "/etc/systemd/system/$(basename "$u")"; done
 systemctl daemon-reload
-systemctl enable --now carmacars-wal-push.timer carmacars-walg-base.timer > /dev/null 2>&1
+systemctl enable --now carmacars-wal-push.timer carmacars-walg-base.timer carmacars-storage-backup.timer > /dev/null 2>&1
 say "files installed in $D; timers: $(systemctl list-timers 'carmacars-*' --no-legend | wc -l)"
 [ -f /var/run/reboot-required ] && say "NOTE: a reboot is pending (kernel or libc update)"
 say "done"

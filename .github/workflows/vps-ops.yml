@@ -2,12 +2,15 @@ name: vps-ops
 
 # Upkeep of the company's own Supabase server (infra/vps/CUTOVER.md, Upkeep), one action per run:
 #   backup-report        read only: the backup bucket's usage per prefix (wal-g base backups, WAL, logical nightly
-#                        backups, anything else) against R2's free 10 GB, wal-g's backup list, the retention in effect
+#                        backups, the Storage files' copy, anything else) against R2's free 10 GB, wal-g's backup list, the retention in effect
 #                        (wal-g full backups kept; the logical backups' cleanup) and the retention that keeps the
 #                        projected total under 70% of the free tier
 #   apply-retention      the scripts of infra/vps/bin installed on the server (walg-base reads WALG_RETAIN_FULL from
 #                        walg.env), then the retention of backup-report's plan set on the server (walg.env,
 #                        backup/logical-keep-days) and the backups beyond it deleted now
+#   apply-storage-backup bin/ and the systemd units installed, the nightly copy of the uploaded files (volumes/storage)
+#                        to s3://<bucket>/storage/ switched on (carmacars-storage-backup.timer, 06:50 UTC: incremental,
+#                        encrypted, deleted or replaced files kept 30 days under storage/trash/<day>/) and run once now
 #   copy-backups-bucket  the hosted project's Storage bucket `backups` (skipped by the copy: its rows are on the server
 #                        without their files) copied file by file through the Storage API, then every row checked
 #   reboot               a clean reboot of the server (confirm: REBOOT), refused while a ci deploy or a backup runs:
@@ -21,7 +24,7 @@ on:
       action:
         description: Which action
         type: choice
-        options: [backup-report, apply-retention, copy-backups-bucket, reboot]
+        options: [backup-report, apply-retention, apply-storage-backup, copy-backups-bucket, reboot]
         default: backup-report
       confirm:
         description: reboot only - type REBOOT
@@ -50,9 +53,9 @@ defaults:
 
 jobs:
   backup:
-    if: inputs.action == 'backup-report' || inputs.action == 'apply-retention'
+    if: inputs.action == 'backup-report' || inputs.action == 'apply-retention' || inputs.action == 'apply-storage-backup'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 120
     env:
       BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
       BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
@@ -65,38 +68,55 @@ jobs:
       - uses: actions/checkout@v4
       - name: The bucket's settings (repository secrets, else the vault)
         run: infra/vps/scripts/backup-env.sh
-      - name: The server's scripts from this commit (bin/walg-base reads the retention from walg.env)
-        if: inputs.action == 'apply-retention'
+      - name: The server's scripts and systemd units from this commit (bin/walg-base reads the retention from walg.env)
+        if: inputs.action == 'apply-retention' || inputs.action == 'apply-storage-backup'
         run: |
           source scripts/deploy/vps.sh
-          tar -C infra/vps -czf "$RUNNER_TEMP/bin.tgz" bin
+          tar -C infra/vps -czf "$RUNNER_TEMP/bin.tgz" bin systemd
           vps_scp "$RUNNER_TEMP/bin.tgz" /tmp/carmacars-bin.tgz
           # shellcheck disable=SC2016 # expanded on the server
-          vps_ssh 'set -e; t=$(mktemp -d); tar -C "$t" -xzf /tmp/carmacars-bin.tgz; for f in "$t"/bin/*; do sudo install -m 755 "$f" "/opt/carmacars/bin/$(basename "$f")"; done; rm -rf "$t" /tmp/carmacars-bin.tgz; echo "installed: $(ls /opt/carmacars/bin | wc -l) files"' \
+          vps_ssh 'set -e; t=$(mktemp -d); tar -C "$t" -xzf /tmp/carmacars-bin.tgz; for f in "$t"/bin/*; do sudo install -m 755 "$f" "/opt/carmacars/bin/$(basename "$f")"; done; for u in "$t"/systemd/*; do sudo install -m 644 "$u" "/etc/systemd/system/$(basename "$u")"; done; sudo systemctl daemon-reload; rm -rf "$t" /tmp/carmacars-bin.tgz; echo "installed: $(ls /opt/carmacars/bin | wc -l) scripts, $(ls /etc/systemd/system/carmacars-* | wc -l) units"' < /dev/null \
             | sed 's/^/::notice title=bin::/'
+      - name: The Storage files' nightly copy switched on, and run once now
+        if: inputs.action == 'apply-storage-backup'
+        run: |
+          source scripts/deploy/vps.sh
+          vps_ssh "sudo systemctl enable --now carmacars-storage-backup.timer" < /dev/null
+          t0=$(date +%s)
+          # oneshot: start waits until the copy is done (the first one sends every file)
+          if ! vps_ssh "sudo systemctl start carmacars-storage-backup.service" < /dev/null; then
+            vps_ssh "sudo journalctl -u carmacars-storage-backup.service -n 40 --no-pager -o cat" < /dev/null || true
+            echo "::error title=storage-backup::the first copy failed (journal above)"; exit 1
+          fi
+          vps_ssh "sudo journalctl -u carmacars-storage-backup.service -n 5 --no-pager -o cat" < /dev/null || true
+          st=$(vps_ssh "sudo cat /opt/carmacars/state/storage-backup.json" < /dev/null)
+          next=$(vps_ssh "systemctl show carmacars-storage-backup.timer -p NextElapseUSecRealtime --value" < /dev/null)
+          echo "::notice title=storage-backup::$(jq -r '"\(.files) files, \((.bytes // 0) / 1e6 | floor) MB mirrored to storage/current in \(.seconds) s; trash: \(.trash_days) day(s)"' <<<"$st") (run took $(( $(date +%s) - t0 )) s); timer on, next $next"
       - name: Usage, retention and plan (report), or the plan applied (apply-retention)
         run: |
           source scripts/deploy/vps.sh
-          mode=report; [ "$ACTION" = apply-retention ] && mode=apply
+          mode=report; if [ "$ACTION" = apply-retention ]; then mode=apply; fi
           infra/vps/scripts/backup-retention.sh "$mode" > "$RUNNER_TEMP/r.json"
           R="$RUNNER_TEMP/r.json"
           gb() { jq -r --argjson b "${1:-0}" -n '$b / 1e9 * 100 | floor / 100 | tostring + " GB"'; }
           echo "== wal-g backup-list (server)"
-          vps_ssh "sudo /opt/carmacars/bin/walg backup-list --pretty 2>/dev/null || echo 'wal-g: not configured'"
+          vps_ssh "sudo /opt/carmacars/bin/walg backup-list --pretty 2>/dev/null || echo 'wal-g: not configured'" < /dev/null
           echo "== report"
           jq 'del(.prefixes.walg_base.list)' "$R"
           tot=$(jq '.bucket_total_bytes' "$R")
           base=$(jq -r '.prefixes.walg_base | "\(.backups) full backups (\(.incomplete) incomplete), \(.bytes / 1e9 * 100 | floor / 100) GB, newest \(.newest_bytes / 1e9 * 100 | floor / 100) GB"' "$R")
           wal=$(jq -r '.prefixes.walg_wal | "\(.files) files, \(.bytes / 1e9 * 100 | floor / 100) GB (about \(.per_day_bytes / 1e6 | floor) MB a day)"' "$R")
           log=$(jq -r '.prefixes.logical_nightly | "\(.backups) nightly folders, \(.bytes / 1e9 * 100 | floor / 100) GB (\(.oldest // "none") .. \(.newest // "none"))"' "$R")
+          sto=$(jq -r '.prefixes.storage_files | "storage/current \(.current_files) files \(.current_bytes / 1e6 | floor) MB, storage/trash \(.trash_files) files \(.trash_bytes / 1e6 | floor) MB (\(.trash_days) days); server \(.server_files // "?") files \((.server_bytes // 0) / 1e6 | floor) MB; nightly copy: \(if .timer == "enabled" then "on" else "OFF (\(.timer // "absent"); run apply-storage-backup)" end), last \(.last.at // "never")"' "$R")
           oth=$(jq -r '.prefixes.other | if length == 0 then "none" else map("\(.prefix) \(.files) files \(.bytes / 1e6 | floor) MB") | join(", ") end' "$R")
           ret=$(jq -r '.retention | "wal-g keeps \(.walg_retain_in_effect) full backups (walg.env WALG_RETAIN_FULL=\(.walg_env_retain_full // "unset"); walg-base \(if .walg_base_reads_walg_env then "reads it" else "on the server ignores walg.env and always keeps 7 until apply-retention installs the new one" end)); logical: \(.logical_keep_days_in_effect) days kept, old folders deleted by backup.sh after each nightly upload"' "$R")
           plan=$(jq -r '.plan | "wal-g \(.walg_retain_full) full backups, logical \(.logical_keep_days) days: projected \(.projected_bytes / 1e9 * 100 | floor / 100) GB\(if .over_target then " (STILL over the target)" else "" end)"' "$R")
-          srv=$(jq -r '.server | "database files \(.db_data_bytes / 1e9 * 100 | floor / 100) GB; Storage files \(.storage_files_bytes / 1e6 | floor) MB on the server disk only (not in wal-g or the logical dump); next base backup \(.next_base_backup)"' "$R")
+          srv=$(jq -r '.server | "database files \((.db_data_bytes // 0) / 1e9 * 100 | floor / 100) GB; Storage files \((.storage_files_bytes // 0) / 1e6 | floor) MB (not in wal-g or the logical dump: their own copy under storage/); next base backup \(.next_base_backup // "?")"' "$R")
           echo "::notice title=bucket::$(gb "$tot") of 10 GB free tier ($(jq -r '.pct_of_free' "$R")%), $(jq -r '.objects' "$R") objects; target $(gb "$(jq '.target_bytes' "$R")")"
           echo "::notice title=wal-g base backups::$base"
           echo "::notice title=WAL::$wal"
           echo "::notice title=logical backups::$log"
+          echo "::notice title=Storage files::$sto"
           echo "::notice title=other prefixes::$oth"
           echo "::notice title=retention in effect::$ret"
           echo "::notice title=plan::$plan$(jq -r 'if .plan.walg_retain_full < 7 or .plan.logical_keep_days < 30 then " - lower than the defaults (7 / 30) to stay under the target" else " - the defaults fit" end' "$R")"
@@ -107,10 +127,10 @@ jobs:
           {
             echo "## Backups ($ACTION)"; echo
             echo "| prefix | contents |"; echo "|---|---|"
-            echo "| walg/basebackups_005 | $base |"; echo "| walg/wal_005 | $wal |"; echo "| logical/nightly | $log |"; echo "| other | $oth |"
+            echo "| walg/basebackups_005 | $base |"; echo "| walg/wal_005 | $wal |"; echo "| logical/nightly | $log |"; echo "| storage | $sto |"; echo "| other | $oth |"
             echo "| **total** | $(gb "$tot") of 10 GB ($(jq -r '.pct_of_free' "$R")%) |"; echo
             echo "- Retention in effect: $ret"; echo "- Plan: $plan"; echo "- Server: $srv"
-            jq -e '.applied' "$R" > /dev/null && echo "- Applied: $(jq -c '.applied' "$R")"
+            if jq -e '.applied' "$R" > /dev/null; then echo "- Applied: $(jq -c '.applied' "$R")"; fi
             echo; echo "| wal-g full / logical days | projected |"; echo "|---|---|"
             jq -r '.ladder[] | "| \(.walg_retain_full) / \(.logical_keep_days) | \(.projected_bytes / 1e9 * 100 | floor / 100) GB |"' "$R"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -157,9 +177,12 @@ jobs:
       CONFIRM: ${{ inputs.confirm }}
       API: https://api.carmacars.ca
     steps:
-      - name: Confirmation
-        run: '[ "$CONFIRM" = REBOOT ] || { echo "::error title=reboot::type REBOOT in confirm to reboot the server"; exit 1; }'
+      # first: every run step's shell is .github/ci-run.sh (defaults.run.shell), which exists only after the checkout
       - uses: actions/checkout@v4
+      - name: Confirmation
+        run: |
+          if [ "$CONFIRM" != REBOOT ]; then echo "::error title=reboot::type REBOOT in confirm to reboot the server"; exit 1; fi
+          echo "confirmed"
       - name: Reboot, stack back, db recreated, health
         run: |
           source scripts/deploy/vps.sh
@@ -206,7 +229,7 @@ jobs:
           S=/opt/carmacars/supabase; t=$(mktemp -d)
           tar -C "$t" -xzf /tmp/carmacars-infra.tgz
           cd "$S"
-          docker compose --project-directory "$S" -f "$t/supabase/docker-compose.yml" --env-file defaults.env --env-file .env config -q
+          docker compose --project-directory "$S" -f "$t/supabase/docker-compose.yml" --env-file defaults.env --env-file .env config -q < /dev/null
           if cmp -s "$t/supabase/docker-compose.yml" docker-compose.yml; then echo "compose: unchanged"; else
             echo "compose: changed"; diff -u docker-compose.yml "$t/supabase/docker-compose.yml" | sed -n '3,200p' | sed 's/^/  /' || true
             cp -p docker-compose.yml "/opt/carmacars/state/docker-compose.yml.$(date -u +%Y%m%dT%H%M%SZ)"

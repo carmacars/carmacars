@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The server's own view of its health, as JSON (run by the vps-health workflow over SSH, and by hand).
 # Exit 1 when something needs attention: a container not running or unhealthy, disk over 85%, memory almost gone,
-# the WAL spool not draining (backup configured), the last base backup over 30 hours old, the certificate under
+# the WAL spool not draining (backup configured), the last base backup or Storage files backup over 30 hours old, the certificate under
 # 14 days, or Postgres not answering.
 set -uo pipefail
 D=/opt/carmacars
@@ -36,6 +36,12 @@ if [ -f "$D/backup/enabled-flag/enabled" ]; then
     problems+=("no base backup yet")
   fi
 fi
+# the Storage files' nightly copy (bin/storage-backup), once it has run
+storage_backup_age_h=null
+if [ -f "$D/state/storage-backup.last" ]; then
+  storage_backup_age_h=$(( ( $(date +%s) - $(date -d "$(cat "$D/state/storage-backup.last")" +%s) ) / 3600 ))
+  [ "$storage_backup_age_h" -le 30 ] || problems+=("last Storage files backup ${storage_backup_age_h} h ago")
+fi
 host=$(grep -m1 '^API_HOSTNAME=' "$D/supabase/defaults.env" | cut -d= -f2)
 cert_days=null
 end=$(echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$host" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
@@ -57,11 +63,11 @@ load=$(cut -d' ' -f1 /proc/loadavg)
 jq -n --argjson problems "$(printf '%s\n' "${problems[@]:-}" | jq -R 'select(length > 0)' | jq -sc .)" \
   --arg disk "$disk" --arg mem "$mem_avail" --arg pg "$pg" --arg conns "$conns" --arg backup "$backup" \
   --arg spool "$spool" --arg spool_min "$spool_oldest_min" --arg base "$base_age_h" --arg cert "$cert_days" \
-  --argjson live "$live" --arg load "$load" --arg containers "$containers" --arg cron_failed "$cron_failed" \
+  --argjson live "$live" --arg load "$load" --arg containers "$containers" --arg cron_failed "$cron_failed" --arg sbh "$storage_backup_age_h" \
   '{ok: ($problems | length == 0), problems: $problems, live: $live, disk_pct: ($disk | tonumber? // null),
     mem_available_mb: ($mem | tonumber? // null), load1: ($load | tonumber? // null), postgres: $pg,
     connections: ($conns | tonumber? // null), backup: $backup, wal_spool_files: ($spool | tonumber),
-    wal_spool_oldest_min: ($spool_min | tonumber), base_backup_age_h: ($base | tonumber? // null),
+    wal_spool_oldest_min: ($spool_min | tonumber), base_backup_age_h: ($base | tonumber? // null), storage_backup_age_h: ($sbh | tonumber? // null),
     cert_days_left: ($cert | tonumber? // null), cron_jobs_failing: ($cron_failed | tonumber? // null),
     containers: ($containers | split("\n") | map(select(length > 0) | split("\t") | {name: .[0], state: .[1], status: .[2]}))}'
 [ "${#problems[@]}" -eq 0 ]

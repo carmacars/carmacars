@@ -170,7 +170,12 @@ Smoke tests (a phone and a laptop):
 - **Backup bucket size:** vps-ops `backup-report` shows R2 usage per prefix against the free 10 GB and the retention
   that keeps it under 7 GB; `apply-retention` sets it on the server (`WALG_RETAIN_FULL` in `backup/walg.env`, read by
   `bin/walg-base`; `backup/logical-keep-days`, read by `scripts/backup/backup.sh`) and deletes what is beyond it.
-  Storage files (`volumes/storage`) are on the server disk only: neither wal-g nor the logical dump holds them.
+- **Storage files** (`volumes/storage`): neither wal-g nor the logical dump holds them. `bin/storage-backup`
+  (carmacars-storage-backup.timer, 06:50 UTC; switched on and run once by vps-ops `apply-storage-backup`) mirrors them
+  to `s3://<bucket>/storage/current/` with rclone, encrypted with the wal-g key (`BACKUP_WALG_KEY`); files deleted or
+  replaced on the server go to `storage/trash/<day>/` for 30 days. Restore: `sudo /opt/carmacars/bin/storage-backup
+  restore <empty folder>`, then move it to `volumes/storage` with the storage container stopped. vps-health warns when
+  the last copy is over 30 hours old.
   Docker itself is upgraded by hand (`sudo apt-get install --only-upgrade docker-ce ...`), since it restarts every container.
 - **Supabase versions:** change the image tags in `supabase/docker-compose.yml` (keep the Postgres image: a major
   upgrade is a separate project), run vps-provision. A newer GoTrue or Storage runs its own migrations at start.
