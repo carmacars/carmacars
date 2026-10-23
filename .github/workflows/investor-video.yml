@@ -78,10 +78,13 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-      - name: Chromium and ffmpeg
+      - name: Chromium
+        timeout-minutes: 15
+        run: if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
+      - name: ffmpeg (Ubuntu's package)
+        timeout-minutes: 10
         run: |
-          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
-          command -v ffmpeg > /dev/null || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+          command -v ffmpeg > /dev/null || { sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends ffmpeg; }
           ffmpeg -hide_banner -version | head -1
 
       - name: The deck's figures (app.deck_figures(), read only)
@@ -94,10 +97,12 @@ jobs:
       - name: Plan (the deck rendered with those figures; the script filled and checked against it)
         run: node scripts/investor-video/build.mjs --figures "$OUT/figures.json" --today "$TODAY" --out "$OUT"
       - name: Voice (Cloudflare Workers AI text to speech)
+        timeout-minutes: 15
         run: node scripts/investor-video/tts.mjs --dir "$OUT"
       - name: Timeline and captions
         run: node scripts/investor-video/timeline.mjs --dir "$OUT"
       - name: Frames (1920x1080, 30 fps)
+        timeout-minutes: 45
         run: node scripts/investor-video/render.mjs --dir "$OUT" --workers 3
       - name: Sound (voice, pad ducked under it, whooshes)
         run: node scripts/investor-video/audio.mjs --dir "$OUT"
@@ -132,7 +137,7 @@ jobs:
             echo "- Loudness: $(grep -E '^\s+I:|^\s+LRA:|Peak:' "$Q/ebur128.txt" | tr -s ' ' | paste -sd ' ')"
             echo "- Audio 20 to 26 s: $(grep -E 'RMS level dB|Peak level dB|mean_volume|max_volume' "$Q/astats-20s.txt" | sed 's/.*\] //' | head -6 | paste -sd '; ')"
             echo "- Scenes: $(jq -r '[.scenes[] | "\(.n) \(.dur|floor)s"] | join(", ")' "$OUT/timeline.json")"
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY" | grep '^- ' | sed 's/^- /::notice title=qa::/'
           size=$(stat -c %s "$V")
           [ "$size" -le 62914560 ] || { echo "::error title=investor video::the 1080p file is $size bytes (over 60 MB)"; exit 1; }
           awk -v d="$dur" 'BEGIN { exit !(d > 120 && d < 330) }' || { echo "::error title=investor video::duration $dur s is outside 2 to 5.5 minutes"; exit 1; }
@@ -180,12 +185,13 @@ jobs:
           for u in $(jq -r '.[].signedURL' <<<"$signed"); do
             h=$(curl -sS -o /dev/null -D - -r 0-1023 -H 'Origin: https://carmacars.ca' "$ST$u" | tr -d '\r')
             st=$(head -1 <<<"$h" | awk '{print $2}'); ty=$(grep -i '^content-type:' <<<"$h" | cut -d' ' -f2); acao=$(grep -i '^access-control-allow-origin:' <<<"$h" | cut -d' ' -f2)
-            echo "- signed fetch ${u%%\?*}: $st $ty, CORS ${acao:-none}" | sed "s#/object/sign/$BUCKET/##" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "- signed fetch ${u%%\?*}: $st $ty, CORS ${acao:-none}" | sed "s#/object/sign/$BUCKET/##" | tee -a "$GITHUB_STEP_SUMMARY" | sed 's/^- /::notice title=storage::/'
             [[ "$st" =~ ^20[06]$ ]] || die "A signed link did not answer ($st)"
           done
           # the contact sheet, for a look: a link valid 24 hours (stills of the deck only, no file of the video)
           qa=$(curl -sS -X POST "${H[@]}" -H 'content-type: application/json' "$ST/object/sign/$BUCKET/$FOLDER/qa/contact-sheet.jpg" --data '{"expiresIn":86400}' | jq -r .signedURL)
           echo "- Contact sheet (24 h): $SB_PUBLIC_URL/storage/v1$qa" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=contact sheet (24 h)::$SB_PUBLIC_URL/storage/v1$qa"
           notice "Uploaded to $BUCKET/$FOLDER (private)"
 
   checks:
