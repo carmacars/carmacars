@@ -14,7 +14,9 @@ investor page right above the deck".
   deck's figures with the deck's formulas, and the build stops if a value is not on the deck as rendered. The deck's
   rules hold: no internal costs, fleet size or car count; the 3.2x as CarmaCars' figure with its footnote; no numbered
   company name; no long dashes.
-- **Sound**: the narration by Cloudflare Workers AI text to speech (Deepgram Aura 2), a soft pad synthesized in ffmpeg
+- **Sound**: the narration by Cloudflare Workers AI text to speech (Deepgram Aura 2, voice thalia) when the
+  repository's Cloudflare token may use Workers AI; until then (October 23, 2026: the token answers 401 for Workers AI)
+  by Kokoro-82M, open weights under Apache 2.0, voice af_heart, on the runner's CPU in a job with no secrets. Then a soft pad synthesized in ffmpeg
   (no recorded music) ducked under the voice, and synthesized whooshes at the transitions; -16 LUFS. Captions (WebVTT)
   are the script's words, timed to the voice.
 - **Where**: `/investor/deck` and the Admin's preview (`/admin/investors/deck`), above the deck: a 16:9 player with the
