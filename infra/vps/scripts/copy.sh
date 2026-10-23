@@ -169,8 +169,15 @@ restore() {
   local missing
   missing=$(jq -r --arg s "$APP_SCHEMAS" '.missing_on_server | keys[] | select((split(".")[0]) as $x | ($s | split(" ") | index($x)))' "$W/filter.json")
   [ -z "$missing" ] || die "the server has no table for: $(tr '\n' ' ' <<<"$missing") (the schema restore did not create them)"
-  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -c 'SET session_replication_role = replica' -f "$W/data.fit.sql" > /dev/null 2> "$W/data.err" \
-    || { grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
+  # WAL archiving off for the load (the copy ends with a fresh base backup); back on right after
+  local archiving=no
+  if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
+    archiving=yes; vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/enabled /opt/carmacars/backup/enabled-flag/paused
+  fi
+  psql "$pg" -X -q -v ON_ERROR_STOP=1 --single-transaction -c 'SET session_replication_role = replica' -c 'SET synchronous_commit = off' -f "$W/data.fit.sql" > /dev/null 2> "$W/data.err" \
+    || { [ "$archiving" = yes ] && vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled
+         grep -v '^psql:.*NOTICE' "$W/data.err" | tail -n 10 >&2; die "loading the data failed (above); the data part was rolled back"; }
+  if [ "$archiving" = yes ]; then vps_ssh sudo mv /opt/carmacars/backup/enabled-flag/paused /opt/carmacars/backup/enabled-flag/enabled; fi
   migrations
   # 4. settings of the reserved roles and the database (pg_dump does not carry them): anon's statement timeout...
   hq "select coalesce(r.rolname, '') as role, unnest(s.setconfig) as setting from pg_db_role_setting s
@@ -393,7 +400,10 @@ verify() {
   # 4. buckets, functions
   hh=$(curl -sS "$HURL/storage/v1/bucket" -H "Authorization: Bearer $HKEY" -H "apikey: $HKEY" | jq -S -c 'map({id, public}) | sort_by(.id)')
   vh2=$(curl -sS "$VURL/storage/v1/bucket" -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" | jq -S -c 'map({id, public}) | sort_by(.id)')
-  [ "$hh" = "$vh2" ] || problems+=("buckets differ: hosted $hh, server $vh2")
+  if [ "$hh" != "$vh2" ]; then
+    if [ "$COPY_MODE" = final ]; then problems+=("buckets differ: hosted $hh, server $vh2")
+    else infos+=("buckets differ (a bucket made on the hosted project after the dump?): hosted $(jq -c '[.[].id]' <<<"$hh"), server $(jq -c '[.[].id]' <<<"$vh2")"); fi
+  fi
   local fn code
   for fn in send-outbox owner-debit calendar-sync; do
     code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$VURL/functions/v1/$fn" || true)
@@ -417,6 +427,8 @@ verify() {
 }
 
 basebackup() {
+  # archiving back on if a failed restore left it paused
+  vps_ssh "sudo sh -c 'cd /opt/carmacars/backup/enabled-flag && if [ -f paused ] && [ ! -f enabled ]; then mv paused enabled; fi'"
   if vps_ssh sudo test -f /opt/carmacars/backup/enabled-flag/enabled; then
     note "base backup: $(vps_ssh sudo /opt/carmacars/bin/walg-base | tail -n 1)"
   else
