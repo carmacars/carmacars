@@ -52,6 +52,8 @@ const UA = 'CarmaCarsStockPhotos/1.0 (https://carmacars.ca; hello@carmacars.ca) 
 let last = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stats = { requests: 0, retries: 0, bytes: 0 };
+/** What the generation search found per model (the dry run reports it). */
+const diag = [];
 async function polite(url, { json = true, tries = 5 } = {}) {
   for (let i = 0; ; i++) {
     const wait = last + GAP_MS - Date.now();
@@ -76,9 +78,10 @@ async function polite(url, { json = true, tries = 5 } = {}) {
     if (!json) { const b = Buffer.from(await r.arrayBuffer()); stats.bytes += b.length; return b; }
     const body = await r.json();
     // the API's lag guard: wait and try again
+    // Wikimedia's servers are behind: wait (Retry-After, longer each time, up to a minute) and try again, patiently
     if (body?.error?.code === 'maxlag') {
-      if (i >= tries) throw new Error('maxlag');
-      stats.retries++; await sleep(Math.max(5, Number(r.headers.get('retry-after')) || 5) * 1000); continue;
+      if (i >= tries + 8) throw new Error('maxlag');
+      stats.retries++; await sleep(Math.min(60, Math.max(5, Number(r.headers.get('retry-after')) || 5) * (i + 1)) * 1000); continue;
     }
     return body;
   }
@@ -170,7 +173,14 @@ async function generations(model) {
   const q = model.id;
   const b = await polite(`${WD}?${qs({ action: 'query', list: 'search', srsearch: `haswbstatement:P179=${q}|P279=${q}|P361=${q}|P31=${q}`, srnamespace: '0', srlimit: '50' })}`);
   // also the model's own parts (P527) and, one step out, what each generation follows and is followed by (P155, P156)
-  const found = [...new Set([...(b.query?.search ?? []).map((x) => x.title), ...ids(model.entity, 'P527')])].filter((t) => /^Q\d+$/.test(t) && t !== q);
+  let hits = (b.query?.search ?? []).map((x) => x.title);
+  // the combined search found nothing: each statement on its own
+  if (!hits.length) for (const pr of ['P179', 'P279']) {
+    const b2 = await polite(`${WD}?${qs({ action: 'query', list: 'search', srsearch: `haswbstatement:${pr}=${q}`, srnamespace: '0', srlimit: '50' })}`);
+    hits = hits.concat((b2.query?.search ?? []).map((x) => x.title));
+  }
+  diag.push(`${model.label} ${q}: search ${hits.length}, parts ${ids(model.entity, 'P527').length}`);
+  const found = [...new Set([...hits, ...ids(model.entity, 'P527')])].filter((t) => /^Q\d+$/.test(t) && t !== q);
   const ents = found.length ? await entities(found) : {};
   const more = [...new Set(found.flatMap((id) => [...ids(ents[id], 'P155'), ...ids(ents[id], 'P156')]))].filter((id) => id !== q && !found.includes(id));
   if (more.length) { Object.assign(ents, await entities(more.slice(0, 50))); found.push(...more.slice(0, 50)); }
@@ -389,6 +399,7 @@ if (flag('generic') && Date.now() - T0 < BUDGET_MS) {
 }
 
 run.finished = new Date().toISOString();
+run.diag = diag;
 run.http = stats;
 if (WRITE) await one(`select app.stock_photo_run_finish(${lit({ id: runId, counts: { models: run.models, found: run.found, photos: run.photos, stored: run.stored, failed: run.failed, pending: run.pending,
   requests: stats.requests, megabytes: Math.round(stats.bytes / 1048576) }, errors: run.errors.slice(0, 50) })})`);

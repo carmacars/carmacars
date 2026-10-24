@@ -73,7 +73,7 @@ export function modelNames(model: string): string[] {
 
 // the view in a file's name or description, in the languages Commons photographers write in
 const FRONT = /\b(front|frontal|3\/4|three[- ]quarter|vorder|frontansicht|vorne|avant|fronte|frente|delantera|voorkant|przod|fl|fr)\b|front[- ]?(left|right)|\bfront\d|_front/i;
-const BAD = /\b(rear|back|heck|hinten|heckansicht|arri[eè]re|retro|trasera|interior|innenraum|innen|cockpit|dashboard|engine|engine bay|motorraum|badge|emblem|logo|wheel|wheels|felge|trunk|boot|kofferraum|detail|tail ?light|taillight|headlight|lamp|steering|gauge|odometer|speedometer|key|crash|crashed|wreck|wrecked|damaged|accident|unfall|burn|burnt|rust|rusty|junk|scrap|abandoned|police|polizei|polic[ei]a|sheriff|taxi|ambulance|fire ?truck|race|racing|rally|nascar|dtm|drift|toy|scale model|model car|modellauto|diecast|die-cast|lego|matchbox|hot wheels|drawing|sketch|blueprint|render|rendering|cgi|advert|brochure|poster|concept|prototype|camouflage|camo|mule|stretch|limousine|limo|tuning|tuned|modified|lowrider|hearse|wrap|wrapped|livery|graffiti|parade|underside|chassis|x-ray|cutaway|cut-away|airbag|recall)\b/i;
+const BAD = /\b(rear|back|heck|hinten|heckansicht|arri[eè]re|retro|trasera|interior|innenraum|innen|cockpit|dashboard|engine|engine bay|motorraum|badge|emblem|logo|wheel|wheels|felge|trunk|boot|kofferraum|detail|tail ?light|taillight|headlight|lamp|steering|gauge|odometer|speedometer|key|crash|crashed|wreck|wrecked|damaged|accident|unfall|burn|burnt|rust|rusty|junk|scrap|abandoned|police|polizei|polic[ei]a|sheriff|taxi|ambulance|fire ?truck|race|racing|rally|nascar|dtm|drift|toy|scale model|model car|modellauto|diecast|die-cast|lego|matchbox|hot wheels|drawing|sketch|blueprint|render|rendering|cgi|advert|brochure|poster|concept|prototype|camouflage|camo|mule|stretch|limousine|limo|tuning|tuned|modified|lowrider|hearse|wrap|wrapped|livery|graffiti|parade|underside|chassis|x-ray|cutaway|cut-away|airbag|recall|sensor|mirror|door handle|grille|exhaust|pedal|shifter|gear lever|infotainment|screen|display|instrument|cluster)\b/i;
 const SIDE = /\b(side|profile|seitenansicht|lateral|seite)\b/i;
 
 /** The year of a file: its name ("2019 Toyota Camry...") or the date it was taken. */
@@ -141,7 +141,7 @@ export function pickBest<T extends Candidate>(cands: T[], x: ScoreContext): { c:
 
 /** A generic photo for the place and service pages (a road, a car being detailed, a body shop): the same licence,
  *  size and shape rules, no people's faces as the subject, nothing that misleads (a crash, a police car, a toy). */
-const BAD_GENERIC = /\b(sheet|elevation|haer|floor plan|blueprint|abandoned|derelict|evacuated|police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
+const BAD_GENERIC = /\b(war|nara|sheet|elevation|haer|floor plan|blueprint|abandoned|derelict|evacuated|police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
 export function scoreGeneric(c: Candidate, slot: { avoid?: string[]; must?: string[] } = {}): number | null {
   const lic = licenceOk(c.meta);
   if (!lic.ok) return null;
@@ -151,8 +151,10 @@ export function scoreGeneric(c: Candidate, slot: { avoid?: string[]; must?: stri
   if (lic.attribution && !plainAuthor(c.meta.Artist)) return null;
   const words = `${c.title} ${plainAuthor(c.meta.ImageDescription).slice(0, 300)}`;
   if (BAD_GENERIC.test(words) || (slot.avoid ?? []).some((w) => words.toLowerCase().includes(w.toLowerCase()))) return null;
-  // the photo is about the page's subject: its name or description says so (a search can match a file on a stray word)
-  if (slot.must?.length && !slot.must.some((w) => words.toLowerCase().includes(w.toLowerCase()))) return null;
+  // the photo is about the page's subject: its name says so (a search can match a file on a stray word), and it is recent
+  if (slot.must?.length && !slot.must.some((w) => c.title.toLowerCase().includes(w.toLowerCase()))) return null;
+  const y = fileYear(c);
+  if (y !== null && y < 2000) return null;
   let s = 0;
   if (c.quality) s += 30;
   if (/featured pictures|valued images/i.test(c.meta.Categories ?? '')) s += 15;

@@ -105,6 +105,7 @@ jobs:
           echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos generic::$(jq -c '.generic' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos errors::$(jq -r '.errors | join(" | ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          echo "::notice title=seo-photos generations::$(jq -r '.diag | join("; ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           grep '^sample ' "$RUNNER_TEMP/dry.txt" | head -n 3 | sed 's/^/::notice title=seo-photos conversion::/' || true
           # the picks, compact, gzip and base64 in parts of 3,900 characters
           jq -c '[.picks[] | [.m, .y, .g, .f, .w, .h, .l, .a, .s]]' "$RUNNER_TEMP/manifest.json" | gzip -9 | base64 -w0 > "$RUNNER_TEMP/picks.b64"

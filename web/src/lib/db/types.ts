@@ -10764,7 +10764,6 @@ export type Database = {
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
           vpage_import_every_days: number;
-          vpage_stock_photos: boolean;
           vpage_import_db_cap_mb: number;
           vpage_place_index: boolean;
           vpage_colour_index: boolean;
@@ -10792,6 +10791,7 @@ export type Database = {
           booking_licence_selfie_required: boolean;
           booking_return_auto_charges: boolean;
           statement_fuel_cents_per_eighth: number | null;
+          vpage_stock_photos: boolean;
         };
         Insert: {
           id?: string;
@@ -11197,7 +11197,6 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
-          vpage_stock_photos?: boolean;
           vpage_import_db_cap_mb?: number;
           vpage_place_index?: boolean;
           vpage_colour_index?: boolean;
@@ -11225,6 +11224,7 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          vpage_stock_photos?: boolean;
         };
         Update: {
           id?: string;
@@ -11630,7 +11630,6 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
-          vpage_stock_photos?: boolean;
           vpage_import_db_cap_mb?: number;
           vpage_place_index?: boolean;
           vpage_colour_index?: boolean;
@@ -11658,6 +11657,7 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          vpage_stock_photos?: boolean;
         };
         Relationships: [];
       };
@@ -17151,6 +17151,171 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_stock_photo_checks: {
+        Row: {
+          make: string;
+          model: string;
+          wikidata: string | null;
+          photos: number;
+          note: string | null;
+          run_id: string | null;
+          checked_at: string;
+        };
+        Insert: {
+          make: string;
+          model: string;
+          wikidata?: string | null;
+          photos?: number;
+          note?: string | null;
+          run_id?: string | null;
+          checked_at?: string;
+        };
+        Update: {
+          make?: string;
+          model?: string;
+          wikidata?: string | null;
+          photos?: number;
+          note?: string | null;
+          run_id?: string | null;
+          checked_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_stock_photo_runs: {
+        Row: {
+          id: string;
+          mode: string;
+          run_url: string | null;
+          started_at: string;
+          finished_at: string | null;
+          counts: Json | null;
+          errors: Json | null;
+        };
+        Insert: {
+          id?: string;
+          mode?: string;
+          run_url?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json | null;
+          errors?: Json | null;
+        };
+        Update: {
+          id?: string;
+          mode?: string;
+          run_url?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+          counts?: Json | null;
+          errors?: Json | null;
+        };
+        Relationships: [];
+      };
+      vehicle_stock_photos: {
+        Row: {
+          id: string;
+          kind: string;
+          make: string | null;
+          model: string | null;
+          slot: string | null;
+          year_from: number | null;
+          year_to: number | null;
+          generation: string | null;
+          wikidata: string | null;
+          category: string | null;
+          file_title: string;
+          source_url: string;
+          author: string;
+          author_url: string | null;
+          licence: string;
+          licence_url: string | null;
+          alt: string | null;
+          path: string | null;
+          sizes: number[];
+          width: number | null;
+          height: number | null;
+          sha1: string | null;
+          score: number | null;
+          status: string;
+          want_file: string | null;
+          rejected_files: string[];
+          picked_by: string;
+          note: string | null;
+          checked_at: string;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          kind?: string;
+          make?: string | null;
+          model?: string | null;
+          slot?: string | null;
+          year_from?: number | null;
+          year_to?: number | null;
+          generation?: string | null;
+          wikidata?: string | null;
+          category?: string | null;
+          file_title: string;
+          source_url: string;
+          author: string;
+          author_url?: string | null;
+          licence: string;
+          licence_url?: string | null;
+          alt?: string | null;
+          path?: string | null;
+          sizes?: number[];
+          width?: number | null;
+          height?: number | null;
+          sha1?: string | null;
+          score?: number | null;
+          status?: string;
+          want_file?: string | null;
+          rejected_files?: string[];
+          picked_by?: string;
+          note?: string | null;
+          checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          make?: string | null;
+          model?: string | null;
+          slot?: string | null;
+          year_from?: number | null;
+          year_to?: number | null;
+          generation?: string | null;
+          wikidata?: string | null;
+          category?: string | null;
+          file_title?: string;
+          source_url?: string;
+          author?: string;
+          author_url?: string | null;
+          licence?: string;
+          licence_url?: string | null;
+          alt?: string | null;
+          path?: string | null;
+          sizes?: number[];
+          width?: number | null;
+          height?: number | null;
+          sha1?: string | null;
+          score?: number | null;
+          status?: string;
+          want_file?: string | null;
+          rejected_files?: string[];
+          picked_by?: string;
+          note?: string | null;
+          checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       vehicle_term_changes: {
         Row: {
           id: string;
@@ -19460,6 +19625,7 @@ export type Database = {
       sitemap_hubs: { Args: never; Returns: Json };
       sitemap_priority: { Args: never; Returns: Json };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
+      stock_photos_generic: { Args: { p_slot: string }; Returns: Json };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
       submit_chauffeur_request: { Args: { p: Json; p_ip?: string }; Returns: Json };
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
@@ -19482,12 +19648,11 @@ export type Database = {
       vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
-      vehicle_stock_photo: { Args: { p_make: string; p_model?: string; p_year?: number }; Returns: Json };
-      stock_photos_generic: { Args: { p_slot: string }; Returns: Json };
       vehicle_sitemap_files: { Args: never; Returns: Json };
       vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
       vehicle_sitemap_shape: { Args: never; Returns: Json };
       vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
+      vehicle_stock_photo: { Args: { p_make: string; p_model?: string; p_year?: number }; Returns: Json };
       vehicle_takes_debit: { Args: { p_vehicle: string }; Returns: boolean };
       vehicle_tier_files_count: { Args: never; Returns: number };
       vehicle_tier_page: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string; p_place: string; p_colour: string }; Returns: Json };
