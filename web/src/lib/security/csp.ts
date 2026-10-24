@@ -23,6 +23,13 @@ export interface CspOptions {
   connectOrigins?: string[];
   /** Add upgrade-insecure-requests (on for https; off for the local http server). */
   upgrade?: boolean;
+  /** Who may frame the page: 'none' unless the page is embeddable (the partner widget, 0136). */
+  frameAncestors?: string;
+}
+
+/** The pages other sites may put in an iframe: the partner inventory widget only (migration 0136). */
+export function embeddable(path: string): boolean {
+  return /^\/partner-widget\/[0-9a-f-]{36}$/.test(path);
 }
 
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
@@ -37,7 +44,7 @@ export function cspHeader(nonce: string, o: CspOptions = {}): string {
     `font-src 'self'`,
     `connect-src ${connect}${turnstile}`,
     `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS}`,
-    `frame-ancestors 'none'`,
+    `frame-ancestors ${o.frameAncestors ?? "'none'"}`,
     `form-action 'self'`,
     `base-uri 'none'`,
     `object-src 'none'`,

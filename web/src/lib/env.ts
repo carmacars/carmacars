@@ -48,6 +48,10 @@ const schema = z.object({
   QUO_API_BASE: z.string().url().optional(),
   /** The signing secret of our Quo webhook (whsec_...), made by the deploy (scripts/deploy/quo.mjs) and kept in the vault. */
   QUO_WEBHOOK_SECRET: z.string().optional(),
+  /** The partner CRM link (migration 0136): gohighlevel calls GoHighLevel's API with each partner's own token (kept in the
+   *  vault, pasted in Admin); fake answers from an in-memory stand-in (local work and tests). Unset: gohighlevel in
+   *  production, fake elsewhere. */
+  CRM_PROVIDER: z.enum(['gohighlevel', 'fake']).optional(),
   /** Sign-in by phone (migration 0091): the Standard Webhooks secret ("v1,whsec_...") of Supabase Auth's Send SMS hook,
    *  made by the deploy (scripts/deploy/supabase.sh smshook) and kept in the vault. Locally the stand-in's fixed secret. */
   AUTH_SMS_HOOK_SECRET: z.string().optional(),

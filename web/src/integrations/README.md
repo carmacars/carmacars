@@ -13,4 +13,5 @@ the environment. Nothing outside these folders imports a provider's SDK or calls
 | turnstile | Cloudflare Turnstile siteverify | accepts Cloudflare's documented test token only | `TURNSTILE_PROVIDER` |
 | llm | Workers AI text model (listing copy) | writes a plain draft from the facts | `LLM_PROVIDER` |
 | vision | Workers AI vision model through the Worker's AI binding: scanned toll notices, plate boxes (model and fallback in Program settings; the Llama 3.2 licence is accepted on first use) | a fixed parking notice and a plate box | `LLM_PROVIDER` (and the binding) |
+| crm | GoHighLevel API v2 with each partner's Private Integration token from the vault (migration 0136) | an in-memory GoHighLevel (`src/features/partner-crm/fake-ghl.ts`) | `CRM_PROVIDER` (unset: real in production) |
 | tracker | none yet: the vendor's documentation is needed. `none` answers every call (locate, immobilize request, mileage) with "not connected" | none | `tracker()` |
