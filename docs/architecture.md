@@ -167,6 +167,7 @@ Files are in Cloudflare R2. All buckets are private except `vehicle-public`. Fil
 | `claims` | `incidents/{incident_id}/…` | Estimates, invoices, police reports, tracker screenshots, dispute evidence | 7 years |
 | `vehicle-originals` | `vehicles/{vehicle_id}/original/…` | Listing photos as shot | While listed |
 | `vehicle-public` | `vehicles/{vehicle_id}/{angle}.jpg` | Processed listing photos (public) | While listed |
+| `vehicle-public` | `seo-photos/{make}/{model}/{from}-{to}-{sha}-{width}.webp`, `seo-photos/generic/{slot}/...` | Licensed stock photos of each make, model and generation from Wikimedia Commons, 640 and 1280 px WebP without metadata, with their credit in `vehicle_stock_photos` (0137); never a fleet car | Until replaced or hidden |
 | `admin` | `investors/{investor_id}/…`, `staff/{user_id}/…`, `shareholder/…`, `fleet-reports/{yyyy-mm}.pdf` | Admin-only folder | 7 years or permanent |
 
 Tracker position history stays with the tracker service for 12 months; only the reading a decision relied on is copied into `tracker_commands` or a screenshot.

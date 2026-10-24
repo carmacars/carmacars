@@ -30,11 +30,11 @@ function PhotoRow({ r }: { r: Row }) {
         <span className="xs muted">{STATUS[r.status]}{r.picked_by === 'admin' ? ', chosen by an Admin' : ''}{r.want_file ? `: ${r.want_file}` : ''}{r.note ? `. ${r.note}` : ''}. Checked {t(r.checked_at)}.</span>
         <span className="row stock-row__acts">
           {r.status === 'active' || r.status === 'pending' || r.status === 'failed'
-            ? <Act action="stock_photo" payload={{ id: r.id, op: 'hide' }} label="Hide" inline done="Hidden. The page shows the studio drawing." testId={`stock-hide-${r.id}`} />
+            ? <Act action="stock_photo" payload={{ id: r.id, op: 'hide' }} label="Hide" done="Hidden. The page shows the studio drawing." testId={`stock-hide-${r.id}`} />
             : null}
-          {r.status === 'hidden' && r.path ? <Act action="stock_photo" payload={{ id: r.id, op: 'show' }} label="Show" inline done="Shown again." testId={`stock-show-${r.id}`} /> : null}
+          {r.status === 'hidden' && r.path ? <Act action="stock_photo" payload={{ id: r.id, op: 'show' }} label="Show" done="Shown again." testId={`stock-show-${r.id}`} /> : null}
           {r.kind === 'model' ? <>
-            <Act action="stock_photo" payload={{ id: r.id, op: 'repick' }} label="Pick again" inline done="The next run picks another photo." testId={`stock-repick-${r.id}`} />
+            <Act action="stock_photo" payload={{ id: r.id, op: 'repick' }} label="Pick again" done="The next run picks another photo." testId={`stock-repick-${r.id}`} />
             <Act action="stock_photo" payload={{ id: r.id, op: 'replace' }} label="Replace" title={`Replace the photo of the ${what}`} done="The next run checks its licence and uses it."
               fields={[{ name: 'file', label: 'Wikimedia Commons file (its address or File:....jpg)', required: true, wide: true, placeholder: 'https://commons.wikimedia.org/wiki/File:...' }]} testId={`stock-replace-${r.id}`} />
           </> : null}

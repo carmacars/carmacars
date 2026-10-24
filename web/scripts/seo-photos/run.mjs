@@ -248,6 +248,8 @@ async function removeFiles(paths) {
     body: JSON.stringify({ prefixes: paths }), signal: AbortSignal.timeout(60_000) });
   if (!r.ok) console.log(`warning: could not remove ${paths.length} old files (${r.status})`);
 }
+/** A row as saved: without the download's address. */
+const stripThumb = (x) => Object.fromEntries(Object.entries(x).filter(([k]) => k !== 'thumb' && k !== 'thumb_width'));
 const seg = (s) => String(s).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
 /** Downloads the 1280 px thumbnail, converts it and stores both widths. Adds path, sizes, width, height to the row. */
 async function store(where, row) {
@@ -347,7 +349,7 @@ for (const t of targets) {
         try { await store(`${seg(t.make)}/${seg(t.model)}`, row); run.stored++; } catch (e2) { run.errors.push(`${t.make}/${t.model} ${row.file_title}: ${e2.message}`); row.failed = String(e2.message).slice(0, 200); run.failed++; }
       }
       const old = await one(`select app.stock_photo_save(${lit({ make: t.make, model: t.model, wikidata: r.wikidata, note: r.note, run_id: runId,
-        rows: r.rows.filter((x) => !x.failed).map(({ thumb, thumb_width, ...x }) => x) })})`);
+        rows: r.rows.filter((x) => !x.failed).map(stripThumb) })})`);
       await removeFiles((old ?? []).flatMap((o) => (o.sizes ?? []).map((w) => `${o.path}-${w}.webp`)));
     } else if (SAMPLES > 0 && run.picks.length < SAMPLES && r.rows[0]) {
       const buf = await polite(r.rows[0].thumb, { json: false });
@@ -373,7 +375,7 @@ if (flag('generic') && Date.now() - T0 < BUDGET_MS) {
     const rows = ranked.map((x) => ({ ...rowOf(x, { g: { label: null, id: null }, from: null, to: null }, null), alt: s.alt }));
     if (WRITE) {
       for (const row of rows) { try { await store(`generic/${seg(s.slot)}`, row); } catch (e) { row.failed = e.message; run.errors.push(`generic ${s.slot}: ${e.message}`); } }
-      const old = await one(`select app.stock_photo_save_generic(${lit({ slot: s.slot, run_id: runId, rows: rows.filter((r) => !r.failed).map(({ thumb, thumb_width, ...x }) => x) })})`);
+      const old = await one(`select app.stock_photo_save_generic(${lit({ slot: s.slot, run_id: runId, rows: rows.filter((r) => !r.failed).map(stripThumb) })})`);
       await removeFiles((old ?? []).flatMap((o) => (o.sizes ?? []).map((w) => `${o.path}-${w}.webp`)));
     }
     run.generic.push({ slot: s.slot, files: rows.map((r) => `${r.file_title.replace(/^File:/, '')} (${r.licence}, ${r.author.slice(0, 30)})`) });

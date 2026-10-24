@@ -1013,6 +1013,15 @@ def build():
         f'Catalog import: the last import and its counts. {B("Import now")} asks for a new one; it runs at the next daily check, at 07:17 UTC.',
     ])
     g.tip('A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car\'s trim to one Canadian name to put it on the trim page.', label='Good to know')
+    g.task('Stock photos on the vehicle pages', f'{P("Settings", "Vehicle pages")}, card Stock photos. The vehicle pages show a real photo of the make, model and generation at the top (a 2015 Camry page shows a Camry of the 2012 to 2017 generation), with the credit always under it: "Photo: author, licence, Wikimedia Commons". The place pages and the detailing and body shop pages show a photo of a road, a car being detailed or a body shop. Our own cars always show their own photos.')
+    g.steps([
+        "Nothing to set up: the photos come by themselves every day, our fleet's models and the popular models first. Only free licences are used (public domain, CC0, CC BY, CC BY-SA), from Wikimedia Commons. A year no generation covers keeps the studio drawing.",
+        'The card shows how many models and model years have a photo, the popular models still without one, and the last run.',
+        f'Open a make to see its photos. A wrong car, a poor photo or a photo you do not want: press {B("Hide")}. The page goes back to the studio drawing at once, and that photo is never picked again.',
+        f'{B("Pick again")} asks for the next best photo; {B("Replace")} takes a photo you found on Wikimedia Commons: paste its address (https://commons.wikimedia.org/wiki/File:...). Either is done at the next daily run, after its licence is checked. A photo whose licence is not allowed is refused, with the reason.',
+        f'{B("Show stock photos")} in the settings above turns every stock photo off at once (on by default).',
+    ])
+    g.tip("Never upload or use a photo from Google, a dealer or a manufacturer's site here: only Wikimedia Commons files, with the credit the page shows.", label='Good to know')
     g.task('A car for sale', f'{P("Cars", "Vehicles")}, then the car. On the For sale card, tick {B("For sale")}, enter the Asking price and press {B("Save")}.')
     g.steps([
         'The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.',
