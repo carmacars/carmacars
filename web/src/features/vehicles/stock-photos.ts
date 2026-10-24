@@ -60,7 +60,16 @@ export type Candidate = {
   /** the generation's own image on Wikidata (P18): an editor already chose it as the picture of the car */
   wikidata?: boolean; quality?: boolean;
 };
-export type ScoreContext = { make: string; model: string; yearFrom?: number | null; yearTo?: number | null; rejected?: string[] };
+export type ScoreContext = { make: string; model: string; yearFrom?: number | null; yearTo?: number | null; rejected?: string[];
+  /** a photo of the model in general (no generation): never one taken (by its name's year) before this year */
+  minYear?: number | null };
+
+/** The ways a file may name the model: "Bolt EV" is also "Bolt", "RAV4 Prime" also "RAV4". */
+export function modelNames(model: string): string[] {
+  const n = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '');
+  const base = model.replace(/\b(ev|hybrid|plug-in|plug in|phev|prime|electric|e-tron)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+  return [...new Set([n(model), n(base)].filter((x) => x.length >= 2))];
+}
 
 // the view in a file's name or description, in the languages Commons photographers write in
 const FRONT = /\b(front|frontal|3\/4|three[- ]quarter|vorder|frontansicht|vorne|avant|fronte|frente|delantera|voorkant|przod|fl|fr)\b|front[- ]?(left|right)|\bfront\d|_front/i;
@@ -89,8 +98,13 @@ export function scoreCandidate(c: Candidate, x: ScoreContext): number | null {
   const words = `${c.title.replace(/^File:/, '').replace(/\.[a-z]+$/i, '').replace(/[_]+/g, ' ')} ${plainAuthor(c.meta.ImageDescription).slice(0, 300)} ${plainAuthor(c.meta.ObjectName)}`;
   if (BAD.test(words)) return null;
   // the model's name should be there (a file in a model's category may show another car beside it)
+  // the file must name the model (a model's category or item can hold its twin under another name, the car before it
+  // or a car parked beside it): "GMC Yukon" is never a Chevrolet Tahoe, "Nissan X-Trail" never a Rogue
   const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '');
-  const hasModel = norm(words).includes(norm(x.model));
+  if (!modelNames(x.model).some((m) => norm(words).includes(m))) return null;
+  const y0 = fileYear(c);
+  if (y0 !== null && x.yearFrom && y0 < x.yearFrom - 2) return null;
+  if (y0 !== null && x.minYear && y0 < x.minYear) return null;
   let s = 0;
   if (c.wikidata) s += 40;
   if (c.quality) s += 30;
@@ -99,7 +113,6 @@ export function scoreCandidate(c: Candidate, x: ScoreContext): number | null {
   else if (SIDE.test(words)) s -= 5;
   if (/ 0?1\.(jpe?g|png|webp)$/i.test(c.title)) s += 4;
   if (/ 0?2\.(jpe?g|png|webp)$/i.test(c.title)) s -= 6;
-  if (hasModel) s += 10; else if (!c.wikidata) s -= 15;
   if (c.width >= 1600) s += 10;
   if (c.width >= 2400) s += 4;
   if (ratio >= 1.3 && ratio <= 1.8) s += 8;
@@ -128,11 +141,11 @@ export function pickBest<T extends Candidate>(cands: T[], x: ScoreContext): { c:
 
 /** A generic photo for the place and service pages (a road, a car being detailed, a body shop): the same licence,
  *  size and shape rules, no people's faces as the subject, nothing that misleads (a crash, a police car, a toy). */
-const BAD_GENERIC = /\b(abandoned|derelict|evacuated|police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
+const BAD_GENERIC = /\b(sheet|elevation|haer|floor plan|blueprint|abandoned|derelict|evacuated|police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
 export function scoreGeneric(c: Candidate, slot: { avoid?: string[]; must?: string[] } = {}): number | null {
   const lic = licenceOk(c.meta);
   if (!lic.ok) return null;
-  if (!/^image\/(jpeg|png|webp)$/.test(c.mime) || c.width < 1280 || c.height < 640) return null;
+  if (!/^image\/(jpeg|webp)$/.test(c.mime) || c.width < 1280 || c.height < 640) return null;
   const ratio = c.width / c.height;
   if (ratio < 1.3 || ratio > 2.2) return null;
   if (lic.attribution && !plainAuthor(c.meta.Artist)) return null;
@@ -171,7 +184,9 @@ export function generationRanges(gens: Generation[], first: number, last: number
   const out: GenRange[] = [];
   one.forEach((x, i) => {
     const next = one[i + 1];
-    let to = next ? next.from - 1 : x.g.end !== null ? Math.max(x.g.end + 1, x.from) : last;
+    // the newest generation with no end on record: at most 8 model years (a generation Wikidata does not list yet
+    // must not get the old one's photo)
+    let to = next ? next.from - 1 : x.g.end !== null ? Math.max(x.g.end + 1, x.from) : Math.min(last, x.from + 7);
     if (next && x.g.end !== null) to = Math.min(to, Math.max(x.g.end + 1, x.from));
     const from = Math.max(x.from, first), to2 = Math.min(to, last);
     if (from <= to2) out.push({ ...x.g, from, to: to2 });

@@ -61,13 +61,20 @@ test('choosing: licence, size, shape and format are checked; the Wikidata image 
   assert.notEqual(scoreCandidate(cand('File:Toyota Camry front.jpg', { meta: { LicenseShortName: 'Public domain' } }), ctx), null, 'public domain needs no author');
   const plain = cand('File:Toyota Camry 2020 front.jpg');
   const wd = cand('File:Toyota Camry 2020 seen in town.jpg', { wikidata: true });
+  assert.notEqual(scoreCandidate(wd, ctx), null);
   const qi = cand('File:Toyota Camry 2020 parked.jpg', { quality: true });
   assert.ok(scoreCandidate(wd, ctx)! > scoreCandidate(plain, ctx)!);
   assert.ok(scoreCandidate(qi, ctx)! > scoreCandidate(cand('File:Toyota Camry 2020 parked.jpg'), ctx)!);
   // a photo dated years before the generation is the previous car
-  assert.ok(scoreCandidate(cand('File:2012 Toyota Camry front.jpg'), ctx)! < scoreCandidate(cand('File:2021 Toyota Camry front.jpg'), ctx)!);
-  // a file that never names the model may show another car
-  assert.ok(scoreCandidate(cand('File:Parking lot front view.jpg'), ctx)! < scoreCandidate(cand('File:Toyota Camry front view.jpg'), ctx)!);
+  assert.ok(scoreCandidate(cand('File:2016 Toyota Camry front.jpg'), ctx)! < scoreCandidate(cand('File:2021 Toyota Camry front.jpg'), ctx)!);
+  // a file that never names the model may show another car; a twin under another name is not the model
+  assert.equal(scoreCandidate(cand('File:Parking lot front view.jpg'), ctx), null);
+  assert.equal(scoreCandidate(cand('File:2021 GMC Yukon front.jpg'), { make: 'Chevrolet', model: 'Tahoe' }), null);
+  assert.notEqual(scoreCandidate(cand('File:2027 Chevrolet Bolt front.jpg'), { make: 'Chevrolet', model: 'Bolt EV' }), null);
+  // years: a photo dated well before the generation, or a photo of the model in general from long ago, never
+  assert.equal(scoreCandidate(cand('File:2009 Toyota Camry front.jpg'), ctx), null);
+  assert.equal(scoreCandidate(cand('File:1972 Ford Maverick front.jpg'), { make: 'Ford', model: 'Maverick', minYear: 2013 }), null);
+  assert.notEqual(scoreCandidate(cand('File:2023 Ford Maverick front.jpg'), { make: 'Ford', model: 'Maverick', minYear: 2013 }), null);
 });
 
 test('choosing: the best one, never a rejected file', () => {
@@ -94,6 +101,8 @@ test('generations: model year ranges, gaps, duplicates and the catalog\'s years'
   ];
   const r = generationRanges(camry, 2000, 2025);
   assert.deepEqual(r.map((x) => [x.id, x.from, x.to]), [['Q1', 2007, 2011], ['Q2', 2012, 2017], ['Q3', 2018, 2025]]);
+  // the newest generation with no end: 8 model years at most (a newer one Wikidata does not list gets no photo)
+  assert.deepEqual(generationRanges([{ id: 'E120', label: 'Corolla E120', start: 2000, end: null }], 2000, 2027).map((x) => [x.from, x.to]), [[2000, 2008]]);
   assert.equal(generationFor(r, 2017)!.id, 'Q2');
   assert.equal(generationFor(r, 2018)!.id, 'Q3');
   assert.equal(generationFor(r, 2003), null, 'no generation: no photo for that year');

@@ -121,7 +121,8 @@ async function categoryFiles(cat, quality) {
 
 // ---------------------------------------------------------------- Wikidata: the model and its generations
 // Wikidata's Action API only (the search, haswbstatement and wbgetentities): the same rate rules as Commons.
-const NOT_A_CAR = new Set(['Q4167410', 'Q4830453', 'Q786820', 'Q43229', 'Q783794', 'Q167270', 'Q431289', 'Q7397', 'Q11424', 'Q7889']);
+// disambiguation page, business, car maker, organization, company, software, film, video game (a car model is often also a trademark)
+const NOT_A_CAR = new Set(['Q4167410', 'Q4830453', 'Q786820', 'Q43229', 'Q783794', 'Q7397', 'Q11424', 'Q7889']);
 const claim = (e, p) => (e?.claims?.[p] ?? []).filter((c) => c.rank !== 'deprecated').map((c) => c.mainsnak?.datavalue?.value).filter((v) => v !== undefined && v !== null);
 const ids = (e, p) => claim(e, p).map((v) => v?.id).filter(Boolean);
 /** A Wikidata time ("+2017-08-00T00:00:00Z", precision 9 year, 10 month) as year and month. */
@@ -167,9 +168,12 @@ const genOf = (id, e) => {
  *  a race version. */
 async function generations(model) {
   const q = model.id;
-  const b = await polite(`${WD}?${qs({ action: 'query', list: 'search', srsearch: `haswbstatement:P179=${q}|P279=${q}|P361=${q}`, srnamespace: '0', srlimit: '50' })}`);
-  const found = (b.query?.search ?? []).map((x) => x.title).filter((t) => /^Q\d+$/.test(t) && t !== q);
+  const b = await polite(`${WD}?${qs({ action: 'query', list: 'search', srsearch: `haswbstatement:P179=${q}|P279=${q}|P361=${q}|P31=${q}`, srnamespace: '0', srlimit: '50' })}`);
+  // also the model's own parts (P527) and, one step out, what each generation follows and is followed by (P155, P156)
+  const found = [...new Set([...(b.query?.search ?? []).map((x) => x.title), ...ids(model.entity, 'P527')])].filter((t) => /^Q\d+$/.test(t) && t !== q);
   const ents = found.length ? await entities(found) : {};
+  const more = [...new Set(found.flatMap((id) => [...ids(ents[id], 'P155'), ...ids(ents[id], 'P156')]))].filter((id) => id !== q && !found.includes(id));
+  if (more.length) { Object.assign(ents, await entities(more.slice(0, 50))); found.push(...more.slice(0, 50)); }
   const self = genOf(q, model.entity);
   const name = self.label || model.label;
   const prefix = norm(name);
@@ -197,7 +201,8 @@ async function chooseFor(t, rejectedBy = new Map()) {
   const info = new Map(candidates(p18.length ? await imageInfo(p18) : []).map((c) => [c.title, c]));
   for (const s of slots) {
     const key = s.from ?? 0;
-    const ctx = { make: t.make_name, model: t.model_name, yearFrom: s.from, yearTo: s.to, rejected: rejectedBy.get(key) ?? [] };
+    // a photo of the model in general is recent: from the 12 model years before the catalog's newest
+    const ctx = { make: t.make_name, model: t.model_name, yearFrom: s.from, yearTo: s.to, rejected: rejectedBy.get(key) ?? [], minYear: s.from ? null : lastY - 12 };
     const pool = [];
     if (s.g.image && info.get(s.g.image)) pool.push({ ...info.get(s.g.image), wikidata: true });
     let best = pickBest(pool, ctx);

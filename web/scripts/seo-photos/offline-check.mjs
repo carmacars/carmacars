@@ -61,7 +61,7 @@ async function handle(req, res) {
     };
     if (act === 'wbgetentities') return json(res, { entities: Object.fromEntries(u.searchParams.get('ids').split('|').filter((id) => E[id]).map((id) => [id, { id, ...E[id] }])) });
     if (act === 'query') {
-      assert.equal(u.searchParams.get('srsearch'), 'haswbstatement:P179=Q1|P279=Q1|P361=Q1');
+      assert.equal(u.searchParams.get('srsearch'), 'haswbstatement:P179=Q1|P279=Q1|P361=Q1|P31=Q1');
       return json(res, { query: { search: ['Q50', 'Q70', 'Q99', 'Q98'].map((title) => ({ title })) } });
     }
   }
@@ -110,7 +110,7 @@ const run = JSON.parse(readFileSync(manifest, 'utf8'));
 rmSync(manifest);
 const picks = run.picks.filter((p) => p.m === 'toyota/camry');
 if (!PG) {
-  assert.deepEqual(picks.map((p) => [p.y, p.f]), [['2012-2017', 'Toyota Camry XV50 front.jpg'], ['2018-2026', '2019 Toyota Camry SE front 01.jpg']].map(([y, f]) => [y.replace('2026', String(new Date().getUTCFullYear() + 1)), f]));
+  assert.deepEqual(picks.map((p) => [p.y, p.f]), [['2012-2017', 'Toyota Camry XV50 front.jpg'], ['2018-2025', '2019 Toyota Camry SE front 01.jpg']], 'the newest generation: 8 model years at most');
 } else {
   assert.deepEqual(picks.map((p) => [p.y, p.f]), [['2012-2017', 'Toyota Camry XV50 front.jpg'], ['2018-2025', '2019 Toyota Camry SE front 01.jpg']], 'one photo per generation, the best licensed front view');
   assert.equal(stored.size, 4, 'two widths of two photos stored');
