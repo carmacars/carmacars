@@ -228,3 +228,13 @@ select test.eq('charged: a post-rental payment, and its receipt to the renter', 
 select test.eq('the Protection Plan: one name for staff', (select label from fee_types where code = 'coverage_sold'), 'Protection Plan');
 select test.throws('sales: "the Protection Plan price", not "coverage"', $$select app.va_guard_booking_edit('sales', '{"coverage_cents": 100}')$$, 'Protection Plan price');
 select test.eq('the new ways of payment have their words', app.payment_method_label('platform_payout') || ' / ' || app.payment_method_label('insurer'), 'platform payout / the insurer');
+
+
+-- ================================================================ 7. release 5: Sales open a booking whose check-out is due (0130)
+insert into test.of select 'm3', app.door(test.id('of_admin'), 'aal2', 'ops_do', 'manual_rental_create', jsonb_build_object('vehicle_id', test.ofcar('car6'),
+  'pickup_at', date_trunc('hour', now()) + interval '3 hours', 'return_at', date_trunc('hour', now()) + interval '2 days', 'source', 'phone', 'coverage_option', 1,
+  'renter_id', test.id('renter:of_rita'), 'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash')));
+select test.eq('Sales open a confirmed booking whose check-out is due (to check the car out)',
+  app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m3')).booking_number)) ->> 'status', 'confirmed');
+select test.throws('Sales do not open a confirmed booking whose check-out is days away',
+  $$select app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m1')).booking_number))$$, 'requests and offers only');

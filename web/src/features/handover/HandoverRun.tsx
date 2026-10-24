@@ -24,9 +24,14 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
         <p>{j.booking.renter?.name}{j.booking.renter?.mobile ? <> · <a className="link" href={`tel:${j.booking.renter.mobile.replace(/[^\d+]/g, '')}`}>{j.booking.renter.mobile}</a></> : null}</p>
         {j.job.place && <p className="small">{j.job.place}</p>}
       </header>
+      {/* completing re-renders this page (the action revalidates): the finished job shows the same completion screen
+          as the checklist's own, so the message is not lost (release 5) */}
       {j.job.status === 'done'
-        ? <div className="fd-card stack"><p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>
-            <Link prefetch={false} className="btn btn--primary" href={`${base}/report`}>See the photo report</Link></div>
+        ? <div className="fd-screen stack" role="status" data-testid="field-done">
+            <h2 className="d3">{pickup ? 'Checked out. The rental has started; the renter gets the photo report by email.'
+              : 'Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.'}</h2>
+            <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>
+            <Link prefetch={false} className="btn btn--primary fd-wide" href={`${base}/report`} data-testid="checklist-back">See the photo report</Link></div>
         : <Checklist j={j} back={`${base}/report`} backLabel="See the photo report" />}
     </div>
   );

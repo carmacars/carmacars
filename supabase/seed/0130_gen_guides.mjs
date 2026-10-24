@@ -22,9 +22,13 @@ const END = '-- GUIDES 0130 END';
 const BASE = process.env.GUIDES_BASE || execFileSync('git', ['merge-base', 'HEAD', 'origin/offers'], { cwd: ROOT, encoding: 'utf8' }).trim();
 const q = (v) => (v === null || v === undefined ? 'null' : "'" + String(v).replace(/'/g, "''") + "'");
 
+const NEXT = execFileSync('git', ['log', '--first-parent', '--format=%H', '-1', '--diff-filter=A', 'HEAD', '--', 'supabase/migrations/0131_card_coverage.sql'], { cwd: ROOT, encoding: 'utf8' }).trim();
+const UPTO = NEXT ? execFileSync('git', ['rev-parse', `${NEXT}^1`], { cwd: ROOT, encoding: 'utf8' }).trim() : null;
 const lines = [];
 for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
-  const now = JSON.parse(readFileSync(join(ROOT, 'docs', 'guides', 'content', `${portal}.json`), 'utf8'));
+  // the content as this migration leaves it: the working tree, or the commit before the next migration came in
+  const now = JSON.parse(UPTO ? execFileSync('git', ['show', `${UPTO}:docs/guides/content/${portal}.json`], { cwd: ROOT, encoding: 'utf8' })
+    : readFileSync(join(ROOT, 'docs', 'guides', 'content', `${portal}.json`), 'utf8'));
   const base = JSON.parse(execFileSync('git', ['show', `${BASE}:docs/guides/content/${portal}.json`], { cwd: ROOT, encoding: 'utf8' }));
   let after = null;
   for (const s of now.sections) {

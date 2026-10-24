@@ -23,7 +23,7 @@ function loadStripe(key: string): Promise<StripeLink> {
   });
 }
 
-export function PayLinkForm({ token, kind, amountCents, legalName }: { token: string; kind: 'charge' | 'hold' | 'setup'; amountCents: number; legalName: string }) {
+export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null }: { token: string; kind: 'charge' | 'hold' | 'setup'; amountCents: number; legalName: string; backTo?: string | null }) {
   const [p, setP] = useState<PayLinkStart | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -72,7 +72,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName }: { token: st
   };
 
   if (fatal) return <p className="alert alert--error" role="alert"><span>{fatal}</span></p>;
-  if (done) return <p className="alert alert--ok" role="status" data-testid="paylink-done"><span className="alert__title">{kind === 'hold' ? 'Hold placed' : kind === 'setup' ? 'Card saved' : 'Paid'}</span><span>Thank you. {kind === 'charge' ? 'Your receipt is on its way by email.' : 'Nothing was charged now.'} You can hand the device back.</span></p>;
+  if (done) return <p className="alert alert--ok" role="status" data-testid="paylink-done"><span className="alert__title">{kind === 'hold' ? 'Hold placed' : kind === 'setup' ? 'Card saved' : 'Paid'}</span><span>Thank you. {kind === 'charge' ? 'Your receipt is on its way by email.' : 'Nothing was charged now.'} You can hand the device back.</span>{backTo && <a className="btn btn--ghost btn--sm" href={backTo} data-testid="paylink-back">Back to the job</a>}</p>;
   return (
     <form className="pt-pay stack" noValidate onSubmit={submit} aria-label="Card" aria-busy={!p || busy}>
       <div className="field"><label className="label" htmlFor="pl-name">Name on the card</label>

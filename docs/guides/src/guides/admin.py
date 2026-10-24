@@ -243,7 +243,7 @@ def build():
         'After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.',
         'The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.',
         f'Review the images as usual with {B("Review documents")}: the card Renter documents is on Review and offer too.',
-        f'The switch is in {P("Settings", "Program settings")}, Booking requests and offers: Booking licence required (on), with the selfie (on).',
+        f'The switch is in {P("Settings", "Program")}, Booking requests and offers: Booking licence required (on), with the selfie (on).',
     ])
 
     g.task('Renter documents: licence and proof of coverage', 'A renter\'s licence photos, selfie and proof of coverage (OPCF 27 or a credit card\'s rental coverage) are checked before the handover. You check them yourself; no task is needed.')

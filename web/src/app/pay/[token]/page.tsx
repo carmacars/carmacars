@@ -12,8 +12,11 @@ const WHAT: Record<string, string> = { rental: 'the rental', fees: 'the fees', l
 
 // A card payment staff started for a booking (0129): the renter, on their phone or on the staff device handed to them,
 // types the card in Stripe's frame. No account needed: the link is the key, valid for a few days (two hours on a device).
-export default async function PayLink({ params }: { params: Promise<{ token: string }> }) {
+export default async function PayLink({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const token = (await params).token;
+  // the staff page to go back to on a device handed to the renter (only a staff address)
+  const back = (await searchParams).back;
+  const backTo = back && /^\/(field|admin|va)\/[\w/-]*$/.test(back) ? back : null;
   const f = await payLinkFacts(token);
   if (!f || f.status !== 'open') return (
     <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }} data-testid="paylink-closed">
@@ -34,7 +37,7 @@ export default async function PayLink({ params }: { params: Promise<{ token: str
           ? `A hold of ${money(f.amount_cents, { cents: true })} for ${WHAT.deposit}. Nothing is charged now: the hold is released after the rental, unless a charge in your agreement applies. A hold lasts about ${f.hold_days} days.`
           : f.kind === 'setup' ? 'Your card is saved for the deposit and the later charges you agreed to in your rental agreement. Nothing is charged now.'
           : `${money(f.amount_cents, { cents: true })} for ${f.reason ? f.reason.toLowerCase() : WHAT[f.covers] ?? 'your booking'}.`}</p>
-        <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} />
+        <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} backTo={backTo} />
       </section>
       <p className="small muted">The card is entered in Stripe&apos;s secure form. CarmaCars never sees or keeps the card number.</p>
     </div></div>

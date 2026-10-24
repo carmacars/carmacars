@@ -813,6 +813,18 @@ begin
   return app.door_pre0130(p_user, p_aal, p_call, p_name, p);
 end $$;
 
+-- Sales check cars out and in from the booking page (release 5): an assistant who may hand over opens a booking whose
+-- check-out or check-in is due (the pickup or the return by tomorrow), or one they have a check-out or check-in job on.
+-- Any other confirmed booking someone else made stays closed to Sales (0031, suite 31).
+select pg_temp.patch_fn('app.va_booking_0031(uuid, text, jsonb)'::regprocedure,
+  $o$  if p_fn = 'sales' and not (v ->> 'status' in ('requested', 'offered')) then$o$,
+  $n$  if p_fn = 'sales' and not (v ->> 'status' in ('requested', 'offered')
+                               or (app.user_may_handover(p_user) and (
+                                     (v ->> 'status' = 'confirmed' and app.local_date((v ->> 'pickup_at')::timestamptz) <= app.today() + 1)
+                                  or (v ->> 'status' = 'on_rent' and app.local_date((v ->> 'return_at')::timestamptz) <= app.today() + 1)
+                                  or exists (select 1 from field_jobs j where j.booking_id = (v ->> 'id')::uuid and j.assigned_to = p_user and j.status <> 'cancelled'
+                                                and j.kind in ('handover', 'delivery', 'return_check_in', 'pickup_from_renter'))))) then$n$);
+
 -- ================================================================ privileges
 do $$
 declare

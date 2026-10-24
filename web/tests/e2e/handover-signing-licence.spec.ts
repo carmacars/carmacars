@@ -157,6 +157,8 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await next(page, 'Odometer');
   await page.getByTestId('odometer').fill(String(odo!.o + 10));
   await next(page, 'Fuel or charge');
+  // the slider starts at 8/8 but unset: move it to set it (filling the same value fires no change)
+  await page.getByTestId('fuel').fill('7');
   await page.getByTestId('fuel').fill('8');
   await next(page, 'Keys');
   await page.getByTestId('keys-more').click();
@@ -181,7 +183,7 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   // three hours late, 100 km included: the Admin checks it in from Today with 450 km driven and a quarter tank less
   await sql.begin(async (tx) => {
     await tx`set local session_replication_role = replica`;
-    await tx`update bookings set pickup_at = now() - interval '2 days 3 hours', handed_over_at = now() - interval '2 days 3 hours', return_at = now() - interval '3 hours', km_allowance_total = 100 where id = ${req.booking_id}`;
+    await tx`update bookings set pickup_at = now() - interval '2 days 3 hours', handed_over_at = now() - interval '2 days 3 hours', return_at = now() - interval '3 hours', km_allowance_per_day = 50, km_allowance_total = 100 where id = ${req.booking_id}`;
   });
   const ap = await ctx(browser, phone);
   await signIn(ap, admin.email, '/admin');
@@ -222,7 +224,7 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await check(ap, 'admin photo report');
   await ap.screenshot({ path: `${SHOTS}/${w}-admin-report.png`, fullPage: true });
   await ap.getByTestId('waive-late_return_fee').click();
-  await ap.getByLabel('Why it is waived').fill('Traffic on the 401, called ahead');
+  await ap.locator('dialog[open]').getByLabel('Why it is waived').fill('Traffic on the 401, called ahead');
   await ap.getByTestId('waive-late_return_fee-submit').click();
   await expect(ap.getByTestId('waived-late_return_fee')).toContainText('Traffic on the 401', { timeout: 15_000 });
   const [lines] = await sql`select count(*) filter (where assessment_key = 'mileage_overage' and voided_at is null and amount_cents = 350 * overage_cents_per_km)::int km,
@@ -358,6 +360,8 @@ test('a profile address fills in from a suggestion', async ({ browser }, info) =
   test.setTimeout(90_000);
   const sql = db();
   const renter = await mkUser(sql, 'addr', 'renter');
+  // the contact details form is for a renter on file (the record a first request makes)
+  await sql`insert into renters (user_id, legal_name, email, mobile, date_of_birth) values (${renter.id}, 'Riley Renter', ${renter.email}, '+14165550142', '1990-05-05') on conflict (user_id) do nothing`;
   const page = await ctx(browser, info.project.name.startsWith('phone'));
   await signIn(page, renter.email, '/account');
   await page.goto('/account/profile', { waitUntil: 'networkidle' });

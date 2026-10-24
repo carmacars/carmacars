@@ -108,6 +108,12 @@ def build():
         f'Press {B("Hand the device to")} and their name. They read the agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign with their name or their finger.',
         f'They hand the phone back: press {B("Back to the staff view")}. The signature record says it was signed in person, collected by you, on your phone.',
     ])
+    g.task('The deposit on your phone', 'Deposit not taken yet? Once the job is started, the job shows the card Deposit. You never take cash or type a card number.')
+    g.steps([
+        f'Press {B("Place the deposit hold on this phone")} and hand the phone to the renter. They type their credit card in Stripe\'s secure form and press the button with the amount.',
+        f'They see "Hold placed": take the phone back and press {B("Back to the job")}. The ready check shows the deposit taken.',
+        f'A rental longer than the hold limit shows {B("Save the card (long rental)")} instead: Finance charges the deposit to that card.',
+    ])
     g.task('Add-ons to put in the car', 'A booking may come with add-ons: a baby seat, a child or booster seat, flowers, an umbrella, a phone charger or a prepaid full tank.')
     g.steps([
         'Open the job. Under Put in the car you see each add-on, how many, and what to do (for example "Put the bouquet on the front passenger seat").',

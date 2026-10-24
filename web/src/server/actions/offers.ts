@@ -50,11 +50,13 @@ interface PayreqRow { id: string; kind: 'charge' | 'hold' | 'setup'; covers: str
 
 /** Collect a card: a payment of a part, the deposit hold, or saving the card. The renter enters the card on the pay page:
  *  on the staff device (channel device: the page opens here), or by a link texted or emailed to them. */
-export async function startCardRequest(p: { booking: string; kind: 'charge' | 'hold' | 'setup'; covers?: string; amount_cents?: number | null; reason?: string; channel: 'device' | 'text' | 'email' }): Promise<R<CardRequestResult>> {
+export async function startCardRequest(p: { booking: string; kind: 'charge' | 'hold' | 'setup'; covers?: string; amount_cents?: number | null; reason?: string; channel: 'device' | 'text' | 'email';
+  /** device: where the staff member goes back to once the renter is done (a staff page) */ back?: string }): Promise<R<CardRequestResult>> {
   try {
     const { user, aal, va } = await me();
     const token = newPayToken();
-    const q = await door<PayreqRow>(user.id, 'ops_do', 'payreq_create', withFn({ ...p, token_sha256: await payTokenHash(token) }, va), aal);
+    const { back, ...req } = p;
+    const q = await door<PayreqRow>(user.id, 'ops_do', 'payreq_create', withFn({ ...req, token_sha256: await payTokenHash(token) }, va), aal);
     const pay = await payments();
     const customerId = q.renter.customer_id ?? (await pay.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
     const metadata = { booking_id: q.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: q.covers };
@@ -68,7 +70,8 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
     if (p.channel === 'text' || p.channel === 'email') sent = await door<{ ok: boolean; to?: string; reason?: string }>(user.id, 'ops_do', 'payreq_send', withFn({ id: q.id, link: url }, va), aal);
     refreshAll([`/admin/bookings/${q.booking_number}`, `/va/bookings/${q.booking_number}`]);
     // the device: the page opens on this screen, by its path (the same origin as the staff portal)
-    return { ok: true, data: { id: q.id, url: p.channel === 'device' ? `/pay/${token}` : url, kind: q.kind, amount_cents: q.amount_cents, sent } };
+    const backQ = back && /^\/(field|admin|va)\/[\w/-]*$/.test(back) ? `?back=${encodeURIComponent(back)}` : '';
+    return { ok: true, data: { id: q.id, url: p.channel === 'device' ? `/pay/${token}${backQ}` : url, kind: q.kind, amount_cents: q.amount_cents, sent } };
   } catch (e) { return fail(e); }
 }
 
