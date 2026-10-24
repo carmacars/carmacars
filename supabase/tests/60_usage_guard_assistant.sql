@@ -71,21 +71,21 @@ select test.eq('Admin > To do: the used-up card', (app.usage_cards(test.id('ug_a
 select test.throws('an assistant does not get the Admin''s usage cards', $$select app.usage_cards(test.id('ug_fin'))$$, 'Only an Admin');
 select test.throws('nor the usage page', $$select app.door(test.id('ug_fin'), '', 'admin_read', 'usage', '{}')$$, null);
 select test.throws('nor may answer the question', $$select app.usage_decide(test.id('ug_cs'), '{"service": "workers_ai", "decision": "allow", "cap_usd": 5}')$$, 'Only an Admin');
-select test.throws('a cap is needed to allow paid usage', $$select app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "allow"}')$$, 'most it may cost');
-select test.throws('and no more than US$1,000', $$select app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "allow", "cap_usd": 5000}')$$, 'US$1,000');
+select test.throws('a cap is needed to allow paid usage', $$select app.usage_decide(test.id('ug_admin'), '{"service": "images", "decision": "allow"}')$$, 'most it may cost');
+select test.throws('and no more than US$1,000', $$select app.usage_decide(test.id('ug_admin'), '{"service": "images", "decision": "allow", "cap_usd": 5000}')$$, 'US$1,000');
 
 -- ================================================================ 4. allow paid usage up to a cap, keep paused
-select test.eq('allowed until the end of today, up to US$1', app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "allow", "until": "day", "cap_usd": 1}') ->> 'state', 'paid');
-select test.eq('the gates open by what US$1 buys (90,909 neurons at US$0.011 per 1,000)', (app.settings()).chat_ai_total_daily_neurons, 10000 + 90909);
-select test.eq('live chat answers again', (app.chat_budget() ->> 'ok')::boolean, true);
-select test.eq('the decision is the Admin''s, and audited', exists (select 1 from usage_decisions where decided_by = test.id('ug_admin'))
-  and exists (select 1 from audit_log where entity_table = 'usage_decisions' and action = 'INSERT'), true);
+-- Workers AI is a hard stop at the free allowance since 0133 (85_ai_budget_assistant_tools.sql): paid usage is shown here on images
+select test.throws('Workers AI: paid usage is not offered (0133)', $$select app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "allow", "until": "day", "cap_usd": 1}')$$, 'free daily allowance');
+select test.eq('the gates stay at the allowance', (app.settings()).chat_ai_total_daily_neurons, 10000);
+select test.eq('live chat stays with a person', (app.chat_budget() ->> 'ok')::boolean, false);
 insert into provider_calls (provider, purpose, ok, units, unit) values ('workers-ai', 'chat', true, 100000, 'neurons');
-select test.eq('past the cap: paused again', app.usage_refresh_service('workers_ai') ->> 'state', 'paused');
-select test.eq('the spending is counted at the paid rate', round((app.usage_state('workers_ai') #>> '{decision,spent_usd}')::numeric, 2), 1.10::numeric);
-select test.eq('kept paused: the gates are back at the allowance', app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "keep_paused"}') ->> 'state', 'paused');
-select test.eq('and the ceiling with them', (app.settings()).chat_ai_total_daily_neurons, 10000);
-select test.eq('a month''s decision on a monthly service', app.usage_decide(test.id('ug_admin'), '{"service": "images", "decision": "allow", "until": "day", "cap_usd": 3}') #>> '{decision,until}', 'month');
+select test.eq('still paused', app.usage_refresh_service('workers_ai') ->> 'state', 'paused');
+select test.eq('kept paused: an answer like before', app.usage_decide(test.id('ug_admin'), '{"service": "workers_ai", "decision": "keep_paused"}') ->> 'state', 'paused');
+select test.eq('and the ceiling with it', (app.settings()).chat_ai_total_daily_neurons, 10000);
+select test.eq('images: allowed until the end of this month, up to US$3', (app.usage_decide(test.id('ug_admin'), '{"service": "images", "decision": "allow", "until": "month", "cap_usd": 3}') #>> '{decision,cap_usd}')::numeric, 3::numeric);
+select test.eq('the decision is the Admin''s, and audited', exists (select 1 from usage_decisions where decided_by = test.id('ug_admin') and service = 'images')
+  and exists (select 1 from audit_log where entity_table = 'usage_decisions' and action = 'INSERT'), true);
 select test.throws('emails cannot be paid on the free plan: upgrade', $$select app.usage_decide(test.id('ug_admin'), '{"service": "resend_day", "decision": "allow", "cap_usd": 5}')$$, 'cannot pay for more on the free plan');
 select test.throws('the website is never paused, so there is nothing to allow', $$select app.usage_decide(test.id('ug_admin'), '{"service": "workers_requests", "decision": "allow", "cap_usd": 5}')$$, 'never paused');
 

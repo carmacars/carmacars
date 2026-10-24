@@ -28,3 +28,10 @@
 .as-draft { white-space: pre-wrap; background: var(--grey-50); padding: var(--s-2); }
 .as-paused { margin: 0; }
 .as-empty p { margin: 0; }
+/* the card's details (0133): customer, car, dates, price lines, payments, each as label and value */
+.as-details { margin: 0 0 var(--s-2); }
+.as-details__t { margin: 0 0 var(--s-1); font-weight: 700; }
+.as-kv { margin: 0; display: grid; gap: 0.15rem; }
+.as-kv > div { display: flex; justify-content: space-between; gap: var(--s-3); border-bottom: 1px solid var(--line); padding: 0.1rem 0; }
+.as-kv dt { color: var(--text-muted, var(--grey-600)); }
+.as-kv dd { margin: 0; text-align: right; overflow-wrap: anywhere; }

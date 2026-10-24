@@ -5,6 +5,9 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  seo_ai_writer_enabled: 'Search copy: the website writes it with Workers AI (off: the daily Claude batch writes it, docs/seo-batches.md)',
+  ai_assistant_reserve_bps: 'Workers AI: share of the day kept for the staff assistant', ai_background_bps: 'Workers AI: share of the day for background writing',
+  ai_release_hour: 'Workers AI: from this hour (Toronto) what is left goes to the others (empty: never)', ai_assistant_cushion: 'Workers AI: neurons always kept for the assistant after the release hour',
   e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',

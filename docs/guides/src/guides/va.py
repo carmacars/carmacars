@@ -538,7 +538,7 @@ def build():
     g.chapter('Assistant',
               'The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the '
               'screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.',
-              blurb='Ask about today, bookings, cars and money; confirm the changes it prepares.')
+              blurb='Ask about today, bookings, cars and money; send offers and add rentals; confirm the changes it prepares.')
     g.task('Open it', f'Press {B("Assistant")} at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.')
     g.steps([
         'Type a question or what you want done, in your own words, and press Enter. Examples: "What needs doing today?", "Who has the Tesla?", '
@@ -554,7 +554,18 @@ def build():
         'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
     ])
     g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
-    g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
+    g.task('Offers, rentals and what is owed (customer service and sales)')
+    g.steps([
+        'Send an offer: "Send an offer for the Corolla to jane@example.com, Nov 2 10:00 to Nov 4 10:00". A customer on file is found by name, email or phone; a new customer needs the full name, email, mobile and date of birth. '
+        'Say "I found this client" when you did, so the booking counts for you.',
+        f'The card shows the customer, the car, the dates, each price line, the HST, what is due at booking, the deposit, how it is paid and how the offer is sent, priced as {B("Send an offer")} prices it. '
+        f'Press {B("Confirm")} to make and send it, or {B("Cancel")}.',
+        'Add a rental the same way: "Add a rental of the Corolla for jane@example.com, Nov 2 10:00 to Nov 4 10:00, paid by e-Transfer ref CA123, deposit in cash".',
+        'What is owed: "What does booking R-000123 owe?" shows the rental, fees and later charges still open, and the deposit. Finance sees it too.',
+        'Only what your function may do from the screens is offered; the booking\'s history says it was made with the staff assistant, with your name.',
+    ])
+    g.tip('The assistant keeps 70% of the day\'s free AI allowance for itself, so it works all day. When the whole allowance is used, it says how much was used and that it is back at midnight, Toronto time. '
+          'Everything still works from the screens and pop-ups.')
     # ---------------------------------------------------------------- maintenance
     g.chapter('Car maintenance',
               'Fleet keeps every car serviced: oil, tires, brakes, inspections and the registration. Finance bills what Fleet '

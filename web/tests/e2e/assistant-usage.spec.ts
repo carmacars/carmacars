@@ -4,8 +4,8 @@ import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { aiAllowanceLock, db, noOverflow } from './helpers';
 
 // Migration 0080 end to end, at 375 and 1440, with the deterministic stub model (LLM_PROVIDER=fake). The usage guard:
-// Workers AI used up shows the card on Admin > To do with "Allow paid usage" and its cost; allowing up to $1 today opens
-// it again; Settings > Usage lists every service with its meter and 30 days. The staff assistant: opened from the header
+// Workers AI used up shows the card on Admin > To do, stopped for today and never paid (0133); images used up show
+// "Allow paid usage" and its cost, and allowing up to $1 this month opens them again; Settings > Usage lists every service with its meter and 30 days. The staff assistant: opened from the header
 // button and with Ctrl+/; a read answers with cards; a change is a card that runs only on Confirm, through the door, as
 // the person (audited "via assistant"); Cancel changes nothing; an assistant (VA) cannot reach an Admin's action. Paused:
 // the assistant says it rests until tomorrow, and a visitor's live chat goes to a person with "Our assistant is resting".
@@ -81,31 +81,40 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
   await signIn(page, a.email, '/admin');
   await page.goto('/admin', { waitUntil: 'networkidle' });
   const card = page.getByTestId('usage-card-workers_ai');
-  await expect(card).toContainText('Included Workers AI used up for today: Allow paid usage');
-  await expect(card).toContainText('Paused until you answer');
+  // Workers AI is a hard stop at the free allowance (0133): no paid usage to allow
+  await expect(card).toContainText('Included Workers AI used up for today');
+  await expect(card).toContainText('Stopped for today, never paid.');
+  await expect(card.getByTestId('usage-allow-workers_ai')).toHaveCount(0);
   await check(page, 'admin to do with the usage card');
-  await card.getByTestId('usage-allow-workers_ai').click();
-  const dlg = page.getByTestId('usage-allow-workers_ai-dialog');
+  // paid usage where it may be paid: images, with the cost pop-up
+  await sql`insert into provider_calls (provider, purpose, ok, units, unit) values ('e2e', 'e2e_images', true, 5200, 'transformations')`;
+  await sql`delete from usage_decisions where service = 'images'`;
+  await sql`select app.job_usage_refresh()`;
+  await page.goto('/admin', { waitUntil: 'networkidle' });
+  const img = page.getByTestId('usage-card-images');
+  await expect(img).toContainText('Allow paid usage');
+  await img.getByTestId('usage-allow-images').click();
+  const dlg = page.getByTestId('usage-allow-images-dialog');
   await expect(dlg).toBeVisible();
-  await expect(dlg.getByTestId('usage-allow-workers_ai-cost')).toContainText('About US$0.011 per 1,000 neurons');
+  await expect(dlg.getByTestId('usage-allow-images-cost')).toContainText('per 1,000 transformations');
   await check(page, 'paid usage pop-up');
-  await dlg.getByTestId('usage-allow-workers_ai-cap').fill('0');
-  await dlg.getByTestId('usage-allow-workers_ai-submit').click();
+  await dlg.getByTestId('usage-allow-images-cap').fill('0');
+  await dlg.getByTestId('usage-allow-images-submit').click();
   await expect(dlg.getByRole('alert')).toContainText('US$0.01 to US$1,000');
-  await dlg.getByTestId('usage-allow-workers_ai-day').check();
-  await dlg.getByTestId('usage-allow-workers_ai-cap').fill('1');
-  await dlg.getByTestId('usage-allow-workers_ai-submit').click();
-  await expect(page.getByTestId('usage-paid-workers_ai')).toContainText('Paid usage allowed until the end of today, up to US$1.00', { timeout: 15_000 });
-  const [s] = await sql`select (app.settings()).chat_ai_total_daily_neurons as cap, (app.chat_budget() ->> 'ok')::boolean as chat`;
-  expect(s!.cap).toBe(10_000 + 90_909);
-  expect(s!.chat).toBe(true);
+  await dlg.getByTestId('usage-allow-images-cap').fill('1');
+  await dlg.getByTestId('usage-allow-images-submit').click();
+  await expect(page.getByTestId('usage-paid-images')).toContainText('Paid usage allowed until the end of this month, up to US$1.00', { timeout: 15_000 });
+  await sql`delete from provider_calls where purpose = 'e2e_images'`;
+  await sql`delete from usage_decisions where service = 'images'`;
+  await sql`select app.job_usage_refresh()`;
 
   await page.goto('/admin/settings/usage', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Usage', level: 1 })).toBeVisible();
   for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'supabase_egress', 'r2_storage', 'github_actions', 'claude']) {
     await expect(page.getByTestId(`usage-${svc}`)).toBeVisible();
   }
-  await expect(page.getByTestId('usage-workers_ai-paid')).toContainText('up to US$1.00');
+  await expect(page.getByTestId('usage-workers_ai-paid')).toContainText('Never');
+  await expect(page.getByTestId('usage-ai-features')).toBeVisible();
   await expect(page.getByTestId('usage-workers_requests-paid')).toContainText('Never paused');
   await expect(page.getByTestId('usage-chart-workers_ai')).toBeVisible();
   await check(page, 'settings usage');
@@ -201,7 +210,7 @@ test('Paused: the assistant rests until tomorrow, never an error', async ({ brow
   await signIn(page, a.email, '/admin');
   await openAssistant(page);
   await askIt(page, 'What needs doing today?');
-  await expect(page.getByTestId('assistant-paused')).toHaveText('The assistant is unavailable until tomorrow (daily included usage reached). Everything still works from the screens and pop-ups.');
+  await expect(page.getByTestId('assistant-paused')).toHaveText(/^Today's free AI allowance is used up \(1\d,\d{3} of 10,000 neurons\)\. The assistant is back at midnight, Toronto time\. Everything still works from the screens and pop-ups\.$/);
   await check(page, 'assistant paused');
   await page.context().close();
   await neurons(sql, 0);

@@ -15,6 +15,19 @@ const dollars = z.coerce.number().positive('an amount above $0').max(1_000_000);
 
 export const METHODS = ['e_transfer', 'cheque', 'cash', 'bank_transfer', 'other'] as const;
 export const METHOD_WORDS: Record<(typeof METHODS)[number], string> = { e_transfer: 'e-Transfer', cheque: 'cheque', cash: 'cash', bank_transfer: 'bank transfer', other: 'payment' };
+/** How the rental of an offer is paid (0129): card online, or another way that staff confirm when the money is in. */
+export const RENTAL_PAY = ['card', 'e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout', 'insurer'] as const;
+export const DEPOSIT_PAY = ['card', 'cash', 'e_transfer'] as const;
+export const PAY_WORDS: Record<string, string> = { card: 'card', e_transfer: 'e-Transfer', cash: 'cash', cheque: 'cheque', bank_transfer: 'bank transfer', platform_payout: 'platform payout', insurer: 'the insurer', other: 'another way' };
+export const COVERS = ['rental', 'deposit', 'fees', 'later'] as const;
+/** The customer of a rental or an offer: one on file (a name, email or phone), or a new one with their details. */
+const customerFields = {
+  customer: text(2, 120).optional(),
+  renter_name: text(3, 120).optional(), renter_email: z.string().trim().email('the renter\'s email').optional(), renter_mobile: text(7, 30).optional(),
+  renter_date_of_birth: date.optional()
+};
+const hasCustomer = (a: { customer?: string; renter_name?: string; renter_email?: string; renter_mobile?: string }) => !!a.customer || (!!a.renter_name && !!a.renter_email && !!a.renter_mobile);
+const CUSTOMER_PROBLEM = { message: 'the customer: a name, email or phone of one on file, or a new customer\'s name, email and mobile' };
 
 export const SCHEMAS = {
   // reads
@@ -27,17 +40,25 @@ export const SCHEMAS = {
   // changes (a card first, then Confirm)
   record_payment: z.object({
     invoice: text(3, 30).optional(), booking: text(3, 30).optional(), amount: dollars.optional(), method: z.enum(METHODS),
-    reference: text(3, 60).optional(), received_on: date, note: text(2, 300).optional()
+    reference: text(3, 60).optional(), received_on: date, note: text(2, 300).optional(), covers: z.enum(COVERS).optional()
   }).strict().refine((a) => !!a.invoice !== !!a.booking, { message: 'name the invoice or the booking (one of them)' })
     .refine((a) => !['e_transfer', 'cheque', 'bank_transfer'].includes(a.method) || !!a.reference, { message: 'the reference number of the payment', path: ['reference'] })
     .refine((a) => a.method !== 'other' || !!a.note, { message: 'how it was paid, in the note', path: ['note'] }),
   add_rental: z.object({
-    car: text(2, 80), pickup_at: dateTime, return_at: dateTime,
-    renter_name: text(3, 120), renter_email: z.string().trim().email('the renter\'s email'), renter_mobile: text(7, 30),
-    renter_date_of_birth: date.optional(), licence_number: text(5, 40).optional(),
+    car: text(2, 80), pickup_at: dateTime, return_at: dateTime, ...customerFields, licence_number: text(5, 40).optional(),
     payment: z.enum(['link', 'other_way']).default('link'), method: z.enum(METHODS).optional(), reference: text(3, 60).optional(), amount: dollars.optional(),
+    deposit_method: z.enum(DEPOSIT_PAY).optional(), agreement: z.enum(['send', 'paper']).optional(),
     sourced_by_me: z.boolean().default(false), note: text(2, 300).optional()
-  }).strict().refine((a) => a.payment !== 'other_way' || !!a.method, { message: 'how the rental was paid', path: ['method'] }),
+  }).strict().refine((a) => a.payment !== 'other_way' || !!a.method, { message: 'how the rental was paid', path: ['method'] }).refine(hasCustomer, CUSTOMER_PROBLEM),
+  create_offer: z.object({
+    car: text(2, 80), pickup_at: dateTime, return_at: dateTime, ...customerFields,
+    rental_total: dollars.optional(), price_reason: text(3, 200).optional(), coverage: z.coerce.number().int().min(1).max(3).optional(),
+    rental_pay: z.enum(RENTAL_PAY).default('card'), deposit_pay: z.enum(DEPOSIT_PAY).default('card'),
+    notify: z.enum(['email', 'text', 'both', 'none']).default('email'), message: text(2, 600).optional(), expires_hours: z.coerce.number().int().min(1).max(168).optional(),
+    sourced_by_me: z.boolean().default(false)
+  }).strict().refine(hasCustomer, CUSTOMER_PROBLEM).refine((a) => a.rental_total === undefined || !!a.price_reason, { message: 'why the rental price differs from the rates', path: ['price_reason'] }),
+  booking_balance: z.object({ booking: text(3, 30).optional(), customer: text(2, 120).optional() }).strict()
+    .refine((a) => !!a.booking !== !!a.customer, { message: 'name the booking or the customer (one of them)' }),
   publish_car: z.object({ car: text(2, 80) }).strict(),
   mark_insured: z.object({ car: text(2, 80), on: date.optional(), reference: text(2, 200).optional() }).strict(),
   set_rates: z.object({ car: text(2, 80), daily: dollars, weekend: dollars.optional(), weekly: dollars.optional(), monthly: dollars.optional() }).strict(),
@@ -56,10 +77,12 @@ export const TOOLS: Record<ToolName, ToolDef> = {
   find: { name: 'find', change: false, about: 'Find a booking, renter, owner, car, owner invoice or toll notice', args: '{"kind": "booking|renter|owner|car|invoice|toll", "q": "words, a number, a plate or a car code (CC-7F3A)"}' },
   availability: { name: 'availability', change: false, about: 'Which cars are free for dates, or whether one car is', args: '{"pickup_date": "YYYY-MM-DD", "return_date": "YYYY-MM-DD", "car"?: "name or plate"}' },
   who_has_car: { name: 'who_has_car', change: false, about: 'Who has a car right now and when it is due back', args: '{"car": "name or plate"}' },
+  booking_balance: { name: 'booking_balance', change: false, about: 'What a renter owes on a booking: the rental, fees and later charges still open, and the deposit', args: '{"booking"?: "number", "customer"?: "renter name, email or phone"}' },
   owner_balance: { name: 'owner_balance', change: false, about: 'An owner\'s open invoices and what they owe', args: '{"owner": "name"}' },
   draft_message: { name: 'draft_message', change: false, about: 'Write a message for a renter or owner; staff send it themselves', args: '{"to": "renter|owner", "name": "who", "text": "the message", "booking"?: "number"}' },
-  record_payment: { name: 'record_payment', change: true, about: 'Record a payment received another way (e-Transfer, cheque, cash, bank transfer)', args: '{"invoice"?: "INV-...", "booking"?: "number", "amount"?: dollars (empty: the balance), "method": "e_transfer|cheque|cash|bank_transfer|other", "reference"?: "number", "received_on": "YYYY-MM-DD", "note"?: "text"}' },
-  add_rental: { name: 'add_rental', change: true, about: 'Add a rental by hand (phone, counter, already underway)', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth"?, "licence_number"?, "payment": "link|other_way", "method"?, "reference"?, "amount"?, "sourced_by_me"?: true|false}' },
+  record_payment: { name: 'record_payment', change: true, about: 'Record a payment received another way (e-Transfer, cheque, cash, bank transfer) on an owner invoice or a booking', args: '{"invoice"?: "INV-...", "booking"?: "number", "covers"?: "rental|deposit|fees|later" (a booking: which part; default rental), "amount"?: dollars (empty: what is open), "method": "e_transfer|cheque|cash|bank_transfer|other", "reference"?: "number", "received_on": "YYYY-MM-DD", "note"?: "text"}' },
+  add_rental: { name: 'add_rental', change: true, about: 'Add a rental by hand (phone, counter, already underway): it is booked at once', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth"?, "licence_number"?, "payment": "link|other_way", "method"?, "reference"?, "amount"?, "deposit_method"?: "card|cash|e_transfer", "agreement"?: "send|paper", "sourced_by_me"?: true|false}' },
+  create_offer: { name: 'create_offer', change: true, about: 'Make an offer and send it to the customer to sign and pay (no request needed)', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth": "YYYY-MM-DD", "rental_total"?: dollars before tax (empty: the rates), "price_reason"?, "coverage"?: 1|2|3, "rental_pay"?: "card|e_transfer|cash|cheque|bank_transfer|platform_payout|insurer", "deposit_pay"?: "card|cash|e_transfer", "notify"?: "email|text|both|none", "message"?, "expires_hours"?, "sourced_by_me"?: true|false (the staff member found this client)}' },
   publish_car: { name: 'publish_car', change: true, about: 'Publish a car on the website', args: '{"car": "name or plate"}' },
   mark_insured: { name: 'mark_insured', change: true, about: 'Mark a car insured: the insurer confirmed in writing that it is on the fleet policy', args: '{"car": "name, plate or car code", "on"?: "YYYY-MM-DD, the date of the insurer\'s email (empty: today)", "reference"?: "the email\'s subject"}' },
   set_rates: { name: 'set_rates', change: true, about: 'Set a car\'s rates in dollars (weekend, weekly, monthly optional)', args: '{"car": "name or plate", "daily": dollars, "weekend"?, "weekly"?, "monthly"?}' },
@@ -75,10 +98,10 @@ export function toolsFor(w: Who): ToolName[] {
   if (w.portal === 'field') return ['today', 'find', 'availability', 'who_has_car', 'add_rental'];
   const common: ToolName[] = ['today', 'find', 'create_task', 'draft_message'];
   switch (w.fn) {
-    case 'finance': return [...common, 'owner_balance', 'record_payment', 'send_payment_link', 'confirm_toll'];
+    case 'finance': return [...common, 'owner_balance', 'booking_balance', 'record_payment', 'send_payment_link', 'confirm_toll'];
     case 'fleet': return [...common, 'availability', 'who_has_car', 'publish_car', 'mark_insured', 'set_rates', 'add_rental'];
-    case 'cs': return [...common, 'availability', 'who_has_car', 'add_rental', 'record_payment', 'send_payment_link', 'publish_car'];
-    case 'sales': return [...common, 'availability', 'add_rental', 'send_payment_link'];
+    case 'cs': return [...common, 'availability', 'who_has_car', 'create_offer', 'add_rental', 'booking_balance', 'record_payment', 'send_payment_link', 'publish_car'];
+    case 'sales': return [...common, 'availability', 'create_offer', 'add_rental', 'booking_balance', 'send_payment_link'];
     default: return common;
   }
 }
@@ -127,11 +150,14 @@ export function summary(name: ToolName, a: Record<string, unknown>, k: Record<st
     case 'record_payment': {
       const what = METHOD_WORDS[a.method as (typeof METHODS)[number]] ?? 'payment';
       const amount = a.amount ? `a ${money(Number(a.amount))} ${what}` : `the balance${k.balance ? ` (${k.balance})` : ''} as an ${what}`.replace('as an c', 'as a c');
-      const on = a.invoice ? `${String(a.invoice).toUpperCase()}${k.owner ? ` for ${k.owner}` : ''}` : `booking ${String(a.booking)}${k.renter ? ` for ${k.renter}` : ''}`;
+      const part = a.booking && a.covers && a.covers !== 'rental' ? ` (${a.covers === 'later' ? 'later charges' : String(a.covers)})` : '';
+      const on = a.invoice ? `${String(a.invoice).toUpperCase()}${k.owner ? ` for ${k.owner}` : ''}` : `booking ${String(a.booking)}${k.renter ? ` for ${k.renter}` : ''}${part}`;
       return `Record ${amount} on ${on}, dated ${shortDate(String(a.received_on))}${a.reference ? `, reference ${String(a.reference)}` : ''}?`;
     }
+    case 'create_offer':
+      return `Send an offer for the ${k.car ?? String(a.car)} to ${k.customer ?? String(a.renter_name ?? a.customer)}, ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}${k.due ? `: ${k.due} due at booking` : ''}${a.notify === 'none' ? ', without telling the customer' : `, by ${a.notify === 'both' ? 'email and text' : String(a.notify ?? 'email')}`}?`;
     case 'add_rental':
-      return `Add a rental of the ${k.car ?? String(a.car)} for ${String(a.renter_name)}, ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}, ${a.payment === 'other_way' ? `paid by ${METHOD_WORDS[a.method as (typeof METHODS)[number]] ?? 'another way'}${a.amount ? ` (${money(Number(a.amount))})` : ''}` : 'with a payment link emailed to the renter'}${k.phase === 'in_progress' ? ' (already underway: recorded on trip)' : ''}?`;
+      return `Add a rental of the ${k.car ?? String(a.car)} for ${k.customer ?? String(a.renter_name ?? a.customer)}, ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}, ${a.payment === 'other_way' ? `paid by ${METHOD_WORDS[a.method as (typeof METHODS)[number]] ?? 'another way'}${a.amount ? ` (${money(Number(a.amount))})` : ''}` : 'with a payment link emailed to the renter'}${k.phase === 'in_progress' ? ' (already underway: recorded on trip)' : ''}?`;
     case 'publish_car': return `Publish the ${k.car ?? String(a.car)} on the website now?`;
     case 'mark_insured':
       return `Mark the ${k.car ?? String(a.car)} insured: the insurer confirmed in writing on ${shortDate(String(a.on ?? k.today ?? ''))} that it is on the fleet policy${a.reference ? ` (${String(a.reference)})` : ''}?`;

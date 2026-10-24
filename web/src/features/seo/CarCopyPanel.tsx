@@ -45,8 +45,9 @@ export function CarCopyPanel({ d, slug }: { d: CarCopyData | null; slug?: string
   });
   const status = !d.eligible ? (d.is_sample ? 'A sample car: its copy is not written (it is not shown to search engines).' : 'No listing yet: the copy is written once the car has one.')
     : d.status === 'published' && d.source === 'ai' ? `Written by Workers AI${d.generated_at ? ` on ${when(d.generated_at)}` : ''} and published. Nothing to review.`
+    : d.status === 'published' && d.source === 'claude-batch' ? `Written by the daily Claude batch${d.generated_at ? ` on ${when(d.generated_at)}` : ''}, checked and published. Nothing to review.`
     : d.status === 'failed' ? `The last rewrite did not pass the checks; the page keeps its current text, and it is tried again ${d.next_attempt_at ? `after ${when(d.next_attempt_at)}` : 'later'}.`
-    : d.source === 'template' ? 'A plain copy from the facts is live while the written copy is prepared (usually within minutes).'
+    : d.source === 'template' ? 'A plain copy from the facts is live while the written copy is prepared (by the next daily batch).'
     : 'Being written now.';
   const copy = d.copy ?? {};
   return (

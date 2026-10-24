@@ -85,6 +85,9 @@ select test.ok('add: the copy is queued and asked for first, with the plain copy
   exists (select 1 from car_copy c where c.vehicle_id = (test.vf_car()).id and c.status = 'pending' and c.asked_at is not null and c.copy <> '{}'::jsonb)
   and exists (select 1 from vehicle_listings l where l.vehicle_id = (test.vf_car()).id and l.headline like '2016 Porsche Macan S%'));
 select test.ok('add: published at once with its rates', (select (r #>> '{listing,published}')::boolean from vf_add));
+-- the background share of the day has room (0133): 40_seo spent 4,000 search neurons today
+update program_settings set seo_ai_writer_enabled = true, ai_background_bps = 2000;
+delete from provider_calls where unit = 'neurons';
 select test.eq('add: the search job takes the new car with the cars asked for first',
   (select bool_or((c ->> 'vehicle_id')::uuid = (test.vf_car()).id) from jsonb_array_elements(app.server_seo_claim('vf-test', 1 + (select count(*)::integer from car_copy where asked_at is not null and vehicle_id <> (test.vf_car()).id)) -> 'cars') c), true);
 update car_copy set status = 'pending', locked_at = null where vehicle_id = (test.vf_car()).id;

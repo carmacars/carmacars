@@ -14,8 +14,8 @@ let seq = 0;
 const nid = () => `a${++seq}`;
 
 const HINTS: Record<Portal, string[]> = {
-  admin: ['What needs doing today?', 'Is the Corolla free from 2026-11-02 to 2026-11-04?', 'Record a $900 e-Transfer on INV-1053 dated 2026-10-15 ref CA12345'],
-  va: ['What needs doing today?', 'Find booking R-000123', 'Create a task: call the renter back about the deposit'],
+  admin: ['What needs doing today?', 'Which cars are free from 2026-11-02 to 2026-11-04?', 'Send an offer for the Corolla to Jane Doe, Nov 2 10:00 to Nov 4 10:00', 'What does booking R-000123 owe?'],
+  va: ['What needs doing today?', 'Find booking R-000123', 'Add a rental of the Corolla for Jane Doe, Nov 2 10:00 to Nov 4 10:00', 'Create a task: call the renter back about the deposit'],
   field: ['What needs doing today?', 'Who has the Tesla?', 'Is the Corolla free from 2026-11-02 to 2026-11-04?']
 };
 
@@ -110,7 +110,7 @@ function describe(o?: Out): string {
   switch (o.type) {
     case 'text': case 'paused': return o.text;
     case 'results': return `${o.title}: ${o.rows.slice(0, 4).map((r) => r.title).join('; ')}`;
-    case 'proposal': return `Proposed: ${o.summary}`;
+    case 'proposal': return `Proposed: ${o.summary}${o.details?.length ? ` (${o.details.flatMap((d) => d.rows.map((r) => `${r.label} ${r.value}`)).slice(0, 8).join('; ')})` : ''}`;
     case 'question': return o.text;
     case 'draft': return `Draft to ${o.name}: ${o.text}`;
   }
@@ -137,6 +137,11 @@ function Card({ item, onDecide, onPick, busy }: { item: Item; onDecide: (i: Item
     case 'proposal': return (
       <section className="as-card as-card--change" data-testid="assistant-proposal"><h3 className="as-card__t">Confirm this change</h3>
         <p data-testid="assistant-summary">{o.summary}</p>
+        {o.details?.map((sec) => (
+          <div key={sec.title} className="as-details" data-testid="assistant-details">
+            <h4 className="small as-details__t">{sec.title}</h4>
+            <dl className="as-kv">{sec.rows.map((r, n) => <div key={n}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}</dl>
+          </div>))}
         {item.decided
           ? <p className={`small ${item.decided.ok ? '' : 'ad-late'}`} role="status" data-testid="assistant-decided">{item.decided.text}</p>
           : <div className="row"><button type="button" className="btn btn--primary btn--sm" disabled={busy} onClick={() => onDecide(item, true)} data-testid="assistant-confirm">Confirm</button>

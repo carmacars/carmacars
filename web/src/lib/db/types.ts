@@ -333,6 +333,7 @@ export type Database = {
           error: string | null;
           created_at: string;
           decided_at: string | null;
+          details: Json | null;
         };
         Insert: {
           id?: string;
@@ -348,6 +349,7 @@ export type Database = {
           error?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          details?: Json | null;
         };
         Update: {
           id?: string;
@@ -363,6 +365,7 @@ export type Database = {
           error?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          details?: Json | null;
         };
         Relationships: [];
       };
@@ -10791,6 +10794,11 @@ export type Database = {
           booking_licence_selfie_required: boolean;
           booking_return_auto_charges: boolean;
           statement_fuel_cents_per_eighth: number | null;
+          ai_assistant_reserve_bps: number;
+          ai_background_bps: number;
+          ai_release_hour: number | null;
+          ai_assistant_cushion: number;
+          seo_ai_writer_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -11223,6 +11231,11 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -11655,6 +11668,11 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -19274,6 +19292,8 @@ export type Database = {
       server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
+      server_ai_budget: { Args: never; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };

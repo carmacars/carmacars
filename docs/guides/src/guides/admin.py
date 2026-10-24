@@ -979,12 +979,13 @@ def build():
     # ---------------------------------------------------------------- 9
     g.chapter('Search: car pages, landing pages and guides',
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
-              'by Workers AI from the facts in the database, checked and published by themselves. Nobody has to type or review '
+              'every day by a scheduled Claude session from the facts in the database, checked with the site\'s own checks and published by themselves '
+              '(the website\'s Workers AI writer is off, so the free AI allowance stays with the staff assistant). Nobody has to type or review '
               'anything. You can still change any line; what you change is kept.',
               blurb='Car copy written by itself, landing pages, place pages for every place and term, detailing and body shop, guides, business listings and IndexNow.')
     g.task('The copy of a car', f'{P("Cars", "Vehicles")}, then the car, then its Listing tab. The same card is on the listing review.')
     g.steps([
-        'The card says who wrote the text: a plain copy from the car\'s facts while the written copy is prepared (usually minutes), then Workers AI.',
+        'The card says who wrote the text: a plain copy from the car\'s facts while the written copy is prepared (the next daily batch), then the batch (claude-batch) or Workers AI.',
         'Every field is shown: search title and description, heading, introduction, highlights, good for, what\'s included, pickup and delivery, requirements, questions and the photo descriptions.',
         f'To change a field press {B("Change")}, then {B("Save and lock")}. A locked field is kept by every new version. {B("Unlock")} lets it be written again.',
         f'{B("Write again")} asks for a new version now. A new version is also written by itself when the car\'s facts change: its rates, specs, area or photos.',
@@ -1218,7 +1219,7 @@ def build():
     g.chapter('Assistant',
               'The assistant answers questions from live data and prepares changes for you. It works only through the same steps as the '
               'screens, with your own permissions: it cannot see or do anything you could not do yourself. Nothing changes until you confirm.',
-              blurb='Ask about today, bookings, cars and money; confirm the changes it prepares.')
+              blurb='Ask about today, bookings, cars and money; send offers and add rentals; confirm the changes it prepares.')
     g.task('Open it', f'Press {B("Assistant")} at the top of the menu, or press Ctrl and / together (Cmd and / on a Mac). Esc closes it.')
     g.steps([
         'Type a question or what you want done, in your own words, and press Enter. Examples: "What needs doing today?", "Who has the Tesla?", '
@@ -1236,22 +1237,41 @@ def build():
     g.para('When the insurer\'s email arrives, say so: "The insurer confirmed CC-7F3A on 2026-10-20". The card marks the car insured as To do\'s Insurer confirmed does, '
            'from the date of the email. A car is found by its name, its plate or its car code (CC- and four characters, on the car page and in the chat).')
     g.para(f'Messages: ask it to draft a message to a renter or an owner. It writes the text; press {B("Copy")}, open the conversation and send it yourself.')
-    g.tip('When the day\'s included AI usage is used, the assistant says it is unavailable until tomorrow. Everything still works from the screens and pop-ups.')
+    g.task('Offers, rentals and what is owed')
+    g.steps([
+        'Send an offer: "Send an offer for the Corolla to jane@example.com, Nov 2 10:00 to Nov 4 10:00, deposit in cash". A customer on file is found by name, email or phone; '
+        'a new customer needs the full name, email, mobile and date of birth.',
+        'The card shows everything before anything is made: the customer, the car, the dates, each price line, the HST, what is due at booking, the deposit, how the rental and the deposit are paid, and how the offer is sent. '
+        f'It is priced exactly as {B("Send an offer")} prices it. Press {B("Confirm")} to make and send it, or {B("Cancel")}.',
+        'Add a rental: "Add a rental of the Corolla for jane@example.com, Nov 2 10:00 to Nov 4 10:00, paid by e-Transfer ref CA123, deposit in cash, signed on paper". The card lists the price lines and the payments the same way.',
+        'Free cars: "Which cars are free from 2026-11-02 to 2026-11-04?" lists every bookable car with its rates, published or not.',
+        'What is owed: "What does booking R-000123 owe?" or "What does Jane Doe owe?" shows the rental, fees and later charges still open, and the deposit.',
+        'A payment on a booking is recorded by part: "Record a $200 e-Transfer on booking R-000123 for the fees, ref CA124".',
+        'A booking made or paid through the assistant says so in its history: "Offer made with the staff assistant by" and your name.',
+    ])
+    g.tip('The assistant keeps 70% of the day\'s free AI allowance for itself, so it works all day. When the whole allowance is used, it says how much was used and that it is back at midnight, Toronto time. '
+          'Everything still works from the screens and pop-ups.')
 
     # ---------------------------------------------------------------- usage (0080)
     g.chapter('Usage and paid usage',
               'The plans CarmaCars runs on include a free allowance: AI, the website, image transformations, emails, the database and storage. '
-              'When an allowance runs out, AI and photo features pause with a short message until it resets, and you are asked before anything is paid.',
-              blurb='Included allowances, the 80% and used-up alerts, allowing paid usage, what pauses and what never does.')
+              'When an allowance runs out, AI and photo features pause with a short message until it resets. Workers AI never runs into paid usage; for photos you are asked before anything is paid.',
+              blurb='Included allowances, the 80% and used-up alerts, Workers AI by feature (never paid), allowing paid usage for photos, what pauses and what never does.')
     g.task('The alerts', f'At 80% of an allowance you get one quiet card on {B("To do")} and one email to the alert address. When it is used up, a second card and email.')
     g.steps([
-        f'A used-up AI or image allowance shows "Included ... used up for today: Allow paid usage". Press {B("Allow paid usage")} to see what continuing costs at the current rates.',
+        'Workers AI used up shows "Stopped for today, never paid": it starts again at midnight, Toronto time. There is nothing to allow.',
+        f'A used-up image allowance shows "Included ... used up for this month: Allow paid usage". Press {B("Allow paid usage")} to see what continuing costs at the current rates.',
         'Choose until the end of today or this month, type the most it may cost (for example $1), and press the Allow button. Or press Keep paused.',
         'Nobody answering keeps it paused: nothing is charged. Live chat goes to a person, AI copy waits with the template text, Turo emails are read by the rules, photos keep their original background, the assistant rests.',
         'The website and the portals are never paused (that would stop bookings): their card shows the estimated cost, usually cents.',
     ])
     g.task('Settings > Usage', f'Open {B("Settings")}, then {B("Usage")}: every service, used against included, when it resets, paid usage and the last 30 days.')
     g.steps([
+        'Workers AI by feature, at the top: the neurons each feature used today and in the last 7 days (the staff assistant, visitor chat, the phone line, search copy, listing copy, guide upkeep, Turo emails, the readers), '
+        'and what each share has left now. Use Cloudflare counted beyond the app\'s own record shows as Unmetered.',
+        'The day is shared in three: 70% is kept for the staff assistant; visitor chat, the phone line and the readers share the rest; background writing (search copy, listing copy, guide rewrites, Turo emails) gets 10%, '
+        'and from 9 pm what is left of the day, less a small cushion for the assistant.',
+        f'Press {B("Change the shares")} to change the assistant\'s reserve, the background share, the release hour or the cushion.',
         f'Press {B("Change the allowance")} after a plan change (for example a Supabase or Resend upgrade).',
         f'Supabase egress is not readable automatically: press {B("Enter a figure")} with the number from the Supabase dashboard.',
         'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',

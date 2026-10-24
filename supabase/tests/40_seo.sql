@@ -11,6 +11,9 @@ select test.mk_user('se_fin', 'va', 'finance');
 select test.mk_renter('se_rita');
 select test.mk_renter('se_rob');
 
+-- the website's Workers AI writer (off by default since 0133: the daily Claude batch writes the copy) is what this suite tests
+update program_settings set seo_ai_writer_enabled = true, ai_background_bps = 2000;
+delete from provider_calls where unit = 'neurons';
 create temp table s40 as select null::text as k, null::jsonb as v limit 0;
 create or replace function test.s40(p_k text) returns jsonb language sql stable as $$ select v from pg_temp.s40 where k = p_k $$;
 create or replace function test.s40v(p_k text) returns uuid language sql stable as $$ select (v ->> 'vehicle_id')::uuid from pg_temp.s40 where k = p_k $$;

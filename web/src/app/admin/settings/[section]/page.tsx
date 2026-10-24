@@ -157,13 +157,13 @@ export default async function Section({ params }: { params: Promise<{ section: s
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
     const [o, po] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null)]);
     return (<>{head}
-      <p className="small muted">The car pages, the landing pages and the guides are written by Workers AI from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
+      <p className="small muted">The car pages, the landing pages and the guides are written by the daily Claude batch (docs/seo-batches.md; Workers AI only when its writer is on in Program settings) from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
       <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
         ['IndexNow', `${o.indexnow.waiting} addresses waiting, ${o.indexnow.sent_7d} sent in 7 days${o.indexnow.last?.at ? `, last ${t(o.indexnow.last.at)} (${String(o.indexnow.last.status ?? '')})` : ''}`],
         ['Landing pages for a use', `indexed with ${o.min_real_cars} or more real matching cars (Program settings)`]]} /></Card>
       <Card title={`Car copy (${o.cars.length} real cars)`} testId="seo-cars"><Table rows={o.cars} rowKey={(r) => String(r.vehicle_id)} empty="No real car yet. Sample cars keep their sample text." cols={[
         { key: 'vehicle', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${String(r.vehicle_id)}?tab=listing`}>{String(r.vehicle)}</Link> },
-        { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'source', label: 'Written by', render: (r) => (r.source === 'ai' ? 'Workers AI' : 'Plain copy (waiting)') },
+        { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'source', label: 'Written by', render: (r) => (r.source === 'ai' ? 'Workers AI' : r.source === 'claude-batch' ? 'Daily Claude batch' : 'Plain copy (waiting)') },
         { key: 'h1', label: 'Heading', render: (r) => String(r.h1 ?? '') }, { key: 'published_at', label: 'Published', render: (r) => t(r.published_at) },
         { key: 'locked', label: 'Locked', render: (r) => ((r.locked as string[]) ?? []).join(', ') }, { key: 'up', label: 'Facts', render: (r) => (r.up_to_date ? 'Up to date' : 'Changed: rewriting') }]} /></Card>
       <Card title={`Landing pages (${o.pages.length})`} testId="seo-pages">

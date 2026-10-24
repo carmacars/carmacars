@@ -14,8 +14,9 @@ export async function textGenerator(model?: string, timeoutMs?: number): Promise
       if (ai) {
         const { workersAi } = await import('./workers-ai');
         // every call goes through the usage guard (0080, 0104): nothing is asked while Workers AI is paused
-        const [{ guardText }, { workersAiPaused }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
-        return guardText(workersAi(ai, model, timeoutMs), workersAiPaused);
+        // 0133: by feature: each call must fit its tier's room of the day (the staff assistant's reserve is never used)
+        const [{ guardText }, { aiRoom }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
+        return guardText(workersAi(ai, model, timeoutMs), aiRoom.paused, aiRoom.spent);
       }
     } catch { /* not running in the Worker */ }
   }

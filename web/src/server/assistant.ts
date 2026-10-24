@@ -4,7 +4,7 @@ import type { Json } from '@/lib/db/types';
 import { door } from '@/server/door';
 import { env } from '@/lib/env';
 import { torontoInstant } from '@/lib/dates';
-import { ask, type AssistantModel, type Deps, type Out, type Turn } from '@/features/assistant/agent';
+import { ask, type AssistantModel, type Deps, type Details, type Out, type Turn } from '@/features/assistant/agent';
 import { claudeModel, fakeModel, workersAiModel } from '@/features/assistant/models';
 import type { Portal, VaFn, Who } from '@/features/assistant/tools';
 import type { FieldList } from '@/features/field/types';
@@ -14,12 +14,10 @@ import type { FieldList } from '@/features/field/types';
 // for the screens. The model's own use is recorded for the usage guard (the only call made as the service role).
 const SR = { role: 'service_role' as const };
 
-/** The model: Claude when ANTHROPIC_API_KEY is set, Workers AI when the Worker has its AI binding, else the stub. */
-export async function assistantModel(settings: { claude_model?: string; claude_in_usd_per_m?: number; claude_out_usd_per_m?: number }): Promise<AssistantModel> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (key && process.env.ASSISTANT_PROVIDER !== 'fake') {
-    return claudeModel({ key, model: settings.claude_model || 'claude-haiku-4-5', inUsdPerM: Number(settings.claude_in_usd_per_m ?? 1), outUsdPerM: Number(settings.claude_out_usd_per_m ?? 5) });
-  }
+/** The models it may use (0133): Workers AI first (the free allowance, with the assistant's reserved share), Claude only
+ *  when Workers AI has no room and ANTHROPIC_API_KEY is set and Claude's own budget in Settings > Usage allows it (US$0
+ *  included by default: no new spend unless an Admin allows it), else the stub for local work and the tests. */
+export async function workersModel(): Promise<AssistantModel> {
   if (env().LLM_PROVIDER === 'workers-ai' && process.env.ASSISTANT_PROVIDER !== 'fake') {
     try {
       const { getCloudflareContext } = await import('@opennextjs/cloudflare');
@@ -29,6 +27,11 @@ export async function assistantModel(settings: { claude_model?: string; claude_i
     } catch { /* not running in the Worker */ }
   }
   return fakeModel();
+}
+export function claudeFallback(settings: { claude_model?: string; claude_in_usd_per_m?: number; claude_out_usd_per_m?: number }): AssistantModel | null {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || process.env.ASSISTANT_PROVIDER === 'fake') return null;
+  return claudeModel({ key, model: settings.claude_model || 'claude-haiku-4-5', inUsdPerM: Number(settings.claude_in_usd_per_m ?? 1), outUsdPerM: Number(settings.claude_out_usd_per_m ?? 5) });
 }
 
 const todayToronto = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -62,23 +65,35 @@ async function todo(userId: string, aal: 'aal1' | 'aal2' | null, who: Who, extra
 
 export interface AskInput { userId: string; aal: 'aal1' | 'aal2' | null; portal: Portal; fn?: VaFn | null; name?: string | null; text: string; history?: Turn[] }
 
+type Gate = { ok?: boolean; paused?: boolean; service?: string; used?: number; included?: number; resets_at?: string; message?: string | null;
+  claude_model?: string; claude_in_usd_per_m?: number; claude_out_usd_per_m?: number; assistant_enabled?: boolean };
+
 export async function runAssistant(i: AskInput): Promise<Out[]> {
   const who: Who = { portal: i.portal, fn: i.fn ?? null };
   const extra = i.portal === 'va' && i.fn ? { _va: i.fn } : {};
-  // the gate first: Workers AI or Claude, measured now (the usage guard); it also says whether the assistant is on
-  const pre = await door<{ claude_model?: string; claude_in_usd_per_m?: number; claude_out_usd_per_m?: number; assistant_enabled?: boolean }>(i.userId, 'ops_read', 'usage_gate',
-    { portal: i.portal, service: process.env.ANTHROPIC_API_KEY ? 'claude' : 'workers_ai', ...extra }, i.aal);
+  // the gate first: the assistant's share of today's free Workers AI (0133), measured now; it also says whether it is on
+  const gate = (service: 'workers_ai' | 'claude') => door<Gate>(i.userId, 'ops_read', 'usage_gate', { portal: i.portal, service, ...extra }, i.aal);
+  const pre = await gate('workers_ai');
   if (pre.assistant_enabled === false) return [{ type: 'text', text: 'The assistant is turned off in Program settings.' }];
-  const model = await assistantModel(pre);
+  let model = await workersModel();
+  let chosen: Gate = { ...pre, service: 'workers_ai' };
+  if (pre.ok === false) {
+    // Workers AI has no room for the assistant today: Claude, only within its own budget (never new spend)
+    const claude = claudeFallback(pre);
+    if (claude) {
+      const c = await gate('claude').catch(() => null);
+      if (c?.ok) { model = claude; chosen = { ...c, service: 'claude' }; }
+    }
+  }
   const deps: Deps = {
     who, today: todayToronto(), name: i.name, model,
-    gate: async () => (model.service === (process.env.ANTHROPIC_API_KEY ? 'claude' : 'workers_ai') ? pre as { ok: boolean }
-      : door<{ ok: boolean }>(i.userId, 'ops_read', 'usage_gate', { portal: i.portal, service: model.service, ...extra }, i.aal)),
+    gate: async () => chosen as { ok: boolean } & Record<string, unknown>,
     record: async (u) => { await rpc('server_usage_call', { p: { provider: model.name === 'claude' ? `anthropic:${'model' in u ? u.model ?? '' : ''}` : u.model ?? model.name, purpose: 'staff_assistant', ok: u.ok, error: u.error ?? null, duration_ms: u.ms, units: u.units, unit: u.unit } as unknown as Json }, SR); },
     todo: () => todo(i.userId, i.aal, who, extra),
     find: async (kind, q) => (await door<{ rows: Array<Record<string, unknown>> }>(i.userId, 'ops_read', 'assistant_find', { portal: i.portal, kind, q, ...extra }, i.aal)).rows,
     available: async (from, to) => (await rpc('search_available', { p_pickup: torontoInstant(from, '10:00'), p_return: torontoInstant(to, '10:00'), p_filters: {} as Json }, { role: 'anon' })) as unknown as Array<Record<string, unknown>>,
-    propose: async (p) => door<{ id: string; summary: string }>(i.userId, 'ops_do', 'assistant_propose', { portal: i.portal, tool: p.tool, name: p.name, args: p.args, summary: p.summary, ...extra }, i.aal)
+    staff: async (what, p) => door<Record<string, unknown>>(i.userId, 'ops_read', what, { ...p, ...extra }, i.aal),
+    propose: async (p) => door<{ id: string; summary: string; details?: Details }>(i.userId, 'ops_do', 'assistant_propose', { portal: i.portal, tool: p.tool, name: p.name, args: p.args, summary: p.summary, details: p.details ?? null, ...extra }, i.aal)
   };
   return (await ask(deps, { text: i.text, history: i.history })).out;
 }
@@ -93,6 +108,7 @@ export async function decide(i: { userId: string; aal: 'aal1' | 'aal2' | null; p
   const r = await door<{ ok: boolean; error?: string; result?: Record<string, unknown> }>(i.userId, 'ops_do', 'assistant_confirm', { id: i.id, ...extra }, i.aal);
   if (!r.ok) return { ok: false, text: `Not done: ${r.error ?? 'the database refused it'}. Nothing was changed.` };
   const x = r.result ?? {};
-  const said = typeof x.booking_number === 'string' ? ` Rental ${x.booking_number} added.` : typeof x.invoice_status === 'string' ? ` The invoice is now ${String(x.invoice_status).replace(/_/g, ' ')}.` : '';
+  const said = typeof x.booking_number === 'string' ? (typeof x.version === 'number' || x.renter_existing !== undefined ? ` Offer ${x.booking_number} sent${x.notified === false ? ' (the renter was not told: send the link from the booking)' : ''}.` : ` Rental ${x.booking_number} added.`)
+    : typeof x.open_cents === 'number' && typeof x.payment_id === 'string' ? ` Payment recorded; ${x.open_cents > 0 ? `$${(x.open_cents / 100).toFixed(2)} is still open on that part` : 'nothing is open on that part'}${x.confirmed ? ', and the booking is confirmed' : ''}.` : typeof x.invoice_status === 'string' ? ` The invoice is now ${String(x.invoice_status).replace(/_/g, ' ')}.` : '';
   return { ok: true, text: `Done.${said}`, result: r.result };
 }
