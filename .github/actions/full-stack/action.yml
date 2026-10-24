@@ -1,0 +1,73 @@
+name: Full-suite stack
+description: >-
+  What every job of the full suite starts from (ci.yml): Node and the packages, PostgreSQL 16, the Playwright browser,
+  the local stack (every migration, local auth, the seed: test data only), the Worker build and the local production
+  server on http://localhost:3000. Each job builds its own (about 4 minutes) so the jobs start at once and run side by
+  side; nothing built here is uploaded (the repository is public; the seed is test data in any case).
+inputs:
+  save-caches:
+    description: Save the Playwright browser and Next.js build caches (one job per run, so the parallel jobs do not race)
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: web/package-lock.json
+    - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
+      shell: bash
+      run: |
+        if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
+        echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+    - shell: bash
+      working-directory: web
+      run: npm ci --no-audit --no-fund
+    - name: Playwright browser cache
+      id: pw
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+    - name: Browsers
+      shell: bash
+      working-directory: web
+      run: |
+        if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
+    - name: Save the browser cache
+      if: inputs.save-caches == 'true' && steps.pw.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+    - name: Next.js build cache
+      id: nx
+      uses: actions/cache/restore@v4
+      with:
+        path: web/.next/cache
+        key: nextjs-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
+        restore-keys: nextjs-${{ hashFiles('web/package-lock.json') }}-
+    - name: Local stack (migrations, local auth, seed)
+      shell: bash
+      working-directory: web
+      run: |
+        cp .env.example .env.local
+        bash scripts/local-db.sh up
+    - name: Worker build (runs next build)
+      # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
+      shell: bash
+      working-directory: web
+      run: ../.github/ci-run.sh "Worker build" npm run -s cf:build
+    - name: Save the Next.js build cache
+      if: inputs.save-caches == 'true' && steps.nx.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: web/.next/cache
+        key: nextjs-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
+    - name: Server
+      shell: bash
+      working-directory: web
+      run: |
+        (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
+        for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done

@@ -16,7 +16,9 @@ export default defineConfig({
   // CI: one retry, so a test that fails only under the runner's load is reported as flaky (it still has to pass once);
   // a defect fails both tries. Local runs never retry.
   retries: process.env.CI ? 1 : 0,
-  reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }]],
+  // CI runs the suite in parallel shards (ci.yml, e2e): PW_BLOB names this shard's blob report, which the e2e-report job
+  // merges into one list and one reports/e2e.json
+  reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }], ...(process.env.PW_BLOB ? [['blob', { fileName: `report-${process.env.PW_BLOB}.zip` }] as const] : [])],
   // test mode: prefers-reduced-motion, so the site's motion (src/styles/motion.css) never moves under a test or axe;
   // tests/e2e/motion.spec.ts turns it on and checks it
   use: { baseURL: base, trace: 'retain-on-failure', contextOptions: { reducedMotion: 'reduce' }, launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion'] } },
