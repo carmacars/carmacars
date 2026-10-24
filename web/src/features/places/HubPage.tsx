@@ -10,7 +10,9 @@ import { fill, getClasses, getTokensLite as getTokens, replyText, getSettings, s
 import { hubCopy, isAutoService, placeLabel } from './copy';
 import { getTerms, hubPath, VERTICAL_ROOT, type Hub, type Vertical } from './data';
 import { PlaceLeadForm, type Kind } from './PlaceLeadForm';
+import { genericPhoto, photoLd, StockFigure } from '@/features/vehicles/photo';
 import '@/styles/seo.css';
+import '@/styles/vehicles.css';
 
 // One hub page (migration 0095): a place and a term, from real data only. Rentals come first on every page: the
 // detailing, body shop and buying pages lead with a rental offer for the same place.
@@ -36,7 +38,8 @@ export function hubTrail(h: Hub): Trail {
 }
 
 export async function HubPage({ h }: { h: Hub }) {
-  const [t, classes, s, allTerms] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms()]);
+  // 0137: a licensed photo of the kind of page (a road for renting, a car being detailed, a body shop, cars for sale)
+  const [t, classes, s, allTerms, photo] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms(), genericPhoto(h.term.vertical, h.path)]);
   const F = (x: string) => fill(x, t);
   const c = hubCopy(h, { fill: F });
   const labels = Object.fromEntries(classes.map((x) => [x.code, x.label]));
@@ -53,7 +56,7 @@ export async function HubPage({ h }: { h: Hub }) {
   const related = auto
     ? allTerms.filter((x) => isAutoService(x) && x.slug !== h.term.slug).slice(0, 8).map((x) => ({ slug: x.slug, title: x.title, path: hubPath('bodyshop', x.slug, h.place.slug) }))
     : h.related_terms;
-  const graph: object[] = [breadcrumbLd(trail, h.path), ...(c.faq.length ? [faqLd(c.faq)] : [])];
+  const graph: object[] = [breadcrumbLd(trail, h.path), ...(c.faq.length ? [faqLd(c.faq)] : []), ...(photo ? [photoLd(photo, photo.alt ?? undefined)] : [])];
   if (h.cars.length) graph.push({ '@type': 'ItemList', name: auto ? `Cars to rent while yours is in the shop, ${where}` : c.h1, numberOfItems: h.cars.length,
     itemListElement: h.cars.slice(0, 12).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + x.path, name: `${x.year ?? ''} ${x.make} ${x.model}`.trim(), ...(x.cover ? { image: absUrl(x.cover.path) } : {}) })) });
   // 0115: a rental page for a place we deliver to describes the service we really give there (our business, delivered)
@@ -78,6 +81,7 @@ export async function HubPage({ h }: { h: Hub }) {
               : <><a className="btn btn--primary btn--lg" href={showForm ? '#request' : '#cars'}>{showForm ? 'Send a request' : 'See the cars'}</a>
                 <Link prefetch={false} className="btn btn--ghost btn--lg" href={rentLinks[0]?.path ?? '/cars'}>{auto ? 'Rent a car meanwhile' : v === 'bodyshop' ? 'Rent a replacement car' : 'Rent a car'}</Link></>}
           </p>
+          {photo && <StockFigure p={photo} alt={photo.alt ?? c.h1} className="landing__photo" sizes="(min-width: 48rem) 40rem, 100vw" note="Illustrative photo" />}
         </div>
       </section>
 

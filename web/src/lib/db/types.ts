@@ -10764,6 +10764,7 @@ export type Database = {
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
           vpage_import_every_days: number;
+          vpage_stock_photos: boolean;
           vpage_import_db_cap_mb: number;
           vpage_place_index: boolean;
           vpage_colour_index: boolean;
@@ -11196,6 +11197,7 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
+          vpage_stock_photos?: boolean;
           vpage_import_db_cap_mb?: number;
           vpage_place_index?: boolean;
           vpage_colour_index?: boolean;
@@ -11628,6 +11630,7 @@ export type Database = {
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
           vpage_import_every_days?: number;
+          vpage_stock_photos?: boolean;
           vpage_import_db_cap_mb?: number;
           vpage_place_index?: boolean;
           vpage_colour_index?: boolean;
@@ -19479,6 +19482,8 @@ export type Database = {
       vehicle_model_page: { Args: { p_make: string; p_model: string }; Returns: Json };
       vehicle_photos_public: { Args: { p_slug: string }; Returns: Json };
       vehicle_sitemap: { Args: { p_file: string }; Returns: Json };
+      vehicle_stock_photo: { Args: { p_make: string; p_model?: string; p_year?: number }; Returns: Json };
+      stock_photos_generic: { Args: { p_slot: string }; Returns: Json };
       vehicle_sitemap_files: { Args: never; Returns: Json };
       vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
       vehicle_sitemap_shape: { Args: never; Returns: Json };

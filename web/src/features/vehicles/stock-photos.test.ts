@@ -132,3 +132,14 @@ test('one generic photo per page, the same each time', () => {
   assert.equal(pickFor([], 'x'), null);
   assert.equal(pickFor(['a', 'b', 'c'], '/car-rental/toronto'), pickFor(['a', 'b', 'c'], '/car-rental/toronto'));
 });
+
+test('generic photos: about the page\'s subject, nothing misleading', async () => {
+  const { scoreGeneric } = await import('./stock-photos.ts');
+  const road = { must: ['highway', 'traffic'] };
+  assert.notEqual(scoreGeneric(cand('File:Highway 401 traffic at dusk.jpg'), road), null);
+  assert.equal(scoreGeneric(cand('File:Straw texture.jpg'), road), null, 'a search hit on a stray word');
+  assert.equal(scoreGeneric(cand('File:Highway 401 crash.jpg'), road), null);
+  assert.equal(scoreGeneric(cand('File:Abandoned car on the highway.jpg'), road), null);
+  assert.equal(scoreGeneric(cand('File:Highway 401 traffic.jpg', { meta: by('CC BY-ND 2.0') }), road), null);
+  assert.ok(scoreGeneric(cand('File:Highway 401 traffic.jpg', { quality: true }), road)! > scoreGeneric(cand('File:Highway 401 traffic.jpg'), road)!);
+});

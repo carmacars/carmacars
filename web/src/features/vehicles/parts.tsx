@@ -8,6 +8,8 @@ import { money } from '@/lib/format';
 import { siteUrl } from '@/lib/site';
 import type { CarRow } from '@/lib/types';
 import { Availability } from './Availability';
+import { photoLd, StockFigure, stockAlt } from './photo';
+import type { StockPhoto } from './stock-photos';
 import { type Spec, type YearRow, dollars, fuelWord, list, paintFor, priceBasis, shapeFor, tripCosts, ratingText } from './content';
 
 // The vehicle pages' parts (migration 0097): the head with the studio stand-in, the specs, the cost of driving, the
@@ -20,7 +22,7 @@ export function standIn(o: { path: string; group: string; vclass: string | null;
   return `/sample-photos/studio/${shapeFor(o.group, o.vclass)}/${o.paint ?? paintFor(o.path)}/lead/${encodeURIComponent(studioName(o.model) || 'CAR')}.svg`;
 }
 
-export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#inventory', 'See cars to rent'] }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]>; cta?: [string, string] }) {
+export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#inventory', 'See cars to rent'], photo = null }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]>; cta?: [string, string]; photo?: StockPhoto | null }) {
   return (
     <section className="page-head on-dark vp-head">
       <div className="wrap vp-head__grid">
@@ -31,11 +33,13 @@ export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#invento
           {facts.length > 0 && <dl className="keyspecs vp-head__facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           <p className="vp-head__cta"><a className="btn btn--primary btn--lg" href={cta[0]}>{cta[1]}</a></p>
         </div>
-        <figure className="vp-head__media photo photo--32">
+        {/* 0137: the licensed photo of the model's generation with its credit; else the studio drawing */}
+        {photo ? <StockFigure p={photo} alt={stockAlt(photo)} className="vp-head__media" main note="Representative photo, not one of our cars" />
+          : <figure className="vp-head__media photo photo--32">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={img} alt={alt} width={1800} height={1200} decoding="async" fetchPriority="high" />
           <figcaption className="car-card__sample">Representative image</figcaption>
-        </figure>
+        </figure>}
       </div>
     </section>
   );
@@ -154,12 +158,12 @@ export function Questions({ items, title }: { items: Array<{ question: string; a
 }
 
 /** JSON-LD Product for the page's model: offers only when real cars of ours match exactly (never for samples). */
-export function productLd(o: { name: string; make: string; model: string; year?: number; trim?: string; path: string; image: string; description: string; inv: Inventory; fuel?: string; body?: string | null; extra?: Record<string, unknown>; offers?: boolean }) {
+export function productLd(o: { name: string; make: string; model: string; year?: number; trim?: string; path: string; image: string; description: string; inv: Inventory; fuel?: string; body?: string | null; extra?: Record<string, unknown>; offers?: boolean; photo?: StockPhoto | null }) {
   const url = siteUrl() + o.path;
   const real = o.inv.exact.filter((c) => !c.is_sample);
   const prices = real.map((c) => c.daily_rate_cents);
   return {
-    '@type': ['Product', 'Car'], '@id': `${url}#vehicle`, name: o.name, url, image: siteUrl() + o.image, description: o.description,
+    '@type': ['Product', 'Car'], '@id': `${url}#vehicle`, name: o.name, url, image: o.photo ? photoLd(o.photo, stockAlt(o.photo)) : siteUrl() + o.image, description: o.description,
     brand: { '@type': 'Brand', name: o.make }, manufacturer: { '@type': 'Organization', name: o.make }, model: o.model,
     ...(o.year ? { vehicleModelDate: String(o.year) } : {}), ...(o.trim ? { vehicleConfiguration: o.trim } : {}), ...(o.fuel ? { fuelType: o.fuel } : {}), ...(o.body ? { bodyType: o.body } : {}),
     ...(o.extra ?? {}),

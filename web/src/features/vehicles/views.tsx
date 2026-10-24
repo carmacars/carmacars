@@ -7,6 +7,7 @@ import { descriptionOptions, dimsFor, fit, fuelWord, list, ptName, rentalFaq, sp
 import { type MakePage, type ModelPage, type TrimPage, type YearPage, tiers as getTiers, vehicleMeta } from './data';
 import { StatsBlock, TierLinks, vehicleProps } from './deep';
 import { CostBlock, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead, YearsTable, fromPrice } from './parts';
+import { stockPhoto } from './photo';
 import '@/styles/vehicles.css';
 
 // The four vehicle pages (migration 0097; docs/changes/2026-10-21-vehicle-pages.md). Every sentence comes from the
@@ -18,15 +19,15 @@ const EPA_NOTE = 'Fuel use is the US EPA rating (fueleconomy.gov) converted to l
 
 // ---------------------------------------------------------------- make
 export async function makeMeta(p: MakePage): Promise<Metadata> {
-  const t = await getTokens();
+  const [t, photo] = await Promise.all([getTokens(), stockPhoto(p.make.slug)]);
   const years = p.models.flatMap((m) => [m.first_year, m.last_year]);
-  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical, photo,
     description: fit(descriptionOptions({ make: p.make.name, count: p.models.length, firstYear: years.length ? Math.min(...years) : undefined, lastYear: years.length ? Math.max(...years) : undefined, cars: p.inventory.real_exact }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: 'car', vclass: null, model: p.make.name }), imageAlt: `${p.make.name} studio image` });
 }
 
 export async function MakeView({ p }: { p: MakePage }) {
-  const [t, labels] = await Promise.all([getTokens(), labelsOf()]);
+  const [t, labels, photo] = await Promise.all([getTokens(), labelsOf(), stockPhoto(p.make.slug)]);
   const name = p.make.name;
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name]];
   const img = standIn({ path: p.path, group: 'car', vclass: null, model: name });
@@ -43,7 +44,7 @@ export async function MakeView({ p }: { p: MakePage }) {
     <div className="p-vehicle" data-page="vehicle-make">
       <JsonLd graph={[breadcrumbLd(trail, p.path), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }))),
         { '@type': 'ItemList', name: `${name} models`, itemListElement: p.models.slice(0, 100).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + m.path, name: `${name} ${m.name}` })) }]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
         facts={[['Models', String(p.models.length)], ['Years', years.length ? `${Math.min(...years)} to ${Math.max(...years)}` : ''], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         <section className="vp-sec" aria-labelledby="h-models">
@@ -65,17 +66,17 @@ export async function MakeView({ p }: { p: MakePage }) {
 
 // ---------------------------------------------------------------- model
 export async function modelMeta(p: ModelPage): Promise<Metadata> {
-  const t = await getTokens();
+  const [t, photo] = await Promise.all([getTokens(), stockPhoto(p.make.slug, p.model.slug)]);
   const ys = p.years.map((y) => y.year);
   const l = p.years.map((y) => y.l100_min).filter((x): x is number => x !== null).map(Number);
-  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical, photo,
     description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, firstYear: ys.length ? Math.min(...ys) : undefined, lastYear: ys.length ? Math.max(...ys) : undefined,
       use: l.length ? `from ${Math.min(...l).toFixed(1)} L/100 km` : undefined, cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.model.vclass, model: p.model.name }), imageAlt: `${p.make.name} ${p.model.name} studio image` });
 }
 
 export async function ModelView({ p }: { p: ModelPage }) {
-  const [t, labels] = await Promise.all([getTokens(), labelsOf()]);
+  const [t, labels, photo] = await Promise.all([getTokens(), labelsOf(), stockPhoto(p.make.slug, p.model.slug)]);
   const name = `${p.make.name} ${p.model.name}`;
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [p.make.name, `/cars/${p.make.slug}`], [p.model.name]];
   const img = standIn({ path: p.path, group: p.body_group, vclass: p.model.vclass, model: p.model.name });
@@ -95,9 +96,9 @@ export async function ModelView({ p }: { p: ModelPage }) {
   const F = (x: string) => fill(x, t);
   return (
     <div className="p-vehicle" data-page="vehicle-model">
-      <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, path: p.path, image: img, description: lead, inv: p.inventory }),
+      <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, path: p.path, image: img, description: lead, inv: p.inventory, photo }),
         faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
         facts={[['Years', ys.length ? `${Math.min(...ys)} to ${Math.max(...ys)}` : ''], ['Our cars', String(p.inventory.exact.length)], ...(price ? [['From', `${price} a day`]] : [])].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         {p.years.length > 0 && <section className="vp-sec" aria-labelledby="h-years">
@@ -116,15 +117,15 @@ export async function ModelView({ p }: { p: ModelPage }) {
 
 // ---------------------------------------------------------------- year
 export async function yearMeta(p: YearPage): Promise<Metadata> {
-  const t = await getTokens();
+  const [t, photo] = await Promise.all([getTokens(), stockPhoto(p.make.slug, p.model.slug, p.year)]);
   const sp = specs(p.variants, p.settings);
-  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical, photo,
     description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, year: p.year, use: ratingRange(sp), trims: p.trims.map((x) => x.name), cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.vclass, model: p.model.name }), imageAlt: `${p.year} ${p.make.name} ${p.model.name} studio image` });
 }
 
 export async function YearView({ p }: { p: YearPage }) {
-  const [t, labels] = await Promise.all([getTokens(), labelsOf()]);
+  const [t, labels, photo] = await Promise.all([getTokens(), labelsOf(), stockPhoto(p.make.slug, p.model.slug, p.year)]);
   const name = `${p.year} ${p.make.name} ${p.model.name}`;
   const modelPath = `/cars/${p.make.slug}/${p.model.slug}`;
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [p.make.name, `/cars/${p.make.slug}`], [p.model.name, modelPath], [String(p.year)]];
@@ -141,8 +142,8 @@ export async function YearView({ p }: { p: YearPage }) {
   return (
     <div className="p-vehicle" data-page="vehicle-year">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, year: p.year, path: p.path, image: img, description: lead, inv: p.inventory,
-        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`}
+        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, photo }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
         facts={[['Powertrains', String(sp.length || '')], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''], ['Trims', String(p.trims.length || '')], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         <section className="vp-sec" aria-labelledby="h-specs">
@@ -175,15 +176,15 @@ export async function YearView({ p }: { p: YearPage }) {
 
 // ---------------------------------------------------------------- trim
 export async function trimMeta(p: TrimPage): Promise<Metadata> {
-  const t = await getTokens();
+  const [t, photo] = await Promise.all([getTokens(), stockPhoto(p.make.slug, p.model.slug, p.year)]);
   const sp = specs(p.variants, p.settings, p.trim.variant_ids);
-  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+  return vehicleMeta({ title: fit(titleOptions({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical, photo,
     description: fit(descriptionOptions({ make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, use: [list([...new Set(sp.map((x) => x.engine))]), ratingRange(sp)].filter(Boolean).join(', '), cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.path, group: p.body_group, vclass: p.vclass, model: p.model.name }), imageAlt: `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name} studio image` });
 }
 
 export async function TrimView({ p }: { p: TrimPage }) {
-  const [t, labels, tiers] = await Promise.all([getTokens(), labelsOf(), getTiers()]);
+  const [t, labels, tiers, photo] = await Promise.all([getTokens(), labelsOf(), getTiers(), stockPhoto(p.make.slug, p.model.slug, p.year)]);
   const name = `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name}`;
   const modelPath = `/cars/${p.make.slug}/${p.model.slug}`;
   const yearPath = `${modelPath}/${p.year}`;
@@ -202,8 +203,8 @@ export async function TrimView({ p }: { p: TrimPage }) {
   return (
     <div className="p-vehicle" data-page="vehicle-trim">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead, inv: p.inventory,
-        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats) }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`}
+        fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats), photo }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
         facts={[['Engine', sp.length === 1 ? sp[0]!.engine : sp.length ? `${sp.length} choices` : ''], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ['Trim', `${p.trim.rank} of ${p.siblings.length}`], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">

@@ -128,8 +128,8 @@ export function pickBest<T extends Candidate>(cands: T[], x: ScoreContext): { c:
 
 /** A generic photo for the place and service pages (a road, a car being detailed, a body shop): the same licence,
  *  size and shape rules, no people's faces as the subject, nothing that misleads (a crash, a police car, a toy). */
-const BAD_GENERIC = /\b(police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
-export function scoreGeneric(c: Candidate, slot: { avoid?: string[] } = {}): number | null {
+const BAD_GENERIC = /\b(abandoned|derelict|evacuated|police|polizei|crash|crashed|wreck|accident|collision scene|fire|burning|protest|riot|funeral|toy|model|lego|drawing|sketch|logo|map|diagram|poster|advert|portrait|selfie|wedding|nascar|race|racing)\b/i;
+export function scoreGeneric(c: Candidate, slot: { avoid?: string[]; must?: string[] } = {}): number | null {
   const lic = licenceOk(c.meta);
   if (!lic.ok) return null;
   if (!/^image\/(jpeg|png|webp)$/.test(c.mime) || c.width < 1280 || c.height < 640) return null;
@@ -138,6 +138,8 @@ export function scoreGeneric(c: Candidate, slot: { avoid?: string[] } = {}): num
   if (lic.attribution && !plainAuthor(c.meta.Artist)) return null;
   const words = `${c.title} ${plainAuthor(c.meta.ImageDescription).slice(0, 300)}`;
   if (BAD_GENERIC.test(words) || (slot.avoid ?? []).some((w) => words.toLowerCase().includes(w.toLowerCase()))) return null;
+  // the photo is about the page's subject: its name or description says so (a search can match a file on a stray word)
+  if (slot.must?.length && !slot.must.some((w) => words.toLowerCase().includes(w.toLowerCase()))) return null;
   let s = 0;
   if (c.quality) s += 30;
   if (/featured pictures|valued images/i.test(c.meta.Categories ?? '')) s += 15;

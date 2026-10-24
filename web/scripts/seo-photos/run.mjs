@@ -60,7 +60,7 @@ async function polite(url, { json = true, tries = 5 } = {}) {
     stats.requests++;
     let r;
     try {
-      r = await fetch(url, { headers: { 'user-agent': UA, 'api-user-agent': UA, accept: json ? 'application/sparql-results+json, application/json' : 'image/*' }, signal: AbortSignal.timeout(60_000) });
+      r = await fetch(url, { headers: { 'user-agent': UA, 'api-user-agent': UA, accept: json ? 'application/json' : 'image/*' }, signal: AbortSignal.timeout(60_000) });
     } catch (e) {
       if (i >= tries) throw e;
       stats.retries++; await sleep(5000 * (i + 1)); continue;
@@ -83,17 +83,15 @@ async function polite(url, { json = true, tries = 5 } = {}) {
     return body;
   }
 }
-// the endpoints (WM_* only for the script's own offline test, scripts/seo-photos/mock.test.mjs)
+// the endpoints (WM_* only for the script's own offline check, scripts/seo-photos/offline-check.mjs)
 const API = process.env.WM_COMMONS_API ?? 'https://commons.wikimedia.org/w/api.php';
 const WD = process.env.WM_WIKIDATA_API ?? 'https://www.wikidata.org/w/api.php';
-const SPARQL = process.env.WM_SPARQL ?? 'https://query.wikidata.org/sparql';
 const GAP_MS = Number(process.env.WM_GAP_MS ?? 1000);
 const qs = (o) => new URLSearchParams({ format: 'json', formatversion: '2', maxlag: '5', ...o }).toString();
 const EXT = 'LicenseShortName|License|LicenseUrl|UsageTerms|Artist|Credit|AttributionRequired|Copyrighted|NonFree|Restrictions|ImageDescription|ObjectName|Categories|DateTimeOriginal';
 const II = { prop: 'imageinfo', iiprop: 'url|size|mime|sha1|extmetadata', iiurlwidth: '1280', iiextmetadatafilter: EXT, iiextmetadatalanguage: 'en' };
 
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '');
-const CAR = /\b(automobile|car|cars|vehicle|sport utility|suv|crossover|pick-?up|truck|minivan|van|sedan|saloon|hatchback|coupe|coupé|roadster|convertible|wagon|estate|model|series|range|lineup|nameplate)\b/i;
 
 /** Commons pages (from imageinfo) as candidates. */
 function candidates(pages, extra = {}) {
@@ -122,43 +120,63 @@ async function categoryFiles(cat, quality) {
 }
 
 // ---------------------------------------------------------------- Wikidata: the model and its generations
+// Wikidata's Action API only (the search, haswbstatement and wbgetentities): the same rate rules as Commons.
+const NOT_A_CAR = new Set(['Q4167410', 'Q4830453', 'Q786820', 'Q43229', 'Q783794', 'Q167270', 'Q431289', 'Q7397', 'Q11424', 'Q7889']);
+const claim = (e, p) => (e?.claims?.[p] ?? []).filter((c) => c.rank !== 'deprecated').map((c) => c.mainsnak?.datavalue?.value).filter((v) => v !== undefined && v !== null);
+const ids = (e, p) => claim(e, p).map((v) => v?.id).filter(Boolean);
+/** A Wikidata time ("+2017-08-00T00:00:00Z", precision 9 year, 10 month) as year and month. */
+function wdTime(v) {
+  const m = /^([+-]?\d{1,6})-(\d\d)-(\d\d)/.exec(v?.time ?? '');
+  if (!m) return null;
+  const year = Number(m[1]), month = Number(m[2]);
+  return { year, month: Number(v.precision) >= 10 && month >= 1 && month <= 12 ? month : null };
+}
+async function entities(list) {
+  const out = {};
+  for (let i = 0; i < list.length; i += 50) {
+    const b = await polite(`${WD}?${qs({ action: 'wbgetentities', ids: list.slice(i, i + 50).join('|'), props: 'labels|aliases|claims', languages: 'en' })}`);
+    Object.assign(out, b.entities ?? {});
+  }
+  return out;
+}
+const label = (e) => e?.labels?.en?.value ?? '';
+/** The model's item: a search hit named like it (label or alias) that is a car model (a maker or brand, not a company,
+ *  a disambiguation page or a work). */
 async function resolveModel(make, model) {
   const want = norm(`${make} ${model}`);
   const b = await polite(`${WD}?${qs({ action: 'wbsearchentities', search: `${make} ${model}`, language: 'en', uselang: 'en', type: 'item', limit: '10' })}`);
-  const hits = (b.search ?? []).filter((h) => CAR.test(h.description ?? '') && !/\b(company|manufacturer|brand|video game|song|album|film|racing|race car|concept)\b/i.test(h.description ?? ''));
-  return hits.find((h) => norm(h.label) === want) ?? hits.find((h) => norm(h.label) === norm(model) || (h.aliases ?? []).some((a) => norm(a) === want)) ?? null;
+  const named = (b.search ?? []).filter((h) => norm(h.label) === want || norm(h.match?.text) === want || (h.aliases ?? []).some((x) => norm(x) === want) || norm(h.label) === norm(model));
+  if (!named.length) return null;
+  const ents = await entities(named.slice(0, 5).map((h) => h.id));
+  for (const h of named.slice(0, 5)) {
+    const e = ents[h.id];
+    if (!e || ids(e, 'P31').some((q) => NOT_A_CAR.has(q))) continue;
+    if (ids(e, 'P176').length || ids(e, 'P1716').length || ids(e, 'P31').some((q) => ['Q3231690', 'Q59773381', 'Q29048322', 'Q1420'].includes(q))) return { id: h.id, label: label(e) || h.label, entity: e };
+  }
+  return null;
 }
 const GEN_WORD = /^(\(|[a-z]{1,3}\d|mk|mark|[ivx]+\b|\d+(st|nd|rd|th)\b|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|generation|gen\b|\d{4})/i;
-async function generations(qid, modelLabel) {
-  const q = `SELECT ?item ?itemLabel ?img ?cat ?start ?prec ?start2 ?prec2 ?end WHERE {
-  { BIND(wd:${qid} AS ?item) } UNION { ?item wdt:P179|wdt:P279|wdt:P361 wd:${qid} . FILTER(?item != wd:${qid}) }
-  OPTIONAL { ?item wdt:P18 ?img }
-  OPTIONAL { ?item wdt:P373 ?cat }
-  OPTIONAL { ?item p:P571/psv:P571 [ wikibase:timeValue ?start; wikibase:timePrecision ?prec ] }
-  OPTIONAL { ?item p:P580/psv:P580 [ wikibase:timeValue ?start2; wikibase:timePrecision ?prec2 ] }
-  OPTIONAL { ?item wdt:P2669|wdt:P582|wdt:P576 ?end }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-} LIMIT 300`;
-  const b = await polite(`${SPARQL}?${new URLSearchParams({ query: q, format: 'json' })}`);
-  const by = new Map();
-  for (const r of b.results?.bindings ?? []) {
-    const id = r.item.value.split('/').pop();
-    const g = by.get(id) ?? { id, label: r.itemLabel?.value ?? id, start: null, startMonth: null, end: null, image: null, category: null };
-    const st = r.start ?? r.start2, pr = Number((r.start ? r.prec : r.prec2)?.value ?? 9);
-    if (st && g.start === null) { const d = new Date(st.value); if (!Number.isNaN(d.getTime())) { g.start = d.getUTCFullYear(); g.startMonth = pr >= 10 ? d.getUTCMonth() + 1 : null; } }
-    if (r.end && g.end === null) { const d = new Date(r.end.value); if (!Number.isNaN(d.getTime())) g.end = d.getUTCFullYear(); }
-    if (r.img && !g.image) g.image = `File:${decodeURIComponent(r.img.value.split('/Special:FilePath/').pop()).replace(/_/g, ' ')}`;
-    if (r.cat && !g.category) g.category = r.cat.value;
-    by.set(id, g);
-  }
-  const self = by.get(qid) ?? { id: qid, label: modelLabel, start: null, end: null, image: null, category: null };
-  by.delete(qid);
-  // a generation's name begins with the model's and goes on with a generation word ("Toyota Camry (XV70)"), never
-  // another car ("Toyota Camry Solara", "Daihatsu Altis") or a race version
-  const prefix = norm(self.label || modelLabel);
-  const gens = [...by.values()].filter((g) => {
+const genOf = (id, e) => {
+  const st = wdTime(claim(e, 'P571')[0]) ?? wdTime(claim(e, 'P580')[0]);
+  const en = wdTime(claim(e, 'P2669')[0]) ?? wdTime(claim(e, 'P582')[0]) ?? wdTime(claim(e, 'P576')[0]);
+  const img = claim(e, 'P18')[0];
+  return { id, label: label(e) || id, start: st?.year ?? null, startMonth: st?.month ?? null, end: en?.year ?? null, image: img ? `File:${String(img).replace(/_/g, ' ')}` : null, category: claim(e, 'P373')[0] ?? null };
+};
+/** The model and its generations: the items that are part of the series of the model, a subclass of it or a part of it,
+ *  named like it and followed by a generation word ("Toyota Camry (XV70)"), never another car ("Toyota Camry Solara") or
+ *  a race version. */
+async function generations(model) {
+  const q = model.id;
+  const b = await polite(`${WD}?${qs({ action: 'query', list: 'search', srsearch: `haswbstatement:P179=${q}|P279=${q}|P361=${q}`, srnamespace: '0', srlimit: '50' })}`);
+  const found = (b.query?.search ?? []).map((x) => x.title).filter((t) => /^Q\d+$/.test(t) && t !== q);
+  const ents = found.length ? await entities(found) : {};
+  const self = genOf(q, model.entity);
+  const name = self.label || model.label;
+  const prefix = norm(name);
+  const gens = found.map((id) => genOf(id, ents[id])).filter((g) => {
     if (!norm(g.label).startsWith(prefix)) return false;
-    const rest = g.label.slice(g.label.toLowerCase().indexOf((self.label || modelLabel).toLowerCase()) + (self.label || modelLabel).length).trim();
+    const at = g.label.toLowerCase().indexOf(name.toLowerCase());
+    const rest = at >= 0 ? g.label.slice(at + name.length).trim() : '';
     return (!rest || GEN_WORD.test(rest)) && !/nascar|race|racing|rally|concept|police|taxi|electric conversion/i.test(g.label);
   });
   return { self, gens };
@@ -170,7 +188,7 @@ async function chooseFor(t, rejectedBy = new Map()) {
   const hit = await resolveModel(t.make_name, t.model_name);
   if (!hit) { r.note = 'not found on Wikidata'; return r; }
   r.wikidata = hit.id;
-  const { self, gens } = await generations(hit.id, hit.label);
+  const { self, gens } = await generations(hit);
   const first = t.first_year ?? 1980, lastY = t.last_year ?? new Date().getUTCFullYear() + 1;
   const ranges = generationRanges(gens, first, lastY);
   const slots = ranges.length ? ranges.map((g) => ({ g, from: g.from, to: g.to })) : [{ g: self, from: null, to: null }];

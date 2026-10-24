@@ -43,19 +43,27 @@ async function handle(req, res) {
   if (process.env.OFFLINE_DEBUG) console.error(`stand-in: ${req.method} ${req.url.slice(0, 120)}`);
   const u = new URL(req.url, base);
   const body = await new Promise((r) => { const c = []; req.on('data', (d) => c.push(d)); req.on('end', () => r(Buffer.concat(c))); });
-  if (/^\/(wd|sparql|api|thumb)/.test(u.pathname) && !/^CarmaCarsStockPhotos\/1\.0 \(https:\/\/carmacars\.ca; /.test(req.headers['user-agent'] ?? '')) { res.writeHead(403); return res.end('no user agent'); }
+  if (/^\/(wd|api|thumb)/.test(u.pathname) && !/^CarmaCarsStockPhotos\/1\.0 \(https:\/\/carmacars\.ca; /.test(req.headers['user-agent'] ?? '')) { res.writeHead(403); return res.end('no user agent'); }
   if (u.pathname === '/wd') {
-    return json(res, { search: [{ id: 'Q100', label: 'Toyota Camry Solara', description: 'automobile model' }, { id: 'Q1', label: 'Toyota Camry', description: 'automobile model series' }] });
-  }
-  if (u.pathname === '/sparql') {
-    const b = (item, label, extra = {}) => ({ item: { value: `http://www.wikidata.org/entity/${item}` }, itemLabel: { value: label }, ...extra });
-    return json(res, { results: { bindings: [
-      b('Q1', 'Toyota Camry', { cat: { value: 'Toyota Camry' } }),
-      b('Q50', 'Toyota Camry (XV50)', { start: { value: '2011-08-01T00:00:00Z' }, prec: { value: '10' }, end: { value: '2017-01-01T00:00:00Z' }, img: { value: 'http://commons.wikimedia.org/wiki/Special:FilePath/Toyota%20Camry%20XV50%20front.jpg' }, cat: { value: 'Toyota Camry (XV50)' } }),
-      b('Q70', 'Toyota Camry (XV70)', { start: { value: '2017-01-01T00:00:00Z' }, prec: { value: '9' }, img: { value: 'http://commons.wikimedia.org/wiki/Special:FilePath/Toyota%20Camry%20XV70%20side.jpg' }, cat: { value: 'Toyota Camry (XV70)' } }),
-      b('Q99', 'Toyota Camry Hybrid', { start: { value: '2006-01-01T00:00:00Z' }, prec: { value: '9' } }),
-      b('Q98', 'Toyota Camry (XV70) NASCAR', { start: { value: '2018-01-01T00:00:00Z' }, prec: { value: '9' } })
-    ] } });
+    assert.equal(u.searchParams.get('maxlag'), '5');
+    const act = u.searchParams.get('action');
+    if (act === 'wbsearchentities') return json(res, { search: [{ id: 'Q100', label: 'Toyota Camry Solara' }, { id: 'Q7', label: 'Toyota Camry', description: 'disambiguation page' }, { id: 'Q1', label: 'Toyota Camry' }] });
+    const t = (time, precision = 9) => ({ mainsnak: { datavalue: { value: { time, precision } } }, rank: 'normal' });
+    const str = (v) => ({ mainsnak: { datavalue: { value: v } }, rank: 'normal' });
+    const item = (id) => ({ mainsnak: { datavalue: { value: { id } } }, rank: 'normal' });
+    const E = {
+      Q7: { labels: { en: { value: 'Toyota Camry' } }, claims: { P31: [item('Q4167410')] } },
+      Q1: { labels: { en: { value: 'Toyota Camry' } }, claims: { P176: [item('Q53268')], P373: [str('Toyota Camry')] } },
+      Q50: { labels: { en: { value: 'Toyota Camry (XV50)' } }, claims: { P571: [t('+2011-08-00T00:00:00Z', 10)], P2669: [t('+2017-00-00T00:00:00Z')], P18: [str('Toyota Camry XV50 front.jpg')], P373: [str('Toyota Camry (XV50)')] } },
+      Q70: { labels: { en: { value: 'Toyota Camry (XV70)' } }, claims: { P571: [t('+2017-00-00T00:00:00Z')], P18: [str('Toyota Camry XV70 side.jpg')], P373: [str('Toyota Camry (XV70)')] } },
+      Q99: { labels: { en: { value: 'Toyota Camry Hybrid' } }, claims: { P571: [t('+2006-00-00T00:00:00Z')] } },
+      Q98: { labels: { en: { value: 'Toyota Camry (XV70) NASCAR' } }, claims: { P571: [t('+2018-00-00T00:00:00Z')] } }
+    };
+    if (act === 'wbgetentities') return json(res, { entities: Object.fromEntries(u.searchParams.get('ids').split('|').filter((id) => E[id]).map((id) => [id, { id, ...E[id] }])) });
+    if (act === 'query') {
+      assert.equal(u.searchParams.get('srsearch'), 'haswbstatement:P179=Q1|P279=Q1|P361=Q1');
+      return json(res, { query: { search: ['Q50', 'Q70', 'Q99', 'Q98'].map((title) => ({ title })) } });
+    }
   }
   if (u.pathname === '/api') {
     assert.equal(u.searchParams.get('maxlag'), '5');
@@ -89,7 +97,7 @@ if (PG) {
     insert into vehicle_catalog_models (make_slug, slug, name, key) values ('toyota', 'camry', 'Camry', 'camry') on conflict do nothing;
     insert into vehicle_catalog_years (make_slug, model_slug, year) select 'toyota', 'camry', y from generate_series(2010, 2025) y on conflict do nothing;`]);
 }
-const env = { ...process.env, WM_COMMONS_API: `${base}/api`, WM_WIKIDATA_API: `${base}/wd`, WM_SPARQL: `${base}/sparql`, WM_GAP_MS: '0',
+const env = { ...process.env, WM_COMMONS_API: `${base}/api`, WM_WIKIDATA_API: `${base}/wd`, WM_GAP_MS: '0',
   ...(PG ? { STORAGE_URL: `${base}/storage`, SERVICE_KEY: 'test-key', SQL_API_URL: `${base}/sql` } : {}) };
 const manifest = join(process.env.RUNNER_TEMP ?? '/tmp', `seo-photos-offline-${process.pid}.json`);
 const argv = ['--experimental-strip-types', '--no-warnings', join(HERE, 'run.mjs'), '--manifest', manifest, ...(PG ? ['--write', '--models', 'toyota/camry'] : ['--models', 'toyota/camry', '--samples', '1'])];

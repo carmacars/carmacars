@@ -21,6 +21,7 @@ import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
+import { StockPhotosAdmin, type StockData } from '@/features/vehicles/StockPhotosAdmin';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
@@ -151,7 +152,10 @@ export default async function Section({ params }: { params: Promise<{ section: s
     </>);
   }
   case 'vehicle-pages':
-    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} /></>);
+    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} />
+      {/* 0137: the licensed stock photos (empty until the migration and the first run) */}
+      <StockPhotosAdmin d={await door<StockData>(user.id, 'admin_read', 'stock_photos').catch(() => ({ coverage: { models: 0, models_checked: 0, models_with_photo: 0, model_years: 0, model_years_with_photo: 0,
+        generations: 0, model_only: 0, hidden: 0, pending: 0, failed: 0, generic: {}, popular: 0, popular_with_photo: 0, popular_missing: [], last_run: null }, photos: [] }))} /></>);
   case 'search': {
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };

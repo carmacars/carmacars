@@ -8,6 +8,8 @@ import { siteUrl } from '@/lib/site';
 import type { Dim, Settings, TrimRef, Variant, YearRow } from './content';
 import type { Inventory, SimilarModel } from './parts';
 import type { TierPage, Tiers } from './deep';
+import { photoShare, stockAlt } from './photo';
+import type { StockPhoto } from './stock-photos';
 
 // The vehicle pages' reads (migration 0097): one database call per page (public.vehicle_*_page), shared by the
 // metadata and the page through React's cache. Unknown slugs are a 404; another spelling of a model answers 301.
@@ -60,8 +62,11 @@ export const tierPage = cache(async (make: string, model: string, year: string, 
 export const tiers = cache(async (): Promise<Tiers> => ((await rpc('vehicle_tiers', {})) as unknown as Tiers | null) ?? { settings: {}, places: [], colours: [], terms: [] });
 
 /** Metadata: the page's own canonical when it is indexed; noindex,follow with the canonical at the parent when not. */
-export async function vehicleMeta(o: { title: string; description: string; path: string; indexable: boolean; canonical: string; image: string; imageAlt: string }): Promise<Metadata> {
-  const m = await seoMeta({ title: o.title, description: o.description, path: o.path, image: siteUrl() + o.image, imageSize: [1800, 1200], imageAlt: o.imageAlt, noindex: !o.indexable });
+export async function vehicleMeta(o: { title: string; description: string; path: string; indexable: boolean; canonical: string; image: string; imageAlt: string; photo?: StockPhoto | null }): Promise<Metadata> {
+  // 0137: the page's licensed stock photo is its sharing image when it has one
+  const share = o.photo ? photoShare(o.photo) : null;
+  const m = await seoMeta({ title: o.title, description: o.description, path: o.path, image: share ? share.url : siteUrl() + o.image, imageSize: share ? share.size : [1800, 1200],
+    imageAlt: o.photo ? stockAlt(o.photo) : o.imageAlt, noindex: !o.indexable });
   if (!o.indexable) m.alternates = { canonical: siteUrl() + o.canonical };
   return m;
 }

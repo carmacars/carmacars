@@ -1,17 +1,103 @@
 {
   "about": "The generic photos of the place and service pages (migration 0137): Wikimedia Commons searches per kind of page, the best few kept (scoreGeneric in src/features/vehicles/stock-photos.ts: public domain, CC0, CC BY or CC BY-SA only). Quality images first. The page shows one of them, the same one for the same address, with its credit.",
   "slots": [
-    { "slot": "rental", "keep": 4, "alt": "Cars on a highway in the Toronto area",
-      "queries": ["incategory:\"Quality_images\" Highway 401 Toronto", "incategory:\"Quality_images\" Gardiner Expressway", "incategory:\"Quality_images\" Don Valley Parkway", "Highway 401 traffic Toronto filetype:bitmap filew:>1800", "Gardiner Expressway traffic filetype:bitmap filew:>1800"],
-      "avoid": ["construction", "snowstorm", "flood"] },
-    { "slot": "detailing", "keep": 4, "alt": "A car being washed and detailed",
-      "queries": ["incategory:\"Quality_images\" car wash", "car detailing filetype:bitmap filew:>1600", "car polishing filetype:bitmap filew:>1600", "hand car wash filetype:bitmap filew:>1600"],
-      "avoid": ["fundraiser", "bikini"] },
-    { "slot": "bodyshop", "keep": 4, "alt": "A car in an auto body repair shop",
-      "queries": ["auto body repair shop filetype:bitmap filew:>1600", "car body shop spray booth filetype:bitmap filew:>1600", "car paint shop filetype:bitmap filew:>1600"],
-      "avoid": ["museum"] },
-    { "slot": "sale", "keep": 4, "alt": "Cars parked in a row",
-      "queries": ["incategory:\"Quality_images\" car dealership", "car dealership lot filetype:bitmap filew:>1800", "used car lot filetype:bitmap filew:>1800"],
-      "avoid": ["abandoned", "flood"] }
+    {
+      "slot": "rental",
+      "keep": 4,
+      "alt": "Cars on a highway in the Toronto area",
+      "queries": [
+        "incategory:\"Quality_images\" Highway 401 Toronto",
+        "incategory:\"Quality_images\" Gardiner Expressway",
+        "incategory:\"Quality_images\" Don Valley Parkway",
+        "Highway 401 traffic Toronto filetype:bitmap filew:>1800",
+        "Gardiner Expressway traffic filetype:bitmap filew:>1800"
+      ],
+      "avoid": [
+        "construction",
+        "snowstorm",
+        "flood"
+      ],
+      "must": [
+        "highway",
+        "expressway",
+        "parkway",
+        "freeway",
+        "traffic",
+        "401",
+        "gardiner",
+        "road"
+      ]
+    },
+    {
+      "slot": "detailing",
+      "keep": 4,
+      "alt": "A car being washed and detailed",
+      "queries": [
+        "incategory:\"Quality_images\" car wash",
+        "car detailing filetype:bitmap filew:>1600",
+        "car polishing filetype:bitmap filew:>1600",
+        "hand car wash filetype:bitmap filew:>1600"
+      ],
+      "avoid": [
+        "fundraiser",
+        "bikini"
+      ],
+      "must": [
+        "car wash",
+        "carwash",
+        "detailing",
+        "polish",
+        "myjnia",
+        "autowash",
+        "waxing",
+        "car care"
+      ]
+    },
+    {
+      "slot": "bodyshop",
+      "keep": 4,
+      "alt": "A car in an auto body repair shop",
+      "queries": [
+        "auto body repair shop filetype:bitmap filew:>1600",
+        "car body shop spray booth filetype:bitmap filew:>1600",
+        "car paint shop filetype:bitmap filew:>1600"
+      ],
+      "avoid": [
+        "museum"
+      ],
+      "must": [
+        "body shop",
+        "bodyshop",
+        "body repair",
+        "auto repair",
+        "collision",
+        "spray booth",
+        "paint shop",
+        "car paint",
+        "panel beat"
+      ]
+    },
+    {
+      "slot": "sale",
+      "keep": 4,
+      "alt": "Cars parked in a row",
+      "queries": [
+        "incategory:\"Quality_images\" car dealership",
+        "car dealership lot filetype:bitmap filew:>1800",
+        "used car lot filetype:bitmap filew:>1800"
+      ],
+      "avoid": [
+        "abandoned",
+        "flood"
+      ],
+      "must": [
+        "dealership",
+        "dealer",
+        "car lot",
+        "used car",
+        "showroom",
+        "car sales"
+      ]
+    }
   ]
 }
