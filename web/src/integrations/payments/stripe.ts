@@ -69,6 +69,24 @@ export function toSetup(si: Obj): DebitSetup {
   };
 }
 
+/** A card SetupIntent as an Intent of 0: succeeded once the card is saved (0129). */
+export function setupToIntent(si: Obj): Intent {
+  const pm = obj(si.payment_method);
+  const c = obj(pm?.card);
+  const funding = str(c?.funding);
+  const st = str(si.status);
+  return {
+    id: String(si.id), status: (st === 'succeeded' ? 'succeeded' : st === 'canceled' ? 'canceled' : st === 'processing' ? 'processing' : st === 'requires_action' ? 'requires_action'
+      : st === 'requires_confirmation' ? 'requires_confirmation' : 'requires_payment_method'),
+    amountCents: 0, amountCapturableCents: 0, currency: 'cad', clientSecret: str(si.client_secret), metadata: (obj(si.metadata) ?? {}) as Record<string, string>,
+    customerId: str(si.customer) ?? str(obj(si.customer)?.id), paymentMethodId: str(si.payment_method) ?? str(pm?.id), chargeId: null,
+    card: c ? { brand: str(c.brand) ?? 'card', last4: str(c.last4) ?? '', expMonth: num(c.exp_month), expYear: num(c.exp_year),
+      funding: funding === 'credit' || funding === 'debit' || funding === 'prepaid' ? funding : 'unknown', name: str(obj(pm?.billing_details)?.name),
+      fingerprint: str(c.fingerprint), country: str(c.country) } : null,
+    lastError: str(obj(si.last_setup_error)?.message), methodType: c ? 'card' : null, bank: null, mandateId: null
+  };
+}
+
 export class StripeError extends Error {
   readonly status: number;
   readonly code: string | null;
@@ -176,8 +194,24 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
     async retrieveIntent(id) {
       return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
     },
-    async captureIntent(id, key) {
-      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/capture`, { expand }, key));
+    async captureIntent(id, key, amountCents) {
+      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/capture`, { amount_to_capture: amountCents, expand }, key));
+    },
+    async createStaffIntent(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: r.capture, setup_future_usage: 'off_session',
+        payment_method_types: ['card'], description: r.description, metadata: r.metadata,
+        ...(r.capture === 'manual' ? { 'payment_method_options[card][request_extended_authorization]': 'if_available' } : {}),
+        expand
+      }, r.idempotencyKey));
+    },
+    async createCardSetup(r) {
+      return setupToIntent(await call('POST', '/setup_intents', {
+        customer: r.customerId, usage: 'off_session', payment_method_types: ['card'], description: r.description, metadata: r.metadata, expand: ['payment_method']
+      }, r.idempotencyKey));
+    },
+    async retrieveCardSetup(id) {
+      return setupToIntent(await call('GET', `/setup_intents/${encodeURIComponent(id)}`, { expand: ['payment_method'] }));
     },
     async cancelIntent(id, key) {
       return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/cancel`, { cancellation_reason: 'abandoned', expand }, key));

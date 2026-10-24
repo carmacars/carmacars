@@ -5,6 +5,7 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Database plan (Supabase)', db_cap_pro_mb: 'Database size cap on Pro, for the imports (MB)',
@@ -86,6 +87,7 @@ const LABELS: Record<string, string> = {
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  e_transfer_email: 'Shown to a renter whose offer is paid by e-Transfer. Empty: the public email of Site settings.', stripe_moto_enabled: 'Off: only the renter types a card, on their phone or on a staff device handed to them. Turn on only after Stripe enables MOTO on the account.',
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',
   street_address: 'Where renters pick up and return cars. This address will change: update it here and every page, email and agreement uses the new one. Nothing else holds it.',

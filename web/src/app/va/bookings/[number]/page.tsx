@@ -9,6 +9,7 @@ import { BookingAddons } from '@/features/addons/BookingAddons';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
+import { BookingMoney, type Money } from '@/features/money/BookingMoney';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { QuickReply } from '@/features/va/QuickReply';
@@ -44,6 +45,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const R = [base];
   // the renter's visits on the site (0060), on the history tab
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'va_read', 'visitor_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
+  // the money by part (0129): record a payment, collect a card, confirm a booking paid another way
+  const moneyByPart = tab === 'money' ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // calls and texts with the renter (0085): customer service and Sales
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
   const [km, replies, staff, messages] = await Promise.all([
@@ -65,7 +68,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
     ? await read<Late | null>('late_panel', { booking: b.id }).catch(() => null) : null;
   const tabs: Array<[string, string, number?]> = [
     ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : []), [`${base}?tab=overview`, 'Overview'],
-    ...(fn === 'finance' || fn === 'cs' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
+    ...(fn === 'finance' || fn === 'cs' || fn === 'sales' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
     ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length], [`${base}?tab=messages`, 'Messages']] as Array<[string, string, number?]> : []),
     ...(fn === 'sales' ? [[`${base}?tab=messages`, 'Messages']] as Array<[string, string]> : []),
     [`${base}?tab=history`, 'History']];
@@ -74,7 +77,9 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /></>}>
         {(fn === 'cs' || fn === 'sales') && b.status === 'requested' && <Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={R} done="Question sent." />}
         {(fn === 'cs' || fn === 'sales') && b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={R} />}
-        {(fn === 'cs' || fn === 'sales') && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw to edit" fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={R} />}
+        {(fn === 'cs' || (fn === 'sales' && b.status === 'offered')) && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
+        {fn === 'cs' && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
+        {(fn === 'cs' || fn === 'sales') && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw the offer" fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={R} />}
         {fn === 'cs' && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'renter_request' }} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
           { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} />}
@@ -94,7 +99,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
               ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'], ['Car free', b.available ? 'yes' : 'no']]} />
           </Card>
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'va_read', 'listing_state', { vehicle_id: b.vehicle_id }, aal).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span></p>}
-          <BookingReview b={b} insurers={[]} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={24} editable={b.status === 'requested'} />
+          <BookingReview b={b} insurers={[]} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={24} editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && fn === 'cs')} />
         </>
       )}
       {tab === 'overview' && (
@@ -111,8 +116,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           {fn === 'cs' && <Card title="Signed on paper" testId="booking-paper"><div className="stack"><p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p><PaperSignatureList rows={paper} canVoid={false} docBase="/va/documents" /><PaperSignatureForm docs={paperDocs} today={today} refresh={R} /></div></Card>}
         </div>
       )}
+      {tab === 'money' && moneyByPart && !b.payments && <BookingMoney m={moneyByPart} />}
       {tab === 'money' && b.payments && (
         <div className="stack">
+          {moneyByPart && <BookingMoney m={moneyByPart} />}
           <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
             { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>
           {fn === 'finance' && <Card title="Paid another way" testId="booking-manual-payments"><ManualPaymentList rows={manual} canVoid={false} docBase="/va/documents" /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={R} label="Record a payment received another way" /></Card>}

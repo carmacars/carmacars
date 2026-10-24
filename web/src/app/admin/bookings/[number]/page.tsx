@@ -17,6 +17,7 @@ import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
+import { BookingMoney, type Money } from '@/features/money/BookingMoney';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -60,6 +61,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const tab = sp.tab ?? (arranging ? 'review' : 'overview');
   const P = { booking: b.id };
   // the renter's visits on the site (0060), on the history tab
+  // the money by part (0129), on the Money tab
+  const moneyByPart = tab === 'money' ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number }).catch(() => null) : null;
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
   // calls and texts with the renter about this booking (0085)
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
@@ -71,7 +74,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
         {b.status === 'requested' && <Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />}
         {b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} testId="decline" />}
-        {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw to edit" confirm="The renter's offer is withdrawn and they are told. Edit, then send the next version." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
+        {['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
+        {['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
+        {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw the offer" confirm="The renter's offer is withdrawn and they are told. To change it instead, press Edit the offer." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="resend_offer" payload={P} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="approve_offer_by_phone" payload={P} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
         {b.status === 'expired' && <Act action="reopen_expired" payload={P} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
@@ -101,7 +106,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
             </Card>
           </div>
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
-          <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={b.status === 'requested'} />
+          <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} />
         </>
       )}
       {tab === 'overview' && (
@@ -125,6 +130,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'money' && (
         <div className="stack">
+          {moneyByPart && <BookingMoney m={moneyByPart} />}
           <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
             { key: 'act', label: '', render: (r) => r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>
           <Card title="Paid another way" testId="booking-manual-payments">

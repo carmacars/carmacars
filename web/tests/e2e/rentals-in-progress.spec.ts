@@ -100,8 +100,8 @@ test('Admin: a rental already underway, recorded as on trip, with the case shown
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-free')).toBeVisible({ timeout: 20_000 });
   // a rental underway may be paid by link or card (unlike one that has ended)
-  await expect(page.getByTestId('mr-mode-link')).toBeVisible();
-  await page.getByTestId('mr-mode-other_way').check();
+  await expect(page.getByTestId('mr-paid-by').locator('option[value="link"]')).toHaveCount(1);
+  await page.getByTestId('mr-paid-by').selectOption('e_transfer');
   await page.getByTestId('mr-reference').fill('ET-UNDERWAY');
   await page.getByTestId('mr-do-not-email').check();
   await check(page, 'add a rental, underway, priced');
@@ -156,7 +156,7 @@ test('assistant: a rental already underway on a car closed to public bookings, w
   await page.getByTestId('mr-licence_expiry').fill('2030-01-31');
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-free')).toBeVisible({ timeout: 20_000 });
-  await page.getByTestId('mr-mode-link').check();
+  await page.getByTestId('mr-paid-by').selectOption('link');
   await expect(page.getByTestId('manual-rental')).toContainText('The rental is on trip already.');
   await page.getByTestId('choice-for_carmacars').check();
   await check(page, 'va add a rental underway');

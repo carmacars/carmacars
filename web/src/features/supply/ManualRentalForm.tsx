@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
@@ -7,6 +7,7 @@ import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/Sourced
 import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
+import { DEPOSIT_PAY, RENTAL_PAID_BY, needsReference, paymentOf, type DepositPay, type RentalPaidBy } from '@/features/offers/model';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -27,12 +28,6 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   price_tax?: PriceTaxSplit | null;
   quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
 
-const MODE: Record<string, [string, string]> = {
-  other_way: ['Paid another way', 'e-Transfer, cheque, cash or bank transfer: recorded as a payment received another way.'],
-  link: ['Send a payment link', 'The renter gets an email to sign and pay online, the usual way. The rental waits for that payment.'],
-  card: ['Charge the saved card when the renter signs', 'The renter\'s card on file is charged when the renter presses Accept and sign, not before. Until then the rental is awaiting signature.'],
-  unpaid: ['Unpaid: invoice later', 'Confirmed now; the balance is collected later.']
-};
 // what each way means for a rental already underway (0074): it is on trip from the start
 const LIVE_MODE: Record<string, string> = {
   link: 'The renter gets an email to sign the agreement, then pay online from their booking. The rental is on trip already.',
@@ -68,6 +63,11 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', price_tax: 'plus', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) });
   const [flags, setFlags] = useState({ do_not_email: false, new_renter: field, policy: false });
+  // 0129: the rental and the deposit each paid its own way, paper or online signing, the calendar switch
+  const [paidBy, setPaidBy] = useState<RentalPaidBy>(field ? 'link' : 'e_transfer');
+  const [depositBy, setDepositBy] = useState<DepositPay>('card');
+  const [agreement, setAgreement] = useState<'send' | 'paper'>('send');
+  const [blocks, setBlocks] = useState(true);
   // add-ons (0066): the car's, with what is left for the dates; priced in the check below
   const [addons, setAddons] = useState<AddonChoice[]>([]);
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
@@ -121,14 +121,41 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     const r = await supplyRead<Quote>('manual_rental_quote', spec());
     if (!r.ok) { setErr(r.message); setQuote(null); return; }
     setQuote(r.data);
-    if (!r.data.payment_modes.includes(f.mode ?? '')) setF((s) => ({ ...s, mode: r.data.payment_modes[0] ?? 'other_way' }));
+    if (!field && !['platform_payout', 'insurer'].includes(paidBy) && !r.data.payment_modes.includes(paymentOf(paidBy).mode)) setPaidBy(r.data.payment_modes.includes('other_way') ? 'e_transfer' : r.data.payment_modes.includes('link') ? 'link' : 'unpaid');
   });
   const search = () => start(async () => {
     const r = await supplyRead<Renter[]>('manual_rental_renters', { q });
     if (r.ok) setFound(r.data); else setErr(r.message);
   });
+  // the renter search as you type (0129): name, email or phone, no button to press
+  useEffect(() => {
+    if (renter || flags.new_renter || q.trim().length < 3) return;
+    const t = setTimeout(async () => { const r = await supplyRead<Renter[]>('manual_rental_renters', { q }); if (r.ok) setFound(r.data); }, 350);
+    return () => clearTimeout(t);
+  }, [q, renter, flags.new_renter]);
+  // the calendar and the price, checked by themselves once the car and the dates are in (0129: no button to press first)
+  const auto = useRef(0);
+  useEffect(() => {
+    if (!f.vehicle_id || !phase || (past && !isAdmin) || quote) return;
+    const n = ++auto.current;
+    const t = setTimeout(() => { if (n === auto.current) check(); }, 500);
+    return () => clearTimeout(t);
+  }, [f.vehicle_id, f.pickup_at, f.return_at, f.booking_type, f.promo_code, f.coverage_option, f.pickup_method, f.return_method, renter, addons, quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // a quick start for the common cases (0129): where it came from and what goes with it
+  const preset = (k: 'phone' | 'walk_in' | 'turo' | 'insurer' | 'owner' | 'dummy') => {
+    setQuote(null);
+    if (k === 'phone' || k === 'walk_in') { setF((x) => ({ ...x, source: k })); setPaidBy(field ? 'link' : 'e_transfer'); setBlocks(true); }
+    if (k === 'turo') { setF((x) => ({ ...x, source: 'turo' })); setPaidBy('platform_payout'); setBlocks(true); }
+    if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); }
+    if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
+    if (k === 'dummy') { setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
+  };
+
   const submit = () => start(async () => {
     setErr(null);
+    if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
+    if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (cents(f.rental_charge ?? '') !== undefined && !(f.price_reason ?? '').trim()) { setErr('Give the reason for the price you typed.'); return; }
     if (quote && quote.has_rates === false && cents(f.rental_charge ?? '') === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
@@ -139,7 +166,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         licence_issuer: f.licence_issuer || 'ON', licence_expiry: f.licence_expiry || undefined, address_line1: f.address_line1 || undefined, city: f.city || undefined, postal_code: f.postal_code || undefined },
       price_reason: f.price_reason || undefined, fleet_policy_confirmed: flags.policy || undefined,
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
-      payment: { mode: f.mode, method: f.method, reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined } };
+      payment: { ...paymentOf(paidBy), reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined },
+      deposit: { method: depositBy, reference: f.deposit_reference || undefined }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }) };
     const r = await createManualRental(p);
     if (!r.ok) { setErr(r.message); return; }
     setDone(r.data);
@@ -164,10 +192,22 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     );
   }
   const modes = (quote?.payment_modes ?? (isAdmin ? ['other_way', 'link', 'card', 'unpaid'] : field ? ['link', 'card'] : ['other_way', 'link', 'card'])).filter((m) => !past || m === 'other_way' || m === 'unpaid');
+  // what this person may choose (the database says the same): a payout or the insurer is no money taken here
+  const paidByOptions = RENTAL_PAID_BY.filter(([v]) => {
+    const m = paymentOf(v).mode;
+    if (field) return m === 'link' || m === 'card';
+    if (v === 'platform_payout' || v === 'insurer') return true;
+    return modes.includes(m);
+  });
   const car = cars.find((x) => x.id === f.vehicle_id);
   const card = renter?.card ?? quote?.card ?? null;
   return (
     <form className="ad-form stack" noValidate data-testid="manual-rental" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <div className="row" role="group" aria-label="Quick start" data-testid="mr-presets">
+        <span className="small"><b>Quick start:</b></span>
+        {([['phone', 'Phone'], ['walk_in', 'Walk-in'], ['turo', 'Turo or another platform'], ['insurer', 'Insurance replacement'], ...(isAdmin ? [['owner', 'Owner using own car'], ['dummy', 'Placeholder']] : [])] as Array<[Parameters<typeof preset>[0], string]>).map(([k, l]) => (
+          <button key={k} className={`btn btn--sm ${(k === f.source || (k === 'owner' && f.source_note?.startsWith('The owner')) || (k === 'dummy' && f.source_note?.startsWith('Placeholder'))) ? 'btn--primary' : 'btn--ghost'}`} type="button" onClick={() => preset(k)} data-testid={`mr-preset-${k}`}>{l}</button>))}
+      </div>
       <fieldset className="stack"><legend className="d4">1. The car and the dates</legend>
         <div className="ad-fields">
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor={id('vehicle_id')}>Car</label>
@@ -202,6 +242,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
               <div className="row"><label className="sr-only" htmlFor={id('q')}>Find a renter</label>
                 <input className="input" id={id('q')} placeholder="Name, email or phone" value={q} onChange={(e) => setQ(e.target.value)} data-testid="mr-renter-q" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } }} />
                 <button className="btn btn--ghost btn--sm" type="button" onClick={search} disabled={pending || q.trim().length < 3} data-testid="mr-renter-search">Find</button></div>
+              {found.length === 0 && q.trim().length >= 3 && <p className="small">No renter found. <button className="btn btn--quiet btn--sm" type="button" data-testid="mr-new-from-search" onClick={() => { const t = q.trim();
+                setFlags((x) => ({ ...x, new_renter: true })); setF((x) => ({ ...x, email: t.includes('@') ? t : x.email ?? '', mobile: /^[\d\s()+-]{7,}$/.test(t) ? t : x.mobile ?? '', full_name: !t.includes('@') && !/\d/.test(t) ? t : x.full_name ?? '' })); }}>Add them as a new renter</button></p>}
               {found.length > 0 && <ul className="stack" data-testid="mr-renter-results">{found.map((r) => (
                 <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setRenter(r); setQuote(null); }}>{r.legal_name}</button> <span className="small">{r.email} {r.mobile} · {r.bookings} booking(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
             </div>
@@ -227,7 +269,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <fieldset className="stack"><legend className="d4">3. The rental</legend>
         <div className="ad-fields">
           {select('booking_type', 'Booking', [['standard', 'Standard'], ['non_refundable', 'Non-refundable (fixed discount)']])}
-          {select('coverage_option', 'Damage coverage', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: the CarmaCars Protection Plan']])}
+          {select('coverage_option', 'How damage to the car is covered', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: the Protection Plan']])}
           {select('source', 'Where it came from', SOURCES)}
           {f.source === 'other' && text('source_note', 'Say where')}
           {text('promo_code', 'Promo code')}
@@ -236,7 +278,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
         {f.vehicle_id && addonOptions.length > 0 && (
           <div className="stack" data-testid="mr-addons-block"><p className="small"><b>Add-ons</b> <span className="muted">optional, priced with the rental</span></p>
             <AddonPicker idPrefix="mr" staff compact options={addonOptions} value={addons} onChange={(v) => { setAddons(v); setQuote(null); }} /></div>)}
-        <p><button className="btn btn--ghost" type="button" onClick={check} disabled={pending} data-testid="mr-check">{pending ? 'Checking' : 'Check the calendar and the price'}</button></p>
+        <p><button className="btn btn--ghost" type="button" onClick={check} disabled={pending} data-testid="mr-check">{pending ? 'Checking' : quote ? 'Check again' : 'Check the calendar and the price'}</button></p>
         {quote && (
           <div className="stack" data-testid="mr-quote">
             {quote.free ? <p className="alert alert--ok" role="status" data-testid="mr-free"><span>{quote.vehicle.name} is free for these dates (with {quote.turnaround_minutes} minutes between trips).</span></p>
@@ -266,17 +308,30 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
           </div>)}
       </fieldset>
 
-      <fieldset className="stack"><legend className="d4">4. Payment</legend>
-        {modes.map((m) => (
-          <label key={m} className="check ad-choice" htmlFor={id(`mode-${m}`)}><input type="radio" id={id(`mode-${m}`)} name="mode" value={m} checked={f.mode === m} onChange={set('mode')} data-testid={`mr-mode-${m}`}
-            disabled={m === 'card' && !card} /> <span><b>{MODE[m]![0]}</b>{m === 'card' ? (card ? ` (${card.brand} ending ${card.last4})` : ' (no saved card)') : ''}<br /><span className="small muted">{phase === 'in_progress' && LIVE_MODE[m] ? LIVE_MODE[m] : MODE[m]![1]}</span></span></label>))}
-        {f.mode === 'other_way' && (
-          <div className="ad-fields">
-            {select('method', 'How it was paid', [['e_transfer', 'e-Transfer'], ['cheque', 'Cheque'], ['cash', 'Cash'], ['bank_transfer', 'Bank transfer'], ['other', 'Another way']])}
-            {text('reference', 'Reference (e-Transfer, cheque or transfer number)')}{text('received_on', 'Date received', { type: 'date' })}
+      <fieldset className="stack"><legend className="d4">4. Payment, deposit, agreement and calendar</legend>
+        <div className="ad-fields">
+          <div className="field ad-field"><label className="label" htmlFor={id('paid_by')}>The rental is paid by</label>
+            <select className="select" id={id('paid_by')} value={paidBy} onChange={(e) => setPaidBy(e.target.value as RentalPaidBy)} data-testid="mr-paid-by">
+              {paidByOptions.map(([v, l]) => <option key={v} value={v} disabled={v === 'card_on_file' && !card}>{l}{v === 'card_on_file' ? (card ? ` (${card.brand} ${card.last4})` : ' (no saved card)') : ''}</option>)}</select>
+            <p className="hint">{RENTAL_PAID_BY.find(([v]) => v === paidBy)?.[2]}{phase === 'in_progress' && (paidBy === 'link' || paidBy === 'card_on_file') ? ` ${LIVE_MODE[paidBy === 'link' ? 'link' : 'card']}` : ''}</p></div>
+          <div className="field ad-field"><label className="label" htmlFor={id('deposit_by')}>The deposit is taken by</label>
+            <select className="select" id={id('deposit_by')} value={depositBy} onChange={(e) => setDepositBy(e.target.value as DepositPay)} data-testid="mr-deposit-by">
+              {DEPOSIT_PAY.filter(([v]) => isAdmin || v !== 'none').map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            <p className="hint">{DEPOSIT_PAY.find(([v]) => v === depositBy)?.[2]}</p></div>
+          {depositBy === 'e_transfer' && text('deposit_reference', 'Deposit e-Transfer reference')}
+          {['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout'].includes(paidBy) && <>
+            {needsReference(paidBy) || paidBy === 'platform_payout' ? text('reference', paidBy === 'platform_payout' ? 'Trip or payout reference (optional)' : 'Reference (e-Transfer, cheque or transfer number)') : null}
+            {text('received_on', 'Date received', { type: 'date' })}
             {text('amount', 'Amount ($, empty: the total)', { inputMode: 'decimal', hint: quote?.role === 'va' && quote.single_limit_cents != null ? `Your single limit is ${fmt(quote.single_limit_cents)}.` : undefined })}
-            {f.method === 'other' && text('payment_note', 'How it was paid')}
-          </div>)}
+          </>}
+          <div className="field ad-field"><span className="label">The rental agreement</span>
+            <label className="check" htmlFor={id('agr-send')}><input type="radio" id={id('agr-send')} name="mr-agr" checked={agreement === 'send'} onChange={() => setAgreement('send')} data-testid="mr-agreement-send" /> <span>Send it to sign online</span></label>
+            <label className="check" htmlFor={id('agr-paper')}><input type="radio" id={id('agr-paper')} name="mr-agr" checked={agreement === 'paper'} onChange={() => setAgreement('paper')} data-testid="mr-agreement-paper" /> <span>Already signed on paper (upload the scan on the booking)</span></label></div>
+          <div className="field ad-field"><span className="label">The calendar</span>
+            <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
+            {!blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>
+          {!blocks && text('blocks_reason', 'Why it does not block the calendar', { wide: true })}
+        </div>
         <label className="check" htmlFor={id('dne')}><input id={id('dne')} type="checkbox" checked={flags.do_not_email} onChange={flag('do_not_email')} data-testid="mr-do-not-email" /> <span>Do not email the renter</span></label>
       </fieldset>
 
@@ -286,7 +341,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
 
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit">{pending ? 'Working' : past ? 'Record the past rental' : phase === 'in_progress' ? 'Add the rental already underway' : 'Add the rental'}</button>
-        {!quote && <span className="small muted">Check the calendar and the price first.</span>}</div>
+        {!quote && <span className="small muted">{pending ? 'Checking the calendar and the price…' : 'The calendar and the price are checked once the car and the dates are in.'}</span>}</div>
     </form>
   );
 }

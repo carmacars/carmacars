@@ -21,6 +21,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
   return (
     <>
       <PageHead title="Bookings" kicker={`${count} found`} purpose="Every booking, newest pickup first. Open one to see its trip, payments and documents."><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer</Link>
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
       <Filters base="/admin/bookings" name="status" value={status} options={STATUSES} sp={sp} />
       <MoreFilters active={!!(sp.supply || sp.added)}>

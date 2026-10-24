@@ -303,8 +303,8 @@ test('legal: a rental added with the saved card is charged only when the renter 
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-price')).toBeVisible({ timeout: 20_000 });
   if (await page.getByTestId('mr-clash').isVisible().catch(() => false)) await page.getByTestId('mr-clash_reason').fill('Test rental far ahead');
-  await expect(page.getByTestId('mr-mode-card').locator('xpath=..')).toContainText('Charge the saved card when the renter signs');
-  await page.getByTestId('mr-mode-card').check();
+  await expect(page.getByTestId('mr-paid-by').locator('option[value="card_on_file"]')).toBeEnabled();
+  await page.getByTestId('mr-paid-by').selectOption('card_on_file');
   await page.getByTestId('mr-do-not-email').check();
   await check(page, 'add a rental with the saved card');
   await page.getByTestId('mr-submit').click();

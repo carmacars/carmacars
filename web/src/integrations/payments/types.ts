@@ -111,6 +111,24 @@ export interface OffSessionChargeRequest {
   idempotencyKey: string;
 }
 
+/** A card payment staff start from a booking (0129): the renter enters the card in Stripe's frame, on their phone (a pay
+ *  link) or on the staff device handed to them. manual: a deposit hold (captured later or released). */
+export interface StaffIntentRequest {
+  amountCents: number;
+  customerId: string;
+  capture: 'automatic' | 'manual';
+  description: string;
+  metadata: Record<string, string>;
+  idempotencyKey: string;
+}
+/** Saving a card for later (a SetupIntent), shaped as an Intent of 0 (status succeeded once the card is saved). */
+export interface CardSetupRequest {
+  customerId: string;
+  description: string;
+  metadata: Record<string, string>;
+  idempotencyKey: string;
+}
+
 export interface WebhookEvent {
   id: string;
   type: string;
@@ -148,7 +166,13 @@ export interface PaymentsAdapter {
   /** A card PaymentIntent for the add-ons a renter owes (0079): captured at once, the card not saved. */
   createAddonIntent(r: AddonIntentRequest): Promise<Intent>;
   retrieveIntent(id: string): Promise<Intent>;
-  captureIntent(id: string, idempotencyKey: string): Promise<Intent>;
+  /** Captures an authorization; amountCents captures part of it (the rest is released). */
+  captureIntent(id: string, idempotencyKey: string, amountCents?: number): Promise<Intent>;
+  /** A card payment or deposit hold started by staff (0129). */
+  createStaffIntent(r: StaffIntentRequest): Promise<Intent>;
+  /** Save a card for later charges, no money (0129). */
+  createCardSetup(r: CardSetupRequest): Promise<Intent>;
+  retrieveCardSetup(id: string): Promise<Intent>;
   /** Voids an authorization: nothing is charged. */
   cancelIntent(id: string, idempotencyKey: string): Promise<Intent>;
   /** Charges the saved Card on File (extensions, later charges). */

@@ -140,7 +140,7 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-free')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('mr-price')).toContainText('Total from the rate sheet');
-  await page.getByTestId('mr-mode-other_way').check();
+  await page.getByTestId('mr-paid-by').selectOption('e_transfer');
   await page.getByTestId('mr-reference').fill('ET-1234');
   await page.getByTestId('mr-do-not-email').check();
   await check(page, 'add a rental, priced');
@@ -277,7 +277,7 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
   await page.getByTestId('mr-licence_number').fill('C1234-56789-01234');
   await page.getByTestId('mr-licence_expiry').fill('2030-01-31');
   // a payment link goes by email, so "do not email" stays off for it
-  await page.getByTestId('mr-mode-link').check();
+  await page.getByTestId('mr-paid-by').selectOption('link');
   await page.getByTestId('choice-for_carmacars').check();
   await check(page, 'va add a rental, priced');
   await page.getByTestId('mr-submit').click();
