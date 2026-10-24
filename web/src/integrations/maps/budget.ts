@@ -16,19 +16,31 @@ export const MIN_QUERY = 3;
 export const PLACE_ID = /^[A-Za-z0-9_-]{4,300}$/;
 
 export function budgetedMaps(google: MapsAdapter, fallback: MapsAdapter, take: TakeBudget): MapsAdapter {
+  // why a lookup did not reach Google goes to the Worker's log, once per SKU and reason in an isolate's day, so a
+  // "suggestions do not work" report can be read in Workers Observability (2026-10-24)
+  const said = new Set<string>();
+  const say = (sku: MapsSku, why: string) => {
+    const k = `${new Date().toISOString().slice(0, 10)}:${sku}:${why.slice(0, 40)}`;
+    if (said.has(k)) return; said.add(k);
+    console.warn(`maps: ${sku} not sent to Google: ${why}`);
+  };
   const allowed = async (sku: MapsSku) => {
-    try { return (await take(sku)) === true; } catch { return false; }
+    try {
+      const ok = (await take(sku)) === true;
+      if (!ok) say(sku, 'the daily cap is reached (Admin > Settings > Program, maps_daily_cap_*)');
+      return ok;
+    } catch (e) { say(sku, `the daily cap could not be read (${e instanceof Error ? e.message : String(e)})`); return false; }
   };
   return {
     name: google.name,
-    async autocomplete(query, sessionToken) {
+    async autocomplete(query, sessionToken, o) {
       if (query.trim().length < MIN_QUERY) return [];
-      return (await allowed('autocomplete')) ? google.autocomplete(query, sessionToken) : [];
+      return (await allowed('autocomplete')) ? google.autocomplete(query, sessionToken, o) : [];
     },
-    async suggest(query, sessionToken) {
+    async suggest(query, sessionToken, o) {
       if (query.trim().length < MIN_QUERY) return { items: [], limited: false };
       if (!(await allowed('autocomplete'))) return { items: [], limited: true };
-      return { items: await google.autocomplete(query, sessionToken), limited: false };
+      return { items: await google.autocomplete(query, sessionToken, o), limited: false };
     },
     async place(id, sessionToken) {
       if (!PLACE_ID.test(id)) return null;
