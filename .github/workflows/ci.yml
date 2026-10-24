@@ -108,27 +108,39 @@ jobs:
           npm run db:types && git diff --exit-code src/lib/db/types.ts
 
   # ---------------------------------------------------------------- the full suite (deploy, or full = true)
-  # Parallel jobs, each on its own runner with its own local stack, Worker build and server (.github/actions/full-stack,
-  # about 4 minutes): the end-to-end tests in 8 shards (each width in 4), link check, copy lint, the crawl as every role
-  # (one job per group of roles; Admin in 4 parts), SEO, the emails with database values, Lighthouse when asked. The job
-  # named full waits for all of them and fails when one did, so deploy keeps needing [fast, full]. One job used to run
-  # everything in turn (Oct 24: 3 h 40 min); side by side the slowest job sets the time (docs/ci-minutes.md).
+  # Eight jobs side by side (one job used to run everything in turn: 2.5 to 3.7 hours). Each brings up its own local
+  # stack, Worker build and server (.github/actions/full-stack, about 4 minutes), runs a quarter of the end-to-end tests
+  # at one width (375 or 1440, with axe), and then, against the same server and the data its tests left, as the one job
+  # did: the emails with database values (every job: together they render every email the tests queued) and its share
+  # of the audits below (link check, copy lint, crawl as every role with Admin in 4 parts, SEO). The job named full
+  # waits for all eight and fails when one did, so deploy still needs [fast, full]. docs/ci-minutes.md.
   e2e:
-    name: e2e ${{ matrix.project }} ${{ matrix.shard }}/4
+    name: e2e ${{ matrix.project }} ${{ matrix.shard }}/4${{ inputs.e2e_grep == '' && format(', {0}', matrix.label) || '' }}
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        project: [phone-375, desktop-1440]
-        shard: [1, 2, 3, 4]
+        # Oct 24 (run 40142213899): e2e shards 5-9 min; on the seed alone: links 7, copy 5, SEO 8, crawl anon+renter+owner
+        # 6, investor+field+va_finance 5, va_fleet+va_sales 5, va_cs 3.5 (11-16 after the whole suite), Admin parts 4-7
+        include:
+          - { project: phone-375, shard: 1, label: 'copy lint, crawl admin 2 of 4', copy: true, roles: admin, part: '2/4' }
+          - { project: phone-375, shard: 2, label: 'crawl anon, renter, owner', roles: 'anon,renter,owner', part: '1/1' }
+          - { project: phone-375, shard: 3, label: 'crawl investor, field, va_finance, admin 4 of 4', roles: 'investor,field,va_finance', part: '1/1', roles2: admin, part2: '4/4' }
+          - { project: phone-375, shard: 4, label: 'SEO, crawl va_fleet, va_sales', seo: true, roles: 'va_fleet,va_sales', part: '1/1' }
+          - { project: desktop-1440, shard: 1, label: 'crawl admin 1 of 4', roles: admin, part: '1/4' }
+          - { project: desktop-1440, shard: 2, label: 'crawl va_cs', roles: va_cs, part: '1/1' }
+          - { project: desktop-1440, shard: 3, label: 'link check', links: true }
+          - { project: desktop-1440, shard: 4, label: 'crawl admin 3 of 4', roles: admin, part: '3/4' }
     defaults:
       run:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/full-stack
+        with:
+          save-caches: ${{ matrix.project == 'desktop-1440' && matrix.shard == 3 }}
       - name: End to end, accessibility
         env:
           BASE_URL: http://localhost:3000
@@ -142,17 +154,58 @@ jobs:
           name: blob-e2e-${{ matrix.project }}-${{ matrix.shard }}
           retention-days: 1
           path: web/blob-report
+      - name: Settle
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && true }}
+        # the local server rebuilds public pages on a 10 s tick, twice after a fleet change (the confirm pass):
+        # let the last e2e change settle before the pages are crawled
+        run: sleep 25
+      - name: Link check
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.links }}
+        run: |
+          s=0
+          npm run -s check:links > /tmp/links.log 2>&1 || s=1; tail -n 40 /tmp/links.log
+          echo "::notice title=links::$(grep -E '^linkcheck' /tmp/links.log | paste -sd ';' -)"
+          if [ $s -ne 0 ]; then echo "::error title=links failed::$(grep -vE '^linkcheck:' /tmp/links.log | head -n 25 | cut -c1-300 | paste -sd ';' -)"; fi
+          exit $s
+      - name: Copy lint
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.copy }}
+        run: |
+          s=0
+          npm run -s check:copy > /tmp/copy.log 2>&1 || s=1; tail -n 40 /tmp/copy.log
+          echo "::notice title=copy::$(grep -E '^copylint' /tmp/copy.log | paste -sd ';' -)"
+          if [ $s -ne 0 ]; then echo "::error title=copy lint failed::$(grep -vE '^copylint:' /tmp/copy.log | head -n 25 | cut -c1-300 | paste -sd ';' -)"; fi
+          exit $s
+      - name: Crawl as ${{ matrix.roles }} ${{ matrix.part }}
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.roles }}
+        run: |
+          set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --roles ${{ matrix.roles }} --part ${{ matrix.part }} --out reports/crawl.json > /tmp/crawl.log; s=$?
+          tail -n 40 /tmp/crawl.log; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
+      - name: Crawl as ${{ matrix.roles2 }} ${{ matrix.part2 }}
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.roles2 }}
+        run: |
+          set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --roles ${{ matrix.roles2 }} --part ${{ matrix.part2 }} --out reports/crawl-2.json > /tmp/crawl2.log; s=$?
+          tail -n 40 /tmp/crawl2.log; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl2.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
+      - name: SEO
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.seo }}
+        run: |
+          set +e; ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs > /tmp/seo.log; s=$?
+          tail -n 40 /tmp/seo.log; echo "::notice title=seo::$( (head -n 3 /tmp/seo.log; tail -n 3 /tmp/seo.log) | paste -sd ';' -)"; exit $s
+      - name: Emails with database values
+        if: ${{ !cancelled() && inputs.e2e_grep == '' && true }}
+        run: |
+          set +e; ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots > /tmp/emails.log; s=$?
+          tail -n 40 /tmp/emails.log; echo "::notice title=emails::$(grep -E '^emails' /tmp/emails.log | paste -sd ';' -)"; exit $s
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: full-suite-e2e-${{ matrix.project }}-${{ matrix.shard }}
+          name: full-suite-${{ matrix.project }}-${{ matrix.shard }}
           retention-days: 7
           path: |
             web/test-results
             web/reports
             /tmp/serve.log
 
-  # the shards' reports as one: the same "e2e" notice as one run (passed, failed, flaky, skipped), and reports/e2e.json
+  # the eight reports as one: the same "e2e" notice as one run (passed, failed, flaky, skipped), and reports/e2e.json
   e2e-report:
     needs: e2e
     if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
@@ -179,7 +232,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME: reports/e2e.json
         run: |
           npx playwright merge-reports --reporter list,json ./all-blob-reports > /tmp/e2e.log 2>&1; s=$?
-          tail -n 60 /tmp/e2e.log
+          grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)|^ +\[|✘|^ +[0-9]+\) ' /tmp/e2e.log | tail -n 60
           echo "::notice title=e2e::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
       - uses: actions/upload-artifact@v4
         if: needs.e2e.result == 'failure'
@@ -187,149 +240,6 @@ jobs:
           name: e2e-report
           retention-days: 7
           path: web/reports/e2e.json
-
-  links:
-    name: Link check
-    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) && inputs.e2e_grep == ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/full-stack
-      - name: Link check
-        run: |
-          # the local server rebuilds public pages on a 10 s tick: let the first rebuild after start settle
-          sleep 25
-          s=0
-          npm run -s check:links > /tmp/links.log 2>&1 || s=1; tail -n 40 /tmp/links.log
-          echo "::notice title=links::$(grep -E '^linkcheck' /tmp/links.log | paste -sd ';' -)"
-          if [ $s -ne 0 ]; then echo "::error title=links failed::$(grep -vE '^linkcheck:' /tmp/links.log | head -n 25 | cut -c1-300 | paste -sd ';' -)"; fi
-          exit $s
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: full-suite-links
-          retention-days: 7
-          path: |
-            web/reports
-            /tmp/serve.log
-
-  copy:
-    name: Copy lint
-    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) && inputs.e2e_grep == ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/full-stack
-      - name: Copy lint
-        run: |
-          sleep 25
-          s=0
-          npm run -s check:copy > /tmp/copy.log 2>&1 || s=1; tail -n 40 /tmp/copy.log
-          echo "::notice title=copy::$(grep -E '^copylint' /tmp/copy.log | paste -sd ';' -)"
-          if [ $s -ne 0 ]; then echo "::error title=copy lint failed::$(grep -vE '^copylint:' /tmp/copy.log | head -n 25 | cut -c1-300 | paste -sd ';' -)"; fi
-          exit $s
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: full-suite-copy
-          retention-days: 7
-          path: /tmp/serve.log
-
-  # Oct 24 (40084100188, after the end-to-end data): anon 5 min, renter, owner, investor, field 2 each, va_cs 11-16,
-  # va_finance 6, va_fleet 8, va_sales 4, admin 27-41 (hence 4 parts: --part renders a quarter of the shapes each)
-  crawl:
-    name: Crawl ${{ matrix.label }}
-    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) && inputs.e2e_grep == ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { label: 'anon, renter, owner', roles: 'anon,renter,owner', part: '1/1' }
-          - { label: 'investor, field, va_finance', roles: 'investor,field,va_finance', part: '1/1' }
-          - { label: 'va_cs', roles: 'va_cs', part: '1/1' }
-          - { label: 'va_fleet, va_sales', roles: 'va_fleet,va_sales', part: '1/1' }
-          - { label: 'admin 1 of 4', roles: 'admin', part: '1/4' }
-          - { label: 'admin 2 of 4', roles: 'admin', part: '2/4' }
-          - { label: 'admin 3 of 4', roles: 'admin', part: '3/4' }
-          - { label: 'admin 4 of 4', roles: 'admin', part: '4/4' }
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/full-stack
-      - name: Crawl as ${{ matrix.label }}
-        run: |
-          set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --roles ${{ matrix.roles }} --part ${{ matrix.part }} --out reports/crawl.json > /tmp/crawl.log; s=$?
-          tail -n 40 /tmp/crawl.log; echo "::notice title=crawl ${{ matrix.label }}::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: full-suite-crawl-${{ strategy.job-index }}
-          retention-days: 7
-          path: |
-            web/reports
-            /tmp/serve.log
-
-  seo:
-    name: SEO
-    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) && inputs.e2e_grep == ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/full-stack
-        with:
-          save-caches: 'true'
-      - name: SEO
-        run: |
-          set +e; ../.github/ci-run.sh "SEO" node tests/lint/seo-audit.mjs > /tmp/seo.log; s=$?
-          tail -n 40 /tmp/seo.log; echo "::notice title=seo::$( (head -n 3 /tmp/seo.log; tail -n 3 /tmp/seo.log) | paste -sd ';' -)"; exit $s
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: full-suite-seo
-          retention-days: 7
-          path: |
-            web/reports
-            /tmp/serve.log
-
-  emails:
-    name: Emails with database values
-    if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) && inputs.e2e_grep == ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/full-stack
-      - name: Emails with database values
-        run: |
-          set +e; ../.github/ci-run.sh "Emails" node tests/lint/emails-db.mjs --no-shots > /tmp/emails.log; s=$?
-          tail -n 40 /tmp/emails.log; echo "::notice title=emails::$(grep -E '^emails' /tmp/emails.log | paste -sd ';' -)"; exit $s
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: full-suite-emails
-          retention-days: 7
-          path: |
-            web/reports
-            /tmp/serve.log
 
   lighthouse:
     name: Lighthouse (mobile; recorded)
@@ -348,23 +258,17 @@ jobs:
           CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" node tests/lint/lighthouse.mjs
           jq -r 'to_entries[] | "::notice title=lighthouse::\(.key) performance \(.value.performance), accessibility \(.value.accessibility), best practices \(.value.bestPractices), SEO \(.value.seo); LCP \(.value.lcp), CLS \(.value.cls), TBT \(.value.tbt)"' reports/lighthouse.json
 
-  # The full suite passed: every job above succeeded (with e2e_grep, only the end-to-end shards run). deploy needs this.
+  # The full suite passed: all eight jobs succeeded. deploy needs this job, as it needed the one full job before.
   full:
-    needs: [e2e, links, copy, crawl, seo, emails]
+    needs: e2e
     if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Every job of the full suite passed
-        env:
-          NEEDS: ${{ toJSON(needs) }}
-          GREP: ${{ inputs.e2e_grep }}
         run: |
-          echo "$NEEDS" | jq -r '"| job | result |", "|---|---|", (to_entries[] | "| \(.key) | \(.value.result) |")' >> "$GITHUB_STEP_SUMMARY"
-          if [ -n "$GREP" ]; then want='.e2e.result == "success"'; else want='[.[] | .result] | all(. == "success")'; fi
-          if ! echo "$NEEDS" | jq -e "$want" > /dev/null; then
-            echo "::error title=full suite failed::$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | "\(.key) \(.value.result)"] | join("; ")')"; exit 1
-          fi
+          echo "full suite: ${{ needs.e2e.result }}"
+          [ "${{ needs.e2e.result }}" = success ] || { echo "::error title=full suite failed::one of the eight jobs failed (${{ needs.e2e.result }}); see its annotations"; exit 1; }
 
   # ---------------------------------------------------------------- deploy
   deploy:
