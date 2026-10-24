@@ -105,14 +105,15 @@ jobs:
           host=$(sed -E 's#^https?://##; s#/.*##' <<<"$BASE")
           sent=0
           for i in $(seq 1 "$ROUNDS"); do
-            c=$("$sb" sql "select app.server_indexnow_claim(10000) c" | jq '.[0].c')
-            n=$(jq '.paths | length' <<<"$c")
-            if [ "$n" = 0 ]; then echo "::notice title=indexnow::nothing to send now ($(jq -r '.why // ""' <<<"$c"))"; break; fi
-            jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' <<<"$c" > "$RUNNER_TEMP/in.json"
+            # the claim holds up to 10,000 paths: keep it in a file (as an argument it passes the kernel's limit, exit 126)
+            "$sb" sql "select app.server_indexnow_claim(10000) c" | jq '.[0].c' > "$RUNNER_TEMP/claim.json"
+            n=$(jq '.paths | length' "$RUNNER_TEMP/claim.json")
+            if [ "$n" = 0 ]; then echo "::notice title=indexnow::nothing to send now ($(jq -r '.why // ""' "$RUNNER_TEMP/claim.json"))"; break; fi
+            jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' "$RUNNER_TEMP/claim.json" > "$RUNNER_TEMP/in.json"
             code=$(curl -sS -o "$RUNNER_TEMP/in.out" -D "$RUNNER_TEMP/in.h" -w '%{http_code}' -m 60 -X POST https://www.bing.com/indexnow -H 'content-type: application/json; charset=utf-8' --data-binary @"$RUNNER_TEMP/in.json" || echo 0)
             ra=$(grep -i '^retry-after:' "$RUNNER_TEMP/in.h" 2>/dev/null | tr -dc '0-9' || true)
             err=$(head -c 200 "$RUNNER_TEMP/in.out" 2>/dev/null | tr -d '\r' || true)
-            jq -n --argjson c "$c" --argjson s "$code" --arg e "$err" --arg ra "$ra" '{status: $s, count: ($c.paths | length), cursor: $c.cursor, files: $c.files, error: (if $s >= 200 and $s < 300 then null else $e end), retry_after: (if $ra == "" then null else ($ra | tonumber) end)}' > "$RUNNER_TEMP/rep.json"
+            jq -n --slurpfile cs "$RUNNER_TEMP/claim.json" --argjson s "$code" --arg e "$err" --arg ra "$ra" '$cs[0] as $c | {status: $s, count: ($c.paths | length), cursor: $c.cursor, files: $c.files, error: (if $s >= 200 and $s < 300 then null else $e end), retry_after: (if $ra == "" then null else ($ra | tonumber) end)}' > "$RUNNER_TEMP/rep.json"
             tag="j$(openssl rand -hex 6)"
             printf 'select app.server_indexnow_report($%s$%s$%s$::jsonb) r' "$tag" "$(cat "$RUNNER_TEMP/rep.json")" "$tag" > "$RUNNER_TEMP/rep.sql"
             "$sb" sql-file "$RUNNER_TEMP/rep.sql" >/dev/null
