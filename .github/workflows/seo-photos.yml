@@ -1,0 +1,147 @@
+name: seo-photos
+
+# Licensed stock photos for the vehicle pages (migration 0137; docs/changes/2026-10-24-seo-photos.md).
+# web/scripts/seo-photos/run.mjs finds each catalog model's generations on Wikidata and picks the best photo of each on
+# Wikimedia Commons (public domain, CC0, CC BY or CC BY-SA only), then converts it to WebP at 640 and 1280 px without
+# its metadata, stores it in the public bucket (vehicle-public, seo-photos/...) and saves the row with its author,
+# licence and source (vehicle_stock_photos). Our fleet's models first, then the popular list, then the newest models;
+# every model is recorded when done, so each run carries on where the last one stopped. The Admin's Replace and Pick
+# again requests (Admin > Settings > Vehicle pages) are handled first. Polite to Wikimedia: one request at a time, a
+# second apart, a User-Agent with a contact, maxlag and Retry-After obeyed, the standard 1280 px thumbnail only.
+#
+#   schedule        every day at 06:47 UTC: up to 400 models in 50 minutes (on by default; nothing happens until
+#                   migration 0137 is in the database, or when Program settings vpage_stock_photos is off). The generic
+#                   photos of the place and service pages are fetched once (or on a run that asks for them).
+#   Run workflow    write = true (default): the same, with the limits given; models = toyota/camry,... only those.
+#   push            (any branch, when the pipeline changes) a dry run with no secrets and no writes: the offline check,
+#                   then the popular list chosen live, with the picks and the models missing as annotations (the picks
+#                   also gzip+base64 in parts, readable through the annotations API).
+#
+# Downloads stay in memory and go to storage, never to the repository. Production is written only here.
+on:
+  schedule:
+    - cron: '47 6 * * *'
+  workflow_dispatch:
+    inputs:
+      write:
+        description: Store the photos and save the rows (false for a dry run)
+        type: boolean
+        default: true
+      limit:
+        description: Models at most this run
+        type: string
+        default: '400'
+      minutes:
+        description: Stop starting new models after this many minutes
+        type: string
+        default: '50'
+      models:
+        description: Only these models, comma separated (toyota/camry,honda/civic); empty for the next ones due
+        type: string
+        default: ''
+      generic:
+        description: Also fetch the generic photos of the place and service pages again
+        type: boolean
+        default: false
+  push:
+    paths:
+      - '.github/workflows/seo-photos.yml'
+      - 'web/scripts/seo-photos/**'
+      - 'web/src/features/vehicles/stock-photos.ts'
+
+concurrency:
+  group: seo-photos-${{ github.event_name == 'push' && github.ref || 'write' }}
+  cancel-in-progress: false
+
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ github.event_name != 'push' && secrets.VPS_SSH_KEY || '' }}
+
+jobs:
+  photos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # sharp (the WebP conversion) comes with the app's dependencies
+      - run: npm ci --no-audit --no-fund
+      - name: Offline check (a stand-in for Wikidata, Commons and storage; no request to Wikimedia)
+        run: node scripts/seo-photos/offline-check.mjs
+      - name: Due?
+        id: due
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ github.event_name != 'push' && secrets.SUPABASE_ACCESS_TOKEN || '' }}
+          SUPABASE_PROJECT_REF: ${{ github.event_name != 'push' && secrets.SUPABASE_PROJECT_REF || '' }}
+        run: |
+          case "${{ github.event_name }}" in
+            push) echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            workflow_dispatch) [ "${{ inputs.write }}" = true ] || { echo "mode=dry" >> "$GITHUB_OUTPUT"; exit 0; } ;;
+          esac
+          ok=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select to_regclass('public.vehicle_stock_photos') is not null and to_regprocedure('app.stock_photo_targets(jsonb)') is not null as ok" | jq -r '.[0].ok // false')
+          if [ "$ok" != true ]; then echo "mode=skip" >> "$GITHUB_OUTPUT"; echo "::notice title=seo-photos::waiting for migration 0137 in the database"; exit 0; fi
+          on=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select coalesce((app.settings()).vpage_stock_photos, true) as on" | jq -r '.[0].on // true')
+          if [ "$on" != true ]; then echo "mode=skip" >> "$GITHUB_OUTPUT"; echo "::notice title=seo-photos::off in Program settings (vpage_stock_photos)"; exit 0; fi
+          generic=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select count(*) = 0 as none from vehicle_stock_photos where kind = 'generic'" | jq -r '.[0].none // false')
+          { [ "$generic" = true ] || [ "${{ inputs.generic }}" = true ]; } && echo "generic=--generic" >> "$GITHUB_OUTPUT"
+          echo "mode=write" >> "$GITHUB_OUTPUT"
+      # ---------------------------------------------------------------- the dry run (push, or write = false)
+      - name: Dry run (the popular list, chosen live; nothing stored)
+        if: steps.due.outputs.mode == 'dry'
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '45' }}" \
+            ${{ inputs.models && format('--models {0}', inputs.models) || '' }} --samples 3 --generic --manifest "$RUNNER_TEMP/manifest.json" | tee "$RUNNER_TEMP/dry.txt"
+          echo "::notice title=seo-photos dry run::$(jq -c '{models, found, photos, failed, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
+          echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          echo "::notice title=seo-photos generic::$(jq -c '.generic' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          echo "::notice title=seo-photos errors::$(jq -r '.errors | join(" | ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          grep '^sample ' "$RUNNER_TEMP/dry.txt" | head -n 3 | sed 's/^/::notice title=seo-photos conversion::/' || true
+          # the picks, compact, gzip and base64 in parts of 3,900 characters
+          jq -c '[.picks[] | [.m, .y, .g, .f, .w, .h, .l, .a, .s]]' "$RUNNER_TEMP/manifest.json" | gzip -9 | base64 -w0 > "$RUNNER_TEMP/picks.b64"
+          echo "parts=$(( ($(wc -c < "$RUNNER_TEMP/picks.b64") + 3899) / 3900 ))" >> "$GITHUB_ENV"
+      # GitHub keeps at most 10 notices per step: the parts get steps of their own
+      - name: Picks, parts 0 to 9
+        if: steps.due.outputs.mode == 'dry'
+        run: for i in $(seq 0 9); do [ "$i" -lt "$parts" ] && echo "::notice title=picks part $i of $parts::$(dd if="$RUNNER_TEMP/picks.b64" bs=3900 skip=$i count=1 2>/dev/null)"; done; true
+      - name: Picks, parts 10 to 19
+        if: steps.due.outputs.mode == 'dry'
+        run: for i in $(seq 10 19); do [ "$i" -lt "$parts" ] && echo "::notice title=picks part $i of $parts::$(dd if="$RUNNER_TEMP/picks.b64" bs=3900 skip=$i count=1 2>/dev/null)"; done; true
+      - name: Picks, parts 20 to 29
+        if: steps.due.outputs.mode == 'dry'
+        run: for i in $(seq 20 29); do [ "$i" -lt "$parts" ] && echo "::notice title=picks part $i of $parts::$(dd if="$RUNNER_TEMP/picks.b64" bs=3900 skip=$i count=1 2>/dev/null)"; done; true
+      # ---------------------------------------------------------------- production
+      - name: Choose, convert, store and save
+        if: steps.due.outputs.mode == 'write'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          SERVICE_KEY=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key); echo "::add-mask::$SERVICE_KEY"; export SERVICE_KEY
+          STORAGE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url); export STORAGE_URL
+          SQL_API_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-api-url); if [ -n "$SQL_API_URL" ]; then export SQL_API_URL; else unset SQL_API_URL; fi
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --write --limit "${{ inputs.limit || '400' }}" --minutes "${{ inputs.minutes || '50' }}" \
+            ${{ inputs.models && format('--models {0}', inputs.models) || '' }} ${{ steps.due.outputs.generic }} \
+            --manifest "$RUNNER_TEMP/manifest.json" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/write.txt"
+          echo "::notice title=seo-photos::$(jq -c '{models, found, photos, stored, failed, pending, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
+          echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          echo "::notice title=seo-photos errors::$(jq -r '.errors | join(" | ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+      - name: Coverage
+        if: steps.due.outputs.mode == 'write'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          c=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select app.stock_photo_coverage() as c" | jq -c '.[0].c')
+          echo "::notice title=seo-photos coverage::$(echo "$c" | jq -c 'del(.popular_missing, .last_run)')"
+          echo "::notice title=seo-photos popular missing::$(echo "$c" | jq -r '.popular_missing | join(", ")' | head -c 3900)"
