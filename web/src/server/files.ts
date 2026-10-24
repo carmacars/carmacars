@@ -44,10 +44,26 @@ export async function generatedFile(kind: DocKind, key: string, userId: string |
 
 /** A stored file by its documents row (the email links to a signed agreement or a notice). */
 export async function storedDocument(documentId: string): Promise<FileOut | null> {
+  return (await findStoredDocument(documentId))?.file ?? null;
+}
+
+/** The documents row and its file: null when there is no such row, file null when the row's file is not in storage. */
+export async function findStoredDocument(documentId: string): Promise<{ file: FileOut | null; title: string | null } | null> {
   const d = (await rpc('server_document_file', { p_document: documentId }, SR)) as unknown as { bucket: string; path: string; mime_type: string | null; title: string | null } | null;
   if (!d) return null;
-  const bytes = await (await storage()).get(d.bucket as 'documents', d.path);
-  return bytes ? { bytes, fileName: d.path.split('/').pop() ?? 'document', contentType: d.mime_type ?? 'application/octet-stream' } : null;
+  const bytes = d.path ? await (await storage()).get(d.bucket as 'documents', d.path).catch(() => null) : null;
+  return { title: d.title, file: bytes ? { bytes, fileName: d.path.split('/').pop() ?? 'document', contentType: d.mime_type ?? 'application/octet-stream' } : null };
+}
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+/** A documents row whose file is not in storage: a plain "File missing" page (still a 404, so checks and monitors see it)
+ *  rather than a bare "Not found" that reads as a wrong link. */
+export function fileMissingResponse(title: string | null): Response {
+  const name = title ? esc(title) : 'This document';
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>File missing</title>`
+    + `<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:48px 16px;background:#fff;color:#1a1a1a}main{max-width:36rem;margin:0 auto}@media (prefers-color-scheme:dark){body{background:#141414;color:#eee}}</style></head>`
+    + `<body><main><h1>File missing</h1><p>${name} is on record, but its file is not in storage. Ask for it to be uploaded again.</p></main></body></html>`,
+  { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex, nofollow', 'x-content-type-options': 'nosniff' } });
 }
 
 export function fileResponse(f: FileOut, download = false): Response {

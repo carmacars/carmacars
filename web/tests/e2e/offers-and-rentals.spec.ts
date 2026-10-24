@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, storeFixtureJpeg, storeFixturePdf } from './helpers';
 
 // Migration 0129 end to end, at both widths: an Admin sends an offer without a request (a new customer, a price typed,
 // the rental by e-Transfer and the deposit in cash), edits it in place (version 2, no "withdraw to edit"), the renter
@@ -128,8 +128,11 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   // the renter puts their licence on file (0130's gate), approves and signs (their own screens are covered elsewhere)
   const [drv] = await sql`select driver_id from booking_drivers where booking_id = ${b!.id} and role = 'renter'`;
   for (const k of ['licence_front', 'licence_back', 'selfie']) {
-    await sql`select app.register_verification_upload(${b!.id}, ${b!.user_id}, ${k}, ${drv!.driver_id}, ${`renters/of/${k}-${tag()}.jpg`}, ${'e'.repeat(64)}, 'image/jpeg', null, 'identity')`;
+    const key = `renters/of/${k}-${tag()}.jpg`;
+    storeFixtureJpeg('identity', key);   // a real file behind the row (the crawl opens the booking's documents)
+    await sql`select app.register_verification_upload(${b!.id}, ${b!.user_id}, ${k}, ${drv!.driver_id}, ${key}, ${'e'.repeat(64)}, 'image/jpeg', null, 'identity')`;
   }
+  storeFixturePdf('agreements', 'bookings/of/x.pdf');
   await sql`select public.renter_save_details(${b!.user_id}, ${sql.json({ licence_number: 'N1234-12345-12345', licence_issuer: 'ON', licence_class: 'G', licence_expiry: '2030-01-01' })}, ${b!.id})`;
   await sql`select public.renter_approve_offer(${b!.id}, 2, ${b!.user_id})`;
   await sql`select public.renter_open_agreement(${b!.id}, ${b!.user_id}, 'rental-test', ${'f'.repeat(64)}, ${'bookings/of/x.pdf'})`;

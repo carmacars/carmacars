@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 
@@ -18,6 +18,10 @@ export function VerifyUpload({ id, kind, src, pdf }: { id: string; kind: string;
   const [reason, setReason] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // a row whose file is not in storage: say so (and let the VA reject it for a new upload) instead of a broken image
+  const [missing, setMissing] = useState(false);
+  const img = useRef<HTMLImageElement>(null);
+  useEffect(() => { const el = img.current; if (el && el.complete && el.naturalWidth === 0) setMissing(true); }, [src]);
   const decide = (approve: boolean) => start(async () => {
     const r = await vaAct('verify_upload', { upload: id, approve, reason: approve ? null : reason });
     if (!r.ok) { setMsg(r.message); return; }
@@ -26,8 +30,9 @@ export function VerifyUpload({ id, kind, src, pdf }: { id: string; kind: string;
   return (
     <div className="stack" data-testid={`upload-${kind}`}>
       {pdf ? <p><a className="link" href={src} target="_blank" rel="noreferrer">Open the PDF (link valid for one minute)</a></p>
+        : missing ? <p className="alert alert--warn" role="status" data-testid={`file-missing-${kind}`}><span>File missing: this upload is on record but its file is not in storage. Reject it so the renter uploads it again.</span></p>
         // eslint-disable-next-line @next/next/no-img-element -- a one-minute signed private image, never cached
-        : <img className="ad-idimg" src={src} alt={kind.replace(/_/g, ' ')} referrerPolicy="no-referrer" />}
+        : <img ref={img} className="ad-idimg" src={src} alt={kind.replace(/_/g, ' ')} referrerPolicy="no-referrer" onError={() => setMissing(true)} />}
       <fieldset className="ad-fields"><legend className="pt-kicker">Checks</legend>
         {list.map((c, i) => <label key={c} className="check"><input type="checkbox" checked={ticks[i]} onChange={(e) => setTicks((s) => s.map((x, j) => (j === i ? e.target.checked : x)))} /> <span>{c}</span></label>)}
       </fieldset>

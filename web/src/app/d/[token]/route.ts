@@ -1,5 +1,5 @@
 import { readToken } from '@/server/links';
-import { fileResponse, generatedFile, isDocKind, storedDocument, validKey } from '@/server/files';
+import { fileMissingResponse, fileResponse, findStoredDocument, generatedFile, isDocKind, validKey } from '@/server/files';
 
 // The signed file links in emails (7 days; signed by the send-outbox Edge Function with LINK_SIGNING_KEY,
 // purpose "doc"): /d/<token>. A link opens exactly the record it was made for; an expired or altered link
@@ -17,7 +17,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const { token } = await params;
   const t = await readToken<{ k: string; key: string }>('doc', token);
   if (!t || typeof t.k !== 'string' || typeof t.key !== 'string' || !validKey(t.key)) return expired();
-  const f = t.k === 'document' ? await storedDocument(t.key) : isDocKind(t.k) ? await generatedFile(t.k, t.key) : null;
+  if (t.k === 'document') {
+    const d = await findStoredDocument(t.key);
+    if (d && !d.file) return fileMissingResponse(d.title);
+    if (d?.file) return fileResponse(d.file);
+  }
+  const f = t.k !== 'document' && isDocKind(t.k) ? await generatedFile(t.k, t.key) : null;
   if (!f) return new Response('Not found', { status: 404, headers: { 'x-robots-tag': 'noindex' } });
   return fileResponse(f);
 }

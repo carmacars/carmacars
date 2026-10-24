@@ -41,11 +41,17 @@ export async function pdfText(body: Buffer | Uint8Array): Promise<string> {
 
 /** A fixture's stored file in the local storage the server reads (scripts/serve.mjs runs in web/): a one-page PDF, so
  *  a document row a test inserts opens like a real one (the crawl requests every document link it finds). */
-export function storeFixturePdf(bucket: string, key: string) {
+function storeFixture(bucket: string, key: string, body: string | Buffer) {
   const dir = process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage');
   const file = path.join(dir, bucket, key);
   mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+  writeFileSync(file, body);
+}
+/** A small valid JPEG (8x8 grey) in local storage, so a row a test inserts points at a real file (the crawl opens it). */
+export const FIXTURE_JPEG = Buffer.from('/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAAIAAgDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAP/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKAA/9k=', 'base64');
+export function storeFixtureJpeg(bucket: string, key: string) { storeFixture(bucket, key, FIXTURE_JPEG); }
+export function storeFixturePdf(bucket: string, key: string) {
+  storeFixture(bucket, key, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 }
 
 // ---------------------------------------------------------------- VIN-first entry (migration 0082)
@@ -103,6 +109,8 @@ export async function aiAllowanceLock(mode: 'alone' | 'shared'): Promise<() => P
 export async function giveLicence(sql: ReturnType<typeof db>, booking: string) {
   await sql`update booking_drivers set licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}::uuid and role = 'renter'`;
   for (const k of ['licence_front', 'licence_back', 'selfie']) {
+    // the file too: each upload is a documents row the Admin's Documents tab links and the VA's verify page shows
+    storeFixtureJpeg('identity', `e2e/${booking}/${k}.jpg`);
     await sql`select app.register_verification_upload(${booking}::uuid, null, ${k}, d.driver_id, ${`e2e/${booking}/${k}.jpg`}, null, 'image/jpeg', null, 'identity')
                 from booking_drivers d where d.booking_id = ${booking}::uuid and d.role = 'renter'
                  and not exists (select 1 from verification_uploads u where u.booking_id = d.booking_id and u.driver_id = d.driver_id and u.kind = ${k} and u.status in ('submitted', 'approved'))`;
