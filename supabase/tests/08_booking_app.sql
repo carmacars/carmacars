@@ -158,9 +158,9 @@ select test.eq('S an extension can now be approved between asking and paying',
 select test.eq('S the consent list keeps its seven codes and gains the two of the request form (and 0025''s necessary_cookies)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('terms_of_use', 'privacy_policy', 'marketing', 'tracking_disabling'))
      from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'consents_consent_code_check'), '''([a-z_]+)''::text', 'g') m), '10/4');
-select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen (and 0025''s two, 0046''s added_by_staff, 0057''s sales_credit, 0058''s custom_price, 0064''s request_expired)',
+select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen (and 0025''s two, 0046''s added_by_staff, 0057''s sales_credit, 0058''s custom_price, 0064''s request_expired, 0130''s five)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('requested', 'pushed_back', 'agreement_voided', 'payment_refused'))
-     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '31/4');
+     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '36/4');
 select test.eq('S nothing in the app schema that this migration added is executable from a browser session, except the quote, the search and the assurance level',
   (select string_agg(distinct p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
@@ -1337,7 +1337,7 @@ select test.eq('V a confirmed booking is not ready for handover: nothing is veri
      from app.booking_readiness(test.ba('v1')) v),
   'false/false/false/false/false/true/["identity", "coverage", "additional_driver_acceptance", "deposit", "pickup_condition_report"]');
 select test.eq('V handover is refused: every driver''s identity first', test.go('v1'), 'No car is released until every driver''s identity is verified');
-select test.throws('V documents are not uploaded on a request', $$select test.ba_up('r5', 'renter', 'licence_front', test.ba_user('amy.adams@example.test'))$$, 'uploaded once the offer is approved');
+select test.throws('V the coverage proof is not uploaded on a request (the licence is, from 0130)', $$select test.ba_up('r5', 'renter', 'coverage_proof', test.ba_user('amy.adams@example.test'))$$, 'uploaded once the offer is approved');
 select test.throws('V an unknown kind of upload is refused', $$select test.ba_up('v1', 'renter', 'passport', test.ba_user('xan.xu@example.test'))$$, 'Unknown kind of upload');
 select test.throws('V a stranger cannot register an upload on the booking', $$select test.ba_up('v1', 'renter', 'licence_front', test.ba_user('gus.green@example.test'))$$, 'Not permitted');
 select test.throws('V a licence image is for a driver on the booking',

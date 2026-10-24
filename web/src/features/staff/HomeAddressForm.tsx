@@ -2,6 +2,7 @@
 import { useId, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveHomeAddress } from '@/server/actions/home-address';
+import { AddressInput } from '@/features/forms/AddressInput';
 
 // The staff member's own home address (migration 0059): one form used at the first sign-in, in the staff agreement
 // signing step, before Add a rental and in the profile.
@@ -26,7 +27,9 @@ export function HomeAddressForm({ portal, address, postal, button = 'Save my hom
   return (
     <form className="stack" noValidate onSubmit={submit} data-testid={testId}>
       <div className="field"><label className="label" htmlFor={`${id}-a`}>Home address</label>
-        <input className="input" id={`${id}-a`} name="home_address" autoComplete="street-address" value={a} onChange={(e) => setA(e.target.value)} aria-describedby={`${id}-ah`} data-testid="home-address" required />
+        {/* the address lookup (0130): a Canadian suggestion fills the address and the postal code; any other address is typed */}
+        <AddressInput id={`${id}-a`} name="home_address" value={{ label: a, placeId: '' }} onChange={(v) => setA(v.label)} describedBy={`${id}-ah`} testId="home-address" required
+          onParts={(x, label) => { setA(label.replace(/,\s*Canada$/i, '')); if (x.postal_code) setP(x.postal_code); }} />
         <p className="hint" id={`${id}-ah`}>Number, street, city and country, for example 12 Rizal Street, Quezon City, Philippines</p></div>
       <div className="field"><label className="label" htmlFor={`${id}-p`}>Postal code</label>
         <input className="input" id={`${id}-p`} name="home_postal_code" autoComplete="postal-code" value={p} onChange={(e) => setP(e.target.value)} style={{ maxWidth: '12rem' }} data-testid="home-postal" required /></div>

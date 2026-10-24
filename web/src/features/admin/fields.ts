@@ -144,6 +144,8 @@ export function fieldFor(k: string, v: unknown, options?: Array<[string, string]
 function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>): Field {
   if (options) return { name: k, label: nice(k), type: 'select', options, value: v, required: true };
   if (typeof v === 'boolean') return { name: k, label: nice(k), type: 'bool', value: v };
+  // an address column: the field with the address lookup (0130)
+  if ((typeof v === 'string' || v === null) && /^(mailing_address|billing_address|street_address|business_street|home_address|company_address|address_line1)$/.test(k)) return { name: k, label: nice(k), type: 'address', value: v };
   if (k.endsWith('_cents') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'money', value: v };
   if (k.endsWith('_bps') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'percent', value: v };
   if (typeof v === 'number') return { name: k, label: nice(k), type: 'number', value: v };

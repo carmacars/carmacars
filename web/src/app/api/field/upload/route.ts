@@ -21,7 +21,8 @@ export async function POST(req: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const roles = await rolesOf(user.id);
-  if (!roles.field) return NextResponse.json({ ok: false, message: 'Only field staff may upload here.' }, { status: 403 });
+  // field staff, and the staff who check a car out or in from the booking page (0130: the database checks the job is theirs)
+  if (!roles.field && !roles.admin && !roles.va) return NextResponse.json({ ok: false, message: 'Only staff may upload here.' }, { status: 403 });
   const aal = await sessionAal();
   const form = await req.formData().catch(() => null);
   const file = form?.get('file');
@@ -44,7 +45,8 @@ export async function POST(req: Request) {
   await (await storage()).put(bucket, key, bytes, jpg ? 'image/jpeg' : 'image/png');
   if (mode === 'raw') return NextResponse.json({ ok: true, key });
   const meta = (k: string) => { const v = form?.get(k); return typeof v === 'string' && v ? v : null; };
-  const photo = { seq, shot, storage_path: key, storage_bucket: bucket, damage_label: meta('damage_label'), device_taken_at: meta('taken_at'),
+  const coord = (k: string, lim: number) => { const n = Number(meta(k)); return meta(k) !== null && Number.isFinite(n) && Math.abs(n) <= lim ? n : null; };
+  const photo = { seq, shot, storage_path: key, storage_bucket: bucket, damage_label: meta('damage_label'), device_taken_at: meta('taken_at'), latitude: coord('latitude', 90), longitude: coord('longitude', 180),
     width: meta('width') ? Number(meta('width')) : null, height: meta('height') ? Number(meta('height')) : null,
     quality_flags: (() => { try { return meta('flags') ? JSON.parse(meta('flags')!) as unknown : null; } catch { return null; } })() };
   try {

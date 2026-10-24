@@ -62,12 +62,19 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
       <section className="section">
         <div className="wrap grid">
           <div className="c-7 stack-lg">
+            {/* the licence with the request (0130): the offer cannot be accepted without it */}
+            <section className="panel stack" aria-labelledby="sent-lic" data-testid="sent-licence" style={{ border: '2px solid var(--red-600)' }}>
+              <h2 className="d3" id="sent-lic">Next: upload your driver&apos;s licence</h2>
+              <p>The front and back of your licence and a selfie holding it. We check them with your request, and you need them on file to accept the offer. A licence already on file from an earlier rental counts while it is valid.</p>
+              <p><Link className="btn btn--primary" href={`/account/bookings/${encodeURIComponent(number)}/verify`} data-testid="sent-licence-link">Upload your licence</Link></p>
+              <p className="small muted">Not signed in on this device? Open the link in the email we just sent you: it signs you in and brings you here.</p>
+            </section>
             <h2 className="d2">What happens next</h2>
             <ol className="seq">
               <li><div><h3>We check the car and your details</h3><p>{F('We look at the calendar, your dates and the place you chose. {{reply}}, day or night.')}</p><span className="seq__who">{s.brand_name}</span></div></li>
               <li><div><h3>You get the confirmed price</h3><p>By email<ConfEmail number={number} />, with every fee and HST. If we had to adjust anything, the message says what changed. {F('That price is an offer and stays open for {{offerHours}} hours. It does not hold the car.')}</p><span className="seq__who">{s.brand_name}</span></div></li>
               <li><div><h3>You approve, sign and pay</h3><p>Reply yes and we send the rental agreement to sign online and a secure payment link. Use a credit card in your own name. The car is booked when the payment goes through. If someone else pays for the same car and dates before you do, we tell you and offer another car or other dates.</p><span className="seq__who">You</span></div></li>
-              <li><div><h3>You send your licence and coverage proof</h3><p>{F('A photo of your licence, front and back, and a selfie holding it, at least {{verifyHours}} hours before pickup.')}<ConfCoverage number={number} /></p><span className="seq__who">You</span></div></li>
+              <li><div><h3>You send your coverage proof</h3><p>{F('Your licence is already with your request. The proof of coverage, at least {{verifyHours}} hours before pickup.')}<ConfCoverage number={number} /></p><span className="seq__who">You</span></div></li>
               <li><div><h3>Pickup day</h3><p>{F('We take the deposit about {{depLead}} before pickup. Bring your original licence and the card you paid with. We walk around the car with you and hand over the keys.')}</p><span className="seq__who">Both</span></div></li>
             </ol>
           </div>

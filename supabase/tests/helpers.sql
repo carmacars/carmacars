@@ -274,3 +274,11 @@ update program_settings set listing_plate_check_required = false;
 -- listings by hand. 49_listing_no_roadblocks.sql switches it on and tests it.
 alter table program_settings alter column listing_publish_new_cars_automatically set default false;
 update program_settings set listing_publish_new_cars_automatically = false;
+
+-- The licence before an offer is accepted, the return charges written at check-in and the refill price per eighth
+-- (0130, on by default) are off for the earlier suites: they approve offers without licence images and price the
+-- returns by calling the Check-in assessment themselves. 82_handover_signing_licence.sql switches them on and tests them.
+alter table program_settings alter column booking_licence_required set default false;
+alter table program_settings alter column booking_return_auto_charges set default false;
+alter table program_settings alter column statement_fuel_cents_per_eighth set default null;
+update program_settings set booking_licence_required = false, booking_return_auto_charges = false, statement_fuel_cents_per_eighth = null;

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { AddressFields } from '@/features/forms/AddressFields';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAct } from '@/features/portal/useAct';
@@ -83,9 +84,8 @@ export function OwnerProfileForm({ initial }: { initial: OwnerProfileInput }) {
     <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => saveOwnerProfile(v), (r) => { if (r.ok) router.refresh(); }); }} aria-label="Contact details">
       {f('email', 'Email', { type: 'email', autoComplete: 'email' })}
       {f('phone', 'Phone', { type: 'tel', autoComplete: 'tel' })}
-      {f('address_line1', 'Street address', { autoComplete: 'address-line1' })}
-      {f('address_line2', 'Apartment or unit (optional)', { autoComplete: 'address-line2' })}
-      <div className="field-row field-row--3">{f('city', 'City', { autoComplete: 'address-level2' })}{f('province', 'Province', { autoComplete: 'address-level1' })}{f('postal_code', 'Postal code', { autoComplete: 'postal-code' })}</div>
+      <AddressFields idp="ow-pr" value={v as unknown as Record<string, unknown>} onChange={(p) => setV((x) => ({ ...x, ...p }))} keys={{ street: 'address_line1', unit: 'address_line2', city: 'city', province: 'province', postal_code: 'postal_code' }}
+        errors={{ address_line1: a.err('address_line1'), city: a.err('city'), province: a.err('province'), postal_code: a.err('postal_code') }} />
       {f('hst_number', 'HST number (optional)', { placeholder: '123456789RT0001' })}
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Saved.</span></p>}

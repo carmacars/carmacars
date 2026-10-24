@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveProfile, type ProfileInput } from '@/server/actions/portal';
 import { useAct } from './useAct';
+import { AddressFields } from '@/features/forms/AddressFields';
 
 export function ProfileForm({ initial }: { initial: ProfileInput }) {
   const router = useRouter();
@@ -18,10 +19,8 @@ export function ProfileForm({ initial }: { initial: ProfileInput }) {
   return (
     <form className="stack-lg" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => saveProfile(v), (r) => { if (r.ok) router.refresh(); }); }} aria-label="Contact details">
       {f('mobile', 'Mobile', { type: 'tel', autoComplete: 'tel' })}
-      {f('address_line1', 'Home address', { autoComplete: 'address-line1' })}
-      {f('address_line2', 'Apartment or unit (optional)', { autoComplete: 'address-line2' })}
-      <div className="field-row">{f('city', 'City', { autoComplete: 'address-level2' })}{f('province', 'Province or state', { autoComplete: 'address-level1' })}</div>
-      <div className="field-row">{f('postal_code', 'Postal code', { autoComplete: 'postal-code' })}{f('country', 'Country', { autoComplete: 'country-name' })}</div>
+      <AddressFields idp="pt-p" value={v as unknown as Record<string, unknown>} onChange={(p) => setV((x) => ({ ...x, ...p }))} streetLabel="Home address" lookupLabel="Find your home address"
+        errors={{ address_line1: a.err('address_line1'), city: a.err('city'), province: a.err('province'), postal_code: a.err('postal_code'), country: a.err('country') }} />
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Saved.</span></p>}
       <button className="btn btn--primary" type="submit" disabled={a.pending}>{a.pending ? 'Saving' : 'Save'}</button>

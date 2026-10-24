@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 // one at a time in the background; a failed upload is tried again when the connection returns (and every
 // 10 seconds). The queue is kept in IndexedDB, so a reload or a closed tab loses nothing; it holds only
 // photos still to send and is emptied as each one arrives. No service worker caches personal data.
-export interface Item { id: string; job: string; seq: number; shot: string; mode: 'photo' | 'raw'; damage_label?: string | null; blob: Blob; taken_at: string; width?: number; height?: number; flags?: string[]; state: 'waiting' | 'sending' | 'failed'; error?: string }
+export interface Item { id: string; job: string; seq: number; shot: string; mode: 'photo' | 'raw'; damage_label?: string | null; blob: Blob; taken_at: string; width?: number; height?: number; flags?: string[]; latitude?: number; longitude?: number; state: 'waiting' | 'sending' | 'failed'; error?: string }
 type Listener = () => void;
 
 const DB = 'cc-field'; const STORE = 'uploads';
@@ -79,6 +79,7 @@ class Queue {
         fd.set('file', next.blob, `${next.seq}-${next.shot}.jpg`); fd.set('job', next.job); fd.set('seq', String(next.seq)); fd.set('shot', next.shot); fd.set('mode', next.mode);
         fd.set('taken_at', next.taken_at); if (next.width) fd.set('width', String(next.width)); if (next.height) fd.set('height', String(next.height));
         if (next.damage_label) fd.set('damage_label', next.damage_label); if (next.flags?.length) fd.set('flags', JSON.stringify(next.flags));
+        if (typeof next.latitude === 'number' && typeof next.longitude === 'number') { fd.set('latitude', String(next.latitude)); fd.set('longitude', String(next.longitude)); }
         try {
           const r = await fetch('/api/field/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
           const j = (await r.json().catch(() => ({}))) as { ok?: boolean; key?: string; message?: string };

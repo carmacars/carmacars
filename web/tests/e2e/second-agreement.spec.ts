@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
-import { acceptCookies, db, noOverflow, pdfText, watch } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, watch, giveLicence } from './helpers';
 
 // The second rental agreement (docs/changes/2026-10-23-second-rental-agreement.md), end to end at 1440:
 // - an Admin uploads Blind Spot's form in Settings > Forms (a stand-in made here: Blind Spot's PDF is private and never
@@ -111,6 +111,7 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     expect(bk.ok, bk.message).toBe(true);
     await sql`update bookings set request_details = request_details || '{"source":"e2e"}' where id = ${bk.booking_id}`;
     await sql`select app.send_offer(${bk.booking_id}, ${STAFF}, null, null)`;
+    await giveLicence(sql, bk.booking_id);
 
     await signIn(page, email, `/account/bookings/${bk.booking_number}/offer`);
     await page.waitForURL(/\/offer$/);

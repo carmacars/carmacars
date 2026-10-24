@@ -284,3 +284,10 @@
 .iv-top { padding-top: 0; margin-bottom: var(--s-5); }
 .iv-body { display: grid; gap: var(--s-5); }
 .iv-body > * { min-width: 0; }
+
+/* the photo report of a rental (0130): a grid of the check-out and check-in photos, each with its shot and time */
+.hr-photos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.hr-photos li { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.hr-photos img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--r-2, 6px); background: var(--surface-2, #eee); display: block; }
+.hr-sign { max-width: 46rem; }
+.hr-sign__handoff { text-align: center; padding: var(--s-6) var(--s-4); }

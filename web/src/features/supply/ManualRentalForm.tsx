@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { AddressInput } from '@/features/forms/AddressInput';
+import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
@@ -103,6 +105,10 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{label}</label>
       <input className="input" id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} />
       {o.hint && <p className="hint" id={`${id(k)}-h`}>{o.hint}</p>}</div>);
+  // a place or an address, with the address lookup (0130): the suggestion fills it, typing works too
+  const addr = (k: string, label: string) => (
+    <div className="field ad-field"><label className="label" htmlFor={id(k)}>{label}</label>
+      <AddressInput id={id(k)} name={k} value={{ label: f[k] ?? '', placeId: '' }} onChange={(x) => setF((s) => ({ ...s, [k]: x.label }))} testId={`mr-${k}`} /></div>);
   const select = (k: string, label: string, options: Array<[string, string]>) => (
     <div className="field ad-field"><label className="label" htmlFor={id(k)}>{label}</label>
       <select className="select" id={id(k)} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>);
@@ -183,9 +189,9 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}
           {text('return_at', 'Return', { type: 'datetime-local' })}
           {select('pickup_method', 'Pickup', [['collected', 'Collected from us'], ['delivered', 'Delivered']])}
-          {text('pickup_place', 'Pickup place or address')}
+          {addr('pickup_place', 'Pickup place or address')}
           {select('return_method', 'Return', [['returned', 'Returned to us'], ['picked_up', 'Picked up']])}
-          {text('return_place', 'Return place or address')}
+          {addr('return_place', 'Return place or address')}
         </div>
         {phase && <p className={`alert ${past && !isAdmin ? 'alert--warn' : 'alert--ok'}`} role="status" aria-live="polite" data-testid="mr-phase" data-phase={phase}>
           <span>{past && !isAdmin ? 'This rental has already ended. Only an Admin can record it: check the dates, or ask an Admin to add it.' : PHASE_NOTE[phase]}</span></p>}
@@ -209,6 +215,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
             <div className="ad-fields">
               {text('full_name', 'Full legal name')}{text('email', 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', 'Phone', { inputMode: 'tel' })}{text('date_of_birth', 'Date of birth', { type: 'date' })}
               {text('licence_number', 'Licence number')}{text('licence_class', 'Licence class', { hint: 'G unless another class' })}{text('licence_issuer', 'Licence issued by', { hint: 'ON unless another province or country' })}{text('licence_expiry', 'Licence expiry', { type: 'date' })}
+              <AddressLookup idp="mr-home" label="Find the renter's home address" onParts={(p) => setF((s) => ({ ...s, ...(p.street ? { address_line1: p.street + (p.unit ? `, Unit ${p.unit}` : '') } : {}), ...(p.city ? { city: p.city } : {}), ...(p.postal_code ? { postal_code: p.postal_code } : {}) }))} />
               {text('address_line1', 'Home address')}{text('city', 'City')}{text('postal_code', 'Postal code')}
             </div>)}
         </>)}

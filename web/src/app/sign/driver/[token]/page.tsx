@@ -7,6 +7,8 @@ import { AgreementView } from '@/features/agreement/AgreementView';
 import { SignForm } from '@/features/portal/SignForm';
 import { readToken } from '@/server/links';
 import { agreementFacts, blocksFor, unsignedFacts } from '@/server/portal/agreement';
+import { DriverLicence } from '@/features/portal/DriverLicence';
+import type { LicenceStatus } from '@/features/handover/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Accept the rental agreement', path: '/sign/driver', noindex: true, description: 'Additional driver: read and accept the rental agreement.' });
@@ -24,11 +26,15 @@ export default async function DriverSign({ params }: { params: Promise<{ token: 
   const renter = (await rpc('server_booking_payment_facts', { p_booking: s.booking_id }, { role: 'service_role' })) as unknown as { renter_user_id: string };
   const facts = await agreementFacts(s.booking_id, renter.renter_user_id);
   const open = s.agreement_status !== 'voided' && ['pending_payment', 'confirmed'].includes(s.booking_status);
+  // their licence (0130): uploaded here, on their own link
+  const lic = (await rpc('server_driver_licence_state', { p_signer: t.s }, { role: 'service_role' }).catch(() => null)) as unknown as { licence: LicenceStatus; selfie_required: boolean } | null;
+  const token = (await params).token;
   return (
     <div className="pt"><div className="wrap pt__body">
       <header className="stack"><p className="pt-kicker">Booking {s.booking_number}</p><h1 className="d2">Accept the rental agreement, {s.signer_name.split(' ')[0]}</h1>
         <p className="muted">You are an additional driver on this booking. Read the agreement, tick the three statements and sign.</p></header>
-      {s.signed_at ? <p className="alert alert--ok" role="status"><span className="alert__title">Already accepted</span><span>Thank you. Nothing more to do here.</span></p>
+      {open && lic && <DriverLicence token={token} l={lic.licence} selfie={lic.selfie_required} />}
+      {s.signed_at ? <p className="alert alert--ok" role="status"><span className="alert__title">Already accepted</span><span>{lic && !lic.licence.complete ? 'Thank you. Add your licence above if you have not yet.' : 'Thank you. Nothing more to do here.'}</span></p>
         : !open ? <p className="alert alert--warn" role="status"><span>This agreement is no longer open for signing. The renter will send a new link.</span></p> : (
         <div className="pt-split">
           <AgreementView blocks={blocksFor(unsignedFacts(facts))} />

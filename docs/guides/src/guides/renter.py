@@ -87,6 +87,14 @@ def build():
         'A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.',
     ], shot=S('public/08-book-5-sent-phone', 0, 595, 390, 1290, pins=[(17, 128, 628)]))
 
+    g.task('Upload your licence', 'Right after you send your request: the front and back of your licence and a selfie holding it.')
+    g.steps([
+        f'On the Request sent page, press {B("Upload your licence")} (or open your booking and press {B("Your licence")}).',
+        'Take each photo with your phone, or choose it. Add the licence number and expiry date if we ask: it must be valid after your return.',
+        'Rented with us before? A licence on file that is still valid is used again; nothing to upload.',
+    ])
+    g.tip('You need your licence on file to accept the offer.')
+
     g.task('Add-ons', 'Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.')
     g.steps([
         'On the car page (under Add-ons) or in step 4 of the request, tick an add-on or use + and − for seats. The estimate shows the price at once.',
@@ -126,7 +134,7 @@ def build():
     g.task('Approve, ask for a change, or decline')
     g.steps([
         'Check the price, the dates, the place and any message from our team. The black bar shows how long the offer stays open.',
-        f'All good? Press {B("Approve and continue")} to sign and pay.',
+        f'All good? Press {B("Approve and continue")} to sign and pay. No licence on file yet? The button says {B("Upload your licence to accept")}: upload it, then come back.',
         f'Want something different? Press {B("Ask for a change")}, write what you need, then {B("Send request")}.',
         f'Not going ahead? Press {B("Decline offer")}, then {B("Decline this offer")}.',
     ], shot=S('renter/03-offer-desktop', 0, 280, 1440, 1110,
@@ -151,6 +159,13 @@ def build():
         f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies are in Documents and in the email that confirms your booking.',
     ], shot=S('renter/06-sign-ready-desktop', 0, 700, 1440, 1840,
               pins=[(3, 850, 736), (4, 1000, 848), (5, 1300, 1580), (6, 1395, 1684)]))
+
+    g.task('Signing with our staff', 'At pickup or at our desk, you can sign on a CarmaCars phone or tablet.')
+    g.steps([
+        'Our staff member checks your name and your original licence, then hands you the device.',
+        f'Read the agreements, tick the statements and sign with your name or your finger. Then hand the device back.',
+        'It is the same signature as signing online. Prefer your own phone? Ask for the signing link by email or text.',
+    ])
 
     g.task('Pay to confirm')
     g.steps([
@@ -287,6 +302,7 @@ def build():
     g.task('The return and your deposit')
     g.bullets([
         'At the return we check the odometer, fuel or charge, keys and cleanliness, take photos and compare with pickup. You sign on our screen.',
+        f'The photo report of the pickup and the return is in your email, in Documents and on your booking ({B("Photo report")}): the times, the kilometres, the fuel, every photo and any damage. A late return, kilometres over the allowance or less fuel than at pickup are charged from these readings.',
         'We release the deposit balance after you return the car. If a toll, ticket or claim is still open, we may hold back what we expect it to cost for a while.',
         'Your statement appears under Documents.',
     ])

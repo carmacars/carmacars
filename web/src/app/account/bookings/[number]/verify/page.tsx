@@ -6,6 +6,8 @@ import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageSection } from '@/features/portal/CoverageSection';
 import { myBooking, myCoverage } from '@/server/portal/data';
+import { licenceState } from '@/features/portal/LicenceNotice';
+import { LicenceForm } from '@/features/portal/LicenceForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Licence, selfie and coverage', path: '/account/bookings', noindex: true, description: 'Upload your licence, a selfie and proof of coverage before pickup.' });
@@ -17,24 +19,36 @@ const MISSING: Record<string, string> = { identity: 'Licence photos and selfie f
 export default async function VerifyPage({ params }: { params: Promise<{ number: string }> }) {
   const { b, user } = await myBooking((await params).number, 'verify');
   // licence photos, the selfie and the coverage proof: before pickup, or while a rental added already underway is out (0074)
-  if (!['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) redirect(bookingPath(b.booking_number));
+  // the licence from the request on (0130): requested and offered show the licence alone, the coverage comes after approval
+  const early = ['requested', 'offered'].includes(b.status);
+  if (!early && !['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) redirect(bookingPath(b.booking_number));
+  const lic = await licenceState(b.id, user.id);
+  const me = lic?.drivers.find((d) => d.role === 'renter');
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
-  const cov = await myCoverage(user, b.id).catch(() => null);
+  const cov = early ? null : await myCoverage(user, b.id).catch(() => null);
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
       <header className="stack">
-        <h1 className="d2">Licence, selfie and coverage</h1>
-        <p className="lead">Needed by {when(new Date(new Date(b.pickup_at).getTime() - 24 * 3600e3).toISOString())}, 24 hours before pickup.</p>
+        <h1 className="d2">{early ? 'Your driver\'s licence' : 'Licence, selfie and coverage'}</h1>
+        <p className="lead">{early ? 'Needed before you accept the offer: the front and back of your licence and a selfie holding it. A licence already on file from an earlier rental is used again while it is valid.'
+          : `Needed by ${when(new Date(new Date(b.pickup_at).getTime() - 24 * 3600e3).toISOString())}, 24 hours before pickup.`}</p>
       </header>
       <p className="pt-note">You agreed to identity verification when you signed. Our staff who verify drivers, and our insurer where required, see these images. We delete licence and face photos 90 days after your rental ends.</p>
-      {b.readiness && (
+      {me && !me.licence.expiry_ok && (
+        <section className="pt-card pt-card--next" aria-labelledby="pt-licd" data-testid="licence-details"><h2 className="d4" id="pt-licd">Licence details</h2>
+          <p className="small">{me.licence.expiry ? 'Your licence must be valid after your return date. Check the expiry date.' : 'The number and the expiry date of your licence.'}</p>
+          <LicenceForm number={b.booking_number} initial={{ licence_number: '', licence_class: 'G', licence_issuer: 'ON', licence_expiry: me.licence.expiry ?? '' }} />
+        </section>
+      )}
+      {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
+      {!early && b.readiness && (
         <section className="pt-card" aria-labelledby="pt-ready" data-testid="readiness"><h2 className="d4" id="pt-ready">Before pickup</h2>
           <ol className="pt-steps">{Object.keys(MISSING).filter((k) => k !== 'agreement').map((k) => <li key={k} className={missing.includes(k) ? '' : 'is-done'}>{MISSING[k]}<span className="vh">{missing.includes(k) ? ', to do' : ', done'}</span></li>)}</ol>
         </section>
       )}
-      {b.drivers.map((d) => (
+      {b.drivers.filter((d) => !early || d.role === 'renter').map((d) => (
         <section key={d.id} className="stack" aria-labelledby={`pt-drv-${d.id}`}>
           <h2 className="pt-section-title" id={`pt-drv-${d.id}`}>{d.full_name}{d.identity_verified_on ? ' · verified' : ''}</h2>
           <div className="pt-uploads">
@@ -45,10 +59,10 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
           </div>
         </section>
       ))}
-      <section className="stack" aria-labelledby="pt-cov">
+      {!early && <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
         <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
-      </section>
+      </section>}
     </>
   );
 }

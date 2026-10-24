@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
+import { HandoversToday } from '@/features/handover/HandoversToday';
 import { door } from '@/server/door';
 import { BookingLink, Card, PageHead, t } from '@/features/admin/ui';
 import { Prompts } from '@/features/admin/todo/Prompts';
@@ -60,6 +61,7 @@ export default async function AdminToDo() {
           <ul className="small muted">{clear.map((i) => <li key={i.key}><Link prefetch={false} className="link" href={i.href}>{i.label}</Link>: none</li>)}</ul></details>}
       </section>
       <div className="ad-cols ad-cols--2">
+        <HandoversToday userId={user.id} base="/admin" />
         <Card title={`Pickups today (${d.pickups.length})`} testId="todo-pickups" aside={<Link prefetch={false} className="link small" href="/admin/calendar">Calendar</Link>}>
           {d.pickups.length ? <ul className="ad-list">{d.pickups.map((r) => (
             <li key={r.booking_number}><span>{time(r.at)} <BookingLink n={r.booking_number} /> {r.renter}</span><span className={r.ready ? 'small' : 'small ad-late'}>{r.ready ? 'ready' : 'not ready'}</span>

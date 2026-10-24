@@ -12,6 +12,7 @@ import { rpc } from '@/lib/db/repo';
 import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
 import { myBooking } from '@/server/portal/data';
+import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
 import { DriverLink } from '@/features/portal/DriverLink';
@@ -41,6 +42,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null)]);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
+  // the licence first (0130): from the request until it is on file
+  const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
   const openQ = b.info_requests.filter((q) => q.status === 'open');
   // each additional driver's own signing link (migration 0040: versioned, expiring, renewed here)
@@ -66,6 +69,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       </header>
       <div className="pt-split">
         <div className="stack-lg">
+          <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
           {step.href && step.href !== bookingPath(b.booking_number) && (
             <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link prefetch={false} className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>
           )}
@@ -133,7 +137,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {b.status === 'pending_payment' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign')}>{b.agreement?.renter_signed_at ? 'Pay now' : 'Sign the agreement'}</Link>}
               {b.status === 'on_rent' && b.added_live && !b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'sign')} data-testid="live-sign">Sign the agreement</Link>}
               {b.link_due && b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'pay')} data-testid="live-pay">Pay now</Link>}
-              {(['confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>Licence and coverage</Link>}
+              {(['requested', 'offered', 'confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>{['requested', 'offered'].includes(b.status) ? 'Your licence' : 'Licence and coverage'}</Link>}
+              {['on_rent', 'returned', 'closed'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'condition-report')} data-testid="renter-photo-report">Photo report</Link>}
               {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'change')}>Ask to change dates</Link>}
               {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
               {(b.status === 'on_rent' || b.status === 'confirmed') && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}

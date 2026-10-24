@@ -165,6 +165,13 @@ def build():
         f'Press {B("Record signature")}. It counts as signed, and the renter is not asked to sign again.',
     ])
 
+    g.task('Signatures on the spot, or by link', 'A renter or an additional driver who has not signed yet.')
+    g.steps([
+        f'On the booking, press {B("Sign now on this device")}. Confirm the name and that you saw the original licence, then {B("Hand the device to")} the signer.',
+        f'Or press {B("Email the signing link")} or {B("Text the signing link")}: they sign on their own phone.',
+        'The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.',
+    ])
+
     g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
     g.steps([
         f'Open the task "identity documents or coverage proof to review", or open the booking: {B("Review")} shows the documents of any booking being arranged or under way, with no task needed.',
@@ -277,6 +284,13 @@ def build():
         'Each line shows what was found. Tick OK, or Problem with a note.',
         f'Press {B("Save the opening check")} (or {B("Save the closing check")}). You can save it again.',
     ], shot=S('va-fleet/03-daily-checks-desktop', 210, 60, 1440, 880, pins=[(1, 290, 186), (2, 760, 404), (3, 1000, 831)]))
+
+    g.task('Check a car out or in', 'Fleet, Sales and Customer service check cars out and in from the booking.')
+    g.steps([
+        f'On a confirmed booking press {B("Check out (pickup)")}; on a booking on rent, {B("Check in (return)")}. Today lists the ones due, each with its button.',
+        'The checklist field staff use opens: readings (km and fuel or charge), the photo set with the plate and the gauges, damage close-ups and both signatures.',
+        f'Afterwards press {B("Photo report")}: times, Late by, kilometres, fuel, photos and the return charges. Fleet waives a charge with {B("Waive")} and a reason.',
+    ])
 
     g.task('Photo reviews after a return')
     g.para(f'After each return, the field photo set waits under {B("Photo reviews")}. Compare it with the pickup set. '

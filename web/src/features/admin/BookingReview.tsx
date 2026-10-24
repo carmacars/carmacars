@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { AddressInput } from '@/features/forms/AddressInput';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -52,6 +53,14 @@ const F = ({ k, l, type = 'text', hint, money: m }: { k: string; l: string; type
     {hint && <p className="hint" id={`rv-${k}-h`}>{hint}</p>}
   </div>
 ); };
+// an address with the lookup (0130); disabled when the booking cannot be edited
+const A = ({ k, l }: { k: string; l: string }) => { const { v, set, changed, editable } = useContext(Ctx); return (
+  <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
+    <label className="label" htmlFor={`rv-${k}`}>{l}</label>
+    {editable ? <AddressInput id={`rv-${k}`} name={k} value={{ label: String(v[k] ?? ''), placeId: '' }} onChange={(x) => set(k)(x.label)} />
+      : <input className="input" id={`rv-${k}`} value={String(v[k] ?? '')} disabled />}
+  </div>
+); };
 const S = ({ k, l, options }: { k: string; l: string; options: Array<[string, string]> }) => { const { v, set, changed, editable } = useContext(Ctx); return (
   <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
     <label className="label" htmlFor={`rv-${k}`}>{l}</label>
@@ -61,7 +70,8 @@ const S = ({ k, l, options }: { k: string; l: string; options: Array<[string, st
 const Place = ({ leg }: { leg: 'pickup' | 'return' }) => { const { v } = useContext(Ctx); return (
   <>
     <S k={`${leg}_kind`} l={leg === 'pickup' ? 'Pickup place' : 'Return place'} options={[['our_location', 'Our location'], ['delivery', leg === 'pickup' ? 'We deliver' : 'We collect'], ['airport', 'Airport'], ['owner_location', 'Owner\'s location']]} />
-    {(v[`${leg}_kind`] === 'delivery' || v[`${leg}_kind`] === 'airport') && <F k={`${leg}_address`} l={v[`${leg}_kind`] === 'airport' ? 'Airport code (YYZ, YTZ)' : 'Address'} />}
+    {v[`${leg}_kind`] === 'airport' && <F k={`${leg}_address`} l="Airport code (YYZ, YTZ)" />}
+    {v[`${leg}_kind`] === 'delivery' && <A k={`${leg}_address`} l="Address" />}
     {v[`${leg}_kind`] === 'delivery' && <F k={`${leg}_km`} l="Distance (km)" hint="From the delivery origin; prices the delivery fee" />}
   </>
 ); };

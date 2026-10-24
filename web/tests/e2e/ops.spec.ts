@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf, giveLicence } from './helpers';
 
 // Migration 0040 end to end, at 375 and 1440, with the fake providers of the local stack:
 // - an Admin proposes a change to a confirmed booking (a day longer); the renter reviews it, signs the amendment
@@ -93,6 +93,7 @@ async function seedRequest(sql: Sql, renter: { id: string | null; email: string 
  *  a card on file the fake processor can charge again, verified, covered, confirmed. */
 async function confirmBooking(sql: Sql, booking: string, admin: string) {
   await sql`select app.send_offer(${booking}::uuid, ${admin}::uuid)`;
+  await giveLicence(sql, booking);
   await sql`select app.approve_offer(b.id, b.current_offer_version, (select user_id from renters where id = b.renter_id)) from bookings b where b.id = ${booking}`;
   const doc = randomUUID(); const sig = randomUUID(); const ra = randomUUID();
   await sql`insert into documents (id, kind, storage_bucket, storage_path, booking_id, sha256) values (${doc}, 'rental_agreement', 'agreements', ${`bookings/${booking}/agreement.pdf`}, ${booking}, ${'1'.repeat(64)})`;
