@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Photo } from '@/lib/types';
 import { photoUrl } from '@/lib/photo';
+import { emitTrack } from '@/lib/track/emit';
 
 // The sizes the listing pipeline made of a photo (0022): a phone downloads the one that fits, not the 1800 px original.
 const srcSetOf = (g: Photo) => {
@@ -19,7 +20,7 @@ export function Gallery({ name, photos }: { name: string; photos: Photo[] }) {
   const seen = useRef(new Set<number>([0]));
   useEffect(() => {
     const s = seen.current; if (s.has(cur)) return; s.add(cur);
-    if ([3, 6, 10, photos.length].includes(s.size)) window.dispatchEvent(new CustomEvent('cc:track', { detail: { k: 'photos', d: { n: String(s.size) } } }));
+    if ([3, 6, 10, photos.length].includes(s.size)) emitTrack({ k: 'photos', d: { n: String(s.size) } });
   }, [cur, photos.length]);
   useEffect(() => {
     const t = track.current; if (!t) return;

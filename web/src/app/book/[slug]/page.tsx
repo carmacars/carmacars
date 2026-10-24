@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import { RequestWizard } from '@/features/booking/RequestWizard';
 import { bookingCar, wizardProps } from '@/features/booking/wizard-props';
 import { seoMeta } from '@/features/seo/meta';
@@ -27,7 +26,9 @@ export default async function BookCar({ params }: Params) {
     <div className="p-request">
       {/* a sample car (0065): the request goes to customer service as an enquiry; 0102: a real car free for the dates is offered in the form */}
       {car.isSample && <div className="wrap"><p className="alert" role="note" data-testid="example-car-request-note"><span className="alert__title">Example car</span><span>The {car.name} is an example of the cars we rent. Choose your dates: if a real one is free, we show it here. If not, send your dates and details as usual and we reply with a similar real car and its price. Nothing is booked or charged.</span></p></div>}
-      <Suspense fallback={null}><RequestWizard {...props} /></Suspense>
+      {/* in the page's first HTML, never a streamed Suspense boundary: React reveals a streamed boundary up to ~300 ms after
+          the page has loaded, and a field touched in that time was in a hidden container (the request never started) */}
+      <RequestWizard {...props} />
     </div>
   );
 }
