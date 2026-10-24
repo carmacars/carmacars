@@ -1,10 +1,11 @@
 -- 0128: the release 4 checks (docs/changes/2026-10-23-release-4-checks.md)
 --
--- 1. The owner emails name the payee of the pre-authorized debit by the business name, CarmaCars. 0122 made
+-- 1. The owner emails name the payee of the pre-authorized debit as the legal review approved it (0053): "<legal name>,
+--    operating as <business name>", never the bare business name and never the numbered company alone. 0122 made
 --    app.owner_payee_name() the legal name alone for the agreements (the owner: "Agreements need to just say the
 --    numbered corp, no operating as"), and every owner email took it too (payee_name: the Payee row, the sender line
 --    above the mailing address, the confirmation's subject, and the copy of the debit agreement in the confirmation):
---    the emails showed the numbered company, which the brand rule never allows in an email or a page. The agreements,
+--    the emails showed the numbered company alone, which the brand rule never allows in an email or a page. The agreements,
 --    their PDFs, the countersignature and the Banking page keep the legal name alone; only the emails' values change.
 -- 2. The make pages of the fleet's makes the catalog does not cover (/cars/bmw, 0097: they list our cars of that make)
 --    are in a sitemap: the hubs file (public.sitemap_hubs) lists the model pages of the fleet's cars, without those the
@@ -14,7 +15,9 @@
 -- ================================================================ 1. the payee in the owner emails
 create or replace function app.owner_email_payee_name() returns text
 language sql stable security definer set search_path = public, app as $$
-  select coalesce(nullif(btrim(s.company_trade_name), ''), 'CarmaCars') from app.settings() s
+  select case when nullif(btrim(s.company_legal_name), '') is not null and s.company_legal_name is distinct from s.company_trade_name
+              then s.company_legal_name || ', operating as ' || s.company_trade_name else s.company_trade_name end
+    from app.settings() s
 $$;
 revoke all on function app.owner_email_payee_name() from public, anon, authenticated;
 grant execute on function app.owner_email_payee_name() to service_role;
@@ -33,7 +36,7 @@ begin
   if x ? 'payee_name' then x := x || jsonb_build_object('payee_name', v_email); end if;
   -- the confirmation carries the debit agreement: its first paragraph names the payee
   if x ? 'agreement_1' and v_legal is distinct from v_email then
-    x := x || jsonb_build_object('agreement_1', replace(x ->> 'agreement_1', 'You authorize ' || v_legal || ' to debit', 'You authorize ' || v_email || ' to debit'));
+    x := x || jsonb_build_object('agreement_1', replace(x ->> 'agreement_1', 'You authorize ' || v_legal || ' to debit', 'You authorize ' || v_email || case when v_email like '%, operating as %' then ',' else '' end || ' to debit'));
   end if;
   return x;
 end $$;

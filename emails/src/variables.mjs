@@ -67,7 +67,7 @@ export const SAMPLES = {
   retry_day: v('18th', 'The retry day of a returned owner debit (program_settings.retry_day) as an ordinal.'),
   payout_day: v('10th', 'The owner payout day (program_settings.payout_day) as an ordinal.'),
   approve_by_day: v('9th', 'The day before the payout day, by which the Admins approve the statements.'),
-  payee_name: v('CarmaCars', 'The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email.'),
+  payee_name: v('18122211 Canada Inc., operating as CarmaCars', 'The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email.'),
   late_fee_rule: v('If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.', 'The one Late Fee rule (app.owner_debit_terms): the same sentence in the PAD agreement, the Banking page and every owner billing email.'),
   arrears_removal_days: v('30', 'Days after a failed retry before CarmaCars may remove the vehicle (owner_arrears_removal_days).'),
   notice_period_days: v('30', 'The Notice Period of the Enrollment Agreement in days (notice_period_days).'),

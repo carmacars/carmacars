@@ -8597,8 +8597,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -8703,8 +8703,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -8825,8 +8825,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -9382,8 +9382,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -9649,8 +9649,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "removal_date",
@@ -9982,8 +9982,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -10074,8 +10074,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "replacement_number",
@@ -10378,7 +10378,7 @@
       "reply_to": "billing@carmacars.ca",
       "subject": "Your pre-authorized debit agreement with {{payee_name}}",
       "preheader": "Your confirmation for the account ending {{bank_last4}}. Keep it for your records.",
-      "sample_subject": "Your pre-authorized debit agreement with CarmaCars",
+      "sample_subject": "Your pre-authorized debit agreement with 18122211 Canada Inc., operating as CarmaCars",
       "variables": [
         {
           "name": "accepted_on",
@@ -10388,7 +10388,7 @@
         {
           "name": "agreement_1",
           "type": "string",
-          "sample": "You authorize CarmaCars to debit the bank account you give for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month's Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the 15th of each month."
+          "sample": "You authorize 18122211 Canada Inc., operating as CarmaCars, to debit the bank account you give for the fees on your CarmaCars invoices: the monthly fees of your vehicles enrolled with CarmaCars (the Insurance Fee, and the Tracker Fee once a tracker is installed, plus HST, as set in your Vehicle Schedule), the first and last month's Insurance Fee, the Tracker Install Fee and other amounts invoiced to you, on the 15th of each month."
         },
         {
           "name": "agreement_2",
@@ -10490,8 +10490,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payee_phone",
@@ -10593,8 +10593,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -10690,8 +10690,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -10812,8 +10812,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -10918,8 +10918,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -11016,8 +11016,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payment_date",
@@ -11395,8 +11395,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "payout_amount",
@@ -11577,8 +11577,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",
@@ -11696,8 +11696,8 @@
         {
           "name": "payee_name",
           "type": "string",
-          "sample": "CarmaCars",
-          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the business name. The agreements name the company by its legal name alone (0122); an email never shows the numbered company. Named in every owner billing email."
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
         },
         {
           "name": "reply_time",

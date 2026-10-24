@@ -85,12 +85,12 @@ select test.eq('confirmation: to the owner, with the payee by its business name,
   || '/' || (test.lt('pad') ->> 'payee_phone' = app.ntf_contact() ->> 'support_phone') || '/' || (test.lt('pad') ->> 'bank_name') || ' ' || (test.lt('pad') ->> 'bank_last4')
   || '/' || (test.lt('pad') ->> 'agreement_type') || '/' || (test.lt('pad') ->> 'debit_day') || '/' || (test.lt('pad') ->> 'notice_days')
   || '/' || (test.lt('pad') ->> 'accepted_on' = app.fmt_day(app.today())) || '/' || (test.lt('pad') ->> 'late_fee_rule' = app.owner_debit_terms() ->> 'late_fee_rule'),
-  (select company_trade_name from app.settings()) || '/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
+  (select company_legal_name || ', operating as ' || company_trade_name from app.settings()) || '/billing@carmacars.ca/true/true/Test Bank 4321/Personal/15th/10/true/true');
 select test.ok('confirmation: the first automatic debit is at least 10 days after it (0053)',
   app.owner_debit_next_date(app.today()) >= app.today() + 10);
-select test.eq('confirmation (0053): the full text of the accepted recurring agreement, below the summary, the payee by the business name (0128)',
+select test.eq('confirmation (0053): the full text of the accepted recurring agreement, below the summary, the payee "<legal name>, operating as <business name>" (0053, 0128)',
   (test.lt('pad') ->> 'agreement_1') || '|' || (test.lt('pad') ->> 'agreement_2') || '|' || (test.lt('pad') ->> 'agreement_3') || '|' || (test.lt('pad') ->> 'agreement_4'),
-  (select string_agg(case when o = 1 then replace(x, 'You authorize ' || app.owner_payee_name() || ' to debit', 'You authorize ' || (select company_trade_name from app.settings()) || ' to debit') else x end, '|' order by o)
+  (select string_agg(case when o = 1 then replace(x, 'You authorize ' || app.owner_payee_name() || ' to debit', 'You authorize ' || app.owner_email_payee_name() || ', to debit') else x end, '|' order by o)
      from jsonb_array_elements_text(app.owner_debit_terms() #> '{agreement,personal}') with ordinality t(x, o)));
 select test.eq('payee (0053, 0122): always the legal name alone', app.owner_debit_terms() #>> '{payee,name}',
   (select company_legal_name from app.settings()));
