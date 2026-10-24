@@ -24,7 +24,7 @@ const csp = (nonce) => [
 ].join('; ');
 const security = {
   'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'strict-origin-when-cross-origin',
-  'permissions-policy': 'camera=(self), microphone=(), geolocation=(), payment=(self), usb=(), interest-cohort=()', 'cross-origin-opener-policy': 'same-origin'
+  'permissions-policy': 'camera=(self), microphone=(), geolocation=(self), payment=(self), usb=(), interest-cohort=()', 'cross-origin-opener-policy': 'same-origin'
 };
 
 const next = spawn(process.execPath, [path.join(WEB, 'node_modules/next/dist/bin/next'), 'start', '-p', String(INNER), '-H', '127.0.0.1'], { cwd: WEB, stdio: 'inherit', env: process.env });

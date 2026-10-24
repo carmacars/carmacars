@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch, storeFixturePdf } from './helpers';
+import { acceptCookies, db, noOverflow, watch, storeFixturePdf, giveLicence } from './helpers';
 
 // The staff and investor portals end to end (migration 0031). A customer service assistant reviews a
 // request and sends the offer; a finance assistant asks for a refund above their limit and it becomes an
@@ -85,6 +85,7 @@ async function seedRequest(sql: Sql, renter: { id: string; email: string }, vehi
 /** Offered, approved, signed, paid, verified, covered, confirmed: what procedures 1 and 2 leave behind. */
 async function confirmBooking(sql: Sql, booking: string, admin: string) {
   await sql`select app.send_offer(${booking}::uuid, ${admin}::uuid)`;
+  await giveLicence(sql, booking);
   await sql`select app.approve_offer(b.id, b.current_offer_version, (select user_id from renters where id = b.renter_id)) from bookings b where b.id = ${booking}`;
   const doc = randomUUID(); const sig = randomUUID();
   await sql`insert into documents (id, kind, storage_bucket, storage_path, booking_id) values (${doc}, 'rental_agreement', 'agreements', ${`bookings/${booking}/agreement.pdf`}, ${booking})`;
@@ -297,7 +298,7 @@ test('field: a full handover with every photo and the renter signature, then a l
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await check(page, 'field signatures');
   await next(page, 'Hand over the keys');
-  await complete(page, 'Handed over');
+  await complete(page, 'Checked out');
   const [after] = await sql`select b.status::text s, (select count(*)::int from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = b.id and c.kind = 'pickup') photos,
     (select renter_signature_ref is not null and completed_at is not null from condition_reports c where c.booking_id = b.id and c.kind = 'pickup') signed from bookings b where b.id = ${req.booking_id}`;
   expect(after).toMatchObject({ s: 'on_rent', photos: 19, signed: true });
@@ -344,7 +345,7 @@ test('field: a full handover with every photo and the renter signature, then a l
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await next(page, 'You sign and complete');
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
-  await complete(page, 'Return complete');
+  await complete(page, 'Checked in');
   const [ret] = await sql`select b.status::text s, b.minutes_late::int late, b.extra_days::int extra,
     (select count(*)::int from incidents i where i.booking_id = b.id and i.kind = 'damage_at_return') incidents,
     (select d.position is not null from condition_report_damages d join condition_reports c on c.id = d.condition_report_id where c.booking_id = b.id and c.kind = 'return' and d.label = 'D1') marked

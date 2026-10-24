@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
@@ -20,7 +21,8 @@ export default async function Requests({ searchParams }: { searchParams: Promise
   const rows = all.filter((r) => !state || r.state === state);
   return (
     <>
-      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`} />
+      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`}>
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
       <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting. New booking requests from the website show up here to price and offer." cols={[
         { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > target.minutes ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },

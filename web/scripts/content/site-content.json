@@ -234,6 +234,10 @@
         {
           "question": "What if the car breaks down?",
           "answer": "Call our 24-hour line, {{roadside}}. Roadside assistance for mechanical breakdown is included. If the breakdown is not your fault, we give you a replacement car or refund the unused time."
+        },
+        {
+          "question": "Which credit cards include rental car coverage?",
+          "answer": "Many Canadian travel cards do, usually for cars up to $65,000 or $85,000 MSRP and rentals up to 48 days, and some of our cars are worth more. <a class=\"link\" href=\"/credit-card-rental-coverage\">See the cards, their limits and their guides</a>, then confirm with your card issuer before you rent."
         }
       ]
     },

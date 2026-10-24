@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useState } from 'react';
+import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from 'next/link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
@@ -131,6 +132,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
               {o.owner_type === 'corporation' && f('corporation_name', 'Corporation name', { req: true, obj: 'o' })}
               {f('email', 'Email', { req: signing === 'email', obj: 'o', mode: 'email', type: 'email', hint: 'The set-up email goes here, with the invitation to choose a password.' })}
               {f('phone', 'Phone', { req: true, obj: 'o', mode: 'tel', type: 'tel' })}
+              <AddressLookup idp={`${uid}-oaddr`} onParts={(p) => setO((x) => ({ ...x, ...(p.street ? { address_line1: p.street } : {}), ...(p.unit ? { address_line2: p.unit } : {}), ...(p.city ? { city: p.city } : {}), ...(p.province ? { province: p.province } : {}), ...(p.postal_code ? { postal_code: p.postal_code } : {}) }))} />
               {f('address_line1', 'Street address', { obj: 'o' })}{f('city', 'City', { obj: 'o' })}{f('postal_code', 'Postal code', { obj: 'o' })}
             </div>)}
         </>)}

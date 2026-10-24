@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation';
 import { adminSaveRow } from '@/server/actions/admin-portal';
 import { opsAct } from '@/server/actions/ops';
 import { useDoor } from './door';
+import { AddressInput } from '@/features/forms/AddressInput';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
 // instant), the database decides, and its refusal is shown as written. Keyboard: Enter submits, Esc
 // closes a dialog.
-export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list';
+export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list' | 'address';
 export interface Field { name: string; label: string; type?: FieldType; options?: Array<[string, string]>; required?: boolean; hint?: string; value?: unknown; placeholder?: string; wide?: boolean;
   /** For a number: the smallest and largest value allowed (the database checks the same). */
   min?: number; max?: number }
@@ -70,7 +71,9 @@ export function FieldInput({ f, value, set, err, idp }: { f: Field; value: strin
   return (
     <div className={`field ad-field${err ? ' has-error' : ''}${f.wide || f.type === 'textarea' || f.type === 'json' ? ' ad-field--wide' : ''}`}>
       <label className="label" htmlFor={id}>{f.label}{f.type === 'money' ? ' ($)' : f.type === 'percent' ? ' (%)' : ''}</label>
-      {f.type === 'select' ? (
+      {f.type === 'address' ? (
+        <AddressInput id={id} name={f.name} value={{ label: String(value), placeId: '' }} onChange={(x) => set(x.label)} invalid={!!err} describedBy={desc} required={f.required} placeholder={f.placeholder} />
+      ) : f.type === 'select' ? (
         <select className="select" {...common} onChange={(e) => set(e.target.value)}>
           {!f.required && <option value="">None</option>}
           {f.options?.map(([v, l]) => <option key={v} value={v}>{l}</option>)}

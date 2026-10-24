@@ -257,14 +257,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
           )}
           <Field id="ap-addr" label="Find your address" hint="Start typing and choose it. Then check each line below.">
             <AddressInput id="ap-addr" name="address" value={{ label: o.address, placeId: '' }} describedBy="ap-addr-hint"
-              onChange={(v) => {
-                if (!v.placeId) { setOwner({ address: v.label }); return; }
-                const parts = v.label.split(',').map((x) => x.trim());
-                const prov = parts.find((x) => PROVINCES.includes(x.split(' ')[0] ?? ''))?.split(' ')[0] ?? o.province;
-                const street = parts.find((x) => /^\d/.test(x)) ?? parts[0] ?? '';
-                const city = parts[parts.indexOf(street) + 1] && !PROVINCES.includes((parts[parts.indexOf(street) + 1] ?? '').split(' ')[0] ?? '') ? parts[parts.indexOf(street) + 1]! : o.city;
-                setOwner({ address: v.label, address_line1: street, city, province: prov });
-                clearErr('address_line1'); clearErr('city');
+              onChange={(v) => setOwner({ address: v.label })}
+              onParts={(p, label) => {
+                // every line from the chosen place (0130): street, unit, city, province, postal code
+                setOwner({ address: label, address_line1: p.street || o.address_line1, address_line2: p.unit || o.address_line2, city: p.city || o.city,
+                  province: PROVINCES.includes(p.province) ? p.province : o.province, postal_code: p.postal_code || o.postal_code });
+                clearErr('address_line1'); clearErr('city'); clearErr('postal_code');
               }} />
           </Field>
           <Field id="ap-line1" label="Street address" err={errs.address_line1}><input className="input" {...aria('ap-line1', errs.address_line1)} value={o.address_line1} onChange={(e) => { setOwner({ address_line1: e.target.value }); clearErr('address_line1'); }} autoComplete="address-line1" /></Field>

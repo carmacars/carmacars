@@ -28,13 +28,20 @@ Migration 0128: `app.owner_email_payee_name()` names the payee in the emails as 
 - **Admin > Settings > Forms, "Review and check" answered 404.** 0122 gave the official forms their mapping, so the button shows, but the local stack had none of the template PDFs the database names. The local stack (`web/scripts/local-db.sh`) now stores the publisher's downloads of the five forms (`web/tests/fixtures/official-forms`) where the forms-fetch workflow stores them in production and makes them the current templates (`app.official_templates_use_originals(true)`), as that workflow does.
 - **/auth/oauth did not hydrate.** It is the start of "Continue with Google": a redirect to the provider's page (the local stand-in here), never a page of the site. The crawl skips it like /auth/callback.
 
+### Live signals: the request form started (live-signals.spec.ts:58)
+
+Failed in every full run since the tax label, Maps cap and Google sign-in release: the visitor focused the request form's first field and "Started the request form" never showed. Two real gaps, not timing:
+
+- /book streamed the form in a Suspense boundary (`fallback={null}`), and React reveals a streamed boundary up to about 300 ms after the page loads. Until then the form sits in a hidden container: a field "touched" there is not focused and no `request_started` is sent (seen in the browser: the form's container replaced 185 to 394 ms after load). The form is now in the page's first HTML (no Suspense around `RequestWizard`, which reads the address itself).
+- The beacon loads once the page is idle (up to 3 s after load), and lost what happened before: a field already in use and the price already shown (`quote_seen`, so "Saw the full price" missed now and then too). Components now hand their events to `emitTrack` (`web/src/lib/track/emit.ts`), which keeps them until the beacon starts; the beacon takes them, and counts the request as started if a field of the form already has the focus. It also starts the request on the first `input` or `change` in the form (autofill, a radio tapped without focus), besides `focusin`.
+
 ### Database suite
 
 - Suite 56 (live visitor signals), "twice is below the threshold": the two searches were 40 to 43 days out, a weekend trip on the days where that is a Thursday or a Friday (it failed on October 24). The searches are now a Monday to Thursday trip.
 
 ## Checks
 
-The specs above at 375 and 1440, with sitemap-index, form-fillers, second-agreement, debit, owner-terms, tolls-plates-forms and audit-fixes: passed. The SEO audit: 0 problems. The emails with database values: 0 problems (the owner billing emails from the app's own rows). The crawl as admin and anon: 0 problems. Typecheck, lint, unit tests, the text check and the database suite.
+The specs above at 375 and 1440 (live-chat, live-heartbeat, live-signals 10 times in a row, request and visitor-history after the 0128 follow-ups), with sitemap-index, form-fillers, second-agreement, debit, owner-terms, tolls-plates-forms and audit-fixes: passed. The SEO audit: 0 problems. The emails with database values: 0 problems (the owner billing emails from the app's own rows). The crawl as admin and anon: 0 problems. Typecheck, lint, unit tests, the text check and the database suite.
 
 ## Guides
 

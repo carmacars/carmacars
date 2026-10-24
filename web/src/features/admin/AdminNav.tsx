@@ -9,7 +9,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }, { href: '/admin/live/history', label: 'Visitor history' }] },
   { key: 'bookings', label: 'Bookings', links: [
     { href: '/admin/requests', label: 'Requests', key: 'r', section: 'Trips' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
-    { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/chauffeur', label: 'Chauffeur' },
+    { href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/chauffeur', label: 'Chauffeur' },
     { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/leads', label: 'Renter leads' }, { href: '/admin/reviews', label: 'Reviews' },
     { href: '/admin/damages', label: 'Damage', section: 'Problems' }, { href: '/admin/incidents', label: 'Incidents and claims' }] },
   { key: 'cars', label: 'Cars', links: [
@@ -30,7 +30,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
     { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' },
-    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
+    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
     { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 

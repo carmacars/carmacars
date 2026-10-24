@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, giveLicence } from './helpers';
 
 // Migration 0062 end to end, at 375 and 1440. Calendar sync: Fleet pastes a calendar link into a car (here the
 // CarmaCars link of another car, which carries a block far in the future), "Sync now" reads it, the trip blocks the
@@ -237,6 +237,7 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
   expect(`${ob?.status} ${ob?.to_address} ${ob?.category} ${ob?.n}`).toBe(`queued ${r.email} transactional ${v.booking_number}`);
 
   // she approves the offer before the reminder goes out: the series stops and the reminder is not sent
+  await giveLicence(sql, v.booking_id);
   await page.goto(`/account/bookings/${v.booking_number}/offer`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Approve and continue' }).click();
   await page.waitForURL(/\/sign$/, { timeout: 30_000 });

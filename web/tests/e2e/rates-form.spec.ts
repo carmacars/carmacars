@@ -224,7 +224,7 @@ test('delete a sample car whose bookings are only requests; Add a rental for a c
   await page.getByTestId('mr-price_reason').fill('New car, rate sheet not set yet');
   await page.getByTestId('mr-check').click();
   await expect(page.getByTestId('mr-price')).toContainText('Total with the price you typed', { timeout: 20_000 });
-  await page.getByTestId('mr-mode-other_way').check();
+  await page.getByTestId('mr-paid-by').selectOption('e_transfer');
   await page.getByTestId('mr-reference').fill('ET-RF-1');
   await page.getByTestId('mr-do-not-email').check();
   await check(page, 'add a rental, listing not finished');

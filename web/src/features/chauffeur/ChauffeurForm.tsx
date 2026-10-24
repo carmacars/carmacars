@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { AddressInput } from '@/features/forms/AddressInput';
 import { useMemo, useState } from 'react';
 import { describedBy, Field } from '@/features/forms/Field';
 import { Turnstile } from '@/features/forms/Turnstile';
@@ -18,6 +19,8 @@ export function ChauffeurForm({ vehicles, initial, today, hstBps }: { vehicles: 
   const { state, run, pending, errors, clear } = useForm(chauffeurSchema, submitChauffeur);
   const [vid, setVid] = useState(vehicles.find((v) => v.slug === initial)?.id ?? vehicles[0]?.id ?? '');
   const [hours, setHours] = useState(3);
+  // the addresses with the lookup (0130); the form still posts them by name
+  const [pick, setPick] = useState(''); const [drop, setDrop] = useState('');
   const [key] = useState(() => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now())));
   const v = vehicles.find((x) => x.id === vid) ?? null;
   const price = useMemo(() => (v ? chauffeurPrice(v, hours) : 0), [v, hours]);
@@ -47,8 +50,8 @@ export function ChauffeurForm({ vehicles, initial, today, hstBps }: { vehicles: 
         <Field id="ch-hours" label="Hours" error={e.hours}><select className="select" id="ch-hours" name="hours" value={hours} onChange={(x) => setHours(Number(x.target.value))} aria-invalid={!!e.hours || undefined}>
           {Array.from({ length: 23 }, (_, i) => i + 2).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></Field>
       </div>
-      <Field float id="ch-pickup" label="Pickup address" error={e.pickup_address}><input className="input" placeholder=" " id="ch-pickup" name="pickup_address" autoComplete="street-address" aria-invalid={!!e.pickup_address || undefined} aria-describedby={describedBy('ch-pickup', e.pickup_address)} onInput={() => clear('pickup_address')} /></Field>
-      <Field float id="ch-dropoff" label="Drop-off address" optional error={e.dropoff_address}><input className="input" placeholder=" " id="ch-dropoff" name="dropoff_address" /></Field>
+      <Field float id="ch-pickup" label="Pickup address" error={e.pickup_address}><AddressInput placeholder=" " id="ch-pickup" name="pickup_address" value={{ label: pick, placeId: '' }} onChange={(x) => { setPick(x.label); clear('pickup_address'); }} invalid={!!e.pickup_address} describedBy={describedBy('ch-pickup', e.pickup_address)} /></Field>
+      <Field float id="ch-dropoff" label="Drop-off address" optional error={e.dropoff_address}><AddressInput placeholder=" " id="ch-dropoff" name="dropoff_address" value={{ label: drop, placeId: '' }} onChange={(x) => setDrop(x.label)} /></Field>
       <div className="field-row">
         <Field id="ch-pax" label="Passengers" error={e.passengers}><input className="input" id="ch-pax" name="passengers" type="number" min={1} max={v?.passengers ?? 20} defaultValue={2} inputMode="numeric" aria-invalid={!!e.passengers || undefined} aria-describedby={describedBy('ch-pax', e.passengers)} onInput={() => clear('passengers')} /></Field>
         <Field id="ch-occasion" label="Occasion" optional error={e.occasion}><select className="select" id="ch-occasion" name="occasion" defaultValue=""><option value="">Choose one</option>{OCCASIONS.map((o) => <option key={o} value={o}>{o}</option>)}</select></Field>

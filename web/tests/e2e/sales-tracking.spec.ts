@@ -105,7 +105,7 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   await page.getByTestId('mr-mobile').fill('4165550123');
   await page.getByTestId('mr-licence_number').fill('R1234-56789-01234');
   await page.getByTestId('mr-licence_expiry').fill('2031-01-31');
-  await page.getByTestId('mr-mode-link').check();
+  await page.getByTestId('mr-paid-by').selectOption('link');
   await check(page, 'sales add a rental, priced');
   await page.getByTestId('choice-sourced').check();
   await page.getByTestId('mr-submit').click();

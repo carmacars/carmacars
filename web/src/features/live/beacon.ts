@@ -15,6 +15,7 @@
 // "end", so the session ends. Heartbeats follow the same consent as page beacons: only a visitor who may be shown.
 // A batch the network lost is sent again once; a heartbeat that finds no session sends the page view again.
 import { beatMs, createHeartbeat } from './heartbeat';
+import { takeWaitingTracks } from '@/lib/track/emit';
 
 type Ev = { k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> };
 export interface BeaconReply { ok?: boolean; invite?: { token: string; number: string; message: string; from?: string } | null; cfg?: { chat: boolean; greet_after: number; greet_text: string; beat?: number };
@@ -265,12 +266,14 @@ export function startBeacon() {
     const d = e.target;
     if (d instanceof HTMLDetailsElement && d.open && d.closest('.faq')) track('help_open', { d: { topic: topicOf(d.querySelector('summary')?.textContent ?? '') } });
   }, true);
-  // a booking request form: the first field touched starts it
-  document.addEventListener('focusin', (e) => {
+  // a booking request form: the first field touched starts it (focused, or changed without a focus first: a value picked
+  // by the browser's autofill or a tap on a radio that does not take focus)
+  const requestStart = (e: Event) => {
     if (current.kind !== 'book' || current.requestStarted) return;
     const t = e.target as HTMLElement | null;
-    if (t && t.closest('form') && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) { current.requestStarted = true; track('request_started', { slug: current.slug }); }
-  });
+    if (t && t.closest?.('form') && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) { current.requestStarted = true; track('request_started', { slug: current.slug }); }
+  };
+  for (const k of ['focusin', 'input', 'change'] as const) document.addEventListener(k, requestStart, true);
   addEventListener('pagehide', () => leave(true));
   // back from the back-forward cache: the session lives again (the page's end is undone by the next write)
   addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) { hb.start(); void beat(); } });
@@ -281,6 +284,11 @@ export function startBeacon() {
   });
   addEventListener('cc:consent', () => { void send(); });
   view();
+  // what happened on this page before the beacon loaded (it loads once the page is idle): the price already shown, and
+  // a field of the request form already in use
+  for (const x of takeWaitingTracks()) if (['quote_seen', 'photos'].includes(x.k)) track(x.k, { slug: current.slug, d: x.d });
+  const active = document.activeElement as HTMLElement | null;
+  if (current.kind === 'book' && active?.closest?.('form') && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)) { current.requestStarted = true; track('request_started', { slug: current.slug }); }
   void send();
   hb.start();
 }

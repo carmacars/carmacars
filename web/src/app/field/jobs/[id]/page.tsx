@@ -9,6 +9,7 @@ import { ListingCapture, type Capture } from '@/features/listing/ListingCapture'
 import { StartListing } from '@/features/listing/StartListing';
 import type { FieldJob } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
+import { FieldCollect } from '@/features/money/FieldCollect';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Job', path: '/field', noindex: true, description: 'One field job and its checklist.' });
@@ -56,6 +57,12 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
       )}
       {j.job.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" />}
       {j.job.status === 'acknowledged' && <FieldButton action="start" payload={{ job: id }} label="Start" primary testId="start" />}
+      {/* the rental agreement still waits for a signature: the renter (or a driver) signs on this phone (0130) */}
+      {b && !done && (j.ready?.signed === false || b.drivers.some((d) => d.role !== 'renter' && !d.accepted)) && (
+        <p><Link prefetch={false} className="btn btn--ghost fd-wide" href={`/field/jobs/${id}/sign-now`} data-testid="field-sign-now">Sign now on this device</Link></p>)}
+      {/* the deposit at pickup: the renter types the card on this phone (0129) */}
+      {b && !done && j.report_kind === 'pickup' && j.ready && j.job.status === 'in_progress' && (
+        <FieldCollect booking={b.booking_number} jobId={id} deposit={j.ready.deposit} longRental={(new Date(b.return_at).getTime() - new Date(b.pickup_at).getTime()) / 86_400_000 > 7} />)}
       {j.job.status === 'in_progress' && checklist && <Checklist j={j} />}
       {j.job.status === 'in_progress' && j.checklist && <JobChecklist j={j} listing={listing} />}
       {done && <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>}

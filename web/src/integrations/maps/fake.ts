@@ -1,4 +1,5 @@
 import type { MapsAdapter, Place } from './types';
+import { fromLabel } from '../../features/forms/address-parts.ts';
 
 // Local and test stand-in: public Toronto landmarks (the prototype's sample list), and the
 // straight-line distance times 1.3 for driving. No private addresses.
@@ -19,6 +20,10 @@ const PLACES: Place[] = [
   ['stlawrence', 'St. Lawrence Market, 93 Front Street East, Toronto, ON', 43.6487, -79.3716]
 ].map(([id, label, lat, lng]) => ({ id: id as string, label: label as string, lat: lat as number, lng: lng as number }));
 
+// the public postal codes of the sample landmarks, so the forms' autofill is exercised locally
+const POSTAL: Record<string, string> = { union: 'M5J 1E6', 'yyz-t1': 'L5P 1B2', 'yyz-t3': 'L5P 1B2', ytz: 'M5V 1A1', cn: 'M5V 3L9', rom: 'M5S 2C6', arena: 'M5J 2X2',
+  yorkdale: 'M6A 2T9', squareone: 'L5B 2C9', vaughan: 'L4K 5W4', markville: 'L3R 4M9', stc: 'M1P 4P5', cityhall: 'M5H 2N2', stlawrence: 'M5E 1C3' };
+
 export function fakeMaps(): MapsAdapter {
   return {
     name: 'fake',
@@ -27,7 +32,7 @@ export function fakeMaps(): MapsAdapter {
       if (query.trim().length < 2) return [];
       return PLACES.filter((p) => words.every((w) => p.label.toLowerCase().includes(w))).slice(0, 6).map(({ id, label }) => ({ id, label }));
     },
-    async place(id) { return PLACES.find((p) => p.id === id) ?? null; },
+    async place(id) { const p = PLACES.find((x) => x.id === id); return p ? { ...p, parts: { ...fromLabel(p.label), postal_code: POSTAL[p.id] ?? '' } } : null; },
     async distanceKm(a, b) {
       const R = 6371; const rad = (d: number) => (d * Math.PI) / 180;
       const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;

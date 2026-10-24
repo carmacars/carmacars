@@ -22,6 +22,7 @@ export default async function FindCar({ searchParams }: { searchParams: Promise<
     {q.length >= 3 && <Card title="Cars" testId="car-matches"><Table rows={found as unknown as Array<Record<string, unknown>>} empty="No car matches." cols={[
       { key: 'car_code', label: 'Car code' }, { key: 'name', label: 'Car', render: (r) => opens ? <Link prefetch={false} className="link" href={`/va/vehicles/${String(r.vehicle_id)}`}>{String(r.name)}</Link> : String(r.name) },
       { key: 'plate', label: 'Plate' }, { key: 'status', label: 'Status', render: (r) => `${String(r.status).replace(/_/g, ' ')}${r.is_sample ? ' (example car)' : ''}` },
-      { key: 'path', label: 'On the site', render: (r) => r.path ? <a className="link" href={String(r.path)}>{String(r.path)}</a> : 'Not on the site' }]} /></Card>}
+      { key: 'path', label: 'On the site', render: (r) => r.path ? <a className="link" href={String(r.path)}>{String(r.path)}</a> : 'Not on the site' },
+      ...(fn === 'cs' || fn === 'sales' ? [{ key: 'offer', label: '', render: (r: Record<string, unknown>) => r.is_sample ? null : <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/va/offers/new?car=${String(r.vehicle_id)}`} data-testid="offer-this-car">Send an offer</Link> }] : [])]} /></Card>}
   </>);
 }

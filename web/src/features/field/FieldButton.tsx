@@ -2,11 +2,12 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
+import { AddressInput } from '@/features/forms/AddressInput';
 
 type A = Parameters<typeof fieldAct>[0];
 // One step on a job card or a small form (acknowledge, start, vehicle moves, damage found later).
 export function FieldButton({ action, payload, label, testId, primary, fields }: { action: A; payload: Record<string, unknown>; label: string; testId?: string; primary?: boolean;
-  fields?: Array<{ name: string; label: string; numeric?: boolean; options?: Array<[string, string]>; required?: boolean }> }) {
+  fields?: Array<{ name: string; label: string; numeric?: boolean; options?: Array<[string, string]>; required?: boolean; address?: boolean }> }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -24,7 +25,8 @@ export function FieldButton({ action, payload, label, testId, primary, fields }:
     <div className="fd-act">
       {fields?.map((f) => (
         <label key={f.name} className="field"><span className="label">{f.label}</span>
-          {f.options ? <select className="select" value={vals[f.name]} onChange={(e) => setVals({ ...vals, [f.name]: e.target.value })}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          {f.address ? <AddressInput id={`fb-${f.name}`} name={f.name} value={{ label: vals[f.name] ?? '', placeId: '' }} onChange={(x) => setVals((s) => ({ ...s, [f.name]: x.label }))} />
+            : f.options ? <select className="select" value={vals[f.name]} onChange={(e) => setVals({ ...vals, [f.name]: e.target.value })}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             : <input className="input" inputMode={f.numeric ? 'numeric' : undefined} value={vals[f.name] ?? ''} onChange={(e) => setVals({ ...vals, [f.name]: e.target.value })} />}
         </label>))}
       <button className={`btn ${primary ? 'btn--primary' : 'btn--ghost'} fd-wide`} type="button" disabled={pending} onClick={run} data-testid={testId}>{pending ? 'Working' : label}</button>

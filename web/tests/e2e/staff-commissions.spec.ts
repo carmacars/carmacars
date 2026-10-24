@@ -82,7 +82,7 @@ async function fillRental(page: Page, carId: string, days: number, opts: { field
   await page.getByTestId('mr-mobile').fill('4165550123');
   await page.getByTestId('mr-licence_number').fill('R1234-56789-01234');
   await page.getByTestId('mr-licence_expiry').fill('2031-01-31');
-  await page.getByTestId('mr-mode-link').check();
+  await page.getByTestId('mr-paid-by').selectOption('link');
 }
 const doneNumber = async (page: Page) => (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
 
@@ -164,9 +164,9 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await expect(dp.locator('.fd-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
   await dp.goto('/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(dp.getByTestId('mr-renter-q')).toHaveCount(0);
-  await expect(dp.getByTestId('mr-mode-other_way')).toHaveCount(0);
+  await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);
   await fillRental(dp, carId, days + 20, { field: true });
-  await expect(dp.getByTestId('mr-mode-other_way')).toHaveCount(0);
+  await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);
   await dp.getByTestId('choice-sourced').check();
   await check(dp, 'field add a rental');
   await dp.getByTestId('mr-submit').click();

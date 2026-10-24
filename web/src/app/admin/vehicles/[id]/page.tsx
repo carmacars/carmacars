@@ -72,7 +72,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
-      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and coverage'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and Protection Plan'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
       {tab === 'maintenance' && <CarMaintenancePanel m={await door<CarMaintenance>(user.id, 'ops_read', 'maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
@@ -153,8 +153,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               { key: 'act', label: 'Change', render: (r) => <span className="ad-actions"><Act action="fee_override" payload={{ ...P, fee: r.code }} label="Set for this car" title={`${r.label} for this car`} refresh={refresh} fields={[{ name: 'amount_cents', label: 'Amount', type: 'money' }, { name: 'percent_bps', label: 'or percentage', type: 'percent' }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
                 {r.default?.source === 'vehicle' && <Act action="fee_override_end" payload={{ ...P, fee: r.code }} label="Back to default" refresh={refresh} />}</span> }]} />
           </Card>
-          <Card title="Coverage prices (car or class)"><Table rows={v.coverage_prices} empty="The class table applies; set prices in Settings, Coverage." cols={[{ key: 'age_band', label: 'Age band' }, { key: 'amount_cents', label: 'Price', num: true, render: (r) => $(r.amount_cents) }, { key: 'per_day', label: 'Per day' }, { key: 'class_code', label: 'Class' }, { key: 'effective_from', label: 'From' }]} />
-            <p className="small"><Link prefetch={false} className="link" href="/admin/settings/coverage">Edit the coverage price table</Link></p></Card>
+          <Card title="Protection Plan prices (this car or its class)"><Table rows={v.coverage_prices} empty="The class table applies; set prices in Settings, Protection Plan prices." cols={[{ key: 'age_band', label: 'Age band' }, { key: 'amount_cents', label: 'Price', num: true, render: (r) => $(r.amount_cents) }, { key: 'per_day', label: 'Per day' }, { key: 'class_code', label: 'Class' }, { key: 'effective_from', label: 'From' }]} />
+            <p className="small"><Link prefetch={false} className="link" href="/admin/settings/coverage">Edit the Protection Plan price table</Link></p></Card>
         </div>
       )}
       {tab === 'calendar' && <div className="small" data-testid="vehicle-turnaround">Turnaround between trips on this car: <b>{v.turnaround_block_minutes == null ? 'as in Program settings' : `${String(v.turnaround_block_minutes)} minutes`}</b>{' '}

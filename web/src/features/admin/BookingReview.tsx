@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { AddressInput } from '@/features/forms/AddressInput';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -9,6 +10,8 @@ import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
+import { offersDo } from '@/server/actions/offers';
+import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -33,10 +36,13 @@ export interface B {
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
   /** 0112: the price typed is plus tax or tax included (then the amount typed) */
   price_tax?: 'plus' | 'included' | null; price_with_tax_cents?: number | null;
+  /** 0129: how the rental and the deposit are paid */
+  rental_pay_method?: string; deposit_pay_method?: string;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
 
-const COVERAGE_TYPES = ['coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
+// the Protection Plan the renter buys is one line (coverage_sold): one price on this screen (0129), never a second "coverage" field
+const COVERAGE_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 const MONEY_KEYS = ['daily_rate_cents', 'weekend_rate_cents', 'weekly_rate_cents', 'monthly_rate_cents', 'staff_discount_cents', 'deposit_cents', 'overage_cents_per_km', 'insurer_authorized_daily_rate_cents'] as const;
 const dollars = (c: number | null | undefined) => (c === null || c === undefined ? '' : (c / 100).toFixed(2));
 const cents = (s: string) => { const n = Number(String(s).replace(/[$,\s]/g, '')); return s.trim() === '' || !Number.isFinite(n) ? null : Math.round(n * 100); };
@@ -52,6 +58,14 @@ const F = ({ k, l, type = 'text', hint, money: m }: { k: string; l: string; type
     {hint && <p className="hint" id={`rv-${k}-h`}>{hint}</p>}
   </div>
 ); };
+// an address with the lookup (0130); disabled when the booking cannot be edited
+const A = ({ k, l }: { k: string; l: string }) => { const { v, set, changed, editable } = useContext(Ctx); return (
+  <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
+    <label className="label" htmlFor={`rv-${k}`}>{l}</label>
+    {editable ? <AddressInput id={`rv-${k}`} name={k} value={{ label: String(v[k] ?? ''), placeId: '' }} onChange={(x) => set(k)(x.label)} />
+      : <input className="input" id={`rv-${k}`} value={String(v[k] ?? '')} disabled />}
+  </div>
+); };
 const S = ({ k, l, options }: { k: string; l: string; options: Array<[string, string]> }) => { const { v, set, changed, editable } = useContext(Ctx); return (
   <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
     <label className="label" htmlFor={`rv-${k}`}>{l}</label>
@@ -61,7 +75,8 @@ const S = ({ k, l, options }: { k: string; l: string; options: Array<[string, st
 const Place = ({ leg }: { leg: 'pickup' | 'return' }) => { const { v } = useContext(Ctx); return (
   <>
     <S k={`${leg}_kind`} l={leg === 'pickup' ? 'Pickup place' : 'Return place'} options={[['our_location', 'Our location'], ['delivery', leg === 'pickup' ? 'We deliver' : 'We collect'], ['airport', 'Airport'], ['owner_location', 'Owner\'s location']]} />
-    {(v[`${leg}_kind`] === 'delivery' || v[`${leg}_kind`] === 'airport') && <F k={`${leg}_address`} l={v[`${leg}_kind`] === 'airport' ? 'Airport code (YYZ, YTZ)' : 'Address'} />}
+    {v[`${leg}_kind`] === 'airport' && <F k={`${leg}_address`} l="Airport code (YYZ, YTZ)" />}
+    {v[`${leg}_kind`] === 'delivery' && <A k={`${leg}_address`} l="Address" />}
     {v[`${leg}_kind`] === 'delivery' && <F k={`${leg}_km`} l="Distance (km)" hint="From the delivery origin; prices the delivery fee" />}
   </>
 ); };
@@ -83,7 +98,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     insurer_adjuster_email: b.insurer_adjuster_email ?? '', insurer_adjuster_phone: b.insurer_adjuster_phone ?? '', insurer_authorized_days: b.insurer_authorized_days?.toString() ?? '',
     insurer_authorized_until: b.insurer_authorized_until ?? '', dates_provisional: b.dates_provisional, blocks_calendar: b.blocks_calendar, blocks_reason: '',
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
-    message: '', expires_hours: String(offerHours), note: b.notes ?? ''
+    message: '', expires_hours: String(offerHours), note: b.notes ?? '',
+    rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: true, by_text: false
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
   const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
@@ -130,7 +146,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     if (addonsChanged) p.addons = addonsPayload(addons);
     return p;
   }, [v, addons]); // eslint-disable-line react-hooks/exhaustive-deps
+  const payChanged = changed('rental_pay') || changed('deposit_pay');
   const dirty = Object.keys(payload.changes as object).length > 0 || Object.keys(payload).some((k) => !['booking', 'changes'].includes(k));
+  // an offer that is out (offered, or approved and not paid): edited in place and sent again in one step (0129)
+  const out = ['offered', 'pending_payment'].includes(b.status);
+  const [revised, setRevised] = useState<string[] | null>(null);
 
   // live re-pricing, debounced
   const seq = useRef(0);
@@ -179,8 +199,26 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   if (shown.deposit_cents !== b.deposit_cents) diffs.push(['Deposit', money(b.deposit_cents), money(shown.deposit_cents)]);
   const expiresAt = () => new Date(Date.now() + Number(v.expires_hours || offerHours) * 3600_000).toISOString();
 
+  const pays = () => ({ rental_pay_method: v.rental_pay, deposit_pay_method: v.deposit_pay });
+  const revise = (notify: boolean) => run(async () => {
+    setProblem(null);
+    if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
+    const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
+      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) } },
+      [`/admin/bookings/${b.booking_number}`, `/va/bookings/${b.booking_number}`]);
+    if (!r.ok) { setProblem(r.message); return; }
+    setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
+    setDone(r.data.version ? `Offer version ${r.data.version} ${notify ? 'sent to the renter' : 'saved; the renter was not told'}.${r.data.text && !r.data.text.ok ? ` The text was not sent: ${r.data.text.reason}` : ''}` : 'Saved.');
+    router.refresh();
+  });
+
   const act = (action: 'booking_save' | 'send_offer') => run(async () => {
     setProblem(null);
+    // how it is paid, kept before the save or the offer (the review screen's own action knows nothing of it)
+    if (payChanged) {
+      const p = await offersDo('offer_revise', { booking: b.id, changes: {}, ...pays() });
+      if (!p.ok) { setProblem(p.message); return; }
+    }
     const body: Record<string, unknown> = { ...payload, internal_note: v.note };
     if (action === 'send_offer') {
       if (needChoice && !choice && va) { setProblem('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
@@ -195,9 +233,10 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   return (
     <Ctx.Provider value={{ v, set, changed, editable }}>
     <div className="ad-review" data-testid="booking-review">
-      <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Adjust the booking" onSubmit={(e) => { e.preventDefault(); act('booking_save'); }}>
-        <h2 className="d4">Adjust</h2>
-        {!editable && <p className="pt-note small">An offer is out: the form is read-only. Withdraw to edit.</p>}
+      <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Adjust the booking" onSubmit={(e) => { e.preventDefault(); if (out) revise(Boolean(v.notify)); else act('booking_save'); }}>
+        <h2 className="d4">{out ? 'Edit the offer' : 'Adjust'}</h2>
+        {out && editable && <p className="pt-note small" data-testid="review-edit-in-place">{b.status === 'pending_payment' ? 'The renter approved this offer and has not paid yet.' : 'This offer is out with the renter.'} Change anything here: the changes are highlighted, and Save sends the updated offer as a new version (or saves it without telling the renter). No need to withdraw it first.</p>}
+        {!editable && <p className="pt-note small">You cannot change this offer. Ask customer service or an Admin.</p>}
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="vh">Car and dates</legend>
           <div className={`field ad-field ad-field--wide${changed('vehicle_id') ? ' ad-diff' : ''}`}>
@@ -230,7 +269,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           {!va && <><F k="overage_cents_per_km" l="Overage per km" money />
           <F k="staff_discount_cents" l="Discount" money />
           <F k="staff_discount_reason" l="Discount reason" /></>}
-          <F k="coverage" l="Coverage price" money hint={coverageLine ? undefined : 'Only when the renter chose our coverage'} />
+          <F k="coverage" l="Protection Plan price" money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
           <F k="promo_code" l="Promo code" />
           {!va && feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={lineLabel(l)} money />)}
           {(feeLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change" />}
@@ -248,6 +287,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           </>}
           {!va && <div className={`field ad-field${changed('blocks_calendar') ? ' ad-diff' : ''}`}><label className="check"><input type="checkbox" checked={Boolean(v.blocks_calendar)} onChange={(e) => set('blocks_calendar')(e.target.checked)} /> <span>Blocks the calendar</span></label></div>}
           {changed('blocks_calendar') && <F k="blocks_reason" l="Reason for the calendar switch" />}
+          <S k="rental_pay" l="The rental is paid by" options={RENTAL_PAY.map(([a, c]) => [a, c])} />
+          <S k="deposit_pay" l="The deposit is taken by" options={DEPOSIT_PAY.filter(([a]) => !va || a !== 'none').map(([a, c]) => [a, c])} />
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable} data-testid="review-addons">
           <legend className="pt-kicker">Add-ons</legend>
@@ -257,7 +298,24 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           </div>
         </fieldset>
         <div className="field ad-field"><label className="label" htmlFor="rv-note">Internal note</label><textarea className="input ad-textarea" id="rv-note" value={String(v.note)} onChange={(e) => set('note')(e.target.value)} /></div>
-        {editable && <button className="btn btn--ghost btn--sm" type="submit" disabled={pending} data-testid="review-save">{pending ? 'Saving' : 'Save changes'}</button>}
+        {editable && !out && <button className="btn btn--ghost btn--sm" type="submit" disabled={pending} data-testid="review-save">{pending ? 'Saving' : 'Save changes'}</button>}
+        {editable && out && (
+          <div className="stack" data-testid="review-revise">
+            {diffs.length > 0 && <ul className="pt-changes small" aria-label="What changes">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
+            <div className="field ad-field"><label className="label" htmlFor="rv-rmsg">Message to the renter</label>
+              <textarea className="input ad-textarea" id="rv-rmsg" maxLength={1000} value={String(v.message)} onChange={(e) => set('message')(e.target.value)} placeholder="What changed and why" data-testid="review-revise-message" /></div>
+            <div className="field ad-field"><label className="label" htmlFor="rv-rexp">Open for</label>
+              <select className="select" id="rv-rexp" value={String(v.expires_hours)} onChange={(e) => set('expires_hours')(e.target.value)}>
+                {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
+            <div className="field ad-field"><span className="label">Send the update by</span>
+              <label className="check" htmlFor="rv-by-email"><input id="rv-by-email" type="checkbox" checked={Boolean(v.by_email)} onChange={(e) => set('by_email')(e.target.checked)} /> <span>Email</span></label>
+              <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label></div>
+            <div className="row">
+              <button className="btn btn--primary" type="button" disabled={pending} onClick={() => revise(Boolean(v.by_email) || Boolean(v.by_text))} data-testid="review-revise-send">{pending ? 'Saving' : 'Save and send the update'}</button>
+              <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => revise(false)} data-testid="review-revise-quiet">Save without telling the renter</button>
+            </div>
+            {revised && revised.length > 0 && <ul className="small" data-testid="review-revised">{revised.map((x) => <li key={x}>{x}</li>)}</ul>}
+          </div>)}
       </form>
 
       <section className="stack" aria-label="Price">

@@ -407,7 +407,7 @@ export function RequestWizard(p: WizardProps) {
                 {(['1', '2', '3'] as const).map((v) => (
                   <label className="option" key={v}><input type="radio" name="coverage" value={v} checked={d.coverage === v} onChange={() => set('coverage', v)} />
                     <span className="option__title">{covText[v]!.replace(', priced in your offer', '')}</span>
-                    <span className="option__body">{v === '1' ? 'You will send the policy page or an insurer letter showing OPCF 27.' : v === '2' ? 'You will pay with that card and send its benefits certificate.' : 'Priced in your offer, for your car and the driver’s age. We send the Protection Plan’s terms before you buy.'}</span></label>
+                    <span className="option__body">{v === '1' ? 'You will send the policy page or an insurer letter showing OPCF 27.' : v === '2' ? <>You will pay with that card and send its benefits certificate. Most cards stop at a car priced $65,000 or $85,000. <a className="link" href="/credit-card-rental-coverage" target="_blank" rel="noopener" data-testid="coverage-cards-link">Which cards include it<span className="vh"> (opens in a new tab)</span></a></> : 'Priced in your offer, for your car and the driver’s age. We send the Protection Plan’s terms before you buy.'}</span></label>
                 ))}
               </div><p className="error" role="alert">{err('coverage') ?? ''}</p>
             </fieldset>

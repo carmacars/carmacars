@@ -19,7 +19,8 @@ export default async function VaRequests({ searchParams }: { searchParams: Promi
   const rows = all.filter((r) => !state || r.state === state);
   return (
     <>
-      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · reply within ${target.words}`} />
+      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · reply within ${target.words}`}>
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/va/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
       <Filters base="/va/requests" name="state" value={state} sp={sp} options={[['', 'All'], ['new', 'New'], ['waiting_on_renter', 'Waiting on the renter'], ['pushed_back', 'Pushed back'], ['offer_out', 'Offer out'], ['expired', 'Offer expired']]} />
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting." cols={[
         { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > target.minutes ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },

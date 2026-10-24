@@ -153,9 +153,20 @@ export function fakePayments(): FakePayments {
       i.amountCapturableCents = i.amountCents;
       return { ...i };
     },
-    async captureIntent(id) {
+    async createStaffIntent(r) {
+      const i = once(r.idempotencyKey, () => blank(r.amountCents, r.metadata, r.customerId));
+      if (r.capture === 'automatic') ledger().auto.add(i.id);
+      return i;
+    },
+    async createCardSetup(r) {
+      const i = once(r.idempotencyKey, () => { const x = blank(0, { ...r.metadata, fake_setup: 'true' }, r.customerId); x.id = x.id.replace('pi_', 'seti_'); x.clientSecret = `${x.id}_secret_fake`; return x; });
+      ledger().auto.add(i.id);
+      return i;
+    },
+    async retrieveCardSetup(id) { return { ...get(id) }; },
+    async captureIntent(id, _key, amountCents) {
       const i = get(id);
-      if (i.status === 'requires_capture') { i.status = 'succeeded'; i.amountCapturableCents = 0; }
+      if (i.status === 'requires_capture') { i.status = 'succeeded'; i.amountCapturableCents = 0; if (amountCents !== undefined) i.amountCents = amountCents; }
       else if (i.status !== 'succeeded') throw new Error(`This PaymentIntent could not be captured because it has a status of ${i.status}.`);
       return { ...i };
     },

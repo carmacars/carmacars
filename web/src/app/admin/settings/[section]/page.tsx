@@ -24,6 +24,7 @@ import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePages
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
+import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -245,7 +246,7 @@ export default async function Section({ params }: { params: Promise<{ section: s
       classes: { table: 'vehicle_classes', key: 'code', rows: s.classes, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'label', label: 'Label', required: true, value: r.label }, { name: 'sort_order', label: 'Order', type: 'number', value: r.sort_order }, { name: 'is_active', label: 'Shown', type: 'bool', value: r.is_active ?? true }] },
       airports: { table: 'airports', key: 'id', rows: s.airports, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'name', label: 'Name', required: true, value: r.name }, { name: 'latitude', label: 'Latitude', type: 'number', required: true, value: r.latitude }, { name: 'longitude', label: 'Longitude', type: 'number', required: true, value: r.longitude }, { name: 'distance_km', label: 'Distance (km)', type: 'number', value: r.distance_km }, { name: 'surcharge_cents', label: 'Surcharge', type: 'money', value: r.surcharge_cents }, { name: 'is_active', label: 'Offered', type: 'bool', value: r.is_active ?? true }],
         extra: <Card title="Delivery rate and origin"><SaveForm table="program_settings" rowKey="current" testId="delivery" fields={fieldsFrom(s.program, ['delivery_per_km_cents', 'delivery_min_cents', 'delivery_max_cents', 'delivery_round_cents', 'company_latitude', 'company_longitude', 'company_address'])} /></Card> },
-      insurers: { table: 'insurers', key: 'id', rows: s.insurers, fields: (r) => [{ name: 'name', label: 'Name', required: true, value: r.name }, { name: 'billing_contact_name', label: 'Billing contact', value: r.billing_contact_name }, { name: 'billing_email', label: 'Billing email', type: 'email', value: r.billing_email }, { name: 'billing_phone', label: 'Billing phone', type: 'tel', value: r.billing_phone }, { name: 'billing_address', label: 'Billing address', value: r.billing_address }, { name: 'notes', label: 'Notes', type: 'textarea', value: r.notes }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
+      insurers: { table: 'insurers', key: 'id', rows: s.insurers, fields: (r) => [{ name: 'name', label: 'Name', required: true, value: r.name }, { name: 'billing_contact_name', label: 'Billing contact', value: r.billing_contact_name }, { name: 'billing_email', label: 'Billing email', type: 'email', value: r.billing_email }, { name: 'billing_phone', label: 'Billing phone', type: 'tel', value: r.billing_phone }, { name: 'billing_address', label: 'Billing address', type: 'address', value: r.billing_address }, { name: 'notes', label: 'Notes', type: 'textarea', value: r.notes }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
       'promo-codes': { table: 'promo_codes', key: 'id', rows: s.promo_codes.filter((r) => r.source !== 'discount_game'), fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'description', label: 'Description', value: r.description }, { name: 'percent_bps', label: 'Percent off the rental', type: 'percent', value: r.percent_bps }, { name: 'amount_cents', label: 'or amount off', type: 'money', value: r.amount_cents }, { name: 'valid_from', label: 'Valid from', type: 'datetime', value: r.valid_from }, { name: 'valid_until', label: 'Valid until', type: 'datetime', value: r.valid_until }, { name: 'max_uses', label: 'Maximum uses', type: 'number', value: r.max_uses }, { name: 'once_per_renter', label: 'Once per renter', type: 'bool', value: r.once_per_renter ?? true }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
       'quick-replies': { table: 'quick_replies', key: 'id', rows: s.quick_replies, fields: (r) => [{ name: 'title', label: 'Title', required: true, value: r.title }, { name: 'body', label: 'Text', type: 'textarea', required: true, value: r.body }, { name: 'category', label: 'Category', value: r.category }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] }
     };
@@ -256,6 +257,35 @@ export default async function Section({ params }: { params: Promise<{ section: s
         <details key={String(r[c.key])}><summary className="link">{String(r.label ?? r.name ?? r.code ?? r.title ?? (section === 'deposits' ? $(r.amount_cents) : `${String(r.km_per_day)} km`))}{r.is_active === false ? ' (off)' : ''}{r.uses !== undefined ? ` · ${String(r.uses)} uses` : ''}{r.unpaid_cents !== undefined ? ` · ${String(r.open_bookings)} open bookings, ${$(r.unpaid_cents)} unpaid` : ''}</summary>
           <SaveForm table={c.table} rowKey={String(r[c.key])} compact fields={c.fields(r)} /></details>)) : <p className="small muted">None yet.</p>}</Card>
       <Card title="Add"><SaveForm table={c.table} label="Add" testId={`add-${section}`} fields={c.fields({})} /></Card>
+    </>);
+  }
+  case 'card-coverage': {
+    const list = await read<CardList>('card_coverage');
+    const fields = (r: R): Field[] => [
+      { name: 'country', label: 'Issued in', type: 'select', required: true, options: [['CA', 'Canada'], ['US', 'United States']], value: r.country ?? 'CA' },
+      { name: 'issuer', label: 'Issuer', required: true, value: r.issuer }, { name: 'card', label: 'Card', required: true, value: r.card },
+      { name: 'coverage', label: 'Pays', type: 'select', required: true, options: (Object.keys(COVERAGE_LABEL) as CoverageKind[]).map((k) => [k, COVERAGE_LABEL[k]] as [string, string]), value: r.coverage ?? 'ask' },
+      { name: 'max_msrp_cents', label: 'Car value limit (MSRP)', type: 'money', value: r.max_msrp_cents, hint: 'Empty when the guide gives no MSRP limit: say what it does say below.' },
+      { name: 'value_note', label: 'Value limit in the guide\'s words', value: r.value_note, wide: true },
+      { name: 'max_days', label: 'Longest rental (days)', type: 'number', min: 1, max: 366, value: r.max_days },
+      { name: 'exclusions', label: 'Key exclusions', type: 'textarea', value: r.exclusions ?? '', wide: true },
+      { name: 'conditions', label: 'To use it (decline the waiver, pay with the card)', type: 'textarea', value: r.conditions ?? '', wide: true },
+      { name: 'car_sharing', label: 'Car sharing and peer-to-peer', value: r.car_sharing, wide: true },
+      { name: 'note', label: 'Note shown with the card', type: 'textarea', value: r.note, wide: true },
+      { name: 'guide_url', label: 'Official guide (https://)', value: r.guide_url, wide: true },
+      { name: 'source_url', label: 'Where the numbers came from, if not the issuer (https://)', value: r.source_url, wide: true },
+      { name: 'issuer_checked', label: 'Read in the issuer\'s own document', type: 'bool', value: r.issuer_checked ?? false },
+      { name: 'last_checked', label: 'Last checked', type: 'date', value: r.last_checked, hint: 'Changing the facts without a date marks the card checked today.' },
+      { name: 'sort_order', label: 'Order', type: 'number', value: r.sort_order ?? 0 }, { name: 'is_active', label: 'Shown', type: 'bool', value: r.is_active ?? true }];
+    const rows = list.cards as unknown as R[];
+    return (<>{head}
+      <p className="small muted">The list on <Link prefetch={false} className="link" href="/credit-card-rental-coverage">/credit-card-rental-coverage</Link> and in the staff quick reference. Facts only: open the issuer&apos;s guide, correct the card and save it. A card not checked for 6 months shows on Today.</p>
+      <Card title={`${rows.length} cards`} testId="card-coverage-admin"><Table rows={rows} cols={[{ key: 'card', label: 'Card', render: (r) => `${String(r.issuer)} ${String(r.card)}${r.country === 'US' ? ' (US)' : ''}${r.is_active === false ? ' (hidden)' : ''}` },
+        { key: 'coverage', label: 'Pays', render: (r) => COVERAGE_LABEL[r.coverage as CoverageKind] }, { key: 'max_msrp_cents', label: 'MSRP limit', num: true, render: (r) => $(r.max_msrp_cents) },
+        { key: 'max_days', label: 'Days', num: true }, { key: 'issuer_checked', label: 'Issuer\'s document', render: (r) => yes(r.issuer_checked) }, { key: 'last_checked', label: 'Checked', render: (r) => d(r.last_checked) }]} /></Card>
+      <Card title="Change a card">{rows.map((r) => <details key={String(r.id)}><summary className="link" data-testid={`card-edit-${String(r.issuer)}-${String(r.card)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>{String(r.issuer)} {String(r.card)}{r.country === 'US' ? ' (US)' : ''}</summary>
+        <SaveForm table="card_rental_coverage" rowKey={String(r.id)} compact fields={fields(r)} /></details>)}</Card>
+      <Card title="Add a card"><SaveForm table="card_rental_coverage" label="Add" testId="add-card-coverage" fields={fields({})} /></Card>
     </>);
   }
   case 'coverage':

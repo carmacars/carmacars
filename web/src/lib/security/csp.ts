@@ -51,7 +51,7 @@ export function securityHeaders(): Record<string, string> {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(self), usb=(), interest-cohort=()',
+    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(self), payment=(self), usb=(), interest-cohort=()',
     'Cross-Origin-Opener-Policy': 'same-origin'
   };
 }

@@ -30,7 +30,7 @@ export default async function Fleet() {
             { key: 'vehicle_name', label: 'Car' }, { key: 'place', label: 'Place', className: 'wrap' },
             { key: 'act', label: '', render: (r) => <Act action="field_job_create" payload={{ booking: r.booking_id, vehicle: r.vehicle_id, kind: r.leg }} label="Schedule" variant="primary" testId={`schedule-${String(r.booking_number)}-${String(r.leg)}`} fields={[
               { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff }, { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.at },
-              { name: 'place', label: 'Place', type: 'text', required: true, value: r.place ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Scheduled." /> }]} />
+              { name: 'place', label: 'Place', type: 'address', required: true, value: r.place ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Scheduled." /> }]} />
         </Card>
         <Card title="Jobs, next three days" testId="jobs">
           <Table rows={b.jobs} empty="No jobs." cols={[
@@ -40,7 +40,7 @@ export default async function Fleet() {
             { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
             { key: 'act', label: '', render: (r) => ['done', 'cancelled'].includes(String(r.status)) ? null : <span className="ad-actions">
               <Act action="field_job_assign" payload={{ id: r.id }} label={r.assigned_to ? 'Reassign' : 'Assign'} testId={`assign-${String(r.id)}`} fields={[{ name: 'to', label: 'Field staff', type: 'select', required: true, options: staff }]} refresh={R} />
-              <Act action="field_job_reschedule" payload={{ id: r.id }} label="Move" fields={[{ name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.scheduled_at }, { name: 'place', label: 'Place', type: 'text', value: r.place ?? '' }]} refresh={R} />
+              <Act action="field_job_reschedule" payload={{ id: r.id }} label="Move" fields={[{ name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.scheduled_at }, { name: 'place', label: 'Place', type: 'address', value: r.place ?? '' }]} refresh={R} />
               <Act action="field_job_cancel" payload={{ id: r.id }} label="Cancel" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={R} /></span> }]} />
         </Card>
         <Card title="Expiry watch" id="expiry"><Table rows={b.expiry} empty="Nothing expiring." cols={[{ key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }, { key: 'title', label: 'What', className: 'wrap' }, { key: 'vehicle_name', label: 'Car' },

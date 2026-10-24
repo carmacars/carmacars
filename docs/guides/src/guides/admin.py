@@ -146,9 +146,10 @@ def build():
 
     # ---------------------------------------------------------------- 3
     g.chapter('Requests, offers and bookings',
-              'Every booking starts as a request. You check it, adjust it and send the offer. After that, the booking '
+              'A booking starts as a request from the website, or as an offer you send yourself to a customer on the phone. '
+              'You check it, adjust it and send the offer; an offer that is out is changed in place. After that, the booking '
               'page holds the money, documents, changes and history.',
-              blurb='Answer a request with an offer, run a booking, and propose a change.')
+              blurb='Send an offer with or without a request, change it in place, take payments by part, run a booking, propose a change.')
     g.task('The request queue', f'Open {P("Bookings", "Requests")}. The oldest waiting request is at the top.')
     g.steps([
         'Filter by New, Waiting on the renter, Pushed back, Offer out, Signing and payment, or Offer expired.',
@@ -170,8 +171,38 @@ def build():
         f'Can\'t do it? Press {B("Decline")} and fill in Reason and any alternative.',
         f'Need an answer first? Press {B("Ask the renter")} to send a question.',
     ], shot=S('admin/03-booking-review-desktop', 820, 1440, 1440, 2250, pins=[(5, 1390, 1712)]), fig_w=2.9)
-    g.tip(f'After the offer is out: {B("Withdraw to edit")} takes it back, {B("Send again, later expiry")} gives the renter more time, '
+    g.task('Send an offer without a request', f'{P("Bookings", "Send an offer")}, or {B("Send an offer")} on Bookings and on Requests. For a customer on the phone, by text or at the counter: no request needed.')
+    g.steps([
+        f'The customer: type a name, phone or email and choose them. Not on file? Press {B("Add a new customer")}: full legal name, mobile, email (the offer link goes there) and date of birth. A customer already on file with the same email or phone is shown with Use: one person, one record.',
+        'The car and the dates: type the car code, plate or name, or choose from the list; each car says Free or Not free for the dates. Then the pickup and return places (our location, delivery with the address and distance, airport).',
+        'The price: the Rate sheet, A total for the whole rental, or A rate per day (times the days). A price typed by hand needs its reason and can be plus tax or tax included. Set the kilometres, a promo code, the deposit, a discount and each fee (an Admin), and how damage is covered: with option 3 the Protection Plan price is the one the renter pays.',
+        'How it is paid: the rental by card online (the usual way), e-Transfer, cash, cheque, bank transfer, platform payout or the insurer; the deposit by card hold, cash, e-Transfer or no deposit (an Admin).',
+        'Who found this client, the message to the renter, how long the offer is open, and how the link goes: Email, Text, both or neither.',
+        f'The right side is the offer as the renter will see it, priced by the database as you type. Press {B("Send the offer")}. {B("Save without sending")} keeps it as a request for later.',
+    ])
+    g.tip('It makes the same request and offer the website makes: the renter approves, signs and pays (or you record the payment), and only then is the car on the calendar. '
+          'No "request received" email goes to the renter for an offer you send. Staff commissions and statements count it like any other booking.', label='Good to know')
+
+    g.task('Change an offer that is out', f'The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Press {B("Edit the offer")} on the booking.')
+    g.steps([
+        'Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed.',
+        'Write what changed in Message to the renter and choose how long the offer is open.',
+        f'Press {B("Save and send the update")}: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press {B("Save without telling the renter")} and tell them yourself.',
+        f'A confirmed booking is changed with {B("Change the booking")} (Propose a change, below).',
+    ])
+    g.tip(f'No need to withdraw first. {B("Withdraw the offer")} is only for taking it back for good; {B("Send again, later expiry")} gives the renter more time, '
           f'and {B("Renter approved by phone")} records a yes given on a call.')
+
+    g.task('Payments by part: the rental, the deposit and later charges', 'On the booking\'s Money tab, Money by part shows what is still open for the rental, the fees and later charges, the deposit and the card on file. Each part is paid its own way, in any mix: for example the deposit in cash and the rental by card.')
+    g.steps([
+        f'{B("Record a payment")}: choose what it is for (the rental, fees, the deposit or a later charge) and how it was paid (e-Transfer, cash, cheque, bank transfer, platform payout, the insurer). An e-Transfer, cheque or transfer needs its reference. Press {B("Record it")}. The renter gets a receipt; {B("Print")} prints one to hand over.',
+        f'{B("Collect a card")}: a payment, the deposit hold or saving the card. The renter types the card in Stripe\'s secure form: on this device ({B("Open the card form")}, then hand it over) or by a link texted or emailed to them ({B("Send the link")}). Staff never type a card number.',
+        f'A deposit hold lasts about 7 days and shows the days left. After the return, {B("Capture the hold")} (all or part, with the reason) or {B("Release the hold")}.',
+        f'{B("Charge the saved card")} (Finance or an Admin): extra kilometres, fuel, damage or a late return, with the reason the renter\'s receipt shows. For a rental over 7 days, save the card and charge the deposit this way.',
+        f'An offer paid another way: once the renter approved and signed and the money is recorded, the booking is confirmed (or press {B("Confirm the booking")}).',
+        f'A deposit taken in cash or by e-Transfer is given back the same way after the return: Finance gets a task; press {B("Returned")} with the reference or receipt number.',
+    ])
+    g.tip('Statements, reconciliation and the deposit settlement read each payment with its method: a cash deposit is never refunded to a card.', label='Good to know')
 
     g.task('A booking', f'Open {P("Bookings", "Bookings")}, then a booking number. Or type the number in the search box.')
     g.steps([
@@ -180,6 +211,40 @@ def build():
         'Open tasks for this booking, with the queue and the due time.',
         f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
     ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(1, 290, 230), (2, 500, 560), (3, 290, 700), (4, 1300, 176)]))
+
+    g.task('Check a car out or in', 'From the booking, with your phone or a tablet: the same checklist field staff use.')
+    g.steps([
+        f'A confirmed booking shows {B("Check out (pickup)")} under Check-out, check-in and signing; a booking on rent shows {B("Check in (return)")}. Today lists the check-outs and check-ins due, each with {B("Check out")} or {B("Check in")}.',
+        'The checklist opens: the ready check, the renter and their licence and card, the odometer (km) and fuel or charge, the keys, the photo set (every side, the wheels, the interior, the odometer and fuel gauge, the plate), damage marks with close-ups, then the renter and you sign.',
+        'Photos wait on the device without a connection and upload in the background. Each keeps its time, and the place when the device allows location.',
+        f'A field job of the booking is taken over (the history says so); with no job, one is made for you. When done, press {B("See the photo report")}.',
+    ])
+    g.tip('Fleet, Sales and Customer service check cars out and in the same way from their own booking page.')
+
+    g.task('The photo report, late returns and the return charges', f'Under Check-out, check-in and signing, press {B("Photo report")}.')
+    g.steps([
+        'The report shows the due-back time, the actual check-out and check-in, Late by (or Overdue by while the car is out), the odometer and kilometres over the allowance, the fuel or charge out and in, every photo with its time and place, and the damage.',
+        'At check-in the late return (after the grace period of the fee defaults), the mileage overage and the fuel or recharging are written to the return charges at once. A gas car with no pump receipt is priced at the refill price per eighth (Program settings) plus the markup until the receipt is entered.',
+        f'Not charging one? Press {B("Waive")} beside it and give the reason: it stays waived if the charges are worked out again.',
+        f'The time was wrong? Press {B("Correct the check-in time")} (or the check-out time) with the reason: lateness and the late charges follow, and the history keeps both times.',
+        'The renter gets the same report (without these buttons) by email and in their Documents. Late by shows on the booking and in the Bookings list.',
+    ])
+
+    g.task('Signatures on the spot, or by link', 'The renter or an additional driver signs the rental agreement on your device, or on their own phone.')
+    g.steps([
+        f'While a signature is missing, the booking shows {B("Sign now on this device")}, {B("Email the signing link")} and {B("Text the signing link")}.',
+        f'{B("Sign now on this device")}: confirm the name matches their licence and that you saw the original licence (photograph it if none is on file), then press {B("Hand the device to")} and their name.',
+        f'They read both agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign. Then {B("Back to the staff view")} for the next signer.',
+        'The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy\'s signature record page.',
+    ])
+
+    g.task('The licence before an offer is accepted', 'Front, back and a selfie, from the request on.')
+    g.steps([
+        'After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.',
+        'The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.',
+        f'Review the images as usual with {B("Review documents")}: the card Renter documents is on Review and offer too.',
+        f'The switch is in {P("Settings", "Program")}, Booking requests and offers: Booking licence required (on), with the selfie (on).',
+    ])
 
     g.task('Renter documents: licence and proof of coverage', 'A renter\'s licence photos, selfie and proof of coverage (OPCF 27 or a credit card\'s rental coverage) are checked before the handover. You check them yourself; no task is needed.')
     g.steps([
@@ -451,16 +516,18 @@ def build():
     ])
     g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
 
-    g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings.')
+    g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings, the owner using their own car, and placeholders: a rental already agreed. To send an offer instead, use Send an offer.')
     g.steps([
-        'Choose the car and the dates. The check shows clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
+        f'Quick start sets the usual choices in one tap: {B("Phone")}, {B("Walk-in")}, {B("Turo or another platform")}, {B("Insurance replacement")}, {B("Owner using own car")} or {B("Placeholder")}.',
+        'Choose the car and the dates. The calendar and the price are checked by themselves: clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
         'The dates decide the case, shown under them (nothing to tick): a pickup ahead is an upcoming rental, handed over at pickup as usual. A pickup already passed with the return ahead is a rental already underway: it is recorded as on trip from the pickup you enter, on any active car (even one closed to public bookings), and anything a handover checks that is still missing (signature, licence check, coverage proof, deposit, condition report, insurance) becomes a task. A return already passed is a rental that has ended: kept as completed, paid another way or unpaid.',
         'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
         'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
         'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
         f'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press {B("Insurer confirmed")} once the insurer confirms it.',
-        f'Choose Where it came from and how it is paid: {B("Paid another way")}, {B("Send a payment link")}, {B("Charge the saved card when the renter signs")} or {B("Unpaid: invoice later")}.',
-        f'Press {B("Check the calendar and the price")}. Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
+        'The rental is paid by: e-Transfer or cash (received), card on file (charged when the renter signs), payment link, platform payout (Turo), insurer billed later, cheque, bank transfer, or unpaid. The deposit is taken by card hold, cash, e-Transfer or no deposit.',
+        'The rental agreement: Send it to sign online, or Already signed on paper (a task asks for the scan). The calendar: untick Blocks the car\'s calendar for an insurance replacement with dates not known yet, with the reason.',
+        f'Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
     ])
     g.tip('The rental is on the calendars at once (a payment link waits for the payment). The renter signs the rental agreement in their portal, or on paper and you record it. '
           'With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign, and until then the rental is awaiting signature. '
@@ -1001,7 +1068,7 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
-           'Airports and delivery, Coverage prices, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
+           'Airports and delivery, Protection Plan prices, Card coverage, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')
     g.steps([
@@ -1075,6 +1142,15 @@ def build():
         f'To add one, fill in the Add form (Name, Billing contact, Billing email and the rest) and press {B("Add")}.',
         'Deposit tiers, Kilometre choices, Vehicle classes, Airports, Promo codes and Quick replies work the same way.',
     ])
+
+    g.task('Card coverage: which credit cards include rental car coverage', f'{P("Settings", "Card coverage")} is the list renters see at {U("carmacars.ca/credit-card-rental-coverage")} and staff see under Card coverage in their portal. It starts filled in with 48 Canadian and US cards, each checked on October 23, 2026.')
+    g.steps([
+        'The table shows each card: who pays first (Primary, Secondary, or not stated), the car value limit (MSRP), the longest rental, whether the numbers were read in the issuer\'s own document, and when it was last checked.',
+        f'Open a card under Change a card, open its official guide, correct what changed and press {B("Save")}. Changing the facts without a date marks the card checked today; type a Last checked date to record another day.',
+        'A card whose numbers come from a published summary has Read in the issuer\'s own document unticked and the summary\'s link under Where the numbers came from. The page shows it as Unverified. Tick it once you have read the issuer\'s guide.',
+        f'Add a card with the Add form; untick Shown to hide one. Changes reach the public page at once.',
+    ])
+    g.tip('A card not checked for 6 months shows on Today until it is checked again. The page tells renters to confirm with their card issuer and says CarmaCars decides no claims: keep the list to facts from the issuer\'s guide.')
 
     # ---------------------------------------------------------------- 10
     g.chapter('Add-ons',
