@@ -8,6 +8,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['classes', 'Vehicle classes', 'Classes shown on the site'],
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
+  ['card-coverage', 'Card coverage', 'Which credit cards include rental car coverage: limits, exclusions, guides and the day each was checked'],
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['maintenance', 'Maintenance', 'Service items and intervals by class and car, reminders, the winter tire dates, blocks, expense categories'],
   ['forms', 'Forms', 'Blind Spot\'s rental agreement for every booking, and the official ServiceOntario PDFs and what goes in each field'],

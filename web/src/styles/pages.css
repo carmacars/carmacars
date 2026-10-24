@@ -520,3 +520,23 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .ch-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s-4); }
 .ch-card { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4); border: var(--bw) solid var(--line-strong); border-radius: var(--r-1); background: var(--white); }
 .ch-card .spec { margin: 0; }
+
+/* credit card rental coverage (0131): /credit-card-rental-coverage and /va/card-coverage */
+.cc-box, .cc-box > .table-scroll { min-width: 0; max-width: 100%; }
+.cc-box > .table-scroll { position: relative; } /* keeps the hidden link text (.vh) inside the scrolling box */
+.cc-filters { display: grid; gap: var(--s-4); grid-template-columns: 1fr; align-items: end; }
+@media (min-width: 48rem) { .cc-filters { grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto; } }
+.cc-filters__check { min-height: 50px; align-items: center; }
+.table-scroll .cc-table { min-width: 60rem; }
+.cc-table th[scope="row"] { min-width: 11rem; }
+.cc-issuer { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); }
+.cc-card { display: block; font-weight: 600; }
+.cc-ex { min-width: 18rem; max-width: 30rem; }
+.cc-ex p { margin: 0 0 0.4rem; }
+.cc-ex p:last-child { margin-bottom: 0; }
+.cc-date { white-space: nowrap; display: block; }
+.cc-src { display: block; margin-top: 0.2rem; }
+.cc-limits { display: grid; gap: var(--s-4); grid-template-columns: 1fr; }
+@media (min-width: 48rem) { .cc-limits { grid-template-columns: repeat(3, 1fr); } }
+.cc-limits > div { border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); padding: var(--s-4); }
+.cc-limits__n { font-size: var(--fs-d2); font-weight: 700; line-height: 1.1; margin: 0; font-variant-numeric: tabular-nums; }

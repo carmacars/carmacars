@@ -61,7 +61,7 @@ export async function adminSaveRow<T = Record<string, unknown>>(table: string, v
     const admin = await assertAdmin();
     const data = await door<T>(admin.id, 'admin_save', table, { key: key ?? null, values, ...extra });
     // settings and content reach every public page
-    if (['site_settings', 'site_content_blocks', 'program_settings', 'fee_defaults', 'deposit_tiers', 'km_allowance_choices', 'vehicle_classes', 'airports', 'coverage_prices', 'fee_types'].includes(table)) revalidatePath('/', 'layout');
+    if (['site_settings', 'site_content_blocks', 'program_settings', 'fee_defaults', 'deposit_tiers', 'km_allowance_choices', 'vehicle_classes', 'airports', 'coverage_prices', 'fee_types', 'card_rental_coverage'].includes(table)) revalidatePath('/', 'layout');
     revalidatePath('/admin/settings', 'layout');
     return { ok: true, data };
   } catch (e) { return fail(e); }

@@ -198,6 +198,8 @@ def build():
         ['Option 2, your credit card\'s rental coverage', 'Pay with that card: it must be a credit card (debit and prepaid cards are refused) in your name. Tick that it covers this kind of car for this many days. The card\'s benefits document is optional.'],
         ['Option 3, the CarmaCars Protection Plan', 'Ask for it on your booking; we confirm it once it is active.'],
     ], head=['Your option', 'What we need'])
+    g.tip(f'Which cards include rental car coverage? {U("carmacars.ca/credit-card-rental-coverage")} lists them, with each card\'s car value limit (MSRP), its longest rental and a link to its guide. '
+          'Most cards stop at a car priced $65,000 or $85,000, and some of our cars are priced higher. Only your card\'s issuer decides a claim: call the number on the back of your card before you rent.', label='Good to know')
     g.tip('A person checks your proof and approves it, or tells you what to fix. The car is handed over only once it is approved. Changing your option replaces the earlier proof. '
           'We remind you 48 and 24 hours before pickup while it is missing. We delete licence and face photos 90 days after your rental ends.')
 

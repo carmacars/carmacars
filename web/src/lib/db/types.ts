@@ -2208,6 +2208,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      card_rental_coverage: {
+        Row: {
+          id: string;
+          country: string;
+          issuer: string;
+          card: string;
+          coverage: string;
+          max_msrp_cents: number | null;
+          value_note: string | null;
+          max_days: number | null;
+          exclusions: string;
+          conditions: string;
+          car_sharing: string | null;
+          note: string | null;
+          guide_url: string | null;
+          source_url: string | null;
+          issuer_checked: boolean;
+          last_checked: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          country?: string;
+          issuer: string;
+          card: string;
+          coverage?: string;
+          max_msrp_cents?: number | null;
+          value_note?: string | null;
+          max_days?: number | null;
+          exclusions?: string;
+          conditions?: string;
+          car_sharing?: string | null;
+          note?: string | null;
+          guide_url?: string | null;
+          source_url?: string | null;
+          issuer_checked?: boolean;
+          last_checked?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          country?: string;
+          issuer?: string;
+          card?: string;
+          coverage?: string;
+          max_msrp_cents?: number | null;
+          value_note?: string | null;
+          max_days?: number | null;
+          exclusions?: string;
+          conditions?: string;
+          car_sharing?: string | null;
+          note?: string | null;
+          guide_url?: string | null;
+          source_url?: string | null;
+          issuer_checked?: boolean;
+          last_checked?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       chat_conversations: {
         Row: {
           id: string;
@@ -18948,6 +19020,7 @@ export type Database = {
       calc_total_loss: { Args: { p_settlement_cents: number; p_lender_due_cents: number; p_owner_owes_cents: number }; Returns: { lender_cents: number; company_cents: number; owner_cents: number }[] };
       calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
+      card_coverage_public: { Args: never; Returns: Json };
       chat_greeting: { Args: { p_page: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };

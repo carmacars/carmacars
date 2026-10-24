@@ -51,6 +51,7 @@ export function CoverageSection({ number, c }: { number: string; c: RenterCovera
       {c.option === 2 && !c.confirmed && (
         <div className="stack">
           {!c.card.eligible && c.card.message && <p className="alert alert--error" role="alert" data-testid="coverage-card-problem"><span>{c.card.message}</span></p>}
+          <p className="small muted">Not sure your card covers this car? <a className="link" href="/credit-card-rental-coverage" target="_blank" rel="noopener">See which cards include rental car coverage and their car value limits</a>, then confirm with your card issuer.</p>
           {c.card.eligible && <p className="small" data-testid="coverage-card">Paid with the {c.card.brand ? c.card.brand.toUpperCase() : 'card'} credit card ending {c.card.last4}, in your name.</p>}
           {c.card.eligible && !p?.renter_confirmed_at && (
             <form className="stack" onSubmit={(e) => { e.preventDefault(); run(() => confirmCardCoverage(number, tick, ''), 'Thanks. Our team checks it before pickup.'); }}>
