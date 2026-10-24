@@ -43,6 +43,23 @@ export async function scheduleChange(p: { change_id: string; do: 'paper' | 'canc
   return act('schedule_change_admin', p, paths);
 }
 
+// ---------------------------------------------------------------- one car's terms (0135): the table on the owner page and the car page
+export interface CarTermsInput { vehicle_id: string; insurance_fee_cents?: number; tracker_fee_cents?: number; revenue_share_bps?: number; install_fee_cents?: number;
+  management_mode?: string; onboarding_method?: string; lower_from?: string; raise_from?: string; reason?: string; preview?: boolean }
+export interface CarTermsPlan { state: string; enrolled?: boolean; done: boolean; blocked?: string | null; note?: string | null; lower_from?: string | null; raise_from?: string | null; earliest_raise?: string | null;
+  fields: Array<{ field: string; label: string; before_text: string; after_text: string; direction: 'lower' | 'higher' | 'other' }>; steps: string[] }
+export async function carTermsChange(t: CarTermsInput, paths: string[] = []) {
+  const fe: Record<string, string> = {};
+  for (const k of ['insurance_fee_cents', 'tracker_fee_cents', 'install_fee_cents'] as const) if (t[k] !== undefined && (!Number.isInteger(t[k]) || t[k]! < 0)) fe[k] = 'Dollars and cents, for example 450.00.';
+  if (t.revenue_share_bps !== undefined && (!Number.isInteger(t.revenue_share_bps) || t.revenue_share_bps < 0 || t.revenue_share_bps > 10000)) fe.revenue_share_bps = 'Between 0% and 100%.';
+  if (Object.keys(fe).length) return invalid(fe);
+  return act<CarTermsPlan>('car_terms_change', t as unknown as J, t.preview ? [] : ['/admin/owners', ...paths]);
+}
+export async function carTermsCancel(p: { change_id: string; reason: string }, paths: string[] = []) {
+  if (!p.reason.trim()) return invalid({ reason: 'Give the reason.' });
+  return act('car_terms_cancel', p, paths);
+}
+
 // ---------------------------------------------------------------- the first and last month invoice: the Admin's choice (0077)
 export type FirstLastAction = 'send' | 'draft' | 'paid' | 'none';
 export interface FirstLastInput { vehicle_id: string; action: FirstLastAction; amount_cents?: number; payment?: { method: string; received_on: string; reference?: string; amount_cents?: number; note?: string } }

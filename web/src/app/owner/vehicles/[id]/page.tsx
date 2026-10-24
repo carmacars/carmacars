@@ -15,6 +15,9 @@ import { ListingProgress, type Progress } from '@/features/listing/ListingProgre
 import { StartListing } from '@/features/listing/StartListing';
 import { ServiceHistory } from '@/features/maintenance/OwnerHistory';
 import type { OwnerHistory } from '@/features/maintenance/model';
+import { rpc } from '@/lib/db/repo';
+import { OwnerTermsHistory } from '@/features/owner-billing/OwnerTerms';
+import type { CarTermsData } from '@/features/owner-billing/terms-shared';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -35,6 +38,8 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
     : [null, null];
   // the car's service history (0089), read only, while the car is with us
   const service = !['declined', 'exited', 'total_loss'].includes(v.status) ? await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: id }).catch(() => null) : null;
+  // the car's terms over time and the notices (0135)
+  const terms = ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
   return (
     <>
       <Back href="/owner/vehicles">Vehicles</Back>
@@ -72,6 +77,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
           <section className="pt-card" aria-labelledby="ow-terms"><h2 className="d4" id="ow-terms">Terms</h2>
             <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set'], ...(home.trackers_available ? [['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : '']] as Array<[string, string]> : []), ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : ''], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link prefetch={false} key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
             {!home.trackers_available && home.tracker_pending.includes(id) && <p className="small muted">{TRACKER_LATER}</p>}
+            {terms && <OwnerTermsHistory car={terms} />}
           </section>
           <section className="pt-card" aria-labelledby="ow-exit"><h2 className="d4" id="ow-exit">Leaving</h2>
             {exit ? <p>Notice given. Exit Date <b>{day(exit.exit_date)}</b>. Transfer-back fees are paid by {exit.retransfer_fees_paid_by === 'carmacars' ? 'CarmaCars' : 'you'}.</p>

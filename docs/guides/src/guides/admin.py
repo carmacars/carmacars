@@ -598,7 +598,7 @@ def build():
     g.task('Decide on an application', 'One page holds everything: the owner, the car, the uploads, the four checks and the notes.')
     g.steps([
         'Check the driver\'s licence, the ownership, the insurance and the lender or lessor. Mark each one Checked, fine, Problem or Not needed.',
-        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, management fee (Revenue Share), Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent.',
+        f'Press {B("Approve")}. The step "Terms and first invoice" opens for each car, filled in with the owner\'s negotiated terms (or the standard grid): Insurance Fee, Tracker Fee, management fee (Revenue Share), Install Fee and the first and last month amount (2 x the Insurance Fee unless you type an exact amount). Change any of them to the cent; with several cars, {B("Use these terms for every car")} copies the first car\'s numbers to the others.',
         'Choose the invoices: First and last month, Registration fee (any exact amount), Tracker install (only once trackers are available) and Another invoice. For each one choose Send now, Save as draft or Already paid. Already paid asks how (e-Transfer, cash, cheque, bank transfer or other), the date and the reference: it is recorded like Record payment and the owner gets the receipt, not an invoice.',
         f'Press {B("Approve")} at the bottom of the step. Nothing is set or sent before that. The owner becomes active, the documents open for one signature in their portal, only the invoices you chose are made, and the owner gets one email.',
         f'Missing something? Press {B("Ask for something")}, tick what you need (for example the ownership permit or the insurance slip), add a message if you like, and press {B("Send to the owner")}. The owner gets an email and a task in their portal; the application shows Waiting on owner until they answer.',
@@ -610,7 +610,7 @@ def build():
     g.steps([
         'The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.',
         'The car: type the VIN. The car is looked up at once and shown in one line (Edit if something is wrong); no VIN at hand, add it by its plate with the year, make and model from the lists. Tap the colour, check the class, then the odometer, insurer and whether it is owned, financed or leased. Photos are optional: the listing shows sample photos until real ones are added. Upload the ownership permit, the insurance slip and the lender\'s information if you have them.',
-        'Terms and first invoice: the same fields as Approve. For another car of the same owner they start from that owner\'s terms.',
+        'Terms and first invoice: the same fields as Approve. For another car of the same owner they start from that owner\'s terms, or their other car\'s; change them for this car.',
         'Who sourced the owner: Entered for CarmaCars, or I sourced this owner (only then are you recorded as the one who brought the owner). How the owner signs: by email, or on paper.',
         f'Press {B("Add the car and set it up")}. The owner gets one email: review the details, correct anything, and sign. An owner with no sign-in gets the link to choose a password in that same email.',
     ])
@@ -654,6 +654,7 @@ def build():
     ], head=['When the renter cancels', 'Refund (default)'])
     g.task('An owner\'s page', f'Open an owner from Owners. Three tabs: Overview, Terms and Invoices. {B("Add another car")} and {B("New invoice")} sit under the name.')
     g.steps([
+        f'Cars and terms, at the top: each car\'s Insurance Fee, Tracker Fee, management fee (Revenue Share), Install Fee and mode, with {B("Edit")} and History (see An owner\'s terms, car by car).',
         'Upfront invoices: issue the first and last month amount agreed on each car\'s terms, for each car whose terms are set.',
         'Owner: address, sign-in, agreements, and what is still missing for the registry forms.',
         'Statements and payouts for this owner.',
@@ -661,13 +662,19 @@ def build():
         f'Further down: {B("View as (owner portal)")}, {B("Send password link")} and {B("Send a sign-in link to the owner portal")}.',
     ], shot=S('admin/13-owner-desktop', 1010, 280, 1420, 1310, hdr=False, pins=[(1, 1111, 325), (2, 1076, 619), (3, 1139, 1034), (4, 1097, 1290)]))
 
-    g.task('An owner\'s terms', 'The Terms tab of an owner\'s page: what the owner pays and keeps, exact to the cent.')
+    g.task('An owner\'s terms, car by car', 'The table Cars and terms, at the top of an owner\'s page and its Terms tab: each car\'s Insurance Fee and Tracker Fee a month, management fee (Revenue Share), Install Fee and Management Mode, and since when they apply.')
     g.steps([
-        f'The owner\'s terms are the default for their cars: fill in what you negotiated (leave a field empty to keep the standard grid), the date it applies from, and press {B("Save the terms")}. They apply to cars whose terms are set from that date.',
-        f'Each car has its own terms: open Change this car\'s terms, type the exact amounts and press {B("Save the terms")}. While the Vehicle Schedule is not signed, the schedule changes at once and the documents are made again.',
-        f'When the Vehicle Schedule is already signed, saving shows a warning: the owner must sign an updated schedule. Press {B("Create the updated schedule and email the owner to sign")}. The current terms stay until the owner signs; then the new ones apply from their date to invoices, debits and statements.',
-        f'Signed on paper instead? {B("Record signed on paper")} with the date. {B("Withdraw it")} cancels the update, with a reason.',
+        f'Press {B("Edit")} on a car\'s row. The row becomes fields: type the exact amounts (to the cent; the management fee in %). Before the Vehicle Schedule is signed you can also change the Install Fee, the Management Mode and the Onboarding Method.',
+        f'Press {B("Review")}. It lists each value before and after, and what happens to each one. Nothing is saved yet.',
+        f'Not signed yet (or not approved yet): {B("Save")} applies the numbers at once. An unsigned Vehicle Schedule is made again with them, so the owner signs these numbers; a car not approved yet keeps them for the Approve step.',
+        'Signed: a lower amount is in force from today, or the date you choose under Lower amounts from. No notice period is needed because it only lowers what the owner pays.',
+        'Signed: a higher Insurance Fee or Tracker Fee needs 30 days\' written notice (Enrollment Agreement 4.8). Choose the date under Higher amounts from (30 days ahead at the earliest) and write the Reason: the owner reads it.',
+        'Signed: a higher management fee (Revenue Share) needs the same notice and the owner\'s signature. The owner is emailed the notice and an updated Vehicle Schedule to sign; it applies from the date once signed, or from the day they sign if that is later. Higher fees in the same change apply from the date by the notice either way.',
+        f'Press {B("Confirm")}. The owner is emailed the written notice, which is also a PDF in their portal and in the car\'s History.',
     ])
+    g.para('History, under each car, lists every period of terms (from, to, the amounts, and why: the Vehicle Schedule, a written notice, lowered) and every change with its notice. A change that has not started yet has Cancel (give the reason): the terms before it run on. An updated schedule waiting for the owner has Record signed on paper (with the date) and Withdraw it. One change at a time: cancel or finish the one waiting before making the next.')
+    g.para('The same editor is on the car\'s page (Records tab, Owner terms). The owner\'s default terms (for cars whose terms are set later) and the first and last month invoice stay on the Terms tab.')
+    g.tip('Invoices follow the dates: a month whose Insurance Fee or Tracker Fee changes part way is billed per day at each rate. The Revenue Share of a rental is the one in force on the day it is booked.', label='Good to know')
     g.task('Paid and signed', f'{P("People", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',

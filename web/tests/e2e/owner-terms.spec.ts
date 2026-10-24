@@ -218,7 +218,7 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   await sql.end();
 });
 
-test('terms of a signed car: the warning, one click for the updated Vehicle Schedule, the owner signs it', async ({ browser }) => {
+test('terms of a signed car: a higher amount is an updated Vehicle Schedule the owner signs (the terms table, 0135)', async ({ browser }) => {
   const sql = db();
   const admin = await mkUser(sql, 'admin', 'Ot Admin Three');
   const owner = await mkUser(sql, 'plain', `Sam Signed${tag()}`);
@@ -229,16 +229,18 @@ test('terms of a signed car: the warning, one click for the updated Vehicle Sche
   await signIn(page, admin.email, '/admin');
   await page.goto(`/admin/owners/${app.ownerId}?tab=terms`, { waitUntil: 'networkidle' });
   await check(page, 'terms tab');
-  const car = page.getByTestId('terms-car').first();
-  await car.locator('summary').click();
-  const form = car.getByTestId('terms-car-form');
-  await form.getByTestId('terms-insurance_fee_cents').fill('410.00');
-  await form.getByTestId('terms-save').click();
-  await expect(form.getByTestId('terms-resign-warning')).toBeVisible({ timeout: 20_000 });
+  // the car is signed but not enrolled yet: a higher Insurance Fee is an updated schedule for the owner to sign
+  const row = page.getByTestId('car-terms-row').first();
+  await row.getByTestId('car-terms-edit').click();
+  await row.getByTestId('car-terms-insurance').fill('460.00');
+  const panel = page.getByTestId('car-terms-panel');
+  await panel.getByTestId('car-terms-review').click();
+  await expect(panel.getByTestId('car-terms-plan')).toContainText('updated Vehicle Schedule', { timeout: 20_000 });
   await shot(page, 'terms-warning');
   expect((await sql`select count(*)::int n from vehicle_term_changes c join vehicles v on v.id = c.vehicle_id where v.owner_id = ${app.ownerId}`)[0]!.n).toBe(0);
-  await form.getByTestId('terms-resign').click();
-  await expect(form.getByTestId('terms-saved')).toBeVisible({ timeout: 20_000 });
+  await panel.getByTestId('car-terms-reason').fill('Agreed on the phone');
+  await panel.getByTestId('car-terms-confirm').click();
+  await expect(page.getByTestId('car-terms-done')).toBeVisible({ timeout: 20_000 });
   const [c] = await sql`select c.id, c.status from vehicle_term_changes c join vehicles v on v.id = c.vehicle_id where v.owner_id = ${app.ownerId}`;
   expect(c!.status).toBe('awaiting_signature');
   expect((await sql`select count(*)::int n from app_events where code = 'owner_schedule_resign' and entity_id = ${c!.id}`)[0]!.n).toBe(1);
@@ -248,7 +250,7 @@ test('terms of a signed car: the warning, one click for the updated Vehicle Sche
   await expect(op.getByTestId('owner-next-step')).toContainText('updated Vehicle Schedule');
   await op.getByTestId('owner-next-step').getByRole('link', { name: 'Read and sign' }).click();
   await op.waitForURL(/\/owner\/sign\/schedule\//);
-  await expect(op.getByTestId('schedule-compare')).toContainText('$410.00');
+  await expect(op.getByTestId('schedule-compare')).toContainText('$460.00');
   await check(op, 'schedule sign');
   await shot(op, 'schedule-sign');
   await op.getByTestId('schedule-agree').check();
@@ -256,7 +258,7 @@ test('terms of a signed car: the warning, one click for the updated Vehicle Sche
   await op.getByTestId('schedule-sign-submit').click();
   await expect(op.getByTestId('schedule-signed')).toBeVisible({ timeout: 20_000 });
   const [s] = await sql`select s.insurance_fee_cents::int ins, s.signed_at is not null signed from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where v.owner_id = ${app.ownerId} and s.superseded_by is null`;
-  expect(`${s!.ins}/${s!.signed}`).toBe('41000/true');
+  expect(`${s!.ins}/${s!.signed}`).toBe('46000/true');
   await op.context().close();
   await page.context().close();
   await sql.end();

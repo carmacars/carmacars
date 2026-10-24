@@ -7,8 +7,13 @@ Your terms for the {{vehicle_name}} are changing
 
 This is your written notice, {{first_name}}. The change takes effect on {{effective_date}}.
 
+{{#if is_decrease}}
+Effective: {{effective_date}}
+Lower amounts: no notice period is needed.
+{{else}}
 Effective: {{effective_date}}
 {{notice_days}} days from this notice.
+{{/if}}
 
 {{#each fee_changes}}
   {{label}}: was {{before}}, now {{after}}
@@ -18,7 +23,7 @@ Why
 {{fee_change_reason}}
 
 {{#if is_share_change}}
-A change to the Revenue Share applies only if you sign a new Vehicle Schedule. Until you do, your current share stays in place.
+A higher Revenue Share applies only if you sign the updated Vehicle Schedule, from the effective date or the day you sign, whichever is later. Until you do, your current share stays in place.
 
 Read and sign the new schedule:
 https://carmacars.ca/owner/agreements
@@ -29,7 +34,11 @@ View my vehicle:
 https://carmacars.ca/owner/vehicles/{{vehicle_id}}
 {{/if}}
 
+{{#if is_decrease}}
+This affects only the {{vehicle_name}}. The notice is also in your owner portal, under the vehicle's terms. Reply to this email with any questions.
+{{else}}
 This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give {{notice_period_days}} days' written notice to take the vehicle out of the program. Reply to this email with any questions before the effective date.
+{{/if}}
 
 ----------------------------------------
 

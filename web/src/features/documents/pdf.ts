@@ -8,9 +8,9 @@ import type { Block } from '@/features/agreement/model';
 // same pdf-lib renderer as the agreements, with the CarmaCars wordmark on every page. Deterministic: the
 // same facts give the same bytes, so a stored copy is identified by its SHA-256.
 export type DocKind = 'owner_statement' | 'renter_statement' | 'receipt' | 'insurer_invoice' | 'investor_statement' | 'investor_year'
-  | 'company_statement' | 'company_owners' | 'company_vehicles' | 'owner_invoice';
+  | 'company_statement' | 'company_owners' | 'company_vehicles' | 'owner_invoice' | 'terms_notice';
 export const DOC_KINDS: readonly DocKind[] = ['owner_statement', 'renter_statement', 'receipt', 'insurer_invoice', 'investor_statement', 'investor_year',
-  'company_statement', 'company_owners', 'company_vehicles', 'owner_invoice'];
+  'company_statement', 'company_owners', 'company_vehicles', 'owner_invoice', 'terms_notice'];
 
 type F = Record<string, unknown> & { title: string; file_name: string; final: boolean; company: Company };
 interface Company { brand: string; legal_name: string; address: string; hst_number: string | null; phone: string; email: string; site: string; logo_key?: string | null }
@@ -140,6 +140,24 @@ function ownerInvoice(f: F): Block[] {
   return blocks;
 }
 
+// The written notice of a change to an owner's terms for one car (migration 0135): lower amounts, higher Fees by notice,
+// or a higher Revenue Share for the owner to sign.
+function termsNotice(f: F): Block[] {
+  const o = (f.owner ?? {}) as Row;
+  const lines = (f.lines ?? []) as Row[];
+  const blocks = header(f, [['Owner', s(o.legal_name)], ...(s(o.address) ? [['Address', s(o.address)] as [string, string]] : [])],
+    [['Date of notice', day(f.notice_on)], ['Effective', day(f.effective_from)], ['Vehicle', `${s(f.vehicle)}${f.plate ? `, ${s(f.plate)}` : ''}, VIN ${s(f.vin)}`],
+     ...(f.schedule_number ? [['Vehicle Schedule', s(f.schedule_number)] as [string, string]] : []),
+     ...(f.status === 'cancelled' ? [['Status', `Cancelled${f.cancelled_reason ? `: ${s(f.cancelled_reason)}` : ''}`] as [string, string]] : [])]);
+  blocks.push({ t: 'table', head: ['Term', 'Before', 'From the effective date'], rows: lines.length ? lines.map((l) => [s(l.label), s(l.before), s(l.after)]) : [['No amount changes', '', '']] });
+  for (const p of (f.paragraphs ?? []) as string[]) blocks.push({ t: 'p', text: p });
+  if (f.reason) blocks.push({ t: 'p', text: `Reason: ${s(f.reason)}` });
+  blocks.push({ t: 'p', text: s(f.signature) });
+  if (f.owner_signed) blocks.push({ t: 'p', text: s(f.owner_signed) });
+  blocks.push({ t: 'p', text: `HST is extra on the Fees. Questions: ${f.company.email}.` });
+  return blocks;
+}
+
 function investorStatement(f: F): Block[] {
   const inv = (f.investor ?? {}) as Row;
   const blocks = header(f, [['Investor', s(inv.legal_name)], ...(inv.address ? [['Address', s(inv.address)] as [string, string]] : [])],
@@ -257,6 +275,7 @@ export function documentBlocks(kind: DocKind, f: F): Block[] {
     case 'company_owners': return companyOwners(f);
     case 'company_vehicles': return companyVehicles(f);
     case 'owner_invoice': return ownerInvoice(f);
+    case 'terms_notice': return termsNotice(f);
   }
 }
 

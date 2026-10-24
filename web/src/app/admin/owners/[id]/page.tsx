@@ -23,6 +23,7 @@ import { OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerC
 import { Tabs } from '@/features/admin/ui';
 import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
 import { TermsPanel, type TermsData } from '@/features/owner-billing/TermsPanel';
+import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -51,9 +52,11 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     </>
   );
   const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  // every car's own terms, editable in place (0135): on Overview and on the Terms tab
+  const carTerms = tab === 'invoices' ? null : await door<CarTermsData>(user.id, 'ops_read', 'car_terms', { owner_id: id });
   if (tab === 'terms') {
     const terms = await door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id });
-    return <>{head}<TermsPanel data={terms} ownerId={id} today={todayIso} /></>;
+    return <>{head}<CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} /></>;
   }
   if (tab === 'invoices') {
     const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { owner_id: id });
@@ -78,6 +81,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   return (
     <>
       {head}
+      {carTerms && <CarTermsTable data={carTerms} paths={here} />}
       <div className="pt-split">
         <div className="stack-lg">
           {d.vehicles.map((v) => (
@@ -95,10 +99,11 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
                   <span>{money(v.onboarding.pending_terms.insurance_fee_cents)} insurance, {money(v.onboarding.pending_terms.tracker_fee_cents)} tracker, {pct(v.onboarding.pending_terms.revenue_share_bps)} management fee (Revenue Share), {money(v.onboarding.pending_terms.install_fee_cents)} install, {MODE_LABEL[v.onboarding.pending_terms.management_mode]}</span>
                   <PendingTerms ownerId={o.id} vehicleId={v.vehicle_id} /></div>
               )}
-              {v.schedule && <p className="small"><b>Terms set</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} management fee (Revenue Share), {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
+              {v.schedule && <p className="small" data-testid="admin-vehicle-terms"><b>On the Vehicle Schedule</b> ({v.schedule.schedule_number}{v.schedule.signed_at ? `, signed ${day(v.schedule.signed_at)}` : ', not signed yet'}): {money(v.schedule.insurance_fee_cents)} insurance, {money(v.schedule.tracker_fee_cents)} tracker, {pct(v.schedule.revenue_share_bps)} management fee (Revenue Share), {money(v.schedule.install_fee_cents)} install, {MODE_LABEL[v.schedule.management_mode]}, {METHOD_LABEL[v.schedule.onboarding_method]}.</p>}
               <ShareholderToggle ownerId={o.id} vehicleId={v.vehicle_id} on={!!v.is_shareholder_owned} />
+              {/* setting the terms creates the Vehicle Schedule (with the method, the owner's lien and special terms); the amounts are then edited in Cars and terms */}
               {TERMS_OPEN.includes(v.onboarding.status) && !v.is_shareholder_owned && (
-                <details open={!v.schedule}><summary className="link">{v.schedule ? 'Change the terms' : 'Set the terms'}</summary>
+                <details open={!v.schedule}><summary className="link">{v.schedule ? 'Method, lien and special terms' : 'Set the terms'}</summary>
                   <TermsForm ownerId={o.id} vehicleId={v.vehicle_id} standard={v.standard} mode={v.schedule?.management_mode ?? v.onboarding.proposed_management_mode ?? 'managed'}
                     method={v.schedule?.onboarding_method ?? v.onboarding.proposed_onboarding_method} options={v.options} current={v.schedule} /></details>
               )}
