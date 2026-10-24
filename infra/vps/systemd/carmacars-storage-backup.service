@@ -1,0 +1,11 @@
+[Unit]
+Description=CarmaCars: nightly copy of the Storage files to the backup bucket (rclone, encrypted)
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/carmacars/bin/storage-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=4h

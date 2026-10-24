@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Nightly copy of the uploaded files (Supabase Storage's volumes/storage) to the backup bucket (carmacars-storage-backup
+# .timer, 06:50 UTC). Neither wal-g nor the logical dump holds these files: this is their only copy off the server.
+#   s3://<bucket>/storage/current/...        the files as they are now (incremental: only new or changed files go up)
+#   s3://<bucket>/storage/trash/<YYYY-MM-DD>/ files deleted or replaced on the server that day, kept 30 days
+#                                            (STORAGE_TRASH_DAYS), then removed
+# rclone in a throwaway container (pinned image), with the bucket's settings from /opt/carmacars/backup/walg.env
+# (bin/backup-configure). The files are encrypted (rclone crypt: contents and file names; folder names stay readable),
+# with the wal-g key (WALG_LIBSODIUM_KEY, the BACKUP_WALG_KEY kept in the company password manager) as the password.
+# Content type and cache control are not carried: they are in storage.objects.metadata (the database backups).
+#
+# Restore (as root on a server with walg.env): bin/storage-backup restore <empty folder> copies storage/current back
+# into that folder (then move it to volumes/storage with the storage container stopped).
+# Writes state/storage-backup.json (files, bytes, seconds, trash folders) and state/storage-backup.last.
+set -euo pipefail
+D="${CARMACARS_DIR:-/opt/carmacars}"
+E=$D/backup/walg.env
+SRC=$D/supabase/volumes/storage
+IMAGE="${RCLONE_IMAGE:-rclone/rclone:1.68.2}"
+TRASH_DAYS="${STORAGE_TRASH_DAYS:-30}"
+[ -f "$E" ] || { echo "storage-backup: $E is missing (run the vps-backup workflow with mode configure); nothing to do"; exit 0; }
+set -a
+# shellcheck disable=SC1090
+. "$E"
+set +a
+bucket="${WALG_S3_PREFIX#s3://}"; bucket="${bucket%%/*}"
+if [ -z "$bucket" ] || [ -z "${AWS_ENDPOINT:-}" ] || [ -z "${AWS_ACCESS_KEY_ID:-}" ] || [ -z "${WALG_LIBSODIUM_KEY:-}" ]; then
+  echo "storage-backup: walg.env lacks the bucket, endpoint, keys or the wal-g key" >&2; exit 1
+fi
+provider=Other; [[ "$AWS_ENDPOINT" == *r2.cloudflarestorage.com* ]] && provider=Cloudflare
+# rclone's settings as environment variables (never on a command line); the crypt password in rclone's obscured form
+obscured=$(printf '%s' "$WALG_LIBSODIUM_KEY" | docker run --rm -i "$IMAGE" obscure -)
+[ -n "$obscured" ] || { echo "storage-backup: rclone obscure gave nothing" >&2; exit 1; }
+export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER="$provider" RCLONE_CONFIG_R2_ENDPOINT="$AWS_ENDPOINT" \
+  RCLONE_CONFIG_R2_REGION="${AWS_REGION:-auto}" RCLONE_CONFIG_R2_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+  RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true \
+  RCLONE_CONFIG_SC_TYPE=crypt RCLONE_CONFIG_SC_REMOTE="r2:$bucket/storage" RCLONE_CONFIG_SC_PASSWORD="$obscured" \
+  RCLONE_CONFIG_SC_FILENAME_ENCRYPTION=standard RCLONE_CONFIG_SC_DIRECTORY_NAME_ENCRYPTION=false
+envs=()
+for v in $(env | grep -oE '^RCLONE_CONFIG_[A-Z0-9_]+' | sort -u); do envs+=(-e "$v"); done
+# rclone in the container (its entrypoint), the files read only at /data; never reading this script's stdin
+rclone() { docker run --rm "${envs[@]}" -v "$SRC:/data:ro" "$IMAGE" "$@" < /dev/null; }
+
+if [ "${1:-}" = restore ]; then
+  dest="${2:?usage: storage-backup restore <empty folder>}"
+  mkdir -p "$dest"
+  [ -z "$(ls -A "$dest")" ] || { echo "storage-backup: $dest is not empty" >&2; exit 1; }
+  docker run --rm "${envs[@]}" -v "$dest:/restore" "$IMAGE" copy sc:current /restore --transfers 8 --stats-one-line --stats 30s < /dev/null
+  echo "storage-backup: restored $(find "$dest" -type f | wc -l) files into $dest"
+  exit 0
+fi
+
+[ -d "$SRC" ] || { echo "storage-backup: $SRC does not exist" >&2; exit 1; }
+install -d -m 700 "$D/state"
+exec 9> "$D/state/storage-backup.lock"
+flock -n 9 || { echo "storage-backup: already running" >&2; exit 1; }
+t0=$(date +%s); day=$(date -u +%F)
+# current: an exact mirror; whatever it would delete or overwrite moves to today's trash folder instead
+rclone sync /data sc:current --backup-dir "sc:trash/$day" --transfers 4 --checkers 8 --fast-list --stats-one-line --stats 60s
+# trash folders past the retention
+cutoff=$(date -u -d "-$TRASH_DAYS days" +%F)
+removed=0
+days=$(rclone lsf --dirs-only sc:trash 2>/dev/null | tr -d '/' || true)   # no trash folder yet: nothing
+for d in $days; do
+  [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || continue
+  [[ "$d" < "$cutoff" ]] || continue
+  rclone purge "sc:trash/$d" && removed=$((removed + 1))
+done
+secs=$(( $(date +%s) - t0 ))
+files=$(find "$SRC" -type f | wc -l); bytes=$(find "$SRC" -type f -printf '%s\n' | awk '{t += $1} END {print t + 0}')
+trash=$( (rclone lsf --dirs-only sc:trash 2>/dev/null || true) | wc -l)
+jq -n --arg at "$(date -u +%FT%TZ)" --argjson files "$files" --argjson bytes "$bytes" --argjson secs "$secs" \
+  --argjson trash "$trash" --argjson removed "$removed" --arg image "$IMAGE" \
+  '{at: $at, files: $files, bytes: $bytes, seconds: $secs, trash_days: $trash, trash_days_removed: $removed, image: $image}' \
+  > "$D/state/storage-backup.json"
+date -u +%FT%TZ > "$D/state/storage-backup.last"
+echo "storage-backup: $files files ($bytes bytes) mirrored to storage/current in ${secs}s; trash: $trash day(s) kept, $removed removed"

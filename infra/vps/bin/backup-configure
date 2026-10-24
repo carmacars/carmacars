@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Point the server's backups at the S3-compatible bucket (the vps-backup workflow, mode configure). Reads a JSON
 # object on stdin: endpoint, region, bucket, access_key_id, secret_access_key, walg_key (64 hex characters: wal-g's
-# libsodium key; keep a copy outside the server, the backups cannot be read without it), retain_full (optional).
+# libsodium key; keep a copy outside the server, the backups cannot be read without it), retain_full (optional;
+# else the value already set, else 7).
 # Writes /opt/carmacars/backup/walg.env (600), sets the flag that switches WAL archiving on, checks the bucket with
 # wal-g, and takes the first base backup when there is none. Safe to run again (new keys replace the old ones).
 set -euo pipefail
@@ -25,6 +26,11 @@ if [ "${#bad[@]}" -gt 0 ]; then echo "backup-configure: not usable: ${bad[*]}" >
 for k in region bucket access_key_id secret_access_key walg_key; do
   case "$(v "$k")" in *"'"*|*$'\n'*) echo "backup-configure: $k holds a quote or newline" >&2; exit 2 ;; esac
 done
+# the retention: the input's retain_full, else the one already in walg.env (the vps-ops workflow's apply-retention may
+# have lowered it to keep the bucket small), else 7
+retain=$(jq -r '.retain_full // empty' <<<"$in")
+[ -n "$retain" ] || retain=$(sed -n "s/^WALG_RETAIN_FULL='\{0,1\}\([0-9]*\)'\{0,1\}$/\1/p" "$D/backup/walg.env" 2>/dev/null | tail -n 1 || true)
+[[ "${retain:-}" =~ ^[0-9]+$ ]] && [ "$retain" -ge 2 ] || retain=7
 install -d -m 700 "$D/backup"
 t=$(mktemp -p "$D/backup"); chmod 600 "$t"
 cat > "$t" <<CONF
@@ -40,7 +46,7 @@ WALG_LIBSODIUM_KEY_TRANSFORM='$transform'
 WALG_COMPRESSION_METHOD='zstd'
 WALG_UPLOAD_CONCURRENCY='4'
 WALG_DOWNLOAD_CONCURRENCY='4'
-WALG_RETAIN_FULL='$(jq -r '.retain_full // 7' <<<"$in")'
+WALG_RETAIN_FULL='$retain'
 PGDATA='/var/lib/postgresql/data'
 PGHOST='127.0.0.1'
 PGPORT='5432'

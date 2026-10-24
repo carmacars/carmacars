@@ -17,9 +17,11 @@
 #   copy.sh storage     every stored file not already on the server with the same size (bucket by bucket)
 #   copy.sh basebackup  a wal-g base backup of the copy (when the backup bucket is configured)
 #   copy.sh verify      row counts table by table, vault, cron, Auth, Storage, functions and RPC answers compared
+#   copy.sh storage-verify  every server row of storage.objects (in ONLY_BUCKETS when set) has its file, same size
 #
 # Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD (dump), VPS_SSH_KEY; COPY_DIR (work folder,
-# default $RUNNER_TEMP/copy); SKIP_BUCKETS (space separated, default "backups"); COPY_MODE rehearsal|final (final:
+# default $RUNNER_TEMP/copy); SKIP_BUCKETS (space separated, default "backups"); ONLY_BUCKETS (space separated: storage and storage-verify
+# handle only these buckets, SKIP_BUCKETS ignored; the vps-ops workflow's copy-backups-bucket); COPY_MODE rehearsal|final (final:
 # hosted and server counts must match exactly; the hosted project is frozen by then).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,6 +35,7 @@ HURL="https://$REF.supabase.co"
 W="${COPY_DIR:-${RUNNER_TEMP:-/tmp}/copy}"
 mkdir -p "$W"; chmod 700 "$W"
 SKIP_BUCKETS="${SKIP_BUCKETS:-backups}"
+ONLY_BUCKETS="${ONLY_BUCKETS:-}"
 COPY_MODE="${COPY_MODE:-rehearsal}"
 APP_SCHEMAS="public app supabase_migrations"
 
@@ -356,11 +359,15 @@ functions() {
 
 storage() {
   vps_tunnel; hkey; vkey
-  local list skip b
+  local list skip only b
+  # shellcheck disable=SC2086 # bucket names are words
   skip=$(printf '%s\n' $SKIP_BUCKETS | jq -R . | jq -sc 'map(select(length > 0))')
+  # shellcheck disable=SC2086
+  only=$(printf '%s\n' $ONLY_BUCKETS | jq -R . | jq -sc 'map(select(length > 0))')
   hq "select bucket_id as b, name as n, coalesce((metadata->>'size')::bigint, 0) as s, coalesce(metadata->>'mimetype', 'application/octet-stream') as m,
              coalesce(metadata->>'cacheControl', 'max-age=3600') as c from storage.objects order by 1, 2" \
-    | jq -r --argjson skip "$skip" '.[] | select(.b as $b | $skip | index($b) | not) | [.b, .n, (.s | tostring), .m, .c] | @tsv' > "$W/objects.tsv"
+    | jq -r --argjson skip "$skip" --argjson only "$only" '.[] | select(.b as $b | if ($only | length) > 0 then ($only | index($b)) != null else ($skip | index($b) | not) end)
+        | [.b, .n, (.s | tostring), .m, .c] | @tsv' > "$W/objects.tsv"
   list="$W/objects.tsv"
   # buckets: the rows came with the data; make sure each hosted bucket exists on the server with the same settings
   for b in $(hq "select id from storage.buckets order by 1" | jq -r '.[].id'); do
@@ -387,7 +394,7 @@ storage() {
   tr '\t' '\n' < "$list" | xargs -d '\n' -n 5 -P 8 bash -c "$script" _ > "$W/storage.log"
   local copied skipped failed
   copied=$(grep -c '^copied' "$W/storage.log" || true); skipped=$(grep -c '^skip' "$W/storage.log" || true); failed=$(grep -c '^fail' "$W/storage.log" || true)
-  { echo "### Storage"; echo; echo "- $(wc -l < "$list") objects (buckets skipped: ${SKIP_BUCKETS:-none}): $copied copied, $skipped already there, $failed failed, $(( $(date +%s) - t0 )) s"; } | summary
+  { echo "### Storage"; echo; echo "- $(wc -l < "$list") objects ($( [ -n "$ONLY_BUCKETS" ] && echo "buckets: $ONLY_BUCKETS" || echo "buckets skipped: ${SKIP_BUCKETS:-none}")): $copied copied, $skipped already there, $failed failed, $(( $(date +%s) - t0 )) s"; } | summary
   if [ "$failed" != 0 ]; then grep '^fail' "$W/storage.log" | head -n 20 >&2; die "$failed stored files could not be copied"; fi
   note "storage: $copied copied, $skipped already on the server"
 }
@@ -484,6 +491,32 @@ verify() {
   note "verify: the server matches ($COPY_MODE)"
 }
 
+# every row of storage.objects on the server (in ONLY_BUCKETS when set) has its file with the row's size: the first byte
+# read from the file itself (a HEAD answers from the row even when the file is missing)
+storage_verify() {
+  vps_tunnel; vkey
+  local only rows ok=0 bad=0 b n s p have
+  # shellcheck disable=SC2086
+  only=$(printf '%s\n' $ONLY_BUCKETS | jq -R . | jq -sc 'map(select(length > 0))')
+  rows=$(vps_sql "select bucket_id as b, name as n, coalesce((metadata->>'size')::bigint, -1) as s from storage.objects order by 1, 2" \
+    | jq -r --argjson only "$only" '.[] | select(.b as $b | ($only | length) == 0 or ($only | index($b)) != null) | [.b, .n, (.s | tostring)] | @tsv')
+  : > "$W/storage-verify.log"
+  while IFS=$'\t' read -r b n s; do
+    [ -n "$b" ] || continue
+    p=$(jq -rn --arg n "$n" '$n | split("/") | map(@uri) | join("/")')
+    have=$(curl -sS -o /dev/null -r 0-0 -w "%{http_code} %header{content-range}" "$VURL/storage/v1/object/authenticated/$b/$p" \
+      -H "Authorization: Bearer $VKEY" -H "apikey: $VKEY" 2>/dev/null || echo "000 x")
+    if { [ "$s" = 0 ] && { [ "${have%% *}" = 200 ] || [ "${have%% *}" = 416 ]; }; } || { [ "${have%% *}" = 206 ] && { [ "$s" = -1 ] || [ "${have##*/}" = "$s" ]; }; }; then
+      ok=$((ok + 1))
+    else
+      bad=$((bad + 1)); echo "missing $b/$n (row size $s; server answered ${have%% *} ${have#* })" >> "$W/storage-verify.log"
+    fi
+  done <<<"$rows"
+  { echo "### Storage check"; echo; echo "- $((ok + bad)) rows ($( [ -n "$ONLY_BUCKETS" ] && echo "buckets: $ONLY_BUCKETS" || echo "every bucket")): $ok with their file, $bad without"; } | summary
+  if [ "$bad" != 0 ]; then head -n 30 "$W/storage-verify.log" >&2; die "storage-verify: $bad of $((ok + bad)) rows have no file (or a different size) on the server"; fi
+  note "storage-verify: all $ok rows have their file ($( [ -n "$ONLY_BUCKETS" ] && echo "buckets: $ONLY_BUCKETS" || echo "every bucket"))"
+}
+
 basebackup() {
   # archiving back on if a failed restore left it paused
   vps_ssh "sudo sh -c 'cd /opt/carmacars/backup/enabled-flag && if [ -f paused ] && [ ! -f enabled ]; then mv paused enabled; fi'"
@@ -495,7 +528,7 @@ basebackup() {
 }
 
 for step in "$@"; do
-  case "$step" in preflight|dump|reset|restore|migrations|vault|cron|auth|functions|storage|verify|basebackup) ;; *) die "unknown step $step" ;; esac
+  case "$step" in preflight|dump|reset|restore|migrations|vault|cron|auth|functions|storage|storage-verify|verify|basebackup) ;; *) die "unknown step $step" ;; esac
   say "== $step"
-  "$step"
+  "${step//-/_}"
 done

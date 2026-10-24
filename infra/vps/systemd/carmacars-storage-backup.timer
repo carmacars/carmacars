@@ -1,0 +1,10 @@
+[Unit]
+Description=CarmaCars: Storage files to the backup bucket every night at 06:50 UTC (after the base backup)
+
+[Timer]
+OnCalendar=*-*-* 06:50:00 UTC
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,343 @@
+name: vps-ops
+
+# Upkeep of the company's own Supabase server (infra/vps/CUTOVER.md, Upkeep), one action per run:
+#   backup-report        read only: the backup bucket's usage per prefix (wal-g base backups, WAL, logical nightly
+#                        backups, the Storage files' copy, anything else) against R2's free 10 GB, wal-g's backup list, the retention in effect
+#                        (wal-g full backups kept; the logical backups' cleanup) and the retention that keeps the
+#                        projected total under 70% of the free tier
+#   apply-retention      the scripts of infra/vps/bin installed on the server (walg-base reads WALG_RETAIN_FULL from
+#                        walg.env), then the retention of backup-report's plan set on the server (walg.env,
+#                        backup/logical-keep-days) and the backups beyond it deleted now
+#   apply-storage-backup bin/ and the systemd units installed, the nightly copy of the uploaded files (volumes/storage)
+#                        to s3://<bucket>/storage/ switched on (carmacars-storage-backup.timer, 06:50 UTC: incremental,
+#                        encrypted, deleted or replaced files kept 30 days under storage/trash/<day>/) and run once now
+#   copy-backups-bucket  the hosted project's Storage bucket `backups` (skipped by the copy: its rows are on the server
+#                        without their files) copied file by file through the Storage API, then every row checked
+#   reboot               a clean reboot of the server (confirm: REBOOT), refused while a ci deploy or a backup runs:
+#                        docker-compose.yml and bin/ installed from this commit, the stack back by itself, the db
+#                        container recreated (log_min_messages=error), the public API and health-local checked, the
+#                        downtime measured from outside. Nothing is made read-only.
+# Every action ends with a ::notice summary (readable in the run's annotations without the logs).
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Which action
+        type: choice
+        options: [backup-report, apply-retention, apply-storage-backup, copy-backups-bucket, reboot]
+        default: backup-report
+      confirm:
+        description: reboot only - type REBOOT
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: read   # reboot: is a ci deploy or a backup running?
+
+concurrency:
+  group: vps-ops
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: vps
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  LIVE_BACKEND: ${{ vars.DB_BACKEND }}
+
+# a failed step's last lines become error annotations (readable without the logs: gh run view, the API)
+defaults:
+  run:
+    shell: bash .github/ci-run.sh vps-ops bash --noprofile --norc -eo pipefail {0}
+
+jobs:
+  backup:
+    if: inputs.action == 'backup-report' || inputs.action == 'apply-retention' || inputs.action == 'apply-storage-backup'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+      BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+      BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+      BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+      BACKUP_WALG_KEY: ${{ secrets.BACKUP_WALG_KEY }}
+      ACTION: ${{ inputs.action }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: The bucket's settings (repository secrets, else the vault)
+        run: infra/vps/scripts/backup-env.sh
+      - name: The server's scripts and systemd units from this commit (bin/walg-base reads the retention from walg.env)
+        if: inputs.action == 'apply-retention' || inputs.action == 'apply-storage-backup'
+        run: |
+          source scripts/deploy/vps.sh
+          tar -C infra/vps -czf "$RUNNER_TEMP/bin.tgz" bin systemd
+          vps_scp "$RUNNER_TEMP/bin.tgz" /tmp/carmacars-bin.tgz
+          # shellcheck disable=SC2016 # expanded on the server
+          vps_ssh 'set -e; t=$(mktemp -d); tar -C "$t" -xzf /tmp/carmacars-bin.tgz; for f in "$t"/bin/*; do sudo install -m 755 "$f" "/opt/carmacars/bin/$(basename "$f")"; done; for u in "$t"/systemd/*; do sudo install -m 644 "$u" "/etc/systemd/system/$(basename "$u")"; done; sudo systemctl daemon-reload; rm -rf "$t" /tmp/carmacars-bin.tgz; echo "installed: $(ls /opt/carmacars/bin | wc -l) scripts, $(ls /etc/systemd/system/carmacars-* | wc -l) units"' < /dev/null \
+            | sed 's/^/::notice title=bin::/'
+      - name: The Storage files' nightly copy switched on, and run once now
+        if: inputs.action == 'apply-storage-backup'
+        run: |
+          source scripts/deploy/vps.sh
+          vps_ssh "sudo systemctl enable --now carmacars-storage-backup.timer" < /dev/null
+          t0=$(date +%s)
+          # oneshot: start waits until the copy is done (the first one sends every file)
+          if ! vps_ssh "sudo systemctl start carmacars-storage-backup.service" < /dev/null; then
+            vps_ssh "sudo journalctl -u carmacars-storage-backup.service -n 40 --no-pager -o cat" < /dev/null || true
+            echo "::error title=storage-backup::the first copy failed (journal above)"; exit 1
+          fi
+          vps_ssh "sudo journalctl -u carmacars-storage-backup.service -n 5 --no-pager -o cat" < /dev/null || true
+          st=$(vps_ssh "sudo cat /opt/carmacars/state/storage-backup.json" < /dev/null)
+          next=$(vps_ssh "systemctl show carmacars-storage-backup.timer -p NextElapseUSecRealtime --value" < /dev/null)
+          echo "::notice title=storage-backup::$(jq -r '"\(.files) files, \((.bytes // 0) / 1e6 | floor) MB mirrored to storage/current in \(.seconds) s; trash: \(.trash_days) day(s)"' <<<"$st") (run took $(( $(date +%s) - t0 )) s); timer on, next $next"
+      - name: Usage, retention and plan (report), or the plan applied (apply-retention)
+        run: |
+          source scripts/deploy/vps.sh
+          mode=report; if [ "$ACTION" = apply-retention ]; then mode=apply; fi
+          infra/vps/scripts/backup-retention.sh "$mode" > "$RUNNER_TEMP/r.json"
+          R="$RUNNER_TEMP/r.json"
+          gb() { jq -r --argjson b "${1:-0}" -n '$b / 1e9 * 100 | floor / 100 | tostring + " GB"'; }
+          echo "== wal-g backup-list (server)"
+          vps_ssh "sudo /opt/carmacars/bin/walg backup-list --pretty 2>/dev/null || echo 'wal-g: not configured'" < /dev/null
+          echo "== report"
+          jq 'del(.prefixes.walg_base.list)' "$R"
+          tot=$(jq '.bucket_total_bytes' "$R")
+          base=$(jq -r '.prefixes.walg_base | "\(.backups) full backups (\(.incomplete) incomplete), \(.bytes / 1e9 * 100 | floor / 100) GB, newest \(.newest_bytes / 1e9 * 100 | floor / 100) GB"' "$R")
+          wal=$(jq -r '.prefixes.walg_wal | "\(.files) files, \(.bytes / 1e9 * 100 | floor / 100) GB (about \(.per_day_bytes / 1e6 | floor) MB a day)"' "$R")
+          log=$(jq -r '.prefixes.logical_nightly | "\(.backups) nightly folders, \(.bytes / 1e9 * 100 | floor / 100) GB (\(.oldest // "none") .. \(.newest // "none"))"' "$R")
+          sto=$(jq -r '.prefixes.storage_files | "storage/current \(.current_files) files \(.current_bytes / 1e6 | floor) MB, storage/trash \(.trash_files) files \(.trash_bytes / 1e6 | floor) MB (\(.trash_days) days); server \(.server_files // "?") files \((.server_bytes // 0) / 1e6 | floor) MB; nightly copy: \(if .timer == "enabled" then "on" else "OFF (\(.timer // "absent"); run apply-storage-backup)" end), last \(.last.at // "never")"' "$R")
+          oth=$(jq -r '.prefixes.other | if length == 0 then "none" else map("\(.prefix) \(.files) files \(.bytes / 1e6 | floor) MB") | join(", ") end' "$R")
+          ret=$(jq -r '.retention | "wal-g keeps \(.walg_retain_in_effect) full backups (walg.env WALG_RETAIN_FULL=\(.walg_env_retain_full // "unset"); walg-base \(if .walg_base_reads_walg_env then "reads it" else "on the server ignores walg.env and always keeps 7 until apply-retention installs the new one" end)); logical: \(.logical_keep_days_in_effect) days kept, old folders deleted by backup.sh after each nightly upload"' "$R")
+          plan=$(jq -r '.plan | "wal-g \(.walg_retain_full) full backups, logical \(.logical_keep_days) days: projected \(.projected_bytes / 1e9 * 100 | floor / 100) GB\(if .over_target then " (STILL over the target)" else "" end)"' "$R")
+          srv=$(jq -r '.server | "database files \((.db_data_bytes // 0) / 1e9 * 100 | floor / 100) GB; Storage files \((.storage_files_bytes // 0) / 1e6 | floor) MB (not in wal-g or the logical dump: their own copy under storage/); next base backup \(.next_base_backup // "?")"' "$R")
+          echo "::notice title=bucket::$(gb "$tot") of 10 GB free tier ($(jq -r '.pct_of_free' "$R")%), $(jq -r '.objects' "$R") objects; target $(gb "$(jq '.target_bytes' "$R")")"
+          echo "::notice title=wal-g base backups::$base"
+          echo "::notice title=WAL::$wal"
+          echo "::notice title=logical backups::$log"
+          echo "::notice title=Storage files::$sto"
+          echo "::notice title=other prefixes::$oth"
+          echo "::notice title=retention in effect::$ret"
+          echo "::notice title=plan::$plan$(jq -r 'if .plan.walg_retain_full < 7 or .plan.logical_keep_days < 30 then " - lower than the defaults (7 / 30) to stay under the target" else " - the defaults fit" end' "$R")"
+          echo "::notice title=server::$srv"
+          if jq -e '.applied' "$R" > /dev/null; then
+            echo "::notice title=applied::$(jq -r '.applied | "WALG_RETAIN_FULL=\(.walg_retain_full) in walg.env, logical-keep-days=\(.logical_keep_days); deleted now: \(.base_backups_deleted) base backups, \(.logical_folders_deleted) logical folders"' "$R")"
+          fi
+          {
+            echo "## Backups ($ACTION)"; echo
+            echo "| prefix | contents |"; echo "|---|---|"
+            echo "| walg/basebackups_005 | $base |"; echo "| walg/wal_005 | $wal |"; echo "| logical/nightly | $log |"; echo "| storage | $sto |"; echo "| other | $oth |"
+            echo "| **total** | $(gb "$tot") of 10 GB ($(jq -r '.pct_of_free' "$R")%) |"; echo
+            echo "- Retention in effect: $ret"; echo "- Plan: $plan"; echo "- Server: $srv"
+            if jq -e '.applied' "$R" > /dev/null; then echo "- Applied: $(jq -c '.applied' "$R")"; fi
+            echo; echo "| wal-g full / logical days | projected |"; echo "|---|---|"
+            jq -r '.ladder[] | "| \(.walg_retain_full) / \(.logical_keep_days) | \(.projected_bytes / 1e9 * 100 | floor / 100) GB |"' "$R"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if jq -e '.plan.over_target' "$R" > /dev/null; then echo "::warning title=plan::even the smallest retention is projected over the target"; fi
+
+  copy-backups-bucket:
+    if: inputs.action == 'copy-backups-bucket'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+            scripts/deploy
+      - name: The rows on both sides
+        run: |
+          source scripts/deploy/vps.sh
+          Q="select count(*)::int as n, coalesce(sum((metadata->>'size')::bigint), 0)::bigint as bytes from storage.objects where bucket_id = 'backups'"
+          h=$(curl -sS -f --max-time 60 -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" \
+                -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data "$(jq -nc --arg q "$Q" '{query: $q}')")
+          v=$(vps_sql "$Q")
+          echo "::notice title=rows::hosted backups bucket: $(jq -r '.[0] | "\(.n) objects, \(.bytes | tonumber / 1e6 | floor) MB"' <<<"$h"); server: $(jq -r '.[0] | "\(.n) rows"' <<<"$v")"
+      - name: Copy the files (hosted Storage API, service key) to the server's Storage, same paths; then check every row
+        env:
+          ONLY_BUCKETS: backups
+        run: COPY_DIR="$RUNNER_TEMP/copy" infra/vps/scripts/copy.sh storage storage-verify
+      - name: Summary
+        run: |
+          source scripts/deploy/vps.sh
+          v=$(vps_sql "select count(*)::int as n, coalesce(sum((metadata->>'size')::bigint), 0)::bigint as bytes from storage.objects where bucket_id = 'backups'")
+          echo "::notice title=copy-backups-bucket::server backups bucket: $(jq -r '.[0] | "\(.n) rows, \(.bytes | tonumber / 1e6 | floor) MB"' <<<"$v"), every row has its file (copy.sh storage-verify)"
+      - name: Remove the work folder
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/copy"
+
+  reboot:
+    if: inputs.action == 'reboot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CONFIRM: ${{ inputs.confirm }}
+      API: https://api.carmacars.ca
+    steps:
+      # first: every run step's shell is .github/ci-run.sh (defaults.run.shell), which exists only after the checkout
+      - uses: actions/checkout@v4
+      - name: Confirmation
+        run: |
+          if [ "$CONFIRM" != REBOOT ]; then echo "::error title=reboot::type REBOOT in confirm to reboot the server"; exit 1; fi
+          echo "confirmed"
+      - name: Reboot, stack back, db recreated, health
+        run: |
+          source scripts/deploy/vps.sh
+          SAY() { echo "[$(date -u +%T)] $*"; }
+          # ---- nothing that a reboot would break: a ci deploy (migrations), a logical backup (SSH tunnel), apt
+          busy() {
+            local r st runs="" more s out=()
+            for s in in_progress queued waiting; do
+              more=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?status=$s&per_page=50" --jq '.workflow_runs[].id') || { echo "the GitHub API did not answer (ci runs)"; return 0; }
+              runs="$runs $more"
+            done
+            for r in $runs; do
+              st=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$r/jobs?per_page=100" --jq '[.jobs[] | select(.name == "deploy") | .status] | join(",")') || { echo "the GitHub API did not answer (jobs of ci run $r)"; return 0; }
+              case ",$st," in *,in_progress,*|*,queued,*|*,waiting,*|*,pending,*) out+=("ci run $r: deploy $st") ;; esac
+            done
+            for r in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/vps-backup.yml/runs?status=in_progress&per_page=20" --jq '.workflow_runs[].id' || echo api-error); do
+              out+=("vps-backup run $r in progress")
+            done
+            if vps_ssh "systemctl is-active --quiet carmacars-walg-base.service"; then out+=("a wal-g base backup is running on the server"); fi
+            if vps_ssh "pgrep -x dpkg > /dev/null || pgrep -x apt-get > /dev/null || pgrep -x apt > /dev/null"; then out+=("apt/dpkg is running on the server"); fi
+            [ "${#out[@]}" = 0 ] || printf '%s\n' "${out[@]}"
+          }
+          b=$(busy)
+          if [ -n "$b" ]; then
+            while IFS= read -r l; do echo "::error title=reboot refused::$l"; done <<<"$b"
+            echo "::notice title=reboot::not rebooted: $(tr '\n' ';' <<<"$b")"; exit 1
+          fi
+          # ---- before
+          vps_ssh sudo /opt/carmacars/bin/health-local > "$RUNNER_TEMP/before.json" || true
+          jq -r '.problems[]?' "$RUNNER_TEMP/before.json" > "$RUNNER_TEMP/before-problems.txt" || true
+          boot0=$(vps_ssh cat /proc/sys/kernel/random/boot_id)
+          # shellcheck disable=SC2016 # expanded on the server
+          info0=$(vps_ssh 'echo "kernel $(uname -r), up $(uptime -p | sed "s/^up //"), reboot-required: $([ -f /var/run/reboot-required ] && echo yes || echo no)"')
+          p0=$(paste -sd ';' "$RUNNER_TEMP/before-problems.txt")
+          echo "::notice title=before::$info0; problems: ${p0:-none}"
+          ANON=$(vps_secret ANON_KEY)
+          [ -n "$ANON" ] || { echo "::error::no ANON_KEY on the server"; exit 1; }
+          # ---- docker-compose.yml and bin/ from this commit (log_min_messages=error), checked before it is used
+          tar -C infra/vps -czf "$RUNNER_TEMP/infra.tgz" bin supabase/docker-compose.yml
+          vps_scp "$RUNNER_TEMP/infra.tgz" /tmp/carmacars-infra.tgz
+          # shellcheck disable=SC2016 # expanded on the server
+          vps_ssh 'sudo bash -s' > "$RUNNER_TEMP/sync.txt" <<'SERVER'
+          set -euo pipefail
+          S=/opt/carmacars/supabase; t=$(mktemp -d)
+          tar -C "$t" -xzf /tmp/carmacars-infra.tgz
+          cd "$S"
+          docker compose --project-directory "$S" -f "$t/supabase/docker-compose.yml" --env-file defaults.env --env-file .env config -q < /dev/null
+          if cmp -s "$t/supabase/docker-compose.yml" docker-compose.yml; then echo "compose: unchanged"; else
+            echo "compose: changed"; diff -u docker-compose.yml "$t/supabase/docker-compose.yml" | sed -n '3,200p' | sed 's/^/  /' || true
+            cp -p docker-compose.yml "/opt/carmacars/state/docker-compose.yml.$(date -u +%Y%m%dT%H%M%SZ)"
+            install -m 644 "$t/supabase/docker-compose.yml" docker-compose.yml
+          fi
+          for f in "$t"/bin/*; do install -m 755 "$f" "/opt/carmacars/bin/$(basename "$f")"; done
+          rm -rf "$t" /tmp/carmacars-infra.tgz
+          SERVER
+          cat "$RUNNER_TEMP/sync.txt"
+          echo "::notice title=files::$(head -n 1 "$RUNNER_TEMP/sync.txt"); bin/ installed"
+          # ---- the outside view, every 2 s, for the downtime
+          probe() {
+            local a r
+            while :; do
+              a=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 "$API/auth/v1/health" -H "apikey: $ANON" 2>/dev/null || true)
+              r=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 -X POST "$API/rest/v1/rpc/site_settings_public" -H "apikey: $ANON" \
+                    -H "Authorization: Bearer $ANON" -H 'content-type: application/json' -d '{}' 2>/dev/null || true)
+              echo "$(date +%s) ${a:-000} ${r:-000}" >> "$RUNNER_TEMP/probe.log"
+              sleep 2
+            done
+          }
+          : > "$RUNNER_TEMP/probe.log"
+          probe & PROBE=$!
+          trap 'kill $PROBE 2>/dev/null || true' EXIT
+          sleep 4
+          # ---- last check, then reboot (a checkpoint first: a short shutdown and no long recovery)
+          b=$(busy)
+          if [ -n "$b" ]; then
+            while IFS= read -r l; do echo "::error title=reboot refused::$l"; done <<<"$b"
+            echo "::notice title=reboot::not rebooted (the compose file and bin/ were installed; nothing restarted): $(tr '\n' ';' <<<"$b")"; exit 1
+          fi
+          vps_ssh "sudo docker exec supabase-db psql -U supabase_admin -d postgres -XAtqc checkpoint" || true
+          t0=$(date +%s)
+          vps_ssh "sudo systemd-run --quiet --unit=carmacars-reboot-$t0 --on-active=3 /bin/systemctl reboot"
+          SAY "reboot in 3 s"
+          vps_ssh_close
+          # ---- back: one SSH attempt every 10 s (the firewall drops more than 6 new connections in 30 s); the first that
+          # works becomes the shared connection (ControlMaster) every later command goes through
+          host=$(vps_host)
+          boot1=""
+          for _ in $(seq 1 90); do
+            sleep 10
+            boot1=$(timeout 25 ssh "${VPS_SSH_OPTS[@]}" "$VPS_USER@$host" cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
+            if [ -n "$boot1" ] && [ "$boot1" != "$boot0" ]; then break; fi
+          done
+          if [ -z "$boot1" ] || [ "$boot1" = "$boot0" ]; then echo "::error title=reboot::the server did not come back on SSH within 15 minutes"; exit 1; fi
+          t_ssh=$(date +%s); SAY "SSH back after $((t_ssh - t0)) s"
+          # from here every step records its failure and goes on, so the summary is always printed
+          fail=0; problems=()
+          # ---- the stack comes back by itself (restart: unless-stopped)
+          back=false
+          for _ in $(seq 1 36); do
+            # shellcheck disable=SC2016 # expanded on the server
+            if vps_ssh 'for c in supabase-db supabase-auth supabase-rest supabase-storage supabase-kong supabase-edge-functions supabase-meta supabase-caddy; do [ "$(sudo docker inspect -f "{{.State.Running}}" "$c" 2>/dev/null)" = true ] || exit 1; done' < /dev/null 2>/dev/null; then back=true; break; fi
+            sleep 10
+          done
+          t_stack=$(date +%s); SAY "containers running by themselves: $back after $((t_stack - t0)) s"
+          # ---- the db container recreated (the compose file's command: log_min_messages=error), then everything up and healthy
+          if ! vps_ssh "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 600 --force-recreate --no-deps db" < /dev/null 2>&1 | tail -n 5; then
+            problems+=("the db container could not be recreated"); fail=1
+          fi
+          if ! vps_ssh "sudo /opt/carmacars/bin/dc up -d --wait --wait-timeout 900" < /dev/null 2>&1 | tail -n 15; then
+            problems+=("docker compose up --wait did not finish healthy"); fail=1
+          fi
+          lvl=$(vps_ssh "sudo docker exec supabase-db psql -U supabase_admin -d postgres -XAtc 'show log_min_messages'" < /dev/null || echo unknown)
+          t_db=$(date +%s); SAY "db recreated, every service healthy after $((t_db - t0)) s; log_min_messages=$lvl"
+          # ---- the public API answers (auth health and an anonymous database read)
+          ok=false
+          for _ in $(seq 1 120); do
+            if tail -n 1 "$RUNNER_TEMP/probe.log" | grep -q ' 200 200$'; then ok=true; break; fi
+            sleep 3
+          done
+          t_up=$(date +%s)
+          [ "$ok" = true ] || { problems+=("$API/auth/v1/health and rest did not answer 200 within 6 minutes of the stack being up"); fail=1; }
+          sleep 6
+          kill "$PROBE" 2>/dev/null || true
+          # downtime: from the first failed probe after the reboot to the last one (2 s resolution)
+          down=$(awk -v t0="$t0" '$1 >= t0 && ($2 != 200 || $3 != 200) { if (!f) f = $1; l = $1 } END { if (f) print l - f + 2; else print 0 }' "$RUNNER_TEMP/probe.log")
+          fails=$(awk -v t0="$t0" '$1 >= t0 && ($2 != 200 || $3 != 200)' "$RUNNER_TEMP/probe.log" | wc -l)
+          # ---- health-local (problems that were not there before are failures)
+          after=""; new=""
+          for _ in 1 2 3 4; do
+            after=$(vps_ssh sudo /opt/carmacars/bin/health-local < /dev/null || true)
+            new=$(jq -r '.problems[]?' <<<"$after" 2>/dev/null | grep -vxF -f "$RUNNER_TEMP/before-problems.txt" || true)
+            jq -e 'type == "object"' <<<"$after" > /dev/null 2>&1 || new="health-local gave no report"
+            [ -n "$new" ] || break
+            sleep 30
+          done
+          echo "$after" | jq -c '{ok, problems, disk_pct, mem_available_mb, load1, connections, wal_spool_files, cron_jobs_failing}' || true
+          # shellcheck disable=SC2016
+          info1=$(vps_ssh 'echo "kernel $(uname -r), reboot-required: $([ -f /var/run/reboot-required ] && echo yes || echo no)"' < /dev/null || echo "kernel unknown (SSH did not answer)")
+          echo "::notice title=after::$info1; containers back by themselves: $back; log_min_messages=$lvl; health-local ok: $(jq -r '.ok // "unknown"' <<<"$after" 2>/dev/null || echo unknown), problems: $(jq -r '.problems // [] | if length == 0 then "none" else join("; ") end' <<<"$after" 2>/dev/null || echo unknown)"
+          summary="downtime ${down} s seen from outside ($fails failed probes of auth/v1/health + rest); SSH back $((t_ssh - t0)) s, stack running $((t_stack - t0)) s, db recreated and all healthy $((t_db - t0)) s, API 200 at $((t_up - t0)) s after the reboot command"
+          echo "::notice title=reboot::$summary"
+          {
+            echo "## Reboot"; echo
+            echo "- Before: $info0"; echo "- After: $info1"; echo "- $summary"
+            echo "- Containers back by themselves: $back; log_min_messages: $lvl"
+            echo "- Compose file: $(head -n 1 "$RUNNER_TEMP/sync.txt")"
+            echo "- health-local: ok $(jq -r '.ok // "unknown"' <<<"$after" 2>/dev/null || echo unknown); problems: $(jq -r '.problems // [] | if length == 0 then "none" else join("; ") end' <<<"$after" 2>/dev/null || echo unknown)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for p in "${problems[@]}"; do echo "::error title=reboot::$p"; done
+          [ "$lvl" = error ] || { echo "::error title=reboot::log_min_messages is '$lvl' (expected error)"; fail=1; }
+          if [ -n "$new" ]; then while IFS= read -r p; do echo "::error title=health after reboot::$p"; done <<<"$new"; fail=1; fi
+          exit $fail
+      - name: State of the stack (on failure)
+        if: failure()
+        run: |
+          source scripts/deploy/vps.sh
+          rm -f "$RUNNER_TEMP"/vps-ssh/cm-* || true
+          timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh "sudo /opt/carmacars/bin/dc ps --format \"{{.Name}} {{.Status}}\"; sudo docker logs --tail 30 supabase-db 2>&1 | cut -c1-240"' || true

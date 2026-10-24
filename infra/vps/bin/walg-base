@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Nightly base backup with wal-g and the retention (carmacars-walg-base.timer). Point-in-time recovery is possible to
-# any moment since the oldest full backup kept: WALG_RETAIN_FULL (7) nightly full backups.
+# any moment since the oldest full backup kept: WALG_RETAIN_FULL (walg.env, default 7) nightly full backups.
 set -euo pipefail
 D=/opt/carmacars
 [ -f "$D/backup/enabled-flag/enabled" ] || { echo "walg-base: the backup bucket is not configured; nothing to do"; exit 0; }
 exec 9> "$D/state/walg-base.lock"
 flock -n 9 || { echo "walg-base: already running" >&2; exit 1; }
-keep="${WALG_RETAIN_FULL:-7}"
+# the retention: WALG_RETAIN_FULL from the environment, else walg.env's (backup-configure, the vps-ops workflow's
+# apply-retention), else 7. Never under 2: the newest backup alone leaves no fallback if it turns out unreadable.
+keep="${WALG_RETAIN_FULL:-$(sed -n "s/^WALG_RETAIN_FULL='\{0,1\}\([0-9]*\)'\{0,1\}$/\1/p" "$D/backup/walg.env" 2>/dev/null | tail -n 1 || true)}"
+keep="${keep:-7}"
+[[ "$keep" =~ ^[0-9]+$ ]] && [ "$keep" -ge 2 ] || keep=7
 t0=$(date +%s)
 "$D/bin/walg" backup-push /var/lib/postgresql/data
 "$D/bin/walg" delete retain FULL "$keep" --confirm

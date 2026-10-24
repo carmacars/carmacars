@@ -61,10 +61,43 @@ _vps_ssh_setup() {
   _VPS_SSH_READY=1
 }
 
+# The server's firewall limits new SSH connections (ufw limit: more than 6 in 30 s from one address are dropped, and
+# every attempt during a block extends it): commands share one connection (ControlMaster), and a command whose
+# connection could not be made is tried again after 35, 60, 90 and 120 s of silence (VPS_SSH_RETRY=0: once only).
+# Only failures before the session (connect, banner, key exchange) are retried, so a command never runs twice.
+_vps_connect_failed() {
+  grep -qE 'connect to host .* port [0-9]+:|kex_exchange_identification|banner exchange|Connection closed by [0-9a-fA-F.:]+ port [0-9]+$|Connection reset by [0-9a-fA-F.:]+ port|Control socket connect' "$1"
+}
+_vps_retry() { # command... (ssh or scp): its stderr is shown as it comes and kept to recognise a connection failure
+  local err rc i delays
+  read -r -a delays <<<"${VPS_SSH_RETRY_DELAYS:-35 60 90 120}"
+  err=$(mktemp)
+  for i in 0 1 2 3 4; do
+    rc=0
+    "$@" 2> >(tee "$err" >&2) || rc=$?
+    # tee finishes a moment after the command (not waited for: a backgrounded master detaches from stderr)
+    if [ "$rc" != 0 ]; then sleep 0.5; fi
+    if [ "$rc" != 0 ] && [ "$i" -lt 4 ] && [ "${VPS_SSH_RETRY:-1}" = 1 ] && _vps_connect_failed "$err"; then
+      _vps_say "SSH could not connect ($(grep -v '^$' "$err" | tail -n 1)); trying again in ${delays[$i]} s"
+      sleep "${delays[$i]}"
+      continue
+    fi
+    break
+  done
+  rm -f "$err"
+  return "$rc"
+}
+
 # vps_ssh <command...>: one command on the server as the ubuntu user (sudo for root). Stdin is passed through.
 vps_ssh() {
   _vps_ssh_setup
-  ssh "${VPS_SSH_OPTS[@]}" "$VPS_USER@$(vps_host)" "$@"
+  _vps_retry ssh "${VPS_SSH_OPTS[@]}" "$VPS_USER@$(vps_host)" "$@"
+}
+
+# The shared connection closed (before a reboot: it would hang on the dead server).
+vps_ssh_close() {
+  _vps_ssh_setup
+  ssh "${VPS_SSH_OPTS[@]}" -O exit "$VPS_USER@$(vps_host)" 2>/dev/null || true
 }
 
 # Copy local files to the server (scp over the shared connection).
@@ -73,7 +106,7 @@ vps_scp() { # src... dest(remote path)
   local args=("$@") n=$#
   local dest="${args[$((n - 1))]}"
   unset 'args[$((n - 1))]'
-  scp -q "${VPS_SSH_OPTS[@]}" "${args[@]}" "$VPS_USER@$(vps_host):$dest"
+  _vps_retry scp -q "${VPS_SSH_OPTS[@]}" "${args[@]}" "$VPS_USER@$(vps_host):$dest"
 }
 
 # The tunnels (idempotent). Exports SB_URL/SQL_API_URL for this shell and, in Actions, for later steps of the job.
@@ -81,7 +114,7 @@ vps_tunnel() {
   _vps_ssh_setup
   local host; host=$(vps_host)
   if ! ssh "${VPS_SSH_OPTS[@]}" -O check "$VPS_USER@$host" 2>/dev/null; then
-    ssh "${VPS_SSH_OPTS[@]}" -fN "$VPS_USER@$host" || _vps_die "SSH to $VPS_USER@$host failed"
+    _vps_retry ssh "${VPS_SSH_OPTS[@]}" -fN "$VPS_USER@$host" || _vps_die "SSH to $VPS_USER@$host failed"
   fi
   if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$VPS_META_PORT/" 2>/dev/null; then
     ssh "${VPS_SSH_OPTS[@]}" -O forward -L "127.0.0.1:$VPS_KONG_PORT:127.0.0.1:8000" "$VPS_USER@$host" 2>/dev/null || true

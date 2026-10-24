@@ -10,7 +10,8 @@
 #      leaves the runner.
 #   3. Uploaded to the private Supabase Storage bucket `backups` under nightly/<stamp>/ (parts of 45 MB, the free
 #      plan's 50 MB file limit), with manifest.json (no data: table names, counts, sizes, checksums).
-#   4. Folders older than BACKUP_KEEP_DAYS (30) are deleted.
+#   4. Folders older than BACKUP_KEEP_DAYS (30; on the server's backend /opt/carmacars/backup/logical-keep-days when
+#      that file exists) are deleted.
 #   5. The run is recorded in job_runs ('backup-nightly'); a failure shows on Admin > Today (no email).
 # Prints the stamp on the last line. BACKUP_DIR keeps the files (for the restore test in the same job).
 #
@@ -54,6 +55,12 @@ if [ "$DB_BACKEND" = vps ]; then
   export AWS_ACCESS_KEY_ID="$BACKUP_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}"
   S3=(aws s3 --endpoint-url "$BACKUP_S3_ENDPOINT")
   S3_BASE="s3://$BACKUP_S3_BUCKET/logical/nightly"
+  # the retention set on the server (the vps-ops workflow's apply-retention keeps the bucket under the free 10 GB),
+  # unless BACKUP_KEEP_DAYS is given
+  if [ -z "${BACKUP_KEEP_DAYS:-}" ]; then
+    k=$(vps_ssh sudo cat /opt/carmacars/backup/logical-keep-days 2>/dev/null | tr -dc 0-9 || true)
+    if [[ "$k" =~ ^[0-9]+$ ]] && [ "$k" -ge 3 ]; then KEEP_DAYS="$k"; fi
+  fi
 else
   pool=$(sbapi GET "/config/database/pooler")
   export PGHOST PGUSER PGPORT=5432 PGDATABASE=postgres PGSSLMODE=require PGCONNECT_TIMEOUT=20 PGAPPNAME=carmacars-backup
