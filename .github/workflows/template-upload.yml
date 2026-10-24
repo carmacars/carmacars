@@ -1,0 +1,159 @@
+name: template-upload
+
+# A private form template uploaded for the owner, the way Admin > Settings > Forms does it (migration 0127): the
+# encrypted PDF of infra/templates (the repository is public; infra/templates/templates.json) is decrypted with the
+# passphrase derived from the site's link key (vault deploy_link_signing_key), its SHA-256 checked, stored in the private
+# documents bucket at forms/templates/<form code>/<uuid>.pdf and recorded by app.rental_form_upload in the name of the
+# Admin rent@carmacars.ca (uploaded_by). check = true also presses "Checked: use for bookings" (app.rental_form_check),
+# with an audit_log row saying the deploy tooling did it at the owner's request. Refuses until the release with
+# migration 0127 is live (the database's migration history and the site's schema header). Then one filled sample (the
+# Admin's made-up booking with the real settings) is rendered, read back and stored in deploy-reports; nothing is emailed.
+# Never prints a secret or the decrypted file.
+on:
+  workflow_dispatch:
+    inputs:
+      template:
+        description: Which template
+        type: choice
+        options: [blindspot]
+        default: blindspot
+      check:
+        description: 'Also mark it "Checked: use for bookings"'
+        type: boolean
+        default: false
+
+concurrency:
+  group: template-upload
+  cancel-in-progress: false
+
+# Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
+# infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      APP_URL: https://carmacars.ca
+      ADMIN_EMAIL: rent@carmacars.ca
+      TEMPLATE: ${{ inputs.template }}
+      CHECK: ${{ inputs.check }}
+      SB: ${{ github.workspace }}/scripts/deploy/sb.sh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+
+      - name: The template and the release
+        run: |
+          set -euo pipefail
+          M="$GITHUB_WORKSPACE/infra/templates/templates.json"
+          jq -e --arg t "$TEMPLATE" 'has($t)' "$M" > /dev/null || { echo "::error title=template::unknown template $TEMPLATE"; exit 1; }
+          t() { jq -r --arg t "$TEMPLATE" --arg k "$1" '.[$t][$k]' "$M"; }
+          ENC="$GITHUB_WORKSPACE/$(t file)"; CODE=$(t form_code); SHA=$(t sha256); MIN=$(t min_schema)
+          [ -s "$ENC" ] || { echo "::error title=template::$(t file) is not committed"; exit 1; }
+          [[ "$CODE" =~ ^[A-Z0-9-]{2,30}$ && "$SHA" =~ ^[0-9a-f]{64}$ && "$MIN" =~ ^[0-9]{4}$ ]] || { echo "::error title=template::templates.json is not readable"; exit 1; }
+          [ -f src/features/blindspot/fill.ts ] || { echo "::error title=template::this branch does not have the Blind Spot agreement code (0127): run it from main after the release"; exit 1; }
+          # the release: the migration in the database's history, and the site serving that schema
+          applied=$("$SB" sql "select count(*)::int as n from supabase_migrations.schema_migrations where version >= '$MIN'" | jq -r '.[0].n // 0')
+          live=$(curl -sS -o /dev/null -D - --max-time 20 "$APP_URL/api/health" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-carmacars-schema"{print $2}')
+          echo "::notice title=release::database migrations >= $MIN: $applied; site schema: ${live:-none}"
+          if [ "$applied" -lt 1 ] || ! [[ "$live" =~ ^[0-9]{4}$ ]] || [ "$((10#$live))" -lt "$((10#$MIN))" ]; then
+            echo "::error title=release::The release with migration $MIN is not live yet (database and site). Deploy it first."; exit 1
+          fi
+          ADMIN=$("$SB" sql "select u.id from users u join user_roles r on r.user_id = u.id and r.role = 'admin' where lower(u.email) = lower('$ADMIN_EMAIL') limit 1" | jq -r '.[0].id // empty')
+          [[ "$ADMIN" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error title=template::no Admin account $ADMIN_EMAIL"; exit 1; }
+          { echo "ENC=$ENC"; echo "CODE=$CODE"; echo "SHA=$SHA"; echo "ADMIN=$ADMIN"; echo "FILE_NAME=$(t file_name)"; echo "PAGES=$(t pages)"; echo "LABEL=$(t label)"; } >> "$GITHUB_ENV"
+
+      - name: Decrypt and verify
+        run: |
+          set -euo pipefail
+          L=$("$SB" vault deploy_link_signing_key)
+          [ -n "$L" ] || { echo "::error title=template::The link key is not in the vault (deploy_link_signing_key)"; exit 1; }
+          echo "::add-mask::$L"
+          P=$(printf '%s' "$LABEL" | openssl dgst -sha256 -hmac "$L" -hex | awk '{print $NF}')
+          echo "::add-mask::$P"
+          D="$RUNNER_TEMP/tpl"; mkdir -p "$D"; chmod 700 "$D"
+          ( umask 077; PASS="$P" openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:PASS -in "$ENC" -out "$D/template.pdf" ) \
+            || { echo "::error title=template::could not decrypt (wrong key?)"; rm -f "$D/template.pdf"; exit 1; }
+          got=$(sha256sum "$D/template.pdf" | awk '{print $1}')
+          [ "$got" = "$SHA" ] || { echo "::error title=template::decrypted SHA-256 $got is not $SHA"; rm -f "$D/template.pdf"; exit 1; }
+          [ "$(head -c 5 "$D/template.pdf")" = '%PDF-' ] || { echo "::error title=template::not a PDF"; rm -f "$D/template.pdf"; exit 1; }
+          echo "TPL=$D/template.pdf" >> "$GITHUB_ENV"
+          echo "::notice title=template::decrypted and verified, SHA-256 $got"
+
+      - name: Store and record (as Admin > Settings > Forms)
+        run: |
+          set -euo pipefail
+          cur=$("$SB" sql "select id, sha256, verified from pdf_templates where form_code = '$CODE' and is_current and kind = 'booking_overlay'")
+          [ "$(jq 'length' <<<"$cur")" = 1 ] || { echo "::error title=template::no current $CODE template row (is 0127 applied?)"; exit 1; }
+          if [ "$(jq -r '.[0].sha256 // empty' <<<"$cur")" = "$SHA" ]; then
+            ID=$(jq -r '.[0].id' <<<"$cur")
+            echo "::notice title=template::this file is already the current template ($ID): nothing stored again"
+          else
+            K=$("$SB" service-key); echo "::add-mask::$K"
+            S=$("$SB" storage-url)
+            KEY="forms/templates/$CODE/$(cat /proc/sys/kernel/random/uuid).pdf"
+            curl -sS -f -o /dev/null -X POST "$S/object/documents/$KEY" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' --data-binary "@$TPL"
+            r=$("$SB" sql "select app.rental_form_upload('$ADMIN'::uuid, jsonb_build_object('form_code', '$CODE', 'file_key', '$KEY', 'sha256', '$SHA', 'page_count', $PAGES, 'file_name', '$FILE_NAME')) as r")
+            ID=$(jq -r '.[0].r.id // empty' <<<"$r")
+            [[ "$ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error title=template::the upload was not recorded"; exit 1; }
+            "$SB" sql "insert into audit_log (actor_user_id, action, entity_table, entity_id, after) values ('$ADMIN', 'rental_form_uploaded_by_deploy', 'pdf_templates', '$ID', jsonb_build_object('note', 'Uploaded by the deploy tooling (template-upload workflow, run ${{ github.run_id }}) at the owner''s request', 'file_key', '$KEY', 'sha256', '$SHA'))" > /dev/null
+            echo "::notice title=template stored::documents/$KEY, SHA-256 $SHA, version row $ID, uploaded_by $ADMIN_EMAIL"
+          fi
+          echo "TPL_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: Checked, use for bookings
+        if: ${{ inputs.check }}
+        run: |
+          set -euo pipefail
+          was=$("$SB" sql "select verified from pdf_templates where id = '$TPL_ID'" | jq -r '.[0].verified')
+          if [ "$was" = true ]; then echo "::notice title=template::already checked"; exit 0; fi
+          "$SB" sql "select app.rental_form_check('$ADMIN'::uuid, jsonb_build_object('template', '$TPL_ID', 'checked', true)) as r" > /dev/null
+          "$SB" sql "insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after) values ('$ADMIN', 'rental_form_checked_by_deploy', 'pdf_templates', '$TPL_ID', '{\"verified\": false}', jsonb_build_object('verified', true, 'note', 'Checked: use for bookings, by the deploy tooling (template-upload workflow, run ${{ github.run_id }}) at the owner''s request'))" > /dev/null
+
+      - name: State
+        run: |
+          set -euo pipefail
+          st=$("$SB" sql "select t.version, t.file_key, t.sha256, t.verified, t.verified_at, (select u.email from users u where u.id = t.uploaded_by) uploaded_by from pdf_templates t where t.id = '$TPL_ID'")
+          echo "::notice title=template state::$(jq -c '.[0] | {version, stored: ("documents/" + .file_key), sha256, checked: .verified, checked_at: .verified_at, uploaded_by}' <<<"$st")"
+          [ "$CHECK" != true ] || [ "$(jq -r '.[0].verified' <<<"$st")" = true ] || { echo "::error title=template::not checked"; exit 1; }
+
+      - name: One filled sample (made-up booking, real settings)
+        run: |
+          set -euo pipefail
+          D="$RUNNER_TEMP/tpl"
+          "$SB" sql "select app.rental_form_preview('$ADMIN'::uuid, jsonb_build_object('template', '$TPL_ID')) as p" | jq '.[0].p' > "$D/settings.json"
+          sig=()
+          skey=$(jq -r '.rep.signature_key // empty' "$D/settings.json")
+          if [ -n "$skey" ]; then
+            K=$("$SB" service-key); echo "::add-mask::$K"
+            curl -sS -f -o "$D/signature.png" "$("$SB" storage-url)/object/documents/$skey" -H "Authorization: Bearer $K" -H "apikey: $K" && sig=(--signature "$D/signature.png")
+          fi
+          node --experimental-strip-types --no-warnings scripts/blindspot-sample.mjs --template "$TPL" --settings "$D/settings.json" "${sig[@]}" --out "$D/sample.pdf" > "$D/report.json" \
+            || { echo "::error title=sample::$(cat "$D/report.json")"; exit 1; }
+          K=$("$SB" service-key); echo "::add-mask::$K"
+          S=$("$SB" storage-url)
+          curl -sS -o /dev/null -X POST "$S/bucket" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' --data '{"id":"deploy-reports","name":"deploy-reports","public":false}' || true
+          curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/templates/${{ github.run_id }}/$CODE-sample.pdf" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/pdf' -H 'x-upsert: true' --data-binary "@$D/sample.pdf"
+          echo "::notice title=sample::$(cat "$D/report.json")"
+          echo "::notice title=sample::stored privately at deploy-reports/templates/${{ github.run_id }}/$CODE-sample.pdf (Admin > Settings > Forms also downloads one)"
+
+      - name: Remove the decrypted file
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/tpl"

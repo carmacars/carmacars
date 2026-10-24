@@ -1,0 +1,12 @@
+{
+  "_about": "Private form templates, encrypted because the repository is public: openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt, the passphrase is the hex HMAC-SHA256 of the template's label under the site's link key (vault deploy_link_signing_key). Uploaded by .github/workflows/template-upload.yml exactly as Admin > Settings > Forms does.",
+  "blindspot": {
+    "file": "infra/templates/blindspot-rental-agreement.pdf.enc",
+    "label": "blindspot-template",
+    "form_code": "BLINDSPOT-RA",
+    "file_name": "blindspot-rental-agreement.pdf",
+    "sha256": "dd37fe458bed991a82fc2a7aeec08686d1e87dedabafbb319ebcaa9c58c867fb",
+    "pages": 2,
+    "min_schema": "0127"
+  }
+}
