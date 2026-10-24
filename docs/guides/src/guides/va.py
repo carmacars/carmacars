@@ -33,10 +33,10 @@ def build():
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
     g.task('The menu', 'My work comes first: To do, Today at a glance, My scorecard and My sales. Customer service and Sales then have Live: Live chat, Live visitors and Game leads. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
-        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
-        ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Owners (Owner leads)'],
-        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car)'],
-        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car)'],
+        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
+        ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car, Card coverage), Owners (Owner leads)'],
+        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
+        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
     g.steps([
@@ -189,6 +189,15 @@ def build():
         'The coverage: OPCF 27 shows the insurer, policy number and expiry; credit card coverage shows the card, its type and whether the name matches. Approve or reject it as a whole.',
     ])
     g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
+
+    g.task('Which credit cards include rental car coverage?', f'Renters ask this often. {P("Renters", "Card coverage")} (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.')
+    g.steps([
+        f'Send the renter {U("carmacars.ca/credit-card-rental-coverage")}: each card\'s car value limit (MSRP), longest rental, key exclusions, its official guide and the day we last checked it.',
+        'Ask which car they want. Most Canadian cards stop at a car priced $65,000 or $85,000, and many luxury models are priced higher. Give them the car\'s model year and trim so they can check.',
+        'Never tell a renter they are covered. Their card\'s issuer decides that: ask them to call the number on the back of their card about this car and these dates. CarmaCars does not decide claims.',
+        'Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.',
+    ])
+    g.tip('A card marked Unverified came from a published summary, not the issuer\'s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings > Card coverage.')
 
     g.task('A change to a confirmed booking')
     g.para('On a booking\'s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, '

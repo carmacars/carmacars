@@ -1068,7 +1068,7 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
-           'Airports and delivery, Protection Plan prices, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
+           'Airports and delivery, Protection Plan prices, Card coverage, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')
     g.steps([
@@ -1142,6 +1142,15 @@ def build():
         f'To add one, fill in the Add form (Name, Billing contact, Billing email and the rest) and press {B("Add")}.',
         'Deposit tiers, Kilometre choices, Vehicle classes, Airports, Promo codes and Quick replies work the same way.',
     ])
+
+    g.task('Card coverage: which credit cards include rental car coverage', f'{P("Settings", "Card coverage")} is the list renters see at {U("carmacars.ca/credit-card-rental-coverage")} and staff see under Card coverage in their portal. It starts filled in with 48 Canadian and US cards, each checked on October 23, 2026.')
+    g.steps([
+        'The table shows each card: who pays first (Primary, Secondary, or not stated), the car value limit (MSRP), the longest rental, whether the numbers were read in the issuer\'s own document, and when it was last checked.',
+        f'Open a card under Change a card, open its official guide, correct what changed and press {B("Save")}. Changing the facts without a date marks the card checked today; type a Last checked date to record another day.',
+        'A card whose numbers come from a published summary has Read in the issuer\'s own document unticked and the summary\'s link under Where the numbers came from. The page shows it as Unverified. Tick it once you have read the issuer\'s guide.',
+        f'Add a card with the Add form; untick Shown to hide one. Changes reach the public page at once.',
+    ])
+    g.tip('A card not checked for 6 months shows on Today until it is checked again. The page tells renters to confirm with their card issuer and says CarmaCars decides no claims: keep the list to facts from the issuer\'s guide.')
 
     # ---------------------------------------------------------------- 10
     g.chapter('Add-ons',

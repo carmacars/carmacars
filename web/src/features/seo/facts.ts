@@ -51,6 +51,7 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
   ];
   const pagesLinks: FactLink[] = [
     { name: 'About and facts', path: '/about' }, { name: 'How it works', path: '/how-it-works' }, { name: 'Requirements to rent', path: '/requirements' },
+    { name: 'Credit cards with rental car coverage', path: '/credit-card-rental-coverage', note: 'Card value limits, longest rental and exclusions, each with the issuer\'s guide; confirm with your card issuer' },
     { name: 'Questions and answers', path: '/faq' }, { name: 'Cancellation policy', path: '/cancellation-policy' }, { name: 'Contact', path: '/contact' },
     { name: 'Rental terms', path: '/terms' }, { name: 'Privacy', path: '/privacy' }
   ];
