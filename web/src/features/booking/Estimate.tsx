@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
+import { emitTrack } from '@/lib/track/emit';
 import { clock, shortDate, torontoInstant } from '@/lib/dates';
 import { money, plural } from '@/lib/format';
 
@@ -20,7 +21,7 @@ function priceShown(q: Quote) {
   const d: Record<string, string> = { days: String(q.billable_days), total: String(Math.round(q.total_cents / 100)), avail: q.available ? '1' : '0' };
   if (q.lines.some((l) => l.charge_type === 'delivery')) d.deliv = '1';
   if (q.lines.some((l) => l.charge_type === 'additional_driver')) d.xdrv = '1';
-  window.dispatchEvent(new CustomEvent('cc:track', { detail: { k: 'quote_seen', d } }));
+  emitTrack({ k: 'quote_seen', d });
 }
 
 export function useQuote(input: QuoteInput | null) {
