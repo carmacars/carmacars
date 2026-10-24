@@ -32,7 +32,9 @@ test('the sitemap index leads to every child sitemap, a vehicle page and a place
   // the model pages are listed (and open)
   const hubs = locs(await (await request.get('/sitemap-hubs.xml')).text()).map(pathOf);
   expect(hubs.length).toBeGreaterThan(0);
-  expect(hubs.every((h) => /^\/cars\/[a-z0-9-]+\/[a-z0-9-]+$/.test(h))).toBe(true);
+  // (0128: and the make pages of the fleet's makes the catalog does not cover, /cars/<make>)
+  expect(hubs.every((h) => /^\/cars\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(h))).toBe(true);
+  expect(hubs.some((h) => /^\/cars\/[a-z0-9-]+\/[a-z0-9-]+$/.test(h))).toBe(true);
   expect((await request.get(hubs[0]!)).status()).toBe(200);
 
   // down to a place page

@@ -164,9 +164,10 @@ select test.eq('recurring box ticked: the mandate is kept and the confirmation (
   || '/' || (select count(*) from app_events e where e.code = 'owner_pad_confirmed' and e.entity_id in (select m.id from owner_payment_methods m join owner_payment_method_secrets s on s.owner_payment_method_id = m.id where s.processor_mandate_id = 'mandate_lr_rec')),
   'paid/1/1');
 select app.process_events(100000);
-select test.eq('confirmation (1.5): the payee, and the full text of the accepted recurring agreement below the summary',
+select test.eq('confirmation (1.5): the payee, and the full text of the accepted recurring agreement below the summary (the payee by the business name in the email, 0128)',
   (select (payload ->> 'payee_name') || '|' || (payload ->> 'agreement_1') || '|' || (payload ->> 'agreement_2') from notification_outbox where code = 'owner_pad_confirmed' and to_address = 'lr_carl@example.test' order by created_at desc limit 1),
-  app.owner_payee_name() || '|' || (app.owner_debit_terms() #>> '{agreement,personal,0}') || '|' || app.owner_late_fee_rule());
+  app.owner_email_payee_name() || '|' || replace(app.owner_debit_terms() #>> '{agreement,personal,0}', 'You authorize ' || app.owner_payee_name() || ' to debit', 'You authorize ' || app.owner_email_payee_name() || ' to debit')
+  || '|' || app.owner_late_fee_rule());
 -- Void notice (6.2)
 select test.ok('void notice (6.2): the approved sentence and its values',
   exists (select 1 from notification_catalogue c where c.code = 'owner_payment_reversed' and c.variables @> '[{"name":"debit_date"}]'::jsonb));

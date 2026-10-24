@@ -71,15 +71,28 @@ places() {
   run "$URL" -c "select app.place_roots_refresh()" -c "select app.sitemap_priority_refresh()" -c "select app.place_directory_refresh()" >/dev/null
 }
 seed() { (cd "$WEB" && DATABASE_URL="$URL" node scripts/seed.mjs); }
+# the publisher's downloads of the official registry forms (0122), stored where the forms-fetch workflow stores them in
+# production (forms/templates/<code>/official-<sha>.pdf in the documents bucket), then made the current templates the
+# way that workflow does: the database never names a template file the local storage does not have (Admin > Settings >
+# Forms, "Review and check", reads it)
+forms() {
+  local store="${LOCAL_STORAGE_DIR:-$WEB/.local-storage}" code key
+  while IFS='|' read -r code key; do
+    [ -f "$WEB/tests/fixtures/official-forms/$code.pdf" ] || continue
+    mkdir -p "$store/documents/$(dirname "$key")"
+    cp "$WEB/tests/fixtures/official-forms/$code.pdf" "$store/documents/$key"
+  done < <("$PSQL" -X -At "$URL" -c "select form_code || '|' || file_key from official_form_originals")
+  run "$URL" -c "select app.official_templates_use_originals(true)" >/dev/null
+}
 
 case "${1:-up}" in
   up)
     start
     if ! "$PSQL" -X -At "$ADMIN" -c "select 1 from pg_database where datname = '$DB'" | grep -q 1; then
-      build; [ "${2:-}" = --no-seed ] || { seed; places; }
+      build; [ "${2:-}" = --no-seed ] || { seed; forms; places; }
     fi
     echo "DATABASE_URL=$URL" ;;
-  reset) start; build; seed; places ;;
+  reset) start; build; seed; forms; places ;;
   down) ${AS_PG[@]+"${AS_PG[@]}"} "$PG_CTL" -D "$DIR/data" -m fast stop ;;
   *) echo "usage: $0 up|reset|down" >&2; exit 2 ;;
 esac

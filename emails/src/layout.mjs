@@ -201,8 +201,8 @@ function helpLine(email) {
   if (email.audience === 'investor') return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}.';
   return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.';
 }
-// The company line of the footer: an owner billing email names the payee of the pre-authorized debit ("<legal name>,
-// operating as CarmaCars", the legal review of October 16, 2026); every other email the business name.
+// The company line of the footer: an owner billing email names the payee of the pre-authorized debit (the legal review
+// of October 16, 2026; by the business name since 0128, never the numbered company); every other email the business name.
 const companyLine = (email) => (email.audience === 'owner' && /<billing@/.test(email.from) ? '{{payee_name}}' : 'CarmaCars');
 // Public contact and social lines for renters, owners and investors (not on internal staff notices).
 const CONTACT_LINE = 'Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.';

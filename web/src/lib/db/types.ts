@@ -19242,6 +19242,7 @@ export type Database = {
       site_file: { Args: { p_name: string }; Returns: string };
       site_settings_public: { Args: never; Returns: Json };
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
+      sitemap_hubs: { Args: never; Returns: Json };
       sitemap_priority: { Args: never; Returns: Json };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
@@ -19257,6 +19258,7 @@ export type Database = {
       turo_rematch_result: { Args: { p: Json }; Returns: Json };
       vehicle_buy_extras: { Args: { p_make: string; p_model: string; p_year: number; p_trim: string }; Returns: Json };
       vehicle_classes: { Args: never; Returns: Json };
+      vehicle_fleet_makes: { Args: never; Returns: Json };
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
       vehicle_make_index: { Args: never; Returns: Json };

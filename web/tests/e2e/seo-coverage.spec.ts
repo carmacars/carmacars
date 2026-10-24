@@ -44,7 +44,7 @@ const priority = async (request: APIRequestContext) => {
   return all;
 };
 
-test('crawl priority: the priority sitemap is first in the index, under 50,000 addresses, with cars, makes and place pages', async ({ request }) => {
+test('crawl priority: the priority sitemap is first in the index, under 50,000 addresses, with the place pages nearest us and no address of another file', async ({ request }) => {
   test.skip(test.info().project.name !== 'desktop-1440', 'one width is enough for files');
   const idx = locs(await (await request.get('/sitemap.xml')).text());
   expect(idx[0]).toBe('/sitemap-priority-1.xml');
@@ -66,9 +66,11 @@ test('crawl priority: the priority sitemap is first in the index, under 50,000 a
   expect(urls.length).toBeGreaterThan(0);
   expect(urls.length).toBeLessThanOrEqual(50_000);
   expect(new Set(urls).size).toBe(urls.length);
+  // 0128: each address in one sitemap file: the fleet's cars and the landing pages are in their own files, not here
   const cars = locs(await (await request.get('/sitemap-cars.xml')).text());
   expect(cars.length).toBeGreaterThan(0);
-  expect(cars.every((c) => urls.includes(c)), 'every car of the fleet').toBe(true);
+  expect(cars.some((c) => urls.includes(c)), 'no car of the fleet (sitemap-cars.xml lists them)').toBe(false);
+  expect(idx.slice(0, 4).includes('/sitemap-cars.xml'), 'the cars file right after the priority file').toBe(true);
   expect(urls.some((u) => /^\/car-rental\/[a-z0-9-]+$/.test(u)), 'a place page nearest us').toBe(true);
 });
 
@@ -169,7 +171,7 @@ test('mechanical work we arrange on the per car pages: a trusted shop, a rental 
   await noOverflow(page);
   if (test.info().project.name !== 'desktop-1440') return;
   // the vehicle sitemaps list the tree's files, and a file lists its pages
-  const files = locs(await (await request.get('/sitemap.xml')).text()).filter((u) => u.startsWith('/sitemap-vehicles/t-oil-change-'));
+  const files = locs(await (await request.get('/sitemap.xml')).text()).filter((u) => u.startsWith('/sitemap-vehicles-t-oil-change-'));
   expect(files.length).toBeGreaterThan(0);
   const res = await request.get(files[0]!);
   expect(res.status()).toBe(200);

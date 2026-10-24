@@ -61,7 +61,9 @@ select test.eq('ad click without consent: nothing', test.sgb('ad-ess', '[]', 'es
 -- ================================================================ 2. intent
 select test.sgb('dates', (select jsonb_agg(test.ev('search', 2, jsonb_build_object('pickup', (current_date + 40 + i)::text, 'return', (current_date + 43 + i)::text))) from generate_series(1, 3) i));
 select test.eq('dates searched 3 times', test.sgwhy('dates', 'dates_repeat'), 'Searched dates 3 times this visit');
-select test.sgb('dates2', (select jsonb_agg(test.ev('search', 2, jsonb_build_object('pickup', (current_date + 40)::text, 'return', (current_date + 43)::text))) from generate_series(1, 2) i));
+-- (a Monday to Thursday trip: on the days where 40 days out is a Thursday or a Friday the same search is a weekend trip)
+select test.sgb('dates2', (select jsonb_agg(test.ev('search', 2, jsonb_build_object('pickup', d::text, 'return', (d + 3)::text)))
+  from generate_series(1, 2) i, lateral (select current_date + 40 + (8 - extract(isodow from current_date + 40)::integer) % 7 d) m));
 select test.eq('twice is below the threshold', test.sgk('dates2'), '');
 select test.sgb('price', jsonb_build_array(test.ev('page_view', 1), test.ev('quote_seen', 1, '{"days": "3", "total": "1320", "avail": "1"}')));
 select test.eq('saw the full price', test.sgwhy('price', 'price_seen'), format('Saw $1,320 for 3 days, %s', test.sgname(1)));

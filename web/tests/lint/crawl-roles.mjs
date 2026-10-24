@@ -98,8 +98,9 @@ const shape = (u) => {
 // term) and every place page; a shape of one of them stands for thousands of addresses of the same template.
 const family = (sh) => (/^\/(cars\/:|buy\/|t\/|car-rental\/:|detailing\/:|body-shop\/:)/.test(sh) ? sh : null);
 const LINK_PER_FAMILY = Number(arg('--links-per-family', '2'));
-// Never followed: sign-out, and links that act once (a resume or referral link is requested, not rendered).
-const SKIP_RENDER = /^\/(api\/|files\/|d\/|r\/|list-your-car\/apply\/resume|auth\/callback|admin\/reports\/export|admin\/documents\/|account\/documents\/[^/]+$|owner\/documents\/(forms\/)?[^/]+$|investor\/statements\/year\/|field\/manifest)/;
+// Never followed: sign-out, and links that act once (a resume or referral link is requested, not rendered); the OAuth
+// start and callback answer with a redirect to the provider's page (its local stand-in here), never a page of the site.
+const SKIP_RENDER = /^\/(api\/|files\/|d\/|r\/|list-your-car\/apply\/resume|auth\/(callback|oauth)|admin\/reports\/export|admin\/documents\/|account\/documents\/[^/]+$|owner\/documents\/(forms\/)?[^/]+$|investor\/statements\/year\/|field\/manifest)/;
 const PRIVATE = /^\/(account|owner|investor|admin|va|field|two-step|sign\/|unsubscribe)/;
 const IGNORE_CONSOLE = [/Download the React DevTools/];
 

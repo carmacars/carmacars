@@ -123,6 +123,10 @@ const vehiclePaths = new Set();
 for (const loc of report.sitemapParts ?? []) if (/\/sitemap-vehicles-(?!buy-|t-)(?!tiers-)[a-z0-9-]+\.xml$/.test(loc)) {
   for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) { const vp = new URL(m[1]).pathname; if (!heavy(vp)) vehiclePaths.add(vp); }
 }
+// 0128: the hubs file lists the make pages of the fleet's makes the catalog does not cover (/cars/bmw): make pages too
+for (const loc of report.sitemapParts ?? []) if (/\/sitemap-hubs\.xml$/.test(loc)) {
+  for (const m of (await get(new URL(loc).pathname)).body.matchAll(/<loc>([^<]+)<\/loc>/g)) { const vp = new URL(m[1]).pathname; if (/^\/cars\/[^/]+$/.test(vp)) vehiclePaths.add(vp); }
+}
 const cars = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/cars\/[^/]+$/.test(p) && !vehiclePaths.has(p)));
 const hubs = new Set([...paths, ...fleetCarLinks].filter((p) => /^\/rent\/[^/]+$/.test(p)));
 // landing pages and guides: those in the sitemap and every one the hubs link to (a use page under the threshold is noindex)

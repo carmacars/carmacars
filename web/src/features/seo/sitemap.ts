@@ -15,9 +15,10 @@ export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 // 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
 // to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the
-// 47 model pages were in no sitemap. A page in both files is harmless.
+// 47 model pages were in no sitemap. 0128: without the model pages the vehicle sitemaps list, and with the fleet's make pages.
 // 0115: 'priority', first in the index: the pages most worth crawling first (the fleet's cars, the landing pages, the
 // make pages, the popular models from the newest years, the place pages nearest us for the first terms), at most 50,000.
+// 0128: without the cars and landing pages, which are in their own files (each address in one sitemap file).
 export const SITEMAPS = ['priority', 'pages', 'cars', 'landing', 'guides', 'hubs'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
 
@@ -39,22 +40,30 @@ type Prio = Array<{ path: string; lastmod: string | null }>;
 async function priorityRows(): Promise<Prio> {
   try { return ((await memo('sitemap_priority', () => rpc('sitemap_priority', {}, SR))) ?? []) as unknown as Prio; } catch { return []; }
 }
+// 0128: the hubs file is the model pages of the fleet's cars the vehicle sitemaps do not list, and the make pages of the
+// fleet's makes the catalog does not cover (/cars/bmw); before 0128 is applied, the model pages as sitemap_all lists them
+async function hubRows(all: Row[]): Promise<Prio> {
+  try { return ((await memo('sitemap_hubs', () => rpc('sitemap_hubs', {}, SR))) ?? []) as unknown as Prio; }
+  catch { return all.filter((r) => r.kind === 'model_hub'); }
+}
 
-function entries(name: SitemapName, all: Row[], prio: Prio = []): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
+function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
   const base = siteUrl();
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
     // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
     case 'pages': return FIXED.map((p) => ({ loc: url(p), lastmod: null }));
+    // 0128: each address in one sitemap file. The priority list leaves out the addresses of the site's own files (the
+    // fleet's cars, the landing pages, the fixed pages, the guides and the hubs: listed right after it, at the top of
+    // the index); it keeps its own selection (the makes, the popular models, the place pages nearest us).
     case 'priority': {
-      const seen = new Set<string>();
-      return [...all.filter((r) => r.kind === 'car' || r.kind === 'landing'), ...prio.map((r) => ({ ...r, kind: 'priority' }))]
-        .filter((r) => !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+      const seen = new Set<string>([...FIXED, ...all.filter((r) => r.kind !== 'model_hub').map((r) => r.path), ...hubs.map((r) => r.path)]);
+      return prio.filter((r) => !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     }
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
-    case 'hubs': return all.filter((r) => r.kind === 'model_hub').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    case 'hubs': return hubs.map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
   }
 }
 
@@ -126,8 +135,9 @@ const sm = (loc: string, last: string | null | undefined) => `<sitemap><loc>${es
  *  the index. */
 async function siteEntries(): Promise<string[]> {
   const [all, places, prio] = await Promise.all([rows(), placeFiles(), priorityRows()]);
+  const hubs = await hubRows(all);
   return [...SITEMAPS.flatMap((name) => {
-    const e = entries(name, all, prio);
+    const e = entries(name, all, prio, hubs);
     if (name === 'priority') return chunk(e, PRIORITY_CHUNK).map((c, i) => sm(sitemapUrl.priority(i + 1), lastOf(c)));
     return [sm(`${siteUrl()}/sitemap-${name}.xml`, lastOf(e))];
   }), ...places.slice(0, 49_000).map((f) => sm(sitemapUrl.places(f.file), iso(f.lastmod)))];
@@ -165,12 +175,13 @@ export async function sitemapIndex(n = 1): Promise<Response> {
 }
 
 export async function sitemapFile(name: Exclude<SitemapName, 'priority'>): Promise<Response> {
-  return urlset(entries(name, await rows()), name === 'cars');
+  const all = await rows();
+  return urlset(entries(name, all, [], name === 'hubs' ? await hubRows(all) : []), name === 'cars');
 }
 /** Part n of the priority sitemap (/sitemap-priority-<n>.xml, 0124); 404 past the last part. */
 export async function prioritySitemapFile(n: number): Promise<Response> {
   const [all, prio] = await Promise.all([rows(), priorityRows()]);
-  const parts = chunk(entries('priority', all, prio), PRIORITY_CHUNK);
+  const parts = chunk(entries('priority', all, prio, await hubRows(all)), PRIORITY_CHUNK);
   if (!Number.isInteger(n) || n < 1 || n > parts.length) return NOT_FOUND();
   return urlset(parts[n - 1]!, false);
 }

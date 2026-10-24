@@ -20,8 +20,11 @@ export async function generateMetadata() {
 }
 
 export default async function Fleet() {
-  const [s, f, t, fleet, classes, band, makes] = await Promise.all([getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), slotPhoto('fleet.band'),
-    rpc('vehicle_makes', {}) as unknown as Promise<Array<{ slug: string; name: string; path: string; models: number }> | null>]);
+  const [s, f, t, fleet, classes, band, catalogMakes, fleetMakes] = await Promise.all([getSettings(), getFacts(), getTokens(), getFleet(), getClasses(), slotPhoto('fleet.band'),
+    rpc('vehicle_makes', {}) as unknown as Promise<Array<{ slug: string; name: string; path: string; models: number }> | null>,
+    // 0128: and the make pages of our cars' makes the catalog does not cover (/cars/bmw lists our BMW cars)
+    (rpc('vehicle_fleet_makes', {}) as unknown as Promise<Array<{ slug: string; name: string; path: string; models: number }> | null>).catch(() => null)]);
+  const makes = [...(catalogMakes ?? []), ...(fleetMakes ?? [])].sort((a, b) => a.name.localeCompare(b.name));
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const used = classes.map((c) => c.code).filter((code) => fleet.some((car) => car.classes.includes(code)));
   return (

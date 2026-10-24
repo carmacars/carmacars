@@ -57,6 +57,8 @@ async function freeCar(sql: Sql, start: number, days: number, past = 0) {
   const since = past > 0 ? new Date(Math.min(from.getTime(), Date.now() - past * 86_400_000)) : from;
   const rows = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
     where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+      -- handed over in these tests: a car another test took off the fleet policy (its insurer not confirmed yet) is refused at handover (0078)
+      and app.vehicle_on_policy(v.id)
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
                         and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${since.toISOString()}::timestamptz, ${to.toISOString()}::timestamptz))
       and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${to.toISOString()}::timestamptz and (k.ends_at is null or k.ends_at > ${from.toISOString()}::timestamptz))

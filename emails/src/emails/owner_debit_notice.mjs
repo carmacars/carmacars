@@ -34,7 +34,7 @@ export default {
     small('A debit can take up to 5 business days to clear. {{late_fee_rule}} To change the account, update it under Banking before {{debit_date}}. We send this notice {{notice_days}} days ahead, as your pre-authorized debit agreement sets out.'),
   ],
   sample: {
-    payee_name: '18122211 Canada Inc., operating as CarmaCars', debit_date: 'Sun, Nov 15, 2026', debit_total: '$1,073.50', debit_count_text: '2 invoices', bank_last4: '6621', notice_days: '10',
+    payee_name: 'CarmaCars', debit_date: 'Sun, Nov 15, 2026', debit_total: '$1,073.50', debit_count_text: '2 invoices', bank_last4: '6621', notice_days: '10',
     debit_items: [
       { invoice_number: 'INV-1042', vehicle: '2023 Toyota RAV4 XLE', covers: 'November 2026', amount: '$536.75' },
       { invoice_number: 'INV-1043', vehicle: '2022 Hyundai Elantra Preferred', covers: 'November 2026', amount: '$536.75' },

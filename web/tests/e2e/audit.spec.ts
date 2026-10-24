@@ -22,9 +22,15 @@ async function renter(sql: Sql, tag: string) {
 }
 /** A closed booking of this renter: a request through the real function, then written as closed (a fixture). */
 async function closedBooking(sql: Sql, r: { id: string; email: string }) {
-  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and v.partner_id is null and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
   const start = 300 + Math.floor(Math.random() * 400);
+  // a car that takes requests and is free those days (no booking, block or cleaning time of another test there)
+  const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+      and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
+                        and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${day(start - 1)}::timestamptz, ${day(start + 3)}::timestamptz))
+      and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${day(start + 3)}::timestamptz and (k.ends_at is null or k.ends_at > ${day(start - 1)}::timestamptz))
+    order by random() limit 1`;
   const req = {
     request_key: randomUUID(), vehicle_id: v!.id, pickup_at: `${day(start)}T10:00:00-04:00`, return_at: `${day(start + 2)}T10:00:00-04:00`, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 2, extras: {},
