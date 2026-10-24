@@ -1,7 +1,8 @@
 import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { when } from '@/features/agreement/model';
-import { myDocuments, requireUser } from '@/server/portal/data';
+import Link from 'next/link';
+import { myBookings, myDocuments, requireUser } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Your documents', path: '/account/documents', noindex: true, description: 'Your rental agreements, receipts, statements and uploads.' });
@@ -11,10 +12,18 @@ const ID = ['id_front', 'id_back', 'face'];
 
 export default async function Documents() {
   const user = await requireUser('/account/documents');
-  const docs = await myDocuments(user);
+  const [docs, trips] = await Promise.all([myDocuments(user), myBookings(user).catch(() => [])]);
+  // the photo report of each rental checked out (0130): the check-out and check-in photos, times, kilometres and fuel
+  const reports = trips.filter((b) => ['on_rent', 'returned', 'closed'].includes(b.status));
   return (
     <>
       <PageHeader title="Your documents" purpose="Your rental agreements, receipts, statements and the photos you uploaded." />
+      {reports.length > 0 && (
+        <section className="pt-card" aria-labelledby="pt-reports" data-testid="photo-reports">
+          <h2 className="d4" id="pt-reports">Photo reports</h2>
+          <ul className="pt-list">{reports.map((b) => <li key={b.booking_number} className="pt-card__head"><span>Check-out and check-in, booking {b.booking_number}</span><Link prefetch={false} className="link" href={`/account/bookings/${encodeURIComponent(b.booking_number)}/condition-report`}>View</Link></li>)}</ul>
+        </section>
+      )}
       {!docs.length ? <div className="pt-empty"><p className="d4">No documents yet.</p><p className="muted">Agreements, receipts and statements appear here once you book.</p></div> : (
         <div className="table-scroll pt-card" tabIndex={0} role="region" aria-label="Documents">
           <table className="data ad-table--cards" role="table">

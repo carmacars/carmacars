@@ -125,7 +125,12 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   const [b2] = await sql`select status, current_offer_version, deposit_cents from bookings where id = ${b!.id}`;
   expect(`${b2!.status}/${b2!.current_offer_version}/${b2!.deposit_cents}`).toBe('offered/2/40000');
 
-  // the renter approves and signs (their own screens are covered elsewhere)
+  // the renter puts their licence on file (0130's gate), approves and signs (their own screens are covered elsewhere)
+  const [drv] = await sql`select driver_id from booking_drivers where booking_id = ${b!.id} and role = 'renter'`;
+  for (const k of ['licence_front', 'licence_back', 'selfie']) {
+    await sql`select app.register_verification_upload(${b!.id}, ${b!.user_id}, ${k}, ${drv!.driver_id}, ${`renters/of/${k}-${tag()}.jpg`}, ${'e'.repeat(64)}, 'image/jpeg', null, 'identity')`;
+  }
+  await sql`select public.renter_save_details(${b!.user_id}, ${sql.json({ licence_number: 'N1234-12345-12345', licence_issuer: 'ON', licence_class: 'G', licence_expiry: '2030-01-01' })}, ${b!.id})`;
   await sql`select public.renter_approve_offer(${b!.id}, 2, ${b!.user_id})`;
   await sql`select public.renter_open_agreement(${b!.id}, ${b!.user_id}, 'rental-test', ${'f'.repeat(64)}, ${'bookings/of/x.pdf'})`;
   await sql`select public.renter_sign_agreement(${b!.id}, ${b!.user_id}, 'I agree', ${'f'.repeat(64)},

@@ -1,5 +1,6 @@
 'use client';
 import { useId, useState } from 'react';
+import { AddressLookup } from '@/features/forms/AddressFields';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAct } from '@/features/portal/useAct';
@@ -30,6 +31,7 @@ export function OwnerReview({ data, trackers }: { data: ReviewData; trackers: bo
         <p className="small">{data.owner.legal_name}{data.owner.email ? ` · ${data.owner.email}` : ''}. A change to your legal name or email: tell us, it changes your agreements.</p>
         <div className="ad-fields ob-terms">
           {input(`${uid}-phone`, 'Phone', o.phone!, (v) => setO({ ...o, phone: v }), !data.editable, 'tel')}
+          {data.editable && <AddressLookup idp={`${uid}-addr`} onParts={(p) => setO((x) => ({ ...x, address_line1: p.street || x.address_line1!, address_line2: p.unit || x.address_line2!, city: p.city || x.city!, province: p.province || x.province!, postal_code: p.postal_code || x.postal_code! }))} />}
           {input(`${uid}-address_line1`, 'Street address', o.address_line1!, (v) => setO({ ...o, address_line1: v }), !data.editable)}
           {input(`${uid}-address_line2`, 'Unit (optional)', o.address_line2!, (v) => setO({ ...o, address_line2: v }), !data.editable)}
           {input(`${uid}-city`, 'City', o.city!, (v) => setO({ ...o, city: v }), !data.editable)}

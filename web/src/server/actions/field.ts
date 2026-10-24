@@ -19,11 +19,13 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     const user = await currentUser();
     if (!user) throw new Error('Sign in first.');
     const roles = await rolesOf(user.id);
-    if (!roles.field) throw new Error('Only field staff may do this.');
+    // field staff; an Admin or an assistant on a check-out or check-in of their own (0130: the database checks the job)
+    if (!roles.field && !(['save_report', 'complete_handover', 'complete_return', 'block_handover'].includes(action) && (roles.admin || roles.va))) throw new Error('Only field staff may do this.');
     const aal = await sessionAal();
     if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
     const data = await door<T>(user.id, 'field_do', action, p, aal);
     revalidatePath('/field');
+    if (action === 'complete_handover' || action === 'complete_return') { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout'); }
     if (typeof p.job === 'string') revalidatePath(`/field/jobs/${p.job}`);
     return { ok: true, data };
   } catch (e) { return fail(e); }

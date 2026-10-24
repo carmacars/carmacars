@@ -3,12 +3,13 @@ import { page } from '@/server/admin/api';
 import Link from 'next/link';
 import { $, Badge, BookingLink, Filters, MoreFilters, PageHead, Search, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
+import { lateLabel } from '@/features/handover/late';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings', path: '/admin/bookings', noindex: true, description: 'Every booking.' });
 
 const STATUSES: Array<[string, string]> = [['', 'All'], ['requested', 'Requested'], ['offered', 'Offered'], ['pending_payment', 'Signing and payment'], ['confirmed', 'Confirmed'], ['on_rent', 'On rent'], ['returned', 'Returned'], ['closed', 'Closed'], ['cancelled', 'Cancelled']];
-type Row = { id: string; booking_number: string; status: string; awaiting_signature?: boolean; vehicle_name: string; renter_name: string; pickup_at: string; return_at: string; total_due_at_booking_cents: number; bill_to: string; blocks_calendar: boolean };
+type Row = { id: string; booking_number: string; status: string; awaiting_signature?: boolean; vehicle_name: string; renter_name: string; pickup_at: string; return_at: string; total_due_at_booking_cents: number; bill_to: string; blocks_calendar: boolean; checked_in_at?: string | null; minutes_late?: number | null };
 
 export default async function Bookings({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ list, user }, sp] = await Promise.all([page('/admin/bookings'), searchParams]);
@@ -30,7 +31,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
       </MoreFilters>
       <Table<Row> testId="bookings" caption="Bookings" rows={rows} cols={[
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
-        { key: 'status', label: 'Status', render: (r) => <Badge s={r.awaiting_signature ? 'awaiting_signature' : r.status} /> },
+        { key: 'status', label: 'Status', render: (r) => { const late = lateLabel(r); return <><Badge s={r.awaiting_signature ? 'awaiting_signature' : r.status} />{late && <> <span className="ad-late small" data-testid="list-late">{late}</span></>}</>; } },
         { key: 'vehicle_name', label: 'Car' }, { key: 'renter_name', label: 'Renter' },
         { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
         { key: 'total', label: 'Total', num: true, render: (r) => $(r.total_due_at_booking_cents) },

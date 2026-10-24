@@ -25,6 +25,11 @@ export function budgetedMaps(google: MapsAdapter, fallback: MapsAdapter, take: T
       if (query.trim().length < MIN_QUERY) return [];
       return (await allowed('autocomplete')) ? google.autocomplete(query, sessionToken) : [];
     },
+    async suggest(query, sessionToken) {
+      if (query.trim().length < MIN_QUERY) return { items: [], limited: false };
+      if (!(await allowed('autocomplete'))) return { items: [], limited: true };
+      return { items: await google.autocomplete(query, sessionToken), limited: false };
+    },
     async place(id, sessionToken) {
       if (!PLACE_ID.test(id)) return null;
       return (await allowed('place_details')) ? google.place(id, sessionToken) : null;

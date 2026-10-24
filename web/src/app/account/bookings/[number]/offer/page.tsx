@@ -8,6 +8,7 @@ import { bookingPath, carName, offerChanges } from '@/features/portal/status';
 import { Back, Dl, PriceBreakdown, placeText } from '@/features/portal/Blocks';
 import { Countdown } from '@/features/portal/Countdown';
 import { OfferActions } from '@/features/portal/OfferActions';
+import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { myBooking } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,8 @@ export const metadata = pageMeta({ title: 'Review your offer', path: '/account/b
 // Review the offer (02 section 4): the current version, what changed as before and after, the price,
 // the time left, and the rule that an offer does not hold the car.
 export default async function OfferPage({ params }: { params: Promise<{ number: string }> }) {
-  const { b } = await myBooking((await params).number, 'offer');
+  const { b, user } = await myBooking((await params).number, 'offer');
+  const missing = renterMissing(await licenceState(b.id, user.id));
   if (b.status === 'pending_payment') redirect(bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign'));
   const o = b.offers.find((x) => x.version === b.current_offer_version);
   const last = b.offers[b.offers.length - 1];
@@ -65,6 +67,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
               {substituted && <p className="small">We offer a similar car because the one you asked for is not available.</p>}
             </section>
           )}
+          <LicenceNotice number={b.booking_number} missing={missing} when="offer" />
           <section className="pt-card" aria-labelledby="pt-trip"><h2 className="d4" id="pt-trip">Trip</h2>
             <Dl rows={[
               ['Pickup', `${when(o.pickup_at)}, ${placeText(b.pickup_place, b.pickup_method, true)}`],
@@ -83,7 +86,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="pt-price"><h2 className="d4" id="pt-price">Price</h2>
             <PriceBreakdown lines={lines} hst={o.hst_cents} total={o.renter_due_cents} totalLabel="Total due at booking" insurer={o.insurer_share_cents || undefined} deposit={o.deposit_cents} />
-            <OfferActions number={b.booking_number} version={o.version} />
+            <OfferActions number={b.booking_number} version={o.version} licenceMissing={!!missing?.length} />
           </section>
         </aside>
       </div>

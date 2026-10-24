@@ -34,6 +34,17 @@ create function test.ofreq(p_car text, p_from interval, p_to interval, p jsonb d
   select jsonb_build_object('vehicle_id', test.ofcar(p_car), 'pickup_at', date_trunc('hour', now()) + p_from, 'return_at', date_trunc('hour', now()) + p_to,
     'renter', jsonb_build_object('full_name', 'Nora Offer', 'email', 'nora.offer@example.test', 'mobile', '(289) 555-0817', 'date_of_birth', '1991-02-03'),
     'coverage_option', 1, 'sales_choice', 'sourced', 'channels', jsonb_build_object('email', true, 'text', false)) || p $$;
+-- the licence the renter uploads before accepting (0130's gate)
+create function test.of_licence(p text) returns void language plpgsql as $$
+declare v_driver uuid := (select bd.driver_id from booking_drivers bd where bd.booking_id = (test.ofb(p)).id and bd.role = 'renter');
+  k text;
+begin
+  foreach k in array array['licence_front', 'licence_back', 'selfie'] loop
+    perform app.register_verification_upload((test.ofb(p)).id, test.ofu(p), k, v_driver, 'renters/of/' || p || '-' || k || '-' || gen_random_uuid() || '.jpg', repeat('e', 64), 'image/jpeg', null, 'identity');
+  end loop;
+  perform public.renter_save_details(test.ofu(p), jsonb_build_object('licence_number', 'N1234-12345-12345', 'licence_issuer', 'ON', 'licence_class', 'G',
+    'licence_expiry', (now() + interval '3 years')::date), (test.ofb(p)).id);
+end $$;
 create function test.of_consents() returns jsonb language sql immutable as $$
   select '[{"code":"tracking_disabling","version":"v","text":"t"},{"code":"identity_verification","version":"v","text":"t"},{"code":"electronic_signature","version":"v","text":"t"},{"code":"card_authorization","version":"v","text":"t"}]'::jsonb $$;
 
@@ -93,6 +104,7 @@ select test.eq('saved quietly: version 3, no third offer email', (select current
   (select count(*) from app_events where entity_id = (test.ofb('o1')).id and code = 'renter_offer_ready'), '3/40000/2');
 
 -- approved, not paid: still edited in place
+select test.of_licence('o1');
 select public.renter_approve_offer((test.ofb('o1')).id, 3, test.ofu('o1'));
 select test.eq('approved: waiting for signature and payment', (test.ofb('o1')).status::text, 'pending_payment');
 insert into test.of select 'r3', app.door(test.id('of_admin'), 'aal2', 'admin_do', 'offer_revise', jsonb_build_object('booking', (test.ofb('o1')).booking_number,

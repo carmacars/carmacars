@@ -212,6 +212,40 @@ def build():
         f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
     ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(1, 290, 230), (2, 500, 560), (3, 290, 700), (4, 1300, 176)]))
 
+    g.task('Check a car out or in', 'From the booking, with your phone or a tablet: the same checklist field staff use.')
+    g.steps([
+        f'A confirmed booking shows {B("Check out (pickup)")} under Check-out, check-in and signing; a booking on rent shows {B("Check in (return)")}. Today lists the check-outs and check-ins due, each with {B("Check out")} or {B("Check in")}.',
+        'The checklist opens: the ready check, the renter and their licence and card, the odometer (km) and fuel or charge, the keys, the photo set (every side, the wheels, the interior, the odometer and fuel gauge, the plate), damage marks with close-ups, then the renter and you sign.',
+        'Photos wait on the device without a connection and upload in the background. Each keeps its time, and the place when the device allows location.',
+        f'A field job of the booking is taken over (the history says so); with no job, one is made for you. When done, press {B("See the photo report")}.',
+    ])
+    g.tip('Fleet, Sales and Customer service check cars out and in the same way from their own booking page.')
+
+    g.task('The photo report, late returns and the return charges', f'Under Check-out, check-in and signing, press {B("Photo report")}.')
+    g.steps([
+        'The report shows the due-back time, the actual check-out and check-in, Late by (or Overdue by while the car is out), the odometer and kilometres over the allowance, the fuel or charge out and in, every photo with its time and place, and the damage.',
+        'At check-in the late return (after the grace period of the fee defaults), the mileage overage and the fuel or recharging are written to the return charges at once. A gas car with no pump receipt is priced at the refill price per eighth (Program settings) plus the markup until the receipt is entered.',
+        f'Not charging one? Press {B("Waive")} beside it and give the reason: it stays waived if the charges are worked out again.',
+        f'The time was wrong? Press {B("Correct the check-in time")} (or the check-out time) with the reason: lateness and the late charges follow, and the history keeps both times.',
+        'The renter gets the same report (without these buttons) by email and in their Documents. Late by shows on the booking and in the Bookings list.',
+    ])
+
+    g.task('Signatures on the spot, or by link', 'The renter or an additional driver signs the rental agreement on your device, or on their own phone.')
+    g.steps([
+        f'While a signature is missing, the booking shows {B("Sign now on this device")}, {B("Email the signing link")} and {B("Text the signing link")}.',
+        f'{B("Sign now on this device")}: confirm the name matches their licence and that you saw the original licence (photograph it if none is on file), then press {B("Hand the device to")} and their name.',
+        f'They read both agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign. Then {B("Back to the staff view")} for the next signer.',
+        'The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy\'s signature record page.',
+    ])
+
+    g.task('The licence before an offer is accepted', 'Front, back and a selfie, from the request on.')
+    g.steps([
+        'After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.',
+        'The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.',
+        f'Review the images as usual with {B("Review documents")}: the card Renter documents is on Review and offer too.',
+        f'The switch is in {P("Settings", "Program settings")}, Booking requests and offers: Booking licence required (on), with the selfie (on).',
+    ])
+
     g.task('Renter documents: licence and proof of coverage', 'A renter\'s licence photos, selfie and proof of coverage (OPCF 27 or a credit card\'s rental coverage) are checked before the handover. You check them yourself; no task is needed.')
     g.steps([
         f'A booking with documents waiting is a line on To do: "Check <renter>\'s documents for booking <number>", marked Now when the pickup is within two days. Press {B("Review documents")}.',

@@ -18,6 +18,7 @@ import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatur
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money } from '@/features/money/BookingMoney';
+import { HandoverPanel } from '@/features/handover/HandoverPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -89,6 +90,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
       </PageHead>
+      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
+        b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       <Tabs current={`${base}?tab=${tab}`} items={[
         ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
         [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
@@ -106,6 +109,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
             </Card>
           </div>
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
+          {/* the renter's licence, uploaded with the request (0130) */}
+          <RenterDocs b={b} refresh={[base]} />
           <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} />
         </>
       )}
@@ -119,7 +124,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
-          {['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
+          {['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           <Card title="Price">
             <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>

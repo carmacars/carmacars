@@ -1,4 +1,5 @@
 import type { MapsAdapter, Place, PlaceSuggestion } from './types';
+import { fromComponents, fromLabel } from '../../features/forms/address-parts.ts';
 
 // Google Maps Platform, called from the server only (the key never reaches the browser):
 // Places API (New) Autocomplete and Place Details with one session token per lookup (billed as one
@@ -43,11 +44,13 @@ export function googleMaps(apiKey: string, o: GoogleMapsOptions = {}): MapsAdapt
     async place(id, sessionToken): Promise<Place | null> {
       if (!/^[A-Za-z0-9_-]{4,300}$/.test(id)) return null;
       const q = new URLSearchParams({ sessionToken, languageCode: 'en', regionCode: 'ca' });
-      const j = await call<{ id?: string; formattedAddress?: string; location?: { latitude?: number; longitude?: number } }>(
-        `${PLACES}/places/${encodeURIComponent(id)}?${q}`, { headers: headers('id,formattedAddress,location') });
+      // the address components are in the same (Essentials) field set: the form fills street, unit, city, province,
+      // postal code and country from them (0130)
+      const j = await call<{ id?: string; formattedAddress?: string; location?: { latitude?: number; longitude?: number }; addressComponents?: Array<{ longText?: string; shortText?: string; types?: string[] }> }>(
+        `${PLACES}/places/${encodeURIComponent(id)}?${q}`, { headers: headers('id,formattedAddress,location,addressComponents') });
       const lat = j?.location?.latitude, lng = j?.location?.longitude;
       if (!j?.id || !j.formattedAddress || typeof lat !== 'number' || typeof lng !== 'number') return null;
-      return { id: j.id, label: j.formattedAddress, lat, lng };
+      return { id: j.id, label: j.formattedAddress, lat, lng, parts: fromComponents(j.addressComponents) ?? fromLabel(j.formattedAddress) };
     },
     async distanceKm(from, to): Promise<number | null> {
       const point = (p: { lat: number; lng: number }) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });

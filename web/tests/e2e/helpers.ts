@@ -97,3 +97,14 @@ export async function aiAllowanceLock(mode: 'alone' | 'shared'): Promise<() => P
   await c.unsafe(mode === 'alone' ? 'select pg_advisory_lock(73110087)' : 'select pg_advisory_lock_shared(73110087)');
   return async () => { await c.end(); };
 }
+
+/** The renter's licence on file (front, back, selfie and an expiry after the return), as the licence step leaves it
+ *  (0130): needed before an offer is accepted. Call it once the request exists (requested or offered). */
+export async function giveLicence(sql: ReturnType<typeof db>, booking: string) {
+  await sql`update booking_drivers set licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}::uuid and role = 'renter'`;
+  for (const k of ['licence_front', 'licence_back', 'selfie']) {
+    await sql`select app.register_verification_upload(${booking}::uuid, null, ${k}, d.driver_id, ${`e2e/${booking}/${k}.jpg`}, null, 'image/jpeg', null, 'identity')
+                from booking_drivers d where d.booking_id = ${booking}::uuid and d.role = 'renter'
+                 and not exists (select 1 from verification_uploads u where u.booking_id = d.booking_id and u.driver_id = d.driver_id and u.kind = ${k} and u.status in ('submitted', 'approved'))`;
+  }
+}

@@ -51,11 +51,12 @@ test('place details: the same session token closes the session; the address and 
   const { f, calls } = mock([{ body: { id: 'ChIJ1', formattedAddress: '65 Front St W, Toronto, ON M5J 1E6, Canada', location: { latitude: 43.6453, longitude: -79.3806 } } }]);
   const m = googleMaps('k', { fetch: f });
   const p = await m.place('ChIJ1', 'sess-1');
-  assert.deepEqual(p, { id: 'ChIJ1', label: '65 Front St W, Toronto, ON M5J 1E6, Canada', lat: 43.6453, lng: -79.3806 });
+  assert.deepEqual(p, { id: 'ChIJ1', label: '65 Front St W, Toronto, ON M5J 1E6, Canada', lat: 43.6453, lng: -79.3806,
+    parts: { street: '65 Front St W', unit: '', city: 'Toronto', province: 'ON', postal_code: 'M5J 1E6', country: 'Canada' } });
   const c = calls[0]!;
   assert.match(c.url, /^https:\/\/places\.googleapis\.com\/v1\/places\/ChIJ1\?/);
   assert.match(c.url, /sessionToken=sess-1/);
-  assert.equal(h(c)['X-Goog-FieldMask'], 'id,formattedAddress,location');
+  assert.equal(h(c)['X-Goog-FieldMask'], 'id,formattedAddress,location,addressComponents');
 });
 
 test('place details: a malformed id makes no call; a missing location is not a place', async () => {

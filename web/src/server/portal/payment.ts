@@ -15,6 +15,8 @@ export interface PaymentFacts {
   booking_id: string; booking_number: string; status: string; booking_type: string; renter_due_at_booking_cents: number;
   offer_approved_version: number | null; current_offer_version: number | null; renter_id: string; renter_user_id: string;
   legal_name: string; email: string; agreement_signed: boolean; vehicle_free: boolean; customer_id: string | null;
+  /** 0130: what of the renter's licence is still missing (empty when nothing, or the switch is off) */
+  licence_missing?: string[];
 }
 
 export async function paymentFacts(bookingId: string): Promise<PaymentFacts> {

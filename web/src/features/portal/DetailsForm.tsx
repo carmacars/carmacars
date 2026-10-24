@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDetails, type DetailsInput } from '@/server/actions/portal';
 import { useAct } from './useAct';
+import { AddressFields } from '@/features/forms/AddressFields';
 
 const PROVINCES: [string, string][] = [['ON', 'Ontario'], ['QC', 'Quebec'], ['BC', 'British Columbia'], ['AB', 'Alberta'], ['MB', 'Manitoba'], ['SK', 'Saskatchewan'], ['NS', 'Nova Scotia'], ['NB', 'New Brunswick'], ['NL', 'Newfoundland and Labrador'], ['PE', 'Prince Edward Island'], ['YT', 'Yukon'], ['NT', 'Northwest Territories'], ['NU', 'Nunavut']];
 
@@ -23,18 +24,8 @@ export function DetailsForm({ number, initial }: { number: string; initial: Part
   );
   return (
     <form className="stack-lg" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => saveDetails(number, v), (r) => { if (r.ok) router.refresh(); }); }} aria-label="Your details">
-      {f('address_line1', 'Home address', { autoComplete: 'address-line1' })}
-      {f('address_line2', 'Apartment or unit (optional)', { autoComplete: 'address-line2' })}
-      <div className="field-row">
-        {f('city', 'City', { autoComplete: 'address-level2' })}
-        <div className="field"><label className="label" htmlFor="pt-d-province">Province or state</label>
-          <input className="input" id="pt-d-province" value={v.province} onChange={set('province')} autoComplete="address-level1" aria-invalid={!!a.err('province') || undefined} aria-describedby="pt-d-province-err" />
-          <p className="error" role="alert" id="pt-d-province-err">{a.err('province') ?? ''}</p></div>
-      </div>
-      <div className="field-row">
-        {f('postal_code', 'Postal code', { autoComplete: 'postal-code' })}
-        {f('country', 'Country', { autoComplete: 'country-name' })}
-      </div>
+      <AddressFields idp="pt-d" value={v as unknown as Record<string, unknown>} onChange={(p) => setV((x) => ({ ...x, ...p }))} streetLabel="Home address" lookupLabel="Find your home address"
+        errors={{ address_line1: a.err('address_line1'), city: a.err('city'), province: a.err('province'), postal_code: a.err('postal_code'), country: a.err('country') }} />
       <div className="field-row">
         <div className="field"><label className="label" htmlFor="pt-d-issuer">Licence issued by</label>
           <select className="select" id="pt-d-issuer" value={other ? 'OTHER' : v.licence_issuer} onChange={(e) => setV({ ...v, licence_issuer: e.target.value === 'OTHER' ? '' : e.target.value })}>

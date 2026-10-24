@@ -86,10 +86,13 @@ async function attachAgreementSignedCopy(bookingId: string, renterUserId: string
   for (const d of f.drivers.filter((x) => x.role === 'additional')) await add('Additional Driver', d.full_name, rec.records.find((r) => r.signer_role === 'additional_driver' && r.signer_name === d.full_name));
   const cc = rec.records.find((r) => r.signer_role === 'carmacars');
   await add('CarmaCars', cc?.signer_name ?? 'CarmaCars', cc);
+  // signed in person on a staff member's device (0130): the record says who collected it
+  const inPerson = (await rpc('server_in_person_lines', { p_request: rec.signature_request_id }, SR).catch(() => []) as unknown as Array<{ signer_role: string; signer_name: string; line: string }>) ?? [];
   const lines: string[][] = [
     ['Agreement', `${rec.agreement_number}, text version ${rec.template_version}`],
     ['Unsigned document SHA-256', rec.document_sha256],
-    ...rec.records.map((r) => [`${r.signer_role.replace('_', ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}`]),
+    ...rec.records.map((r) => { const ip = inPerson.find((x) => x.signer_role === r.signer_role && x.signer_name === r.signer_name);
+      return [`${r.signer_role.replace('_', ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${ip ? `; ${ip.line}` : r.user_agent ? `; device ${r.user_agent}` : ''}`]; }),
     ...company.lines
   ];
   const pdf = await agreementPdf(blocksFor(f, rows), {

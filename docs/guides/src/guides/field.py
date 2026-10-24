@@ -39,7 +39,7 @@ def build():
         f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
         'Each card: the kind, the time, the status, the car and plate.',
-        f'Press {B("Open the job")} to start.',
+        f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
     ], shot=S('field/01-today-phone', 0, 595, 390, 1480, pins=[(1, 30, 720), (2, 300, 795), (3, 350, 885), (4, 345, 975), (5, 300, 1067)]))
     g.tip('Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.')
@@ -97,7 +97,17 @@ def build():
         (H('32-handover-12-summary-phone', 1460), 'Renter reviews: the renter reads the summary of odometer, fuel, keys, photos and damage.'),
         (H('33-handover-13-signatures-phone', 1500), f'Signatures: the renter signs, then you. {B("Use this signature")} for each.'),
     ])
-    g.steps([f'Press {B("Hand over the keys")}. You see "Handed over. The rental has started."'])
+    g.steps([f'Press {B("Hand over the keys")}. You see "Checked out. The rental has started." The renter gets the photo report by email and in their Documents.'])
+    g.tip('Photos wait on the phone without a connection and upload by themselves when it returns; the count shows what is still uploading. '
+          'Each photo keeps its time, and the place when your phone allows location.')
+
+    g.task('Sign now on this device', 'The renter (or an additional driver) has not signed the rental agreement yet? They sign on your phone.')
+    g.steps([
+        f'On the job, press {B("Sign now on this device")}. It shows who still has to sign and whether their licence is on file.',
+        f'Check the person: the name matches their licence, and you saw the original licence. Tick both. No licence on file? Press {B("Photograph: Licence, front")} (and the back and the selfie).',
+        f'Press {B("Hand the device to")} and their name. They read the agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign with their name or their finger.',
+        f'They hand the phone back: press {B("Back to the staff view")}. The signature record says it was signed in person, collected by you, on your phone.',
+    ])
     g.task('Add-ons to put in the car', 'A booking may come with add-ons: a baby seat, a child or booster seat, flowers, an umbrella, a phone charger or a prepaid full tank.')
     g.steps([
         'Open the job. Under Put in the car you see each add-on, how many, and what to do (for example "Put the bouquet on the front passenger seat").',
@@ -123,7 +133,7 @@ def build():
         f'Compare with pickup: for new damage, tap the diagram, fill in Where and What it is, press {B("Add the damage")} and take a close-up photo.',
         'Belongings: check the seats, the trunk, the glovebox and the door pockets.',
         'Renter reviews and signs. Then you sign.',
-        f'Press {B("Complete the return")}.',
+        f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically.',
     ])
     g.warn('New damage needs a close-up photo and a clear note. Finance uses your photos and notes to bill the renter, so take your time.')
 

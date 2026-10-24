@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SignaturePad } from '@/features/portal/SignaturePad';
@@ -29,8 +29,16 @@ const dataUrlBlob = async (u: string) => {
   return new Blob([out], { type: /data:([^;]+)/.exec(head ?? '')?.[1] ?? 'image/png' });
 };
 
-export function Checklist({ j }: { j: FieldJob }) {
+export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs' }: { j: FieldJob; back?: string; backLabel?: string }) {
   const router = useRouter();
+  // where each photo is taken, when the phone allows it (0130): asked once, never in the way
+  const where = useRef<{ latitude: number; longitude: number } | null>(null);
+  useEffect(() => {
+    try {
+      navigator.geolocation?.getCurrentPosition((p) => { where.current = { latitude: Math.round(p.coords.latitude * 1e6) / 1e6, longitude: Math.round(p.coords.longitude * 1e6) / 1e6 }; },
+        () => undefined, { maximumAge: 120_000, timeout: 10_000, enableHighAccuracy: false });
+    } catch { /* no location on this device */ }
+  }, []);
   const pickup = j.report_kind === 'pickup';
   const jobId = j.job.id;
   const key = `cc-field-${jobId}`;
@@ -62,7 +70,7 @@ export function Checklist({ j }: { j: FieldJob }) {
     if (!file) return;
     const p = await preparePhoto(file);
     if (p.flags.some((f) => ['dark', 'blurry'].includes(f))) setMsg(`That photo looks ${p.flags.filter((f) => ['dark', 'blurry'].includes(f)).join(' and ')}. Take it again if you can; it is kept otherwise.`);
-    await uploads.add({ job: jobId, seq, shot, mode: 'photo', damage_label: damage_label ?? null, blob: p.blob, taken_at: new Date().toISOString(), width: p.width, height: p.height, flags: p.flags });
+    await uploads.add({ job: jobId, seq, shot, mode: 'photo', damage_label: damage_label ?? null, blob: p.blob, taken_at: new Date().toISOString(), width: p.width, height: p.height, flags: p.flags, ...(where.current ?? {}) });
   };
   const sign = async (who: 'renter' | 'staff', png: string) => {
     const k = await uploads.addAndWait({ job: jobId, seq: who === 'renter' ? 900 : 901, shot: `signature_${who}`, mode: 'raw', blob: await dataUrlBlob(png), taken_at: new Date().toISOString() });
@@ -139,7 +147,7 @@ export function Checklist({ j }: { j: FieldJob }) {
       const x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } });
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone('Handed over. The rental has started.');
+      setDone('Checked out. The rental has started; the renter gets the photo report by email.');
     }), body: <Upload q={q} total={required.length} shotsDone={shotsDone} /> }
   ] : [
     { title: 'Car and keys received', can: r.renter_present !== undefined, body: (
@@ -180,12 +188,12 @@ export function Checklist({ j }: { j: FieldJob }) {
       const x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) });
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone('Return complete. Fleet reviews the photos and Finance the findings.');
+      setDone('Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.');
     }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
   ];
 
-  if (done) return <div className="fd-screen" role="status" data-testid="field-done"><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href="/field">Back to my jobs</Link></div>;
-  if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href="/field">Back to my jobs</Link></div>;
+  if (done) return <div className="fd-screen" role="status" data-testid="field-done"><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
+  if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
   const s = screens[Math.min(step, screens.length - 1)]!;
   const last = step >= screens.length - 1;
   return (

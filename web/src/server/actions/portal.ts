@@ -14,6 +14,7 @@ import { readToken, sha256Hex, signToken } from '@/server/links';
 import { findBooking, requireUser } from '@/server/portal/data';
 import { openAgreement } from '@/server/portal/agreement';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { chargeAddedRental } from '@/server/portal/added-charge';
 import { bookingIntent, paymentFacts, reasonMessage, settleIntent, type SettleResult } from '@/server/portal/payment';
 import { consentTexts } from '@/server/booking-data';
 import { changeFacts, openAmendment, payAndApply } from '@/server/portal/change';
@@ -117,6 +118,21 @@ export async function saveDetails(number: string, d: DetailsInput): Promise<R> {
   } catch (e) { return fail(dbMessage(e)); }
 }
 
+/** The licence details alone (number, issuer, class, expiry), from the licence step (0130). */
+export async function saveLicence(number: string, d: { licence_number: string; licence_class: string; licence_issuer: string; licence_expiry: string }): Promise<R> {
+  const fe: Record<string, string> = {};
+  for (const k of ['licence_number', 'licence_issuer', 'licence_expiry'] as const) if (!String(d[k] ?? '').trim()) fe[k] = 'Required.';
+  if (d.licence_issuer === 'ON' && d.licence_number && !/^[A-Z]\d{4}-?\d{5}-?\d{5}$/i.test(d.licence_number.replace(/\s/g, ''))) fe.licence_number = 'An Ontario licence number looks like A1234-12345-12345.';
+  if (Object.keys(fe).length) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fe };
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_save_details', { p_by: userId, p_booking: b.id, p_details: { licence_number: d.licence_number.toUpperCase(), licence_class: d.licence_class, licence_issuer: d.licence_issuer, licence_expiry: d.licence_expiry } }, SR);
+    refresh(number);
+    revalidatePath(bookingPath(number, 'verify'));
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
 export async function prepareAgreement(number: string): Promise<R> {
   try {
     const { userId, b } = await mine(number);
@@ -186,27 +202,6 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
   redirect(target);
 }
 
-interface AddedRentalCharge { booking_id: string; booking_number: string; amount_cents: number; customer_id: string | null; method_id: string | null; brand: string | null; last4: string | null }
-
-/** The saved card of a rental staff added, charged when the renter signs (0053). Returns the decline message, or null. */
-async function chargeAddedRental(bookingId: string, number: string, userId: string): Promise<string | null> {
-  const c = (await rpc('server_manual_rental_sign_charge', { p_booking: bookingId, p_by: userId }, SR)) as unknown as AddedRentalCharge | null;
-  if (!c || !c.method_id || !c.customer_id || c.amount_cents <= 0) return null;
-  try {
-    const i = await (await payments()).chargeOffSession({ customerId: c.customer_id, paymentMethodId: c.method_id, amountCents: c.amount_cents,
-      description: `Rental ${number}`, metadata: { booking_id: bookingId, purpose: 'booking_total', manual_rental: 'true', charged_on_signing: 'true' },
-      idempotencyKey: `manual-rental:${bookingId}` });
-    const ok = i.status === 'succeeded';
-    await rpc('server_manual_rental_sign_charged', { p_booking: bookingId, p_by: userId, p: { ok, amount_cents: i.amountCents || c.amount_cents,
-      error: ok ? null : i.lastError ?? 'The card was declined.', processor: { payment_id: i.id, charge_id: i.chargeId } } }, SR);
-    return ok ? null : (i.lastError ?? 'The card was declined.');
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'The card could not be charged.';
-    await rpc('server_manual_rental_sign_charged', { p_booking: bookingId, p_by: userId, p: { ok: false, amount_cents: c.amount_cents, error: message } }, SR).catch(() => undefined);
-    return message;
-  }
-}
-
 /** An additional driver's own link: no account, the signed token names their signer row. */
 export async function signAsDriver(token: string, input: SignInput): Promise<R> {
   const t = await readToken<{ s: string; v?: number }>('driver-sign', token);
@@ -245,6 +240,8 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     if (b.status !== 'pending_payment' && !b.link_due) return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
     const f = await paymentFacts(b.id);
     if (!f.agreement_signed) return fail('Sign the rental agreement first.', 'unsigned');
+    // the licence before payment (0130: the switch in Program settings)
+    if (f.licence_missing?.length) return fail(`Upload your driver's licence before you pay: ${f.licence_missing.join(', ')} still needed.`, 'licence');
     if (f.renter_due_at_booking_cents <= 0) return fail('Nothing is due now. We will confirm the booking on your signature.', 'nothing_due');
     // the car may already be confirmed for someone else: then nothing is authorized (section 6)
     if (!f.vehicle_free) return fail(reasonMessage('vehicle_taken'), 'pushed_back');
@@ -467,7 +464,8 @@ export async function createUpload(number: string, kind: Kind, driverId: string 
     if (!KINDS.includes(kind)) return fail('Unknown upload.');
     if (!TYPES[contentType] || (contentType === 'application/pdf' && kind !== 'coverage_proof')) return fail(kind === 'coverage_proof' ? 'Upload a photo or a PDF.' : 'Upload a photo (JPEG or PNG).');
     if (!(size > 0 && size <= MAX_BYTES)) return fail('The file must be under 10 MB.');
-    if (!['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) return fail('Documents are uploaded once the offer is approved.');
+    // the licence images from the request on (0130); the coverage proof once the offer is approved
+    if (!['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress') && !(kind !== 'coverage_proof' && ['requested', 'offered'].includes(b.status))) return fail('Documents are uploaded once the offer is approved.');
     if (kind === 'coverage_proof' ? driverId !== null : !b.drivers.some((d) => d.driver_id === driverId)) return fail('That driver is not on this booking.');
     const bucket: Bucket = kind === 'coverage_proof' ? 'documents' : 'identity';
     const key = `renters/${userId}/${b.id}/${kind}-${driverId ?? 'booking'}-${crypto.randomUUID()}.${TYPES[contentType]}`;

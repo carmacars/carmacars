@@ -16,6 +16,7 @@ import { QuickReply } from '@/features/va/QuickReply';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
+import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 
 export const dynamic = 'force-dynamic';
@@ -87,10 +88,12 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           { name: 'kind', label: 'Kind', type: 'select', required: true, options: KINDS, value: b.status === 'confirmed' ? 'handover' : 'return_check_in' },
           { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff.staff.map((s) => [s.id, s.name] as [string, string]) },
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
-          { name: 'place', label: 'Place', type: 'text', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
+          { name: 'place', label: 'Place', type: 'address', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
       </PageHead>
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
       {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/va/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
+        b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
       {tab === 'review' && arranging && (
         <>

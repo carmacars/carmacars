@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import type { AddressParts } from './address-parts';
 
 // Address lookup while typing (prototype input[data-addr-lookup]): an ARIA combobox that asks the
 // maps module through /api/address (Google Places Autocomplete in production, sample landmarks
@@ -12,8 +13,12 @@ const MIN_CHARS = 3;
 const DEBOUNCE_MS = 350;
 type Item = { id: string; label: string };
 
-export function AddressInput({ id, name, value, onChange, invalid, describedBy, required }: { id: string; name: string; value: AddressValue; onChange: (v: AddressValue) => void; invalid?: boolean; describedBy?: string; required?: boolean }) {
+// onParts (0130): the chosen place in its parts (street, unit, city, province, postal code, country), for forms that keep
+// them field by field; one Place Details call, in the same session. Over the daily cap the field says to type it.
+export function AddressInput({ id, name, value, onChange, invalid, describedBy, required, onParts, placeholder, testId }: { id: string; name: string; value: AddressValue; onChange: (v: AddressValue) => void; invalid?: boolean; describedBy?: string; required?: boolean;
+  onParts?: (p: AddressParts, label: string) => void; placeholder?: string; testId?: string }) {
   const [items, setItems] = useState<Item[]>([]);
+  const [limited, setLimited] = useState(false);
   const [idx, setIdx] = useState(-1);
   const session = useRef('');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -33,8 +38,9 @@ export function AddressInput({ id, name, value, onChange, invalid, describedBy, 
       inflight.current = ac;
       try {
         const r = await fetch(`/api/address?q=${encodeURIComponent(q)}&s=${session.current}`, { signal: ac.signal });
-        const j = (await r.json()) as { items?: Item[] };
+        const j = (await r.json()) as { items?: Item[]; limited?: boolean };
         const got = j.items ?? [];
+        setLimited(!!j.limited);
         seen.current.set(q, got);
         setItems(got); setIdx(-1);
       } catch (e) { if ((e as Error).name !== 'AbortError') setItems([]); }
@@ -42,15 +48,21 @@ export function AddressInput({ id, name, value, onChange, invalid, describedBy, 
   };
   const choose = (i: number) => {
     const it = items[i]; if (!it) return;
-    onChange({ label: it.label, placeId: it.id, session: session.current || undefined });
+    const sess = session.current || undefined;
+    onChange({ label: it.label, placeId: it.id, session: sess });
     setItems([]); setIdx(-1); session.current = ''; seen.current.clear();
+    if (onParts) {
+      void fetch(`/api/address/place?id=${encodeURIComponent(it.id)}&s=${encodeURIComponent(sess ?? '')}`).then((r) => r.json())
+        .then((j: { place?: { label: string; parts: AddressParts | null } | null }) => { if (j.place?.parts) onParts(j.place.parts, j.place.label); })
+        .catch(() => undefined);
+    }
   };
   const open = items.length > 0;
   return (
     <>
       <input className="input" id={id} name={name} type="text" autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={open}
         aria-controls={`${id}-list`} aria-activedescendant={idx > -1 ? `${id}-list-${idx}` : undefined} aria-invalid={invalid || undefined} aria-describedby={describedBy}
-        aria-required={required || undefined} value={value.label}
+        aria-required={required || undefined} value={value.label} placeholder={placeholder} data-testid={testId}
         onChange={(e) => { onChange({ label: e.target.value, placeId: '' }); search(e.target.value); }}
         onKeyDown={(e) => {
           if (!open) return;
@@ -63,6 +75,7 @@ export function AddressInput({ id, name, value, onChange, invalid, describedBy, 
       <ul className="lookup" id={`${id}-list`} role="listbox" aria-label="Address suggestions" hidden={!open}>
         {items.map((it, i) => <li key={it.id} role="option" id={`${id}-list-${i}`} aria-selected={i === idx} onMouseDown={(e) => { e.preventDefault(); choose(i); }}>{it.label}</li>)}
       </ul>
+      {limited && <span className="hint" role="status" data-testid={`${id}-limited`}>Address suggestions are paused for today: type the full address.</span>}
     </>
   );
 }

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -98,6 +98,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
 
   // 2. the staff step: customer service sends the offer (seeded through the database function)
   await sql`select app.send_offer(${bk!.id}, ${STAFF}, 'Your car is ready. We kept your dates.', null)`;
+  await giveLicence(sql, bk!.id);
 
   // 3. the portal shows the next step; the offer page shows the version, price, countdown and the rule
   await page.goto('/account');
@@ -313,6 +314,7 @@ test('race: another renter pays first, the authorization is voided and the push-
   const b = await seedRequest(sql, userB, emailB, 'Blake Fast', car!.vehicle_id, range.from, range.to);
   await sql`select app.send_offer(${a.booking_id}, ${STAFF}, null, null)`;
   await sql`select app.send_offer(${b.booking_id}, ${STAFF}, null, null)`;
+  await giveLicence(sql, a.booking_id); await giveLicence(sql, b.booking_id);
 
   // A signs in, approves, signs by typing the legal name, and opens the pay page
   await signIn(page, emailA, `/account/bookings/${a.booking_number}/offer`);

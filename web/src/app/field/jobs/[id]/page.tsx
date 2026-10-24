@@ -56,6 +56,9 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
       )}
       {j.job.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" />}
       {j.job.status === 'acknowledged' && <FieldButton action="start" payload={{ job: id }} label="Start" primary testId="start" />}
+      {/* the rental agreement still waits for a signature: the renter (or a driver) signs on this phone (0130) */}
+      {b && !done && (j.ready?.signed === false || b.drivers.some((d) => d.role !== 'renter' && !d.accepted)) && (
+        <p><Link prefetch={false} className="btn btn--ghost fd-wide" href={`/field/jobs/${id}/sign-now`} data-testid="field-sign-now">Sign now on this device</Link></p>)}
       {j.job.status === 'in_progress' && checklist && <Checklist j={j} />}
       {j.job.status === 'in_progress' && j.checklist && <JobChecklist j={j} listing={listing} />}
       {done && <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>}
